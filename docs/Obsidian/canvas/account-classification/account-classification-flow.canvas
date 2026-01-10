@@ -25,8 +25,10 @@
 		{"id":"b102000000000017","type":"text","text":"## PostgreSQL\\n\\n- write `account_classification_assignments`\\n- UQ: (account_id, classification_id, batch_id)\\n","x":560,"y":1920,"width":520,"height":160,"color":"4"},
 		{"id":"b102000000000018","type":"text","text":"## External DB\\n\\n- not used\\n","x":1120,"y":1700,"width":520,"height":120,"color":"4"},
 		{"id":"b102000000000019","type":"text","text":"## 返回 200\\n\\n- success envelope\\n- commit\\n","x":0,"y":2100,"width":520,"height":120,"color":"2"},
-		{"id":"b10200000000001a","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/classification-domain.md`\\n- 本流程为同步执行,全量模式会清理并重建 assignments\\n","x":0,"y":2260,"width":1600,"height":140,"color":"2"}
-	],
+			{"id":"b10200000000001a","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/classification-domain.md`\\n- 本流程为同步执行,全量模式会清理并重建 assignments\\n","x":0,"y":2260,"width":1600,"height":140,"color":"2"},
+			{"id":"b1020000000000fe","type":"file","file":"architecture/spec.md","subpath":"#5.4 账户分类(规则 + DSL v4)","x":1700,"y":2260,"width":1400,"height":140,"color":"2"},
+			{"id":"b1020000000000fd","type":"file","file":"architecture/flows/auto-classify.md","subpath":"#流程图","x":1700,"y":2420,"width":1400,"height":120,"color":"2"}
+		],
 	"edges":[
 		{"id":"b102000000001001","fromNode":"b102000000000002","fromSide":"bottom","toNode":"b102000000000003","toSide":"top","label":"enter"},
 		{"id":"b102000000001002","fromNode":"b102000000000003","fromSide":"bottom","toNode":"b102000000000004","toSide":"top","label":"delegate"},

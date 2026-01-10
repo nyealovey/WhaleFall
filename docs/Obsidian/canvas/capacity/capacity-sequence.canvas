@@ -21,8 +21,10 @@
 		{"id":"c103000000000018","type":"text","text":"7) calculate aggregations\\n(best-effort)\\n","x":2120,"y":340,"width":280,"height":120,"color":"6"},
 		{"id":"c103000000000019","type":"text","text":"8) complete/fail record\\n- commit\\n","x":640,"y":500,"width":320,"height":120,"color":"5"},
 		{"id":"c10300000000001a","type":"text","text":"9) update SyncSession totals/status\\n- commit\\n","x":640,"y":660,"width":320,"height":120,"color":"5"},
-		{"id":"c10300000000001b","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/capacity-partitions-domain.md`\\n- alt branches: connect failed / no active db / collected empty -> fail_instance_sync\\n","x":0,"y":1200,"width":2580,"height":160,"color":"2"}
-	],
+			{"id":"c10300000000001b","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/capacity-partitions-domain.md`\\n- alt branches: connect failed / no active db / collected empty -> fail_instance_sync\\n","x":0,"y":1200,"width":2580,"height":160,"color":"2"},
+			{"id":"c1030000000000fe","type":"file","file":"architecture/spec.md","subpath":"#5.5 容量采集(库存 + size stats)","x":0,"y":1380,"width":2580,"height":120,"color":"2"},
+			{"id":"c1030000000000fd","type":"file","file":"architecture/flows/capacity-sync.md","subpath":"#流程图(定时任务主线)","x":0,"y":1520,"width":2580,"height":120,"color":"2"}
+		],
 	"edges":[
 		{"id":"c103000000001001","fromNode":"c103000000000010","fromSide":"right","toNode":"c103000000000011","toSide":"left","label":"run"},
 		{"id":"c103000000001002","fromNode":"c103000000000011","fromSide":"right","toNode":"c103000000000012","toSide":"left","label":"query"},

@@ -11,7 +11,8 @@
 		{"id":"g101000000000013","type":"text","text":"## WhaleFall\n\n- Web UI\n- API\n- Scheduler","x":640,"y":220,"width":210,"height":200,"color":"6"},
 		{"id":"g101000000000015","type":"text","text":"## Redis\n\n- cache","x":1180,"y":220,"width":300,"height":140,"color":"4"},
 		{"id":"g101000000000016","type":"text","text":"## External DB instances\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n- ...","x":1180,"y":380,"width":300,"height":220,"color":"4"},
-		{"id":"g101000000000014","type":"text","text":"## PostgreSQL\n\n- WhaleFall metadata store","x":1180,"y":60,"width":300,"height":140,"color":"4"}
+		{"id":"g101000000000014","type":"text","text":"## PostgreSQL\n\n- WhaleFall metadata store","x":1180,"y":60,"width":300,"height":140,"color":"4"},
+		{"id":"a6db95282881d1e3","type":"file","file":"architecture/spec.md","subpath":"#2.1 系统上下文(C4 L1)","x":1640,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"g101000000001001","fromNode":"g101000000000010","fromSide":"right","toNode":"g101000000000013","toSide":"left","label":"HTTP UI/API"},

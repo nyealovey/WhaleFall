@@ -5,7 +5,7 @@ aliases:
 tags:
   - architecture
   - architecture/index
-status: draft
+status: active
 created: 2026-01-09
 updated: 2026-01-10
 owner: WhaleFall Team
@@ -33,8 +33,15 @@ related:
 - [[architecture/architecture-review|架构评审入口]]
 - [[architecture/adr/README|ADR 索引]]
 
-> [!todo] Planned notes
-> 本目录仍存在待补齐的架构笔记(部分内容在 changes/plans/canvas 中被引用). 如需要落地, 建议按 ADR/计划文档推进, 并在此索引补齐:
-> - `common-options`
-> - `layer-first-api-restructure`
-> - domain notes: `accounts-permissions-domain`, `instances-domain`, `credentials-connections-domain`, `capacity-partitions-domain`, `databases-ledger-domain`, `scheduler-domain`, `classification-domain`, `tags-domain`, `files-exports`, `dashboard-domain`
+## Domain notes
+
+- [[architecture/instances-domain]]
+- [[architecture/credentials-connections-domain]]
+- [[architecture/accounts-permissions-domain]]
+- [[architecture/capacity-partitions-domain]]
+- [[architecture/scheduler-domain]]
+- [[architecture/classification-domain]]
+- [[architecture/tags-domain]]
+- [[architecture/databases-ledger-domain]]
+- [[architecture/files-exports-domain|files-exports]]
+- [[architecture/dashboard-domain]]

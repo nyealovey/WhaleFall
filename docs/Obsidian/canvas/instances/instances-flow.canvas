@@ -26,7 +26,8 @@
 		{"id":"e10200000000001a","type":"text","text":"## External DB\n\n- query inventory/sizes\n","x":860,"y":1200,"width":520,"height":120,"color":"4"},
 		{"id":"e102000000000015","type":"text","text":"## PostgreSQL\n\n- upsert database_size_stats\n","x":860,"y":1420,"width":520,"height":140,"color":"4"},
 		{"id":"e10200000000001b","type":"text","text":"## PostgreSQL\n\n- upsert instance_size_stats\n","x":860,"y":1890,"width":520,"height":140,"color":"4"},
-		{"id":"e102000000000018","type":"text","text":"## Redis\n\n- not used\n","x":860,"y":2200,"width":520,"height":120,"color":"4"}
+		{"id":"e102000000000018","type":"text","text":"## Redis\n\n- not used\n","x":860,"y":2200,"width":520,"height":120,"color":"4"},
+		{"id":"9a117bef87676e9f","type":"file","file":"architecture/instances-domain.md","subpath":"#图(Canvas)","x":1800,"y":-920,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"e102000000001001","fromNode":"e102000000000002","fromSide":"bottom","toNode":"e102000000000003","toSide":"top","label":"enter"},

@@ -32,7 +32,8 @@
 		{"id":"c102000000000035","type":"text","text":"## monitor partition health\\n\\n- PartitionStatisticsService.get_partition_info/statistics\\n- missing? -> auto create\\n","x":1780,"y":740,"width":520,"height":180,"color":"6"},
 		{"id":"c102000000000036","type":"text","text":"## PostgreSQL\\n\\n- DDL create/drop partitions\\n- read pg catalog metadata\\n","x":2340,"y":460,"width":520,"height":180,"color":"4"},
 
-		{"id":"c1020000000000ff","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/capacity-partitions-domain.md`\\n- 单实例手动入口在 instances 域: `POST /api/v1/instances/{id}/actions/sync-capacity`\\n","x":0,"y":2440,"width":3320,"height":120,"color":"2"}
+		{"id":"c1020000000000ff","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/capacity-partitions-domain.md`\\n- 单实例手动入口在 instances 域: `POST /api/v1/instances/{id}/actions/sync-capacity`\\n","x":0,"y":2440,"width":3320,"height":120,"color":"2"},
+		{"id":"9f9cea08bd5aa584","type":"file","file":"architecture/flows/capacity-sync.md","subpath":"#流程图(定时任务主线)","x":3400,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"c102000000001001","fromNode":"c102000000000011","fromSide":"bottom","toNode":"c102000000000012","toSide":"top","label":"run job"},

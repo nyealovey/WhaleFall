@@ -1,0 +1,31 @@
+{
+	"nodes":[
+		{"id":"o102000000000001","type":"group","x":-80,"y":-80,"width":2240,"height":1380,"color":"2","label":"Observability - Unified Logs (write + read)"},
+
+		{"id":"o102000000000010","type":"group","x":0,"y":0,"width":1020,"height":660,"color":"2","label":"Application"},
+		{"id":"o102000000000011","type":"text","text":"## Web routes\\n\\n- `app/routes/**`","x":20,"y":60,"width":300,"height":120,"color":"3"},
+		{"id":"o102000000000012","type":"text","text":"## API v1\\n\\n- `app/api/v1/**`","x":20,"y":220,"width":300,"height":120,"color":"3"},
+		{"id":"o102000000000013","type":"text","text":"## structlog\\n\\n- processors + contextvars","x":360,"y":60,"width":320,"height":140,"color":"6"},
+		{"id":"o102000000000014","type":"text","text":"## LogQueueWorker\\n\\n- async write worker","x":360,"y":240,"width":320,"height":140,"color":"6"},
+
+		{"id":"o102000000000020","type":"group","x":1100,"y":0,"width":520,"height":660,"color":"2","label":"Store"},
+		{"id":"o102000000000021","type":"text","text":"## PostgreSQL\\n\\n- `unified_logs`","x":1120,"y":140,"width":480,"height":140,"color":"4"},
+
+		{"id":"o102000000000030","type":"group","x":0,"y":720,"width":1620,"height":520,"color":"2","label":"Read"},
+		{"id":"o102000000000031","type":"text","text":"## Web UI\\n\\n- `/history/logs`","x":20,"y":820,"width":300,"height":120,"color":"3"},
+		{"id":"o102000000000032","type":"text","text":"## API v1\\n\\n- `/api/v1/logs`","x":20,"y":980,"width":300,"height":120,"color":"3"},
+		{"id":"o102000000000033","type":"text","text":"## Queries\\n\\n- filter/sort/page","x":360,"y":900,"width":320,"height":140,"color":"6"},
+
+		{"id":"o1020000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.7 统一日志落库与查询","x":1680,"y":720,"width":480,"height":520,"color":"2"}
+	],
+	"edges":[
+		{"id":"o102000000001001","fromNode":"o102000000000011","fromSide":"right","toNode":"o102000000000013","toSide":"left","label":"log"},
+		{"id":"o102000000001002","fromNode":"o102000000000012","fromSide":"right","toNode":"o102000000000013","toSide":"left","label":"log"},
+		{"id":"o102000000001003","fromNode":"o102000000000013","fromSide":"bottom","toNode":"o102000000000014","toSide":"top","label":"enqueue"},
+		{"id":"o102000000001004","fromNode":"o102000000000014","fromSide":"right","toNode":"o102000000000021","toSide":"left","label":"write"},
+
+		{"id":"o102000000001010","fromNode":"o102000000000031","fromSide":"right","toNode":"o102000000000033","toSide":"left","label":"search"},
+		{"id":"o102000000001011","fromNode":"o102000000000032","fromSide":"right","toNode":"o102000000000033","toSide":"left","label":"search"},
+		{"id":"o102000000001012","fromNode":"o102000000000033","fromSide":"right","toNode":"o102000000000021","toSide":"left","label":"read"}
+	]
+}

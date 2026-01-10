@@ -10,44 +10,55 @@ status: active
 created: 2026-01-10
 updated: 2026-01-10
 owner: WhaleFall Team
-scope: 登录/同步会话/容量采集/scheduler 等关键流程的索引入口
+scope: 产品核心能力的关键流程 SOP 索引入口
 related:
   - "[[architecture/spec]]"
   - "[[architecture/identity-access]]"
   - "[[operations/observability-ops]]"
   - "[[API/api-v1-api-contract]]"
+  - "[[canvas/README]]"
 ---
 
 # 关键流程索引
 
 > [!note] 说明
-> 本目录提供关键流程的索引入口. 当前流程图的 SSOT 在 [[architecture/spec]].
+> - 本目录(`architecture/flows/*`)是关键流程 SOP 的 SSOT.
+> - `[[architecture/spec]]` 是 as-built 概览与背景说明.
+> - 可编辑图在 `[[canvas/README]]`, Mermaid 与 Canvas 需要互链.
 
 ## 登录
 
-- Web 登录: [[architecture/spec#5.1 Web 登录(页面)]]
-- API 登录与调用: [[architecture/spec#5.2 API 登录与调用(REST)]]
+- SOP: [[architecture/flows/login]]
+- 深读:
+  - [[architecture/spec#5.1 Web 登录(页面)]]
+  - [[architecture/spec#5.2 API 登录与调用(REST)]]
 
 ## 同步会话
 
-- 账户同步(后台): [[architecture/spec#5.3 账户同步(后台: inventory + permissions)]]
-- 会话中心与记录模型:
-  - `SyncSession`: `app/models/sync_session.py`
-  - `SyncInstanceRecord`: `app/models/sync_instance_record.py`
+- SOP: [[architecture/flows/sync-session]]
+- 深读: [[architecture/spec#5.3 账户同步(后台: inventory + permissions)]]
 
-## 容量采集与聚合
+## 账户同步
 
-- 容量采集: [[architecture/spec#5.5 容量采集(库存 + size stats)]]
-- 周/月/季聚合: [[architecture/spec#5.6 周/月/季聚合(aggregation)]]
-- 分区管理(保留期): `app/tasks/partition_management_tasks.py`
+- SOP: [[architecture/flows/accounts-sync]]
 
-## scheduler 执行
+## 容量同步
 
-- 调度器初始化与任务运行: [[architecture/spec#8. Scheduler & Tasks(任务调度)]]
-- 运维口径: [[operations/README|operations]]
+- SOP: [[architecture/flows/capacity-sync]]
 
-## 日志与排障
+## 聚合统计
 
-- 统一日志落库与查询: [[architecture/spec#5.7 统一日志落库与查询]]
-- 排障 SOP: [[operations/observability-ops]]
+- SOP: [[architecture/flows/aggregation-stats]]
 
+## 标签 bulk
+
+- SOP: [[architecture/flows/tags-bulk]]
+
+## 自动分类
+
+- SOP: [[architecture/flows/auto-classify]]
+
+## scheduler 与排障
+
+- scheduler 运维口径: [[operations/scheduler-jobstore-ops]]
+- 统一日志与排障: [[operations/observability-ops]]

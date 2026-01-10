@@ -2,7 +2,8 @@
 	"nodes":[
 		{"id":"f101000000000001","type":"group","x":-560,"y":-400,"width":2800,"height":1400,"color":"2","label":"Scheduler - ERD (APScheduler jobstore)"},
 		{"id":"f101000000000002","type":"text","text":"Notes:\\n\\n- APScheduler jobstore 使用 SQLite: `userdata/scheduler.db`\\n- file lock 用于单实例调度器运行(非数据表)\\n- job.func 执行时会写 PostgreSQL/External DB(取决于任务域)\\n","x":-480,"y":780,"width":1800,"height":200,"color":"2"},
-		{"id":"f101000000000010","type":"text","text":"## apscheduler_jobs (SQLite)\\n\\nPK:\\n- id\\n\\nCols:\\n- next_run_time\\n- job_state (blob)\\n","x":-360,"y":-240,"width":560,"height":280,"color":"4"}
+		{"id":"f101000000000010","type":"text","text":"## apscheduler_jobs (SQLite)\\n\\nPK:\\n- id\\n\\nCols:\\n- next_run_time\\n- job_state (blob)\\n","x":-360,"y":-240,"width":560,"height":280,"color":"4"},
+		{"id":"2a44ca7d5cc66dbd","type":"file","file":"architecture/scheduler-domain.md","subpath":"#图(Canvas)","x":2320,"y":-400,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[]
 }

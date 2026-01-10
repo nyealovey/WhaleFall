@@ -26,8 +26,9 @@
 		{"id":"g103000000000016","type":"text","text":"## Classification domain\n\n- `app/services/account_classification/*`\n- `app/services/accounts/account_classifications_*`","x":-180,"y":180,"width":520,"height":140,"color":"6"},
 		{"id":"g103000000000019","type":"text","text":"## Scheduler domain\n\n- `app/services/scheduler/*`","x":750,"y":190,"width":500,"height":120,"color":"6"},
 		{"id":"g103000000000018","type":"text","text":"## Credentials + Connections domain\n\n- `app/services/connection_adapters/*`","x":750,"y":60,"width":500,"height":120,"color":"6"},
-		{"id":"g103000000000017","type":"text","text":"## Capacity + Partitions domain\n\n- `app/tasks/capacity_*`\n- `app/services/partition_*`","x":750,"y":-120,"width":500,"height":140,"color":"6"}
-	],
+			{"id":"g103000000000017","type":"text","text":"## Capacity + Partitions domain\n\n- `app/tasks/capacity_*`\n- `app/services/partition_*`","x":750,"y":-120,"width":500,"height":140,"color":"6"},
+			{"id":"g1030000000000fe","type":"file","file":"architecture/spec.md","subpath":"#4. 代码架构与分层","x":-1060,"y":1140,"width":3360,"height":120,"color":"2"}
+		],
 	"edges":[
 		{"id":"g103000000001001","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000014","toSide":"left","label":"call"},
 		{"id":"g103000000001002","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000015","toSide":"left","label":"call"},

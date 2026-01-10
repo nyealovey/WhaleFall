@@ -8,7 +8,8 @@
 		{"id":"d7307e5fa683cf36","type":"text","text":"## sync_instance_records\n\nPK:\n- id\n\nFK:\n- session_id -> sync_sessions.session_id\n- instance_id -> instances.id\n\nStatus/Stats:\n- status\n- items_synced/items_created/items_updated/items_deleted\n","x":360,"y":260,"width":520,"height":410,"color":"4"},
 		{"id":"512dbf5ba1c47b8f","type":"text","text":"## account_change_log\n\nPK:\n- id\n\nCols:\n- instance_id\n- db_type\n- username\n- privilege_diff (json)\n- other_diff (json)\n\nSession:\n- session_id (join to sync_sessions.session_id)\n","x":1080,"y":260,"width":480,"height":480,"color":"1"},
 		{"id":"ef61deb682069935","type":"text","text":"Notes:\n\n- This ERD focuses on domain tables and key constraints only.\n- account_change_log.session_id is a logical association (not an FK in model).\n","x":-480,"y":780,"width":1600,"height":180,"color":"2"},
-		{"id":"04133e7b4fb63fdd","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":-480,"y":980,"width":520,"height":100,"color":"6"}
+		{"id":"04133e7b4fb63fdd","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":-480,"y":980,"width":520,"height":100,"color":"6"},
+		{"id":"5c13df3ae3f23d08","type":"file","file":"architecture/accounts-permissions-domain.md","subpath":"#图(Canvas)","x":2320,"y":-400,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"47da19ca90e86e81","fromNode":"3dfb7eaf9759faa3","fromSide":"right","toNode":"b463495818c3619f","toSide":"left","label":"1..N (FK: instance_id)"},
