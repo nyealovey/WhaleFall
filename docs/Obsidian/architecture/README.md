@@ -7,7 +7,7 @@ tags:
   - architecture/index
 status: draft
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-10
 owner: WhaleFall Team
 scope: docs/Obsidian/architecture 入口与索引
 related:
@@ -26,15 +26,15 @@ related:
 - [[architecture/developer-entrypoint|开发者入口(常见任务导航)]]
 - [[architecture/project-structure|项目结构与代码落点]]
 - [[architecture/identity-access|认证与权限(Identity & Access)]]
+- [[architecture/glossary-and-boundaries|名词表/边界一页纸]]
 - [[architecture/spec|技术规格与架构说明]]
+- [[architecture/module-dependency-graph|模块依赖边界图]]
+- [[architecture/flows/README|关键流程索引(flows)]]
 - [[architecture/architecture-review|架构评审入口]]
 - [[architecture/adr/README|ADR 索引]]
 
 > [!todo] Planned notes
 > 本目录仍存在待补齐的架构笔记(部分内容在 changes/plans/canvas 中被引用). 如需要落地, 建议按 ADR/计划文档推进, 并在此索引补齐:
-> - `developer-entrypoint`
-> - `module-dependency-graph`
-> - `flows/*`
 > - `common-options`
 > - `layer-first-api-restructure`
 > - domain notes: `accounts-permissions-domain`, `instances-domain`, `credentials-connections-domain`, `capacity-partitions-domain`, `databases-ledger-domain`, `scheduler-domain`, `classification-domain`, `tags-domain`, `files-exports`, `dashboard-domain`

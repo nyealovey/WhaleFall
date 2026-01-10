@@ -28,3 +28,4 @@ related:
 - [[reference/database/database-drivers|驱动与连接方式]]
 - [[reference/database/database-permissions-overview|外部数据库账号权限要求]]
 - [[reference/database/schema-baseline|PostgreSQL schema 基线与初始化口径]]
+- [[reference/database/core-tables-data-dictionary|核心表数据字典(core tables)]]

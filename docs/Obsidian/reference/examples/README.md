@@ -23,6 +23,7 @@ related:
 
 ## 索引
 
+- [[reference/examples/api-v1-cookbook|API v1 调用 cookbook(curl)]]
 - [[reference/examples/obsidian-frontmatter-duplicate-check|Obsidian frontmatter 重复检查]]
 - [[reference/examples/ui-layer-examples|UI 分层示例(长示例)]]
 - [[reference/examples/backend-layer-examples|Backend 分层示例(长示例)]]
