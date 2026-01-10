@@ -95,3 +95,27 @@ CSRF 约定:
 - MUST: 任何新增/删除/改动 endpoint 的 PR, 必须同步更新受影响的 `docs/Obsidian/API/**-api-contract.md`.
 - SHOULD: 同步更新 frontmatter 的 `updated` 日期.
 - MAY: 在 contract 的 "Notes" 中记录重要迁移/弃用信息, 但不要求维护历史版本.
+
+## 4. 正反例
+
+### 4.1 正例: Endpoints 总览行填写完整
+
+| Method | Path | Purpose | Service | Permission | CSRF | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| POST | `/api/v1/accounts/actions/sync` | 启动同步 | `AccountsSyncService.run` | `update` | ✅ | - |
+
+### 4.2 反例: 缺少 /api/v1 前缀或 CSRF 标记
+
+- Path 写成 `/accounts/actions/sync`(缺少 `/api/v1` 前缀).
+- POST/PUT/PATCH/DELETE 未标记 CSRF 要求, 或通过 JSON body 传递 token.
+
+## 5. 门禁/检查方式
+
+- 人工检查: 新增/改动 endpoint 的 PR 必须链接到受影响的 `**-api-contract.md`, 且表格已更新.
+- 自查命令(示例):
+  - `rg -n \"^\\| Method \\| Path \\| Purpose \\| Service \\| Permission \\| CSRF \\| Notes \\|\" docs/Obsidian/API -S`
+  - `rg -n \"/api/v1/\" docs/Obsidian/API -S`
+
+## 6. 变更历史
+
+- 2026-01-09: 补齐 standards 可扫描结构(正反例/门禁/变更历史).

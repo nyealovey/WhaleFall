@@ -24,7 +24,12 @@ related:
 - 防止各页面重复实现 `escapeHtml/resolveErrorMessage/renderChipStack/resolveRowMeta` 等 helpers，避免行为漂移。
 - 兼容既有 `GridWrapper`/`TableQueryParams` 生态，渐进迁移、可回滚。
 
-## 核心原则（MUST）
+## 适用范围
+
+- 所有 Grid.js 列表页(含多 grid 页面).
+- 页面脚本位于 `app/static/js/modules/views/**` 或页面 `extra_js` 引入的 wiring 脚本.
+
+## 规则（核心原则，MUST）
 
 ### 1) 统一入口：`Views.GridPage`
 
@@ -60,7 +65,7 @@ related:
 - 动作委托：`js/modules/views/grid-plugins/action-delegation.js`
 - 导出按钮：`js/modules/views/grid-plugins/export-button.js`
 
-## 页面脚本目标形态（示例）
+## 正反例（页面脚本目标形态）
 
 - 判定点:
   - 页面脚本只保留"配置 + domain renderers", wiring 由 `Views.GridPage` + plugins 收敛.

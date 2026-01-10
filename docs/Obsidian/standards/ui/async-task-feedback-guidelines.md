@@ -67,7 +67,7 @@ related:
 - MUST：成功启动时返回 `success=true` 且 `data.session_id`（或等价标识），并给出可展示的 `message`。
 - MUST：失败统一使用 `unified_error_response/unified_error_message`（包含 `recoverable/suggestions`），禁止手写 `{success:false}`。
 
-## 推荐用法（前端）
+## 正反例（推荐用法）
 
 ```javascript
 const outcome = UI.resolveAsyncActionOutcome(resp, {

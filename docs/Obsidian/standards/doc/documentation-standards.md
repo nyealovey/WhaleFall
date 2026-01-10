@@ -23,7 +23,7 @@ related:
 > - `docs/Obsidian/**`(vault 内)优先使用 YAML frontmatter + wikilinks(`[[...]]`).
 > - 仓库其他位置的 Markdown 链接仍以相对路径为准, 避免 GitHub 渲染断链.
 
-## 1. 目标与原则
+## 1. 目的与原则
 
 ### 1.1 目标
 
@@ -38,6 +38,10 @@ related:
 - **新增文档英文命名**：文件名统一英文 `kebab-case.md`；正文默认中文。
 - **半角字符**: 新增或修改的文档内容必须使用半角 ASCII 标点/符号/空格, 禁止全角/非 ASCII 变体. 详见 [[standards/halfwidth-character-standards]].
 - **链接可追溯**：仓库内链接必须可追溯. `docs/Obsidian/**` 使用 wikilinks; 其他文档使用相对路径链接, 且迁移时同步更新。
+
+### 1.3 适用范围
+
+- 本规范适用于仓库 `docs/` 下所有文档(含后续新增).
 
 ## 2. 文档目录结构（标准）
 
@@ -83,6 +87,18 @@ related:
 - MUST：标题表达清晰主题，避免“杂项/备忘录/临时”。
 - MUST：仓库内链接使用相对路径（例如 `../Obsidian/reference/config/environment-variables.md`）。
 - SHOULD：避免跨层级深链（例如从 `changes/` 直接链到 `reports/artifacts/`），优先链到对应目录的 `README.md`。
+
+### 3.4 正反例
+
+正例:
+
+- `docs/changes/bugfix/001-instance-recycle-bin-restore.md`
+- `docs/getting-started/local-dev.md`
+
+反例:
+
+- `docs/changes/bugfix/instance_recycle_bin_restore.md`(缺少编号前缀, 且 snake_case)
+- `docs/GettingStarted/local dev.md`(目录名大小写混用, 且文件名包含空格)
 
 ## 4. 文档元信息块（必填）
 
