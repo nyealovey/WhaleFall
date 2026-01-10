@@ -126,7 +126,7 @@ updated: 2025-12-25
 scope: accounts 同步链路
 related:
   - "PR #123"
-  - docs/Obsidian/reference/api/api-routes-documentation.md
+  - docs/Obsidian/API/api-v1-api-contract.md
 ---
 ```
 

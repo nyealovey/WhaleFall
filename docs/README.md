@@ -8,7 +8,8 @@
 
 - [快速开始](getting-started/README.md)
 - [架构设计](Obsidian/architecture/README.md)
-  - [Layer-first API/目录结构重构提案](Obsidian/architecture/layer-first-api-restructure.md)
+  - [开发者入口](Obsidian/architecture/developer-entrypoint.md)
+  - [API v1 layer-first 路径收敛计划](changes/refactor/024-layer-first-api-restructure-plan.md)
 - [Plans/计划](plans/README.md)
 - [参考手册](Obsidian/reference/README.md)
 - [Canvas](Obsidian/canvas/README.md)

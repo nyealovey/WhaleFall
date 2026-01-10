@@ -76,7 +76,9 @@ related:
   - 典型特征: 以表格/字段说明/示例为主, 面向查阅, 很少出现"开发者应该如何组织代码"的规则.
 - SHOULD: 当同一主题同时需要"规则"与"字段/契约", 必须拆分:
   - standards: 写约束与门禁
-  - reference/API: 写契约与字段表
+  - reference + API: 写契约与字段表(按类型选择, 不要混写)
+    - reference: `docs/Obsidian/reference/**`: 字段/参数/默认值/示例(面向查阅)
+    - API: `docs/Obsidian/API/**`: `/api/v1/**` 的 endpoint 清单(method/path)与摘要约束(面向审查)
 
 ### 3) "功能标准"的处理原则
 

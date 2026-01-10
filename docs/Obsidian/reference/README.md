@@ -26,7 +26,7 @@ related:
 
 ## 索引
 
-- [[reference/api/README|API 参考]]
+- [[API/api-v1-api-contract|API Contract(v1) 索引]]
 - [[reference/database/README|数据库参考]]
 - [[reference/config/README|配置参考]]
 - [[reference/development/README|开发协作参考]]
