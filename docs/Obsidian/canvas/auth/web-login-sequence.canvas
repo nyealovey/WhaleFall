@@ -1,0 +1,38 @@
+{
+	"nodes":[
+		{"id":"h103000000000001","type":"group","x":-80,"y":-80,"width":1760,"height":1420,"color":"2","label":"Auth - Web Login Sequence (/auth/login)"},
+		{"id":"h103000000000002","type":"group","x":0,"y":0,"width":220,"height":1040,"color":"3","label":"User"},
+		{"id":"h103000000000003","type":"group","x":240,"y":0,"width":260,"height":1040,"color":"3","label":"Browser"},
+		{"id":"h103000000000004","type":"group","x":520,"y":0,"width":360,"height":1040,"color":"2","label":"Web route"},
+		{"id":"h103000000000005","type":"group","x":900,"y":0,"width":360,"height":1040,"color":"6","label":"LoginService"},
+		{"id":"h103000000000006","type":"group","x":1280,"y":0,"width":320,"height":1040,"color":"4","label":"PostgreSQL"},
+		{"id":"h103000000000010","type":"text","text":"1) Open login page","x":20,"y":80,"width":180,"height":80,"color":"3"},
+		{"id":"h103000000000011","type":"text","text":"2) GET `/auth/login`","x":260,"y":80,"width":220,"height":80,"color":"3"},
+		{"id":"h103000000000012","type":"text","text":"3) Render `login.html`\\n\\n- CSRF token in form","x":540,"y":80,"width":320,"height":120,"color":"2"},
+		{"id":"h103000000000020","type":"text","text":"4) Submit username/password","x":20,"y":240,"width":180,"height":100,"color":"3"},
+		{"id":"h103000000000021","type":"text","text":"5) POST `/auth/login`\\n\\n- credentials + CSRF","x":260,"y":240,"width":220,"height":120,"color":"3"},
+		{"id":"h103000000000022","type":"text","text":"6) authenticate()","x":540,"y":240,"width":320,"height":80,"color":"2"},
+		{"id":"h103000000000023","type":"text","text":"7) check_password()","x":920,"y":240,"width":320,"height":80,"color":"6"},
+		{"id":"h103000000000024","type":"text","text":"users table\\n\\n- SELECT user","x":1300,"y":240,"width":280,"height":100,"color":"4"},
+		{"id":"h103000000000030","type":"text","text":"8a) success\\n\\n- `login_user()`\\n- 302 redirect","x":540,"y":400,"width":320,"height":140,"color":"2"},
+		{"id":"h103000000000031","type":"text","text":"8b) failure\\n\\n- flash error\\n- render login","x":540,"y":560,"width":320,"height":140,"color":"1"},
+		{"id":"h103000000000032","type":"text","text":"Browser receives\\n\\n- cookie + redirect","x":260,"y":420,"width":220,"height":120,"color":"3"},
+		{"id":"h103000000000033","type":"text","text":"Browser receives\\n\\n- page + error","x":260,"y":580,"width":220,"height":120,"color":"3"},
+		{"id":"h1030000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.1 Web 登录(页面)","x":0,"y":1080,"width":1600,"height":220,"color":"2"},
+		{"id":"h1030000000000fe","type":"file","file":"architecture/flows/login.md","subpath":"#Web 登录(页面)","x":0,"y":1320,"width":1600,"height":120,"color":"2"},
+		{"id":"h1030000000000fd","type":"file","file":"reference/server/auth-services.md","x":0,"y":1460,"width":1600,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"h103000000001001","fromNode":"h103000000000010","fromSide":"right","toNode":"h103000000000011","toSide":"left","label":"open"},
+		{"id":"h103000000001002","fromNode":"h103000000000011","fromSide":"right","toNode":"h103000000000012","toSide":"left","label":"GET"},
+		{"id":"h103000000001010","fromNode":"h103000000000020","fromSide":"right","toNode":"h103000000000021","toSide":"left","label":"submit"},
+		{"id":"h103000000001011","fromNode":"h103000000000021","fromSide":"right","toNode":"h103000000000022","toSide":"left","label":"POST"},
+		{"id":"h103000000001012","fromNode":"h103000000000022","fromSide":"right","toNode":"h103000000000023","toSide":"left","label":"call"},
+		{"id":"h103000000001013","fromNode":"h103000000000023","fromSide":"right","toNode":"h103000000000024","toSide":"left","label":"SELECT"},
+		{"id":"h103000000001014","fromNode":"h103000000000024","fromSide":"left","toNode":"h103000000000023","toSide":"right","label":"user row"},
+		{"id":"h103000000001020","fromNode":"h103000000000023","fromSide":"bottom","toNode":"h103000000000030","toSide":"top","label":"ok"},
+		{"id":"h103000000001021","fromNode":"h103000000000023","fromSide":"bottom","toNode":"h103000000000031","toSide":"top","label":"fail"},
+		{"id":"h103000000001022","fromNode":"h103000000000030","fromSide":"left","toNode":"h103000000000032","toSide":"right","label":"302"},
+		{"id":"h103000000001023","fromNode":"h103000000000031","fromSide":"left","toNode":"h103000000000033","toSide":"right","label":"200"}
+	]
+}

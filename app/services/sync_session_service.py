@@ -11,6 +11,7 @@ from sqlalchemy import func
 
 from app import db
 from app.constants import SyncSessionStatus, SyncStatus
+from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
@@ -58,7 +59,7 @@ class SyncSessionService:
             如果输入为 None,则返回 None.
 
         """
-        if not sync_details:
+        if sync_details is None:
             return None
 
         def clean_value(value: object) -> object:
@@ -77,7 +78,6 @@ class SyncSessionService:
         sync_type: str,
         sync_category: str = "account",
         created_by: int | None = None,
-        session_id: str | None = None,
     ) -> SyncSession:
         """创建同步会话.
 
@@ -89,7 +89,6 @@ class SyncSessionService:
             sync_category: 同步分类,可选值: 'account'(账户), 'capacity'(容量), 'config'(配置),
                 'aggregation'(聚合), 'other'(其他). 默认: 'account'.
             created_by: 创建用户 ID,可选.
-            session_id: 自定义会话 ID,可选. 为空则由模型生成.
 
         Returns:
             创建的同步会话对象.
@@ -100,8 +99,6 @@ class SyncSessionService:
         """
         try:
             session = SyncSession(sync_type=sync_type, sync_category=sync_category, created_by=created_by)
-            if session_id:
-                session.session_id = session_id
             with db.session.begin_nested():
                 db.session.add(session)
                 db.session.flush()
@@ -153,19 +150,24 @@ class SyncSessionService:
             records = []
             instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
             instance_dict = {inst.id: inst for inst in instances}
+            missing_instance_ids = sorted(set(instance_ids) - set(instance_dict))
+            if missing_instance_ids:
+                raise ValidationError(
+                    "存在无效的 instance_id",
+                    extra={"missing_instance_ids": missing_instance_ids},
+                )
 
             with db.session.begin_nested():
                 for instance_id in instance_ids:
                     instance = instance_dict.get(instance_id)
-                    if instance:
-                        record = SyncInstanceRecord(
-                            session_id=session_id,
-                            instance_id=instance_id,
-                            instance_name=instance.name,
-                            sync_category=sync_category,  # 使用传入的同步分类
-                        )
-                        db.session.add(record)
-                        records.append(record)
+                    record = SyncInstanceRecord(
+                        session_id=session_id,
+                        instance_id=instance_id,
+                        instance_name=instance.name if instance else None,
+                        sync_category=sync_category,  # 使用传入的同步分类
+                    )
+                    db.session.add(record)
+                    records.append(record)
 
                 db.session.flush()
         except Exception as exc:
@@ -188,7 +190,7 @@ class SyncSessionService:
 
             return records
 
-    def start_instance_sync(self, record_id: int) -> bool:
+    def start_instance_sync(self, record_id: int) -> None:
         """开始实例同步.
 
         将实例记录状态标记为同步中,并记录开始时间.
@@ -196,13 +198,10 @@ class SyncSessionService:
         Args:
             record_id: 实例记录 ID.
 
-        Returns:
-            成功返回 True,失败或记录不存在返回 False.
-
         """
         record = SyncInstanceRecord.query.get(record_id)
         if not record:
-            return False
+            raise NotFoundError("实例同步记录不存在", extra={"record_id": record_id})
 
         try:
             with db.session.begin_nested():
@@ -215,7 +214,7 @@ class SyncSessionService:
                 record_id=record_id,
                 error=str(exc),
             )
-            return False
+            raise
         else:
             self.sync_logger.info(
                 "开始实例同步",
@@ -225,33 +224,29 @@ class SyncSessionService:
                 instance_name=record.instance_name,
             )
 
-            return True
+            return None
 
     def complete_instance_sync(
         self,
         record_id: int,
         *,
-        stats: SyncItemStats | None = None,
+        stats: SyncItemStats,
         sync_details: dict[str, Any] | None = None,
-    ) -> bool:
+    ) -> None:
         """完成实例同步.
 
         将实例记录标记为完成状态,记录同步统计信息,并更新会话统计.
 
         Args:
             record_id: 实例记录 ID.
-            stats: 新版统计对象,缺省时使用默认 0 值.
+            stats: 同步统计对象(必填).
             sync_details: 同步详情字典,可选.
-
-        Returns:
-            成功返回 True,失败或记录不存在返回 False.
 
         """
         record = SyncInstanceRecord.query.get(record_id)
         if not record:
-            return False
+            raise NotFoundError("实例同步记录不存在", extra={"record_id": record_id})
 
-        stats = stats or SyncItemStats()
         items_synced = stats.items_synced
         items_created = stats.items_created
         items_updated = stats.items_updated
@@ -278,7 +273,7 @@ class SyncSessionService:
                 record_id=record_id,
                 error=str(exc),
             )
-            return False
+            raise
         else:
             self.sync_logger.info(
                 "完成实例同步",
@@ -292,14 +287,14 @@ class SyncSessionService:
                 items_deleted=items_deleted,
             )
 
-            return True
+            return None
 
     def fail_instance_sync(
         self,
         record_id: int,
         error_message: str,
         sync_details: dict[str, Any] | None = None,
-    ) -> bool:
+    ) -> None:
         """标记实例同步失败.
 
         将实例记录标记为失败状态,记录错误信息,并更新会话统计.
@@ -309,13 +304,10 @@ class SyncSessionService:
             error_message: 错误信息描述.
             sync_details: 同步详情字典,可选.
 
-        Returns:
-            成功返回 True,失败或记录不存在返回 False.
-
         """
         record = SyncInstanceRecord.query.get(record_id)
         if not record:
-            return False
+            raise NotFoundError("实例同步记录不存在", extra={"record_id": record_id})
 
         try:
             with db.session.begin_nested():
@@ -332,7 +324,7 @@ class SyncSessionService:
                 record_id=record_id,
                 error=str(exc),
             )
-            return False
+            raise
         else:
             self.sync_logger.error(
                 "实例同步失败",
@@ -343,7 +335,7 @@ class SyncSessionService:
                 error_message=error_message,
             )
 
-            return True
+            return None
 
     def _update_session_statistics(self, session_id: str) -> None:
         """更新会话统计信息.
@@ -368,8 +360,7 @@ class SyncSessionService:
                     db.session.query(func.count(SyncInstanceRecord.id))
                     .filter_by(session_id=session_id, status=SyncStatus.COMPLETED)
                     .scalar()
-                )
-                or 0,
+                ),
             )
 
             failed_instances = int(
@@ -377,8 +368,7 @@ class SyncSessionService:
                     db.session.query(func.count(SyncInstanceRecord.id))
                     .filter_by(session_id=session_id, status=SyncStatus.FAILED)
                     .scalar()
-                )
-                or 0,
+                ),
             )
 
             session.update_statistics(
@@ -402,7 +392,7 @@ class SyncSessionService:
             session_id: 会话 ID.
 
         Returns:
-            实例记录列表,查询失败时返回空列表.
+            实例记录列表.
 
         """
         try:
@@ -414,7 +404,7 @@ class SyncSessionService:
                 session_id=session_id,
                 error=str(e),
             )
-            return []
+            raise
 
     def get_session_by_id(self, session_id: str) -> SyncSession | None:
         """根据 ID 获取会话.
@@ -423,7 +413,7 @@ class SyncSessionService:
             session_id: 会话 ID.
 
         Returns:
-            会话对象,不存在或查询失败时返回 None.
+            会话对象,不存在时返回 None; 查询失败时抛出异常.
 
         """
         try:
@@ -435,7 +425,7 @@ class SyncSessionService:
                 session_id=session_id,
                 error=str(e),
             )
-            return None
+            raise
 
     def get_sessions_by_type(self, sync_type: str, limit: int = 50) -> list[SyncSession]:
         """根据类型获取会话列表.
@@ -513,22 +503,23 @@ class SyncSessionService:
             session_id: 会话 ID.
 
         Returns:
-            成功返回 True,失败或会话不存在返回 False.
+            成功返回 True; 会话不存在/非 RUNNING 返回 False; DB 异常抛出.
 
         """
         session = SyncSession.query.filter_by(session_id=session_id).first()
         if not session:
             return False
+        if session.status != SyncSessionStatus.RUNNING:
+            return False
 
         try:
-            if session.status == SyncSessionStatus.RUNNING:
-                with db.session.begin_nested():
-                    session.status = SyncSessionStatus.CANCELLED
-                    session.completed_at = time_utils.now()
-                    session.updated_at = time_utils.now()
-                    db.session.flush()
+            with db.session.begin_nested():
+                session.status = SyncSessionStatus.CANCELLED
+                session.completed_at = time_utils.now()
+                session.updated_at = time_utils.now()
+                db.session.flush()
 
-                self.sync_logger.info("取消同步会话", module="sync_session", session_id=session_id)
+            self.sync_logger.info("取消同步会话", module="sync_session", session_id=session_id)
         except Exception as exc:
             self.sync_logger.exception(
                 "取消同步会话失败",
@@ -536,7 +527,7 @@ class SyncSessionService:
                 session_id=session_id,
                 error=str(exc),
             )
-            return False
+            raise
         else:
             return True
 

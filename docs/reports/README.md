@@ -15,3 +15,5 @@
 - `2026-01-04-cache-usage-audit.md`
 - `2026-01-07-api-v1-accounts-instances-databases-path-audit.md`
 - `2026-01-08-services-complexity-report.md`
+- `2026-01-09-standards-boundary-audit.md`
+- `2026-01-09-standards-structure-drift.md`

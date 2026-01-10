@@ -6,7 +6,7 @@
 		{"id":"g103000000000002","type":"group","x":-1060,"y":-240,"width":520,"height":760,"color":"2","label":"Entry layer"},
 		{"id":"g103000000000004","type":"group","x":1940,"y":-240,"width":360,"height":620,"color":"2","label":"Data access"},
 		{"id":"g103000000000006","type":"group","x":1940,"y":580,"width":360,"height":420,"color":"2","label":"Infra"},
-		{"id":"g1030000000000ff","type":"text","text":"Source:\n- `docs/architecture/developer-entrypoint.md`","x":-1060,"y":1020,"width":3360,"height":120,"color":"2"},
+		{"id":"g1030000000000ff","type":"text","text":"Source:\n- `docs/Obsidian/architecture/developer-entrypoint.md`","x":-1060,"y":1020,"width":3360,"height":120,"color":"2"},
 		{"id":"g103000000000021","type":"text","text":"## Redis","x":2000,"y":760,"width":240,"height":100,"color":"4"},
 		{"id":"g103000000000022","type":"text","text":"## External DB","x":2000,"y":880,"width":240,"height":100,"color":"4"},
 		{"id":"g103000000000020","type":"text","text":"## PostgreSQL","x":2000,"y":640,"width":240,"height":100,"color":"4"},
@@ -26,8 +26,9 @@
 		{"id":"g103000000000016","type":"text","text":"## Classification domain\n\n- `app/services/account_classification/*`\n- `app/services/accounts/account_classifications_*`","x":-180,"y":180,"width":520,"height":140,"color":"6"},
 		{"id":"g103000000000019","type":"text","text":"## Scheduler domain\n\n- `app/services/scheduler/*`","x":750,"y":190,"width":500,"height":120,"color":"6"},
 		{"id":"g103000000000018","type":"text","text":"## Credentials + Connections domain\n\n- `app/services/connection_adapters/*`","x":750,"y":60,"width":500,"height":120,"color":"6"},
-		{"id":"g103000000000017","type":"text","text":"## Capacity + Partitions domain\n\n- `app/tasks/capacity_*`\n- `app/services/partition_*`","x":750,"y":-120,"width":500,"height":140,"color":"6"}
-	],
+			{"id":"g103000000000017","type":"text","text":"## Capacity + Partitions domain\n\n- `app/tasks/capacity_*`\n- `app/services/partition_*`","x":750,"y":-120,"width":500,"height":140,"color":"6"},
+			{"id":"g1030000000000fe","type":"file","file":"architecture/spec.md","subpath":"#4. 代码架构与分层","x":-1060,"y":1140,"width":3360,"height":120,"color":"2"}
+		],
 	"edges":[
 		{"id":"g103000000001001","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000014","toSide":"left","label":"call"},
 		{"id":"g103000000001002","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000015","toSide":"left","label":"call"},

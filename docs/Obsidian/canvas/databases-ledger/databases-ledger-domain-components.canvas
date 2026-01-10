@@ -1,0 +1,38 @@
+{
+	"nodes":[
+		{"id":"d302000000000001","type":"group","x":-80,"y":-80,"width":3060,"height":1480,"color":"2","label":"Databases Ledger - Domain Components"},
+
+		{"id":"d302000000000010","type":"text","text":"## Web UI\n\n- `/databases/ledgers`\n- filters: db_type/search/tags\n","x":0,"y":0,"width":520,"height":200,"color":"3"},
+		{"id":"d302000000000011","type":"text","text":"## API v1\n\n- `GET /api/v1/databases/ledgers`\n- `GET /api/v1/databases/ledgers/exports`\n- `GET /api/v1/databases/{id}/tables/sizes`\n- `POST /api/v1/databases/{id}/tables/sizes/actions/refresh`\n","x":0,"y":220,"width":520,"height":260,"color":"3"},
+
+		{"id":"d302000000000020","type":"text","text":"## DatabaseLedgerService\n\n- get_ledger(page)\n- iterate_all(export)\n- resolve sync_status by collected_at\n","x":560,"y":0,"width":520,"height":220,"color":"6"},
+		{"id":"d302000000000021","type":"text","text":"## DatabaseLedgerRepository\n\n- list_ledger(filters)\n- iterate_all(filters)\n- joins instance/databases/tags/capacity\n","x":560,"y":240,"width":520,"height":220,"color":"6"},
+		{"id":"d302000000000022","type":"text","text":"## DatabaseLedgerExportService\n\n- render CSV\n- sanitize_csv_row\n- filename timestamp\n","x":560,"y":480,"width":520,"height":200,"color":"6"},
+
+		{"id":"d302000000000030","type":"text","text":"## InstanceDatabaseTableSizesService\n\n- read latest snapshot\n- pagination: page/limit\n","x":560,"y":700,"width":520,"height":180,"color":"6"},
+		{"id":"d302000000000031","type":"text","text":"## TableSizeCoordinator\n\n- connect(instance)\n- refresh_snapshot(database)\n- upsert snapshot + delete removed\n","x":560,"y":900,"width":520,"height":220,"color":"6"},
+
+		{"id":"d302000000000040","type":"text","text":"## PostgreSQL (main DB)\n\n- instance_databases\n- database_size_stats\n- database_table_size_stats\n- tags/instance_tags\n","x":1120,"y":240,"width":560,"height":240,"color":"4"},
+		{"id":"d302000000000041","type":"text","text":"## External DB\n\n- MySQL / PostgreSQL\n- SQL Server / Oracle\n- adapter by db_type\n","x":1120,"y":900,"width":560,"height":220,"color":"4"},
+
+		{"id":"d3020000000000ff","type":"file","file":"architecture/databases-ledger-domain.md","subpath":"#组件图","x":1700,"y":0,"width":1260,"height":480,"color":"2"}
+	],
+	"edges":[
+		{"id":"d302000000001001","fromNode":"d302000000000010","fromSide":"bottom","toNode":"d302000000000011","toSide":"top","label":"open/use"},
+
+		{"id":"d302000000001010","fromNode":"d302000000000011","fromSide":"right","toNode":"d302000000000020","toSide":"left","label":"list"},
+		{"id":"d302000000001011","fromNode":"d302000000000020","fromSide":"bottom","toNode":"d302000000000021","toSide":"top","label":"query"},
+		{"id":"d302000000001012","fromNode":"d302000000000021","fromSide":"right","toNode":"d302000000000040","toSide":"left","label":"SQL"},
+
+		{"id":"d302000000001020","fromNode":"d302000000000011","fromSide":"right","toNode":"d302000000000022","toSide":"left","label":"export"},
+		{"id":"d302000000001021","fromNode":"d302000000000022","fromSide":"top","toNode":"d302000000000020","toSide":"bottom","label":"reuse"},
+
+		{"id":"d302000000001030","fromNode":"d302000000000011","fromSide":"right","toNode":"d302000000000030","toSide":"left","label":"read tables"},
+		{"id":"d302000000001031","fromNode":"d302000000000030","fromSide":"right","toNode":"d302000000000040","toSide":"left","label":"SQL"},
+
+		{"id":"d302000000001040","fromNode":"d302000000000011","fromSide":"right","toNode":"d302000000000031","toSide":"left","label":"refresh"},
+		{"id":"d302000000001041","fromNode":"d302000000000031","fromSide":"right","toNode":"d302000000000041","toSide":"left","label":"connect/query"},
+		{"id":"d302000000001042","fromNode":"d302000000000031","fromSide":"right","toNode":"d302000000000040","toSide":"left","label":"upsert"}
+	]
+}
+

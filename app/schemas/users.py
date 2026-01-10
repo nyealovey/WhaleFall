@@ -103,7 +103,7 @@ class UserUpdatePayload(PayloadSchema):
     username: StrictStr
     role: StrictStr
     password: StrictStr | None = None
-    is_active: bool | None = None
+    is_active: bool
 
     @model_validator(mode="before")
     @classmethod
@@ -115,6 +115,8 @@ class UserUpdatePayload(PayloadSchema):
             raise ValueError("用户名不能为空")
         if role is None or (isinstance(role, str) and not role.strip()):
             raise ValueError("角色不能为空")
+        if "is_active" not in mapping:
+            raise ValueError("启用状态不能为空")
         return data
 
     @field_validator("username")
@@ -146,7 +148,7 @@ class UserUpdatePayload(PayloadSchema):
 
     @field_validator("is_active", mode="before")
     @classmethod
-    def _parse_is_active(cls, value: Any) -> bool | None:
+    def _parse_is_active(cls, value: Any) -> bool:
         if value is None:
-            return None
+            raise ValueError("启用状态不能为空")
         return as_bool(value, default=False)

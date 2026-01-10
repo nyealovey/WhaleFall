@@ -72,7 +72,7 @@
 - 实时数据更新
 - 友好的用户交互体验
 
-更多模块拆解参见 [docs/architecture/project-structure.md](docs/architecture/project-structure.md)。
+更多模块拆解参见 [docs/Obsidian/architecture/project-structure.md](docs/Obsidian/architecture/project-structure.md)。
 
 ---
 
@@ -177,7 +177,7 @@ make dev-logs
 make typecheck
 ```
 
-> 生产部署请参考 [docs/operations/deployment/deployment-guide.md](docs/operations/deployment/deployment-guide.md)。
+> 生产部署请参考 [docs/Obsidian/operations/deployment/deployment-guide.md](docs/Obsidian/operations/deployment/deployment-guide.md)。
 
 ### 📘 类型检查工作流
 
@@ -199,10 +199,7 @@ WhaleFall/
 │   ├── templates/          # Jinja2 模板
 │   └── static/             # 静态资源
 ├── docs/                   # 项目文档
-│   ├── architecture/       # 架构文档
-│   ├── reference/          # 参考手册（API/DB/配置）
-│   ├── operations/         # 运维手册（部署/热更新）
-│   ├── standards/          # 规范标准
+│   ├── Obsidian/           # Obsidian vault（架构/规范/参考/运维/API/canvas）
 │   ├── changes/            # 变更记录（feature/bugfix/refactor）
 │   ├── reports/            # 评审与报告
 │   └── prompts/            # Prompts/协作模板
@@ -219,7 +216,7 @@ WhaleFall/
 └── Makefile                # Make 命令
 ```
 
-详细结构参见 [docs/architecture/project-structure.md](docs/architecture/project-structure.md)。
+详细结构参见 [docs/Obsidian/architecture/project-structure.md](docs/Obsidian/architecture/project-structure.md)。
 
 ---
 
@@ -303,25 +300,25 @@ def example_view() -> Response:
 完整索引请从 [docs/README.md](docs/README.md) 进入。
 
 ### 架构文档
-- [项目结构](docs/architecture/project-structure.md) - 详细的项目目录结构
-- [架构规范](docs/architecture/spec.md) - 体系结构与设计背景
+- [项目结构](docs/Obsidian/architecture/project-structure.md) - 详细的项目目录结构
+- [架构规范](docs/Obsidian/architecture/spec.md) - 体系结构与设计背景
 
 ### API 文档
-- [API 路由文档](docs/reference/api/api-routes-documentation.md) - 完整的 API 接口文档
-- [服务与工具文档](docs/reference/api/services-utils-documentation.md) - 服务层和工具类文档
+- [API Contract(v1) 索引](docs/Obsidian/API/api-v1-api-contract.md) - `/api/v1/**` contract 分域索引
+- [Server 服务层文档索引](docs/Obsidian/reference/server/README.md) - `app/services/**` 实现解读与边界
 
 ### 数据库文档
-- [数据库驱动](docs/reference/database/database-drivers.md) - 数据库驱动配置
-- [数据库权限概览](docs/reference/database/database-permissions-overview.md) - 权限模型说明
+- [数据库驱动](docs/Obsidian/reference/database/database-drivers.md) - 数据库驱动配置
+- [数据库权限概览](docs/Obsidian/reference/database/database-permissions-overview.md) - 权限模型说明
 
 ### 开发文档
 - [编码规范](AGENTS.md) - 项目编码与门禁规范（单一真源）
 - [编码风格补充](docs/Obsidian/standards/coding-standards.md) - 编码与命名基础规范
-- [文档规范](docs/Obsidian/standards/documentation-standards.md) - 文档结构与编写规范
+- [文档规范](docs/Obsidian/standards/doc/documentation-standards.md) - 文档结构与编写规范
 
 ### 部署文档
-- [生产部署指南](docs/operations/deployment/production-deployment.md) - 生产环境部署步骤
-- [热更新指南](docs/operations/hot-update/hot-update-guide.md) - 生产环境热更新
+- [生产部署指南](docs/Obsidian/operations/deployment/production-deployment.md) - 生产环境部署步骤
+- [热更新指南](docs/Obsidian/operations/hot-update/hot-update-guide.md) - 生产环境热更新
 
 ### 重构文档
 - [Refactor 索引](docs/changes/refactor/README.md) - 重构/瘦身/治理文档入口

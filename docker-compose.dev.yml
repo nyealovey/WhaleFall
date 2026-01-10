@@ -1,0 +1,45 @@
+# 开发环境: 仅启动 PostgreSQL + Redis, 供本机 uv/Flask 进程连接使用
+
+volumes:
+  whalefall_postgres_dev_data:
+    driver: local
+  whalefall_redis_dev_data:
+    driver: local
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: whalefall_postgres_dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-whalefall_dev}
+      - POSTGRES_USER=${POSTGRES_USER:-whalefall_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
+    ports:
+      - "${DEV_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - whalefall_postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-whalefall_user} -d ${POSTGRES_DB:-whalefall_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: whalefall_redis_dev
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-dev} --appendonly yes
+    ports:
+      - "${DEV_REDIS_PORT:-6379}:6379"
+    volumes:
+      - whalefall_redis_dev_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-dev} ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+

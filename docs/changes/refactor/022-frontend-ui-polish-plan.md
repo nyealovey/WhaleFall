@@ -5,7 +5,7 @@
 > 创建: 2026-01-04
 > 更新: 2026-01-04
 > 范围: `app/templates/**`, `app/static/css/**`
-> 关联: `docs/Obsidian/standards/documentation-standards.md`, `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/Obsidian/standards/ui/README.md`
+> 关联: `docs/Obsidian/standards/doc/documentation-standards.md`, `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/Obsidian/standards/ui/README.md`
 
 ---
 

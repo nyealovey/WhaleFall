@@ -1,16 +1,16 @@
 通用输出约束（必须遵守）：
 - 最终产出是一份 Markdown 审计报告（不是聊天回复/提纲），可直接保存到 `docs/reports/`。
 - 文件名 MUST 使用英文 `kebab-case.md`，并建议带日期前缀：`YYYY-MM-DD_architecture-audit-report.md`。
-- 报告结构 MUST 遵守 `docs/Obsidian/standards/documentation-standards.md` 的 `reports/*` 最小结构：摘要结论（先给结论）/范围与方法/发现清单（按 P0/P1/P2）/建议与后续行动/证据与数据来源（可链接到 `docs/reports/artifacts/`）。
+- 报告结构 MUST 遵守 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 最小结构: 摘要结论(先给结论)/范围与方法/发现清单(按 P0/P1/P2)/建议与后续行动/证据与数据来源(可链接到 `docs/reports/artifacts/`).
 - 标题下 MUST 包含元信息块：状态/负责人/创建/更新/范围/关联（用相对路径链接标准文档）。
 - 每条发现 MUST 给出可定位证据（文件:行号/路由/函数/配置键），并包含修复建议与验证方法。
 
 你现在是“资深架构师 + SRE/可观测性 + 安全审计 + 数据库专家 + 前端工程化负责人”的组合角色。请基于我给你的仓库与文档，做一次“查漏补缺式”的架构评审：不要重复我现有结论，除非你能补充更具体的证据、影响范围或更优解。
 
 输入材料（我会提供其一或全部）：
-- 现有评审文档：docs/architecture/architecture-review.md
+- 现有评审文档：docs/Obsidian/architecture/architecture-review.md
 - 仓库代码
-- 相关辅助文档（如 docs/architecture/project-structure.md、docs/reference/api/api-routes-documentation.md、env.*、docker/make 脚本等）
+- 相关辅助文档（如 docs/Obsidian/architecture/project-structure.md、docs/Obsidian/API/api-v1-api-contract.md、env.*、docker/make 脚本等）
 
 你的目标：
 1) 找出“我文档里没覆盖/覆盖不深”的架构问题（含隐性风险、未来演进阻力、线上可运维性问题）。
@@ -18,7 +18,7 @@
 3) 补齐“缺失的架构决策与约束”：列出我需要写进文档的 ADR/规范（例如：配置策略、API 规范、任务调度拓扑、错误 schema、数据迁移策略等）。
 
 工作方法（必须按步骤输出）：
-A. 先读 docs/architecture/architecture-review.md，列出它已经覆盖的主题清单（只列标题/要点即可）。
+A. 先读 docs/Obsidian/architecture/architecture-review.md，列出它已经覆盖的主题清单（只列标题/要点即可）。
 B. 做“缺口地图”：对照下面的架构检查维度，指出哪些维度缺失/只有结论没有证据/只有现状没有决策。
 C. 在代码/配置/脚本中找证据：每条新增问题必须至少给 1 个“可定位证据”（文件路径 + 行号或函数名/路由名/配置键）。
 D. 输出“新增问题清单”（按 P0→P2 排序），并给出“最小可执行路线图”（最多 6 条行动项，每条都可在 1~3 天内独立完成或明确拆分）。
@@ -72,7 +72,7 @@ D. 输出“新增问题清单”（按 P0→P2 排序），并给出“最小�
 - 领域边界（services 模块划分）是否与业务一致？是否出现“横切工具”被当业务层使用？
 - 测试策略：关键服务/数据转换是否可测？哪些地方缺测试会阻碍重构？
 
-输出格式（严格遵守；按 `docs/Obsidian/standards/documentation-standards.md` 的 `reports/*` 模板组织）：
+输出格式(严格遵守; 按 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 模板组织):
 - 建议报告路径：`docs/reports/YYYY-MM-DD_architecture-audit-report.md`
 - 标题下必须包含元信息块：状态/负责人/创建/更新/范围/关联
 

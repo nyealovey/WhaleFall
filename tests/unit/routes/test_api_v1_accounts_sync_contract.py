@@ -11,6 +11,7 @@ def _ensure_accounts_sync_tables(app) -> None:
             bind=db.engine,
             tables=[
                 db.metadata.tables["instances"],
+                db.metadata.tables["sync_sessions"],
             ],
         )
 

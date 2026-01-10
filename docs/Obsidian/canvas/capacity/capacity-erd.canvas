@@ -11,7 +11,8 @@
 		{"id":"c101000000000015","type":"text","text":"## database_size_aggregations\\n\\nPK:\\n- id\\n\\nFK:\\n- instance_id -> instances.id\\n\\nUQ:\\n- (instance_id, database_name, period_type, period_start)\\n\\nCols:\\n- avg_size_mb\\n- period_start (partition key)\\n","x":160,"y":200,"width":520,"height":420,"color":"6"},
 		{"id":"c101000000000016","type":"text","text":"## instance_size_aggregations\\n\\nPK:\\n- (id, period_start)\\n\\nFK:\\n- instance_id -> instances.id\\n\\nUQ:\\n- (instance_id, period_type, period_start)\\n\\nCols:\\n- total_size_mb\\n- period_start (partition key)\\n","x":160,"y":660,"width":520,"height":420,"color":"6"},
 		{"id":"c101000000000017","type":"text","text":"## sync_sessions\\n\\nPK:\\n- id\\n\\nUQ:\\n- session_id\\n\\nCols:\\n- sync_category (=capacity)\\n- status/totals\\n","x":740,"y":660,"width":520,"height":340,"color":"5"},
-		{"id":"c101000000000018","type":"text","text":"## sync_instance_records\\n\\nPK:\\n- id\\n\\nFK:\\n- session_id -> sync_sessions.session_id\\n- instance_id -> instances.id\\n\\nCols:\\n- status\\n- items_synced/items_created/items_updated/items_deleted\\n- error_message\\n","x":1280,"y":660,"width":520,"height":460,"color":"5"}
+		{"id":"c101000000000018","type":"text","text":"## sync_instance_records\\n\\nPK:\\n- id\\n\\nFK:\\n- session_id -> sync_sessions.session_id\\n- instance_id -> instances.id\\n\\nCols:\\n- status\\n- items_synced/items_created/items_updated/items_deleted\\n- error_message\\n","x":1280,"y":660,"width":520,"height":460,"color":"5"},
+		{"id":"8b648fb34931cd8e","type":"file","file":"architecture/capacity-partitions-domain.md","subpath":"#图(Canvas)","x":3200,"y":-400,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"c101000000001001","fromNode":"c101000000000010","fromSide":"right","toNode":"c101000000000011","toSide":"left","label":"1..N (FK: instance_id)"},

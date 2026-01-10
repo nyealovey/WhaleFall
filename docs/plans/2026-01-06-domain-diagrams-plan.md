@@ -4,20 +4,20 @@
 
 **Goal:** Add developer-facing domain diagram docs (flow, sequence, state machine, API contract) so engineers can map UI actions to code paths and data writes.
 
-**Architecture:** One markdown doc per domain under `docs/architecture/`, each following the same template (Flow, Sequence, State machine, API contract). Keep diagrams aligned with actual code entrypoints and storage tables.
+**Architecture:** One markdown doc per domain under `docs/Obsidian/architecture/`, each following the same template (Flow, Sequence, State machine, API contract). Keep diagrams aligned with actual code entrypoints and storage tables.
 
 **Tech Stack:** Mermaid diagrams in Markdown, Flask-RESTX endpoints, SQLAlchemy models.
 
 ## Scope
 
-- Already done: `docs/architecture/accounts-permissions-domain.md`, `docs/architecture/instances-domain.md`.
+- Already done: `docs/Obsidian/architecture/accounts-permissions-domain.md`, `docs/Obsidian/architecture/instances-domain.md`.
 - To add next: credentials + connections, capacity + partitions, scheduler, classification.
 
 ## Task 1: Add credentials + connections domain doc
 
 **Files:**
-- Create: `docs/architecture/credentials-connections-domain.md`
-- Modify: `docs/architecture/README.md`
+- Create: `docs/Obsidian/architecture/credentials-connections-domain.md`
+- Modify: `docs/Obsidian/architecture/README.md`
 
 **Step 1: Draft main flow diagram (Flow)**
 - Include: credential CRUD (password encryption), connection test (existing instance vs new params), key branches (missing params, unsupported db_type, connect failed).
@@ -33,14 +33,14 @@
 - List endpoints for `credentials` and `connections`, note idempotency and pagination.
 
 **Step 5: Doc quality check**
-Run: `rg -n "[，。：；、】【（）…“”‘’、】【]" docs/architecture/credentials-connections-domain.md`
+Run: `rg -n "[，。：；、】【（）…“”‘’、】【]" docs/Obsidian/architecture/credentials-connections-domain.md`
 Expected: no matches (enforce halfwidth ASCII punctuation).
 
 ## Task 2: Add capacity + partitions domain doc
 
 **Files:**
-- Create: `docs/architecture/capacity-partitions-domain.md`
-- Modify: `docs/architecture/README.md`
+- Create: `docs/Obsidian/architecture/capacity-partitions-domain.md`
+- Modify: `docs/Obsidian/architecture/README.md`
 
 **Step 1: Flow diagram**
 - Include: scheduled collection + aggregation tasks and instance action sync-capacity, plus partition create/cleanup/health monitor.
@@ -60,8 +60,8 @@ Expected: no matches (enforce halfwidth ASCII punctuation).
 ## Task 3: Add scheduler domain doc
 
 **Files:**
-- Create: `docs/architecture/scheduler-domain.md`
-- Modify: `docs/architecture/README.md`
+- Create: `docs/Obsidian/architecture/scheduler-domain.md`
+- Modify: `docs/Obsidian/architecture/README.md`
 
 **Step 1: Flow diagram**
 - YAML config -> APScheduler jobstore -> job execution -> dispatch to `app/tasks/*`.
@@ -81,8 +81,8 @@ Expected: no matches (enforce halfwidth ASCII punctuation).
 ## Task 4: Add classification domain doc
 
 **Files:**
-- Create: `docs/architecture/classification-domain.md`
-- Modify: `docs/architecture/README.md`
+- Create: `docs/Obsidian/architecture/classification-domain.md`
+- Modify: `docs/Obsidian/architecture/README.md`
 
 **Step 1: Flow diagram**
 - Rules load (cache/db) -> fetch accounts -> evaluate DSL -> write assignments -> invalidate caches.
@@ -101,5 +101,5 @@ Expected: no matches (enforce halfwidth ASCII punctuation).
 
 ## Optional: Commit hygiene (human)
 
-- After each domain doc: `git add docs/architecture/*-domain.md docs/architecture/README.md`
+- After each domain doc: `git add docs/Obsidian/architecture/*-domain.md docs/Obsidian/architecture/README.md`
 - Commit message examples: `docs: add credentials connections domain diagrams`

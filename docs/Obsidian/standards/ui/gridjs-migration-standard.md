@@ -7,7 +7,7 @@ tags:
   - standards/ui
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: 所有使用 Grid.js 的列表页(含筛选/分页/排序/批量操作)
 related:
@@ -15,6 +15,7 @@ related:
   - "[[standards/ui/pagination-sorting-parameter-guidelines]]"
   - "[[standards/ui/grid-wrapper-performance-logging-guidelines]]"
   - "[[standards/backend/error-message-schema-unification]]"
+  - "[[reference/development/gridjs-migration-checklist]]"
 ---
 
 # Grid.js 列表页迁移标准
@@ -97,14 +98,11 @@ related:
 - GridWrapper 日志门禁：`./scripts/ci/grid-wrapper-log-guard.sh`
 - 结果结构漂移门禁（如涉及错误字段）：`./scripts/ci/error-message-drift-guard.sh`
 
-## Checklist（迁移自检）
+## Checklist(迁移自检)
 
-- [ ] 页面使用 `GridWrapper` 初始化表格。
-- [ ] 页面使用 `Views.GridPage` + plugins（filterCard/urlSync/actionDelegation/exportButton 等）收敛 wiring。
-- [ ] 后端接口支持 `page/limit`，并返回 `data.items/data.total`。
-- [ ] 若启用排序：后端支持 `sort/order`。
-- [ ] 筛选输入具备 debounce（FilterCard 或等价实现）。
-- [ ] 无新增 GridWrapper 生产环境 `console.log`。
+迁移自检清单已拆分为 reference, 避免 standards 混入执行清单:
+
+- [[reference/development/gridjs-migration-checklist|Grid.js 列表页迁移 checklist]]
 
 ## 变更历史
 

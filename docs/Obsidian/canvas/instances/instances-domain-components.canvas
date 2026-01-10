@@ -17,7 +17,8 @@
 		{"id":"0f57129f85c2435d","type":"text","text":"## 调度域(依赖)\n\n- `app/scheduler.py`\n- `app/tasks/*`\n\nInstances 域本身无专属 task, 但会被调度域的任务间接调用/影响.\n","x":-840,"y":640,"width":420,"height":220,"color":"4"},
 		{"id":"9a07c50d4183f852","type":"text","text":"## 读取列表\n\nService: `app/services/instances/instance_list_service.py`\n\n- 列表/筛选/统计\n","x":-110,"y":-185,"width":420,"height":205,"color":"6"},
 		{"id":"97604438ca52a638","type":"text","text":"## 批量\n\nService: `app/services/instances/batch_service.py`\n\n- 批量导入\n- 批量删除\n","x":-110,"y":320,"width":420,"height":200,"color":"6"},
-		{"id":"b250e03cf12b1847","type":"text","text":"## 会话追踪\n\n- CRUD: no SyncSession\n- 实例容量同步(action): no SyncSession\n- 批量/定时采集类: sync_session_service 统一管理(见容量域/调度域)\n","x":-840,"y":390,"width":420,"height":200,"color":"5"}
+		{"id":"b250e03cf12b1847","type":"text","text":"## 会话追踪\n\n- CRUD: no SyncSession\n- 实例容量同步(action): no SyncSession\n- 批量/定时采集类: sync_session_service 统一管理(见容量域/调度域)\n","x":-840,"y":390,"width":420,"height":200,"color":"5"},
+		{"id":"760e976c2ed91a2f","type":"file","file":"architecture/instances-domain.md","subpath":"#图(Canvas)","x":2080,"y":-560,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"7233986b8e813372","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"9a07c50d4183f852","toSide":"left","label":"read"},

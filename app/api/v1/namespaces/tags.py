@@ -18,6 +18,7 @@ from app.constants.system_constants import ErrorMessages
 from app.errors import ConflictError, NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.repositories.tags_repository import TagsRepository
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_write_service import TagWriteService
@@ -244,6 +245,10 @@ def _parse_payload() -> ResourcePayload:
     return cast(ResourcePayload, request.form)
 
 
+def _build_tag_write_service() -> TagWriteService:
+    return TagWriteService(TagsRepository())
+
+
 @ns.route("")
 class TagsResource(BaseResource):
     """标签列表资源."""
@@ -299,7 +304,7 @@ class TagsResource(BaseResource):
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            tag = TagWriteService().create(payload, operator_id=operator_id)
+            tag = _build_tag_write_service().create(payload, operator_id=operator_id)
             return self.success(
                 data={"tag": tag.to_dict()},
                 message="标签创建成功",
@@ -419,7 +424,7 @@ class TagDetailResource(BaseResource):
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            tag = TagWriteService().update(tag_id, payload, operator_id=operator_id)
+            tag = _build_tag_write_service().update(tag_id, payload, operator_id=operator_id)
             return self.success(
                 data={"tag": tag.to_dict()},
                 message="标签更新成功",
@@ -446,7 +451,7 @@ class TagDetailResource(BaseResource):
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            outcome = TagWriteService().delete(tag_id, operator_id=operator_id)
+            outcome = _build_tag_write_service().delete(tag_id, operator_id=operator_id)
             if outcome.status == "in_use":
                 raise ConflictError(
                     f"标签 '{outcome.display_name}' 仍被 {outcome.instance_count} 个实例使用,无法删除",
@@ -489,11 +494,16 @@ class TagBatchDeleteResource(BaseResource):
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            tag_ids = payload.get("tag_ids") or []
-            if not isinstance(tag_ids, list) or not tag_ids:
+            raw_tag_ids = payload.get("tag_ids")
+            if not isinstance(raw_tag_ids, list) or not raw_tag_ids:
                 raise ValidationError("tag_ids 不能为空")
 
-            outcome = TagWriteService().batch_delete(tag_ids, operator_id=operator_id)
+            if not all(type(item) is int for item in raw_tag_ids):
+                raise ValidationError("tag_ids 必须为整数数组")
+            if any(item <= 0 for item in raw_tag_ids):
+                raise ValidationError("tag_ids 必须为正整数数组")
+
+            outcome = _build_tag_write_service().batch_delete(raw_tag_ids, operator_id=operator_id)
             status = HttpStatus.MULTI_STATUS if outcome.has_failure else HttpStatus.OK
             message = "部分标签未能删除" if outcome.has_failure else "标签批量删除成功"
             return self.success(data={"results": outcome.results}, message=message, status=status)

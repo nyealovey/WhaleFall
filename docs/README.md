@@ -7,14 +7,15 @@
 ## 目录
 
 - [快速开始](getting-started/README.md)
-- [架构设计](architecture/README.md)
-  - [Layer-first API/目录结构重构提案](architecture/layer-first-api-restructure.md)
+- [架构设计](Obsidian/architecture/README.md)
+  - [开发者入口](Obsidian/architecture/developer-entrypoint.md)
+  - [API v1 layer-first 路径收敛计划](changes/refactor/024-layer-first-api-restructure-plan.md)
 - [Plans/计划](plans/README.md)
-- [参考手册](reference/README.md)
-- [Canvas](canvas/README.md)
+- [参考手册](Obsidian/reference/README.md)
+- [Canvas](Obsidian/canvas/README.md)
 - [Obsidian Vault](Obsidian/README.md)
-- [运维手册](operations/README.md)
-- [规范标准](standards/README.md)
+- [运维手册](Obsidian/operations/README.md)
+- [规范标准](Obsidian/standards/README.md)
 - [变更记录](changes/README.md)
 - [评审与报告](reports/README.md)
 - [Prompts 与协作模板](prompts/README.md)
@@ -24,4 +25,4 @@
 
 - 新增文档文件名统一使用英文 `kebab-case.md`.
 - 同一主题只允许存在一个"真源文档"; 历史版本进入 `_archive/`.
-- 文档编写规则见: `standards/documentation-standards.md`.
+- 文档编写规则见: `Obsidian/standards/doc/documentation-standards.md`.

@@ -6,12 +6,12 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import ClassVar, cast
 
-from flask import Response, request
+from flask import request
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
-from app.api.v1.resources.decorators import api_admin_required, api_login_required, api_permission_required
+from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.restx_models.history import (
     HISTORY_LOG_ITEM_FIELDS,
     HISTORY_LOG_MODULES_FIELDS,
@@ -20,7 +20,6 @@ from app.api.v1.restx_models.history import (
 )
 from app.constants.system_constants import LogLevel
 from app.errors import ValidationError
-from app.services.files.logs_export_service import LogsExportService
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
 from app.types.history_logs import LogSearchFilters
@@ -282,33 +281,3 @@ class HistoryLogDetailResource(BaseResource):
             context={"log_id": log_id},
         )
 
-
-@ns.route("/export")
-class LogsExportResource(BaseResource):
-    """日志导出资源."""
-
-    method_decorators: ClassVar[list] = [api_admin_required]
-
-    @ns.response(200, "OK")
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    def get(self):
-        """导出日志."""
-        format_type = request.args.get("format", "json")
-
-        def _execute() -> Response:
-            result = LogsExportService().export(format_type=format_type, params=request.args.to_dict())
-            response = Response(result.content, mimetype=result.mimetype)
-            response.headers["Content-Disposition"] = f"attachment; filename={result.filename}"
-            return response
-
-        return self.safe_call(
-            _execute,
-            module="logs",
-            action="export_logs",
-            public_error="导出日志失败",
-            context={"format": format_type},
-            expected_exceptions=(ValidationError,),
-        )

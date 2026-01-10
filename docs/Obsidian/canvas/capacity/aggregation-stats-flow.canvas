@@ -1,0 +1,36 @@
+{
+	"nodes":[
+		{"id":"c106000000000001","type":"group","x":-80,"y":-80,"width":3200,"height":1560,"color":"2","label":"Capacity - Aggregation Stats (scheduled + manual + read)"},
+
+		{"id":"c106000000000010","type":"text","text":"## Source stats\\n\\n- `database_size_stats`\\n- `instance_size_stats`\\n","x":0,"y":0,"width":520,"height":160,"color":"4"},
+
+		{"id":"c106000000000020","type":"text","text":"## Scheduled job\\n\\n- `calculate_database_size_aggregations`\\n","x":0,"y":220,"width":520,"height":140,"color":"2"},
+		{"id":"c106000000000021","type":"text","text":"## AggregationService\\n\\n- select periods\\n- write aggregations\\n","x":560,"y":220,"width":520,"height":160,"color":"6"},
+
+		{"id":"c106000000000030","type":"text","text":"## Manual action\\n\\n- `POST /api/v1/capacity/aggregations/current`\\n","x":0,"y":400,"width":520,"height":160,"color":"3"},
+		{"id":"c106000000000031","type":"text","text":"## CurrentAggregationService\\n\\n- aggregate today\\n","x":560,"y":420,"width":520,"height":140,"color":"6"},
+
+		{"id":"c106000000000040","type":"text","text":"## Aggregation tables\\n\\n- `database_size_aggregations`\\n- `instance_size_aggregations`\\n","x":1120,"y":300,"width":520,"height":180,"color":"4"},
+
+		{"id":"c106000000000050","type":"text","text":"## Read APIs\\n\\n- `GET /api/v1/capacity/instances`\\n- `GET /api/v1/capacity/databases`\\n- `.../summary`\\n","x":0,"y":620,"width":520,"height":200,"color":"3"},
+		{"id":"c106000000000051","type":"text","text":"## Web UI\\n\\n- `/capacity/instances`\\n- `/capacity/databases`\\n","x":560,"y":640,"width":520,"height":160,"color":"3"},
+		{"id":"c106000000000052","type":"text","text":"## Charts\\n\\n- filters + series\\n- time range\\n","x":1120,"y":640,"width":520,"height":160,"color":"6"},
+
+		{"id":"c1060000000000ff","type":"file","file":"architecture/flows/aggregation-stats.md","subpath":"#流程图","x":1680,"y":0,"width":1440,"height":360,"color":"2"},
+		{"id":"c1060000000000fe","type":"file","file":"reference/server/aggregation-pipeline.md","x":1680,"y":380,"width":1440,"height":240,"color":"2"},
+		{"id":"c1060000000000fd","type":"file","file":"reference/server/capacity-current-aggregation-service.md","x":1680,"y":640,"width":1440,"height":240,"color":"2"},
+		{"id":"c1060000000000fc","type":"file","file":"reference/server/capacity-aggregations-read-services.md","x":1680,"y":900,"width":1440,"height":240,"color":"2"}
+	],
+	"edges":[
+		{"id":"c106000000001001","fromNode":"c106000000000010","fromSide":"bottom","toNode":"c106000000000020","toSide":"top","label":"input"},
+		{"id":"c106000000001002","fromNode":"c106000000000020","fromSide":"right","toNode":"c106000000000021","toSide":"left","label":"run"},
+		{"id":"c106000000001003","fromNode":"c106000000000021","fromSide":"right","toNode":"c106000000000040","toSide":"left","label":"write"},
+
+		{"id":"c106000000001010","fromNode":"c106000000000030","fromSide":"right","toNode":"c106000000000031","toSide":"left","label":"trigger"},
+		{"id":"c106000000001011","fromNode":"c106000000000031","fromSide":"right","toNode":"c106000000000040","toSide":"left","label":"write"},
+
+		{"id":"c106000000001020","fromNode":"c106000000000050","fromSide":"right","toNode":"c106000000000040","toSide":"left","label":"read"},
+		{"id":"c106000000001021","fromNode":"c106000000000051","fromSide":"right","toNode":"c106000000000050","toSide":"left","label":"fetch"},
+		{"id":"c106000000001022","fromNode":"c106000000000051","fromSide":"right","toNode":"c106000000000052","toSide":"left","label":"render"}
+	]
+}

@@ -7,11 +7,12 @@ tags:
   - standards/general
 status: active
 created: 2025-11-27
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: 发布版本号(`MAJOR.MINOR.PATCH`)更新、版本展示与版本漂移治理
 related:
   - "[[standards/git-workflow-standards]]"
+  - "[[reference/development/version-update-checklist]]"
 ---
 
 # 版本更新与版本漂移控制
@@ -38,21 +39,9 @@ related:
 
 ### 2) 必须更新的文件清单（最小集）
 
-以下为“版本强一致”的最小覆盖集；如文件不存在则跳过该项，并在 PR 描述中说明原因。
+版本更新的执行清单(最小集)已拆分为 reference, 避免 standards 混入 runbook/checklist:
 
-| 更新项 | 文件/位置 | 说明 |
-| --- | --- | --- |
-| 运行时版本 | `app/settings.py`（`APP_VERSION`） | 运行时版本号唯一来源 |
-| 项目配置 | `pyproject.toml`（`[project].version`） | 构建工具与依赖管理使用 |
-| 运行环境示例 | `env.example`（`APP_VERSION`） | `.env` 示例基线 |
-| 依赖锁 | `uv.lock`（`[[package]] name = "whalefalling"` 的 `version`） | 锁文件中的本项目版本 |
-| 部署脚本 | `scripts/deploy/deploy-prod-all.sh` | 脚本输出/注释中的版本号 |
-| API 元数据 | `app/routes/main.py`（`app_version`） | 健康检查/首页返回值 |
-| 页脚展示 | `app/templates/base.html`（页脚） | 全站页面版本展示 |
-| Nginx 错误页 | `nginx/error_pages/404.html`、`nginx/error_pages/50x.html` | 访客可见页面版本信息 |
-| README | `README.md`（徽章/版本说明） | 外部访客识别最新版本 |
-| CHANGELOG | `CHANGELOG.md`（新增条目） | 倒序记录：日期、主题、变化 |
-| About 时间轴 | `app/templates/about.html` | 仅新增当前版本条目，不改历史条目 |
+- [[reference/development/version-update-checklist|版本更新 checklist]]
 
 ### 3) 版本更新时的“最小扰动”原则
 
@@ -83,13 +72,11 @@ related:
   - `make typecheck`
   - `pytest -m unit`
 
-## 页面回归检查（建议）
+## 页面回归检查(建议)
 
-版本发布前后建议做最小 UI 回归（按改动范围选择页面）：
+最小回归建议已拆分为 reference checklist, 见:
 
-- 登录/登出流程可用，页脚版本号与 `APP_VERSION` 一致。
-- 列表页（使用 GridWrapper 的页面）：分页/排序/筛选正常、刷新不漂移、控制台无生产 `console.log`。
-- 危险操作：确认弹窗可用、默认焦点在“取消”、能跳转到会话中心查看进度（如适用）。
+- [[reference/development/version-update-checklist|版本更新 checklist]]
 
 ## 变更历史
 

@@ -1,0 +1,68 @@
+{
+	"nodes":[
+		{"id":"g301000000000001","type":"group","x":-120,"y":-200,"width":2080,"height":1580,"color":"2","label":"Global - Layer-first Module Dependency Graph"},
+
+		{"id":"g301000000000010","type":"group","x":-80,"y":-160,"width":2000,"height":240,"color":"2","label":"HTTP layer"},
+		{"id":"g301000000000011","type":"text","text":"## Routes\n\n- `app/routes/**`","x":-60,"y":-100,"width":460,"height":140,"color":"3"},
+		{"id":"g301000000000012","type":"text","text":"## API v1\n\n- `app/api/v1/**`","x":420,"y":-100,"width":460,"height":140,"color":"3"},
+
+		{"id":"g301000000000020","type":"group","x":-80,"y":100,"width":2000,"height":420,"color":"2","label":"Domain layer"},
+		{"id":"g301000000000021","type":"text","text":"## Tasks\n\n- `app/tasks/**`","x":-60,"y":160,"width":460,"height":140,"color":"2"},
+		{"id":"g301000000000022","type":"text","text":"## Services\n\n- `app/services/**`","x":420,"y":160,"width":460,"height":140,"color":"6"},
+		{"id":"g301000000000023","type":"text","text":"## Schemas\n\n- `app/schemas/**`","x":900,"y":160,"width":460,"height":140,"color":"2"},
+		{"id":"g301000000000024","type":"text","text":"## Forms/Views\n\n- `app/forms/**`\n- `app/views/**`","x":1380,"y":160,"width":460,"height":160,"color":"2"},
+
+		{"id":"g301000000000030","type":"group","x":-80,"y":560,"width":2000,"height":240,"color":"2","label":"Data layer"},
+		{"id":"g301000000000031","type":"text","text":"## Repositories\n\n- `app/repositories/**`","x":-60,"y":620,"width":460,"height":140,"color":"1"},
+		{"id":"g301000000000032","type":"text","text":"## Models\n\n- `app/models/**`","x":420,"y":620,"width":460,"height":140,"color":"1"},
+
+		{"id":"g301000000000040","type":"group","x":-80,"y":820,"width":2000,"height":520,"color":"2","label":"Foundations(base)"},
+		{"id":"g301000000000041","type":"text","text":"## Constants\n\n- `app/constants/**`","x":-60,"y":880,"width":460,"height":140,"color":"4"},
+		{"id":"g301000000000042","type":"text","text":"## Types\n\n- `app/types/**`","x":420,"y":880,"width":460,"height":140,"color":"4"},
+		{"id":"g301000000000043","type":"text","text":"## Errors\n\n- `app/errors/**`","x":900,"y":880,"width":460,"height":140,"color":"4"},
+		{"id":"g301000000000044","type":"text","text":"## Utils\n\n- `app/utils/**`","x":1380,"y":880,"width":460,"height":140,"color":"4"},
+		{"id":"g301000000000045","type":"text","text":"## Settings\n\n- `app/settings.py`","x":-60,"y":1040,"width":460,"height":140,"color":"4"},
+
+		{"id":"g3010000000000ff","type":"file","file":"architecture/module-dependency-graph.md","subpath":"#1. 依赖方向总览(Depends on)","x":420,"y":1040,"width":1420,"height":140,"color":"2"}
+	],
+	"edges":[
+		{"id":"g301000000001001","fromNode":"g301000000000011","fromSide":"bottom","toNode":"g301000000000022","toSide":"top","label":"call"},
+		{"id":"g301000000001002","fromNode":"g301000000000011","fromSide":"bottom","toNode":"g301000000000024","toSide":"top","label":"use"},
+		{"id":"g301000000001003","fromNode":"g301000000000011","fromSide":"bottom","toNode":"g301000000000044","toSide":"top","label":"use"},
+		{"id":"g301000000001004","fromNode":"g301000000000011","fromSide":"bottom","toNode":"g301000000000041","toSide":"top","label":"use"},
+		{"id":"g301000000001005","fromNode":"g301000000000011","fromSide":"bottom","toNode":"g301000000000042","toSide":"top","label":"use"},
+
+		{"id":"g301000000001010","fromNode":"g301000000000012","fromSide":"bottom","toNode":"g301000000000022","toSide":"top","label":"call"},
+		{"id":"g301000000001011","fromNode":"g301000000000012","fromSide":"bottom","toNode":"g301000000000023","toSide":"top","label":"use"},
+		{"id":"g301000000001012","fromNode":"g301000000000012","fromSide":"bottom","toNode":"g301000000000044","toSide":"top","label":"use"},
+		{"id":"g301000000001013","fromNode":"g301000000000012","fromSide":"bottom","toNode":"g301000000000041","toSide":"top","label":"use"},
+		{"id":"g301000000001014","fromNode":"g301000000000012","fromSide":"bottom","toNode":"g301000000000042","toSide":"top","label":"use"},
+
+		{"id":"g301000000001020","fromNode":"g301000000000021","fromSide":"bottom","toNode":"g301000000000022","toSide":"top","label":"dispatch"},
+		{"id":"g301000000001021","fromNode":"g301000000000021","fromSide":"bottom","toNode":"g301000000000023","toSide":"top","label":"use"},
+		{"id":"g301000000001022","fromNode":"g301000000000021","fromSide":"bottom","toNode":"g301000000000044","toSide":"top","label":"use"},
+		{"id":"g301000000001023","fromNode":"g301000000000021","fromSide":"bottom","toNode":"g301000000000041","toSide":"top","label":"use"},
+		{"id":"g301000000001024","fromNode":"g301000000000021","fromSide":"bottom","toNode":"g301000000000042","toSide":"top","label":"use"},
+
+		{"id":"g301000000001030","fromNode":"g301000000000022","fromSide":"bottom","toNode":"g301000000000031","toSide":"top","label":"read"},
+		{"id":"g301000000001031","fromNode":"g301000000000022","fromSide":"bottom","toNode":"g301000000000032","toSide":"top","label":"write"},
+		{"id":"g301000000001032","fromNode":"g301000000000022","fromSide":"bottom","toNode":"g301000000000023","toSide":"top","label":"validate"},
+		{"id":"g301000000001033","fromNode":"g301000000000022","fromSide":"bottom","toNode":"g301000000000044","toSide":"top","label":"use"},
+		{"id":"g301000000001034","fromNode":"g301000000000022","fromSide":"bottom","toNode":"g301000000000043","toSide":"top","label":"raise"},
+		{"id":"g301000000001035","fromNode":"g301000000000022","fromSide":"bottom","toNode":"g301000000000041","toSide":"top","label":"use"},
+		{"id":"g301000000001036","fromNode":"g301000000000022","fromSide":"bottom","toNode":"g301000000000042","toSide":"top","label":"use"},
+
+		{"id":"g301000000001040","fromNode":"g301000000000031","fromSide":"right","toNode":"g301000000000032","toSide":"left","label":"ORM"},
+		{"id":"g301000000001041","fromNode":"g301000000000031","fromSide":"bottom","toNode":"g301000000000044","toSide":"top","label":"use"},
+		{"id":"g301000000001042","fromNode":"g301000000000031","fromSide":"bottom","toNode":"g301000000000041","toSide":"top","label":"use"},
+		{"id":"g301000000001043","fromNode":"g301000000000031","fromSide":"bottom","toNode":"g301000000000042","toSide":"top","label":"use"},
+
+		{"id":"g301000000001050","fromNode":"g301000000000032","fromSide":"bottom","toNode":"g301000000000044","toSide":"top","label":"use"},
+		{"id":"g301000000001051","fromNode":"g301000000000032","fromSide":"bottom","toNode":"g301000000000041","toSide":"top","label":"use"},
+		{"id":"g301000000001052","fromNode":"g301000000000032","fromSide":"bottom","toNode":"g301000000000042","toSide":"top","label":"use"},
+
+		{"id":"g301000000001060","fromNode":"g301000000000045","fromSide":"right","toNode":"g301000000000041","toSide":"left","label":"read"},
+		{"id":"g301000000001061","fromNode":"g301000000000045","fromSide":"right","toNode":"g301000000000042","toSide":"left","label":"read"},
+		{"id":"g301000000001062","fromNode":"g301000000000045","fromSide":"right","toNode":"g301000000000044","toSide":"left","label":"use"}
+	]
+}
