@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 按 `docs/Obsidian/Server/*` 的“清理条件”收敛/移除遗留兜底逻辑（兼容/防御/回退/适配），让服务层语义更强、更可测，并减少 silent fallback。
+**Goal:** 按 `docs/Obsidian/reference/service/*` 的“清理条件”收敛/移除遗留兜底逻辑（兼容/防御/回退/适配），让服务层语义更强、更可测，并减少 silent fallback。
 
 **Architecture:** 以“测试先行”的方式（RED→GREEN→REFACTOR）逐个 service 清理：先补齐单元测试锁定期望语义，再修改实现与调用方，最后同步更新对应 service 文档中的第 7 节清单，确保文档与代码一致。
 
@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `app/services/sync_session_service.py`
 - Test: `tests/unit/services/test_sync_session_service_cleanup.py`
-- Modify: `docs/Obsidian/Server/sync-session-service.md`
+- Modify: `docs/Obsidian/reference/service/sync-session-service.md`
 
 **Step 1: 写 failing tests（record 不存在/写入异常语义）**
 - 断言 `start_instance_sync/complete_instance_sync/fail_instance_sync` 在 record 不存在时抛 `NotFoundError`（不再 `return False`）。
@@ -47,7 +47,7 @@
 - Modify: `app/tasks/partition_management_tasks.py`
 - Test: `tests/unit/services/test_partition_management_service_cleanup.py`
 - Test: `tests/unit/services/test_partition_read_service_missing_partitions.py`（如新增）
-- Modify: `docs/Obsidian/Server/partition-services.md`
+- Modify: `docs/Obsidian/reference/service/partition-services.md`
 
 **Step 1: 写 failing tests（不再对每个分区显式建索引）**
 - 断言 `create_partition` 不再执行包含 `CREATE INDEX` 的 SQL（依赖父表 partitioned indexes）。
@@ -78,4 +78,3 @@
 **Step 1: 快速回归检查**
 - 确认不再存在 `repository or XxxRepository()` 与 `payload or {}` 的 service 层兜底。
 - 确认 user “最后管理员保护”仍保留。
-

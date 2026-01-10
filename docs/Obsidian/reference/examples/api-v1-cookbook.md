@@ -30,7 +30,7 @@ related:
 
 ## 0. 前置条件
 
-- 本地已跑起服务(示例端口 5001): `docs/getting-started/local-dev.md`
+- 本地已跑起服务(示例端口 5001): [[getting-started/local-dev]]
 - 你已经有一组可用账号(通常是 `admin`)
 
 约定:

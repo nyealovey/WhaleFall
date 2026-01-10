@@ -16,7 +16,7 @@ related:
   - "[[operations/observability-ops]]"
   - "[[API/sessions-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[reference/server/sync-session-service]]"
+  - "[[reference/service/sync-session-service]]"
   - "[[canvas/sync-sessions/sync-session-flow.canvas]]"
 ---
 
@@ -75,7 +75,7 @@ flowchart TD
 
 ## 深读(服务层文档)
 
-- [[reference/server/sync-session-service]]
+- [[reference/service/sync-session-service]]
 
 ## 可复制自查(SQL)
 
@@ -128,4 +128,4 @@ order by failed_count desc;
 5. 回到代码入口:
    - 结合 `sync_category/sync_type` 去找对应 task/service.
 6. 深入调试套路:
-   - `docs/getting-started/debugging.md`
+- [[getting-started/debugging]]

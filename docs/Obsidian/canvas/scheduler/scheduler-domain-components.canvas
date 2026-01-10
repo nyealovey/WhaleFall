@@ -12,7 +12,7 @@
 		{"id":"3c4d5e6f708192a3","type":"text","text":"## 会话追踪(任务侧可选)\n\nCode: `app/services/sync_session_service.py`\n\n- 按需创建 SyncSession\n- SyncInstanceRecord 记录进度/统计\n\n调度域自身: 主要依赖 jobstore + event log\n","x":920,"y":460,"width":420,"height":240,"color":"5"},
 		{"id":"4d5e6f708192a3b4","type":"text","text":"## External DB\n\n(由任务/业务域连接)\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n","x":1380,"y":0,"width":360,"height":220,"color":"4"},
 		{"id":"1be02d3ef830c925","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":1380,"y":240,"width":360,"height":140,"color":"6"},
-		{"id":"5b6e740015127831","type":"file","file":"architecture/scheduler-domain.md","subpath":"#图(Canvas)","x":2000,"y":-80,"width":1200,"height":200,"color":"2"}
+		{"id":"5b6e740015127831","type":"file","file":"architecture/domain/scheduler-domain.md","subpath":"#图(Canvas)","x":2000,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"d2c3b4a59687f0e1","fromNode":"a1b2c3d4e5f60718","fromSide":"bottom","toNode":"b4c1d0e2f3a56789","toSide":"top","label":"read"},

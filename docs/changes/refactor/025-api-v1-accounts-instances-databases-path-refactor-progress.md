@@ -8,8 +8,8 @@
 > 关联方案: `025-api-v1-accounts-instances-databases-path-refactor-plan.md`
 > 关联:
 > - `../../reports/2026-01-07-api-v1-accounts-instances-databases-path-audit.md`
-> - `../../standards/changes-standards.md`
-> - `../../standards/documentation-standards.md`
+> - `../../Obsidian/standards/doc/changes-standards.md`
+> - `../../Obsidian/standards/doc/documentation-standards.md`
 
 ---
 

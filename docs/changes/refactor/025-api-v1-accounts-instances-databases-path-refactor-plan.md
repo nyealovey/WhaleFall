@@ -8,7 +8,7 @@
 > 关联:
 > - `../../reports/2026-01-07-api-v1-accounts-instances-databases-path-audit.md`
 > - `../../Obsidian/standards/backend/layer/api-layer-standards.md`
-> - `../../standards/backend/action-endpoint-failure-semantics.md`
+> - `../../Obsidian/standards/backend/action-endpoint-failure-semantics.md`
 > - `../../Obsidian/standards/doc/api-contract-markdown-standards.md`
 > - `./024-layer-first-api-restructure-plan.md`
 

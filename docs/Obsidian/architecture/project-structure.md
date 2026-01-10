@@ -186,7 +186,7 @@ related:
 
 - 配置 SSOT: `app/settings.py` + `env.example`(禁止写真实密钥)
 - YAML 配置: `app/config/*.yaml`
-- 本地开发: `docs/getting-started/local-dev.md`
+- 本地开发: [[getting-started/local-dev]]
 - 常用自检: `uv run pytest -m unit`, `./scripts/ci/ruff-report.sh style`, `make typecheck`
 
 ## 6. 文档结构(SSOT)

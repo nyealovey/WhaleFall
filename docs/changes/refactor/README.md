@@ -13,58 +13,10 @@
 
 ## 写作规范
 
-详见: `../../standards/changes-standards.md`.
+详见: `../../Obsidian/standards/doc/changes-standards.md`.
 
-## 文档清单
+## 如何查找
 
-- `docs/changes/refactor/001-backend-repository-serializer-boundary-plan.md`
-- `docs/changes/refactor/001-backend-repository-serializer-boundary-progress.md`
-- `docs/changes/refactor/002-backend-write-operation-boundary-plan.md`
-- `docs/changes/refactor/002-backend-write-operation-boundary-progress.md`
-- `docs/changes/refactor/003-backend-form-service-removal-plan.md`
-- `docs/changes/refactor/003-backend-form-service-removal-progress.md`
-- `docs/changes/refactor/004-flask-restx-openapi-migration-plan.md`
-- `docs/changes/refactor/004-flask-restx-openapi-migration-progress.md`
-- `docs/changes/refactor/005-btn-icon-accessible-name-plan.md`
-- `docs/changes/refactor/005-btn-icon-accessible-name-progress.md`
-- `docs/changes/refactor/006-navbar-toggler-accessible-plan.md`
-- `docs/changes/refactor/006-navbar-toggler-accessible-progress.md`
-- `docs/changes/refactor/007-design-token-no-hardcoded-colors-plan.md`
-- `docs/changes/refactor/007-design-token-no-hardcoded-colors-progress.md`
-- `docs/changes/refactor/008-async-action-feedback-plan.md`
-- `docs/changes/refactor/008-async-action-feedback-progress.md`
-- `docs/changes/refactor/009-tag-selector-filter-scoped-dom-ids-plan.md`
-- `docs/changes/refactor/009-tag-selector-filter-scoped-dom-ids-progress.md`
-- `docs/changes/refactor/010-grid-empty-state-cta-plan.md`
-- `docs/changes/refactor/010-grid-empty-state-cta-progress.md`
-- `docs/changes/refactor/011-timezone-display-and-config-plan.md`
-- `docs/changes/refactor/011-timezone-display-and-config-progress.md`
-- `docs/changes/refactor/012-no-inline-px-sizes-plan.md`
-- `docs/changes/refactor/012-no-inline-px-sizes-progress.md`
-- `docs/changes/refactor/013-status-terminology-consistency-plan.md`
-- `docs/changes/refactor/013-status-terminology-consistency-progress.md`
-- `docs/changes/refactor/014-api-action-business-failure-vs-exception-plan.md`
-- `docs/changes/refactor/014-api-action-business-failure-vs-exception-progress.md`
-- `docs/changes/refactor/015-layout-sizing-system-plan.md`
-- `docs/changes/refactor/015-layout-sizing-system-progress.md`
-- `docs/changes/refactor/016-grid-list-page-skeleton-plan.md`
-- `docs/changes/refactor/016-grid-list-page-skeleton-progress.md`
-- `docs/changes/refactor/017-account-permissions-refactor-v4-plan.md`
-- `docs/changes/refactor/017-account-permissions-refactor-v4-progress.md`
-- `docs/changes/refactor/018-account-permission-status-dedup-plan.md`
-- `docs/changes/refactor/018-account-permission-status-dedup-progress.md`
-- `docs/changes/refactor/019-permission-config-version-tags-plan.md`
-- `docs/changes/refactor/019-permission-config-version-tags-progress.md`
-- `docs/changes/refactor/020-migration-code-cleanup-plan.md`
-- `docs/changes/refactor/020-migration-code-cleanup-progress.md`
-- `docs/changes/refactor/021-dependency-and-utils-library-refactor-plan.md`
-- `docs/changes/refactor/021-dependency-and-utils-library-refactor-progress.md`
-- `docs/changes/refactor/022-frontend-ui-polish-plan.md`
-- `docs/changes/refactor/022-frontend-ui-polish-progress.md`
-- `docs/changes/refactor/023-compatibility-and-fallback-cleanup-plan.md`
-- `docs/changes/refactor/023-compatibility-and-fallback-cleanup-progress.md`
-- `docs/changes/refactor/024-layer-first-api-restructure-plan.md`
-- `docs/changes/refactor/024-layer-first-api-restructure-progress.md`
-- `docs/changes/refactor/025-api-v1-accounts-instances-databases-path-refactor-plan.md`
-- `docs/changes/refactor/025-api-v1-accounts-instances-databases-path-refactor-progress.md`
-- `docs/changes/refactor/026-scripts-directory-structure-migration.md`
+- 按编号: `ls docs/changes/refactor | sort`
+- 按关键词: `rg -n \"keyword\" docs/changes/refactor`
+- 按 PR/Issue: 从 PR 描述或 `docs/changes/README.md` 入口进入

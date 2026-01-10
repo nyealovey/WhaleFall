@@ -15,7 +15,7 @@
 		{"id":"d302000000000040","type":"text","text":"## PostgreSQL (main DB)\n\n- instance_databases\n- database_size_stats\n- database_table_size_stats\n- tags/instance_tags\n","x":1120,"y":240,"width":560,"height":240,"color":"4"},
 		{"id":"d302000000000041","type":"text","text":"## External DB\n\n- MySQL / PostgreSQL\n- SQL Server / Oracle\n- adapter by db_type\n","x":1120,"y":900,"width":560,"height":220,"color":"4"},
 
-		{"id":"d3020000000000ff","type":"file","file":"architecture/databases-ledger-domain.md","subpath":"#组件图","x":1700,"y":0,"width":1260,"height":480,"color":"2"}
+		{"id":"d3020000000000ff","type":"file","file":"architecture/domain/databases-ledger-domain.md","subpath":"#组件图","x":1700,"y":0,"width":1260,"height":480,"color":"2"}
 	],
 	"edges":[
 		{"id":"d302000000001001","fromNode":"d302000000000010","fromSide":"bottom","toNode":"d302000000000011","toSide":"top","label":"open/use"},

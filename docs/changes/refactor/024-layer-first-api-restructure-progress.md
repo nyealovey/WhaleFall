@@ -24,7 +24,7 @@
 
 - [x] 建立并维护 plan/progress: `024-layer-first-api-restructure-{plan,progress}.md`
 - [x] 更新索引入口: `docs/README.md`, `docs/Obsidian/architecture/README.md`
-- [x] 同步相关域文档(调用方视角/Flow): 以 `docs/Obsidian/reference/server/README.md` 与 `docs/Obsidian/canvas/**` 为准
+- [x] 同步相关域文档(调用方视角/Flow): 以 `docs/Obsidian/reference/service/README.md` 与 `docs/Obsidian/canvas/**` 为准
 
 ### Phase 1: 动词路径收敛到 actions(7.3/7.4/7.6/7.7)
 

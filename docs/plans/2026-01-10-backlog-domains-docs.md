@@ -19,16 +19,16 @@
 **Steps:**
 1) 确认 backlog: `databases-ledger-domain`, `files-exports`, `dashboard-domain`.
 2) 决定文件命名:
-   - `docs/Obsidian/architecture/databases-ledger-domain.md`
-   - `docs/Obsidian/architecture/files-exports-domain.md`(aliases: `files-exports`)
-   - `docs/Obsidian/architecture/dashboard-domain.md`
+   - `docs/Obsidian/architecture/domain/databases-ledger-domain.md`
+   - `docs/Obsidian/architecture/domain/files-exports-domain.md`(aliases: `files-exports`)
+   - `docs/Obsidian/architecture/domain/dashboard-domain.md`
 
 ---
 
 ## Task 2: 新增 databases ledger domain 文档 + 图 + canvas
 
 **Files:**
-- Create: `docs/Obsidian/architecture/databases-ledger-domain.md`
+- Create: `docs/Obsidian/architecture/domain/databases-ledger-domain.md`
 - Create: `docs/Obsidian/canvas/databases-ledger/databases-ledger-domain-components.canvas`
 - Create: `docs/Obsidian/canvas/databases-ledger/databases-ledger-flow.canvas`
 
@@ -42,7 +42,7 @@
 ## Task 3: 新增 files exports domain 文档 + 图 + canvas
 
 **Files:**
-- Create: `docs/Obsidian/architecture/files-exports-domain.md`
+- Create: `docs/Obsidian/architecture/domain/files-exports-domain.md`
 - Create: `docs/Obsidian/canvas/files/files-exports-flow.canvas`
 
 **Steps:**
@@ -56,7 +56,7 @@
 ## Task 4: 新增 dashboard domain 文档 + 图 + canvas
 
 **Files:**
-- Create: `docs/Obsidian/architecture/dashboard-domain.md`
+- Create: `docs/Obsidian/architecture/domain/dashboard-domain.md`
 - Create: `docs/Obsidian/canvas/dashboard/dashboard-domain-components.canvas`
 
 **Steps:**
@@ -83,9 +83,9 @@
 
 **Steps:**
 1) Mermaid 校验:
-   - `~/.codex/skills/mermaid-diagrams-4/scripts/validate_mermaid.sh docs/Obsidian/architecture/databases-ledger-domain.md`
-   - `~/.codex/skills/mermaid-diagrams-4/scripts/validate_mermaid.sh docs/Obsidian/architecture/files-exports-domain.md`
-   - `~/.codex/skills/mermaid-diagrams-4/scripts/validate_mermaid.sh docs/Obsidian/architecture/dashboard-domain.md`
+   - `~/.codex/skills/mermaid-diagrams-4/scripts/validate_mermaid.sh docs/Obsidian/architecture/domain/databases-ledger-domain.md`
+   - `~/.codex/skills/mermaid-diagrams-4/scripts/validate_mermaid.sh docs/Obsidian/architecture/domain/files-exports-domain.md`
+   - `~/.codex/skills/mermaid-diagrams-4/scripts/validate_mermaid.sh docs/Obsidian/architecture/domain/dashboard-domain.md`
 2) Canvas JSON 校验:
    - `python3 -m json.tool docs/Obsidian/canvas/**/**/*.canvas >/dev/null`
 3) 基本回归:
