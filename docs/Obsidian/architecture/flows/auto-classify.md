@@ -16,6 +16,12 @@ related:
   - "[[architecture/identity-access]]"
   - "[[API/accounts-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
+  - "[[reference/server/auto-classify-service]]"
+  - "[[reference/server/accounts-classifications-read-service]]"
+  - "[[reference/server/account-classification-orchestrator]]"
+  - "[[reference/server/account-classification-dsl-v4]]"
+  - "[[reference/server/accounts-classifications-write-service]]"
+  - "[[reference/server/accounts-permissions-facts-builder]]"
   - "[[canvas/account-classification/account-classification-flow.canvas]]"
 ---
 
@@ -67,6 +73,15 @@ flowchart TD
   - template: `app/templates/accounts/account-classification/index.html`
   - JS: `app/static/js/modules/views/accounts/account-classification/index.js`
   - JS service: `app/static/js/modules/services/account_classification_service.js`
+
+## 深读(服务层文档)
+
+- [[reference/server/auto-classify-service]]
+- [[reference/server/accounts-classifications-read-service]]
+- [[reference/server/account-classification-orchestrator]]
+- [[reference/server/account-classification-dsl-v4]]
+- [[reference/server/accounts-classifications-write-service]]
+- [[reference/server/accounts-permissions-facts-builder]]
 
 ## 相关 domain notes
 

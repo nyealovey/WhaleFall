@@ -16,6 +16,8 @@ related:
   - "[[architecture/spec]]"
   - "[[API/capacity-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
+  - "[[reference/server/aggregation-pipeline]]"
+  - "[[reference/server/capacity-current-aggregation-service]]"
   - "[[operations/scheduler-jobstore-ops]]"
   - "[[canvas/capacity/aggregation-stats-flow.canvas]]"
   - "[[canvas/capacity/capacity-aggregation-sequence.canvas]]"
@@ -106,6 +108,11 @@ sequenceDiagram
     - `app/static/js/modules/views/components/charts/manager.js`
     - `app/static/js/modules/views/components/charts/data-source.js`
     - `app/static/js/modules/services/capacity_stats_service.js`
+
+## 深读(服务层文档)
+
+- [[reference/server/aggregation-pipeline]]
+- [[reference/server/capacity-current-aggregation-service]]
 
 ## 相关 domain notes
 

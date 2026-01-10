@@ -17,6 +17,11 @@ related:
   - "[[API/instances-api-contract]]"
   - "[[API/sessions-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
+  - "[[reference/server/accounts-sync-overview]]"
+  - "[[reference/server/accounts-sync-actions-service]]"
+  - "[[reference/server/accounts-sync-adapters]]"
+  - "[[reference/server/accounts-sync-permission-manager]]"
+  - "[[reference/server/accounts-permissions-facts-builder]]"
   - "[[canvas/accounts/accounts-flow.canvas]]"
   - "[[canvas/accounts/accounts-session-sequence.canvas]]"
 ---
@@ -119,6 +124,14 @@ sequenceDiagram
   - template: `app/templates/instances/detail.html`
   - JS: `app/static/js/modules/views/instances/detail.js`
   - JS service: `app/static/js/modules/services/instance_management_service.js`
+
+## 深读(服务层文档)
+
+- [[reference/server/accounts-sync-overview]]
+- [[reference/server/accounts-sync-actions-service]]
+- [[reference/server/accounts-sync-adapters]]
+- [[reference/server/accounts-sync-permission-manager]]
+- [[reference/server/accounts-permissions-facts-builder]]
 
 ## 相关 domain notes
 
