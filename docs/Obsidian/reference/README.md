@@ -29,5 +29,7 @@ related:
 - [[API/api-v1-api-contract|API Contract(v1) 索引]]
 - [[reference/database/README|数据库参考]]
 - [[reference/config/README|配置参考]]
+- [[reference/security/README|安全参考]]
+- [[reference/errors/README|错误码参考]]
 - [[reference/development/README|开发协作参考]]
 - [[reference/examples/README|Examples & Snippets]]

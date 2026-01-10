@@ -68,6 +68,7 @@ UnifiedLog 的 schema:
 
 当拿到错误响应(JSON envelope)时:
 - 先记录 `message_code` 与 `message`, 判断是 "业务失败" 还是 "异常"(见 [[standards/backend/action-endpoint-failure-semantics]]).
+- `message_code` 的对外语义与常见触发点见: [[reference/errors/message-code-catalog]].
 - 如果响应包含 `context.session_id`, 直接进入 [[#4.2 会话排障 SOP]].
 - 如果响应包含 `context.request_id`, 在日志中心按 request_id 过滤(如果为空, 走时间窗口 + module/action 搜索).
 
@@ -114,4 +115,3 @@ UnifiedLog 的 schema:
 
 - 确认当前环境是否启用 DB log worker(非 testing 环境才会启动 worker).
 - 检查 `LOG_FILE` 是否有写入(默认 `userdata/logs/app.log`).
-
