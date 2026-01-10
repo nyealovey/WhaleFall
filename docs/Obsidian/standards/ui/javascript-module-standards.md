@@ -66,6 +66,18 @@ related:
 - MUST: 用户可见错误使用 toast 或页面提示, 不得仅 `console.log`
 - MAY: 当关键依赖缺失(`DOMHelpers/httpU/GridWrapper` 等)时使用 `console.error` 并短路退出, 避免页面半初始化
 
+## 正反例
+
+### 正例: 按依赖方向分层
+
+- Page Entry 只做 wiring: 组装 config, 调用 `Views.*.mount(...)`.
+- View 只负责 DOM 渲染与事件绑定, 业务动作通过 store actions 或 service 方法驱动.
+
+### 反例: 层级倒置或全局耦合
+
+- View 直接调用 `window.httpU` 或直接发请求(应下沉到 service).
+- Store 依赖 View/UI modules, 导致循环依赖与复用困难.
+
 ## 门禁/检查方式
 
 - ESLint 报告(改动 `app/static/js` 时建议执行): `./scripts/ci/eslint-report.sh quick`

@@ -25,6 +25,10 @@ related:
 - 明确 `plan`（方案）与 `progress`（进度）两类文档的边界，支持跨多 PR 的持续推进。
 - 统一目录与命名，降低检索成本，避免“同一件事写多份、进度散落在评论/聊天”。
 
+### 1.1 适用范围
+
+- 本规范适用于 `docs/changes/**` 下所有变更文档(含后续新增).
+
 ## 2. 目录结构（标准）
 
 `docs/changes/` 下按变更类型分目录：
@@ -93,11 +97,18 @@ docs/changes/
 
 > 约束：`short-title` 必须为英文 `kebab-case`，同一项计划的 `plan/progress` 必须共享相同的 `NNN-short-title` 前缀。
 
-参考示例（已有实践）：
+### 4.3 正反例
+
+正例(已有实践):
 
 - `docs/changes/refactor/001-backend-repository-serializer-boundary-plan.md`
 - `docs/changes/refactor/001-backend-repository-serializer-boundary-progress.md`
 - `docs/changes/refactor/002-backend-write-operation-boundary-plan.md`
+
+反例:
+
+- `docs/changes/refactor/backend-write-operation-boundary.md`(缺少三位编号前缀)
+- `docs/changes/refactor/002_backend_write_operation_boundary_plan.md`(使用了下划线/非 kebab-case)
 
 ## 5. 最小结构（模板）
 
