@@ -351,7 +351,7 @@ scope 要明确: `SyncSession/SyncInstanceRecord` 是批量异步能力的统一
 **Step 2: 与运维口径对齐**
 
 - 3 个定时任务的 SOP 必须链接 `[[operations/scheduler-jobstore-ops]]`
-- 排障路径统一链接 `[[operations/observability-ops]]` 和 `docs/getting-started/debugging.md`
+- 排障路径统一链接 `[[operations/observability-ops]]` 和 `docs/Obsidian/getting-started/debugging.md`
 
 ---
 
@@ -361,7 +361,7 @@ scope 要明确: `SyncSession/SyncInstanceRecord` 是批量异步能力的统一
 
 Run:
 ```bash
-rg -n -P \"[\\x{3000}\\x{3001}\\x{3002}\\x{3010}\\x{3011}\\x{FF01}\\x{FF08}\\x{FF09}\\x{FF0C}\\x{FF1A}\\x{FF1B}\\x{FF1F}\\x{2018}\\x{2019}\\x{201C}\\x{201D}\\x{2013}\\x{2014}\\x{2026}]\" docs/Obsidian/architecture/flows docs/Obsidian/architecture/spec.md docs/Obsidian/operations docs/getting-started
+rg -n -P \"[\\x{3000}\\x{3001}\\x{3002}\\x{3010}\\x{3011}\\x{FF01}\\x{FF08}\\x{FF09}\\x{FF0C}\\x{FF1A}\\x{FF1B}\\x{FF1F}\\x{2018}\\x{2019}\\x{201C}\\x{201D}\\x{2013}\\x{2014}\\x{2026}]\" docs/Obsidian/architecture/flows docs/Obsidian/architecture/spec.md docs/Obsidian/operations docs/Obsidian/getting-started
 ```
 Expected: no output for newly edited sections.
 

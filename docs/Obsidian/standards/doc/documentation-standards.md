@@ -8,7 +8,7 @@ tags:
   - standards/doc
 status: active
 created: 2025-12-25
-updated: 2026-01-09
+updated: 2026-01-10
 owner: WhaleFall Team
 scope: 仓库 `docs/` 下所有文档(含后续新增)
 related:
@@ -48,7 +48,7 @@ related:
 `docs/` 下目录按"用途"划分:
 
 - `docs/README.md`: 文档总入口(唯一入口).
-- `docs/getting-started/`: 快速开始/本地开发/调试.
+- `docs/Obsidian/getting-started/`: 快速开始/本地开发/调试.
 - `docs/Obsidian/architecture/`: 架构设计(为什么/怎么设计).
 - `docs/Obsidian/reference/`: 参考手册(是什么/参数/字段/契约).
 - `docs/Obsidian/`: Obsidian vault(包含 `.obsidian/` 配置与 vault 内笔记/Canvas).
@@ -62,6 +62,14 @@ related:
 - `docs/_archive/`: 归档区(只读).
 
 > 约束: 禁止在 `docs/` 下新增与上述并列的"新一级目录". 如确需新增一级目录, 必须先更新 `docs/README.md` 与本规范, 并在评审中说明理由.
+
+## 2.1 README(目录入口)约定
+
+- MUST: README 只承担 "入口/意图/边界" 职责, 不维护本目录的全量文件清单.
+- SHOULD: README 提供 3-7 个关键入口链接(SSOT/上级入口/常用 SOP).
+- MAY: 需要全量浏览时:
+  - `docs/Obsidian/**`: 使用 Obsidian `query` block(例如 `path:"standards/ui"`, `path:"reference/service"`).
+  - 其他 `docs/**`: 用 `rg`/目录排序查找, 不在 README 内枚举每个文件.
 
 ## 3. 命名规范（新增文档强制）
 
@@ -93,7 +101,7 @@ related:
 正例:
 
 - `docs/changes/bugfix/001-instance-recycle-bin-restore.md`
-- `docs/getting-started/local-dev.md`
+- `docs/Obsidian/getting-started/local-dev.md`
 
 反例:
 

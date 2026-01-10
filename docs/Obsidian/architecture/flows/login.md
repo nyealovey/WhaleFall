@@ -16,7 +16,7 @@ related:
   - "[[architecture/spec]]"
   - "[[reference/examples/api-v1-cookbook]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[reference/server/auth-services]]"
+  - "[[reference/service/auth-services]]"
   - "[[standards/backend/layer/api-layer-standards]]"
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[canvas/auth/web-login-sequence.canvas]]"
@@ -149,4 +149,4 @@ rg -n \"message_key=\\\"(CSRF_MISSING|CSRF_INVALID|INVALID_CREDENTIALS|ACCOUNT_D
 
 ## 深读(服务层文档)
 
-- [[reference/server/auth-services]]
+- [[reference/service/auth-services]]

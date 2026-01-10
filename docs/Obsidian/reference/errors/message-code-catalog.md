@@ -45,7 +45,7 @@ related:
 3. 判断是"业务失败"还是"异常":
    - action endpoints 语义见: [[standards/backend/action-endpoint-failure-semantics]]
 4. 按需进入更细的 SOP:
-   - `docs/getting-started/debugging.md`
+   - [[getting-started/debugging]]
 
 ## 3. Catalog
 
@@ -112,4 +112,3 @@ related:
 ## 4. 变更历史
 
 - 2026-01-10: 新增 message_code/message_key catalog, 作为排障与 review 的稳定对齐表.
-

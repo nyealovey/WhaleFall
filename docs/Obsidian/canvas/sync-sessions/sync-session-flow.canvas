@@ -19,7 +19,7 @@
 		{"id":"s102000000000034","type":"text","text":"## Data\\n\\n- `sync_sessions`\\n- `sync_instance_records`\\n","x":2100,"y":60,"width":520,"height":140,"color":"4"},
 
 		{"id":"s1020000000000ff","type":"file","file":"architecture/flows/sync-session.md","subpath":"#流程图","x":1560,"y":620,"width":1520,"height":360,"color":"2"},
-		{"id":"s1020000000000fe","type":"file","file":"reference/server/sync-session-service.md","x":1560,"y":1000,"width":1520,"height":360,"color":"2"}
+		{"id":"s1020000000000fe","type":"file","file":"reference/service/sync-session-service.md","x":1560,"y":1000,"width":1520,"height":360,"color":"2"}
 	],
 	"edges":[
 		{"id":"s102000000001001","fromNode":"s102000000000011","fromSide":"right","toNode":"s102000000000012","toSide":"left","label":"start"},

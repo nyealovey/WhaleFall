@@ -19,7 +19,7 @@ related:
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[standards/backend/action-endpoint-failure-semantics]]"
   - "[[standards/backend/write-operation-boundary]]"
-  - "[[reference/server/sync-session-service]]"
+  - "[[reference/service/sync-session-service]]"
 ---
 
 # 可观测与排障(Observability Ops)

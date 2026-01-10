@@ -16,8 +16,8 @@ related:
   - "[[architecture/spec]]"
   - "[[API/capacity-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[reference/server/aggregation-pipeline]]"
-  - "[[reference/server/capacity-current-aggregation-service]]"
+  - "[[reference/service/aggregation-pipeline]]"
+  - "[[reference/service/capacity-current-aggregation-service]]"
   - "[[operations/scheduler-jobstore-ops]]"
   - "[[canvas/capacity/aggregation-stats-flow.canvas]]"
   - "[[canvas/capacity/capacity-aggregation-sequence.canvas]]"
@@ -111,19 +111,19 @@ sequenceDiagram
 
 ## 深读(服务层文档)
 
-- [[reference/server/aggregation-pipeline]]
-- [[reference/server/capacity-current-aggregation-service]]
+- [[reference/service/aggregation-pipeline]]
+- [[reference/service/capacity-current-aggregation-service]]
 
 ## 相关 domain notes
 
-- [[architecture/capacity-partitions-domain]]
-- [[architecture/scheduler-domain]]
+- [[architecture/domain/capacity-partitions-domain]]
+- [[architecture/domain/scheduler-domain]]
 
 ## 运维与排障口径(必看)
 
 - [[operations/scheduler-jobstore-ops]]
 - [[operations/observability-ops]]
-- `docs/getting-started/debugging.md`
+- [[getting-started/debugging]]
 
 ## 常见 message_code
 

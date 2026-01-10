@@ -14,7 +14,7 @@
 		{"id":"b302000000000030","type":"text","text":"## Repositories\n\n- users/account/instance/database stats\n- capacity summary\n","x":1120,"y":200,"width":520,"height":200,"color":"4"},
 		{"id":"b302000000000031","type":"text","text":"## Health checks\n\n- check_database_health\n- check_cache_health\n- uptime\n","x":1120,"y":560,"width":520,"height":180,"color":"4"},
 
-		{"id":"b3020000000000ff","type":"file","file":"architecture/dashboard-domain.md","subpath":"#组件图","x":1680,"y":0,"width":1260,"height":420,"color":"2"}
+		{"id":"b3020000000000ff","type":"file","file":"architecture/domain/dashboard-domain.md","subpath":"#组件图","x":1680,"y":0,"width":1260,"height":420,"color":"2"}
 	],
 	"edges":[
 		{"id":"b302000000001001","fromNode":"b302000000000010","fromSide":"bottom","toNode":"b302000000000011","toSide":"top","label":"GET /"},

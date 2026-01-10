@@ -3,8 +3,8 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-09
-> 更新: 2026-01-09
-> 范围: `docs/Obsidian/Server/**`, `app/services/**`
+> 更新: 2026-01-10
+> 范围: `docs/Obsidian/reference/service/**`, `app/services/**`
 > 关联: `docs/plans/2026-01-09-services-top38-docs.md`, `docs/reports/2026-01-08-services-complexity-report.md`, `docs/Obsidian/standards/doc/service-layer-documentation-standards.md`
 
 ## Milestones
@@ -13,34 +13,34 @@
   - [x] `docs/plans/2026-01-09-services-top38-docs.md`
   - [x] `docs/plans/2026-01-09-services-top38-docs-progress.md`
 - [x] Task 1: Server docs 索引
-  - [x] `docs/Obsidian/Server/README.md`
+  - [x] `docs/Obsidian/reference/service/README.md`
 - [x] Task 2: Accounts Sync 文档组
-  - [x] `docs/Obsidian/Server/accounts-sync-overview.md`
-  - [x] `docs/Obsidian/Server/accounts-sync-adapters.md`
-  - [x] `docs/Obsidian/Server/accounts-permissions-facts-builder.md`
-  - [x] 更新 `docs/Obsidian/Server/accounts-sync-permission-manager.md`（cross-link + 兼容兜底表补齐）
+  - [x] `docs/Obsidian/reference/service/accounts-sync-overview.md`
+  - [x] `docs/Obsidian/reference/service/accounts-sync-adapters.md`
+  - [x] `docs/Obsidian/reference/service/accounts-permissions-facts-builder.md`
+  - [x] 更新 `docs/Obsidian/reference/service/accounts-sync-permission-manager.md`（cross-link + 兼容兜底表补齐）
 - [x] Task 3: Classification 文档组
-  - [x] `docs/Obsidian/Server/accounts-classifications-write-service.md`
-  - [x] `docs/Obsidian/Server/account-classification-orchestrator.md`
-  - [x] `docs/Obsidian/Server/account-classification-dsl-v4.md`
+  - [x] `docs/Obsidian/reference/service/accounts-classifications-write-service.md`
+  - [x] `docs/Obsidian/reference/service/account-classification-orchestrator.md`
+  - [x] `docs/Obsidian/reference/service/account-classification-dsl-v4.md`
 - [x] Task 4: Aggregation / Capacity 文档组
-  - [x] `docs/Obsidian/Server/aggregation-pipeline.md`
-  - [x] `docs/Obsidian/Server/capacity-current-aggregation-service.md`
+  - [x] `docs/Obsidian/reference/service/aggregation-pipeline.md`
+  - [x] `docs/Obsidian/reference/service/capacity-current-aggregation-service.md`
 - [x] Task 5: Database Sync 文档组
-  - [x] `docs/Obsidian/Server/database-sync-overview.md`
-  - [x] `docs/Obsidian/Server/database-sync-adapters.md`
-  - [x] `docs/Obsidian/Server/database-sync-table-sizes.md`
+  - [x] `docs/Obsidian/reference/service/database-sync-overview.md`
+  - [x] `docs/Obsidian/reference/service/database-sync-adapters.md`
+  - [x] `docs/Obsidian/reference/service/database-sync-table-sizes.md`
 - [x] Task 6: Others 文档组
-  - [x] `docs/Obsidian/Server/partition-services.md`
-  - [x] `docs/Obsidian/Server/instances-write-and-batch.md`
-  - [x] `docs/Obsidian/Server/cache-services.md`
-  - [x] `docs/Obsidian/Server/tags-write-service.md`
-  - [x] `docs/Obsidian/Server/scheduler-job-write-service.md`
-  - [x] `docs/Obsidian/Server/connection-test-service.md`
-  - [x] `docs/Obsidian/Server/credential-write-service.md`
-  - [x] `docs/Obsidian/Server/user-write-service.md`
-  - [x] `docs/Obsidian/Server/database-ledger-service.md`
-  - [x] `docs/Obsidian/Server/sync-session-service.md`
+  - [x] `docs/Obsidian/reference/service/partition-services.md`
+  - [x] `docs/Obsidian/reference/service/instances-write-and-batch.md`
+  - [x] `docs/Obsidian/reference/service/cache-services.md`
+  - [x] `docs/Obsidian/reference/service/tags-write-service.md`
+  - [x] `docs/Obsidian/reference/service/scheduler-job-write-service.md`
+  - [x] `docs/Obsidian/reference/service/connection-test-service.md`
+  - [x] `docs/Obsidian/reference/service/credential-write-service.md`
+  - [x] `docs/Obsidian/reference/service/user-write-service.md`
+  - [x] `docs/Obsidian/reference/service/database-ledger-service.md`
+  - [x] `docs/Obsidian/reference/service/sync-session-service.md`
 - [x] Task 7: 全局收口
   - [x] 覆盖矩阵无遗漏（Top 38 全覆盖）
   - [x] 每篇都有“兼容/防御/回退/适配逻辑”表格（含清理条件）
