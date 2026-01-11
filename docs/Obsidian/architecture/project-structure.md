@@ -76,7 +76,7 @@ related:
 | `app/utils/**` | 可复用工具(纯函数优先), 不承载业务规则 |
 | `app/types/**` | 类型别名, 协议, TypedDict 等 |
 | `app/constants/**` | 常量与枚举 |
-| `app/errors/**` | 统一错误类型(AppError 体系) |
+| `app/errors.py` | 统一错误类型(AppError 体系) |
 
 ### 2.2 Web UI vs API v1
 
