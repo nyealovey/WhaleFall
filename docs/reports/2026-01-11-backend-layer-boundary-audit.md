@@ -11,7 +11,7 @@
 结论: 当前代码存在明确的分层边界跨越问题, 且主要集中在 4 个区域.
 
 - P0: `app/services/**` 仍存在大量绕过 Repository 的数据访问与查询组装(当前命中 `61` 次 `.query`, `21` 次 `db.session.query/execute`), 但 `InstanceWriteService`/`SyncSessionService` 已完成一次下沉整改.
-- P0: `app/tasks/**` 已消除 `Model.query` 与 `db.session.query/execute` 直用(命中 0), 但 `capacity_*_tasks.py` 仍然过厚, 需要继续拆分为薄入口 + runner.
+- P0: `app/tasks/**` 已消除 `Model.query` 与 `db.session.query/execute` 直用(命中 0), 且 `capacity_*_tasks.py` 已拆分为薄入口 + runner service(调度入口显著变薄).
 - P0: `app/forms/**` 已消除对 models/services/repositories 的直接依赖与查库(命中 0). 原 `app/forms/handlers/**` 已迁移为 `app/views/form_handlers/**`, 由 Views 显式绑定 `service_class`.
 - P1: `app/utils/**` 出现 DB 事务/写入(例如 `database_batch_manager.py`), 与 utils-layer-standards 存在边界冲突. 其中事务边界与 worker 入口已确认迁移到 `app/infra/**`(见 5.1).
 
@@ -108,20 +108,18 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
 
 结论: 未发现直接 `.query`/`db.session`, 但存在 API 依赖 models 的边界漂移.
 
-- 发现: API 直接 import models:
-  - `app/api/v1/namespaces/instances_connections.py:21`
-  - `app/api/v1/namespaces/accounts_classifications.py:25`
-- 风险: API 层持有 ORM 实体会诱发端点层承担更多数据逻辑, 并使 contract/DTO 边界模糊.
+- 已整改: API v1 namespaces 不再 import `app.models.*`(扫描命中 0).
+- 风险(历史原因): API 层持有 ORM 实体会诱发端点层承担更多数据逻辑, 并使 contract/DTO 边界模糊.
 
 ### 3.3 Tasks (`app/tasks/**`)
 
-结论: 已完成 "禁止 query/execute" 的边界整改(Tasks 层命中为 0), 但任务入口仍偏厚.
+结论: 已完成 "禁止 query/execute" 的边界整改(Tasks 层命中为 0), 且 capacity 相关任务已拆分为薄入口 + runner.
 
 - 直接查库(按门禁口径扫描): 0 命中
-- 文件规模(任务入口过厚):
-  - `app/tasks/capacity_aggregation_tasks.py` 约 903 行
-  - `app/tasks/capacity_collection_tasks.py` 约 820 行
-  - `app/tasks/accounts_sync_tasks.py` 约 281 行
+- 文件规模(抽样):
+  - `app/tasks/capacity_collection_tasks.py` 约 150 行(调度入口)
+  - `app/tasks/capacity_aggregation_tasks.py` 约 215 行(调度入口)
+  - `app/tasks/accounts_sync_tasks.py` 约 281 行(仍偏厚)
 - app context: 多数任务含 `with app.app_context():`(符合 tasks-layer-standards 的强约束).
 
 ### 3.4 Services (`app/services/**`)
@@ -197,7 +195,7 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
   - 现象: `Model.query`/`db.session.query/execute/add/delete` 出现在 `app/services/**`.
   - 风险: 查询与数据访问细节无法复用, 事务语义分散, 容易形成循环依赖与测试困难.
 - Tasks 入口过厚(已修复 query/execute 直用, 仍需变薄):
-  - 现象: `capacity_*_tasks.py` 文件规模远超 tasks-layer-standards 建议.
+  - 现象: `capacity_*_tasks.py` 已拆分为薄入口 + runner service, 但仍存在个别任务(例如 `accounts_sync_tasks.py`)文件规模偏大.
   - 风险: 业务逻辑沉积在调度入口, 导致复用困难与回归风险上升.
 - Forms 层越界(已修复):
   - 现象: 过去 `app/forms/**` 直接依赖 models/services/repositories 并出现 `Model.query`.
@@ -205,8 +203,8 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
 
 ### P1
 
-- API v1 依赖 models:
-  - 现象: `app/api/v1/**` import `app.models.*`.
+- API v1 依赖 models(已修复):
+  - 现象: 过去 `app/api/v1/**` import `app.models.*`.
   - 风险: 端点层更容易持有 ORM 实体并逐步承担数据逻辑.
 - Utils DB 访问与事务:
   - 现象: `app/utils/**` 出现 `db.session.*`.
@@ -222,9 +220,9 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
   - 风险: 标准口径不一致, 导致评审争议与门禁难以统一.
   - 状态: 已按方案 B 修复(见 5.3).
 
-## 5. 标准冲突与决策点(建议尽快明确)
+## 5. 标准冲突与决策点(已确认)
 
-说明: 本节为对 standards 文案的静态对照结论, 仅标记 "疑似冲突/需明确口径", 未经团队确认. 在推进任何整改或门禁化前, 建议先把本节结论确认下来并回写到 SSOT standards.
+说明: 本节用于记录 standards 文案冲突与收敛决策. 以下口径已于 2026-01-11 完成确认, 并已回写到 SSOT standards(见各小节 "已落地变更").
 
 ### 5.1 Utils 层标准 vs 写边界标准(已确认)
 
@@ -258,15 +256,14 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
 1. Forms/Views 收口: 已完成
    - `app/forms/**` 已不再 import `app.models/app.services/app.repositories`, 且不再出现 `.query/db.session`
    - 原 `app/forms/handlers/**` 已迁移为 `app/views/form_handlers/**`
-2. Tasks 收口: 部分完成
+2. Tasks 收口: 已完成
    - 已完成: tasks 内 `.query/db.session.query/execute` 下沉为 Service/Repository 调用
-   - 待完成: 将超大 tasks 文件拆分为 "薄入口" + "runner service"
 3. Services 逐域迁移到 Repository: 部分完成
    - 已完成: `InstanceWriteService`/`SyncSessionService` 删除 `.query/db.session.query`, 下沉到 repositories
    - 待完成: 其他高频 service(例如 `instances/batch_service.py`) 的逐域下沉
-4. API v1 去 models 依赖:
+4. API v1 去 models 依赖: 已完成
    - 端点层只持有 DTO/primitive, ORM 相关在 service 内部消化.
-5. 标准冲突收敛 + guard 门禁化:
+5. 标准冲突收敛 + guard 门禁化: 已完成
    - 明确 Tasks/Utils/Types 的例外口径, 并将规则固化为 scripts/ci guards.
 
 ## 7. 证据与数据来源(关键摘要)

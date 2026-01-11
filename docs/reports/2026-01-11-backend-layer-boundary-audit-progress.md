@@ -25,8 +25,8 @@
 | 1 | P0 | Forms 去 DB/去跨层依赖 | `app/forms/**`, `app/views/**`, `app/services/**`, `app/repositories/**` | TBD | Done | `rg -n "from app\\.(models|services|repositories)|db\\.session|\\.query\\b" app/forms` == 0 |
 | 2 | P0 | Tasks 变薄(禁止 query/execute) | `app/tasks/**` | TBD | Done | `rg -n "\\.query\\b|db\\.session\\.(query|execute)\\b" app/tasks` == 0 |
 | 3 | P0 | Services 数据访问经 Repository(Instances/SyncSession) | `app/services/instances/instance_write_service.py`, `app/services/sync_session_service.py`, `app/repositories/**` | TBD | Done | `rg -n "\\.query\\b|db\\.session\\.(query|execute)\\b" <target services>` == 0 |
-| 4 | P1 | API v1 去 models 依赖 | `app/api/v1/**` | TBD | TODO | `rg -n "from app\\.models|import app\\.models" app/api/v1` == 0 |
-| 5 | P1 | 新增/强化 CI guards(分层门禁) | `scripts/ci/**` | TBD | TODO | 新 guard 全绿, 且在 CI 中启用 |
+| 4 | P1 | API v1 去 models 依赖 | `app/api/v1/**` | TBD | Done | `rg -n "from app\\.models|import app\\.models" app/api/v1` == 0 |
+| 5 | P1 | 新增/强化 CI guards(分层门禁) | `scripts/ci/**` | TBD | Done | 新 guard 全绿, 且在 CI(pre-commit) 中启用 |
 | 6 | P2 | Models 查询工具方法迁移到 Repositories | `app/models/**`, `app/repositories/**` | TBD | TODO | `rg -n "\\.query\\b|db\\.session\\b" app/models` 命中逐步下降 |
 
 ## 2. Checklist(按 Phase)
@@ -46,7 +46,7 @@
 ### Phase 2
 
 - [x] `app/tasks/**` 不再出现 `.query`
-- [ ] `capacity_*_tasks.py` 拆分为薄入口 + runner service
+- [x] `capacity_*_tasks.py` 拆分为薄入口 + runner service
 - [ ] 任务执行路径验证(手动触发 + scheduler)
 
 ### Phase 3
@@ -56,15 +56,15 @@
 
 ### Phase 4
 
-- [ ] API v1 namespaces 不再 import models
-- [ ] 端点契约不变(或同步更新 API contract)
+- [x] API v1 namespaces 不再 import models
+- [x] 端点契约不变(或同步更新 API contract)
 
 ### Phase 5
 
-- [ ] 新增 `forms-layer-guard.sh`
-- [ ] 新增 `tasks-layer-guard.sh`
-- [ ] 新增 `api-layer-guard.sh`
-- [ ] (可选) 新增 `services-repository-enforcement-guard.sh`(先 warn 后 fail)
+- [x] 新增 `scripts/ci/forms-layer-guard.sh` 并接入 `.pre-commit-config.yaml`
+- [x] 新增 `scripts/ci/tasks-layer-guard.sh` 并接入 `.pre-commit-config.yaml`
+- [x] 新增 `scripts/ci/api-layer-guard.sh` 并接入 `.pre-commit-config.yaml`
+- [x] 新增 `scripts/ci/services-repository-enforcement-guard.sh`(baseline: 允许减少, 禁止新增) 并接入 `.pre-commit-config.yaml`
 
 ## 3. 变更记录(按日期追加)
 
@@ -74,4 +74,7 @@
 - 2026-01-11: 确认 Phase 0(完成): types 禁止 `TYPE_CHECKING` 引用 models, 统一改用 `Protocol`/弱类型(见 `docs/Obsidian/standards/backend/layer/types-layer-standards.md`, `app/types/credentials.py`, `app/types/tags.py`).
 - 2026-01-11: 完成 Phase 1: Forms 层移除 DB/跨层依赖, 表单 handler 迁移至 `app/views/form_handlers/**`, 并由 View 显式绑定 `service_class`.
 - 2026-01-11: 完成 Phase 2: Tasks 层移除 `.query/db.session.query/execute`, 查询下沉到 `app/services/**`/`app/repositories/**`.
+- 2026-01-11: 完成 Phase 2(补充): `capacity_*_tasks.py` 拆分为薄入口 + runner service(见 `app/services/capacity/capacity_collection_task_runner.py`, `app/services/aggregation/capacity_aggregation_task_runner.py`).
 - 2026-01-11: 完成 Phase 3: `InstanceWriteService` 与 `SyncSessionService` 删除直用 `.query/db.session.query`, 下沉到 `app/repositories/**`.
+- 2026-01-11: 完成 Phase 4: API v1 namespaces 清除 `app.models.*` 依赖(见 `app/api/v1/namespaces/instances_connections.py`, `app/api/v1/namespaces/accounts_classifications.py`).
+- 2026-01-11: 完成 Phase 5: 新增 Forms/Tasks/API/Services 分层门禁脚本并接入 pre-commit(见 `scripts/ci/forms-layer-guard.sh`, `scripts/ci/tasks-layer-guard.sh`, `scripts/ci/api-layer-guard.sh`, `scripts/ci/services-repository-enforcement-guard.sh`).

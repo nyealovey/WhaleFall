@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, cast
 from uuid import uuid4
 
 from flask import current_app, has_app_context, has_request_context
@@ -28,6 +29,28 @@ CONNECTION_TEST_EXCEPTIONS: tuple[type[BaseException], ...] = (
     OSError,
     AttributeError,
 )
+
+
+@dataclass(slots=True)
+class TempConnectionTestInstance:
+    """连接测试临时实例(不持久化).
+
+    目的:
+    - 避免在连接测试场景中构造 SQLAlchemy `Instance` 导致 backref/flush 等副作用.
+    - 满足连接适配器读取 `instance.host/port/db_type/credential/...` 的最小字段需求.
+    """
+
+    id: int | None
+    name: str
+    db_type: str
+    host: str
+    port: int
+    database_name: str | None
+    credential: Any
+    last_connected: Any | None = None
+    database_version: str | None = None
+    main_version: str | None = None
+    detailed_version: str | None = None
 
 
 class ConnectionTestService:
@@ -218,6 +241,32 @@ class ConnectionTestService:
                         error=str(close_error),
                     )
         return result
+
+    def test_connection_with_params(
+        self,
+        *,
+        name: str,
+        db_type: str,
+        host: str,
+        port: int,
+        credential: Any,
+    ) -> dict[str, Any]:
+        """测试临时连接参数(不持久化实例).
+
+        说明:
+        - 该方法用于 API 层的“连接测试”场景,避免 API 层依赖 `app.models.Instance`.
+        - 该方法不会向数据库写入 Instance 记录,仅构造临时对象用于适配器连接。
+        """
+        temp_instance = TempConnectionTestInstance(
+            id=None,
+            name=name or "temp_test",
+            db_type=db_type,
+            host=host,
+            port=port,
+            database_name=None,
+            credential=credential,
+        )
+        return self.test_connection(cast(Instance, temp_instance))
 
     def _update_last_connected(self, instance: Instance) -> None:
         """更新最后连接时间.
