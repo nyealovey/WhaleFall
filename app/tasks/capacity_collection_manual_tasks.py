@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from app import create_app, db
 from app.services.capacity.capacity_collection_task_runner import (
@@ -83,7 +83,7 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                     db.session.commit()
                     if result.get("success"):
                         total_processed += 1
-                        total_size_mb += int(result.get("total_size_mb") or 0)
+                        total_size_mb += int(cast("int | float", result.get("total_size_mb") or 0))
                     else:
                         errors.append(f"实例 {instance.name}: {result.get('message')}")
                 except CAPACITY_TASK_EXCEPTIONS as exc:
@@ -111,4 +111,3 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                 "total_size_mb": total_size_mb,
                 "errors": errors,
             }
-

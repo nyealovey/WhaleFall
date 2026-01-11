@@ -421,7 +421,7 @@ class DatabaseAggregationRunner:
             period_type=period_type,
             period_start=start_date,
         )
-        existing_by_db = {agg.database_name: agg for agg in existing}
+        existing_by_db: dict[str, DatabaseSizeAggregation] = {cast(str, agg.database_name): agg for agg in existing}
 
         previous_averages = self._query_previous_period_averages(
             instance_id=instance.id,

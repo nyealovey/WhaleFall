@@ -30,7 +30,7 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
                 instance_id=instance_id,
             )
 
-            instance = AggregationTasksReadService.get_instance_by_id(instance_id)
+            instance = AggregationTasksReadService().get_instance_by_id(instance_id)
             if not instance:
                 return {
                     "status": STATUS_FAILED,
@@ -113,4 +113,3 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
             }
         else:
             return result
-

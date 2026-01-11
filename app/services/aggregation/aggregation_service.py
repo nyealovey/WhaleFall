@@ -695,6 +695,24 @@ class AggregationService:
             log_message="开始计算每季度统计聚合",
         )
 
+    def calculate_database_size_aggregations(
+        self,
+        period_type: str,
+        *,
+        use_current_periods: dict[str, bool] | None = None,
+    ) -> dict[str, Any]:
+        """按周期类型计算数据库级统计聚合(跨所有实例)."""
+        normalized = self._normalize_period_type(period_type)
+        resolved = self._resolve_use_current_period_from_map(normalized, overrides=use_current_periods)
+
+        if normalized == "daily":
+            return self.calculate_daily_aggregations(use_current_period=resolved)
+        if normalized == "weekly":
+            return self.calculate_weekly_aggregations(use_current_period=resolved)
+        if normalized == "monthly":
+            return self.calculate_monthly_aggregations(use_current_period=resolved)
+        return self.calculate_quarterly_aggregations(use_current_period=resolved)
+
     def calculate_daily_database_aggregations_for_instance(
         self,
         instance_id: int,
