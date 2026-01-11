@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from itertools import groupby
-from typing import ClassVar, cast
+from typing import Any, ClassVar, cast
 
 from flask import request
 from flask_login import current_user
@@ -22,10 +22,6 @@ from app.api.v1.restx_models.accounts import (
 from app.constants import HttpStatus
 from app.constants.colors import ThemeColors
 from app.errors import ConflictError, ValidationError
-from app.models.account_classification import (
-    AccountClassification,
-    ClassificationRule,
-)
 from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
@@ -234,7 +230,7 @@ def _parse_json_payload() -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _serialize_classification(classification: AccountClassification) -> dict[str, object]:
+def _serialize_classification(classification: Any) -> dict[str, object]:
     return {
         "id": classification.id,
         "name": classification.name,
@@ -254,7 +250,7 @@ def _get_classification_usage(classification_id: int) -> tuple[int, int]:
     return _read_service.get_classification_usage(classification_id)
 
 
-def _classification_deletion_blockers(classification: AccountClassification) -> dict[str, int | str] | None:
+def _classification_deletion_blockers(classification: Any) -> dict[str, int | str] | None:
     if classification.is_system:
         return {"reason": "system", "rule_count": 0, "assignment_count": 0}
 
@@ -269,7 +265,7 @@ def _classification_deletion_blockers(classification: AccountClassification) -> 
 
 
 def _serialize_rule(
-    rule: ClassificationRule,
+    rule: Any,
     *,
     parse_expression: bool = False,
 ) -> dict[str, object]:
