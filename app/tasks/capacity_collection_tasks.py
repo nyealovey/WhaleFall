@@ -13,12 +13,14 @@ from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.instance import Instance
-from app.models.instance_size_stat import InstanceSizeStat
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
+from app.services.capacity.capacity_collection_status_service import CapacityCollectionStatusService
+from app.services.capacity.capacity_tasks_read_service import CapacityTasksReadService
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.database_sync import CapacitySyncCoordinator
+from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -228,7 +230,7 @@ def _collect_and_save_capacity(
 
 def _load_active_instance(instance_id: int) -> Instance:
     """加载并校验实例是否可用."""
-    instance = Instance.query.get(instance_id)
+    instance = InstanceDetailReadService().get_instance_by_id(instance_id)
     if not instance:
         error_msg = f"实例 {instance_id} 不存在"
         raise AppError(error_msg)
@@ -502,7 +504,7 @@ def collect_database_sizes() -> dict[str, Any]:
         try:
             sync_logger.info("开始容量同步任务", module="capacity_sync")
 
-            active_instances = Instance.query.filter_by(is_active=True).all()
+            active_instances = CapacityTasksReadService().list_active_instances()
             if not active_instances:
                 sync_logger.warning("没有找到活跃的数据库实例", module="capacity_sync")
                 return _no_active_instances_result()
@@ -682,10 +684,7 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
             )
 
             # 获取指定类型的活跃实例
-            instances = Instance.query.filter_by(
-                db_type=db_type,
-                is_active=True,
-            ).all()
+            instances = CapacityTasksReadService().list_active_instances(db_type=db_type)
 
             if not instances:
                 return {
@@ -750,23 +749,13 @@ def get_collection_status() -> dict[str, Any]:
     with app.app_context():
         try:
             # 统计采集数据
-            total_stats = InstanceSizeStat.query.count()
-            recent_stats = InstanceSizeStat.query.filter(
-                InstanceSizeStat.created_at >= time_utils.now_china().date(),
-            ).count()
-
-            # 获取最新采集时间
-            latest_stat = InstanceSizeStat.query.order_by(
-                InstanceSizeStat.created_at.desc(),
-            ).first()
-
-            latest_time = latest_stat.created_at if latest_stat else None
+            status = CapacityCollectionStatusService().get_status(today=time_utils.now_china().date())
 
             return {
                 "success": True,
-                "total_records": total_stats,
-                "today_records": recent_stats,
-                "latest_collection": latest_time.isoformat() if latest_time else None,
+                "total_records": status.total_records,
+                "today_records": status.today_records,
+                "latest_collection": status.latest_collection.isoformat() if status.latest_collection else None,
                 "collection_enabled": bool(app.config.get("COLLECT_DB_SIZE_ENABLED", True)),
             }
 

@@ -24,7 +24,7 @@ from app.models.tag import Tag, instance_tags
 from app.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
 from app.types.listing import PaginatedResult
 from app.types.tags import TagSummary
-from app.utils.route_safety import log_with_context
+from app.infra.route_safety import log_with_context
 
 
 class AccountsLedgerRepository:

@@ -1,12 +1,10 @@
 """账户分类规则表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.forms.handlers.account_classification_rule_form_handler import AccountClassificationRuleFormHandler
 
 CLASSIFICATION_RULE_FORM_DEFINITION = ResourceFormDefinition(
     name="classification_rule",
     template="accounts/account-classification/rules_form.html",
-    service_class=AccountClassificationRuleFormHandler,
     success_message="分类规则保存成功",
     redirect_endpoint="accounts_classifications.index",
     fields=[

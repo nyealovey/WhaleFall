@@ -20,7 +20,7 @@ from flask.views import MethodView
 from app.constants import FlashCategory
 from app.errors import AppError
 from app.types import ResourcePayload, SupportsResourceId, TemplateContext
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 if TYPE_CHECKING:
     from flask.typing import ResponseReturnValue
@@ -44,6 +44,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
     """
 
     form_definition: ResourceFormDefinition[ResourceModelT]
+    service_class: type[ResourceFormHandler[ResourceModelT]] | None = None
 
     def __init__(self) -> None:
         """初始化视图.
@@ -55,8 +56,11 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         if not getattr(self, "form_definition", None):
             msg = f"{self.__class__.__name__} 未配置 form_definition"
             raise RuntimeError(msg)
-        service_class = self.form_definition.service_class
-        self.service: ResourceFormHandler[ResourceModelT] = service_class()
+        resolved_service_class = self.service_class or self.form_definition.service_class
+        if resolved_service_class is None:
+            msg = f"{self.__class__.__name__} 未配置 service_class"
+            raise RuntimeError(msg)
+        self.service = resolved_service_class()
 
     # ------------------------------------------------------------------ #
     # HTTP Methods

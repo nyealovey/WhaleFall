@@ -33,6 +33,25 @@ class InstancesRepository:
     """实例查询 Repository."""
 
     @staticmethod
+    def get_by_name(name: str) -> Instance | None:
+        """按名称获取实例(可为空)."""
+        normalized = (name or "").strip()
+        if not normalized:
+            return None
+        return cast("Instance | None", Instance.query.filter_by(name=normalized).first())
+
+    @staticmethod
+    def get_by_name_excluding_id(name: str, *, exclude_instance_id: int) -> Instance | None:
+        """按名称获取实例(排除指定 ID,可为空)."""
+        normalized = (name or "").strip()
+        if not normalized:
+            return None
+        return cast(
+            "Instance | None",
+            Instance.query.filter(Instance.name == normalized, Instance.id != exclude_instance_id).first(),
+        )
+
+    @staticmethod
     def get_active_instance(instance_id: int) -> Instance:
         """获取未删除的实例."""
         return Instance.query.filter(

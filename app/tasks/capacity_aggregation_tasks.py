@@ -22,6 +22,7 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
+from app.services.aggregation.aggregation_tasks_read_service import AggregationTasksReadService
 from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.structlog_config import get_sync_logger, log_error, log_info
 from app.utils.time_utils import time_utils
@@ -104,28 +105,7 @@ def _has_aggregation_for_period(period_type: str, period_start: date) -> bool:
         bool: True 表示两类聚合均存在,False 表示需要执行.
 
     """
-    db_exists = (
-        db.session.query(DatabaseSizeAggregation.id)
-        .filter(
-            DatabaseSizeAggregation.period_type == period_type,
-            DatabaseSizeAggregation.period_start == period_start,
-        )
-        .limit(1)
-        .first()
-        is not None
-    )
-    if not db_exists:
-        return False
-    return (
-        db.session.query(InstanceSizeAggregation.id)
-        .filter(
-            InstanceSizeAggregation.period_type == period_type,
-            InstanceSizeAggregation.period_start == period_start,
-        )
-        .limit(1)
-        .first()
-        is not None
-    )
+    return AggregationTasksReadService.has_aggregation_for_period(period_type=period_type, period_start=period_start)
 
 
 def _filter_periods_already_aggregated(
@@ -535,7 +515,7 @@ def calculate_database_size_aggregations(
                 sync_logger.info("数据库大小统计聚合功能已禁用", module="aggregation_sync")
                 return _build_skip_response("统计聚合功能已禁用")
 
-            active_instances = Instance.query.filter_by(is_active=True).all()
+            active_instances = AggregationTasksReadService().list_active_instances()
             if not active_instances:
                 sync_logger.warning("没有找到活跃的数据库实例", module="aggregation_sync")
                 return _build_skip_response("没有活跃的数据库实例需要聚合")
@@ -702,7 +682,7 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
                 instance_id=instance_id,
             )
 
-            instance = Instance.query.get(instance_id)
+            instance = AggregationTasksReadService.get_instance_by_id(instance_id)
             if not instance:
                 return {
                     "status": STATUS_FAILED,
@@ -819,29 +799,13 @@ def get_aggregation_status() -> dict[str, Any]:
             # 获取今日聚合统计
             today = time_utils.now().date()
 
-            # 获取最近聚合时间
-            latest_aggregation = DatabaseSizeAggregation.query.order_by(
-                desc(DatabaseSizeAggregation.calculated_at),
-            ).first()
-
-            # 获取各周期类型的聚合数量
-            aggregation_counts = (
-                db.session.query(
-                    DatabaseSizeAggregation.period_type,
-                    func.count(DatabaseSizeAggregation.id).label("count"),
-                )
-                .group_by(DatabaseSizeAggregation.period_type)
-                .all()
-            )
-
-            # 获取总实例数
-            total_instances = Instance.query.filter_by(is_active=True).count()
+            status = AggregationTasksReadService().get_status()
 
             return {
                 "status": STATUS_COMPLETED,
-                "latest_aggregation": latest_aggregation.calculated_at.isoformat() if latest_aggregation else None,
-                "aggregation_counts": {row.period_type: row.count for row in aggregation_counts},
-                "total_instances": total_instances,
+                "latest_aggregation": status.latest_aggregation.isoformat() if status.latest_aggregation else None,
+                "aggregation_counts": status.aggregation_counts,
+                "total_instances": status.total_instances,
                 "check_date": today.isoformat(),
             }
 

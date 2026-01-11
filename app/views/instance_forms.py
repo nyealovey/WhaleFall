@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from flask import request, url_for
 
 from app.forms.definitions.instance import INSTANCE_FORM_DEFINITION
+from app.views.form_handlers.instance_form_handler import InstanceFormHandler
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ class InstanceFormView(ResourceFormView[Instance]):
     """
 
     form_definition = INSTANCE_FORM_DEFINITION
+    service_class = InstanceFormHandler
 
     def _resolve_success_redirect(self, instance: Instance) -> str:
         """解析成功后的重定向地址.

@@ -10,7 +10,7 @@ from app.services.common.filter_options_service import FilterOptionsService
 from app.types.accounts_ledgers import AccountFilters
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 # 创建蓝图
 accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)

@@ -14,8 +14,8 @@ from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 from app.errors import ConflictError, ValidationError
-from app.models.credential import Credential
 from app.models.instance import Instance
+from app.repositories.credentials_repository import CredentialsRepository
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.tags_repository import TagsRepository
 from app.schemas.instances import InstanceCreatePayload, InstanceUpdatePayload
@@ -44,9 +44,14 @@ class InstanceRestoreOutcome:
 class InstanceWriteService:
     """实例写操作服务."""
 
-    def __init__(self, repository: InstancesRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: InstancesRepository | None = None,
+        credentials_repository: CredentialsRepository | None = None,
+    ) -> None:
         """初始化写操作服务."""
         self._repository = repository or InstancesRepository()
+        self._credentials_repository = credentials_repository or CredentialsRepository()
 
     def create(self, payload: Mapping[str, object] | None, *, operator_id: int | None = None) -> Instance:
         """创建实例."""
@@ -67,7 +72,7 @@ class InstanceWriteService:
         is_active = params.is_active
         tag_names = [str(item) for item in params.tag_names]
 
-        existing_instance = Instance.query.filter_by(name=name).first()
+        existing_instance = self._repository.get_by_name(name)
         if existing_instance:
             raise ConflictError("实例名称已存在")
 
@@ -113,11 +118,11 @@ class InstanceWriteService:
         params = validate_or_raise(InstanceUpdatePayload, sanitized)
 
         if "credential_id" in params.model_fields_set and params.credential_id is not None:
-            credential = Credential.query.get(params.credential_id)
+            credential = self._credentials_repository.get_by_id(int(params.credential_id))
             if not credential:
                 raise ValidationError("凭据不存在")
 
-        existing_instance = Instance.query.filter(Instance.name == params.name, Instance.id != instance_id).first()
+        existing_instance = self._repository.get_by_name_excluding_id(params.name, exclude_instance_id=instance_id)
         if existing_instance:
             raise ConflictError("实例名称已存在")
 
@@ -195,8 +200,7 @@ class InstanceWriteService:
     def _sync_tags(instance: Instance, tag_names: list[str]) -> None:
         TagsRepository().sync_instance_tags(instance, tag_names)
 
-    @staticmethod
-    def _resolve_create_credential_id(value: object) -> int | None:
+    def _resolve_create_credential_id(self, value: object) -> int | None:
         if value is None:
             return None
         try:
@@ -204,7 +208,7 @@ class InstanceWriteService:
         except (TypeError, ValueError) as exc:
             raise ValidationError("无效的凭据ID") from exc
 
-        credential = Credential.query.get(credential_id)
+        credential = self._credentials_repository.get_by_id(credential_id)
         if not credential:
             raise ValidationError("凭据不存在")
 

@@ -230,11 +230,11 @@ app/
 | utils/sqlserver_connection_utils.py | 265 |  |
 | utils/logging/handlers.py | 260 |  |
 | utils/logging/error_adapter.py | 235 |  |
-| utils/logging/queue_worker.py | 209 |  |
+| infra/logging/queue_worker.py | 209 |  |
 | utils/response_utils.py | 164 |  |
 | utils/version_parser.py | 160 |  |
 | utils/password_crypto_utils.py | 147 |  |
-| utils/route_safety.py | 141 |  |
+| infra/route_safety.py | 141 |  |
 | utils/sensitive_data.py | 64 |  |
 | utils/logging/context_vars.py | 8 |  |
 
@@ -392,13 +392,13 @@ app/
 - `rate_limiter.py`: 411行 - 限流器
 - `cache_utils.py`: 289行 - 缓存工具
 - `time_utils.py`: 287行 - 时间处理
-- `route_safety.py`: 141行 - 路由安全封装
+- `route_safety.py`: 141行 - 路由安全封装(已迁移到 `app/infra/route_safety.py`)
 
 **日志系统**：
 - `structlog_config.py`: 616行 - 结构化日志配置
 - `logging/error_adapter.py`: 235行 - 错误适配器
 - `logging/handlers.py`: 260行 - 日志处理器
-- `logging/queue_worker.py`: 209行 - 队列工作线程
+- `logging/queue_worker.py`: 209行 - 队列工作线程(已迁移到 `app/infra/logging/queue_worker.py`)
 - `logging/context_vars.py`: 8行 - 上下文变量
 
 **数据库工具**：

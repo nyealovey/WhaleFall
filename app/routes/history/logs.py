@@ -10,7 +10,7 @@ from flask import Blueprint, render_template
 from app.constants import LOG_LEVELS, TIME_RANGES
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.utils.decorators import admin_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 # 创建蓝图
 history_logs_bp = Blueprint("history_logs", __name__)

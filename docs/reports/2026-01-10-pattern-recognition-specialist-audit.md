@@ -64,7 +64,7 @@
 ### 1.6 Decorator-based authz + route safety
 
 - 权限 decorators: `app/utils/decorators.py`
-- 规范路由错误处理: `app/utils/route_safety.py:safe_route_call`(在多处 routes 内已采用)
+- 规范路由错误处理: `app/infra/route_safety.py:safe_route_call`(在多处 routes 内已采用)
 - 说明入口: `CLAUDE.md` + `docs/Obsidian/standards/coding-standards.md`
 
 ## 2. Anti-patterns and code smells

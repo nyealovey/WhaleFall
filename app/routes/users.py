@@ -12,7 +12,7 @@ from flask_login import login_required
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, UserRole
 from app.errors import SystemError
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 from app.views.user_forms import UserFormView
 
 # 创建蓝图

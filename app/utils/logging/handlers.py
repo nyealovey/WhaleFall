@@ -15,7 +15,7 @@ from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.time_utils import UTC_TZ, time_utils
 
 if TYPE_CHECKING:
-    from app.utils.logging.queue_worker import LogQueueWorker
+    from app.infra.logging.queue_worker import LogQueueWorker
 
 SYSTEM_FIELDS = {"level", "module", "event", "timestamp", "exception", "logger", "logger_name"}
 CONTEXT_SCRUB_EXTRA_KEYS = (

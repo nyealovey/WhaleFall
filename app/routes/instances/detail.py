@@ -11,7 +11,7 @@ from flask_login import login_required
 from app.services.instances.instance_detail_page_service import InstanceDetailPageService
 from app.types import RouteReturn
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
 

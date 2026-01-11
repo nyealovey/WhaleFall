@@ -18,7 +18,7 @@ import app.services.cache_service as cache_service_module
 from app.errors import ConflictError, NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.utils.route_safety import log_with_context
+from app.infra.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 
 _CLASSIFICATION_DB_TYPES: list[str] = ["mysql", "postgresql", "sqlserver", "oracle"]

@@ -265,10 +265,10 @@ make test
 
 ### 路由异常模板
 
-后端路由需统一通过 `app/utils/route_safety.py` 中的 `safe_route_call` 封装异常与结构化日志，避免裸 `Exception`：
+后端路由需统一通过 `app/infra/route_safety.py` 中的 `safe_route_call` 封装异常与结构化日志，避免裸 `Exception`：
 
 ```python
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 @blueprint.route("/api/example")
 def example_view() -> Response:

@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from app.constants import STATUS_SYNC_OPTIONS, SYNC_CATEGORIES, SYNC_TYPES
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 history_sessions_bp = Blueprint("history_sessions", __name__)
 

@@ -8,6 +8,8 @@ from flask import request, url_for
 
 from app.forms.definitions.account_classification import CLASSIFICATION_FORM_DEFINITION
 from app.forms.definitions.account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
+from app.views.form_handlers.account_classification_form_handler import AccountClassificationFormHandler
+from app.views.form_handlers.account_classification_rule_form_handler import AccountClassificationRuleFormHandler
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -26,6 +28,7 @@ class AccountClassificationFormView(ResourceFormView[AccountClassification]):
     """
 
     form_definition = CLASSIFICATION_FORM_DEFINITION
+    service_class = AccountClassificationFormHandler
 
     def _resolve_success_redirect(self, instance: AccountClassification) -> str:
         """解析成功后的重定向地址.
@@ -78,6 +81,7 @@ class ClassificationRuleFormView(ResourceFormView[ClassificationRule]):
     """
 
     form_definition = CLASSIFICATION_RULE_FORM_DEFINITION
+    service_class = AccountClassificationRuleFormHandler
 
     def _resolve_success_redirect(self, instance: ClassificationRule) -> str:
         """解析成功后的重定向地址.
