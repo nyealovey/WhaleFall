@@ -25,8 +25,9 @@ fi
 # 允许位置：
 # - routes: 由 safe_route_call 承担提交（routes 自身禁止 commit）
 # - tasks/scripts/worker: 入口可自行管理事务
-# - utils: safe_route_call / batch manager / queue worker
-allowed_regex='^(app/utils/route_safety\.py:|app/utils/database_batch_manager\.py:|app/utils/logging/queue_worker\.py:|app/tasks/|scripts/)'
+# - infra: safe_route_call / queue worker
+# - utils: batch manager
+allowed_regex='^(app/infra/route_safety\.py:|app/infra/logging/queue_worker\.py:|app/utils/database_batch_manager\.py:|app/tasks/|scripts/)'
 
 unexpected="$(echo "${hits}" | LC_ALL=C sort | grep -v -E "${allowed_regex}" || true)"
 if [[ -n "${unexpected}" ]]; then

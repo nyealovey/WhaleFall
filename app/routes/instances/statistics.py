@@ -10,7 +10,7 @@ from app.services.instances.instance_statistics_read_service import InstanceStat
 from app.types import RouteReturn
 from app.types.instance_statistics import InstanceStatisticsResult
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 
 @instances_bp.route("/statistics")

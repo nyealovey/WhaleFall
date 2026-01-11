@@ -46,7 +46,7 @@ related:
 
 ### 3) 异常处理（路由层强约束）
 
-- MUST：Flask 路由必须通过 `app/utils/route_safety.py` 的 `safe_route_call` 执行业务闭包。
+- MUST: Flask 路由必须通过 `app/infra/route_safety.py` 的 `safe_route_call` 执行业务闭包.
 - MUST：通过 `expected_exceptions` 透传可控业务错误（例如 `ValidationError`、`NotFoundError`），其余异常由 helper 统一包装为 `SystemError`。
 - MUST NOT：在路由层手写 `try/except Exception` + 记录日志 + 返回错误响应的模板（会导致口径漂移与日志重复）。
 
@@ -75,7 +75,7 @@ related:
 from flask import Blueprint, Response
 
 from app.types import RouteReturn
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 bp = Blueprint("demo", __name__)
 

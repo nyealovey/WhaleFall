@@ -3,10 +3,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import Protocol
 
-if TYPE_CHECKING:
-    from app.models.tag import Tag
+
+class SupportsTagListRow(Protocol):
+    """标签列表行所需的最小 ORM 接口(结构化协议)."""
+
+    id: int
+    name: str
+    display_name: str
+    category: str
+    color: str
+    color_value: str
+    color_name: str
+    css_class: str
+    is_active: bool
+    created_at: datetime | None
+    updated_at: datetime | None
 
 
 @dataclass(slots=True)
@@ -33,7 +47,7 @@ class TagListFilters:
 class TagListRowProjection:
     """标签列表查询投影结果(Repository 输出)."""
 
-    tag: Tag
+    tag: SupportsTagListRow
     instance_count: int
 
 

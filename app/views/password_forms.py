@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 from flask_login import current_user
 
 from app.forms.definitions.change_password import CHANGE_PASSWORD_FORM_DEFINITION
+from app.views.form_handlers.change_password_form_handler import ChangePasswordFormHandler
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ class ChangePasswordFormView(ResourceFormView[User]):
     """
 
     form_definition = CHANGE_PASSWORD_FORM_DEFINITION
+    service_class = ChangePasswordFormHandler
 
     def _load_resource(self, resource_id: int | None) -> User | None:
         """加载用户资源.

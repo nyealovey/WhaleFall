@@ -27,7 +27,7 @@ from app.services.instances.instance_detail_read_service import InstanceDetailRe
 from app.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
 from app.utils.response_utils import jsonify_unified_error_message
-from app.utils.route_safety import log_with_context
+from app.infra.route_safety import log_with_context
 
 ErrorEnvelope = get_error_envelope_model(ns)
 

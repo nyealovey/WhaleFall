@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, cast
 
+from app.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.errors import NotFoundError
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -155,5 +156,5 @@ class TagsBulkActionsService:
             all_tags.update(tags_relation.all())
 
         tags_data = [tag.to_dict() for tag in all_tags]
-        category_names = dict(Tag.get_category_choices())
+        category_names = dict(TAG_CATEGORY_CHOICES)
         return TagsBulkInstanceTagsResult(tags=tags_data, category_names=category_names)

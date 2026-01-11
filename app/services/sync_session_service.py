@@ -7,14 +7,13 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, cast
 
-from sqlalchemy import func
-
 from app import db
 from app.constants import SyncSessionStatus, SyncStatus
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
+from app.repositories.sync_sessions_repository import SyncSessionsRepository
 from app.utils.structlog_config import get_sync_logger, get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -41,10 +40,11 @@ class SyncSessionService:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, repository: SyncSessionsRepository | None = None) -> None:
         """初始化同步会话服务,准备系统与同步日志记录器."""
         self.system_logger = get_system_logger()
         self.sync_logger = get_sync_logger()
+        self._repository = repository or SyncSessionsRepository()
 
     def _clean_sync_details(self, sync_details: dict[str, Any] | None) -> dict[str, Any] | None:
         """清理同步详情中的 datetime 对象,确保 JSON 可序列化.
@@ -148,7 +148,7 @@ class SyncSessionService:
         """
         try:
             records = []
-            instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+            instances = self._repository.list_instances_by_ids(instance_ids)
             instance_dict = {inst.id: inst for inst in instances}
             missing_instance_ids = sorted(set(instance_ids) - set(instance_dict))
             if missing_instance_ids:
@@ -199,7 +199,7 @@ class SyncSessionService:
             record_id: 实例记录 ID.
 
         """
-        record = SyncInstanceRecord.query.get(record_id)
+        record = self._repository.get_record_by_id(record_id)
         if not record:
             raise NotFoundError("实例同步记录不存在", extra={"record_id": record_id})
 
@@ -243,7 +243,7 @@ class SyncSessionService:
             sync_details: 同步详情字典,可选.
 
         """
-        record = SyncInstanceRecord.query.get(record_id)
+        record = self._repository.get_record_by_id(record_id)
         if not record:
             raise NotFoundError("实例同步记录不存在", extra={"record_id": record_id})
 
@@ -305,7 +305,7 @@ class SyncSessionService:
             sync_details: 同步详情字典,可选.
 
         """
-        record = SyncInstanceRecord.query.get(record_id)
+        record = self._repository.get_record_by_id(record_id)
         if not record:
             raise NotFoundError("实例同步记录不存在", extra={"record_id": record_id})
 
@@ -353,22 +353,14 @@ class SyncSessionService:
 
         """
         try:
-            session = db.session.query(SyncSession).filter_by(session_id=session_id).with_for_update().one()
-
-            succeeded_instances = int(
-                (
-                    db.session.query(func.count(SyncInstanceRecord.id))
-                    .filter_by(session_id=session_id, status=SyncStatus.COMPLETED)
-                    .scalar()
-                ),
+            session = self._repository.lock_session_by_session_id(session_id)
+            succeeded_instances = self._repository.count_records_by_status(
+                session_id=session_id,
+                status=SyncStatus.COMPLETED,
             )
-
-            failed_instances = int(
-                (
-                    db.session.query(func.count(SyncInstanceRecord.id))
-                    .filter_by(session_id=session_id, status=SyncStatus.FAILED)
-                    .scalar()
-                ),
+            failed_instances = self._repository.count_records_by_status(
+                session_id=session_id,
+                status=SyncStatus.FAILED,
             )
 
             session.update_statistics(
@@ -396,7 +388,7 @@ class SyncSessionService:
 
         """
         try:
-            return SyncInstanceRecord.get_records_by_session(session_id)
+            return self._repository.list_records_by_session(session_id)
         except Exception as e:
             self.sync_logger.exception(
                 "获取会话记录失败",
@@ -417,7 +409,7 @@ class SyncSessionService:
 
         """
         try:
-            return SyncSession.query.filter_by(session_id=session_id).first()
+            return self._repository.get_session_by_session_id(session_id)
         except Exception as e:
             self.sync_logger.exception(
                 "获取会话失败",
@@ -439,7 +431,7 @@ class SyncSessionService:
 
         """
         try:
-            return SyncSession.get_sessions_by_type(sync_type, limit)
+            return self._repository.list_sessions_by_type(sync_type, limit=limit)
         except Exception as e:
             self.sync_logger.exception(
                 "获取类型会话列表失败",
@@ -461,7 +453,7 @@ class SyncSessionService:
 
         """
         try:
-            return SyncSession.get_sessions_by_category(sync_category, limit)
+            return self._repository.list_sessions_by_category(sync_category, limit=limit)
         except Exception as e:
             self.sync_logger.exception(
                 "获取分类会话列表失败",
@@ -484,7 +476,7 @@ class SyncSessionService:
 
         """
         try:
-            return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
+            return self._repository.list_recent_sessions(limit)
         except Exception as e:
             self.sync_logger.exception(
                 "获取最近会话列表失败",
@@ -506,7 +498,7 @@ class SyncSessionService:
             成功返回 True; 会话不存在/非 RUNNING 返回 False; DB 异常抛出.
 
         """
-        session = SyncSession.query.filter_by(session_id=session_id).first()
+        session = self._repository.get_session_by_session_id(session_id)
         if not session:
             return False
         if session.status != SyncSessionStatus.RUNNING:

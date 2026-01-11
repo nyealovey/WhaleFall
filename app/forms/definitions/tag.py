@@ -1,12 +1,10 @@
 """标签表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.forms.handlers.tag_form_handler import TagFormHandler
 
 TAG_FORM_DEFINITION = ResourceFormDefinition(
     name="tag",
     template="tags/form.html",
-    service_class=TagFormHandler,
     success_message="标签保存成功",
     redirect_endpoint="tags.index",
     fields=[

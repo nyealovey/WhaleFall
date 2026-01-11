@@ -11,7 +11,7 @@ from flask_restx import Resource
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorSeverity
 from app.utils.response_utils import jsonify_unified_error_message, unified_success_response
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 if TYPE_CHECKING:
     from app.types import JsonDict, JsonValue, RouteSafetyOptions

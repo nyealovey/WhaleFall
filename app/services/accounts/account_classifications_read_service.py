@@ -27,6 +27,22 @@ class AccountClassificationsReadService:
         """初始化读取服务."""
         self._repository = repository or AccountsClassificationsRepository()
 
+    def get_classification_by_id(self, classification_id: int) -> AccountClassification | None:
+        """按 ID 获取账户分类(可为空)."""
+        try:
+            return self._repository.get_classification_by_id(classification_id)
+        except Exception as exc:
+            log_error("获取账户分类失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取账户分类失败") from exc
+
+    def get_rule_by_id(self, rule_id: int) -> ClassificationRule | None:
+        """按 ID 获取分类规则(可为空)."""
+        try:
+            return self._repository.get_rule_by_id(rule_id)
+        except Exception as exc:
+            log_error("获取分类规则失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取分类规则失败") from exc
+
     def get_classification_or_error(self, classification_id: int) -> AccountClassification:
         """获取账户分类(不存在则抛错)."""
         try:

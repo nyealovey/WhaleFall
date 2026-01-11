@@ -209,7 +209,7 @@ from flask_login import login_required
 
 from app.services.instances.instance_list_page_service import InstanceListPageService
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 instances_bp = Blueprint("instances", __name__)
 _page_service = InstanceListPageService()
@@ -243,7 +243,7 @@ from flask import Blueprint, request
 
 from app.services.tags.tag_list_service import TagListService
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 tags_bp = Blueprint("tags", __name__)
 _service = TagListService()

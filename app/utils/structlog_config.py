@@ -25,7 +25,7 @@ from app.utils.logging.error_adapter import (
     get_error_suggestions,
 )
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
-from app.utils.logging.queue_worker import LogQueueWorker
+from app.infra.logging.queue_worker import LogQueueWorker
 
 if TYPE_CHECKING:
     from collections.abc import Callable

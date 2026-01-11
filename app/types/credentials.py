@@ -3,10 +3,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import Protocol
 
-if TYPE_CHECKING:
-    from app.models.credential import Credential
+
+class SupportsCredentialListRow(Protocol):
+    """凭据列表行所需的最小 ORM 接口(结构化协议)."""
+
+    id: int
+    name: str
+    credential_type: str
+    db_type: str | None
+    username: str
+    category_id: int | None
+    created_at: datetime | None
+    updated_at: datetime | None
+    description: str | None
+    is_active: bool
+
+    def get_password_masked(self) -> str:  # pragma: no cover - protocol
+        """返回掩码后的口令字符串."""
+        ...
 
 
 @dataclass(slots=True)
@@ -28,7 +45,7 @@ class CredentialListFilters:
 class CredentialListRowProjection:
     """凭据列表查询投影结果(Repository 输出)."""
 
-    credential: Credential
+    credential: SupportsCredentialListRow
     instance_count: int
 
 

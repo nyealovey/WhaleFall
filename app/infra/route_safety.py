@@ -1,4 +1,4 @@
-"""路由安全执行与结构化日志助手.
+"""事务边界安全执行与结构化日志助手.
 
 提供 `log_with_context` 与 `safe_route_call` 两个 helper,用于复用结构化日志字段,
 并集中处理视图层的异常捕获,杜绝裸 `Exception` 与分散的 try/except 模板.

@@ -1,12 +1,10 @@
 """账户分类表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.forms.handlers.account_classification_form_handler import AccountClassificationFormHandler
 
 CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
     name="account_classification",
     template="accounts/account-classification/classifications_form.html",
-    service_class=AccountClassificationFormHandler,
     success_message="账户分类保存成功",
     redirect_endpoint="accounts_classifications.index",
     fields=[

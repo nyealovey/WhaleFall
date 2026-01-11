@@ -19,7 +19,7 @@ from app.constants.sync_constants import SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
 from app.services.sync_session_service import sync_session_service
-from app.utils.route_safety import log_with_context
+from app.infra.route_safety import log_with_context
 
 
 class SupportsAccountSync(Protocol):
