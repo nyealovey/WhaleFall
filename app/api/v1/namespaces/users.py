@@ -12,8 +12,7 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.errors import NotFoundError
-from app.repositories.users_repository import UsersRepository
-from app.services.users import UsersListService, UsersStatsService, UserWriteService
+from app.services.users import UserDetailReadService, UsersListService, UsersStatsService, UserWriteService
 from app.types import ResourcePayload
 from app.types.users import UserListFilters
 from app.utils.decorators import require_csrf
@@ -141,14 +140,12 @@ def _parse_payload() -> ResourcePayload:
 
 
 def _get_user_or_error(user_id: int) -> dict[str, object]:
-    user = UsersRepository().get_by_id(user_id)
-    if user is None:
-        raise NotFoundError("用户不存在", extra={"user_id": user_id})
+    user = UserDetailReadService().get_user_or_error(user_id)
     return user.to_dict()
 
 
 def _build_user_write_service() -> UserWriteService:
-    return UserWriteService(UsersRepository())
+    return UserWriteService()
 
 
 @ns.route("")

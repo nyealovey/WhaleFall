@@ -15,8 +15,7 @@ from app.api.v1.restx_models.credentials import CREDENTIAL_LIST_ITEM_FIELDS
 from app.constants import HttpStatus
 from app.constants.system_constants import SuccessMessages
 from app.errors import NotFoundError
-from app.repositories.credentials_repository import CredentialsRepository
-from app.services.credentials import CredentialsListService, CredentialWriteService
+from app.services.credentials import CredentialDetailReadService, CredentialsListService, CredentialWriteService
 from app.types.credentials import CredentialListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
@@ -243,9 +242,7 @@ class CredentialDetailResource(BaseResource):
         """获取凭据详情."""
 
         def _execute():
-            credential = CredentialsRepository().get_by_id(credential_id)
-            if credential is None:
-                raise NotFoundError(message="凭据不存在", extra={"credential_id": credential_id})
+            credential = CredentialDetailReadService().get_credential_or_error(credential_id)
             return self.success(
                 data={"credential": credential.to_dict()},
                 message=SuccessMessages.OPERATION_SUCCESS,

@@ -14,10 +14,10 @@ from app.services.account_classification.dsl_v4 import (
     collect_dsl_v4_validation_errors,
     is_dsl_v4_expression,
 )
+from app.repositories.account_classification_repository import ClassificationRepository
 from app.utils.structlog_config import log_error, log_info
 
 from .cache import ClassificationCache
-from .repositories import ClassificationRepository
 
 if TYPE_CHECKING:
     from app.models.account_classification import ClassificationRule

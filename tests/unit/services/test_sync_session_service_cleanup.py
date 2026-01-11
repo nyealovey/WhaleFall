@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 
 from app import create_app, db
@@ -25,7 +27,7 @@ def test_create_session_disallows_custom_session_id() -> None:
         service = SyncSessionService()
 
         with pytest.raises(TypeError):
-            service.create_session(
+            cast(Any, service).create_session(
                 sync_type="manual_task",
                 sync_category="account",
                 created_by=None,

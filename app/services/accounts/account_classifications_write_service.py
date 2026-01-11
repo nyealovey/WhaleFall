@@ -16,10 +16,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.constants import DatabaseType
+from app.constants.classification_constants import ICON_OPTIONS, OPERATOR_OPTIONS, RISK_LEVEL_OPTIONS
 from app.constants.colors import ThemeColors
 from app.errors import DatabaseError, NotFoundError, ValidationError
-from app.forms.definitions.account_classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
-from app.forms.definitions.account_classification_rule_constants import OPERATOR_OPTIONS
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -66,6 +65,27 @@ class AccountClassificationsWriteService:
     def __init__(self, repository: AccountsClassificationsRepository | None = None) -> None:
         """初始化写操作服务."""
         self._repository = repository or AccountsClassificationsRepository()
+
+    def get_classification_or_error(self, classification_id: int) -> AccountClassification:
+        """获取账户分类(不存在则抛错)."""
+        classification = self._repository.get_classification_by_id(classification_id)
+        if classification is None:
+            raise NotFoundError("账户分类不存在", extra={"classification_id": classification_id})
+        return classification
+
+    def get_rule_or_error(self, rule_id: int) -> ClassificationRule:
+        """获取分类规则(不存在则抛错)."""
+        rule = self._repository.get_rule_by_id(rule_id)
+        if rule is None:
+            raise NotFoundError("分类规则不存在", extra={"rule_id": rule_id})
+        return rule
+
+    def get_assignment_or_error(self, assignment_id: int) -> AccountClassificationAssignment:
+        """获取分类分配记录(不存在则抛错)."""
+        assignment = self._repository.get_assignment_by_id(assignment_id)
+        if assignment is None:
+            raise NotFoundError("分类分配不存在", extra={"assignment_id": assignment_id})
+        return assignment
 
     def create_classification(
         self,

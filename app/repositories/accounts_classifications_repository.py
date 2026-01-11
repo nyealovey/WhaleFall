@@ -26,6 +26,30 @@ from app.models.permission_config import PermissionConfig
 class AccountsClassificationsRepository:
     """账户分类管理查询 Repository."""
 
+    def get_classification_by_id(self, classification_id: int) -> AccountClassification | None:
+        """按ID获取账户分类."""
+        return cast("AccountClassification | None", AccountClassification.query.get(classification_id))
+
+    def get_rule_by_id(self, rule_id: int) -> ClassificationRule | None:
+        """按ID获取分类规则."""
+        return cast("ClassificationRule | None", ClassificationRule.query.get(rule_id))
+
+    def get_assignment_by_id(self, assignment_id: int) -> AccountClassificationAssignment | None:
+        """按ID获取分类分配记录."""
+        return cast("AccountClassificationAssignment | None", AccountClassificationAssignment.query.get(assignment_id))
+
+    def fetch_classification_usage(self, classification_id: int) -> tuple[int, int]:
+        """统计分类的规则数量与启用分配数量."""
+        rule_count = int(ClassificationRule.query.filter_by(classification_id=classification_id).count() or 0)
+        assignment_count = int(
+            AccountClassificationAssignment.query.filter_by(
+                classification_id=classification_id,
+                is_active=True,
+            ).count()
+            or 0
+        )
+        return rule_count, assignment_count
+
     def fetch_active_classifications(self) -> list[AccountClassification]:
         """查询启用的账户分类."""
         return (

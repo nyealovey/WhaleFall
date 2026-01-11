@@ -1,4 +1,10 @@
-"""账户分类数据访问辅助工具."""
+"""账户分类数据访问辅助工具.
+
+职责:
+- 负责 Query 组装与数据库读取（read）
+- 负责写操作的数据落库（add/delete/flush）（write）
+- 不做序列化、不返回 Response、不 commit
+"""
 
 from __future__ import annotations
 
@@ -229,3 +235,4 @@ class ClassificationRepository:
             except RULE_HYDRATION_EXCEPTIONS as exc:
                 log_error("反序列化规则缓存失败", module="account_classification", error=str(exc))
         return hydrated
+

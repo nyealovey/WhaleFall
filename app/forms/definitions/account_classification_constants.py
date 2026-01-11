@@ -1,17 +1,9 @@
-"""账户分类表单选项常量."""
+"""账户分类表单选项常量.
 
-RISK_LEVEL_OPTIONS = [
-    {"value": "low", "label": "低风险"},
-    {"value": "medium", "label": "中风险"},
-    {"value": "high", "label": "高风险"},
-    {"value": "critical", "label": "极高风险"},
-]
+说明: 常量定义已下沉到 `app.constants.classification_constants`,
+该文件仅保留为 Forms 层向后兼容的 re-export.
+"""
 
-ICON_OPTIONS = [
-    {"value": "fa-crown", "label": "皇冠"},
-    {"value": "fa-shield-alt", "label": "盾牌"},
-    {"value": "fa-exclamation-triangle", "label": "警告"},
-    {"value": "fa-user", "label": "用户"},
-    {"value": "fa-eye", "label": "眼睛"},
-    {"value": "fa-tag", "label": "标签"},
-]
+from app.constants.classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
+
+__all__ = ["ICON_OPTIONS", "RISK_LEVEL_OPTIONS"]

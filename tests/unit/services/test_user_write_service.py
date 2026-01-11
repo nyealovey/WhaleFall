@@ -6,7 +6,6 @@ import pytest
 from app.constants import UserRole
 from app.errors import ConflictError, ValidationError
 from app.models.user import User
-from app.repositories.users_repository import UsersRepository
 from app.services.users.user_write_service import UserWriteService
 
 
@@ -21,7 +20,7 @@ class _StubUser:
         return self.role == UserRole.ADMIN
 
 
-class _StubUsersRepository(UsersRepository):
+class _StubUsersRepository:
     def __init__(self, user: object | None, *, username_exists: bool = False) -> None:
         self._user = user
         self._username_exists = username_exists
@@ -103,9 +102,8 @@ def test_create_returns_username_exists_message_key() -> None:
 
 
 @pytest.mark.unit
-def test_user_write_service_requires_repository_injection() -> None:
-    with pytest.raises(TypeError):
-        UserWriteService()  # type: ignore[call-arg]
+def test_user_write_service_supports_default_repository() -> None:
+    UserWriteService()
 
 
 @pytest.mark.unit

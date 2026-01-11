@@ -19,7 +19,6 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.services.accounts_sync import accounts_sync_service
 from app.services.accounts_sync.accounts_sync_actions_service import AccountsSyncActionsService
-from app.tasks.accounts_sync_tasks import sync_accounts as sync_accounts_task
 from app.utils.decorators import require_csrf
 from app.utils.structlog_config import log_info
 
@@ -73,7 +72,6 @@ class InstancesSyncAccountsActionResource(BaseResource):
         created_by = getattr(current_user, "id", None)
         actions_service = AccountsSyncActionsService(
             sync_service=accounts_sync_service,
-            sync_task=sync_accounts_task,
         )
         prepared = None
 
@@ -126,7 +124,6 @@ class InstancesSyncInstanceAccountsActionResource(BaseResource):
         def _execute():
             result = AccountsSyncActionsService(
                 sync_service=accounts_sync_service,
-                sync_task=sync_accounts_task,
             ).sync_instance_accounts(
                 instance_id=instance_id,
                 actor_id=getattr(current_user, "id", None),

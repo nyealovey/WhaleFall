@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
 
 from sqlalchemy import func
 
@@ -16,17 +15,11 @@ from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
-from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.types.partition import PeriodWindow
 
 
 class PartitionRepository:
     """分区管理查询 Repository."""
-
-    @staticmethod
-    def fetch_partition_info() -> dict[str, Any]:
-        """获取分区信息."""
-        return PartitionStatisticsService().get_partition_info()
 
     @staticmethod
     def fetch_core_metric_counts(
