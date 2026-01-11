@@ -77,6 +77,7 @@ Views 允许依赖:
 
 - MUST: `app.forms.*`
 - MAY: `app.services.*`(通过基类或明确的 service 注入)
+- MAY: `app.errors`
 - MAY: `flask` 的模板/URL 工具
 
 ### 4) 命名规范

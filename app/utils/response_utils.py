@@ -13,7 +13,8 @@ from flask import Response, jsonify
 
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
-from app.errors import AppError, map_exception_to_status
+from app.errors import AppError
+from app.utils.error_mapping import map_exception_to_status
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
 

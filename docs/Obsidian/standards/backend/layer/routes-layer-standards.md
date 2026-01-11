@@ -67,7 +67,7 @@ related:
 允许依赖:
 
 - MUST: `app.services.*`
-- MAY: `app.utils.*`, `app.types.*`, `app.constants.*`, `app.views.*`, `app.forms.*`
+- MAY: `app.utils.*`, `app.types.*`, `app.constants.*`, `app.errors`, `app.views.*`, `app.forms.*`
 
 禁止依赖:
 
