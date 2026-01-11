@@ -1,14 +1,12 @@
 """鲸落 - 统一异常定义.
 
-集中维护业务异常类型、严重度与 HTTP 状态码映射.
+集中维护业务异常类型与元数据定义.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-
-from werkzeug.exceptions import HTTPException
 
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
@@ -26,45 +24,13 @@ class ExceptionMetadata:
     severity: ErrorSeverity
     default_message_key: str
 
-    @property
-    def default_message(self) -> str:
-        """根据 message key 获取默认文案.
-
-        Returns:
-            str: 对应 `ErrorMessages` 中的默认消息.
-
-        """
-        return getattr(ErrorMessages, self.default_message_key, ErrorMessages.INTERNAL_ERROR)
-
-    @property
-    def recoverable(self) -> bool:
-        """根据严重度判断是否可恢复.
-
-        Returns:
-            bool: 当严重度为 LOW/MEDIUM 时返回 True.
-
-        """
-        return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
-
-
-@dataclass(slots=True)
-class AppErrorOptions:
-    """AppError 初始化的可选配置."""
-
-    message_key: str | None = None
-    extra: LoggerExtra | None = None
-    severity: ErrorSeverity | None = None
-    category: ErrorCategory | None = None
-    status_code: int | None = None
-
 
 class AppError(Exception):
     """统一的基础业务异常.
 
     Args:
         message: 自定义错误文案,若为空则根据 ``message_key`` 推导.
-        options: 额外配置对象,可覆盖 message_key、extra、severity、category、status_code。
-        message_key: 自定义消息键,优先于 options.message_key。
+        message_key: 自定义消息键.
         extra: 结构化日志附加字段.
         severity: 错误严重度.
         category: 错误分类.
@@ -83,7 +49,6 @@ class AppError(Exception):
         self,
         message: str | None = None,
         *,
-        options: AppErrorOptions | None = None,
         message_key: str | None = None,
         extra: LoggerExtra | None = None,
         severity: ErrorSeverity | None = None,
@@ -94,7 +59,6 @@ class AppError(Exception):
 
         Args:
             message: 直接使用的错误提示,缺省时会根据 message_key 推导.
-            options: 包含 message_key、extra、severity、category、status_code 的配置对象.
             message_key: 覆盖默认 message_key 的可选值.
             extra: 结构化日志附加字段.
             severity: 错误严重度.
@@ -102,20 +66,12 @@ class AppError(Exception):
             status_code: HTTP 状态码.
 
         """
-        merged_options = self._merge_options(
-            options=options,
-            message_key=message_key,
-            extra=extra,
-            severity=severity,
-            category=category,
-            status_code=status_code,
-        )
-        self.message_key = merged_options.message_key or self.metadata.default_message_key
+        self.message_key = message_key or self.metadata.default_message_key
         self.message = self._resolve_message(message, self.message_key)
-        self.extra = dict(merged_options.extra or {})
-        self._severity = merged_options.severity or self.metadata.severity
-        self._category = merged_options.category or self.metadata.category
-        self._status_code = merged_options.status_code or self.metadata.status_code
+        self.extra = dict(extra or {})
+        self._severity = severity or self.metadata.severity
+        self._category = category or self.metadata.category
+        self._status_code = status_code or self.metadata.status_code
         super().__init__(self.message)
 
     @property
@@ -157,26 +113,6 @@ class AppError(Exception):
 
         """
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
-
-    @staticmethod
-    def _merge_options(
-        *,
-        options: AppErrorOptions | None,
-        message_key: str | None,
-        extra: LoggerExtra | None,
-        severity: ErrorSeverity | None,
-        category: ErrorCategory | None,
-        status_code: int | None,
-    ) -> AppErrorOptions:
-        """合并 dataclass 与显式关键字参数."""
-        base = options or AppErrorOptions()
-        return AppErrorOptions(
-            message_key=message_key if message_key is not None else base.message_key,
-            extra=extra if extra is not None else base.extra,
-            severity=severity if severity is not None else base.severity,
-            category=category if category is not None else base.category,
-            status_code=status_code if status_code is not None else base.status_code,
-        )
 
     @staticmethod
     def _resolve_message(message: str | None, message_key: str) -> str:
@@ -275,9 +211,7 @@ class RateLimitError(AppError):
         status_code=HttpStatus.TOO_MANY_REQUESTS,
         category=ErrorCategory.SECURITY,
         severity=ErrorSeverity.MEDIUM,
-        default_message_key=(
-            "RATE_LIMIT_EXCEEDED" if hasattr(ErrorMessages, "RATE_LIMIT_EXCEEDED") else "INVALID_REQUEST"
-        ),
+        default_message_key="RATE_LIMIT_EXCEEDED",
     )
 
 
@@ -323,49 +257,7 @@ class SystemError(AppError):
     )
 
 
-EXCEPTION_STATUS_MAP: dict[type[BaseException], int] = {
-    ValidationError: ValidationError.metadata.status_code,
-    AuthenticationError: AuthenticationError.metadata.status_code,
-    AuthorizationError: AuthorizationError.metadata.status_code,
-    NotFoundError: NotFoundError.metadata.status_code,
-    ConflictError: ConflictError.metadata.status_code,
-    RateLimitError: RateLimitError.metadata.status_code,
-    ExternalServiceError: ExternalServiceError.metadata.status_code,
-    DatabaseError: DatabaseError.metadata.status_code,
-    SystemError: SystemError.metadata.status_code,
-}
-
-
-def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL_SERVER_ERROR) -> int:
-    """根据异常类型推导 HTTP 状态码.
-
-    结合应用内已知异常类型映射,保证向 API 层输出一致的 HTTP 状态.
-
-    Args:
-        error: 捕获到的异常对象.
-        default: 无法匹配时的默认状态码.
-
-    Returns:
-        int: 与异常对应的 HTTP 状态码.
-
-    """
-    if isinstance(error, AppError):
-        return error.status_code
-
-    if isinstance(error, HTTPException):
-        code = getattr(error, "code", None)
-        if code is not None:
-            return int(code)
-
-    for exc_type, status in EXCEPTION_STATUS_MAP.items():
-        if isinstance(error, exc_type):
-            return status
-
-    return default
-
-
 __all__ = [
-    "EXCEPTION_STATUS_MAP",
     "AppError",
     "AuthenticationError",
     "AuthorizationError",
@@ -376,5 +268,4 @@ __all__ = [
     "RateLimitError",
     "SystemError",
     "ValidationError",
-    "map_exception_to_status",
 ]

@@ -180,7 +180,7 @@ return jsonify({"success": False, "msg": "failed"}), 400
 允许依赖:
 
 - MUST: `app.services.*`
-- MAY: `app.types.*`, `app.constants.*`, `app.utils.*`
+- MAY: `app.types.*`, `app.constants.*`, `app.errors`, `app.utils.*`
 
 需要评估:
 

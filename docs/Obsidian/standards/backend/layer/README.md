@@ -32,6 +32,7 @@ graph TD
   Models["Models(app/models)"]
   FormsViews["Forms/Views(app/forms, app/views)"]
   Utils["Utils(app/utils)"]
+  Errors["Errors(app/errors)"]
   Constants["Constants(app/constants)"]
   Types["Types(app/types)"]
 
@@ -41,6 +42,7 @@ graph TD
   Services --> Repositories & Utils
   Repositories --> Models & Utils
   Models --> Utils
+  Errors --> Routes & API & Tasks & Services & Repositories & FormsViews & Utils
   Constants --> Routes & API & Tasks & Services & Repositories & Models & Utils
   Types --> Routes & API & Tasks & Services & Repositories & Models & Utils
 ```
@@ -51,6 +53,7 @@ graph TD
 - [[standards/backend/layer/services-layer-standards|Services 服务层编写规范]]
 - [[standards/backend/layer/repository-layer-standards|Repository 仓储层编写规范]]
 - [[standards/backend/layer/tasks-layer-standards|Tasks 任务层编写规范]]
+- [[standards/backend/layer/errors-layer-standards|Errors 异常层编写规范]]
 
 ## 全量浏览(不维护手工清单)
 
