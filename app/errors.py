@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from app.types.structures import LoggerExtra
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ExceptionMetadata:
     """异常的元信息."""
 
@@ -67,42 +67,12 @@ class AppError(Exception):
 
         """
         self.message_key = message_key or self.metadata.default_message_key
-        self.message = self._resolve_message(message, self.message_key)
+        self.message = message or getattr(ErrorMessages, self.message_key, ErrorMessages.INTERNAL_ERROR)
         self.extra = dict(extra or {})
-        self._severity = severity or self.metadata.severity
-        self._category = category or self.metadata.category
-        self._status_code = status_code or self.metadata.status_code
+        self.severity = severity or self.metadata.severity
+        self.category = category or self.metadata.category
+        self.status_code = status_code or self.metadata.status_code
         super().__init__(self.message)
-
-    @property
-    def severity(self) -> ErrorSeverity:
-        """返回异常实例对应的严重度.
-
-        Returns:
-            ErrorSeverity: 结合元数据或动态覆写后的严重度枚举值.
-
-        """
-        return self._severity
-
-    @property
-    def category(self) -> ErrorCategory:
-        """返回异常所属的业务分类.
-
-        Returns:
-            ErrorCategory: 统一的错误分类,用于统计与监控.
-
-        """
-        return self._category
-
-    @property
-    def status_code(self) -> int:
-        """返回异常对应的 HTTP 状态码.
-
-        Returns:
-            int: 对外暴露的 HTTP 状态码,默认为异常元数据配置.
-
-        """
-        return self._status_code
 
     @property
     def recoverable(self) -> bool:
@@ -113,22 +83,6 @@ class AppError(Exception):
 
         """
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
-
-    @staticmethod
-    def _resolve_message(message: str | None, message_key: str) -> str:
-        """根据 message 与 message_key 推导最终提示.
-
-        Args:
-            message: 调用方显式传入的文案.
-            message_key: 需要查找默认文案的键名.
-
-        Returns:
-            str: 直接使用的自定义文案或默认枚举值.
-
-        """
-        if message:
-            return message
-        return getattr(ErrorMessages, message_key, ErrorMessages.INTERNAL_ERROR)
 
 
 class ValidationError(AppError):
@@ -249,12 +203,7 @@ class SystemError(AppError):
     用于捕获无法归类的异常,默认返回 500.
     """
 
-    metadata = ExceptionMetadata(
-        status_code=HttpStatus.INTERNAL_SERVER_ERROR,
-        category=ErrorCategory.SYSTEM,
-        severity=ErrorSeverity.HIGH,
-        default_message_key="INTERNAL_ERROR",
-    )
+    pass
 
 
 __all__ = [

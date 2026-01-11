@@ -47,7 +47,7 @@ graph TD
   subgraph Foundations["Foundations (base)"]
     Constants["Constants(app/constants/**)"]
     Types["Types(app/types/**)"]
-    Errors["Errors(app/errors/**)"]
+    Errors["Errors(app/errors.py)"]
     Utils["Utils(app/utils/**)"]
     Settings["Settings(app/settings.py)"]
   end

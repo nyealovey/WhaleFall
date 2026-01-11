@@ -1,7 +1,7 @@
 """WhaleFall - 异常与 HTTP 状态码映射.
 
 该模块属于 HTTP 边界适配层,用于将异常转换为对外 HTTP 状态码.
-`app/errors` 只负责定义异常类型与元数据,不感知 Flask/Werkzeug 等框架细节.
+`app/errors.py` 只负责定义异常类型与元数据,不感知 Flask/Werkzeug 等框架细节.
 """
 
 from __future__ import annotations
@@ -35,4 +35,3 @@ def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL
 
 
 __all__ = ["map_exception_to_status"]
-
