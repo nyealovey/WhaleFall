@@ -19,3 +19,7 @@ class InstanceDatabasesRepository:
         """按 ID 获取实例数据库记录."""
         return cast("InstanceDatabase | None", InstanceDatabase.query.get(database_id))
 
+    @staticmethod
+    def list_by_instance_id(instance_id: int) -> list[InstanceDatabase]:
+        """按实例 ID 获取数据库记录列表."""
+        return InstanceDatabase.query.filter_by(instance_id=instance_id).all()

@@ -18,6 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.constants.sync_constants import SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
+from app.repositories.instances_repository import InstancesRepository
 from app.services.sync_session_service import sync_session_service
 from app.infra.route_safety import log_with_context
 
@@ -144,14 +145,14 @@ class AccountsSyncActionsService:
 
     @staticmethod
     def _ensure_active_instances() -> int:
-        active_count = Instance.query.filter_by(is_active=True).count()
+        active_count = InstancesRepository.count_active_instances()
         if active_count == 0:
             raise ValidationError("没有找到活跃的数据库实例")
         return int(active_count)
 
     @staticmethod
     def _get_instance(instance_id: int) -> Instance:
-        instance = Instance.query.filter_by(id=instance_id).first()
+        instance = InstancesRepository.get_instance(instance_id)
         if instance is None:
             raise NotFoundError("实例不存在")
         return instance

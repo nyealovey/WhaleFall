@@ -121,12 +121,9 @@ class CredentialWriteService:
         self._log_delete(outcome, operator_id=operator_id)
         return outcome
 
-    @staticmethod
-    def _ensure_name_unique(name: str, *, resource: Credential | None) -> None:
-        query = Credential.query.filter(Credential.name == name)
-        if resource:
-            query = query.filter(Credential.id != resource.id)
-        if query.first():
+    def _ensure_name_unique(self, name: str, *, resource: Credential | None) -> None:
+        exclude_id = resource.id if resource else None
+        if self._repository.exists_by_name(name, exclude_credential_id=exclude_id):
             raise ValidationError("凭据名称已存在,请使用其他名称")
 
     def _get_or_error(self, credential_id: int) -> Credential:

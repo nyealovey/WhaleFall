@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.instance_database import InstanceDatabase
+from app.repositories.instance_databases_repository import InstanceDatabasesRepository
 from app.services.database_sync.database_filters import (
     DatabaseSyncFilterManager,
     database_sync_filter_manager,
@@ -53,10 +54,12 @@ class InventoryManager:
     def __init__(
         self,
         filter_manager: DatabaseSyncFilterManager = database_sync_filter_manager,
+        repository: InstanceDatabasesRepository | None = None,
     ) -> None:
         """初始化库存管理器,注入过滤器与日志记录器."""
         self.logger = get_system_logger()
         self.filter_manager = filter_manager
+        self._repository = repository or InstanceDatabasesRepository()
 
     def synchronize(
         self,
@@ -77,9 +80,7 @@ class InventoryManager:
         today = time_utils.now_china().date()
         now_ts = time_utils.now()
 
-        existing_records: list[InstanceDatabase] = InstanceDatabase.query.filter_by(
-            instance_id=instance.id,
-        ).all()
+        existing_records: list[InstanceDatabase] = self._repository.list_by_instance_id(instance.id)
         existing_map = {record.database_name: record for record in existing_records}
 
         seen_names: set[str] = set()

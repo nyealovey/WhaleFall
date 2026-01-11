@@ -36,6 +36,14 @@ class TagsRepository:
             return None
         return Tag.query.filter_by(name=normalized).first()
 
+    @staticmethod
+    def list_tags_by_ids(tag_ids: Sequence[int]) -> list[Tag]:
+        """按 ID 列表获取标签."""
+        normalized_ids = [int(tag_id) for tag_id in (tag_ids or []) if tag_id]
+        if not normalized_ids:
+            return []
+        return Tag.query.filter(Tag.id.in_(normalized_ids)).all()
+
     def add(self, tag: Tag) -> Tag:
         """新增标签并 flush."""
         db.session.add(tag)

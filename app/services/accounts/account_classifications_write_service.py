@@ -328,10 +328,14 @@ class AccountClassificationsWriteService:
         return any(item["value"] == value for item in options)
 
     def _name_exists(self, name: str, resource: AccountClassification | None) -> bool:
-        query = AccountClassification.query.filter(AccountClassification.name == name)
-        if resource:
-            query = query.filter(AccountClassification.id != resource.id)
-        return bool(db.session.query(query.exists()).scalar())
+        exclude_id = resource.id if resource else None
+        return self._repository.exists_classification_name(name, exclude_classification_id=exclude_id)
+
+    def _get_classification_by_id(self, classification_id: int) -> AccountClassification:
+        classification = self._repository.get_classification_by_id(classification_id)
+        if classification is None:
+            raise NotFoundError("选择的分类不存在", extra={"classification_id": classification_id})
+        return classification
 
     def _validate_and_normalize_classification(
         self,
@@ -370,12 +374,6 @@ class AccountClassificationsWriteService:
             "icon_name": icon_name_value,
             "priority": priority_value,
         }
-
-    def _get_classification_by_id(self, classification_id: int) -> AccountClassification:
-        classification = AccountClassification.query.get(classification_id)
-        if not classification:
-            raise NotFoundError("选择的分类不存在", extra={"classification_id": classification_id})
-        return classification
 
     def _get_db_type_options(self) -> list[dict[str, str]]:
         return [
@@ -475,37 +473,35 @@ class AccountClassificationsWriteService:
             raise ValidationError("规则表达式必须为对象")
         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
-    @staticmethod
     def _rule_name_exists(
+        self,
         *,
         classification_id: int,
         db_type: str,
         rule_name: str,
         resource: ClassificationRule | None,
     ) -> bool:
-        query = ClassificationRule.query.filter_by(
+        exclude_id = resource.id if resource else None
+        return self._repository.exists_rule_name(
             classification_id=classification_id,
             db_type=db_type,
             rule_name=rule_name,
+            exclude_rule_id=exclude_id,
         )
-        if resource:
-            query = query.filter(ClassificationRule.id != resource.id)
-        return bool(db.session.query(query.exists()).scalar())
 
-    @staticmethod
     def _expression_exists(
+        self,
         normalized_expression: str,
         *,
         classification_id: int,
         resource: ClassificationRule | None,
     ) -> bool:
-        query = ClassificationRule.query.filter_by(
+        exclude_id = resource.id if resource else None
+        return self._repository.exists_rule_expression(
             classification_id=classification_id,
             rule_expression=normalized_expression,
+            exclude_rule_id=exclude_id,
         )
-        if resource:
-            query = query.filter(ClassificationRule.id != resource.id)
-        return bool(db.session.query(query.exists()).scalar())
 
     @staticmethod
     def _invalidate_cache(*, rule_id: int) -> None:

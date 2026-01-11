@@ -17,6 +17,7 @@ from app.constants import SyncStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import SystemError as AppSystemError, ValidationError
 from app.models.instance import Instance
+from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
 from app.services.sync_session_service import SyncItemStats, sync_session_service
@@ -100,7 +101,7 @@ class CurrentAggregationService:
         start_date_date, end_date_date = service.period_calculator.get_current_period(period_type)
         start_date = time_utils.to_china(start_date_date.isoformat()) or time_utils.now()
         end_date = time_utils.to_china(end_date_date.isoformat()) or time_utils.now()
-        active_instances = Instance.query.filter_by(is_active=True).all()
+        active_instances = InstancesRepository.list_active_instances()
         created_by = current_user.id if current_user.is_authenticated else None
         meta = AggregationMeta(
             period_type=period_type,

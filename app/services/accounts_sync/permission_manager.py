@@ -14,6 +14,7 @@ from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
 from app.errors import AppError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
+from app.repositories.accounts_sync_repository import AccountsSyncRepository
 from app.services.accounts_permissions.facts_builder import build_permission_facts
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.structlog_config import get_sync_logger
@@ -199,9 +200,10 @@ class AccountPermissionManager:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, repository: AccountsSyncRepository | None = None) -> None:
         """初始化账户权限管理器."""
         self.logger = get_sync_logger()
+        self._repository = repository or AccountsSyncRepository()
 
     def synchronize(
         self,
@@ -301,14 +303,14 @@ class AccountPermissionManager:
 
     def _find_permission_record(self, instance: Instance, account: InstanceAccount) -> AccountPermission | None:
         """查找或回填账户权限记录."""
-        existing = AccountPermission.query.filter_by(instance_account_id=account.id).first()
+        existing = self._repository.get_permission_by_instance_account_id(account.id)
         if existing:
             return existing
-        existing = AccountPermission.query.filter_by(
+        existing = self._repository.get_permission_by_instance_username(
             instance_id=instance.id,
             db_type=instance.db_type,
             username=account.username,
-        ).first()
+        )
         if existing and not existing.instance_account_id:
             raise AppError(
                 message="权限记录缺少 instance_account_id, 请先完成数据回填",

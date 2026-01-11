@@ -105,7 +105,7 @@ class UserWriteService:
             raise ValidationError("不能删除自己的账户")
 
         if user.role == UserRole.ADMIN:
-            admin_count = User.query.filter_by(role=UserRole.ADMIN).count()
+            admin_count = self._repository.count_by_role(UserRole.ADMIN)
             if admin_count <= 1:
                 raise ValidationError("不能删除最后一个管理员账户")
 

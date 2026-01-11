@@ -10,12 +10,11 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql import table
 
 from app import db
 from app.errors import DatabaseError
+from app.repositories.partition_management_repository import PartitionManagementRepository
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
@@ -61,7 +60,7 @@ class PartitionAction:
 class PartitionManagementService:
     """PostgreSQL 分区管理服务."""
 
-    def __init__(self) -> None:
+    def __init__(self, repository: PartitionManagementRepository | None = None) -> None:
         """初始化分区管理服务,配置不同分区表的元数据."""
         self.tables: dict[str, dict[str, str]] = {
             "stats": {
@@ -93,6 +92,7 @@ class PartitionManagementService:
                 "display_name": "实例聚合表",
             },
         }
+        self._repository = repository or PartitionManagementRepository()
 
     # ------------------------------------------------------------------------------
     # 创建与清理分区
@@ -159,20 +159,19 @@ class PartitionManagementService:
                     )
                     continue
 
-                create_sql = (
-                    f"CREATE TABLE {partition_name} "
-                    f"PARTITION OF {table_config['table_name']} "
-                    f"FOR VALUES FROM ('{month_start}') TO ('{month_end}');"
-                )
                 try:
                     with db.session.begin_nested():
-                        db.session.execute(text(create_sql))
-                        comment_sql = (
-                            f"COMMENT ON TABLE {partition_name} IS "
-                            f"'{table_config['display_name']}分区表 - "
-                            f"{time_utils.format_china_time(month_start, '%Y-%m')}';"
+                        comment = (
+                            f"{table_config['display_name']}分区表 - "
+                            f"{time_utils.format_china_time(month_start, '%Y-%m')}"
                         )
-                        db.session.execute(text(comment_sql))
+                        self._repository.create_partition_table(
+                            partition_name=partition_name,
+                            base_table_name=table_config["table_name"],
+                            month_start=month_start,
+                            month_end=month_end,
+                            comment=comment,
+                        )
                 except SQLAlchemyError as exc:
                     failures.append(
                         {
@@ -285,10 +284,9 @@ class PartitionManagementService:
             for table_key, table_config in self.tables.items():
                 partitions_to_drop = self._get_partitions_to_cleanup(cutoff_date, table_config)
                 for partition_name in partitions_to_drop:
-                    drop_sql = f"DROP TABLE IF EXISTS {partition_name};"
                     try:
                         with db.session.begin_nested():
-                            db.session.execute(text(drop_sql))
+                            self._repository.drop_partition_table(partition_name=partition_name)
                     except SQLAlchemyError as exc:
                         failures.append(
                             {
@@ -396,19 +394,9 @@ class PartitionManagementService:
 
         """
         pattern = f"{table_config['partition_prefix']}%"
-        query = """
-        SELECT
-            schemaname,
-            tablename,
-            pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
-            pg_total_relation_size(schemaname||'.'||tablename) AS size_bytes
-        FROM pg_tables
-        WHERE tablename LIKE :pattern
-        ORDER BY tablename;
-        """
 
         try:
-            rows = db.session.execute(text(query), {"pattern": pattern}).fetchall()
+            rows = self._repository.fetch_partition_rows(pattern=pattern)
         except SQLAlchemyError as exc:
             log_error(
                 "查询表分区信息失败",
@@ -468,15 +456,8 @@ class PartitionManagementService:
             DatabaseError: 当数据库查询失败时抛出.
 
         """
-        query = """
-        SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables
-            WHERE table_name = :partition_name
-        );
-        """
         try:
-            result = db.session.execute(text(query), {"partition_name": partition_name}).scalar()
-            return bool(result)
+            return self._repository.partition_exists(partition_name=partition_name)
         except SQLAlchemyError as exc:
             log_error("检查分区是否存在失败", module=MODULE, partition_name=partition_name, exception=exc)
             raise DatabaseError(message="检查分区是否存在失败", extra={"partition_name": partition_name}) from exc
@@ -495,17 +476,8 @@ class PartitionManagementService:
             DatabaseError: 当数据库查询失败时抛出.
 
         """
-        query = """
-        SELECT tablename
-        FROM pg_tables
-        WHERE tablename LIKE :pattern
-        ORDER BY tablename;
-        """
         try:
-            rows = db.session.execute(
-                text(query),
-                {"pattern": f"{table_config['partition_prefix']}%"},
-            ).fetchall()
+            partition_names = self._repository.fetch_partition_names(pattern=f"{table_config['partition_prefix']}%")
         except SQLAlchemyError as exc:
             log_error(
                 "查询候选清理分区失败",
@@ -516,8 +488,8 @@ class PartitionManagementService:
             raise DatabaseError(message="查询待清理分区失败", extra={"table": table_config["table_name"]}) from exc
 
         partitions: list[str] = []
-        for row in rows:
-            date_str = self._extract_date_from_partition_name(row.tablename, table_config["partition_prefix"])
+        for partition_name in partition_names:
+            date_str = self._extract_date_from_partition_name(partition_name, table_config["partition_prefix"])
             if not date_str:
                 continue
             try:
@@ -525,7 +497,7 @@ class PartitionManagementService:
             except ValueError:
                 continue
             if partition_date < cutoff_date:
-                partitions.append(row.tablename)
+                partitions.append(partition_name)
         return partitions
 
     def _extract_date_from_partition_name(self, partition_name: str, prefix: str) -> str | None:
@@ -578,10 +550,7 @@ class PartitionManagementService:
         """
         safe_partition = self._ensure_partition_identifier(partition_name)
         try:
-            partition_table = table(safe_partition)
-            stmt = select(func.count()).select_from(partition_table)
-            result = db.session.execute(stmt).scalar()
-            return int(result or 0)
+            return self._repository.get_partition_record_count(partition_name=safe_partition)
         except ValueError as exc:
             log_warning(
                 "分区名称校验失败",

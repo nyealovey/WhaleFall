@@ -9,11 +9,14 @@ from __future__ import annotations
 
 from app.constants.system_constants import ErrorMessages
 from app.errors import AuthenticationError, NotFoundError
-from app.models.user import User
+from app.repositories.users_repository import UsersRepository
 
 
 class AuthMeReadService:
     """读取当前用户信息服务."""
+
+    def __init__(self, repository: UsersRepository | None = None) -> None:
+        self._repository = repository or UsersRepository()
 
     def get_me(self, *, identity: str | int | None) -> dict[str, object]:
         """获取当前用户信息.
@@ -37,7 +40,7 @@ class AuthMeReadService:
                 message_key="INVALID_CREDENTIALS",
             ) from exc
 
-        user = User.query.get(user_id)
+        user = self._repository.get_by_id(user_id)
         if not user:
             raise NotFoundError(message="用户不存在")
 
@@ -50,4 +53,3 @@ class AuthMeReadService:
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "last_login": user.last_login.isoformat() if user.last_login else None,
         }
-

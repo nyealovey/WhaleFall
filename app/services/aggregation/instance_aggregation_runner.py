@@ -14,6 +14,8 @@ from app.errors import DatabaseError
 from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
+from app.repositories.aggregation_runner_repository import AggregationRunnerRepository
+from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.callbacks import RunnerCallbacks
 from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
@@ -70,6 +72,7 @@ class InstanceAggregationRunner:
         commit_with_partition_retry: Callable[[date], None],
         period_calculator: PeriodCalculator,
         module: str,
+        repository: AggregationRunnerRepository | None = None,
     ) -> None:
         """初始化实例聚合执行器.
 
@@ -84,6 +87,7 @@ class InstanceAggregationRunner:
         self._commit_with_partition_retry = commit_with_partition_retry
         self._period_calculator = period_calculator
         self._module = module
+        self._repository = repository or AggregationRunnerRepository()
 
     def _invoke_callback(self, callback: Callable[..., None] | None, *args: object) -> None:
         """安全地执行回调.
@@ -133,7 +137,7 @@ class InstanceAggregationRunner:
             周期聚合结果字典,包含处理统计和错误信息.
 
         """
-        instances = Instance.query.filter_by(is_active=True).all()
+        instances = InstancesRepository.list_active_instances()
         summary = PeriodSummary(
             period_type=period_type,
             start_date=start_date,
@@ -327,12 +331,11 @@ class InstanceAggregationRunner:
             list[InstanceSizeStat]: 匹配的统计记录.
 
         """
-        return InstanceSizeStat.query.filter(
-            InstanceSizeStat.instance_id == instance_id,
-            InstanceSizeStat.collected_date >= start_date,
-            InstanceSizeStat.collected_date <= end_date,
-            InstanceSizeStat.is_deleted.is_(False),
-        ).all()
+        return self._repository.list_instance_size_stats(
+            instance_id=instance_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     def _persist_instance_aggregation(
         self,
@@ -364,11 +367,11 @@ class InstanceAggregationRunner:
                 daily_totals.append(sum(stat.total_size_mb for stat in day_stats))
                 daily_db_counts.append(sum(stat.database_count for stat in day_stats))
 
-            aggregation = InstanceSizeAggregation.query.filter(
-                InstanceSizeAggregation.instance_id == context.instance_id,
-                InstanceSizeAggregation.period_type == context.period_type,
-                InstanceSizeAggregation.period_start == context.start_date,
-            ).first()
+            aggregation = self._repository.get_existing_instance_aggregation(
+                instance_id=context.instance_id,
+                period_type=context.period_type,
+                period_start=context.start_date,
+            )
 
             if aggregation is None:
                 aggregation = InstanceSizeAggregation()
@@ -475,12 +478,11 @@ class InstanceAggregationRunner:
                 context.end_date,
             )
 
-            prev_stats = InstanceSizeStat.query.filter(
-                InstanceSizeStat.instance_id == context.instance_id,
-                InstanceSizeStat.collected_date >= prev_start,
-                InstanceSizeStat.collected_date <= prev_end,
-                InstanceSizeStat.is_deleted.is_(False),
-            ).all()
+            prev_stats = self._repository.list_instance_size_stats(
+                instance_id=context.instance_id,
+                start_date=prev_start,
+                end_date=prev_end,
+            )
 
             agg_any = cast(Any, aggregation)
             if not prev_stats:

@@ -50,6 +50,14 @@ class UsersRepository:
         return int(User.query.count() or 0)
 
     @staticmethod
+    def count_by_role(role: str) -> int:
+        """按角色统计用户数量."""
+        normalized = (role or "").strip()
+        if not normalized:
+            return 0
+        return int(User.query.filter_by(role=normalized).count() or 0)
+
+    @staticmethod
     def fetch_stats() -> dict[str, int]:
         """获取用户统计."""
         total_users = int(User.query.count() or 0)
