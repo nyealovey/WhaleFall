@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app import db
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.instance import Instance
+from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.calculator import PeriodCalculator
 from app.services.aggregation.callbacks import RunnerCallbacks
 from app.services.aggregation.database_aggregation_runner import DatabaseAggregationRunner
@@ -106,7 +107,7 @@ class AggregationService:
             NotFoundError: 当实例不存在时抛出.
 
         """
-        instance = Instance.query.get(instance_id)
+        instance = InstancesRepository.get_instance(instance_id)
         if not instance:
             raise NotFoundError(
                 message="实例不存在",

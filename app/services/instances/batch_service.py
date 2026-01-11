@@ -6,23 +6,12 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
-from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.errors import SystemError, ValidationError
-from app.models.account_change_log import AccountChangeLog
-from app.models.account_classification import AccountClassificationAssignment
-from app.models.account_permission import AccountPermission
-from app.models.database_size_aggregation import DatabaseSizeAggregation
-from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
-from app.models.instance_account import InstanceAccount
-from app.models.instance_database import InstanceDatabase
-from app.models.instance_size_aggregation import InstanceSizeAggregation
-from app.models.instance_size_stat import InstanceSizeStat
-from app.models.sync_instance_record import SyncInstanceRecord
-from app.models.tag import instance_tags
+from app.repositories.instances_batch_repository import InstancesBatchRepository
 from app.schemas.instances import InstanceCreatePayload
 from app.schemas.validation import validate_or_raise
 from app.utils.structlog_config import log_error, log_info
@@ -56,6 +45,9 @@ class InstanceBatchCreationService:
 
     提供批量创建实例的功能,包括数据校验、重复检查和批量插入.
     """
+
+    def __init__(self, repository: InstancesBatchRepository | None = None) -> None:
+        self._repository = repository or InstancesBatchRepository()
 
     def create_instances(
         self,
@@ -166,12 +158,7 @@ class InstanceBatchCreationService:
         ]
         if not payload_names:
             return set()
-        return {
-            row[0]
-            for row in db.session.execute(
-                select(Instance.name).where(Instance.name.in_(payload_names)),
-            )
-        }
+        return self._repository.fetch_existing_instance_names(payload_names)
 
     def _create_valid_instances(
         self,
@@ -222,6 +209,9 @@ class InstanceBatchDeletionService:
 
     提供批量删除实例的功能,包括级联删除所有关联数据.
     """
+
+    def __init__(self, repository: InstancesBatchRepository | None = None) -> None:
+        self._repository = repository or InstancesBatchRepository()
 
     def delete_instances(
         self,
@@ -279,7 +269,7 @@ class InstanceBatchDeletionService:
         except (TypeError, ValueError) as exc:
             msg = "实例ID列表无效"
             raise ValidationError(msg) from exc
-        instances = Instance.query.filter(Instance.id.in_(unique_ids)).all()
+        instances = self._repository.list_instances_by_ids(unique_ids)
         found_ids = {instance.id for instance in instances}
         missing_ids = [instance_id for instance_id in unique_ids if instance_id not in found_ids]
 
@@ -344,55 +334,4 @@ class InstanceBatchDeletionService:
             包含各类关联数据删除数量的字典.
 
         """
-        stats = _init_deletion_stats()
-
-        account_ids_subquery = (
-            select(AccountPermission.id).where(AccountPermission.instance_id == instance.id)
-        ).subquery()
-
-        stats["deleted_assignments"] += AccountClassificationAssignment.query.filter(
-            AccountClassificationAssignment.account_id.in_(account_ids_subquery),
-        ).delete(synchronize_session=False)
-
-        stats["deleted_account_permissions"] += AccountPermission.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_sync_records"] += SyncInstanceRecord.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_change_logs"] += AccountChangeLog.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_instance_accounts"] += InstanceAccount.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_instance_databases"] += InstanceDatabase.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_instance_size_stats"] += InstanceSizeStat.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_instance_size_aggregations"] += InstanceSizeAggregation.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_database_size_stats"] += DatabaseSizeStat.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        stats["deleted_database_size_aggregations"] += DatabaseSizeAggregation.query.filter_by(
-            instance_id=instance.id,
-        ).delete(synchronize_session=False)
-
-        tag_delete_result = db.session.execute(
-            instance_tags.delete().where(instance_tags.c.instance_id == instance.id),
-        )
-        stats["deleted_tag_links"] += tag_delete_result.rowcount or 0
-
-        return stats
+        return self._repository.delete_related_data_for_instance(instance_id=instance.id)

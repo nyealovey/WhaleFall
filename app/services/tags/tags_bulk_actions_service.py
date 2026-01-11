@@ -16,6 +16,8 @@ from app.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.errors import NotFoundError
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.repositories.instances_repository import InstancesRepository
+from app.repositories.tags_repository import TagsRepository
 from app.utils.structlog_config import log_info
 
 
@@ -53,14 +55,14 @@ class TagsBulkActionsService:
 
     @staticmethod
     def _get_instances(instance_ids: list[int]) -> list[Instance]:
-        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        instances = InstancesRepository.list_instances_by_ids(instance_ids)
         if not instances:
             raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
         return instances
 
     @staticmethod
     def _get_tags(tag_ids: list[int]) -> list[Tag]:
-        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
+        tags = TagsRepository.list_tags_by_ids(tag_ids)
         if not tags:
             raise NotFoundError("未找到任何标签", extra={"tag_ids": tag_ids})
         return tags

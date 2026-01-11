@@ -69,6 +69,24 @@ class InstancesRepository:
         """按ID获取实例(不存在则 404)."""
         return cast("Instance", Instance.query.get_or_404(instance_id))
 
+    @staticmethod
+    def list_active_instances() -> list[Instance]:
+        """获取启用的实例列表."""
+        return Instance.query.filter_by(is_active=True).order_by(Instance.id.asc()).all()
+
+    @staticmethod
+    def count_active_instances() -> int:
+        """统计启用实例数量."""
+        return int(Instance.query.filter_by(is_active=True).count() or 0)
+
+    @staticmethod
+    def list_instances_by_ids(instance_ids: list[int]) -> list[Instance]:
+        """按 ID 列表获取实例."""
+        normalized_ids = [int(instance_id) for instance_id in (instance_ids or []) if instance_id]
+        if not normalized_ids:
+            return []
+        return Instance.query.filter(Instance.id.in_(normalized_ids)).all()
+
     def add(self, instance: Instance) -> Instance:
         """新增或更新实例并 flush."""
         db.session.add(instance)

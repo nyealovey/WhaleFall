@@ -10,7 +10,7 @@
 
 - 现状报告已完成: `docs/reports/2026-01-11-backend-layer-boundary-audit.md`
 - 写边界 guard 当前通过(仅证明 commit 位置受控, 不代表分层边界已满足)
-- P0 主要问题: services/tasks/forms 边界漂移
+- P0 主要问题: models 查询工具方法 + services rollback 漂移(见现状报告)
 
 ## 1. 进度表(建议排期与验收口径)
 
@@ -25,6 +25,7 @@
 | 1 | P0 | Forms 去 DB/去跨层依赖 | `app/forms/**`, `app/views/**`, `app/services/**`, `app/repositories/**` | TBD | Done | `rg -n "from app\\.(models|services|repositories)|db\\.session|\\.query\\b" app/forms` == 0 |
 | 2 | P0 | Tasks 变薄(禁止 query/execute) | `app/tasks/**` | TBD | Done | `rg -n "\\.query\\b|db\\.session\\.(query|execute)\\b" app/tasks` == 0 |
 | 3 | P0 | Services 数据访问经 Repository(Instances/SyncSession) | `app/services/instances/instance_write_service.py`, `app/services/sync_session_service.py`, `app/repositories/**` | TBD | Done | `rg -n "\\.query\\b|db\\.session\\.(query|execute)\\b" <target services>` == 0 |
+| 3.1 | P0 | Services 去 direct query/execute(全域) | `app/services/**`, `app/repositories/**` | TBD | Done | `./scripts/ci/services-repository-enforcement-guard.sh` 命中 == 0 |
 | 4 | P1 | API v1 去 models 依赖 | `app/api/v1/**` | TBD | Done | `rg -n "from app\\.models|import app\\.models" app/api/v1` == 0 |
 | 5 | P1 | 新增/强化 CI guards(分层门禁) | `scripts/ci/**` | TBD | Done | 新 guard 全绿, 且在 CI(pre-commit) 中启用 |
 | 6 | P2 | Models 查询工具方法迁移到 Repositories | `app/models/**`, `app/repositories/**` | TBD | TODO | `rg -n "\\.query\\b|db\\.session\\b" app/models` 命中逐步下降 |
@@ -65,6 +66,7 @@
 - [x] 新增 `scripts/ci/tasks-layer-guard.sh` 并接入 `.pre-commit-config.yaml`
 - [x] 新增 `scripts/ci/api-layer-guard.sh` 并接入 `.pre-commit-config.yaml`
 - [x] 新增 `scripts/ci/services-repository-enforcement-guard.sh`(baseline: 允许减少, 禁止新增) 并接入 `.pre-commit-config.yaml`
+- [x] services repository enforcement baseline 收敛为 0 (`scripts/ci/baselines/services-repository-enforcement.txt` 为空)
 
 ## 3. 变更记录(按日期追加)
 
@@ -78,3 +80,4 @@
 - 2026-01-11: 完成 Phase 3: `InstanceWriteService` 与 `SyncSessionService` 删除直用 `.query/db.session.query`, 下沉到 `app/repositories/**`.
 - 2026-01-11: 完成 Phase 4: API v1 namespaces 清除 `app.models.*` 依赖(见 `app/api/v1/namespaces/instances_connections.py`, `app/api/v1/namespaces/accounts_classifications.py`).
 - 2026-01-11: 完成 Phase 5: 新增 Forms/Tasks/API/Services 分层门禁脚本并接入 pre-commit(见 `scripts/ci/forms-layer-guard.sh`, `scripts/ci/tasks-layer-guard.sh`, `scripts/ci/api-layer-guard.sh`, `scripts/ci/services-repository-enforcement-guard.sh`).
+- 2026-01-11: 完成 Phase 3.1: `app/services/**` 清理 `Model.query/db.session.query/execute` 直用, 存量下沉到 `app/repositories/**`, 并将 services enforcement baseline 收敛为 0.

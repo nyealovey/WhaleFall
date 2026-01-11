@@ -36,6 +36,16 @@ class CredentialsRepository:
             return None
         return cast("Credential | None", Credential.query.filter_by(name=normalized).first())
 
+    def exists_by_name(self, name: str, *, exclude_credential_id: int | None = None) -> bool:
+        """判断凭据名称是否存在(可排除指定 ID)."""
+        normalized = (name or "").strip()
+        if not normalized:
+            return False
+        query = Credential.query.filter(Credential.name == normalized)
+        if exclude_credential_id is not None:
+            query = query.filter(Credential.id != exclude_credential_id)
+        return query.first() is not None
+
     def add(self, credential: Credential) -> Credential:
         """新增凭据并 flush."""
         db.session.add(credential)

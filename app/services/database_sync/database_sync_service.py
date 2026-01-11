@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.errors import AppError
-from app.models.instance import Instance
+from app.repositories.instances_repository import InstancesRepository
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.utils.structlog_config import get_system_logger
 
@@ -50,7 +50,7 @@ def collect_all_instances_database_sizes() -> dict[str, Any]:
     logger = get_system_logger()
     logger.info("开始采集所有实例的数据库容量数据...")
 
-    instances = Instance.query.filter_by(is_active=True).all()
+    instances = InstancesRepository.list_active_instances()
     if not instances:
         logger.warning("没有找到活跃的数据库实例")
         return {

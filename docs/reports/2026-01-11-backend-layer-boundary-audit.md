@@ -8,9 +8,9 @@
 
 ## 0. 结论摘要
 
-结论: 当前代码存在明确的分层边界跨越问题, 且主要集中在 4 个区域.
+结论: 当前代码存在明确的分层边界跨越问题, 但 P0 的 Forms/Tasks/Services 主要越界已完成一次系统性收敛, 现阶段风险更集中在 Models 查询工具方法与少量写边界例外点上.
 
-- P0: `app/services/**` 仍存在大量绕过 Repository 的数据访问与查询组装(当前命中 `61` 次 `.query`, `21` 次 `db.session.query/execute`), 但 `InstanceWriteService`/`SyncSessionService` 已完成一次下沉整改.
+- P0: `app/services/**` 已完成 `Model.query`/`db.session.query/execute` 直用清理(当前命中 `0`), 查询与 SQL 执行已下沉到 `app/repositories/**` 并由门禁固化.
 - P0: `app/tasks/**` 已消除 `Model.query` 与 `db.session.query/execute` 直用(命中 0), 且 `capacity_*_tasks.py` 已拆分为薄入口 + runner service(调度入口显著变薄).
 - P0: `app/forms/**` 已消除对 models/services/repositories 的直接依赖与查库(命中 0). 原 `app/forms/handlers/**` 已迁移为 `app/views/form_handlers/**`, 由 Views 显式绑定 `service_class`.
 - P1: `app/utils/**` 出现 DB 事务/写入(例如 `database_batch_manager.py`), 与 utils-layer-standards 存在边界冲突. 其中事务边界与 worker 入口已确认迁移到 `app/infra/**`(见 5.1).
@@ -124,18 +124,9 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
 
 ### 3.4 Services (`app/services/**`)
 
-结论: 边界漂移最严重区域. Services 大量绕过 Repository, 直接使用 `Model.query`/`db.session`.
+结论: 已完成 Services 层 "禁止直接查库/拼 Query/execute" 的边界收敛(services-repository-enforcement 门禁命中 0).
 
-- `.query` 命中: `61`(粗略统计).
-- 典型高频文件(按命中数排序, 仅列 top):
-  - `app/services/instances/batch_service.py`(11)
-  - `app/services/aggregation/aggregation_tasks_read_service.py`(7)
-  - `app/services/accounts/account_classifications_write_service.py`(7)
-  - `app/services/aggregation/instance_aggregation_runner.py`(4)
-  - `app/services/aggregation/database_aggregation_runner.py`(4)
-- 典型越界样例:
-  - `app/services/instances/batch_service.py`(批量操作内含多处 `*.query`)
-  - `app/services/tags/tags_bulk_actions_service.py`(`Instance.query`/`Tag.query`)
+- `Model.query`/`db.session.query/execute` 命中: `0`
 - 事务回滚漂移(违反 write-operation-boundary 的 "services 内不得 rollback 整个请求事务"):
   - `app/services/dashboard/dashboard_overview_service.py:31`
   - `app/services/statistics/log_statistics_service.py:44`
@@ -258,9 +249,8 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
    - 原 `app/forms/handlers/**` 已迁移为 `app/views/form_handlers/**`
 2. Tasks 收口: 已完成
    - 已完成: tasks 内 `.query/db.session.query/execute` 下沉为 Service/Repository 调用
-3. Services 逐域迁移到 Repository: 部分完成
-   - 已完成: `InstanceWriteService`/`SyncSessionService` 删除 `.query/db.session.query`, 下沉到 repositories
-   - 待完成: 其他高频 service(例如 `instances/batch_service.py`) 的逐域下沉
+3. Services 逐域迁移到 Repository: 已完成(以门禁口径)
+   - 已完成: `app/services/**` 内不再出现 `Model.query/db.session.query/execute`, 查询与 SQL 执行统一下沉到 `app/repositories/**`
 4. API v1 去 models 依赖: 已完成
    - 端点层只持有 DTO/primitive, ORM 相关在 service 内部消化.
 5. 标准冲突收敛 + guard 门禁化: 已完成
@@ -269,14 +259,14 @@ rg -n "from app\\.(models|services|repositories|routes|api)|db\\.session" app/ut
 ## 7. 证据与数据来源(关键摘要)
 
 - `.query` 命中数:
-  - `app/services/**`: 61
+  - `app/services/**`: 0
   - `app/tasks/**`: 0
   - `app/forms/**`: 0
   - `app/models/**`: 14
 - tasks 文件行数:
-  - `app/tasks/capacity_aggregation_tasks.py`: 903
-  - `app/tasks/capacity_collection_tasks.py`: 820
-  - `app/tasks/accounts_sync_tasks.py`: 281
+  - `app/tasks/capacity_aggregation_tasks.py`: 215
+  - `app/tasks/capacity_collection_tasks.py`: 150
+  - `app/tasks/accounts_sync_tasks.py`: 282
 - infra/utils `db.session` 命中:
   - `app/utils/database_batch_manager.py`: 8
   - `app/infra/route_safety.py`: 4
