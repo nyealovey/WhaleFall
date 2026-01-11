@@ -11,7 +11,6 @@ updated: 2026-01-08
 owner: WhaleFall FE
 scope: "`app/templates/**`, `app/static/css/**`, `docs/Obsidian/standards/ui/**`"
 related:
-  - docs/changes/refactor/012-no-inline-px-sizes-plan.md
   - "[[standards/ui/design-token-governance-guidelines]]"
   - "[[standards/halfwidth-character-standards]]"
 ---
@@ -159,7 +158,7 @@ related:
 - 自查命令:
   - `rg -n \"style=\\\"[^\\\"]*(height|width)\\s*:\\s*\\d+px\" app/templates`
 - 建议门禁:
-  - 新增 `scripts/ci/inline-px-style-guard.sh` 扫描 templates 中的 inline px layout sizing, 阻止回归 (见 `docs/changes/refactor/012-no-inline-px-sizes-plan.md`).
+  - 使用 `scripts/ci/inline-px-style-guard.sh` 扫描 templates 中的 inline px layout sizing, 阻止回归.
 
 ## 变更历史
 

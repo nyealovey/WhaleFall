@@ -16,8 +16,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/account_classification/dsl_v4.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[reference/service/account-classification-orchestrator|Account Classification Orchestrator]]"
   - "[[reference/service/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"
   - "[[standards/doc/service-layer-documentation-standards]]"

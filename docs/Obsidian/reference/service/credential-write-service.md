@@ -17,8 +17,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/credentials/credential_write_service.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 

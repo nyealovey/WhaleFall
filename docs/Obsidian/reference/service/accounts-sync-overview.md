@@ -16,8 +16,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/accounts_sync/accounts_sync_service.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[reference/service/accounts-sync-adapters|Accounts Sync Adapters]]"
   - "[[reference/service/accounts-sync-permission-manager|AccountPermissionManager 权限同步]]"
   - "[[reference/service/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"

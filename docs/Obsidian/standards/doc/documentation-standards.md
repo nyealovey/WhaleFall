@@ -22,6 +22,8 @@ related:
 > [!note] 链接与元信息
 > - `docs/Obsidian/**`(vault 内)优先使用 YAML frontmatter + wikilinks(`[[...]]`).
 > - 仓库其他位置的 Markdown 链接仍以相对路径为准, 避免 GitHub 渲染断链.
+> - MUST: `docs/Obsidian/**` 禁止在元信息/正文中引用 `docs/plans/**`, `docs/changes/**`, `docs/reports/**` 下的具体一次性文档作为入口/关联/延伸阅读(用后可删).
+> - MAY: `docs/plans/**`, `docs/changes/**`, `docs/reports/**` 可以引用 `docs/Obsidian/**` 内的笔记/标准/参考(单向引用).
 
 ## 1. 目的与原则
 
@@ -56,8 +58,9 @@ related:
   - `docs/Obsidian/API/`: API contracts(SSOT).
   - `docs/Obsidian/canvas/`: Obsidian Canvas(可编辑图/辅助材料, 与 Mermaid 图互链).
 - `docs/Obsidian/operations/`: 运维手册(Runbook, 可执行步骤).
-- `docs/changes/`: 变更记录(与 PR/Issue 对齐).
-- `docs/reports/`: 评审/审计/分析报告(阶段性产物).
+- `docs/plans/`: 计划拆解(一次性文档, 用后可删; 结论/规则必须沉淀到 `docs/Obsidian/**`).
+- `docs/changes/`: 变更记录(一次性文档, 用后可删; 结论/规则必须沉淀到 `docs/Obsidian/**`).
+- `docs/reports/`: 评审/审计/分析报告(一次性文档, 用后可删; 结论/规则必须沉淀到 `docs/Obsidian/**`).
 - `docs/prompts/`: Prompts 与协作模板(可复用).
 - `docs/_archive/`: 归档区(只读).
 

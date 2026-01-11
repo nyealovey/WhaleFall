@@ -11,7 +11,6 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: "`app/types/request_payload.py`, `app/schemas/**`, `app/services/**`, `app/api/v1/**`, `app/forms/handlers/**`"
 related:
-  - docs/plans/2026-01-04-data-validator-third-party-replacement-design.md
   - "[[standards/backend/error-message-schema-unification]]"
 ---
 

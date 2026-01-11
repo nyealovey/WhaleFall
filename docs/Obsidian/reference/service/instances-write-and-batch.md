@@ -18,8 +18,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/instances/instance_write_service.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[reference/service/tags-write-service|Tags Write Service]]"
   - "[[reference/service/credential-write-service|Credential Write Service]]"
   - "[[standards/doc/service-layer-documentation-standards]]"

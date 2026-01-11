@@ -29,9 +29,7 @@ related:
 
 - 标准: [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
 - 流程(SOP): [[architecture/flows/README]]
-- 计划: `docs/plans/2026-01-09-services-top38-docs.md`
-- 进度: `docs/plans/2026-01-09-services-top38-docs-progress.md`
-- 复杂度报告: `docs/reports/2026-01-08-services-complexity-report.md`
+- 一次性产物: 计划/进度/复杂度报告位于 `docs/plans/**`, `docs/reports/**`(禁止从 vault 反向引用具体文件; 需长期保留的结论请沉淀到 `docs/Obsidian/**`)
 
 > [!important] 去重原则
 > Top 38 每个 `app/services/**` 文件只归属一个主文档(当前实现解读 SSOT). 其余位置仅做链接, 避免重复解释同一条链路.
