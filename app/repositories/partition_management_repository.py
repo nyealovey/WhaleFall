@@ -58,7 +58,7 @@ class PartitionManagementRepository:
         WHERE tablename LIKE :pattern
         ORDER BY tablename;
         """
-        return db.session.execute(text(query), {"pattern": pattern}).fetchall()
+        return list(db.session.execute(text(query), {"pattern": pattern}).fetchall())
 
     @staticmethod
     def partition_exists(*, partition_name: str) -> bool:
@@ -91,4 +91,3 @@ class PartitionManagementRepository:
         stmt = select(func.count()).select_from(partition_table)
         result = db.session.execute(stmt).scalar()
         return int(result or 0)
-

@@ -89,7 +89,7 @@ class CapacityAggregationTaskRunner:
 
     @staticmethod
     def has_aggregation_for_period(period_type: str, period_start: date) -> bool:
-        return AggregationTasksReadService.has_aggregation_for_period(period_type=period_type, period_start=period_start)
+        return AggregationTasksReadService().has_aggregation_for_period(period_type=period_type, period_start=period_start)
 
     def filter_periods_already_aggregated(
         self,
@@ -377,4 +377,3 @@ class CapacityAggregationTaskRunner:
             total_database_aggregations += self._extract_processed_records(db_result)
 
         return period_summaries, total_database_aggregations
-

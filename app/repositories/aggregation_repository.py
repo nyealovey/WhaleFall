@@ -59,12 +59,12 @@ class AggregationRepository:
         rows = (
             db.session.query(
                 DatabaseSizeAggregation.period_type,
-                func.count(DatabaseSizeAggregation.id).label("count"),
+                func.count(DatabaseSizeAggregation.id).label("row_count"),
             )
             .group_by(DatabaseSizeAggregation.period_type)
             .all()
         )
-        return {str(row.period_type): int(row.count) for row in rows}
+        return {str(row.period_type): int(row.row_count) for row in rows}
 
     @staticmethod
     def list_database_aggregations(
@@ -110,4 +110,3 @@ class AggregationRepository:
             query = query.filter(InstanceSizeAggregation.period_end <= end_date)
 
         return query.order_by(InstanceSizeAggregation.period_start.desc()).all()
-
