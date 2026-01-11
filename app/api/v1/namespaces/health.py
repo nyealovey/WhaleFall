@@ -7,28 +7,47 @@ from typing import ClassVar
 
 from flask import request
 from flask_restx import Namespace, fields
-from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.constants.system_constants import SuccessMessages
-from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
-from app.services.health.health_checks_service import check_ping, get_basic_health, get_system_uptime
+from app.services.health.health_checks_service import (
+    check_database_health as check_database_health_service,
+    check_ping,
+    get_basic_health,
+    get_system_uptime,
+)
 from app.settings import APP_VERSION
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 ns = Namespace("health", description="健康检查")
 
-DATABASE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (SQLAlchemyError,)
 CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (*CACHE_EXCEPTIONS, ConnectionError)
 
 
 def _get_cache_service() -> CacheService | None:
     """返回已初始化的缓存服务实例."""
     return cache_service
+
+
+def check_database_health() -> dict[str, object]:
+    """检查数据库健康状态."""
+    result = check_database_health_service()
+    is_ok = bool(result.get("healthy"))
+    return {"healthy": is_ok, "status": "connected" if is_ok else "error"}
+
+
+def check_cache_health() -> dict[str, object]:
+    """检查缓存健康状态."""
+    manager = _get_cache_service()
+    try:
+        is_ok = bool(manager and manager.health_check())
+    except CACHE_HEALTH_EXCEPTIONS:
+        is_ok = False
+    return {"healthy": is_ok, "status": "connected" if is_ok else "error"}
 
 
 PingData = ns.model(
@@ -178,25 +197,6 @@ class HealthCheckResource(BaseResource):
             action="get_health",
             public_error="健康检查失败",
         )
-
-
-def check_database_health() -> dict[str, object]:
-    """检查数据库健康状态."""
-    try:
-        HealthRepository.ping_database()
-    except DATABASE_HEALTH_EXCEPTIONS:
-        return {"healthy": False, "status": "error"}
-    return {"healthy": True, "status": "connected"}
-
-
-def check_cache_health() -> dict[str, object]:
-    """检查缓存健康状态."""
-    manager = _get_cache_service()
-    try:
-        is_ok = bool(manager and manager.health_check())
-    except CACHE_HEALTH_EXCEPTIONS:
-        is_ok = False
-    return {"healthy": is_ok, "status": "connected" if is_ok else "error"}
 
 
 def check_system_health() -> dict[str, object]:

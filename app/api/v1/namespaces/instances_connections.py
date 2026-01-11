@@ -19,9 +19,11 @@ from app.api.v1.resources.decorators import api_login_required, api_permission_r
 from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
 from app.models import Credential, Instance
+from app.services.credentials import CredentialDetailReadService
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
+from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
 from app.utils.response_utils import jsonify_unified_error_message
@@ -183,10 +185,7 @@ def _normalize_instance_id(raw_id: JsonValue | None) -> int:
 
 
 def _require_credential(credential_id: int) -> Credential:
-    credential = Credential.query.get(credential_id)
-    if not credential:
-        raise NotFoundError("凭据不存在")
-    return credential
+    return CredentialDetailReadService().get_credential_or_error(credential_id)
 
 
 def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
@@ -199,9 +198,9 @@ def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
 
 
 def _test_existing_instance(connection_test_service: ConnectionTestService, instance_id: int):
-    instance = Instance.query.get(instance_id)
-    if not instance:
-        raise NotFoundError("实例不存在")
+    instance = InstanceDetailReadService().get_instance_by_id(instance_id)
+    if instance is None:
+        raise NotFoundError("实例不存在", extra={"instance_id": instance_id})
     result = connection_test_service.test_connection(instance)
     if result.get("success"):
         return result, 200, "实例连接测试成功"
@@ -270,11 +269,12 @@ def _execute_batch_tests(
     results: list[JsonDict] = []
     success_count = 0
     fail_count = 0
+    instance_detail_service = InstanceDetailReadService()
 
     for instance_id in instance_ids:
         try:
-            instance = Instance.query.get(instance_id)
-            if not instance:
+            instance = instance_detail_service.get_instance_by_id(instance_id)
+            if instance is None:
                 results.append({"instance_id": instance_id, "success": False, "error": "实例不存在"})
                 fail_count += 1
                 continue

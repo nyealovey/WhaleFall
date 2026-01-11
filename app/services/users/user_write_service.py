@@ -41,9 +41,9 @@ class UserWriteService:
 
     MESSAGE_USERNAME_EXISTS: ClassVar[str] = "USERNAME_EXISTS"
 
-    def __init__(self, repository: UsersRepository) -> None:
+    def __init__(self, repository: UsersRepository | None = None) -> None:
         """初始化服务并注入用户仓库."""
-        self._repository = repository
+        self._repository = repository or UsersRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
         """创建用户."""

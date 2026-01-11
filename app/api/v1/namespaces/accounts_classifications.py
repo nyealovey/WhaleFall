@@ -24,7 +24,6 @@ from app.constants.colors import ThemeColors
 from app.errors import ConflictError, ValidationError
 from app.models.account_classification import (
     AccountClassification,
-    AccountClassificationAssignment,
     ClassificationRule,
 )
 from app.services.account_classification.auto_classify_service import (
@@ -252,12 +251,7 @@ def _serialize_classification(classification: AccountClassification) -> dict[str
 
 
 def _get_classification_usage(classification_id: int) -> tuple[int, int]:
-    rule_count = ClassificationRule.query.filter_by(classification_id=classification_id).count()
-    assignment_count = AccountClassificationAssignment.query.filter_by(
-        classification_id=classification_id,
-        is_active=True,
-    ).count()
-    return rule_count, assignment_count
+    return _read_service.get_classification_usage(classification_id)
 
 
 def _classification_deletion_blockers(classification: AccountClassification) -> dict[str, int | str] | None:
@@ -398,7 +392,7 @@ class AccountClassificationDetailResource(BaseResource):
         """获取账户分类详情."""
 
         def _execute():
-            classification = AccountClassification.query.get_or_404(classification_id)
+            classification = _read_service.get_classification_or_error(classification_id)
             item = _read_service.build_classification_detail(classification)
             payload = marshal(item, ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS)
             return self.success(data={"classification": payload}, message="账户分类获取成功")
@@ -422,11 +416,11 @@ class AccountClassificationDetailResource(BaseResource):
     @require_csrf
     def put(self, classification_id: int):
         """更新账户分类."""
-        classification = AccountClassification.query.get_or_404(classification_id)
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
+            classification = _write_service.get_classification_or_error(classification_id)
             updated = _write_service.update_classification(classification, payload, operator_id=operator_id)
             return self.success(
                 data={"classification": _serialize_classification(updated)},
@@ -452,10 +446,10 @@ class AccountClassificationDetailResource(BaseResource):
     @require_csrf
     def delete(self, classification_id: int):
         """删除账户分类."""
-        classification = AccountClassification.query.get_or_404(classification_id)
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
+            classification = _write_service.get_classification_or_error(classification_id)
             blockers = _classification_deletion_blockers(classification)
             if blockers:
                 if blockers["reason"] == "system":
@@ -638,7 +632,7 @@ class AccountClassificationRuleDetailResource(BaseResource):
         """获取分类规则详情."""
 
         def _execute():
-            rule = ClassificationRule.query.get_or_404(rule_id)
+            rule = _read_service.get_rule_or_error(rule_id)
             return self.success(
                 data={"rule": _serialize_rule(rule, parse_expression=True)},
                 message="规则详情获取成功",
@@ -663,11 +657,11 @@ class AccountClassificationRuleDetailResource(BaseResource):
     @require_csrf
     def put(self, rule_id: int):
         """更新分类规则."""
-        rule = ClassificationRule.query.get_or_404(rule_id)
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
+            rule = _write_service.get_rule_or_error(rule_id)
             _write_service.update_rule(rule, payload, operator_id=operator_id)
             return self.success(message="分类规则更新成功")
 
@@ -688,10 +682,10 @@ class AccountClassificationRuleDetailResource(BaseResource):
     @require_csrf
     def delete(self, rule_id: int):
         """删除分类规则."""
-        rule = ClassificationRule.query.get_or_404(rule_id)
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
+            rule = _write_service.get_rule_or_error(rule_id)
             _write_service.delete_rule(rule, operator_id=operator_id)
             return self.success(message="分类规则删除成功")
 
@@ -748,10 +742,10 @@ class AccountClassificationAssignmentResource(BaseResource):
     @require_csrf
     def delete(self, assignment_id: int):
         """移除账户分类分配."""
-        assignment = AccountClassificationAssignment.query.get_or_404(assignment_id)
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
+            assignment = _write_service.get_assignment_or_error(assignment_id)
             _write_service.deactivate_assignment(assignment, operator_id=operator_id)
             return self.success(message="账户分类分配移除成功")
 

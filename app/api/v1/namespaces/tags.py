@@ -16,11 +16,9 @@ from app.api.v1.restx_models.tags import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorMessages
 from app.errors import ConflictError, NotFoundError, ValidationError
-from app.models.instance import Instance
-from app.models.tag import Tag
-from app.repositories.tags_repository import TagsRepository
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
+from app.services.tags.tag_detail_read_service import TagDetailReadService
 from app.services.tags.tag_write_service import TagWriteService
 from app.services.tags.tags_bulk_actions_service import TagsBulkActionsService
 from app.types import ResourcePayload
@@ -246,7 +244,7 @@ def _parse_payload() -> ResourcePayload:
 
 
 def _build_tag_write_service() -> TagWriteService:
-    return TagWriteService(TagsRepository())
+    return TagWriteService()
 
 
 @ns.route("")
@@ -395,7 +393,7 @@ class TagDetailResource(BaseResource):
         """获取标签详情."""
 
         def _execute():
-            tag = Tag.query.get_or_404(tag_id)
+            tag = TagDetailReadService().get_tag_or_error(tag_id)
             return self.success(
                 data={"tag": tag.to_dict()},
                 message="获取标签详情成功",

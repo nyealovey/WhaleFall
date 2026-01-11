@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import importlib
 import threading
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -116,6 +117,12 @@ def _launch_background_sync(
     return thread
 
 
+def _resolve_default_sync_task() -> Callable[..., None]:
+    """惰性加载默认的批量同步任务,避免导入期循环依赖."""
+    module = importlib.import_module("app.tasks.accounts_sync_tasks")
+    return cast("Callable[..., None]", module.sync_accounts)
+
+
 class AccountsSyncActionsService:
     """账户同步动作编排服务."""
 
@@ -123,7 +130,7 @@ class AccountsSyncActionsService:
         self,
         *,
         sync_service: SupportsAccountSync,
-        sync_task: Callable[..., None],
+        sync_task: Callable[..., None] | None = None,
     ) -> None:
         """初始化动作服务.
 
@@ -133,7 +140,7 @@ class AccountsSyncActionsService:
 
         """
         self._sync_service = sync_service
-        self._sync_task = sync_task
+        self._sync_task = sync_task or _resolve_default_sync_task()
 
     @staticmethod
     def _ensure_active_instances() -> int:

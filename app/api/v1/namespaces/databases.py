@@ -22,10 +22,11 @@ from app.api.v1.restx_models.instances import (
 )
 from app.constants import HttpStatus
 from app.errors import NotFoundError, ValidationError
-from app.models.instance import Instance
-from app.models.instance_database import InstanceDatabase
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.database_ledger_export_service import DatabaseLedgerExportService
+from app.services.instances.instance_database_detail_read_service import (
+    InstanceDatabaseDetailReadService,
+)
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
 from app.services.instances.instance_database_table_sizes_service import (
     InstanceDatabaseTableSizesService,
@@ -192,8 +193,8 @@ class DatabasesOptionsResource(BaseResource):
             if not instance_id:
                 raise ValidationError("instance_id 为必填参数")
 
-            instance = Instance.query.get(instance_id)
-            if not instance:
+            instance = InstanceDetailReadService().get_instance_by_id(instance_id)
+            if instance is None:
                 raise NotFoundError("实例不存在")
 
             if "offset" in request.args:
@@ -489,9 +490,7 @@ class DatabaseTableSizesSnapshotResource(BaseResource):
                 raise ValidationError(f"{field} 必须为整数") from exc
 
         def _execute():
-            record = InstanceDatabase.query.filter_by(id=database_id).first()
-            if record is None:
-                raise NotFoundError("数据库不存在")
+            record = InstanceDatabaseDetailReadService().get_by_id_or_error(database_id)
 
             InstanceDetailReadService().get_active_instance(record.instance_id)
 
@@ -581,13 +580,11 @@ class DatabaseTableSizesRefreshResource(BaseResource):
                 raise ValidationError(f"{field} 必须为整数") from exc
 
         def _execute():
-            record = InstanceDatabase.query.filter_by(id=database_id).first()
-            if record is None:
-                raise NotFoundError("数据库不存在")
+            record = InstanceDatabaseDetailReadService().get_by_id_or_error(database_id)
 
-            instance = Instance.query.filter_by(id=record.instance_id).first()
+            instance = InstanceDetailReadService().get_instance_by_id(record.instance_id)
             if instance is None:
-                raise NotFoundError("实例不存在")
+                raise NotFoundError("实例不存在", extra={"instance_id": record.instance_id})
 
             coordinator = database_sync_module.TableSizeCoordinator(instance)
             if not coordinator.connect(record.database_name):

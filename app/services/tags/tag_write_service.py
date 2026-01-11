@@ -51,9 +51,9 @@ class TagBatchDeleteOutcome:
 class TagWriteService:
     """标签写操作服务."""
 
-    def __init__(self, repository: TagsRepository) -> None:
+    def __init__(self, repository: TagsRepository | None = None) -> None:
         """初始化写操作服务."""
-        self._repository = repository
+        self._repository = repository or TagsRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
         """创建标签."""
