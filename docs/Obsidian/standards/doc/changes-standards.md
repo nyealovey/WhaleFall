@@ -44,7 +44,7 @@ docs/changes/
 └── security/    # 安全治理/修补
 ```
 
-> 约束：禁止在 `docs/changes/` 下新增与上述并列的“新一级目录”。如确需新增，必须先更新本规范与 `docs/changes/README.md`。
+> 约束：禁止在 `docs/changes/` 下新增与上述并列的“新一级目录”。如确需新增，必须先更新本规范与 `docs/changes/` 的目录入口 README(避免入口漂移)。
 
 ## 3. 文档类型（plan / progress / record）
 

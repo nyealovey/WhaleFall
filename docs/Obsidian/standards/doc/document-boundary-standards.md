@@ -47,6 +47,12 @@ related:
 
 ## 规则(MUST/SHOULD/MAY)
 
+### 0) 引用方向(一次性文档)
+
+- MUST: `docs/Obsidian/**` 禁止在元信息/正文中引用 `docs/plans/**`, `docs/changes/**`, `docs/reports/**` 下的具体一次性文档作为入口/关联/延伸阅读(用后可删).
+- MUST: 一次性文档如果产出可长期复用的结论/规则, 必须上升沉淀到 `docs/Obsidian/**`(standards/reference/architecture/operations/API), 再由一次性文档引用该 SSOT.
+- MAY: `docs/Obsidian/**` 可提及 `docs/plans/**`, `docs/changes/**`, `docs/reports/**` 作为"落点/分类"说明, 但只写目录, 不写具体文件名.
+
 ### 1) 目录边界(语义定义)
 
 > [!note] 原则
@@ -167,6 +173,12 @@ rg -n "Checklist|清单|步骤|Step\\s+\\d+|Run:" docs/Obsidian/standards
 
 ```bash
 rg -n -P "[\\u3000\\u3001\\u3002\\u3010\\u3011\\uff01\\uff08\\uff09\\uff0c\\uff1a\\uff1b\\uff1f\\u2018\\u2019\\u201c\\u201d\\u2013\\u2014\\u2026]" docs/Obsidian
+```
+
+### 4) 检查 vault 是否存在反向引用(一次性目录)
+
+```bash
+rg -n "docs/(plans|changes|reports)/" docs/Obsidian
 ```
 
 ## 变更历史

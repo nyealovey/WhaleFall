@@ -16,8 +16,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/accounts_sync/adapters/base_adapter.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[reference/service/accounts-sync-overview|Accounts Sync 总览]]"
   - "[[standards/doc/service-layer-documentation-standards]]"
 ---

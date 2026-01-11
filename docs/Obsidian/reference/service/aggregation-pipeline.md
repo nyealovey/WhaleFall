@@ -16,8 +16,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/aggregation/aggregation_service.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[reference/service/capacity-current-aggregation-service|Capacity Current Aggregation Service]]"
   - "[[standards/doc/service-layer-documentation-standards]]"
 ---

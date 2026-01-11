@@ -17,8 +17,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/partition_management_service.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[reference/service/aggregation-pipeline|Aggregation Pipeline(SSOT)]]"
   - "[[standards/doc/service-layer-documentation-standards]]"
 ---

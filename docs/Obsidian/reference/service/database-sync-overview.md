@@ -17,8 +17,6 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/database_sync/database_sync_service.py
 related:
-  - docs/plans/2026-01-09-services-top38-docs.md
-  - docs/reports/2026-01-08-services-complexity-report.md
   - "[[reference/service/database-sync-adapters|Database Sync Adapters(差异表)]]"
   - "[[reference/service/database-sync-table-sizes|Database Sync Table Sizes]]"
   - "[[standards/doc/service-layer-documentation-standards]]"
