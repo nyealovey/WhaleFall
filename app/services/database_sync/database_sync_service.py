@@ -10,7 +10,7 @@ from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.errors import AppError
+from app.core.exceptions import AppError
 from app.repositories.instances_repository import InstancesRepository
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.utils.structlog_config import get_system_logger

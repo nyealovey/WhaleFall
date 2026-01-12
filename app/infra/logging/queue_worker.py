@@ -11,7 +11,7 @@ from importlib import import_module
 from queue import Empty, Full, Queue
 from typing import TYPE_CHECKING, Any, cast
 
-from app.types import JsonValue
+from app.core.types import JsonValue
 
 if TYPE_CHECKING:
     from flask import Flask

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.utils.database_type_utils import normalize_database_type
 from app.utils.structlog_config import log_error
 

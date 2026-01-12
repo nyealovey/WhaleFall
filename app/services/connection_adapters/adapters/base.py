@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, TypeAlias
 
-from app.types import DBAPIConnection, JsonValue
+from app.core.types import DBAPIConnection, JsonValue
 from app.utils.database_type_utils import get_database_type_default_schema
 from app.utils.structlog_config import get_db_logger
 

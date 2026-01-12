@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from app.models.instance import Instance
-    from app.types import RemoteAccount
+    from app.core.types import RemoteAccount
 
 
 class AccountInventoryManager:

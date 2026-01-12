@@ -80,8 +80,8 @@ related:
 
 - MUST: `pydantic`
 - MUST: 标准库
-- MAY: `app.errors`（用于抛出/映射项目错误）
-- MAY: `app.constants.*`, `app.types.*`, `app.utils.*`（仅限纯函数/无副作用工具）
+- MAY: `app.core.exceptions`（用于抛出/映射项目错误）
+- MAY: `app.core.constants.*`, `app.core.types.*`, `app.utils.*`（仅限纯函数/无副作用工具）
 
 禁止依赖:
 
@@ -108,4 +108,3 @@ rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session\\b" 
 ## 变更历史
 
 - 2026-01-12: 新增 Schemas 层标准, 覆盖 `app/schemas/**`.
-

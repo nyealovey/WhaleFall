@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from app.types.capacity_common import CapacityInstanceRef
+from app.core.types.capacity_common import CapacityInstanceRef
 
 
 @dataclass(slots=True)

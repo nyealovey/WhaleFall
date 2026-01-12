@@ -14,10 +14,10 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
-from app.constants import UserRole
+from app.core.constants import UserRole
 from app.models.user import User
-from app.types.listing import PaginatedResult
-from app.types.users import UserListFilters
+from app.core.types.listing import PaginatedResult
+from app.core.types.users import UserListFilters
 
 
 class UsersRepository:

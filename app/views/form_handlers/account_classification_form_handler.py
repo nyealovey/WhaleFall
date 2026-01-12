@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from app.constants.classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
-from app.constants.colors import ThemeColors
+from app.core.constants.classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
+from app.core.constants.colors import ThemeColors
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
-from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
+from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 from app.utils.request_payload import parse_payload
 
 if TYPE_CHECKING:

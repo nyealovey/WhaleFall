@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
-from app.types.structures import MutablePayloadDict, PayloadValue, ScalarValue
+from app.core.types.structures import MutablePayloadDict, PayloadValue, ScalarValue
 
 _STRING_LIKE_TYPES = (str, bytes, bytearray)
 

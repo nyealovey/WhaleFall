@@ -8,8 +8,8 @@
 from __future__ import annotations
 
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
-from app.types.accounts_ledgers import AccountFilters, AccountLedgerItem
-from app.types.listing import PaginatedResult
+from app.core.types.accounts_ledgers import AccountFilters, AccountLedgerItem
+from app.core.types.listing import PaginatedResult
 
 
 class AccountsLedgerListService:

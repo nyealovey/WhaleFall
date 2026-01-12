@@ -2,7 +2,7 @@ from typing import Any, cast
 
 import pytest
 
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 from app.services.account_classification.orchestrator import AccountClassificationService
 
 

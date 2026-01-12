@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TypedDict
 
-from app.types.structures import NumericLike
+from app.core.types.structures import NumericLike
 
 
 class BaseSyncDataOrmFields(TypedDict, total=False):

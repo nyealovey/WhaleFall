@@ -3,11 +3,11 @@
 聚合资源层常用的类型别名,避免各模块重复定义以致类型漂移.
 """
 
-from app.types.accounts import PermissionSnapshot, RawAccount, RemoteAccount
-from app.types.classification import ClassificationEngineResult, RuleExpression
-from app.types.dbapi import DBAPIConnection, DBAPICursor
-from app.types.query_protocols import QueryProtocol
-from app.types.resources import (
+from app.core.types.accounts import PermissionSnapshot, RawAccount, RemoteAccount
+from app.core.types.classification import ClassificationEngineResult, RuleExpression
+from app.core.types.dbapi import DBAPIConnection, DBAPICursor
+from app.core.types.query_protocols import QueryProtocol
+from app.core.types.resources import (
     ResourceContext,
     ResourceIdentifier,
     ResourceInstance,
@@ -15,8 +15,8 @@ from app.types.resources import (
     SupportsResourceId,
     TemplateContext,
 )
-from app.types.routes import RouteAwaitable, RouteCallable, RouteHandler, RouteReturn
-from app.types.structures import (
+from app.core.types.routes import RouteAwaitable, RouteCallable, RouteHandler, RouteReturn
+from app.core.types.structures import (
     CategoryOptionDict,
     ColorHex,
     ColorName,
@@ -38,7 +38,7 @@ from app.types.structures import (
     RouteSafetyOptions,
     StructlogEventDict,
 )
-from app.types.sync import (
+from app.core.types.sync import (
     CollectionSummary,
     DiffEntry,
     InventorySummary,

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from app.constants.colors import ThemeColors
-from app.constants.tag_categories import TAG_CATEGORY_CHOICES
+from app.core.constants.colors import ThemeColors
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.services.tags.tag_detail_read_service import TagDetailReadService
 from app.services.tags.tag_write_service import TagWriteService
-from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
+from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 
 if TYPE_CHECKING:
     from app.models.tag import Tag

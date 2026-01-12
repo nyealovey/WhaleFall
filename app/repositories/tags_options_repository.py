@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from app.constants.tag_categories import TAG_CATEGORY_CHOICES
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.models.instance import Instance
 from app.models.tag import Tag
 

@@ -12,7 +12,7 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.restx_models.scheduler import SCHEDULER_JOB_DETAIL_FIELDS, SCHEDULER_JOB_LIST_ITEM_FIELDS
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.services.scheduler.scheduler_actions_service import SchedulerActionsService
 from app.services.scheduler.scheduler_job_write_service import SchedulerJobWriteService
 from app.services.scheduler.scheduler_jobs_read_service import SchedulerJobsReadService

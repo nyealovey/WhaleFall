@@ -18,8 +18,8 @@ from app import db
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.types.credentials import CredentialListFilters, CredentialListRowProjection
-from app.types.listing import PaginatedResult
+from app.core.types.credentials import CredentialListFilters, CredentialListRowProjection
+from app.core.types.listing import PaginatedResult
 
 
 class CredentialsRepository:

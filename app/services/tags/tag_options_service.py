@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from app.repositories.tags_options_repository import TagsOptionsRepository
-from app.types.tags_options import (
+from app.core.types.tags_options import (
     TaggableInstance,
     TagOptionItem,
     TagOptionsResult,

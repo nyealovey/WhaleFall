@@ -7,10 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from decimal import Decimal
-from typing import TYPE_CHECKING, Protocol, TypeAlias, TypedDict
-
-if TYPE_CHECKING:
-    from app.errors import AppError
+from typing import Protocol, TypeAlias, TypedDict
 
 ScalarValue: TypeAlias = str | int | float | bool | None
 PayloadValue: TypeAlias = ScalarValue | Sequence[ScalarValue] | Mapping[str, ScalarValue]
@@ -89,7 +86,7 @@ class RouteSafetyOptions(TypedDict, total=False):
     context: ContextMapping | None
     extra: LoggerExtra | None
     expected_exceptions: tuple[type[BaseException], ...]
-    fallback_exception: type[AppError]
+    fallback_exception: type[Exception]
     log_event: str | None
     include_actor: bool
 

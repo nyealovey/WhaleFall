@@ -23,7 +23,7 @@ from app import db
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.types.orm_kwargs import DatabaseSizeStatOrmFields
+    from app.core.types.orm_kwargs import DatabaseSizeStatOrmFields
 
 
 class DatabaseSizeStat(db.Model):

@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from app.errors import NotFoundError
+from app.core.exceptions import NotFoundError
 from app.models.instance_database import InstanceDatabase
 from app.repositories.instance_databases_repository import InstanceDatabasesRepository
 

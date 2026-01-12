@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.services.scheduler.scheduler_job_write_service import SchedulerJobWriteService
-from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
+from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 
 if TYPE_CHECKING:
     from app.services.scheduler.scheduler_job_write_service import SchedulerJobResource

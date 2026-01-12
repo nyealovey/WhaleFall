@@ -12,8 +12,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, cast
 
-from app.constants.tag_categories import TAG_CATEGORY_CHOICES
-from app.errors import NotFoundError
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
+from app.core.exceptions import NotFoundError
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.repositories.instances_repository import InstancesRepository

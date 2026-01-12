@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING, Any
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 
-from app.constants import (
+from app.core.constants import (
     CREDENTIAL_TYPES,
     DATABASE_TYPES,
     STATUS_ACTIVE_OPTIONS,
 )
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.credentials.credential_detail_page_service import CredentialDetailPageService
-from app.types.credentials import CredentialListFilters
+from app.core.types.credentials import CredentialListFilters
 from app.utils.decorators import (
     view_required,
 )

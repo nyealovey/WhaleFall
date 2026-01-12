@@ -13,7 +13,7 @@ from typing import Any
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import DatabaseError
+from app.core.exceptions import DatabaseError
 from app.repositories.partition_management_repository import PartitionManagementRepository
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils

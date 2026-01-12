@@ -14,16 +14,16 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.tags import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS, TAGGABLE_INSTANCE_FIELDS
-from app.constants import HttpStatus
-from app.constants.system_constants import ErrorMessages
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.core.constants import HttpStatus
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_detail_read_service import TagDetailReadService
 from app.services.tags.tag_write_service import TagWriteService
 from app.services.tags.tags_bulk_actions_service import TagsBulkActionsService
-from app.types import ResourcePayload
-from app.types.tags import TagListFilters
+from app.core.types import ResourcePayload
+from app.core.types.tags import TagListFilters
 from app.utils.decorators import require_csrf
 
 ns = Namespace("tags", description="标签管理")

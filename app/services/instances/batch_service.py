@@ -9,7 +9,7 @@ from typing import Any, Literal
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import SystemError, ValidationError
+from app.core.exceptions import SystemError, ValidationError
 from app.models.instance import Instance
 from app.repositories.instances_batch_repository import InstancesBatchRepository
 from app.schemas.instances import InstanceCreatePayload

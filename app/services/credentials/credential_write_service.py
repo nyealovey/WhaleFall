@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.models.credential import Credential, CredentialCreateParams
 from app.repositories.credentials_repository import CredentialsRepository
 from app.schemas.credentials import CredentialCreatePayload, CredentialUpdatePayload
@@ -24,7 +24,7 @@ from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import ResourcePayload
+    from app.core.types import ResourcePayload
 
 
 @dataclass(slots=True)

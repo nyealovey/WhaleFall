@@ -10,7 +10,7 @@ from __future__ import annotations
 import csv
 import io
 
-from app.constants.import_templates import INSTANCE_IMPORT_TEMPLATE_HEADERS, INSTANCE_IMPORT_TEMPLATE_SAMPLE
+from app.core.constants.import_templates import INSTANCE_IMPORT_TEMPLATE_HEADERS, INSTANCE_IMPORT_TEMPLATE_SAMPLE
 from app.services.files.instances_export_service import CsvExportResult
 
 

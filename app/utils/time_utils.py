@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 import structlog
 
-from app.constants import TimeConstants
+from app.core.constants import TimeConstants
 
 LOGGER = structlog.get_logger("system")
 

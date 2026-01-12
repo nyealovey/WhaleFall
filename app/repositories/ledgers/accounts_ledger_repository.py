@@ -20,9 +20,9 @@ from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag, instance_tags
-from app.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
-from app.types.listing import PaginatedResult
-from app.types.tags import TagSummary
+from app.core.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagSummary
 from app.infra.route_safety import log_with_context
 from app.utils.theme_color_utils import get_theme_color_value
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, render_template, request
 from flask_login import login_required
 
-from app.constants import DATABASE_TYPES, PERIOD_TYPES
+from app.core.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.decorators import view_required
 

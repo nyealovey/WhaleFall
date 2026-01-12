@@ -18,15 +18,15 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Subquery
 
 from app import db
-from app.constants import SyncStatus
+from app.core.constants import SyncStatus
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
-from app.types.instances import InstanceListFilters, InstanceListMetrics
-from app.types.listing import PaginatedResult
-from app.types.tags import TagSummary
+from app.core.types.instances import InstanceListFilters, InstanceListMetrics
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagSummary
 
 
 class InstancesRepository:

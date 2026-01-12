@@ -8,8 +8,8 @@ from typing import Any
 
 from pydantic import StrictStr, field_validator, model_validator
 
-from app.constants import DatabaseType
-from app.constants.validation_limits import (
+from app.core.constants import DatabaseType
+from app.core.constants.validation_limits import (
     CREDENTIAL_PASSWORD_MAX_LENGTH,
     CREDENTIAL_PASSWORD_MIN_LENGTH,
     CREDENTIAL_USERNAME_MAX_LENGTH,

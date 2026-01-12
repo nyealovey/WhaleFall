@@ -6,7 +6,7 @@
 import re
 from typing import ClassVar
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 
 MAX_VERSION_PREVIEW_LENGTH = 50
 MIN_PARTS_FOR_MAIN_VERSION = 2

@@ -13,10 +13,10 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import new_parser
-from app.errors import NotFoundError
+from app.core.exceptions import NotFoundError
 from app.services.users import UserDetailReadService, UsersListService, UsersStatsService, UserWriteService
-from app.types import ResourcePayload
-from app.types.users import UserListFilters
+from app.core.types import ResourcePayload
+from app.core.types.users import UserListFilters
 from app.utils.decorators import require_csrf
 from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.structlog_config import log_info

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.errors import ConflictError, ValidationError
+from app.core.exceptions import ConflictError, ValidationError
 from app.services.account_classification.dsl_v4 import (
     DslV4Evaluator,
     collect_dsl_v4_validation_errors,

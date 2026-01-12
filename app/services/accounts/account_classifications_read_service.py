@@ -7,10 +7,10 @@
 
 from __future__ import annotations
 
-from app.errors import NotFoundError, SystemError
+from app.core.exceptions import NotFoundError, SystemError
 from app.models.account_classification import AccountClassification, ClassificationRule
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
-from app.types.accounts_classifications import (
+from app.core.types.accounts_classifications import (
     AccountClassificationAssignmentItem,
     AccountClassificationListItem,
     AccountClassificationRuleFilterItem,

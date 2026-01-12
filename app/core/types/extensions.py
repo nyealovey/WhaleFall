@@ -12,7 +12,7 @@ from flask import Flask
 from flask_caching import Cache
 from flask_login import LoginManager
 
-from app.types.structures import LoggerExtra
+from app.core.types.structures import LoggerExtra
 from app.utils.logging.error_adapter import ErrorContext
 
 

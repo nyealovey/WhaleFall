@@ -20,15 +20,15 @@
   - Utils 层 DB 访问：`app/utils/database_batch_manager.py` 直用 `db.session`，与 utils-layer-standards “无 DB 依赖”冲突。
 - 本轮已按决策落地：
   - API 层 query 参数解析：已统一迁移到 `reqparse.RequestParser` + `@ns.expect(parser)`（新增 `app/api/v1/resources/query_parsers.py`）。
-  - Schemas 层与 Models 解耦：schemas 不再 import models，阈值下沉到 `app/constants/validation_limits.py`。
+  - Schemas 层与 Models 解耦：schemas 不再 import models，阈值下沉到 `app/core/constants/validation_limits.py`。
   - Constants 层 helper methods：按方案 B 下沉到 `app/utils/**`，constants 仅保留值/枚举/静态映射。
-  - 魔法数字（`PLR2004`）：已清零（0 errors），阈值集中到 `app/constants/validation_limits.py`，形状/索引常量保留为模块内常量。
+  - 魔法数字（`PLR2004`）：已清零（0 errors），阈值集中到 `app/core/constants/validation_limits.py`，形状/索引常量保留为模块内常量。
 
 ## 1. 与 2026-01-11 报告相比的已完成项（口径对齐）
 
 - 1.1 `layer/README.md` 依赖图方向已按“方案 A”修正。
-- 1.2 `constants-layer-standards.md` 依赖规则已收窄：允许 `app.constants.*` 同层互相 import，并禁止业务层依赖。
-- 1.3 `types-layer-standards.md` 的“无逻辑”口径已通过迁移落地：`parse_payload` 与 converters 已迁移到 `app/utils/**`，并删除 `app/types/request_payload.py` 与 `app/types/converters.py`。
+- 1.2 `constants-layer-standards.md` 依赖规则已收窄：允许 `app.core.constants.*` 同层互相 import，并禁止业务层依赖。
+- 1.3 `types-layer-standards.md` 的“无逻辑”口径已通过迁移落地：`parse_payload` 与 converters 已迁移到 `app/utils/**`，并删除 `app/core/types/request_payload.py` 与 `app/core/types/converters.py`。
 - API 标准 scope 已扩展到 `app/api/**`，纳入 `app/api/__init__.py` 注册入口语义。
 
 ## 2. 代码扫描发现（按 13 层标准）
@@ -47,7 +47,7 @@
   - schemas 对 models 的依赖容易带来循环引用/隐式耦合；
   - “校验口径”被 model 层牵引，导致 schema 难以独立复用与单测。
 - 落地方式：
-  - 将校验阈值下沉到 `app/constants/validation_limits.py`；
+  - 将校验阈值下沉到 `app/core/constants/validation_limits.py`；
   - schema 仅 import constants/types/utils，保持可独立复用与单测。
 
 ### 2.3 Infra 层（`app/infra/**` + `app/scheduler.py`）
@@ -74,9 +74,9 @@
   - 迁移到允许 DB 的层：`app/infra/**`（偏事务入口/失败隔离）或 `app/repositories/common/**`（偏数据访问复用）；
   - 或重构为“纯批次队列 + 显式注入 session/flush/commit”，但需避免引入隐式事务边界。
 
-### 2.6 Constants 层（`app/constants/**`）
+### 2.6 Constants 层（`app/core/constants/**`）
 
-- 方案 B 已落地：helper methods 已下沉到 `app/utils/**`，constants 仅保留值/枚举/静态映射（`app/constants/**` 内 `def` 0 处）。
+- 方案 B 已落地：helper methods 已下沉到 `app/utils/**`，constants 仅保留值/枚举/静态映射（`app/core/constants/**` 内 `def` 0 处）。
   - 示例：`ThemeColors/DatabaseType/UserRole/SyncStatus` 等保留静态映射；对应 “校验/归一化/展示/权限判定” 迁移到 `app/utils/*_utils.py`。
   - 示例：`TimeConstants` 仅保留静态秒数常量，不再提供运行时计算方法。
 
@@ -85,7 +85,7 @@
 - services 层直查库/query：基线已清零（`services-repository-enforcement-guard` 命中 0）。
 - tasks 层直查库/直写库：门禁通过（允许 commit/rollback 作为边界入口）。
 - forms 层跨层依赖/DB/query：门禁通过。
-- types 层：`parse_payload`/converters 已移出；当前 `app/types/**` 未发现明显业务函数定义（`rg "^def "` 仅命中 stub `.pyi`）。
+- types 层：`parse_payload`/converters 已移出；当前 `app/core/types/**` 未发现明显业务函数定义（`rg "^def "` 仅命中 stub `.pyi`）。
 
 ## 3. 防御/兼容/回退/适配逻辑清单（聚焦 `or` 兜底）
 
@@ -136,7 +136,7 @@
 
 落地口径：
 
-- 业务阈值：集中到 `app/constants/validation_limits.py`（schemas/settings/API 可复用）。
+- 业务阈值：集中到 `app/core/constants/validation_limits.py`（schemas/settings/API 可复用）。
 - 版本号/索引等实现细节：保留为对应模块内具名常量（例如 permissions snapshot v4、adapter 行字段 index）。
 
 ## 5. Types：pyright 基线（复跑）
@@ -154,4 +154,4 @@
 ## 6. 后续建议（按收益排序）
 
 1) 处理 utils 层 DB 漂移：`app/utils/database_batch_manager.py` 迁移到 infra/repository 允许 DB 的层，并在标准中明确其归属。
-2) 将错误定义从“Errors 层”调整为 shared kernel：异常类型放在 `app/core/exceptions.py`，异常→HTTP status 映射在 API 边界(`app/api/error_mapping.py`)完成；`app/errors.py` 仅保留为兼容 re-export，并在分层依赖图中以 Shared Kernel 节点表达。
+2) 将错误定义从“Errors 层”调整为 shared kernel：异常类型放在 `app/core/exceptions.py`，异常→HTTP status 映射在 API 边界(`app/api/error_mapping.py`)完成；移除 `app/errors.py` 兼容门面，全仓统一改用 `app.core.exceptions`。

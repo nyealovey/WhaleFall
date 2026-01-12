@@ -2,14 +2,14 @@ import pytest
 
 from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
 from app.services.sync_session_service import sync_session_service
-from app.types.history_sessions import (
+from app.core.types.history_sessions import (
     SyncInstanceRecordItem,
     SyncSessionDetailItem,
     SyncSessionDetailResult,
     SyncSessionErrorLogsResult,
     SyncSessionItem,
 )
-from app.types.listing import PaginatedResult
+from app.core.types.listing import PaginatedResult
 
 
 @pytest.mark.unit

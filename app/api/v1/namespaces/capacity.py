@@ -20,13 +20,13 @@ from app.api.v1.restx_models.capacity import (
     CAPACITY_INSTANCE_REF_FIELDS,
     CAPACITY_INSTANCE_SUMMARY_FIELDS,
 )
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 from app.services.capacity.current_aggregation_service import CurrentAggregationService
 from app.services.capacity.database_aggregations_read_service import DatabaseAggregationsReadService
 from app.services.capacity.instance_aggregations_read_service import InstanceAggregationsReadService
-from app.types.capacity_aggregations import CurrentAggregationRequest
-from app.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
-from app.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
+from app.core.types.capacity_aggregations import CurrentAggregationRequest
+from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
+from app.core.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
 from app.utils.decorators import require_csrf
 from app.utils.time_utils import time_utils
 

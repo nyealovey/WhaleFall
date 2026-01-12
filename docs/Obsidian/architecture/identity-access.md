@@ -54,7 +54,7 @@ related:
 
 ### 3.2 Token 传递方式
 
-- Header: `X-CSRFToken`(见 `app/constants/http_headers.py`).
+- Header: `X-CSRFToken`(见 `app/core/constants/http_headers.py`).
 - 兜底: 表单字段 `csrf_token`(仅 HTML form).
 - MUST NOT: 通过 JSON body 传 csrf token(见 [[standards/doc/api-contract-markdown-standards]]).
 

@@ -15,9 +15,9 @@ from typing import TYPE_CHECKING, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.constants import DatabaseType
-from app.constants.classification_constants import ICON_OPTIONS, OPERATOR_OPTIONS, RISK_LEVEL_OPTIONS
-from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.core.constants import DatabaseType
+from app.core.constants.classification_constants import ICON_OPTIONS, OPERATOR_OPTIONS, RISK_LEVEL_OPTIONS
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -32,7 +32,7 @@ from app.utils.structlog_config import log_info
 from app.utils.theme_color_utils import is_valid_theme_color
 
 if TYPE_CHECKING:
-    from app.types.structures import PayloadValue
+    from app.core.types.structures import PayloadValue
 
 
 @dataclass(slots=True)

@@ -12,11 +12,11 @@ from collections.abc import Iterable
 from datetime import date, timedelta
 from typing import Any, cast
 
-from app.errors import SystemError, ValidationError
+from app.core.exceptions import SystemError, ValidationError
 from app.repositories.partition_repository import PartitionRepository
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
-from app.types.listing import PaginatedResult
-from app.types.partition import (
+from app.core.types.listing import PaginatedResult
+from app.core.types.partition import (
     PartitionCoreMetricsResult,
     PartitionEntry,
     PartitionInfoSnapshot,

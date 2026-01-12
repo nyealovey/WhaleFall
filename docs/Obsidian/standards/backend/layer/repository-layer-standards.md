@@ -98,8 +98,8 @@ app/repositories/
 允许依赖:
 
 - MUST: `app.models.*`
-- MAY: `app.types.*`
-- MAY: `app.errors`
+- MAY: `app.core.types.*`
+- MAY: `app.core.exceptions`
 - MAY: `app` 的 `db` 会话(仅用于 `add/flush` 等低级操作)
 - MAY: `sqlalchemy`/`sqlalchemy.orm`
 

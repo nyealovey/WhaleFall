@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from app.constants.system_constants import ErrorMessages
-from app.errors import AuthenticationError, NotFoundError
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import AuthenticationError, NotFoundError
 from app.repositories.users_repository import UsersRepository
 
 

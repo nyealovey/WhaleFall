@@ -11,7 +11,7 @@ from typing import Literal, TypedDict, cast
 import structlog
 
 from app import db
-from app.types import LoggerProtocol
+from app.core.types import LoggerProtocol
 
 OperationType = Literal["add", "update", "delete"]
 

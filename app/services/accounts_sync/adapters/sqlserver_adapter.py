@@ -9,7 +9,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     from re import Pattern
 
     from app.models.instance import Instance
-    from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
-    from app.types.sync import SyncConnection
+    from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.core.types.sync import SyncConnection
 else:
     Instance = Any
     JsonDict = dict[str, Any]

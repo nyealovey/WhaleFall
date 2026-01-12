@@ -1,7 +1,7 @@
 import pytest
 
 from app import create_app, db
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.models.user import User

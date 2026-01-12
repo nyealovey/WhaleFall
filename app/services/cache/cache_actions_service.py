@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Protocol, cast
 
 import app.services.cache_service as cache_service_module
-from app.errors import ConflictError, NotFoundError, SystemError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, SystemError, ValidationError
 from app.repositories.instances_repository import InstancesRepository
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.infra.route_safety import log_with_context

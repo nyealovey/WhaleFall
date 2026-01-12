@@ -27,7 +27,7 @@
 
 - [x] 迁移: `database_table_size_stats` 表(含唯一约束/索引)
 - [x] 模型: `DatabaseTableSizeStat`
-- [x] 类型: `app/types/instance_database_table_sizes.py`
+- [x] 类型: `app/core/types/instance_database_table_sizes.py`
 - [x] 仓库层: 快照列表查询(分页/过滤/排序/collected_at)
 - [x] 服务层: `fetch_snapshot(...)`
 

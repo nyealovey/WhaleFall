@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, render_template, request
 from flask_login import login_required
 
-from app.constants import PERIOD_TYPES
+from app.core.constants import PERIOD_TYPES
 from app.services.capacity.capacity_databases_page_service import CapacityDatabasesPageService
 from app.utils.decorators import view_required
 from app.infra.route_safety import safe_route_call

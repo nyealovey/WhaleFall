@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from app.errors import NotFoundError
+from app.core.exceptions import NotFoundError
 from app.models.user import User
 from app.repositories.users_repository import UsersRepository
 

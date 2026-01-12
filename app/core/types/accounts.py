@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 else:
     Mapping = dict
 
-from app.types.structures import JsonDict, JsonValue
+from app.core.types.structures import JsonDict, JsonValue
 
 
 class PermissionSnapshot(TypedDict, total=False):

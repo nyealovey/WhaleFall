@@ -11,7 +11,7 @@ from typing import cast
 
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
-from app.types.accounts_permissions import (
+from app.core.types.accounts_permissions import (
     AccountLedgerPermissionAccount,
     AccountLedgerPermissions,
     AccountLedgerPermissionsResult,

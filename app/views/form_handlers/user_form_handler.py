@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from app.constants import UserRole
+from app.core.constants import UserRole
 from app.services.users.user_detail_read_service import UserDetailReadService
 from app.services.users.user_write_service import UserWriteService
-from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
+from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 
 if TYPE_CHECKING:
     from app.models.user import User

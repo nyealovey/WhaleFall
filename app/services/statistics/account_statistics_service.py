@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from app.errors import SystemError
+from app.core.exceptions import SystemError
 from app.repositories.account_statistics_repository import AccountStatisticsRepository
 from app.utils.structlog_config import log_error
 

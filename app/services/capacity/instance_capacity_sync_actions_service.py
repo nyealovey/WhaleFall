@@ -16,8 +16,8 @@ from typing import Any
 
 import app.services.aggregation as aggregation_module
 import app.services.database_sync as database_sync_module
-from app.constants import HttpStatus
-from app.errors import NotFoundError
+from app.core.constants import HttpStatus
+from app.core.exceptions import NotFoundError
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.utils.structlog_config import log_warning

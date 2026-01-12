@@ -7,13 +7,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from app.types import ClassificationEngineResult, JsonDict
+    from app.core.types import ClassificationEngineResult, JsonDict
 else:
-    from app.types import JsonDict
-    from app.types.classification import ClassificationEngineResult
+    from app.core.types import JsonDict
+    from app.core.types.classification import ClassificationEngineResult
 
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.errors import AppError
+from app.core.exceptions import AppError
 from app.utils.structlog_config import log_error, log_info
 
 

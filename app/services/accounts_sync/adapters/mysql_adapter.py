@@ -6,7 +6,7 @@ import re
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.safe_query_builder import SafeQueryBuilder
@@ -14,7 +14,7 @@ from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
-    from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 else:
     Instance = Any
     JsonDict = dict[str, Any]

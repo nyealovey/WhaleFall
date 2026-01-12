@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from app.errors import NotFoundError
+from app.core.exceptions import NotFoundError
 from app.repositories.instances_repository import InstancesRepository
-from app.types import JsonDict
+from app.core.types import JsonDict
 from app.utils.time_utils import time_utils
 
 

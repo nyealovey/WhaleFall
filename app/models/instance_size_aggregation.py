@@ -20,11 +20,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 from app import db
-from app.types import NumericLike
+from app.core.types import NumericLike
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.types.orm_kwargs import InstanceSizeAggregationOrmFields
+    from app.core.types.orm_kwargs import InstanceSizeAggregationOrmFields
 
 
 class InstanceSizeAggregation(db.Model):

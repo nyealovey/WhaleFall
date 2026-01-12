@@ -13,11 +13,11 @@ from flask_login import current_user
 from werkzeug.exceptions import HTTPException
 
 from app import db
-from app.errors import AppError, SystemError
+from app.core.exceptions import AppError, SystemError
 from app.utils.structlog_config import get_logger
 
 if TYPE_CHECKING:
-    from app.types import ContextDict, ContextMapping, LoggerExtra, RouteSafetyOptions
+    from app.core.types import ContextDict, ContextMapping, LoggerExtra, RouteSafetyOptions
 
 R = TypeVar("R")
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]

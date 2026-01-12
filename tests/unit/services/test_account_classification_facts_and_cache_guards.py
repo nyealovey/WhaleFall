@@ -2,7 +2,7 @@ from typing import Any, cast
 
 import pytest
 
-from app.errors import AppError
+from app.core.exceptions import AppError
 from app.services.account_classification.auto_classify_service import AutoClassifyService
 from app.services.account_classification.cache import ClassificationCache
 from app.services.account_classification.orchestrator import AccountClassificationService

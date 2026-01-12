@@ -11,8 +11,8 @@ from flask.typing import ResponseReturnValue
 from flask_caching import Cache
 from flask_login import current_user
 
-from app.constants import FlashCategory
-from app.constants.system_constants import ErrorMessages
+from app.core.constants import FlashCategory
+from app.core.constants.system_constants import ErrorMessages
 from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.structlog_config import get_system_logger
 

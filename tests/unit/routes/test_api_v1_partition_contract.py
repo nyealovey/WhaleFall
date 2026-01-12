@@ -3,8 +3,8 @@ import pytest
 from app.services.partition.partition_read_service import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
-from app.types.listing import PaginatedResult
-from app.types.partition import (
+from app.core.types.listing import PaginatedResult
+from app.core.types.partition import (
     PartitionCoreMetricsResult,
     PartitionEntry,
     PartitionInfoSnapshot,

@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from typing import cast
 
-from app.constants import DatabaseType
-from app.constants.tag_categories import TAG_CATEGORY_CHOICES
+from app.core.constants import DatabaseType
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.repositories.filter_options_repository import FilterOptionsRepository
-from app.types.common_filter_options import (
+from app.core.types.common_filter_options import (
     CommonDatabaseOptionItem,
     CommonDatabasesOptionsFilters,
     CommonDatabasesOptionsResult,

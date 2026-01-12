@@ -3,8 +3,8 @@ from typing import Any
 
 import pytest
 
-from app.constants import UserRole
-from app.errors import ConflictError, ValidationError
+from app.core.constants import UserRole
+from app.core.exceptions import ConflictError, ValidationError
 from app.models.user import User
 from app.services.users.user_write_service import UserWriteService
 

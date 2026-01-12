@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
-from app.types.ledgers import DatabaseLedgerItem
+from app.core.types.ledgers import DatabaseLedgerItem
 from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.time_utils import time_utils
 
