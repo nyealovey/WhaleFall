@@ -15,7 +15,6 @@ from app.core.types.resources import (
     SupportsResourceId,
     TemplateContext,
 )
-from app.core.types.routes import RouteAwaitable, RouteCallable, RouteHandler, RouteReturn
 from app.core.types.structures import (
     CategoryOptionDict,
     ColorHex,
@@ -89,10 +88,6 @@ __all__ = [
     "ResourceIdentifier",
     "ResourceInstance",
     "ResourcePayload",
-    "RouteAwaitable",
-    "RouteCallable",
-    "RouteHandler",
-    "RouteReturn",
     "RouteSafetyOptions",
     "RuleExpression",
     "StructlogEventDict",

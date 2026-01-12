@@ -6,7 +6,7 @@ from flask_login import login_required
 from app.core.constants.system_constants import SuccessMessages
 from app.services.dashboard.dashboard_charts_service import get_chart_data
 from app.services.dashboard.dashboard_overview_service import get_system_overview, get_system_status
-from app.core.types import RouteReturn
+from app.infra.flask_typing import RouteReturn
 from app.utils.response_utils import jsonify_unified_success
 from app.infra.route_safety import safe_route_call
 

@@ -24,10 +24,10 @@ from flask_wtf.csrf import CSRFProtect
 from app.api import register_api_blueprints
 from app.api.error_mapping import map_exception_to_status
 from app.core.constants import HttpHeaders, HttpStatus
+from app.infra.flask_typing import WhaleFallFlask, WhaleFallLoginManager
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
 from app.settings import Settings
-from app.core.types.extensions import WhaleFallFlask, WhaleFallLoginManager
 from app.utils.cache_utils import init_cache_manager
 from app.utils.proxy_fix_middleware import TrustedProxyFix
 from app.utils.rate_limiter import init_rate_limiter

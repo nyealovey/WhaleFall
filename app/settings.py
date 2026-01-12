@@ -159,9 +159,14 @@ def _load_jwt_expiration_seconds() -> tuple[int, int]:
         name="JWT_ACCESS_TOKEN_EXPIRES",
     )
 
-    refresh_raw = os.environ.get("JWT_REFRESH_TOKEN_EXPIRES") or os.environ.get("JWT_REFRESH_TOKEN_EXPIRES_SECONDS")
+    legacy_refresh_raw = os.environ.get("JWT_REFRESH_TOKEN_EXPIRES_SECONDS")
+    if legacy_refresh_raw is not None and legacy_refresh_raw.strip() != "":
+        raise ValueError(
+            "JWT_REFRESH_TOKEN_EXPIRES_SECONDS 已移除,请使用 JWT_REFRESH_TOKEN_EXPIRES (秒)"
+        )
+
     refresh_seconds = _parse_int(
-        refresh_raw,
+        os.environ.get("JWT_REFRESH_TOKEN_EXPIRES"),
         default=DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS,
         name="JWT_REFRESH_TOKEN_EXPIRES",
     )
@@ -274,11 +279,13 @@ def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, 
         default=DEFAULT_SESSION_LIFETIME_SECONDS,
         name="PERMANENT_SESSION_LIFETIME",
     )
-    remember_cookie_duration_raw = os.environ.get("REMEMBER_COOKIE_DURATION") or os.environ.get(
-        "REMEMBER_COOKIE_DURATION_SECONDS"
-    )
+    legacy_remember_cookie_duration_raw = os.environ.get("REMEMBER_COOKIE_DURATION_SECONDS")
+    if legacy_remember_cookie_duration_raw is not None and legacy_remember_cookie_duration_raw.strip() != "":
+        raise ValueError(
+            "REMEMBER_COOKIE_DURATION_SECONDS 已移除,请使用 REMEMBER_COOKIE_DURATION (秒)"
+        )
     remember_cookie_duration_seconds = _parse_int(
-        remember_cookie_duration_raw,
+        os.environ.get("REMEMBER_COOKIE_DURATION"),
         default=DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS,
         name="REMEMBER_COOKIE_DURATION",
     )
