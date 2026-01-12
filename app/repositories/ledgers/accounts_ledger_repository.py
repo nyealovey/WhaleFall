@@ -14,7 +14,6 @@ from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query, contains_eager
 
-from app.constants.colors import ThemeColors
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 from app.models.account_permission import AccountPermission
@@ -25,6 +24,7 @@ from app.types.accounts_ledgers import AccountClassificationSummary, AccountFilt
 from app.types.listing import PaginatedResult
 from app.types.tags import TagSummary
 from app.infra.route_safety import log_with_context
+from app.utils.theme_color_utils import get_theme_color_value
 
 
 class AccountsLedgerRepository:
@@ -270,7 +270,7 @@ class AccountsLedgerRepository:
             classifications[account_id].append(
                 AccountClassificationSummary(
                     name=name,
-                    color=ThemeColors.get_color_value(color or "info"),
+                    color=get_theme_color_value(color or "info"),
                 ),
             )
         return dict(classifications)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from app.constants import DatabaseType
+from app.utils.database_type_utils import normalize_database_type
 from app.utils.structlog_config import log_error
 
 from .adapters import (
@@ -61,7 +62,7 @@ class ConnectionFactory:
             True
 
         """
-        db_type = DatabaseType.normalize(instance.db_type or "")
+        db_type = normalize_database_type(instance.db_type or "")
         connection_class = ConnectionFactory.CONNECTION_CLASSES.get(db_type)
         if not connection_class:
             log_error(
@@ -124,4 +125,4 @@ class ConnectionFactory:
             False
 
         """
-        return DatabaseType.normalize(db_type) in ConnectionFactory.CONNECTION_CLASSES
+        return normalize_database_type(db_type) in ConnectionFactory.CONNECTION_CLASSES

@@ -32,12 +32,14 @@ import time
 from collections.abc import Mapping
 from contextlib import suppress
 from dataclasses import dataclass
+from typing import Final
 
 from app.utils.structlog_config import log_error
 
 DSL_ERROR_UNKNOWN_FUNCTION = "UNKNOWN_DSL_FUNCTION"
 DSL_ERROR_INVALID_ARGS = "INVALID_DSL_ARGS"
 DSL_ERROR_MISSING_ARGS = "MISSING_DSL_ARGS"
+DSL_V4_VERSION: Final[int] = 4
 
 try:  # pragma: no cover - optional dependency
     from prometheus_client import Counter as _Counter, Histogram as _Histogram
@@ -85,7 +87,7 @@ def is_dsl_v4_expression(expression: object) -> bool:
     """Return True when expression matches the minimal DSL v4 shape."""
     if not isinstance(expression, Mapping):
         return False
-    return expression.get("version") == 4 and isinstance(expression.get("expr"), Mapping)
+    return expression.get("version") == DSL_V4_VERSION and isinstance(expression.get("expr"), Mapping)
 
 
 def collect_dsl_v4_validation_errors(expression: object) -> list[str]:  # noqa: PLR0915
@@ -95,8 +97,8 @@ def collect_dsl_v4_validation_errors(expression: object) -> list[str]:  # noqa: 
     if not isinstance(expression, Mapping):
         return ["rule_expression 必须为对象"]
 
-    if expression.get("version") != 4:
-        errors.append("rule_expression.version 必须为 4")
+    if expression.get("version") != DSL_V4_VERSION:
+        errors.append(f"rule_expression.version 必须为 {DSL_V4_VERSION}")
         return errors
 
     root_expr = expression.get("expr")

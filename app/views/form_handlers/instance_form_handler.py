@@ -10,6 +10,7 @@ from app.services.credentials.credential_options_service import CredentialOption
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
+from app.utils.database_type_utils import get_database_type_display_name
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
@@ -53,7 +54,7 @@ class InstanceFormHandler:
         """构造表单渲染上下文."""
         credential_options = self._credential_options_service.list_active_credential_options()
         database_type_options = [
-            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
+            {"value": db_type, "label": get_database_type_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
         ]
         tag_options = self._filter_options_service.list_active_tag_options()
 
@@ -65,4 +66,3 @@ class InstanceFormHandler:
             "tag_options": tag_options,
             "selected_tag_names": selected_tag_names,
         }
-

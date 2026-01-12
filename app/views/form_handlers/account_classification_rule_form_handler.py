@@ -10,6 +10,7 @@ from app.services.accounts.account_classifications_read_service import AccountCl
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
+from app.utils.database_type_utils import get_database_type_display_name
 from app.utils.request_payload import parse_payload
 
 if TYPE_CHECKING:
@@ -54,7 +55,7 @@ class AccountClassificationRuleFormHandler:
         """构造表单渲染上下文."""
         del resource
         db_type_options = [
-            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
+            {"value": db_type, "label": get_database_type_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
         ]
         classification_options = self._filter_options_service.list_classification_options()
         return {

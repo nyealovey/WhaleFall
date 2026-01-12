@@ -32,7 +32,7 @@ graph TD
   Models["Models(app/models)"]
   FormsViews["Forms/Views(app/forms, app/views)"]
   Utils["Utils(app/utils)"]
-  Errors["Errors(app/errors.py)"]
+  SharedKernel["Shared Kernel(app/core)"]
   Constants["Constants(app/constants)"]
   Types["Types(app/types)"]
 
@@ -42,10 +42,13 @@ graph TD
   Services --> Repositories & Utils
   Repositories --> Models & Utils
   Models --> Utils
-  Routes & API & Tasks & Services & Repositories & Models & FormsViews & Utils --> Errors
+  Routes & API & Tasks & Services & Repositories & Models & FormsViews & Utils --> SharedKernel
   Routes & API & Tasks & Services & Repositories & Models & FormsViews & Utils --> Constants
   Routes & API & Tasks & Services & Repositories & Models & FormsViews & Utils --> Types
 ```
+
+> [!note]
+> `app/core/**` 为 shared kernel(跨层复用的核心对象),不属于某个业务层; 规范见 [[standards/backend/shared-kernel-standards|Shared Kernel 编写规范]]；`app/errors.py` 仅作为历史 import 路径的 re-export.
 
 ## 关键入口(少量)
 

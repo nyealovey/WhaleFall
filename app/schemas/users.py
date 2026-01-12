@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import StrictStr, field_validator, model_validator
 
 from app.constants import UserRole
-from app.models.user import MIN_USER_PASSWORD_LENGTH
+from app.constants.validation_limits import USER_PASSWORD_MIN_LENGTH
 from app.schemas.base import PayloadSchema
 from app.utils.payload_converters import as_bool
 
@@ -40,8 +40,8 @@ def _validate_role(value: str) -> str:
 
 
 def _validate_password_strength(password: str) -> None:
-    if len(password) < MIN_USER_PASSWORD_LENGTH:
-        raise ValueError(f"密码长度至少{MIN_USER_PASSWORD_LENGTH}位")
+    if len(password) < USER_PASSWORD_MIN_LENGTH:
+        raise ValueError(f"密码长度至少{USER_PASSWORD_MIN_LENGTH}位")
     if not any(char.isupper() for char in password):
         raise ValueError("密码必须包含大写字母")
     if not any(char.islower() for char in password):

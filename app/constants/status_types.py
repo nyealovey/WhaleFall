@@ -32,60 +32,6 @@ class SyncStatus:
     # 失败状态
     ERROR: ClassVar[tuple[str, ...]] = (FAILED, CANCELLED)
 
-    # 辅助方法
-
-    @classmethod
-    def is_terminal(cls, status: str) -> bool:
-        """判断是否为终止状态(已结束).
-
-        Args:
-            status: 状态值
-
-        Returns:
-            bool: 是否为终止状态
-
-        """
-        return status in cls.TERMINAL
-
-    @classmethod
-    def is_active(cls, status: str) -> bool:
-        """判断是否为活动状态(未结束).
-
-        Args:
-            status: 状态值
-
-        Returns:
-            bool: 是否为活动状态
-
-        """
-        return status in cls.ACTIVE
-
-    @classmethod
-    def is_success(cls, status: str) -> bool:
-        """判断是否为成功状态.
-
-        Args:
-            status: 状态值
-
-        Returns:
-            bool: 是否为成功状态
-
-        """
-        return status in cls.SUCCESS
-
-    @classmethod
-    def is_error(cls, status: str) -> bool:
-        """判断是否为错误状态.
-
-        Args:
-            status: 状态值
-
-        Returns:
-            bool: 是否为错误状态
-
-        """
-        return status in cls.ERROR
-
 
 class SyncSessionStatus:
     """同步会话状态常量.
@@ -102,19 +48,6 @@ class SyncSessionStatus:
     ALL: ClassVar[tuple[str, ...]] = (RUNNING, COMPLETED, FAILED, CANCELLED)
 
     TERMINAL: ClassVar[tuple[str, ...]] = (COMPLETED, FAILED, CANCELLED)
-
-    @classmethod
-    def is_valid(cls, status: str) -> bool:
-        """判断状态值是否有效.
-
-        Args:
-            status: 状态值.
-
-        Returns:
-            bool: True 表示有效,否则 False.
-
-        """
-        return status in cls.ALL
 
 
 class TaskStatus:
@@ -140,34 +73,6 @@ class TaskStatus:
     # 进行中状态
     IN_PROGRESS: ClassVar[tuple[str, ...]] = (PENDING, RUNNING)
 
-    # 辅助方法
-
-    @classmethod
-    def is_completed(cls, status: str) -> bool:
-        """判断任务是否已完成.
-
-        Args:
-            status: 状态值
-
-        Returns:
-            bool: 是否已完成
-
-        """
-        return status in cls.COMPLETED
-
-    @classmethod
-    def is_in_progress(cls, status: str) -> bool:
-        """判断任务是否进行中.
-
-        Args:
-            status: 状态值
-
-        Returns:
-            bool: 是否进行中
-
-        """
-        return status in cls.IN_PROGRESS
-
 
 class InstanceStatus:
     """实例状态常量.
@@ -183,21 +88,6 @@ class InstanceStatus:
 
     # 所有状态
     ALL: ClassVar[tuple[str, ...]] = (ACTIVE, INACTIVE, MAINTENANCE, ERROR)
-
-    # 辅助方法
-
-    @classmethod
-    def is_operational(cls, status: str) -> bool:
-        """判断实例是否可操作.
-
-        Args:
-            status: 状态值
-
-        Returns:
-            bool: 是否可操作
-
-        """
-        return status == cls.ACTIVE
 
 
 class JobStatus:

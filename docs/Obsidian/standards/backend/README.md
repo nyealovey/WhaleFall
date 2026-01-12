@@ -8,7 +8,7 @@ tags:
   - standards/index
 status: active
 created: 2025-12-25
-updated: 2026-01-10
+updated: 2026-01-12
 owner: WhaleFall Team
 scope: 后端 standards 入口与索引
 related:
@@ -22,6 +22,7 @@ related:
 ## 关键入口(少量)
 
 - [[standards/backend/layer/README|后端分层标准(目录结构与依赖方向)]]
+- [[standards/backend/shared-kernel-standards|Shared Kernel 编写规范]]
 - [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API 响应封套(JSON Envelope)]]
 - [[standards/backend/error-message-schema-unification|错误消息字段统一(error/message)]]
 - [[standards/backend/configuration-and-secrets|配置与密钥(Settings/.env/env.example)]]

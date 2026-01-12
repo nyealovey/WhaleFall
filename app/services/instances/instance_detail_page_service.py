@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.constants import DatabaseType
+from app.utils.database_type_utils import get_database_type_display_name
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.repositories.credentials_repository import CredentialsRepository
@@ -53,7 +54,7 @@ class InstanceDetailPageService:
         credentials = self._credentials_repository.list_active_credentials()
 
         database_type_options = [
-            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
+            {"value": db_type, "label": get_database_type_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
         ]
 
         return InstanceDetailPageContext(

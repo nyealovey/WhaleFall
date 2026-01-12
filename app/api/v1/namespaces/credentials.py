@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from flask import request
 from flask_login import current_user
@@ -11,6 +11,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.credentials import CREDENTIAL_LIST_ITEM_FIELDS
 from app.constants import HttpStatus
 from app.constants.system_constants import SuccessMessages
@@ -18,7 +19,6 @@ from app.errors import NotFoundError
 from app.services.credentials import CredentialDetailReadService, CredentialsListService, CredentialWriteService
 from app.types.credentials import CredentialListFilters
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 
 ns = Namespace("credentials", description="凭据管理")
 
@@ -89,6 +89,17 @@ CredentialDeleteSuccessEnvelope = make_success_envelope_model(
     ns, "CredentialDeleteSuccessEnvelope", CredentialDeleteData
 )
 
+_credentials_list_query_parser = new_parser()
+_credentials_list_query_parser.add_argument("page", type=int, default=1, location="args")
+_credentials_list_query_parser.add_argument("limit", type=int, default=20, location="args")
+_credentials_list_query_parser.add_argument("search", type=str, default="", location="args")
+_credentials_list_query_parser.add_argument("credential_type", type=str, default="", location="args")
+_credentials_list_query_parser.add_argument("db_type", type=str, default="", location="args")
+_credentials_list_query_parser.add_argument("status", type=str, default="", location="args")
+_credentials_list_query_parser.add_argument("tags", type=str, action="append", location="args")
+_credentials_list_query_parser.add_argument("sort", type=str, default="created_at", location="args")
+_credentials_list_query_parser.add_argument("order", type=str, default="desc", location="args")
+
 
 def _normalize_choice(raw_value: str) -> str | None:
     value = (raw_value or "").strip()
@@ -104,36 +115,36 @@ def _normalize_status(raw_value: str) -> str | None:
     return None
 
 
-def _extract_tags() -> list[str]:
-    return [tag.strip() for tag in request.args.getlist("tags") if tag and tag.strip()]
-
-
 def _parse_payload() -> dict[str, Any]:
     payload = request.get_json(silent=True)
     return payload if isinstance(payload, dict) else {}
 
 
-def _build_filters(*, allow_sort: bool) -> CredentialListFilters:
-    args = request.args
-    page = resolve_page(args, default=1, minimum=1)
-    limit = resolve_page_size(
-        args,
-        default=20,
-        minimum=1,
-        maximum=200,
-    )
+def _build_filters(parsed: dict[str, object], *, allow_sort: bool) -> CredentialListFilters:
+    raw_page = parsed.get("page")
+    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
 
-    search = (args.get("search") or "").strip()
-    credential_type = _normalize_choice(args.get("credential_type", "", type=str))
-    db_type = _normalize_choice(args.get("db_type", "", type=str))
-    status = _normalize_status(args.get("status", "", type=str))
-    tags = _extract_tags()
+    raw_limit = parsed.get("limit")
+    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
+    limit = max(min(limit, 200), 1)
+
+    search = cast(str, parsed.get("search") or "").strip()
+    credential_type = _normalize_choice(cast(str, parsed.get("credential_type") or ""))
+    db_type = _normalize_choice(cast(str, parsed.get("db_type") or ""))
+    status = _normalize_status(cast(str, parsed.get("status") or ""))
+
+    raw_tags = parsed.get("tags")
+    tags: list[str] = []
+    if isinstance(raw_tags, list):
+        tags = [item.strip() for item in raw_tags if isinstance(item, str) and item.strip()]
+    elif isinstance(raw_tags, str) and raw_tags.strip():
+        tags = [raw_tags.strip()]
 
     sort_field = "created_at"
     sort_order = "desc"
     if allow_sort:
-        sort_field = (args.get("sort", "created_at", type=str) or "created_at").lower()
-        sort_order_candidate = (args.get("order", "desc", type=str) or "desc").lower()
+        sort_field = cast(str, parsed.get("sort") or "created_at").lower()
+        sort_order_candidate = cast(str, parsed.get("order") or "desc").lower()
         sort_order = sort_order_candidate if sort_order_candidate in {"asc", "desc"} else "desc"
 
     return CredentialListFilters(
@@ -159,10 +170,12 @@ class CredentialsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_credentials_list_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取凭据列表."""
-        filters = _build_filters(allow_sort=True)
+        parsed = cast("dict[str, object]", _credentials_list_query_parser.parse_args())
+        filters = _build_filters(parsed, allow_sort=True)
 
         def _execute():
             result = CredentialsListService().list_credentials(filters)

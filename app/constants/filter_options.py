@@ -9,14 +9,14 @@ from __future__ import annotations
 from typing import Final
 
 from app.constants.database_types import DatabaseType
-from app.constants.sync_constants import SyncConstants
+from app.constants.sync_constants import SyncCategory, SyncConstants, SyncOperationType
 
 DATABASE_TYPES: Final[list[dict[str, str]]] = [
     {
         "name": db_type,
-        "display_name": DatabaseType.get_display_name(db_type),
-        "icon": DatabaseType.get_icon(db_type),
-        "color": DatabaseType.get_color(db_type),
+        "display_name": DatabaseType.DISPLAY_NAMES.get(db_type, db_type),
+        "icon": DatabaseType.ICONS.get(db_type, "fa-database"),
+        "color": DatabaseType.COLORS.get(db_type, "primary"),
     }
     for db_type in DatabaseType.RELATIONAL
 ]
@@ -29,12 +29,20 @@ CREDENTIAL_TYPES: Final[list[dict[str, str]]] = [
 ]
 
 SYNC_TYPES: Final[list[dict[str, str]]] = [
-    {"value": item["value"], "label": item["label"]} for item in SyncConstants.get_all_operation_types()
+    {
+        "value": op_type.value,
+        "label": SyncConstants.OPERATION_TYPE_DISPLAY.get(op_type, op_type.value),
+    }
+    for op_type in SyncOperationType
 ]
 
 # 同步分类
 SYNC_CATEGORIES: Final[list[dict[str, str]]] = [
-    {"value": item["value"], "label": item["label"]} for item in SyncConstants.get_all_categories()
+    {
+        "value": category.value,
+        "label": SyncConstants.CATEGORY_DISPLAY.get(category, category.value),
+    }
+    for category in SyncCategory
 ]
 
 # 日志级别

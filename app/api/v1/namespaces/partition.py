@@ -11,6 +11,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.partition import (
     PARTITION_CORE_METRICS_FIELDS,
     PARTITION_INFO_RESPONSE_FIELDS,
@@ -22,7 +23,6 @@ from app.services.partition import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 
@@ -38,6 +38,19 @@ PartitionInfoData = ns.model(
     },
 )
 PartitionInfoSuccessEnvelope = make_success_envelope_model(ns, "PartitionInfoSuccessEnvelope", PartitionInfoData)
+
+_partitions_list_query_parser = new_parser()
+_partitions_list_query_parser.add_argument("search", type=str, default="", location="args")
+_partitions_list_query_parser.add_argument("table_type", type=str, default="", location="args")
+_partitions_list_query_parser.add_argument("status", type=str, default="", location="args")
+_partitions_list_query_parser.add_argument("sort", type=str, default="name", location="args")
+_partitions_list_query_parser.add_argument("order", type=str, default="asc", location="args")
+_partitions_list_query_parser.add_argument("page", type=int, default=1, location="args")
+_partitions_list_query_parser.add_argument("limit", type=int, default=20, location="args")
+
+_partition_core_metrics_query_parser = new_parser()
+_partition_core_metrics_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_partition_core_metrics_query_parser.add_argument("days", type=int, default=7, location="args")
 
 PartitionStatusData = ns.model(
     "PartitionStatusData",
@@ -201,21 +214,19 @@ class PartitionsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_partitions_list_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取分区列表."""
-        search_term = request.args.get("search", "", type=str) or ""
-        table_type = request.args.get("table_type", "", type=str) or ""
-        status_filter = request.args.get("status", "", type=str) or ""
-        sort_field = request.args.get("sort", "name", type=str) or "name"
-        sort_order = request.args.get("order", "asc", type=str) or "asc"
-        page = resolve_page(request.args, default=1, minimum=1)
-        limit = resolve_page_size(
-            request.args,
-            default=20,
-            minimum=1,
-            maximum=200,
-        )
+        parsed = _partitions_list_query_parser.parse_args()
+        search_term = str(parsed.get("search") or "").strip()
+        table_type = str(parsed.get("table_type") or "").strip()
+        status_filter = str(parsed.get("status") or "").strip()
+        sort_field = str(parsed.get("sort") or "name").strip() or "name"
+        sort_order = str(parsed.get("order") or "asc").strip() or "asc"
+        page = max(int(parsed.get("page") or 1), 1)
+        limit = int(parsed.get("limit") or 20)
+        limit = max(min(limit, 200), 1)
 
         def _execute():
             result = _partition_read_service.list_partitions(
@@ -404,10 +415,12 @@ class PartitionCoreMetricsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_partition_core_metrics_query_parser)
     def get(self):
         """获取核心聚合指标."""
-        requested_period_type = (request.args.get("period_type") or "daily").lower()
-        requested_days = request.args.get("days", 7, type=int)
+        parsed = _partition_core_metrics_query_parser.parse_args()
+        requested_period_type = str(parsed.get("period_type") or "daily").lower()
+        requested_days = int(parsed.get("days") or 7)
 
         def _execute():
             result = _partition_read_service.build_core_metrics(period_type=requested_period_type, days=requested_days)

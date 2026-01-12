@@ -9,8 +9,15 @@ from typing import Any
 from pydantic import StrictStr, field_validator, model_validator
 
 from app.constants import DatabaseType
+from app.constants.validation_limits import (
+    CREDENTIAL_PASSWORD_MAX_LENGTH,
+    CREDENTIAL_PASSWORD_MIN_LENGTH,
+    CREDENTIAL_USERNAME_MAX_LENGTH,
+    CREDENTIAL_USERNAME_MIN_LENGTH,
+)
 from app.schemas.base import PayloadSchema
 from app.utils.payload_converters import as_bool
+from app.utils.database_type_utils import normalize_database_type
 
 _ALLOWED_CREDENTIAL_TYPES: set[str] = {"database", "ssh", "windows", "api", "ldap"}
 
@@ -50,10 +57,10 @@ def _validate_username(value: str) -> str:
     normalized = value.strip()
     if not normalized:
         raise ValueError("用户名不能为空")
-    if len(normalized) < 3:
-        raise ValueError("用户名长度至少3个字符")
-    if len(normalized) > 50:
-        raise ValueError("用户名长度不能超过50个字符")
+    if len(normalized) < CREDENTIAL_USERNAME_MIN_LENGTH:
+        raise ValueError(f"用户名长度至少{CREDENTIAL_USERNAME_MIN_LENGTH}个字符")
+    if len(normalized) > CREDENTIAL_USERNAME_MAX_LENGTH:
+        raise ValueError(f"用户名长度不能超过{CREDENTIAL_USERNAME_MAX_LENGTH}个字符")
     if not re.match(r"^[a-zA-Z0-9_.-]+$", normalized):
         raise ValueError("用户名只能包含字母、数字、下划线、连字符和点")
     return normalized
@@ -62,10 +69,10 @@ def _validate_username(value: str) -> str:
 def _validate_password(value: str) -> str:
     if not value.strip():
         raise ValueError("密码不能为空")
-    if len(value) < 6:
-        raise ValueError("密码长度至少6个字符")
-    if len(value) > 128:
-        raise ValueError("密码长度不能超过128个字符")
+    if len(value) < CREDENTIAL_PASSWORD_MIN_LENGTH:
+        raise ValueError(f"密码长度至少{CREDENTIAL_PASSWORD_MIN_LENGTH}个字符")
+    if len(value) > CREDENTIAL_PASSWORD_MAX_LENGTH:
+        raise ValueError(f"密码长度不能超过{CREDENTIAL_PASSWORD_MAX_LENGTH}个字符")
     return value
 
 
@@ -81,8 +88,8 @@ def _parse_optional_string(value: Any) -> str | None:
 def _validate_db_type(value: str | None) -> str | None:
     if value is None:
         return None
-    normalized = DatabaseType.normalize(value)
-    allowed = {DatabaseType.normalize(item) for item in DatabaseType.RELATIONAL}
+    normalized = normalize_database_type(value)
+    allowed = {normalize_database_type(item) for item in DatabaseType.RELATIONAL}
     if normalized not in allowed:
         raise ValueError(f"不支持的数据库类型: {value}")
     return normalized

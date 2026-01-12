@@ -7,6 +7,7 @@ from sqlalchemy.orm import validates
 
 from app import db
 from app.constants import SyncSessionStatus
+from app.utils.status_type_utils import is_valid_sync_session_status
 from app.utils.time_utils import time_utils
 
 
@@ -84,7 +85,7 @@ class SyncSession(db.Model):
             ValueError: 当状态值不在支持列表时抛出.
 
         """
-        if not SyncSessionStatus.is_valid(status):
+        if not is_valid_sync_session_status(status):
             raise ValueError(f"无效的同步会话状态: {status}")
         return status
 

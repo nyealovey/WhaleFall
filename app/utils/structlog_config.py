@@ -15,7 +15,6 @@ from flask_login import current_user
 from app.constants.system_constants import ErrorSeverity
 from app.settings import APP_VERSION
 from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
-from app.utils.error_mapping import map_exception_to_status
 from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.logging.error_adapter import (
     ErrorContext,
@@ -600,7 +599,7 @@ def error_handler(func: Callable[P, ResponseReturnValue]) -> Callable[P, Respons
         except ERROR_HANDLER_EXCEPTIONS as error:
             context = ErrorContext(error)
             payload = enhanced_error_handler(error, context)
-            status_code = map_exception_to_status(error, default=500)
+            status_code = derive_error_metadata(error).status_code
             return jsonify(payload), status_code
 
     return wrapper

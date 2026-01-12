@@ -105,7 +105,7 @@ def derive_error_metadata(error: Exception) -> ErrorMetadata:
     """
     if isinstance(error, AppError):
         return ErrorMetadata(
-            status_code=error.status_code,
+            status_code=HttpStatus.INTERNAL_SERVER_ERROR,
             category=error.category,
             severity=error.severity,
             message_key=error.message_key,

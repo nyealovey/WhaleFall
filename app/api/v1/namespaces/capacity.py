@@ -11,6 +11,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import bool_with_default, new_parser
 from app.api.v1.restx_models.capacity import (
     CAPACITY_CURRENT_AGGREGATION_RESULT_FIELDS,
     CAPACITY_DATABASE_AGGREGATION_ITEM_FIELDS,
@@ -27,7 +28,6 @@ from app.types.capacity_aggregations import CurrentAggregationRequest
 from app.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.time_utils import time_utils
 
 ns = Namespace("capacity", description="容量统计")
@@ -160,6 +160,37 @@ CapacityInstanceSummarySuccessEnvelope = make_success_envelope_model(
     CapacityInstanceSummaryData,
 )
 
+_capacity_databases_query_parser = new_parser()
+_capacity_databases_query_parser.add_argument("start_date", type=str, location="args")
+_capacity_databases_query_parser.add_argument("end_date", type=str, location="args")
+_capacity_databases_query_parser.add_argument("instance_id", type=int, location="args")
+_capacity_databases_query_parser.add_argument("db_type", type=str, location="args")
+_capacity_databases_query_parser.add_argument("database_name", type=str, location="args")
+_capacity_databases_query_parser.add_argument("database_id", type=int, location="args")
+_capacity_databases_query_parser.add_argument("period_type", type=str, location="args")
+_capacity_databases_query_parser.add_argument("page", type=int, default=1, location="args")
+_capacity_databases_query_parser.add_argument("limit", type=int, default=20, location="args")
+_capacity_databases_query_parser.add_argument("get_all", type=bool_with_default(False), default=False, location="args")
+
+_capacity_databases_summary_query_parser = new_parser()
+for argument in _capacity_databases_query_parser.args:
+    _capacity_databases_summary_query_parser.args.append(argument)
+
+_capacity_instances_query_parser = new_parser()
+_capacity_instances_query_parser.add_argument("start_date", type=str, location="args")
+_capacity_instances_query_parser.add_argument("end_date", type=str, location="args")
+_capacity_instances_query_parser.add_argument("time_range", type=str, location="args")
+_capacity_instances_query_parser.add_argument("instance_id", type=int, location="args")
+_capacity_instances_query_parser.add_argument("db_type", type=str, location="args")
+_capacity_instances_query_parser.add_argument("period_type", type=str, location="args")
+_capacity_instances_query_parser.add_argument("page", type=int, default=1, location="args")
+_capacity_instances_query_parser.add_argument("limit", type=int, default=20, location="args")
+_capacity_instances_query_parser.add_argument("get_all", type=bool_with_default(False), default=False, location="args")
+
+_capacity_instances_summary_query_parser = new_parser()
+for argument in _capacity_instances_query_parser.args:
+    _capacity_instances_summary_query_parser.args.append(argument)
+
 
 def _parse_date(value: str, field: str) -> date:
     try:
@@ -172,10 +203,14 @@ def _parse_date(value: str, field: str) -> date:
     return parsed_dt.date()
 
 
-def _resolve_date_range(args) -> tuple[date | None, date | None]:
-    start_date_str = args.get("start_date")
-    end_date_str = args.get("end_date")
-    time_range = args.get("time_range")
+def _resolve_date_range(params: dict[str, object]) -> tuple[date | None, date | None]:
+    start_date_raw = params.get("start_date")
+    end_date_raw = params.get("end_date")
+    time_range_raw = params.get("time_range")
+
+    start_date_str = start_date_raw.strip() if isinstance(start_date_raw, str) and start_date_raw.strip() else None
+    end_date_str = end_date_raw.strip() if isinstance(end_date_raw, str) and end_date_raw.strip() else None
+    time_range = time_range_raw.strip() if isinstance(time_range_raw, str) and time_range_raw.strip() else None
 
     if time_range and not start_date_str and not end_date_str:
         try:
@@ -247,31 +282,28 @@ class CapacityDatabasesAggregationsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_capacity_databases_query_parser)
     def get(self):
         """获取数据库容量聚合列表."""
         query_params = request.args.to_dict(flat=False)
 
-        start_date_str = request.args.get("start_date")
-        end_date_str = request.args.get("end_date")
+        parsed = _capacity_databases_query_parser.parse_args()
+        start_date_str = str(parsed.get("start_date") or "").strip() or None
+        end_date_str = str(parsed.get("end_date") or "").strip() or None
         start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
         end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
 
         filters = DatabaseAggregationsFilters(
-            instance_id=request.args.get("instance_id", type=int),
-            db_type=request.args.get("db_type"),
-            database_name=request.args.get("database_name"),
-            database_id=request.args.get("database_id", type=int),
-            period_type=request.args.get("period_type"),
+            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
+            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
+            database_name=str(parsed.get("database_name") or "").strip() or None,
+            database_id=parsed.get("database_id") if isinstance(parsed.get("database_id"), int) else None,
+            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
             start_date=start_date,
             end_date=end_date,
-            page=resolve_page(request.args, default=1, minimum=1),
-            limit=resolve_page_size(
-                request.args,
-                default=20,
-                minimum=1,
-                maximum=200,
-            ),
-            get_all=(request.args.get("get_all", "false") or "false").lower() == "true",
+            page=max(int(parsed.get("page") or 1), 1),
+            limit=max(min(int(parsed.get("limit") or 20), 200), 1),
+            get_all=bool(parsed.get("get_all") or False),
         )
 
         def _execute():
@@ -310,21 +342,23 @@ class CapacityDatabasesSummaryResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_capacity_databases_summary_query_parser)
     def get(self):
         """获取数据库容量聚合汇总."""
         query_params = request.args.to_dict(flat=False)
 
-        start_date_str = request.args.get("start_date")
-        end_date_str = request.args.get("end_date")
+        parsed = _capacity_databases_summary_query_parser.parse_args()
+        start_date_str = str(parsed.get("start_date") or "").strip() or None
+        end_date_str = str(parsed.get("end_date") or "").strip() or None
         start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
         end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
 
         filters = DatabaseAggregationsSummaryFilters(
-            instance_id=request.args.get("instance_id", type=int),
-            db_type=request.args.get("db_type"),
-            database_name=request.args.get("database_name"),
-            database_id=request.args.get("database_id", type=int),
-            period_type=request.args.get("period_type"),
+            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
+            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
+            database_name=str(parsed.get("database_name") or "").strip() or None,
+            database_id=parsed.get("database_id") if isinstance(parsed.get("database_id"), int) else None,
+            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
             start_date=start_date,
             end_date=end_date,
         )
@@ -357,25 +391,22 @@ class CapacityInstancesAggregationsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_capacity_instances_query_parser)
     def get(self):
         """获取实例容量聚合列表."""
         query_params = request.args.to_dict(flat=False)
 
-        start_date, end_date = _resolve_date_range(request.args)
+        parsed = _capacity_instances_query_parser.parse_args()
+        start_date, end_date = _resolve_date_range(dict(parsed))
         filters = InstanceAggregationsFilters(
-            instance_id=request.args.get("instance_id", type=int),
-            db_type=request.args.get("db_type"),
-            period_type=request.args.get("period_type"),
+            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
+            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
+            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
             start_date=start_date,
             end_date=end_date,
-            page=resolve_page(request.args, default=1, minimum=1),
-            limit=resolve_page_size(
-                request.args,
-                default=20,
-                minimum=1,
-                maximum=200,
-            ),
-            get_all=(request.args.get("get_all", "false") or "false").lower() == "true",
+            page=max(int(parsed.get("page") or 1), 1),
+            limit=max(min(int(parsed.get("limit") or 20), 200), 1),
+            get_all=bool(parsed.get("get_all") or False),
         )
 
         def _execute():
@@ -415,15 +446,17 @@ class CapacityInstancesSummaryResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_capacity_instances_summary_query_parser)
     def get(self):
         """获取实例容量聚合汇总."""
         query_params = request.args.to_dict(flat=False)
 
-        start_date, end_date = _resolve_date_range(request.args)
+        parsed = _capacity_instances_summary_query_parser.parse_args()
+        start_date, end_date = _resolve_date_range(dict(parsed))
         filters = InstanceAggregationsSummaryFilters(
-            instance_id=request.args.get("instance_id", type=int),
-            db_type=request.args.get("db_type"),
-            period_type=request.args.get("period_type"),
+            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
+            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
+            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
             start_date=start_date,
             end_date=end_date,
         )

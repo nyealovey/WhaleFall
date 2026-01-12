@@ -10,8 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
-from app.errors import AppError
+from app.errors import ConflictError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.repositories.accounts_sync_repository import AccountsSyncRepository
@@ -312,12 +311,9 @@ class AccountPermissionManager:
             username=account.username,
         )
         if existing and not existing.instance_account_id:
-            raise AppError(
+            raise ConflictError(
                 message="权限记录缺少 instance_account_id, 请先完成数据回填",
                 message_key="SYNC_DATA_ERROR",
-                status_code=HttpStatus.CONFLICT,
-                category=ErrorCategory.BUSINESS,
-                severity=ErrorSeverity.MEDIUM,
             )
         return existing
 

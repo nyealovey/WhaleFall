@@ -8,9 +8,9 @@ from typing import Any
 
 from pydantic import StrictStr, field_validator, model_validator
 
-from app.constants.colors import ThemeColors
 from app.schemas.base import PayloadSchema
 from app.utils.payload_converters import as_bool
+from app.utils.theme_color_utils import is_valid_theme_color
 
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -99,7 +99,7 @@ class TagUpsertPayload(PayloadSchema):
     @field_validator("color")
     @classmethod
     def _validate_color(cls, value: str) -> str:
-        if not ThemeColors.is_valid_color(value):
+        if not is_valid_theme_color(value):
             raise ValueError(f"无效的颜色选择: {value}")
         return value
 
@@ -150,7 +150,7 @@ class TagUpdatePayload(PayloadSchema):
     def _validate_color(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        if not ThemeColors.is_valid_color(value):
+        if not is_valid_theme_color(value):
             raise ValueError(f"无效的颜色选择: {value}")
         return value
 

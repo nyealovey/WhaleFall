@@ -17,7 +17,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.constants import DatabaseType
 from app.constants.classification_constants import ICON_OPTIONS, OPERATOR_OPTIONS, RISK_LEVEL_OPTIONS
-from app.constants.colors import ThemeColors
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.account_classification import (
     AccountClassification,
@@ -27,8 +26,10 @@ from app.models.account_classification import (
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.services.account_classification.dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
+from app.utils.database_type_utils import get_database_type_display_name, normalize_database_type
 from app.utils.payload_converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
+from app.utils.theme_color_utils import is_valid_theme_color
 
 if TYPE_CHECKING:
     from app.types.structures import PayloadValue
@@ -349,7 +350,7 @@ class AccountClassificationsWriteService:
             raise ValidationError("分类名称不能为空")
 
         color_key = as_str(payload.get("color"), default=(resource.color if resource else "info")).strip()
-        if not ThemeColors.is_valid_color(color_key):
+        if not is_valid_theme_color(color_key):
             raise ValidationError("无效的颜色选择")
 
         description_value = as_str(
@@ -377,7 +378,7 @@ class AccountClassificationsWriteService:
 
     def _get_db_type_options(self) -> list[dict[str, str]]:
         return [
-            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
+            {"value": db_type, "label": get_database_type_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
         ]
 
     def _validate_and_normalize_rule(
@@ -398,7 +399,7 @@ class AccountClassificationsWriteService:
         classification = self._get_classification_by_id(classification_id)
 
         db_type_value_raw = as_optional_str(payload.get("db_type"))
-        db_type_value = DatabaseType.normalize(db_type_value_raw) if db_type_value_raw else None
+        db_type_value = normalize_database_type(db_type_value_raw) if db_type_value_raw else None
         if not db_type_value or not self._is_valid_option(db_type_value, self._get_db_type_options()):
             raise ValidationError("数据库类型取值无效")
 

@@ -19,6 +19,7 @@ from app.services.database_sync.table_size_adapters.mysql_adapter import MySQLTa
 from app.services.database_sync.table_size_adapters.oracle_adapter import OracleTableSizeAdapter
 from app.services.database_sync.table_size_adapters.postgresql_adapter import PostgreSQLTableSizeAdapter
 from app.services.database_sync.table_size_adapters.sqlserver_adapter import SQLServerTableSizeAdapter
+from app.utils.database_type_utils import normalize_database_type
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -74,7 +75,7 @@ class TableSizeCoordinator:
 
     @staticmethod
     def _resolve_adapter(db_type: str) -> BaseTableSizeAdapter:
-        normalized = DatabaseType.normalize(db_type or "")
+        normalized = normalize_database_type(db_type or "")
         mapping: dict[str, type[BaseTableSizeAdapter]] = {
             DatabaseType.MYSQL: MySQLTableSizeAdapter,
             DatabaseType.POSTGRESQL: PostgreSQLTableSizeAdapter,
@@ -95,7 +96,7 @@ class TableSizeCoordinator:
         if self._connection and getattr(self._connection, "is_connected", False):
             return True
 
-        db_type = DatabaseType.normalize(self.instance.db_type or "")
+        db_type = normalize_database_type(self.instance.db_type or "")
         connection = self._create_scoped_connection(db_type, database_name)
         if connection is None:
             return False

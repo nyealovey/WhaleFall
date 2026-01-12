@@ -12,6 +12,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.accounts import (
     ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS,
@@ -32,6 +33,7 @@ from app.services.accounts.account_classification_expression_validation_service 
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.utils.decorators import require_csrf
+from app.utils.theme_color_utils import get_theme_color_choices
 
 ns = Namespace("accounts_classifications", description="账户分类管理")
 
@@ -162,6 +164,10 @@ AccountClassificationRulesFilterSuccessEnvelope = make_success_envelope_model(
     "AccountClassificationRulesFilterSuccessEnvelope",
     AccountClassificationRulesFilterData,
 )
+
+_account_classification_rules_filter_query_parser = new_parser()
+_account_classification_rules_filter_query_parser.add_argument("classification_id", type=int, location="args")
+_account_classification_rules_filter_query_parser.add_argument("db_type", type=str, location="args")
 
 AccountClassificationRuleDetailData = ns.model(
     "AccountClassificationRuleDetailData",
@@ -300,7 +306,7 @@ class AccountClassificationColorsResource(BaseResource):
         def _execute():
             data = {
                 "colors": ThemeColors.COLOR_MAP,
-                "choices": ThemeColors.get_color_choices(),
+                "choices": get_theme_color_choices(),
             }
             return self.success(data=data, message="颜色选项获取成功")
 
@@ -559,10 +565,12 @@ class AccountClassificationRulesFilterResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_account_classification_rules_filter_query_parser)
     def get(self):
         """筛选分类规则."""
-        classification_id = request.args.get("classification_id", type=int)
-        db_type = request.args.get("db_type")
+        parsed = _account_classification_rules_filter_query_parser.parse_args()
+        classification_id = parsed.get("classification_id") if isinstance(parsed.get("classification_id"), int) else None
+        db_type = parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None
 
         def _execute():
             rules = _read_service.filter_rules(classification_id=classification_id, db_type=db_type)

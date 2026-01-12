@@ -13,6 +13,7 @@ owner: WhaleFall Team
 scope: "`app/constants/**` 下所有常量与枚举定义"
 related:
   - "[[standards/backend/configuration-and-secrets]]"
+  - "[[standards/backend/shared-kernel-standards]]"
 ---
 
 # Constants 常量层编写规范
@@ -68,7 +69,7 @@ related:
 
 禁止依赖:
 
-- MUST NOT: `app.(api|routes|tasks|services|repositories|models|forms|views|utils|settings|infra|schemas).*`
+- MUST NOT: `app.(api|routes|tasks|services|repositories|models|forms|views|utils|settings|infra|schemas|errors|core).*`
 - SHOULD NOT: 第三方库
 
 ## 正反例

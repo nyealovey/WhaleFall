@@ -11,6 +11,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.constants import STATUS_ACTIVE_OPTIONS, DatabaseType
+from app.utils.database_type_utils import (
+    build_database_type_select_option,
+    get_database_type_color,
+    get_database_type_display_name,
+    get_database_type_icon,
+)
 from app.models.credential import Credential
 from app.repositories.credentials_repository import CredentialsRepository
 from app.services.common.filter_options_service import FilterOptionsService
@@ -57,12 +63,12 @@ class InstanceListPageService:
     ) -> InstanceListPageContext:
         """构造实例列表页渲染上下文."""
         credentials = self._credentials_repository.list_active_credentials()
-        database_type_options = [DatabaseType.build_select_option(item) for item in DatabaseType.RELATIONAL]
+        database_type_options = [build_database_type_select_option(item) for item in DatabaseType.RELATIONAL]
         database_type_map = {
             item: {
-                "display_name": DatabaseType.get_display_name(item),
-                "icon": DatabaseType.get_icon(item),
-                "color": DatabaseType.get_color(item),
+                "display_name": get_database_type_display_name(item),
+                "icon": get_database_type_icon(item),
+                "color": get_database_type_color(item),
             }
             for item in DatabaseType.RELATIONAL
         }
@@ -80,4 +86,3 @@ class InstanceListPageService:
             include_deleted=include_deleted,
             selected_tags=selected_tags,
         )
-

@@ -3,6 +3,7 @@
 from app.constants.http_methods import HttpMethod
 from app.constants.status_types import InstanceStatus, JobStatus, SyncSessionStatus, SyncStatus, TaskStatus
 from app.constants.user_roles import UserRole
+from app.utils.user_role_utils import get_user_role_permissions
 
 
 def test_http_method_collections_are_tuples() -> None:
@@ -25,7 +26,7 @@ def test_status_collections_are_tuples() -> None:
 
 def test_user_role_permissions_are_immutable() -> None:
     """权限映射应返回拷贝,避免修改全局常量."""
-    admin_perms = UserRole.get_permissions(UserRole.ADMIN)
+    admin_perms = get_user_role_permissions(UserRole.ADMIN)
     admin_perms.append("dummy")
     assert "dummy" not in UserRole.PERMISSIONS[UserRole.ADMIN]
 
