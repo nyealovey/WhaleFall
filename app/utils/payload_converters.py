@@ -121,3 +121,4 @@ def ensure_mapping(value: PayloadValue | None) -> Mapping[str, PayloadValue] | N
     if isinstance(base, Mapping):
         return base
     return None
+

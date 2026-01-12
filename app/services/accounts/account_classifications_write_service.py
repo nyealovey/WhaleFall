@@ -27,7 +27,7 @@ from app.models.account_classification import (
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.services.account_classification.dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
-from app.types.converters import as_bool, as_int, as_optional_str, as_str
+from app.utils.payload_converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:

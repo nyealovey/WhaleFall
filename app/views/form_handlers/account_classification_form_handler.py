@@ -9,7 +9,7 @@ from app.constants.colors import ThemeColors
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 
 if TYPE_CHECKING:
     from app.models.account_classification import AccountClassification
@@ -61,4 +61,3 @@ class AccountClassificationFormHandler:
             "risk_level_options": RISK_LEVEL_OPTIONS,
             "icon_options": ICON_OPTIONS,
         }
-

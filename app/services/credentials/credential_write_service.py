@@ -20,7 +20,7 @@ from app.models.credential import Credential, CredentialCreateParams
 from app.repositories.credentials_repository import CredentialsRepository
 from app.schemas.credentials import CredentialCreatePayload, CredentialUpdatePayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:

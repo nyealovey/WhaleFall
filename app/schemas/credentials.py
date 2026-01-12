@@ -10,7 +10,7 @@ from pydantic import StrictStr, field_validator, model_validator
 
 from app.constants import DatabaseType
 from app.schemas.base import PayloadSchema
-from app.types.converters import as_bool
+from app.utils.payload_converters import as_bool
 
 _ALLOWED_CREDENTIAL_TYPES: set[str] = {"database", "ssh", "windows", "api", "ldap"}
 
