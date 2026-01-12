@@ -75,7 +75,6 @@ class TagWriteService:
         try:
             self._repository.add(tag)
         except SQLAlchemyError as exc:
-            db.session.rollback()
             raise ValidationError("保存失败,请稍后再试", extra={"exception": str(exc)}) from exc
 
         self._log_create(tag, operator_id=operator_id)
@@ -105,7 +104,6 @@ class TagWriteService:
         try:
             self._repository.add(tag)
         except SQLAlchemyError as exc:
-            db.session.rollback()
             raise ValidationError("保存失败,请稍后再试", extra={"exception": str(exc)}) from exc
 
         self._log_update(tag, operator_id=operator_id)

@@ -41,8 +41,6 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
     """
     trend_data: list[dict[str, int | str]] = []
     try:
-        db.session.rollback()
-
         china_today = time_utils.now_china().date()
         start_date = china_today - timedelta(days=days - 1)
 
@@ -72,7 +70,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
         if not bucket_specs:
             return []
 
-        result_mapping = LogStatisticsRepository.fetch_trend_counts(bucket_specs)
+        with db.session.begin_nested():
+            result_mapping = LogStatisticsRepository.fetch_trend_counts(bucket_specs)
 
         for day, error_label, warning_label in labels:
             trend_data.append(
@@ -84,7 +83,6 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
             )
 
     except LOG_STATISTICS_EXCEPTIONS as exc:
-        db.session.rollback()
         safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
         log_error("获取日志趋势数据失败", module="log_statistics", exception=safe_exc)
         return []
@@ -108,11 +106,10 @@ def fetch_log_level_distribution() -> list[dict[str, int | str]]:
 
     """
     try:
-        db.session.rollback()
-        level_stats = LogStatisticsRepository.fetch_level_distribution()
+        with db.session.begin_nested():
+            level_stats = LogStatisticsRepository.fetch_level_distribution()
         return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
     except LOG_STATISTICS_EXCEPTIONS as exc:
-        db.session.rollback()
         safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
         log_error("获取日志级别分布失败", module="log_statistics", exception=safe_exc)
         return []

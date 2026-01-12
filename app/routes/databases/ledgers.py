@@ -13,6 +13,7 @@ from flask_login import login_required
 from app.core.constants import DATABASE_TYPES
 from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.decorators import view_required
+from app.infra.route_safety import safe_route_call
 
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
 _filter_options_service = FilterOptionsService()
@@ -47,16 +48,28 @@ def _parse_tag_filters() -> list[str]:
 @view_required
 def list_databases() -> str:
     """渲染数据库台账页面."""
-    current_db_type = request.args.get("db_type", "all")
-    search = request.args.get("search", "").strip()
-    selected_tags = _parse_tag_filters()
-    capacity_stats_url = url_for("capacity_databases.list_databases")
-    return render_template(
-        "databases/ledgers.html",
-        current_db_type=current_db_type or "all",
-        search=search,
-        database_type_options=_build_database_type_options(),
-        capacity_stats_url=capacity_stats_url,
-        tag_options=_filter_options_service.list_active_tag_options(),
-        selected_tags=selected_tags,
+    def _execute() -> str:
+        current_db_type = request.args.get("db_type", "all")
+        search = request.args.get("search", "").strip()
+        selected_tags = _parse_tag_filters()
+        capacity_stats_url = url_for("capacity_databases.list_databases")
+        return render_template(
+            "databases/ledgers.html",
+            current_db_type=current_db_type or "all",
+            search=search,
+            database_type_options=_build_database_type_options(),
+            capacity_stats_url=capacity_stats_url,
+            tag_options=_filter_options_service.list_active_tag_options(),
+            selected_tags=selected_tags,
+        )
+
+    return safe_route_call(
+        _execute,
+        module="databases_ledgers",
+        action="list_databases",
+        public_error="加载数据库台账页面失败",
+        context={
+            "db_type": request.args.get("db_type"),
+            "tags_count": len(request.args.getlist("tags")),
+        },
     )
