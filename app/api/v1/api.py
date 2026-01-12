@@ -10,8 +10,8 @@ from __future__ import annotations
 from flask import Response, jsonify, request
 from flask_restx import Api
 
-from app.api.error_mapping import map_exception_to_status
 from app.core.constants import HttpStatus
+from app.infra.error_mapping import map_exception_to_status
 from app.utils.response_utils import jsonify_unified_success, unified_error_response
 from app.utils.structlog_config import ErrorContext
 
