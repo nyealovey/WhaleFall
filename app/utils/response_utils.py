@@ -14,7 +14,6 @@ from flask import Response, jsonify
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
 from app.errors import AppError
-from app.utils.error_mapping import map_exception_to_status
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
 
@@ -81,7 +80,7 @@ def unified_error_response(
 
     Args:
         error: 异常对象.
-        status_code: HTTP 状态码,可选,默认根据异常类型自动映射.
+        status_code: HTTP 状态码,可选.建议在 HTTP 边界显式传入;缺省时回落为 500.
         extra: 额外的错误信息,可选.
         context: 错误上下文,可选.
 
@@ -94,7 +93,7 @@ def unified_error_response(
     safe_error = error if isinstance(error, Exception) else Exception(str(error))
     context = context or ErrorContext(safe_error)
     payload = cast("JsonDict", _ensure_json_serializable(enhanced_error_handler(safe_error, context, extra=extra)))
-    final_status = status_code or map_exception_to_status(safe_error, default=HttpStatus.INTERNAL_SERVER_ERROR)
+    final_status = status_code or HttpStatus.INTERNAL_SERVER_ERROR
     payload.setdefault("success", False)
     return payload, final_status
 
@@ -155,7 +154,6 @@ def jsonify_unified_error_message(
     error = AppError(
         message=message,
         message_key=message_key,
-        status_code=status_code,
         category=category,
         severity=severity,
         extra=cast("Mapping[str, JsonValue] | None", extra),

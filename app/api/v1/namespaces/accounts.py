@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from flask import Response, request
+from flask import Response
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import bool_with_default, new_parser
 from app.api.v1.restx_models.accounts import (
     ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
     ACCOUNT_LEDGER_ITEM_FIELDS,
@@ -29,7 +30,6 @@ from app.services.ledgers.accounts_ledger_change_history_service import Accounts
 from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
 from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 from app.types.accounts_ledgers import AccountFilters
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 
 ns = Namespace("accounts", description="账户管理")
 
@@ -199,26 +199,61 @@ AccountStatisticsRulesSuccessEnvelope = make_success_envelope_model(
     AccountStatisticsRulesData,
 )
 
+_accounts_filters_query_parser = new_parser()
+_accounts_filters_query_parser.add_argument("page", type=int, default=1, location="args")
+_accounts_filters_query_parser.add_argument("limit", type=int, default=20, location="args")
+_accounts_filters_query_parser.add_argument("search", type=str, default="", location="args")
+_accounts_filters_query_parser.add_argument("instance_id", type=int, location="args")
+_accounts_filters_query_parser.add_argument("include_deleted", type=bool_with_default(False), default=False, location="args")
+_accounts_filters_query_parser.add_argument("is_locked", type=str, location="args")
+_accounts_filters_query_parser.add_argument("is_superuser", type=str, location="args")
+_accounts_filters_query_parser.add_argument("plugin", type=str, default="", location="args")
+_accounts_filters_query_parser.add_argument("tags", type=str, action="append", location="args")
+_accounts_filters_query_parser.add_argument("classification", type=str, default="", location="args")
+_accounts_filters_query_parser.add_argument("db_type", type=str, location="args")
 
-def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilters:
-    args = request.args
-    page = resolve_page(args, default=1, minimum=1)
-    limit = resolve_page_size(
-        args,
-        default=20,
-        minimum=1,
-        maximum=200,
-    )
-    search = (args.get("search") or "").strip()
-    instance_id = args.get("instance_id", type=int)
-    include_deleted = (args.get("include_deleted") or "").lower() == "true"
-    is_locked = args.get("is_locked")
-    is_superuser = args.get("is_superuser")
-    plugin = (args.get("plugin", "") or "").strip()
-    tags = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
-    classification_param = (args.get("classification", "") or "").strip()
+_accounts_ledgers_list_query_parser = new_parser()
+for argument in _accounts_filters_query_parser.args:
+    _accounts_ledgers_list_query_parser.args.append(argument)
+_accounts_ledgers_list_query_parser.add_argument("sort", type=str, default="username", location="args")
+_accounts_ledgers_list_query_parser.add_argument("order", type=str, default="asc", location="args")
+
+_accounts_statistics_summary_query_parser = new_parser()
+_accounts_statistics_summary_query_parser.add_argument("instance_id", type=int, location="args")
+_accounts_statistics_summary_query_parser.add_argument("db_type", type=str, location="args")
+
+_accounts_statistics_rules_query_parser = new_parser()
+_accounts_statistics_rules_query_parser.add_argument("rule_ids", type=str, location="args")
+
+
+def _parse_account_filters(parsed: dict[str, object], *, allow_query_db_type: bool = True) -> AccountFilters:
+    raw_page = parsed.get("page")
+    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+    raw_limit = parsed.get("limit")
+    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
+    limit = max(min(limit, 200), 1)
+    search = str(parsed.get("search") or "").strip()
+    raw_instance_id = parsed.get("instance_id")
+    instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+    include_deleted = bool(parsed.get("include_deleted") or False)
+    raw_is_locked = parsed.get("is_locked")
+    is_locked = raw_is_locked if isinstance(raw_is_locked, str) else None
+    raw_is_superuser = parsed.get("is_superuser")
+    is_superuser = raw_is_superuser if isinstance(raw_is_superuser, str) else None
+    plugin = str(parsed.get("plugin") or "").strip()
+
+    raw_tags = parsed.get("tags")
+    tags: list[str] = []
+    if isinstance(raw_tags, list):
+        tags = [item.strip() for item in raw_tags if isinstance(item, str) and item.strip()]
+    elif isinstance(raw_tags, str) and raw_tags.strip():
+        tags = [raw_tags.strip()]
+
+    classification_param = str(parsed.get("classification") or "").strip()
     classification_filter = classification_param if classification_param not in {"", "all"} else ""
-    raw_db_type = args.get("db_type") if allow_query_db_type else None
+    raw_db_type = parsed.get("db_type") if allow_query_db_type else None
+    raw_db_type = raw_db_type if isinstance(raw_db_type, str) else None
     normalized_db_type = raw_db_type if raw_db_type not in {None, "", "all"} else None
 
     return AccountFilters(
@@ -262,11 +297,13 @@ class AccountsLedgersResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_accounts_ledgers_list_query_parser)
     def get(self):
         """获取账户台账列表."""
-        filters = _parse_account_filters(allow_query_db_type=True)
-        sort_field = request.args.get("sort", "username")
-        sort_order = (request.args.get("order", "asc") or "asc").lower()
+        parsed = _accounts_ledgers_list_query_parser.parse_args()
+        filters = _parse_account_filters(dict(parsed), allow_query_db_type=True)
+        sort_field = str(parsed.get("sort") or "username")
+        sort_order = str(parsed.get("order") or "asc").lower()
 
         def _execute():
             result = AccountsLedgerListService().list_accounts(filters, sort_field=sort_field, sort_order=sort_order)
@@ -374,10 +411,12 @@ class AccountsLedgersExportResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_accounts_filters_query_parser)
     @api_permission_required("view")
     def get(self):
         """导出账户台账."""
-        filters = _parse_account_filters(allow_query_db_type=True)
+        parsed = _accounts_filters_query_parser.parse_args()
+        filters = _parse_account_filters(dict(parsed), allow_query_db_type=True)
 
         def _execute() -> Response:
             result = _account_export_service.export_accounts_csv(filters)
@@ -437,10 +476,12 @@ class AccountsStatisticsSummaryResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_accounts_statistics_summary_query_parser)
     def get(self):
         """获取账户统计汇总."""
-        instance_id = request.args.get("instance_id", type=int)
-        db_type = request.args.get("db_type", type=str)
+        parsed = _accounts_statistics_summary_query_parser.parse_args()
+        instance_id = parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None
+        db_type = parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None
 
         def _execute():
             summary = AccountsStatisticsReadService().fetch_summary(instance_id=instance_id, db_type=db_type)
@@ -516,9 +557,12 @@ class AccountsStatisticsRulesResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_accounts_statistics_rules_query_parser)
     def get(self):
         """获取规则命中统计."""
-        rule_ids = _parse_rule_ids_param(request.args.get("rule_ids"))
+        parsed = _accounts_statistics_rules_query_parser.parse_args()
+        raw_rule_ids = parsed.get("rule_ids") if isinstance(parsed.get("rule_ids"), str) else None
+        rule_ids = _parse_rule_ids_param(raw_rule_ids)
 
         def _execute():
             stats = AccountClassificationsReadService().get_rule_stats(rule_ids=rule_ids)

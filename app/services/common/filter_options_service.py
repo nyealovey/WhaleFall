@@ -28,6 +28,11 @@ from app.utils.query_filter_utils import (
     build_instance_select_options,
     build_tag_options,
 )
+from app.utils.database_type_utils import (
+    get_database_type_color,
+    get_database_type_display_name,
+    get_database_type_icon,
+)
 
 
 class FilterOptionsService:
@@ -117,9 +122,9 @@ class FilterOptionsService:
             options.append(
                 CommonDatabaseTypeOptionItem(
                     value=db_type,
-                    text=DatabaseType.get_display_name(db_type),
-                    icon=DatabaseType.get_icon(db_type),
-                    color=DatabaseType.get_color(db_type),
+                    text=get_database_type_display_name(db_type),
+                    icon=get_database_type_icon(db_type),
+                    color=get_database_type_color(db_type),
                 ),
             )
         return CommonDatabaseTypesOptionsResult(options=options)

@@ -14,6 +14,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import bool_with_default, new_parser
 from app.api.v1.restx_models.instances import (
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
@@ -44,10 +45,8 @@ from app.services.instances.instance_detail_read_service import InstanceDetailRe
 from app.services.instances.instance_list_service import InstanceListService
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
 from app.services.instances.instance_write_service import InstanceWriteService
-from app.types.instance_accounts import InstanceAccountListFilters
 from app.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 
 ns = Namespace("instances", description="实例管理")
 
@@ -327,27 +326,54 @@ InstanceStatisticsSuccessEnvelope = make_success_envelope_model(
 
 EXPECTED_INSTANCE_IMPORT_FIELDS = {header.lower() for header in INSTANCE_IMPORT_TEMPLATE_HEADERS}
 
+_instances_list_query_parser = new_parser()
+_instances_list_query_parser.add_argument("page", type=int, default=1, location="args")
+_instances_list_query_parser.add_argument("limit", type=int, default=20, location="args")
+_instances_list_query_parser.add_argument("sort", type=str, default="id", location="args")
+_instances_list_query_parser.add_argument("order", type=str, default="desc", location="args")
+_instances_list_query_parser.add_argument("search", type=str, default="", location="args")
+_instances_list_query_parser.add_argument("db_type", type=str, default="", location="args")
+_instances_list_query_parser.add_argument("status", type=str, default="", location="args")
+_instances_list_query_parser.add_argument("tags", type=str, action="append", location="args")
+_instances_list_query_parser.add_argument(
+    "include_deleted",
+    type=bool_with_default(False),
+    default=False,
+    location="args",
+)
 
-def _parse_instance_filters() -> InstanceListFilters:
-    args = request.args
-    page = resolve_page(args, default=1, minimum=1)
-    limit = resolve_page_size(
-        args,
-        default=20,
-        minimum=1,
-        maximum=100,
-    )
-    sort_field = (args.get("sort", "id", type=str) or "id").lower()
-    sort_order = (args.get("order", "desc", type=str) or "desc").lower()
+_instances_options_query_parser = new_parser()
+_instances_options_query_parser.add_argument("db_type", type=str, location="args")
+
+_instances_export_query_parser = new_parser()
+_instances_export_query_parser.add_argument("search", type=str, default="", location="args")
+_instances_export_query_parser.add_argument("db_type", type=str, default="", location="args")
+
+
+def _parse_instance_filters(parsed: dict[str, object]) -> InstanceListFilters:
+    raw_page = parsed.get("page")
+    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+    raw_limit = parsed.get("limit")
+    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
+    limit = max(min(limit, 100), 1)
+    sort_field = str(parsed.get("sort") or "id").lower()
+    sort_order = str(parsed.get("order") or "desc").lower()
     if sort_order not in {"asc", "desc"}:
         sort_order = "desc"
 
-    search = (args.get("search") or "").strip()
-    db_type = (args.get("db_type") or "").strip()
-    status_value = (args.get("status") or "").strip()
-    tags = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
-    include_deleted_raw = (args.get("include_deleted") or "").strip().lower()
-    include_deleted = include_deleted_raw in {"true", "1", "on", "yes"}
+    search = str(parsed.get("search") or "").strip()
+    db_type = str(parsed.get("db_type") or "").strip()
+    status_value = str(parsed.get("status") or "").strip()
+
+    raw_tags = parsed.get("tags")
+    tags: list[str] = []
+    if isinstance(raw_tags, list):
+        tags = [item.strip() for item in raw_tags if isinstance(item, str) and item.strip()]
+    elif isinstance(raw_tags, str) and raw_tags.strip():
+        tags = [raw_tags.strip()]
+
+    include_deleted = bool(parsed.get("include_deleted") or False)
 
     return InstanceListFilters(
         page=page,
@@ -427,42 +453,6 @@ def _build_instance_statistics() -> dict[str, object]:
     return cast(dict[str, object], marshal(result, INSTANCE_STATISTICS_FIELDS))
 
 
-def _parse_account_list_filters(instance_id: int) -> InstanceAccountListFilters:
-    args = request.args
-
-    include_deleted_raw = (args.get("include_deleted") or "false").strip().lower()
-    include_deleted = include_deleted_raw in {"true", "1", "on", "yes"}
-
-    include_permissions_raw = (args.get("include_permissions") or "false").strip().lower()
-    include_permissions = include_permissions_raw in {"true", "1", "on", "yes"}
-
-    search = (args.get("search") or "").strip()
-
-    page = resolve_page(args, default=1, minimum=1)
-    limit = resolve_page_size(
-        args,
-        default=20,
-        minimum=1,
-        maximum=200,
-    )
-
-    sort_field = (args.get("sort") or "username").strip().lower()
-    sort_order = (args.get("order") or "asc").strip().lower()
-    if sort_order not in {"asc", "desc"}:
-        sort_order = "asc"
-
-    return InstanceAccountListFilters(
-        instance_id=instance_id,
-        include_deleted=include_deleted,
-        include_permissions=include_permissions,
-        search=search,
-        page=page,
-        limit=limit,
-        sort_field=sort_field,
-        sort_order=sort_order,
-    )
-
-
 @ns.route("/options")
 class InstancesOptionsResource(BaseResource):
     """实例选项资源."""
@@ -474,10 +464,12 @@ class InstancesOptionsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_instances_options_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取实例选项."""
-        db_type = (request.args.get("db_type") or "").strip() or None
+        parsed = _instances_options_query_parser.parse_args()
+        db_type = str(parsed.get("db_type") or "").strip() or None
 
         def _execute():
             result = FilterOptionsService().get_common_instances_options(db_type=db_type)
@@ -503,12 +495,14 @@ class InstancesResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_instances_list_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取实例列表."""
+        parsed = cast("dict[str, object]", _instances_list_query_parser.parse_args())
+        filters = _parse_instance_filters(parsed)
 
         def _execute():
-            filters = _parse_instance_filters()
             result = InstanceListService().list_instances(filters)
             items = marshal(result.items, INSTANCE_LIST_ITEM_FIELDS)
             return self.success(
@@ -528,9 +522,9 @@ class InstancesResource(BaseResource):
             action="list_instances",
             public_error="获取实例列表失败",
             context={
-                "search": request.args.get("search"),
-                "status": request.args.get("status"),
-                "include_deleted": request.args.get("include_deleted"),
+                "search": filters.search,
+                "status": filters.status,
+                "include_deleted": filters.include_deleted,
             },
         )
 
@@ -587,11 +581,13 @@ class InstancesExportResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_instances_export_query_parser)
     @api_permission_required("view")
     def get(self):
         """导出实例."""
-        search = request.args.get("search", "", type=str) or ""
-        db_type = request.args.get("db_type", "", type=str) or ""
+        parsed = _instances_export_query_parser.parse_args()
+        search = str(parsed.get("search") or "")
+        db_type = str(parsed.get("db_type") or "")
 
         def _execute() -> Response:
             result = _instances_export_service.export_instances_csv(search=search, db_type=db_type)

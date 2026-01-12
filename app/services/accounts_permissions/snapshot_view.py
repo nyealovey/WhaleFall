@@ -7,22 +7,20 @@ V4 decision:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Final
 
-from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
-from app.errors import AppError
+from app.errors import ConflictError
 from app.models.account_permission import AccountPermission
+
+PERMISSION_SNAPSHOT_VERSION_V4: Final[int] = 4
 
 
 def build_permission_snapshot_view(account: AccountPermission) -> dict[str, Any]:
     """Build a stable v4 snapshot view for downstream consumers."""
     snapshot = getattr(account, "permission_snapshot", None)
-    if isinstance(snapshot, dict) and snapshot.get("version") == 4:
+    if isinstance(snapshot, dict) and snapshot.get("version") == PERMISSION_SNAPSHOT_VERSION_V4:
         return snapshot
 
-    raise AppError(
+    raise ConflictError(
         message_key="SNAPSHOT_MISSING",
-        status_code=HttpStatus.CONFLICT,
-        category=ErrorCategory.BUSINESS,
-        severity=ErrorSeverity.MEDIUM,
     )

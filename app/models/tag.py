@@ -2,8 +2,12 @@
 
 from app import db
 from app.constants.tag_categories import TAG_CATEGORY_CHOICES
-from app.constants.colors import ThemeColors
 from app.types import ColorHex, ColorName, CssClassName
+from app.utils.theme_color_utils import (
+    get_theme_color_css_class,
+    get_theme_color_name,
+    get_theme_color_value,
+)
 from app.utils.time_utils import time_utils
 
 
@@ -71,7 +75,7 @@ class Tag(db.Model):
             颜色的十六进制值.
 
         """
-        return ThemeColors.get_color_value(self.color)
+        return get_theme_color_value(self.color)
 
     @property
     def color_name(self) -> ColorName:
@@ -81,7 +85,7 @@ class Tag(db.Model):
             颜色的中文名称.
 
         """
-        return ThemeColors.get_color_name(self.color)
+        return get_theme_color_name(self.color)
 
     @property
     def css_class(self) -> CssClassName:
@@ -91,7 +95,7 @@ class Tag(db.Model):
             Bootstrap 颜色类名.
 
         """
-        return ThemeColors.get_css_class(self.color)
+        return get_theme_color_css_class(self.color)
 
     def to_dict(self) -> dict:
         """转换为字典格式.

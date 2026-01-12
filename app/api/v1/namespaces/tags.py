@@ -12,6 +12,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.tags import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS, TAGGABLE_INSTANCE_FIELDS
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorMessages
@@ -24,7 +25,6 @@ from app.services.tags.tags_bulk_actions_service import TagsBulkActionsService
 from app.types import ResourcePayload
 from app.types.tags import TagListFilters
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 
 ns = Namespace("tags", description="标签管理")
 
@@ -214,24 +214,33 @@ TagBulkInstanceTagsSuccessEnvelope = make_success_envelope_model(
     TagBulkInstanceTagsData,
 )
 
+_tags_list_query_parser = new_parser()
+_tags_list_query_parser.add_argument("page", type=int, default=1, location="args")
+_tags_list_query_parser.add_argument("limit", type=int, default=20, location="args")
+_tags_list_query_parser.add_argument("search", type=str, default="", location="args")
+_tags_list_query_parser.add_argument("category", type=str, default="", location="args")
+_tags_list_query_parser.add_argument("status", type=str, default="all", location="args")
 
-def _build_tag_list_filters() -> TagListFilters:
-    page = resolve_page(request.args, default=1, minimum=1)
-    limit = resolve_page_size(
-        request.args,
-        default=20,
-        minimum=1,
-        maximum=200,
-    )
-    search = request.args.get("search", "", type=str)
-    category = request.args.get("category", "", type=str)
-    status_param = request.args.get("status", "all", type=str)
+_tag_options_query_parser = new_parser()
+_tag_options_query_parser.add_argument("category", type=str, default="", location="args")
+
+
+def _build_tag_list_filters(parsed: dict[str, object]) -> TagListFilters:
+    raw_page = parsed.get("page")
+    page = int(raw_page) if isinstance(raw_page, int) else 1
+    page = max(page, 1)
+    raw_limit = parsed.get("limit")
+    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
+    limit = max(min(limit, 200), 1)
+    search = cast(str, parsed.get("search") or "")
+    category = cast(str, parsed.get("category") or "")
+    status_param = cast(str, parsed.get("status") or "all")
     status_filter = status_param if status_param not in {"", "all"} else ""
     return TagListFilters(
         page=page,
         limit=limit,
-        search=search,
-        category=category,
+        search=search.strip(),
+        category=category.strip(),
         status_filter=status_filter,
     )
 
@@ -257,12 +266,14 @@ class TagsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_tags_list_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取标签列表."""
 
         def _execute():
-            filters = _build_tag_list_filters()
+            parsed = cast("dict[str, object]", _tags_list_query_parser.parse_args())
+            filters = _build_tag_list_filters(parsed)
             page_result, stats = TagListService().list_tags(filters)
             items = marshal(page_result.items, TAG_LIST_ITEM_FIELDS)
             return self.success(
@@ -281,11 +292,7 @@ class TagsResource(BaseResource):
             module="tags",
             action="list_tags",
             public_error="获取标签列表失败",
-            context={
-                "search": request.args.get("search"),
-                "category": request.args.get("category"),
-                "status": request.args.get("status"),
-            },
+            context={"query_params": request.args.to_dict(flat=False)},
         )
 
     @ns.expect(TagWritePayload, validate=False)
@@ -328,11 +335,13 @@ class TagOptionsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_tag_options_query_parser)
     def get(self):
         """获取标签选项."""
-        category = request.args.get("category", "", type=str)
 
         def _execute():
+            parsed = _tag_options_query_parser.parse_args()
+            category = (parsed.get("category") or "").strip()
             result = TagOptionsService().list_tag_options(category)
             tags_data = marshal(result.tags, TAG_OPTION_FIELDS)
             return self.success(
@@ -347,7 +356,6 @@ class TagOptionsResource(BaseResource):
             module="tags",
             action="list_tag_options",
             public_error="获取标签列表失败",
-            context={"category": category},
         )
 
 

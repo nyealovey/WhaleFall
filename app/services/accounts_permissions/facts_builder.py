@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Final
 
 from app.constants import DatabaseType
 
 JsonDict = dict[str, Any]
+PERMISSION_SNAPSHOT_VERSION_V4: Final[int] = 4
 
 
 def _ensure_str_list(value: object) -> list[str]:
@@ -73,7 +74,7 @@ def _extract_mapping_of_lists(value: object) -> dict[str, list[str]]:
 def _extract_snapshot_categories(snapshot: object) -> dict[str, Any] | None:
     if not isinstance(snapshot, dict):
         return None
-    if snapshot.get("version") != 4:
+    if snapshot.get("version") != PERMISSION_SNAPSHOT_VERSION_V4:
         return None
     categories = snapshot.get("categories")
     if isinstance(categories, dict):
@@ -84,7 +85,7 @@ def _extract_snapshot_categories(snapshot: object) -> dict[str, Any] | None:
 def _extract_snapshot_type_specific(snapshot: object, *, db_type: str) -> JsonDict:
     if not isinstance(snapshot, dict):
         return {}
-    if snapshot.get("version") != 4:
+    if snapshot.get("version") != PERMISSION_SNAPSHOT_VERSION_V4:
         return {}
 
     type_specific = snapshot.get("type_specific")

@@ -113,38 +113,3 @@ class HttpHeaders:
         IMAGE_GIF = "image/gif"
         IMAGE_SVG = "image/svg+xml"
         IMAGE_WEBP = "image/webp"
-
-    # 辅助方法
-
-    @classmethod
-    def is_json(cls, content_type: str | None) -> bool:
-        """判断Content-Type是否为JSON.
-
-        Args:
-            content_type: Content-Type头的值
-
-        Returns:
-            bool: 是否为JSON类型
-
-        """
-        if not content_type:
-            return False
-        return cls.ContentType.APPLICATION_JSON in content_type.lower()
-
-    @classmethod
-    def is_form(cls, content_type: str | None) -> bool:
-        """判断Content-Type是否为表单.
-
-        Args:
-            content_type: Content-Type头的值
-
-        Returns:
-            bool: 是否为表单类型
-
-        """
-        if not content_type:
-            return False
-        ct_lower = content_type.lower()
-        return (
-            cls.ContentType.APPLICATION_FORM_URLENCODED in ct_lower or cls.ContentType.MULTIPART_FORM_DATA in ct_lower
-        )

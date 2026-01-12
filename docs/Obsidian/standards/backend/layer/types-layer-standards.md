@@ -8,11 +8,12 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-11
+updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/types/**` 下所有类型定义与协议"
 related:
   - "[[standards/backend/request-payload-and-schema-validation]]"
+  - "[[standards/backend/shared-kernel-standards]]"
 ---
 
 # Types 类型定义层编写规范
@@ -72,6 +73,7 @@ related:
 
 - MUST NOT: `app.models.*`(包括 `TYPE_CHECKING` 分支), `app` 的 `db`
 - MUST NOT: `app.services.*`, `app.repositories.*`, `app.routes.*`, `app.api.*`
+- MUST NOT: `app.core.*`, `app.errors`
 
 补充说明:
 

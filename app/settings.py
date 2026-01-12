@@ -20,6 +20,8 @@ from pathlib import Path
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
+from app.constants.validation_limits import BCRYPT_LOG_ROUNDS_MIN, HOUR_OF_DAY_MAX, HOUR_OF_DAY_MIN
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_ENVIRONMENT = "development"
@@ -664,7 +666,7 @@ class Settings:
         checks: list[tuple[str, bool]] = [
             ("DB_CONNECTION_TIMEOUT 必须为正整数", self.db_connection_timeout_seconds <= 0),
             ("DB_MAX_CONNECTIONS 必须为正整数", self.db_max_connections <= 0),
-            ("BCRYPT_LOG_ROUNDS 不应小于 4", self.bcrypt_log_rounds < 4),
+            (f"BCRYPT_LOG_ROUNDS 不应小于 {BCRYPT_LOG_ROUNDS_MIN}", self.bcrypt_log_rounds < BCRYPT_LOG_ROUNDS_MIN),
             ("PERMANENT_SESSION_LIFETIME 必须为正整数(秒)", self.session_lifetime_seconds <= 0),
             ("REMEMBER_COOKIE_DURATION 必须为正整数(秒)", self.remember_cookie_duration_seconds <= 0),
             ("PROXY_FIX_X_FOR 必须为非负整数", self.proxy_fix_x_for < 0),
@@ -683,7 +685,10 @@ class Settings:
                 password_encryption_key_present and not _is_valid_fernet_key(password_encryption_key),
             ),
             ("DATABASE_SIZE_RETENTION_MONTHS 必须为正整数(月)", self.database_size_retention_months <= 0),
-            ("AGGREGATION_HOUR 必须为 0-23 的整数", self.aggregation_hour < 0 or self.aggregation_hour > 23),
+            (
+                f"AGGREGATION_HOUR 必须为 {HOUR_OF_DAY_MIN}-{HOUR_OF_DAY_MAX} 的整数",
+                self.aggregation_hour < HOUR_OF_DAY_MIN or self.aggregation_hour > HOUR_OF_DAY_MAX,
+            ),
             ("DB_SIZE_COLLECTION_INTERVAL 必须为正整数(小时)", self.db_size_collection_interval_hours <= 0),
             ("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)", self.db_size_collection_timeout_seconds <= 0),
         ]
