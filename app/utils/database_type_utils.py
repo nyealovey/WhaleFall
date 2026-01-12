@@ -1,13 +1,13 @@
 """数据库类型工具.
 
-从 `app/constants/database_types.py` 读取静态映射,提供规范化/展示等纯函数.
+从 `app/core/constants/database_types.py` 读取静态映射,提供规范化/展示等纯函数.
 """
 
 from __future__ import annotations
 
 from typing import Final
 
-from app.constants.database_types import DatabaseType
+from app.core.constants.database_types import DatabaseType
 
 _DATABASE_TYPE_ALIASES: Final[dict[str, str]] = {
     "mssql": DatabaseType.SQLSERVER,
@@ -63,4 +63,3 @@ def build_database_type_select_option(db_type: str) -> dict[str, str]:
         "icon": get_database_type_icon(db_type),
         "color": get_database_type_color(db_type),
     }
-

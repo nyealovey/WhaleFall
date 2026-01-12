@@ -4,7 +4,7 @@
 
 **Goal:** 按 `docs/reports/2026-01-12-backend-layer-layer13-focus-issue-report.md` 的剩余项与用户决策落地: API 层按方案 A 迁移 query 参数解析到 `reqparse`; Schemas 层按建议移除对 Models 的反向依赖; Constants 层按方案 B 将 helper methods 下沉到 `app/utils/**`; 清理 `ruff` 的 `PLR2004` 魔法数字(26 处)并迁移为具名常量。
 
-**Architecture:** 保持分层依赖方向不变: Constants 只保留值/枚举/静态映射; 所有基于常量映射的“查询/判定/归一化”逻辑移动到 Utils; API 端点只做薄参数解析/校验与调用 Service, query 参数统一通过 `flask_restx.reqparse.RequestParser` 并用 `@ns.expect(parser)` 生成 OpenAPI; Schemas 只依赖 `app.constants/app.types/app.utils` 不依赖 Models, 业务阈值统一从 `app/constants/validation_limits.py` 引用。
+**Architecture:** 保持分层依赖方向不变: Constants 只保留值/枚举/静态映射; 所有基于常量映射的“查询/判定/归一化”逻辑移动到 Utils; API 端点只做薄参数解析/校验与调用 Service, query 参数统一通过 `flask_restx.reqparse.RequestParser` 并用 `@ns.expect(parser)` 生成 OpenAPI; Schemas 只依赖 `app.core.constants/app.core.types/app.utils` 不依赖 Models, 业务阈值统一从 `app/core/constants/validation_limits.py` 引用。
 
 **Tech Stack:** Flask + Flask-RESTX + SQLAlchemy + pydantic + ruff + pyright + pytest.
 
@@ -32,8 +32,8 @@ Expected:
 
 **Files:**
 
-- Create: `app/constants/validation_limits.py`
-- Modify: `app/constants/__init__.py`(必要时导出常量)
+- Create: `app/core/constants/validation_limits.py`
+- Modify: `app/core/constants/__init__.py`(必要时导出常量)
 
 **Steps:**
 
@@ -51,7 +51,7 @@ Expected:
 
 **Steps:**
 
-1) 将 `MIN_USER_PASSWORD_LENGTH` 从 `app.models.user` 下沉到 `app/constants/validation_limits.py`
+1) 将 `MIN_USER_PASSWORD_LENGTH` 从 `app.models.user` 下沉到 `app/core/constants/validation_limits.py`
 2) `app/schemas/users.py` 改为 import constants(禁止 import models)
 3) 跑 `rg -n "from app\\.models\\." app/schemas` 确认 schemas 不再反向依赖 models
 
@@ -65,16 +65,16 @@ Expected:
 - Create: `app/utils/theme_color_utils.py`
 - Create: `app/utils/user_role_utils.py`
 - Create: `app/utils/status_type_utils.py`
-- Modify: `app/constants/colors.py`
-- Modify: `app/constants/database_types.py`
-- Modify: `app/constants/user_roles.py`
-- Modify: `app/constants/status_types.py`
-- Modify: `app/constants/sync_constants.py`
-- Modify: `app/constants/http_headers.py`
-- Modify: `app/constants/http_methods.py`
-- Modify: `app/constants/flash_categories.py`
-- Modify: `app/constants/time_constants.py`
-- Modify: `app/constants/filter_options.py`(移除对 helper methods 的调用,仅使用静态映射/枚举值)
+- Modify: `app/core/constants/colors.py`
+- Modify: `app/core/constants/database_types.py`
+- Modify: `app/core/constants/user_roles.py`
+- Modify: `app/core/constants/status_types.py`
+- Modify: `app/core/constants/sync_constants.py`
+- Modify: `app/core/constants/http_headers.py`
+- Modify: `app/core/constants/http_methods.py`
+- Modify: `app/core/constants/flash_categories.py`
+- Modify: `app/core/constants/time_constants.py`
+- Modify: `app/core/constants/filter_options.py`(移除对 helper methods 的调用,仅使用静态映射/枚举值)
 - Modify: 受影响的 call sites(services/models/routes/views/api/schemas)
 
 **Steps:**
@@ -82,7 +82,7 @@ Expected:
 1) 在 utils 中实现对应 helper 函数(例如 `normalize_database_type`, `get_theme_color_value`, `is_sync_session_status_valid` 等)
 2) 全仓替换 `ThemeColors.*`/`DatabaseType.*` 等 helper 调用为 utils 调用
 3) 删除 constants 类中的 helper methods(保留常量值与静态映射)
-4) 确认 constants 层无 `from app.utils` 依赖,并通过 `rg -n \"from app\\.utils\" app/constants` 自查
+4) 确认 constants 层无 `from app.utils` 依赖,并通过 `rg -n \"from app\\.utils\" app/core/constants` 自查
 
 ---
 
@@ -119,7 +119,7 @@ Expected:
 
 **Steps:**
 
-1) 将涉及业务语义的阈值统一改为引用 `app/constants/validation_limits.py`
+1) 将涉及业务语义的阈值统一改为引用 `app/core/constants/validation_limits.py`
 2) 将适配器/解析形状相关的索引常量改为“模块内具名常量”(避免把实现细节塞进全局 constants)
 3) 复跑 `./.venv/bin/ruff check --select PLR2004 --output-format concise app` 确认 0
 

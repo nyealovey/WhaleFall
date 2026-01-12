@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants import UserRole
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.core.constants import UserRole
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.user import User
 from app.repositories.users_repository import UsersRepository
 from app.schemas.users import UserCreatePayload, UserUpdatePayload
@@ -24,7 +24,7 @@ from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import PayloadMapping, ResourcePayload
+    from app.core.types import PayloadMapping, ResourcePayload
 
 
 @dataclass(slots=True)

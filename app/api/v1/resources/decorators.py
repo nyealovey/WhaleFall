@@ -14,8 +14,8 @@ from typing import Any, ParamSpec, TypeVar, cast
 from flask import request
 from flask_login import current_user
 
-from app.constants.system_constants import ErrorMessages
-from app.errors import AuthenticationError, AuthorizationError
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.utils.decorators import has_permission
 
 P = ParamSpec("P")

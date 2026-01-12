@@ -17,9 +17,9 @@ from flask import (
 )
 from flask.views import MethodView
 
-from app.constants import FlashCategory
-from app.errors import AppError
-from app.types import ResourcePayload, SupportsResourceId, TemplateContext
+from app.core.constants import FlashCategory
+from app.core.exceptions import AppError
+from app.core.types import ResourcePayload, SupportsResourceId, TemplateContext
 from app.infra.route_safety import safe_route_call
 
 if TYPE_CHECKING:

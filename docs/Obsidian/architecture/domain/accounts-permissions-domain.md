@@ -46,7 +46,7 @@ related:
   - `app/services/accounts_sync/**`
   - `app/services/accounts_permissions/**`
 - Canonical types(SSOT):
-  - `app/types/accounts.py`
+  - `app/core/types/accounts.py`
 - Models:
   - `app/models/instance_account.py` (`instance_accounts`)
   - `app/models/account_permission.py` (`account_permission`)

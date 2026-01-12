@@ -9,10 +9,10 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from app.errors import SystemError
+from app.core.exceptions import SystemError
 from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
 from app.repositories.database_statistics_repository import DatabaseStatisticsRepository
-from app.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
+from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.utils.structlog_config import log_error
 
 

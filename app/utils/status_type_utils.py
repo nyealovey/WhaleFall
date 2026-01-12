@@ -1,11 +1,11 @@
 """状态类型工具.
 
-从 `app/constants/status_types.py` 读取静态集合,提供状态判定的纯函数.
+从 `app/core/constants/status_types.py` 读取静态集合,提供状态判定的纯函数.
 """
 
 from __future__ import annotations
 
-from app.constants.status_types import InstanceStatus, SyncSessionStatus, SyncStatus, TaskStatus
+from app.core.constants.status_types import InstanceStatus, SyncSessionStatus, SyncStatus, TaskStatus
 
 
 def is_terminal_sync_status(status: str) -> bool:
@@ -38,4 +38,3 @@ def is_in_progress_task_status(status: str) -> bool:
 
 def is_operational_instance_status(status: str) -> bool:
     return status == InstanceStatus.ACTIVE
-

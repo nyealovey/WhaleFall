@@ -13,11 +13,11 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.credentials import CREDENTIAL_LIST_ITEM_FIELDS
-from app.constants import HttpStatus
-from app.constants.system_constants import SuccessMessages
-from app.errors import NotFoundError
+from app.core.constants import HttpStatus
+from app.core.constants.system_constants import SuccessMessages
+from app.core.exceptions import NotFoundError
 from app.services.credentials import CredentialDetailReadService, CredentialsListService, CredentialWriteService
-from app.types.credentials import CredentialListFilters
+from app.core.types.credentials import CredentialListFilters
 from app.utils.decorators import require_csrf
 
 ns = Namespace("credentials", description="凭据管理")

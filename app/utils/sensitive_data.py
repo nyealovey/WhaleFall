@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.types import JsonValue
+    from app.core.types import JsonValue
 
 DEFAULT_SENSITIVE_KEYS = {
     "password",

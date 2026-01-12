@@ -1,11 +1,11 @@
 """用户角色工具.
 
-从 `app/constants/user_roles.py` 读取静态映射,提供权限判断/展示文案等纯函数.
+从 `app/core/constants/user_roles.py` 读取静态映射,提供权限判断/展示文案等纯函数.
 """
 
 from __future__ import annotations
 
-from app.constants.user_roles import UserRole
+from app.core.constants.user_roles import UserRole
 
 
 def is_valid_user_role(role: str) -> bool:
@@ -50,4 +50,3 @@ def get_user_role_description(role: str) -> str:
 
 def get_user_role_permissions(role: str) -> list[str]:
     return list(UserRole.PERMISSIONS.get(role, ()))
-

@@ -5,8 +5,8 @@ from __future__ import annotations
 from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
-from app.constants import FlashCategory, UserRole
-from app.types import RouteReturn
+from app.core.constants import FlashCategory, UserRole
+from app.core.types import RouteReturn
 from app.utils.decorators import view_required
 
 # 创建蓝图

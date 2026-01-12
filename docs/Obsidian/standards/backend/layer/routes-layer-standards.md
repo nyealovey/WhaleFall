@@ -59,7 +59,7 @@ related:
 ### 4) 参数解析
 
 - SHOULD: 对字符串 query 参数使用 `(request.args.get("k") or "").strip()` 规整输入.
-- SHOULD: 当参数变多或复用时, 抽出 `_parse_*` 函数并用 `TypedDict` 描述结构(放在 `app/types/**`).
+- SHOULD: 当参数变多或复用时, 抽出 `_parse_*` 函数并用 `TypedDict` 描述结构(放在 `app/core/types/**`).
 - MUST NOT: 在路由内做复杂的数据转换/清洗(应下沉到 Service 或 utils).
 
 ### 5) 依赖规则
@@ -67,7 +67,7 @@ related:
 允许依赖:
 
 - MUST: `app.services.*`
-- MAY: `app.utils.*`, `app.types.*`, `app.constants.*`, `app.errors`, `app.views.*`, `app.forms.*`
+- MAY: `app.utils.*`, `app.core.types.*`, `app.core.constants.*`, `app.core.exceptions`, `app.views.*`, `app.forms.*`
 
 禁止依赖:
 

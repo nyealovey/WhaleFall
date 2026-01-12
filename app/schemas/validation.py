@@ -7,7 +7,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError as PydanticValidationError
 
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 

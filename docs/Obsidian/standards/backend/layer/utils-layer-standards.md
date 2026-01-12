@@ -44,7 +44,7 @@ related:
 > [!note]
 > `app/utils/**` 同时包含两类代码：
 > - **纯工具(shared-kernel-like)**：不依赖 Flask/DB/request context，可跨层复用（例如 `payload_converters/time_utils/version_parser`）。这类模块应尽量向 `app/core/**` 收敛，至少需要同时满足 [[standards/backend/shared-kernel-standards]] 的约束。
-> - **边界工具**：与 HTTP/日志/安全/中间件强绑定（例如响应封套、请求上下文日志）。这类模块不属于 shared kernel，必须避免被 `app/core/**`、`app/constants/**`、`app/types/**` 反向依赖。
+> - **边界工具**：与 HTTP/日志/安全/中间件强绑定（例如响应封套、请求上下文日志）。这类模块不属于 shared kernel，必须避免被 `app/core/**`、`app/core/constants/**`、`app/core/types/**` 反向依赖。
 
 ### 2) 模块组织(推荐)
 
@@ -99,15 +99,15 @@ app/utils/
 
 ### 6) 常量与单例
 
-- SHOULD: 运行时不变的派生常量可以放在 utils 模块内, 但源常量应来自 `app/constants/**`.
+- SHOULD: 运行时不变的派生常量可以放在 utils 模块内, 但源常量应来自 `app/core/constants/**`.
 - MAY: 提供模块级单例实例以便导入使用, 但必须保持无状态或只读.
 
 ### 7) 依赖规则
 
 允许依赖:
 
-- MAY: `app.constants.*`
-- MAY: `app.errors`(仅用于抛出明确异常类型)
+- MAY: `app.core.constants.*`
+- MAY: `app.core.exceptions`(仅用于抛出明确异常类型)
 - MUST: 标准库
 - MAY: 第三方库(例如 `structlog`, `werkzeug`)
 

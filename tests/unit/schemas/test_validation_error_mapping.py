@@ -1,7 +1,7 @@
 import pytest
 from pydantic import field_validator
 
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 from app.schemas.base import PayloadSchema
 from app.schemas.validation import SchemaMessageKeyError, validate_or_raise
 

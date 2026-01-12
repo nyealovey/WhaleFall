@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 from app.models.account_classification import ClassificationRule
 from app.models.instance_database import InstanceDatabase  # noqa: F401
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository

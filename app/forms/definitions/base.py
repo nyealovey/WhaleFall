@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Generic, Protocol, TypeVar
 
-from app.types import (
+from app.core.types import (
     MutablePayloadDict,
     PayloadMapping,
     ResourceContext,

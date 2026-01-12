@@ -8,8 +8,8 @@
 from __future__ import annotations
 
 from app.repositories.instances_repository import InstancesRepository
-from app.types.instances import InstanceListFilters, InstanceListItem
-from app.types.listing import PaginatedResult
+from app.core.types.instances import InstanceListFilters, InstanceListItem
+from app.core.types.listing import PaginatedResult
 
 
 class InstanceListService:

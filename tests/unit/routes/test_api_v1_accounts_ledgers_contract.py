@@ -1,7 +1,7 @@
 import pytest
 
 from app import create_app, db
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,

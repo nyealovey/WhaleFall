@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from app.constants import STATUS_ACTIVE_OPTIONS, DatabaseType
+from app.core.constants import STATUS_ACTIVE_OPTIONS, DatabaseType
 from app.utils.database_type_utils import (
     build_database_type_select_option,
     get_database_type_color,

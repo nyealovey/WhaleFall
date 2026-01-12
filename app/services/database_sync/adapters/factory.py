@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.utils.database_type_utils import normalize_database_type
 from app.services.database_sync.adapters.mysql_adapter import MySQLCapacityAdapter
 from app.services.database_sync.adapters.oracle_adapter import OracleCapacityAdapter

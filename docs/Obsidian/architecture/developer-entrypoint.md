@@ -92,7 +92,7 @@ related:
 
 - 任务实现: `app/tasks/**`
 - 调度器: `app/scheduler.py`
-- job 常量: `app/constants/scheduler_jobs.py`
+- job 常量: `app/core/constants/scheduler_jobs.py`
 
 ### 2.2 关键约束
 
@@ -135,7 +135,7 @@ related:
 
 ### 4.1 常见落点(按能力拆分)
 
-- db_type 常量与展示: `app/constants/database_types.py`
+- db_type 常量与展示: `app/core/constants/database_types.py`
 - 连接适配器:
   - adapters: `app/services/connection_adapters/adapters/*.py`
   - factory/service: `app/services/connection_adapters/connection_factory.py`, `app/services/connection_adapters/connection_test_service.py`

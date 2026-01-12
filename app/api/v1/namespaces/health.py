@@ -11,7 +11,7 @@ from flask_restx import Namespace, fields
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
-from app.constants.system_constants import SuccessMessages
+from app.core.constants.system_constants import SuccessMessages
 from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
 from app.services.health.health_checks_service import (
     check_database_health as check_database_health_service,

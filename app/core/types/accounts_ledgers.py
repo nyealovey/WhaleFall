@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.types.tags import TagSummary
+from app.core.types.tags import TagSummary
 
 
 @dataclass(frozen=True)

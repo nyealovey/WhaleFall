@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import NotFoundError, ValidationError
+from app.core.exceptions import NotFoundError, ValidationError
 from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
 from app.schemas.tags import TagUpdatePayload, TagUpsertPayload
@@ -27,7 +27,7 @@ from app.utils.structlog_config import log_info
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from app.types import ResourcePayload
+    from app.core.types import ResourcePayload
 
 
 @dataclass(slots=True)

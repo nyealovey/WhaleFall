@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
-from app.types.instance_accounts import (
+from app.core.types.instance_accounts import (
     InstanceAccountChangeHistoryAccount,
     InstanceAccountChangeHistoryResult,
     InstanceAccountChangeLogItem,

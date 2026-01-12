@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
-from app.errors import ConflictError, ValidationError
+from app.core.exceptions import ConflictError, ValidationError
 from app.models.instance import Instance
 from app.repositories.credentials_repository import CredentialsRepository
 from app.repositories.instances_repository import InstancesRepository

@@ -21,9 +21,9 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.models.tag import Tag, instance_tags
-from app.types.ledgers import DatabaseLedgerFilters, DatabaseLedgerRowProjection
-from app.types.listing import PaginatedResult
-from app.types.tags import TagSummary
+from app.core.types.ledgers import DatabaseLedgerFilters, DatabaseLedgerRowProjection
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagSummary
 
 SessionLike = Session | scoped_session[Any]
 

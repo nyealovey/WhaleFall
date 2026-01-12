@@ -10,7 +10,7 @@ from app.utils.structlog_config import log_error
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
-    from app.types import JsonDict, JsonValue
+    from app.core.types import JsonDict, JsonValue
 
 
 class ClassificationCache:

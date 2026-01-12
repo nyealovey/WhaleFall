@@ -4,7 +4,7 @@ import pytest
 
 from app.services.partition.partition_read_service import PartitionReadService
 from app.tasks.partition_management_tasks import get_partition_management_status
-from app.types.partition import PartitionEntry
+from app.core.types.partition import PartitionEntry
 
 
 @pytest.mark.unit

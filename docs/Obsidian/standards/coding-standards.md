@@ -52,7 +52,7 @@ related:
 
 ### 4) 类型治理（共享结构强约束）
 
-- MUST：共享的 `TypedDict/TypeAlias/Protocol` 集中在 `app/types/`，业务模块禁止临时声明 `dict[str, Any]` 结构。
+- MUST：共享的 `TypedDict/TypeAlias/Protocol` 集中在 `app/core/types/`，业务模块禁止临时声明 `dict[str, Any]` 结构。
 - SHOULD：新增/调整共享类型后，对相关代码运行 `ruff check <files> --select ANN,ARG,RUF012` 与 `make typecheck`，避免 `Any` 回退。
 
 ### 5) 前端与样式（跨域硬约束）
@@ -74,7 +74,7 @@ related:
 ```python
 from flask import Blueprint, Response
 
-from app.types import RouteReturn
+from app.core.types import RouteReturn
 from app.infra.route_safety import safe_route_call
 
 bp = Blueprint("demo", __name__)

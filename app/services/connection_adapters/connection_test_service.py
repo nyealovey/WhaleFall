@@ -10,7 +10,7 @@ from flask import current_app, has_app_context, has_request_context
 from flask_login import current_user
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants.system_constants import ErrorMessages
+from app.core.constants.system_constants import ErrorMessages
 from app.models import Instance
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.connection_adapters.connection_factory import ConnectionFactory

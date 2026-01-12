@@ -8,8 +8,8 @@
 from __future__ import annotations
 
 from app.repositories.users_repository import UsersRepository
-from app.types.listing import PaginatedResult
-from app.types.users import UserListFilters, UserListItem
+from app.core.types.listing import PaginatedResult
+from app.core.types.users import UserListFilters, UserListItem
 
 
 class UsersListService:

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import oracledb  # type: ignore[import-not-found]
 
-from app.types import DBAPIConnection, DBAPICursor
+from app.core.types import DBAPIConnection, DBAPICursor
 
 from .base import ConnectionAdapterError, DatabaseConnection, QueryResult
 

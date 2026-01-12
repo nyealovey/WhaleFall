@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import DatabaseError
+from app.core.exceptions import DatabaseError
 from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat

@@ -17,7 +17,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from app import db
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_database import InstanceDatabase
-from app.types.instance_database_sizes import (
+from app.core.types.instance_database_sizes import (
     InstanceDatabaseSizeEntry,
     InstanceDatabaseSizesHistoryResult,
     InstanceDatabaseSizesLatestResult,

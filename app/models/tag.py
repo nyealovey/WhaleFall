@@ -1,8 +1,8 @@
 """鲸落 - 标签模型."""
 
 from app import db
-from app.constants.tag_categories import TAG_CATEGORY_CHOICES
-from app.types import ColorHex, ColorName, CssClassName
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
+from app.core.types import ColorHex, ColorName, CssClassName
 from app.utils.theme_color_utils import (
     get_theme_color_css_class,
     get_theme_color_name,

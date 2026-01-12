@@ -9,7 +9,7 @@ from app import db
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.types.orm_kwargs import InstanceAccountOrmFields
+    from app.core.types.orm_kwargs import InstanceAccountOrmFields
 
 
 class InstanceAccount(db.Model):

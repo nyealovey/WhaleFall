@@ -7,8 +7,8 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import bcrypt, db
-from app.constants import UserRole
-from app.constants.validation_limits import USER_PASSWORD_MIN_LENGTH
+from app.core.constants import UserRole
+from app.core.constants.validation_limits import USER_PASSWORD_MIN_LENGTH
 from app.utils.time_utils import time_utils
 
 

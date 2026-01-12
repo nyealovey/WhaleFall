@@ -10,7 +10,7 @@ from typing import Any
 from flask import Blueprint, render_template, request, url_for
 from flask_login import login_required
 
-from app.constants import DATABASE_TYPES
+from app.core.constants import DATABASE_TYPES
 from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.decorators import view_required
 

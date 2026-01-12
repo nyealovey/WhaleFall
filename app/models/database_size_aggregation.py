@@ -25,7 +25,7 @@ from app import db
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.types.orm_kwargs import DatabaseSizeAggregationOrmFields
+    from app.core.types.orm_kwargs import DatabaseSizeAggregationOrmFields
 
 
 class DatabaseSizeAggregation(db.Model):

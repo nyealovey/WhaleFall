@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.credentials.credential_options_service import CredentialOptionsService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_write_service import InstanceWriteService
-from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
+from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 from app.utils.database_type_utils import get_database_type_display_name
 
 if TYPE_CHECKING:

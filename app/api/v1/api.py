@@ -11,7 +11,7 @@ from flask import Response, jsonify, request
 from flask_restx import Api
 
 from app.api.error_mapping import map_exception_to_status
-from app.constants import HttpStatus
+from app.core.constants import HttpStatus
 from app.utils.response_utils import jsonify_unified_success, unified_error_response
 from app.utils.structlog_config import ErrorContext
 

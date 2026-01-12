@@ -70,7 +70,7 @@ related:
 
 - MUST: 标准库
 - MAY: 第三方库（例如 Flask/SQLAlchemy/APScheduler/structlog/werkzeug）
-- MAY: `app.constants.*`, `app.types.*`, `app.errors`, `app.utils.*`
+- MAY: `app.core.constants.*`, `app.core.types.*`, `app.core.exceptions`, `app.utils.*`
 - MAY: `app` 的扩展对象与 `app.models.*`（仅当模块语义本身是事务边界入口/worker，并且能证明不会引入循环依赖）
 
 禁止依赖:
@@ -97,4 +97,3 @@ rg -n "from app\\.(routes|api)\\.|from app\\.(services|repositories)\\.|db\\.ses
 ## 变更历史
 
 - 2026-01-12: 新增 Infra 层标准, 覆盖 `app/infra/**` 与 `app/scheduler.py`.
-

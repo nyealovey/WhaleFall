@@ -1,6 +1,6 @@
 """账户分类规则表单选项常量."""
 
-from app.constants.classification_constants import OPERATOR_OPTIONS
+from app.core.constants.classification_constants import OPERATOR_OPTIONS
 
 DB_TYPE_OPTIONS = [
     {"value": "mysql", "label": "MySQL"},

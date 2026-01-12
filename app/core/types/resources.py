@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Protocol, TypeVar, runtime_checkable
 
-from app.types.structures import ContextMapping, PayloadMapping
+from app.core.types.structures import ContextMapping, PayloadMapping
 
 ResourceIdentifier = int | str
 ResourcePayload = PayloadMapping

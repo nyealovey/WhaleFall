@@ -18,7 +18,7 @@ from app.api.v1.restx_models.partition import (
     PARTITION_LIST_RESPONSE_FIELDS,
     PARTITION_STATUS_RESPONSE_FIELDS,
 )
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 from app.services.partition import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService

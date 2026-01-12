@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.types.classification import RuleExpression
+from app.core.types.classification import RuleExpression
 
 
 @dataclass(slots=True)

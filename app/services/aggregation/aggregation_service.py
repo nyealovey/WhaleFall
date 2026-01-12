@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app import db
-from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.calculator import PeriodCalculator

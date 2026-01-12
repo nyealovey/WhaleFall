@@ -1,8 +1,8 @@
 """验证常量集合的不可变性."""
 
-from app.constants.http_methods import HttpMethod
-from app.constants.status_types import InstanceStatus, JobStatus, SyncSessionStatus, SyncStatus, TaskStatus
-from app.constants.user_roles import UserRole
+from app.core.constants.http_methods import HttpMethod
+from app.core.constants.status_types import InstanceStatus, JobStatus, SyncSessionStatus, SyncStatus, TaskStatus
+from app.core.constants.user_roles import UserRole
 from app.utils.user_role_utils import get_user_role_permissions
 
 

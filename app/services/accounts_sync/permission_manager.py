@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import ConflictError
+from app.core.exceptions import ConflictError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.repositories.accounts_sync_repository import AccountsSyncRepository
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
-    from app.types import (
+    from app.core.types import (
         JsonDict,
         JsonValue,
         OtherDiffEntry,
@@ -74,7 +74,7 @@ OTHER_FIELD_LABELS: dict[str, str] = {
 }
 
 try:  # pragma: no cover - optional dependency
-    from prometheus_client import Counter as _Counter, Histogram as _Histogram
+    from prometheus_client import Counter as _Counter, Histogram as _Histogram  # type: ignore[import-not-found]
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     _Counter = None
     _Histogram = None

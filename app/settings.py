@@ -20,7 +20,7 @@ from pathlib import Path
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
-from app.constants.validation_limits import BCRYPT_LOG_ROUNDS_MIN, HOUR_OF_DAY_MAX, HOUR_OF_DAY_MIN
+from app.core.constants.validation_limits import BCRYPT_LOG_ROUNDS_MIN, HOUR_OF_DAY_MAX, HOUR_OF_DAY_MIN
 
 logger = logging.getLogger(__name__)
 

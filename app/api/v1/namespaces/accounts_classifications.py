@@ -20,9 +20,9 @@ from app.api.v1.restx_models.accounts import (
     ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS,
 )
-from app.constants import HttpStatus
-from app.constants.colors import ThemeColors
-from app.errors import ConflictError, ValidationError
+from app.core.constants import HttpStatus
+from app.core.constants.colors import ThemeColors
+from app.core.exceptions import ConflictError, ValidationError
 from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,

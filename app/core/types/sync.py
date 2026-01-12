@@ -6,8 +6,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
-    from app.types.accounts import PermissionSnapshot, RemoteAccount
-    from app.types.structures import JsonDict, JsonValue
+    from app.core.types.accounts import PermissionSnapshot, RemoteAccount
+    from app.core.types.structures import JsonDict, JsonValue
 else:
     PermissionSnapshot = Mapping[str, Any]
     RemoteAccount = Mapping[str, Any]

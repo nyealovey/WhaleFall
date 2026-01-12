@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 
 import app.services.account_classification.dsl_v4 as dsl_v4_module
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 
 
 class AccountClassificationExpressionValidationService:

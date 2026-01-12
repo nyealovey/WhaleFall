@@ -4,7 +4,7 @@
 
 **Goal:** 将异常定义从“Errors 层”调整为 shared kernel(`app/core/exceptions.py`), 并把异常→HTTP status 的映射下放到 API 边界(`app/api/error_mapping.py`), 清理业务层对 `HttpStatus`/`status_code` 的依赖, 保持现有错误封套(JSON envelope)不变。
 
-**Architecture:** `app/core` 只承载与框架无关的异常类型与语义字段(如 `category/severity/message_key/extra`); HTTP 层(Flask/RestX)在入口处做异常到状态码的映射, 并将 `status_code` 作为参数传给 `unified_error_response(...)`。保留 `app/errors.py` 作为兼容 re-export, 避免全仓 import 迁移导致大面积 diff。
+**Architecture:** `app/core` 只承载与框架无关的异常类型与语义字段(如 `category/severity/message_key/extra`); HTTP 层(Flask/RestX)在入口处做异常到状态码的映射, 并将 `status_code` 作为参数传给 `unified_error_response(...)`。全仓统一改用 `app.core.exceptions`，不提供 `app/errors.py` 兼容门面。
 
 **Tech Stack:** Flask + Flask-RESTX + Werkzeug + ruff + pyright + pytest.
 
@@ -18,7 +18,6 @@ Run:
 ./.venv/bin/ruff check \
   app/api/error_mapping.py \
   app/core/exceptions.py \
-  app/errors.py \
   app/__init__.py \
   app/api/v1/api.py \
   app/utils/response_utils.py \
@@ -44,13 +43,12 @@ Expected:
 
 - Create: `app/core/__init__.py`
 - Create: `app/core/exceptions.py`
-- Modify: `app/errors.py`(改为 re-export/兼容门面)
+- Delete: `app/errors.py`(不提供 re-export/兼容门面)
 
 **Steps:**
 
 1) 将异常类型迁移到 `app/core/exceptions.py`
 2) 移除异常元数据中的 HTTP status 概念, 不再在异常上保存 `status_code`
-3) `app/errors.py` 仅 re-export, 保持原 import 路径可用
 
 ---
 

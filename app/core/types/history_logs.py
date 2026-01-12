@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from app.constants.system_constants import LogLevel
+from app.core.constants.system_constants import LogLevel
 
 
 @dataclass(slots=True)

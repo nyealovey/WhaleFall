@@ -16,14 +16,14 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.namespaces.instances import ns
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.constants.system_constants import ErrorMessages
-from app.errors import NotFoundError, ValidationError
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import NotFoundError, ValidationError
 from app.services.credentials import CredentialDetailReadService
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
-from app.types import JsonDict, JsonValue
+from app.core.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
 from app.utils.response_utils import jsonify_unified_error_message
 from app.infra.route_safety import log_with_context

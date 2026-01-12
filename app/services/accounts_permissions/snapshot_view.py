@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from app.errors import ConflictError
+from app.core.exceptions import ConflictError
 from app.models.account_permission import AccountPermission
 
 PERMISSION_SNAPSHOT_VERSION_V4: Final[int] = 4

@@ -242,7 +242,7 @@ def example_view() -> Response:
 1. 在 `app/tasks/` 定义任务
 2. 在 `app/scheduler.py` 注册
 3. 确保任务在 `app.app_context()` 内运行
-4. 添加作业配置到 `app/constants/scheduler_jobs.py`
+4. 添加作业配置到 `app/core/constants/scheduler_jobs.py`
 
 ### 新增 Grid.js 列表页
 1. 使用 `grid-wrapper.js` 的 `GridWrapper`

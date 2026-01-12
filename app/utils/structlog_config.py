@@ -12,9 +12,9 @@ import structlog
 from flask import Flask, current_app, g, has_request_context, jsonify
 from flask_login import current_user
 
-from app.constants.system_constants import ErrorSeverity
+from app.core.constants.system_constants import ErrorSeverity
 from app.settings import APP_VERSION
-from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
+from app.core.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
 from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.logging.error_adapter import (
     ErrorContext,

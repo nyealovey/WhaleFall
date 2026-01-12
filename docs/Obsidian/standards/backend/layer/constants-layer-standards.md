@@ -10,7 +10,7 @@ status: active
 created: 2026-01-09
 updated: 2026-01-12
 owner: WhaleFall Team
-scope: "`app/constants/**` 下所有常量与枚举定义"
+scope: "`app/core/constants/**` 下所有常量与枚举定义"
 related:
   - "[[standards/backend/configuration-and-secrets]]"
   - "[[standards/backend/shared-kernel-standards]]"
@@ -29,7 +29,7 @@ related:
 
 ## 适用范围
 
-- `app/constants/**` 下所有常量, 枚举, 静态映射.
+- `app/core/constants/**` 下所有常量, 枚举, 静态映射.
 
 ## 规则(MUST/SHOULD/MAY)
 
@@ -58,18 +58,19 @@ related:
 
 ### 5) 导出规范
 
-- SHOULD: 在 `app/constants/__init__.py` 里集中导出常用常量, 并维护 `__all__`.
+- SHOULD: 在 `app/core/constants/__init__.py` 里集中导出常用常量, 并维护 `__all__`.
 
 ### 6) 依赖规则
 
 允许依赖:
 
 - MUST: 标准库 `typing`, `enum`
-- MAY: `app.constants.*`(同层内部模块互相 import)
+- MAY: `app.core.constants.*`(同层内部模块互相 import)
 
 禁止依赖:
 
-- MUST NOT: `app.(api|routes|tasks|services|repositories|models|forms|views|utils|settings|infra|schemas|errors|core).*`
+- MUST NOT: `app.(api|routes|tasks|services|repositories|models|forms|views|utils|settings|infra|schemas).*`
+- MUST NOT: `app.core.types.*`, `app.core.exceptions`
 - SHOULD NOT: 第三方库
 
 ## 正反例
@@ -145,7 +146,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")  # 反例: 环境配置应放 Settings
 - 自查命令(示例):
 
 ```bash
-rg -n "from app\\." app/constants
+rg -n "from app\\." app/core/constants
 ```
 
 ## 变更历史

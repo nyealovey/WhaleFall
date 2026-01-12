@@ -15,8 +15,8 @@ from typing import Any, Protocol, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants.sync_constants import SyncOperationType
-from app.errors import NotFoundError, SystemError, ValidationError
+from app.core.constants.sync_constants import SyncOperationType
+from app.core.exceptions import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.services.sync_session_service import sync_session_service

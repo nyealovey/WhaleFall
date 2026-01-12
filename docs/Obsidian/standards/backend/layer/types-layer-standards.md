@@ -10,7 +10,7 @@ status: active
 created: 2026-01-09
 updated: 2026-01-12
 owner: WhaleFall Team
-scope: "`app/types/**` 下所有类型定义与协议"
+scope: "`app/core/types/**` 下所有类型定义与协议"
 related:
   - "[[standards/backend/request-payload-and-schema-validation]]"
   - "[[standards/backend/shared-kernel-standards]]"
@@ -29,7 +29,7 @@ related:
 
 ## 适用范围
 
-- `app/types/**` 下所有 `.py` 类型定义文件.
+- `app/core/types/**` 下所有 `.py` 类型定义文件.
 
 ## 规则(MUST/SHOULD/MAY)
 
@@ -60,20 +60,20 @@ related:
 
 ### 6) 导出规范
 
-- SHOULD: `app/types/__init__.py` 只导出高频公共类型, 并维护 `__all__`.
+- SHOULD: `app/core/types/__init__.py` 只导出高频公共类型, 并维护 `__all__`.
 
 ### 7) 依赖规则
 
 允许依赖:
 
 - MUST: 标准库 `typing`, `dataclasses`, `collections.abc`
-- MAY: `app.constants.*`(当类型需要引用常量值集合时)
+- MAY: `app.core.constants.*`(当类型需要引用常量值集合时)
 
 禁止依赖:
 
 - MUST NOT: `app.models.*`(包括 `TYPE_CHECKING` 分支), `app` 的 `db`
 - MUST NOT: `app.services.*`, `app.repositories.*`, `app.routes.*`, `app.api.*`
-- MUST NOT: `app.core.*`, `app.errors`
+- MUST NOT: `app.core.exceptions`
 
 补充说明:
 
@@ -185,7 +185,7 @@ if TYPE_CHECKING:
 - 自查命令(示例):
 
 ```bash
-rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session" app/types
+rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session" app/core/types
 ```
 
 ## 变更历史

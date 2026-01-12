@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from app.errors import SystemError
+from app.core.exceptions import SystemError
 from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils

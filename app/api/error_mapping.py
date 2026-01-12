@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from werkzeug.exceptions import HTTPException
 
-from app.constants import HttpStatus
+from app.core.constants import HttpStatus
 from app.core.exceptions import (
     AppError,
     AuthenticationError,

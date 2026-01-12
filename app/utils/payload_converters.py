@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.types.structures import PayloadValue
+    from app.core.types.structures import PayloadValue
 
 _STRING_LIKE_TYPES = (str, bytes, bytearray)
 

@@ -11,14 +11,14 @@ from typing import TYPE_CHECKING, cast
 
 from flask import Response, jsonify
 
-from app.constants import HttpStatus
-from app.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
-from app.errors import AppError
+from app.core.constants import HttpStatus
+from app.core.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
+from app.core.exceptions import AppError
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.types import JsonDict, JsonValue
+    from app.core.types import JsonDict, JsonValue
 
 
 def _ensure_json_serializable(value: object) -> object:

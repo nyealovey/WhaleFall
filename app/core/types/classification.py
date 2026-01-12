@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TypeAlias, TypedDict
 
-from app.types.structures import JsonDict, JsonValue
+from app.core.types.structures import JsonDict, JsonValue
 
 RuleExpression: TypeAlias = Mapping[str, JsonValue]
 

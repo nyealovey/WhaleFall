@@ -8,8 +8,8 @@ from typing import Any
 
 from pydantic import Field, StrictStr, field_validator, model_validator
 
-from app.constants import DatabaseType
-from app.constants.validation_limits import (
+from app.core.constants import DatabaseType
+from app.core.constants.validation_limits import (
     DATABASE_NAME_MAX_LENGTH,
     DESCRIPTION_MAX_LENGTH,
     HOST_MAX_LENGTH,

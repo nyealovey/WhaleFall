@@ -9,7 +9,7 @@ from flask import Blueprint, render_template
 from flask_login import login_required
 
 from app.services.instances.instance_detail_page_service import InstanceDetailPageService
-from app.types import RouteReturn
+from app.core.types import RouteReturn
 from app.utils.decorators import view_required
 from app.infra.route_safety import safe_route_call
 

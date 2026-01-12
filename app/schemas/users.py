@@ -8,8 +8,8 @@ from typing import Any
 
 from pydantic import StrictStr, field_validator, model_validator
 
-from app.constants import UserRole
-from app.constants.validation_limits import USER_PASSWORD_MIN_LENGTH
+from app.core.constants import UserRole
+from app.core.constants.validation_limits import USER_PASSWORD_MIN_LENGTH
 from app.schemas.base import PayloadSchema
 from app.utils.payload_converters import as_bool
 

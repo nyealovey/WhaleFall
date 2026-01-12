@@ -10,10 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
+from app.core.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
 
 if TYPE_CHECKING:
-    from app.types.structures import LoggerExtra
+    from app.core.types.structures import LoggerExtra
 
 
 @dataclass(frozen=True, slots=True)

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.repositories.database_table_size_stats_repository import DatabaseTableSizeStatsRepository
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError, DatabaseConnection
 from app.services.connection_adapters.adapters.postgresql_adapter import PostgreSQLConnection

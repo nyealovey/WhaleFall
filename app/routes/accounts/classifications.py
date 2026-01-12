@@ -9,7 +9,7 @@ from flask import Blueprint, render_template
 from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
 
-from app.constants.colors import ThemeColors
+from app.core.constants.colors import ThemeColors
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.views.classification_forms import AccountClassificationFormView, ClassificationRuleFormView
 

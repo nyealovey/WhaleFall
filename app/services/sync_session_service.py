@@ -8,8 +8,8 @@ from datetime import date, datetime
 from typing import Any, cast
 
 from app import db
-from app.constants import SyncSessionStatus, SyncStatus
-from app.errors import NotFoundError, ValidationError
+from app.core.constants import SyncSessionStatus, SyncStatus
+from app.core.exceptions import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession

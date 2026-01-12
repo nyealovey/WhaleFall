@@ -7,9 +7,9 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask.typing import ResponseReturnValue
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app.constants import FlashCategory, HttpHeaders, HttpMethod
+from app.core.constants import FlashCategory, HttpHeaders, HttpMethod
 from app.services.auth.login_service import LoginService
-from app.types import RouteCallable, RouteReturn
+from app.core.types import RouteCallable, RouteReturn
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.redirect_safety import resolve_safe_redirect_target

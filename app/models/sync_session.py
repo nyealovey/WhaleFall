@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy.orm import validates
 
 from app import db
-from app.constants import SyncSessionStatus
+from app.core.constants import SyncSessionStatus
 from app.utils.status_type_utils import is_valid_sync_session_status
 from app.utils.time_utils import time_utils
 

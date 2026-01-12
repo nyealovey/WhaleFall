@@ -13,7 +13,7 @@ import psutil
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import app_start_time, cache
-from app.constants import TimeConstants
+from app.core.constants import TimeConstants
 from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS
 from app.settings import APP_VERSION

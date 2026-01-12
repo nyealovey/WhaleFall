@@ -9,7 +9,7 @@ import structlog
 from flask import g, has_request_context
 from flask_login import current_user
 
-from app.constants.system_constants import LogLevel
+from app.core.constants.system_constants import LogLevel
 from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.time_utils import UTC_TZ, time_utils

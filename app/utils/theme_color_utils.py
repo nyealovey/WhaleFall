@@ -1,13 +1,13 @@
 """主题颜色工具.
 
-从 `app/constants/colors.py` 读取静态映射,提供颜色校验/展示等纯函数.
+从 `app/core/constants/colors.py` 读取静态映射,提供颜色校验/展示等纯函数.
 """
 
 from __future__ import annotations
 
 from typing import Final
 
-from app.constants.colors import ThemeColors
+from app.core.constants.colors import ThemeColors
 
 _DEFAULT_COLOR_KEY: Final[str] = "info"
 
@@ -39,4 +39,3 @@ def get_theme_color_choices() -> list[tuple[str, str]]:
         for key, info in ThemeColors.COLOR_MAP.items()
         if "name" in info and "description" in info
     ]
-

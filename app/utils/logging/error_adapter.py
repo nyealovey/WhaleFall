@@ -10,9 +10,9 @@ from uuid import uuid4
 from flask import has_request_context, request
 from werkzeug.exceptions import HTTPException
 
-from app.constants import HttpStatus
-from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
-from app.errors import AppError
+from app.core.constants import HttpStatus
+from app.core.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
+from app.core.exceptions import AppError
 from app.utils.logging.context_vars import request_id_var, user_id_var
 
 if TYPE_CHECKING:

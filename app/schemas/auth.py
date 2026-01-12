@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import StrictStr, model_validator
 
-from app.constants.validation_limits import USER_PASSWORD_MAX_LENGTH, USER_PASSWORD_MIN_LENGTH
+from app.core.constants.validation_limits import USER_PASSWORD_MAX_LENGTH, USER_PASSWORD_MIN_LENGTH
 from app.schemas.base import PayloadSchema
 from app.schemas.validation import SchemaMessageKeyError
 

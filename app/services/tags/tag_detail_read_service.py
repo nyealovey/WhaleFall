@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from app.errors import NotFoundError
+from app.core.exceptions import NotFoundError
 from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
 

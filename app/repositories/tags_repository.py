@@ -15,8 +15,8 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.models.tag import Tag, instance_tags
-from app.types.listing import PaginatedResult
-from app.types.tags import TagListFilters, TagListRowProjection, TagStats
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagListFilters, TagListRowProjection, TagStats
 
 if TYPE_CHECKING:
     from app.models.instance import Instance

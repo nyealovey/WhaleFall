@@ -15,7 +15,7 @@ from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
-from app.types.partition import PeriodWindow
+from app.core.types.partition import PeriodWindow
 
 
 class PartitionRepository:

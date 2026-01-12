@@ -18,11 +18,11 @@ from app.api.v1.restx_models.history import (
     HISTORY_LOG_STATISTICS_FIELDS,
     HISTORY_LOG_TOP_MODULE_FIELDS,
 )
-from app.constants.system_constants import LogLevel
-from app.errors import ValidationError
+from app.core.constants.system_constants import LogLevel
+from app.core.exceptions import ValidationError
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
-from app.types.history_logs import LogSearchFilters
+from app.core.types.history_logs import LogSearchFilters
 from app.utils.structlog_config import log_info
 
 ns = Namespace("history_logs", description="日志中心")

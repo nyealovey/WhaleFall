@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from flask import Blueprint, render_template
 
-from app.constants import LOG_LEVELS, TIME_RANGES
+from app.core.constants import LOG_LEVELS, TIME_RANGES
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.utils.decorators import admin_required
 from app.infra.route_safety import safe_route_call

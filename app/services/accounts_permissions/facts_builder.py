@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, Final
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 
 JsonDict = dict[str, Any]
 PERMISSION_SNAPSHOT_VERSION_V4: Final[int] = 4

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.safe_query_builder import SafeQueryBuilder
@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from app.models.instance import Instance
-    from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
-    from app.types.sync import SyncConnection
+    from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.core.types.sync import SyncConnection
 else:
     Instance = Any
     JsonDict = dict[str, Any]

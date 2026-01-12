@@ -42,7 +42,7 @@ DSL_ERROR_MISSING_ARGS = "MISSING_DSL_ARGS"
 DSL_V4_VERSION: Final[int] = 4
 
 try:  # pragma: no cover - optional dependency
-    from prometheus_client import Counter as _Counter, Histogram as _Histogram
+    from prometheus_client import Counter as _Counter, Histogram as _Histogram  # type: ignore[import-not-found]
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     _Counter = None
     _Histogram = None
