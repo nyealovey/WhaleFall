@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from flask import request, url_for
 
 from app.forms.definitions.tag import TAG_FORM_DEFINITION
+from app.views.form_handlers.tag_form_handler import TagFormHandler
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ class TagFormView(ResourceFormView[Tag]):
     """
 
     form_definition = TAG_FORM_DEFINITION
+    service_class = TagFormHandler
 
     def _resolve_success_redirect(self, instance: Tag) -> str:
         """解析成功后的重定向地址.

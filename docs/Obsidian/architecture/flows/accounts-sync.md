@@ -17,11 +17,11 @@ related:
   - "[[API/instances-api-contract]]"
   - "[[API/sessions-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[reference/server/accounts-sync-overview]]"
-  - "[[reference/server/accounts-sync-actions-service]]"
-  - "[[reference/server/accounts-sync-adapters]]"
-  - "[[reference/server/accounts-sync-permission-manager]]"
-  - "[[reference/server/accounts-permissions-facts-builder]]"
+  - "[[reference/service/accounts-sync-overview]]"
+  - "[[reference/service/accounts-sync-actions-service]]"
+  - "[[reference/service/accounts-sync-adapters]]"
+  - "[[reference/service/accounts-sync-permission-manager]]"
+  - "[[reference/service/accounts-permissions-facts-builder]]"
   - "[[canvas/accounts/accounts-flow.canvas]]"
   - "[[canvas/accounts/accounts-session-sequence.canvas]]"
 ---
@@ -127,17 +127,17 @@ sequenceDiagram
 
 ## 深读(服务层文档)
 
-- [[reference/server/accounts-sync-overview]]
-- [[reference/server/accounts-sync-actions-service]]
-- [[reference/server/accounts-sync-adapters]]
-- [[reference/server/accounts-sync-permission-manager]]
-- [[reference/server/accounts-permissions-facts-builder]]
+- [[reference/service/accounts-sync-overview]]
+- [[reference/service/accounts-sync-actions-service]]
+- [[reference/service/accounts-sync-adapters]]
+- [[reference/service/accounts-sync-permission-manager]]
+- [[reference/service/accounts-permissions-facts-builder]]
 
 ## 相关 domain notes
 
-- [[architecture/accounts-permissions-domain]]
-- [[architecture/credentials-connections-domain]]
-- [[architecture/instances-domain]]
+- [[architecture/domain/accounts-permissions-domain]]
+- [[architecture/domain/credentials-connections-domain]]
+- [[architecture/domain/instances-domain]]
 
 ## 可复制复现(curl)
 

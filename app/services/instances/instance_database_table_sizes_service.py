@@ -10,7 +10,7 @@ from __future__ import annotations
 from app.repositories.instance_database_table_sizes_repository import (
     InstanceDatabaseTableSizesRepository,
 )
-from app.types.instance_database_table_sizes import (
+from app.core.types.instance_database_table_sizes import (
     InstanceDatabaseTableSizesQuery,
     InstanceDatabaseTableSizesResult,
 )

@@ -21,3 +21,7 @@ class InstanceDetailReadService:
     def get_active_instance(self, instance_id: int) -> Instance:
         """获取未删除的实例."""
         return self._repository.get_active_instance(instance_id)
+
+    def get_instance_by_id(self, instance_id: int) -> Instance | None:
+        """按 ID 获取实例(可为空)."""
+        return self._repository.get_instance(instance_id)

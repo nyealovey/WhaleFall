@@ -4,16 +4,12 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
-from sqlalchemy import tuple_
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
-from app.constants import DatabaseType
-from app.models.database_table_size_stat import DatabaseTableSizeStat
+from app.core.constants import DatabaseType
+from app.repositories.database_table_size_stats_repository import DatabaseTableSizeStatsRepository
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError, DatabaseConnection
 from app.services.connection_adapters.adapters.postgresql_adapter import PostgreSQLConnection
 from app.services.connection_adapters.adapters.sqlserver_adapter import SQLServerConnection
@@ -23,6 +19,7 @@ from app.services.database_sync.table_size_adapters.mysql_adapter import MySQLTa
 from app.services.database_sync.table_size_adapters.oracle_adapter import OracleTableSizeAdapter
 from app.services.database_sync.table_size_adapters.postgresql_adapter import PostgreSQLTableSizeAdapter
 from app.services.database_sync.table_size_adapters.sqlserver_adapter import SQLServerTableSizeAdapter
+from app.utils.database_type_utils import normalize_database_type
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -63,7 +60,7 @@ class _InstanceConnectionTarget:
 class TableSizeCoordinator:
     """按需采集指定 database 的表容量并落库(仅保存最新快照)."""
 
-    def __init__(self, instance: Instance) -> None:
+    def __init__(self, instance: Instance, repository: DatabaseTableSizeStatsRepository | None = None) -> None:
         """初始化协调器并选择适配器.
 
         Args:
@@ -74,10 +71,11 @@ class TableSizeCoordinator:
         self.logger = get_system_logger()
         self._adapter = self._resolve_adapter(instance.db_type)
         self._connection: DatabaseConnection | None = None
+        self._repository = repository or DatabaseTableSizeStatsRepository()
 
     @staticmethod
     def _resolve_adapter(db_type: str) -> BaseTableSizeAdapter:
-        normalized = DatabaseType.normalize(db_type or "")
+        normalized = normalize_database_type(db_type or "")
         mapping: dict[str, type[BaseTableSizeAdapter]] = {
             DatabaseType.MYSQL: MySQLTableSizeAdapter,
             DatabaseType.POSTGRESQL: PostgreSQLTableSizeAdapter,
@@ -98,7 +96,7 @@ class TableSizeCoordinator:
         if self._connection and getattr(self._connection, "is_connected", False):
             return True
 
-        db_type = DatabaseType.normalize(self.instance.db_type or "")
+        db_type = normalize_database_type(self.instance.db_type or "")
         connection = self._create_scoped_connection(db_type, database_name)
         if connection is None:
             return False
@@ -208,11 +206,8 @@ class TableSizeCoordinator:
         saved_count = len(records)
 
         if records:
-            insert_stmt = self._build_upsert_stmt(records, current_utc=current_utc)
             try:
-                with db.session.begin_nested():
-                    db.session.execute(insert_stmt)
-                    db.session.flush()
+                self._repository.upsert_latest_snapshot(records, current_utc=current_utc)
             except SQLAlchemyError as exc:
                 self.logger.exception(
                     "table_size_upsert_failed",
@@ -225,48 +220,14 @@ class TableSizeCoordinator:
         deleted_count = self._cleanup_removed(database_name, records)
         return saved_count, deleted_count
 
-    def _build_upsert_stmt(self, records: list[dict[str, object]], *, current_utc: object) -> Any:
-        dialect = getattr(getattr(db.session, "bind", None), "dialect", None)
-        dialect_name = getattr(dialect, "name", "")
-
-        if dialect_name == "sqlite":
-            insert_stmt = sqlite_insert(DatabaseTableSizeStat).values(records)
-        else:
-            insert_stmt = pg_insert(DatabaseTableSizeStat).values(records)
-
-        return insert_stmt.on_conflict_do_update(
-            index_elements=[
-                DatabaseTableSizeStat.instance_id,
-                DatabaseTableSizeStat.database_name,
-                DatabaseTableSizeStat.schema_name,
-                DatabaseTableSizeStat.table_name,
-            ],
-            set_={
-                "size_mb": insert_stmt.excluded.size_mb,
-                "data_size_mb": insert_stmt.excluded.data_size_mb,
-                "index_size_mb": insert_stmt.excluded.index_size_mb,
-                "row_count": insert_stmt.excluded.row_count,
-                "collected_at": insert_stmt.excluded.collected_at,
-                "updated_at": current_utc,
-            },
-        )
-
     def _cleanup_removed(self, database_name: str, records: list[dict[str, object]]) -> int:
-        query = DatabaseTableSizeStat.query.filter(
-            DatabaseTableSizeStat.instance_id == self.instance.id,
-            DatabaseTableSizeStat.database_name == database_name,
-        )
-
         keys = [(cast(str, item["schema_name"]), cast(str, item["table_name"])) for item in records]
-        if keys:
-            query = query.filter(
-                tuple_(DatabaseTableSizeStat.schema_name, DatabaseTableSizeStat.table_name).notin_(keys),
-            )
-
         try:
-            with db.session.begin_nested():
-                deleted_count = query.delete(synchronize_session=False)
-                db.session.flush()
+            deleted_count = self._repository.cleanup_removed(
+                instance_id=self.instance.id,
+                database_name=database_name,
+                keys=keys,
+            )
         except SQLAlchemyError as exc:
             self.logger.exception(
                 "table_size_cleanup_failed",

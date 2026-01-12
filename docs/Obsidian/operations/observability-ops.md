@@ -19,7 +19,7 @@ related:
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[standards/backend/action-endpoint-failure-semantics]]"
   - "[[standards/backend/write-operation-boundary]]"
-  - "[[reference/server/sync-session-service]]"
+  - "[[reference/service/sync-session-service]]"
 ---
 
 # 可观测与排障(Observability Ops)
@@ -45,7 +45,7 @@ related:
 ### 3.1 存储位置
 
 - 结构化日志落库表: `UnifiedLog`(`app/models/unified_log.py`).
-- 写入方式: structlog -> `DatabaseLogHandler` -> `LogQueueWorker` 批量写入(`app/utils/logging/handlers.py`, `app/utils/logging/queue_worker.py`).
+- 写入方式: structlog -> `DatabaseLogHandler` -> `LogQueueWorker` 批量写入(`app/utils/logging/handlers.py`, `app/infra/logging/queue_worker.py`).
 - 额外输出: 非 testing 环境会写入 `LOG_FILE`(默认 `userdata/logs/app.log`, 见 `app/settings.py`).
 
 ### 3.2 常见字段

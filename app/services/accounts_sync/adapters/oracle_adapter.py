@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from app.models.instance import Instance
-    from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.core.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
 else:
     Instance = Any
     JsonDict = dict[str, Any]

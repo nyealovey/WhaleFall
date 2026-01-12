@@ -16,12 +16,12 @@ related:
   - "[[architecture/spec]]"
   - "[[API/instances-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[reference/server/database-sync-overview]]"
-  - "[[reference/server/database-sync-adapters]]"
-  - "[[reference/server/database-sync-table-sizes]]"
-  - "[[reference/server/aggregation-pipeline]]"
-  - "[[reference/server/instance-capacity-sync-actions-service]]"
-  - "[[reference/server/instances-database-sizes-services]]"
+  - "[[reference/service/database-sync-overview]]"
+  - "[[reference/service/database-sync-adapters]]"
+  - "[[reference/service/database-sync-table-sizes]]"
+  - "[[reference/service/aggregation-pipeline]]"
+  - "[[reference/service/instance-capacity-sync-actions-service]]"
+  - "[[reference/service/instances-database-sizes-services]]"
   - "[[canvas/capacity/capacity-sequence.canvas]]"
   - "[[canvas/capacity/capacity-flow.canvas]]"
 ---
@@ -108,18 +108,18 @@ sequenceDiagram
 
 ## 深读(服务层文档)
 
-- [[reference/server/database-sync-overview]]
-- [[reference/server/database-sync-adapters]]
-- [[reference/server/database-sync-table-sizes]]
-- [[reference/server/aggregation-pipeline]]
-- [[reference/server/instance-capacity-sync-actions-service]]
-- [[reference/server/instances-database-sizes-services]]
+- [[reference/service/database-sync-overview]]
+- [[reference/service/database-sync-adapters]]
+- [[reference/service/database-sync-table-sizes]]
+- [[reference/service/aggregation-pipeline]]
+- [[reference/service/instance-capacity-sync-actions-service]]
+- [[reference/service/instances-database-sizes-services]]
 
 ## 相关 domain notes
 
-- [[architecture/capacity-partitions-domain]]
-- [[architecture/credentials-connections-domain]]
-- [[architecture/instances-domain]]
+- [[architecture/domain/capacity-partitions-domain]]
+- [[architecture/domain/credentials-connections-domain]]
+- [[architecture/domain/instances-domain]]
 
 ## 常见 message_code
 

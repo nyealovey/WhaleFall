@@ -20,7 +20,7 @@ from sqlalchemy import (
 )
 
 from app import db
-from app.constants.system_constants import LogLevel
+from app.core.constants.system_constants import LogLevel
 from app.utils.time_utils import UTC_TZ, time_utils
 
 

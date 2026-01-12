@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from app.constants import SyncStatus
+from app.core.constants import SyncStatus
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 
 

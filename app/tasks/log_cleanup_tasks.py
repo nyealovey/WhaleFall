@@ -7,9 +7,7 @@ from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
-from app.models.sync_instance_record import SyncInstanceRecord
-from app.models.sync_session import SyncSession
-from app.models.unified_log import UnifiedLog
+from app.services.logging.log_cleanup_service import LogCleanupService
 from app.utils.structlog_config import get_task_logger
 from app.utils.time_utils import time_utils
 
@@ -40,12 +38,10 @@ def cleanup_old_logs() -> None:
     with app.app_context():
         try:
             cutoff_date = time_utils.now() - timedelta(days=30)
-            deleted_logs = UnifiedLog.query.filter(UnifiedLog.timestamp < cutoff_date).delete()
+            cleanup_service = LogCleanupService()
+            outcome = cleanup_service.cleanup_before(cutoff_date)
 
             cleaned_files = _cleanup_temp_files()
-
-            deleted_sync_sessions = SyncSession.query.filter(SyncSession.created_at < cutoff_date).delete()
-            deleted_sync_records = SyncInstanceRecord.query.filter(SyncInstanceRecord.created_at < cutoff_date).delete()
 
             deleted_accounts_sync_data = 0
             deleted_change_logs = 0
@@ -56,10 +52,10 @@ def cleanup_old_logs() -> None:
                 "定时任务清理完成",
                 module="task",
                 task_name="cleanup_old_logs",
-                deleted_logs=deleted_logs,
+                deleted_logs=outcome.deleted_logs,
                 cleaned_files=cleaned_files,
-                deleted_sync_sessions=deleted_sync_sessions,
-                deleted_sync_records=deleted_sync_records,
+                deleted_sync_sessions=outcome.deleted_sync_sessions,
+                deleted_sync_records=outcome.deleted_sync_records,
                 deleted_accounts_sync_data=deleted_accounts_sync_data,
                 deleted_change_logs=deleted_change_logs,
             )

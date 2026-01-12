@@ -18,19 +18,38 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Subquery
 
 from app import db
-from app.constants import SyncStatus
+from app.core.constants import SyncStatus
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
-from app.types.instances import InstanceListFilters, InstanceListMetrics
-from app.types.listing import PaginatedResult
-from app.types.tags import TagSummary
+from app.core.types.instances import InstanceListFilters, InstanceListMetrics
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagSummary
 
 
 class InstancesRepository:
     """实例查询 Repository."""
+
+    @staticmethod
+    def get_by_name(name: str) -> Instance | None:
+        """按名称获取实例(可为空)."""
+        normalized = (name or "").strip()
+        if not normalized:
+            return None
+        return cast("Instance | None", Instance.query.filter_by(name=normalized).first())
+
+    @staticmethod
+    def get_by_name_excluding_id(name: str, *, exclude_instance_id: int) -> Instance | None:
+        """按名称获取实例(排除指定 ID,可为空)."""
+        normalized = (name or "").strip()
+        if not normalized:
+            return None
+        return cast(
+            "Instance | None",
+            Instance.query.filter(Instance.name == normalized, Instance.id != exclude_instance_id).first(),
+        )
 
     @staticmethod
     def get_active_instance(instance_id: int) -> Instance:
@@ -49,6 +68,24 @@ class InstancesRepository:
     def get_instance_or_404(instance_id: int) -> Instance:
         """按ID获取实例(不存在则 404)."""
         return cast("Instance", Instance.query.get_or_404(instance_id))
+
+    @staticmethod
+    def list_active_instances() -> list[Instance]:
+        """获取启用的实例列表."""
+        return Instance.query.filter_by(is_active=True).order_by(Instance.id.asc()).all()
+
+    @staticmethod
+    def count_active_instances() -> int:
+        """统计启用实例数量."""
+        return int(Instance.query.filter_by(is_active=True).count() or 0)
+
+    @staticmethod
+    def list_instances_by_ids(instance_ids: list[int]) -> list[Instance]:
+        """按 ID 列表获取实例."""
+        normalized_ids = [int(instance_id) for instance_id in (instance_ids or []) if instance_id]
+        if not normalized_ids:
+            return []
+        return Instance.query.filter(Instance.id.in_(normalized_ids)).all()
 
     def add(self, instance: Instance) -> Instance:
         """新增或更新实例并 flush."""

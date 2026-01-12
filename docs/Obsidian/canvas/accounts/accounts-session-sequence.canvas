@@ -36,9 +36,9 @@
 
 		{"id":"a1050000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.3 账户同步(后台: inventory + permissions)","x":0,"y":1220,"width":2680,"height":220,"color":"2"},
 		{"id":"a1050000000000fe","type":"file","file":"architecture/flows/accounts-sync.md","subpath":"#会话模式(全量后台)关键时序","x":0,"y":1460,"width":2680,"height":120,"color":"2"},
-		{"id":"a1050000000000fd","type":"file","file":"reference/server/accounts-sync-actions-service.md","x":0,"y":1600,"width":2680,"height":120,"color":"2"},
-		{"id":"a1050000000000fc","type":"file","file":"reference/server/sync-session-service.md","x":0,"y":1720,"width":2680,"height":120,"color":"2"},
-		{"id":"a1050000000000fb","type":"file","file":"reference/server/accounts-sync-overview.md","x":0,"y":1840,"width":2680,"height":120,"color":"2"}
+		{"id":"a1050000000000fd","type":"file","file":"reference/service/accounts-sync-actions-service.md","x":0,"y":1600,"width":2680,"height":120,"color":"2"},
+		{"id":"a1050000000000fc","type":"file","file":"reference/service/sync-session-service.md","x":0,"y":1720,"width":2680,"height":120,"color":"2"},
+		{"id":"a1050000000000fb","type":"file","file":"reference/service/accounts-sync-overview.md","x":0,"y":1840,"width":2680,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"a105000000001001","fromNode":"a105000000000010","fromSide":"right","toNode":"a105000000000011","toSide":"left","label":"click"},

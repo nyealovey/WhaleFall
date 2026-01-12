@@ -88,7 +88,7 @@ app/services/
 
 ### 6) 返回值与 DTO
 
-- SHOULD: Service 返回领域对象(Model)或稳定 DTO(`app/types/**`), 由上层决定如何渲染/序列化.
+- SHOULD: Service 返回领域对象(Model)或稳定 DTO(`app/core/types/**`), 由上层决定如何渲染/序列化.
 - SHOULD: 多返回值或需要携带状态标记时, 定义 `Outcome` dataclass.
 - MUST NOT: Service 返回模板上下文 dict 且由 Routes 直接 `render_template(..., **dict)` (建议返回结构化对象或 DTO).
 
@@ -103,7 +103,7 @@ app/services/
 
 - MUST: `app.repositories.*`
 - MAY: `app.models.*`(用于类型标注或实例化)
-- MAY: `app.types.*`, `app.schemas.*`, `app.errors`, `app.utils.*`, `app.constants.*`
+- MAY: `app.core.types.*`, `app.schemas.*`, `app.core.exceptions`, `app.utils.*`, `app.core.constants.*`
 - MAY: 其他 `app.services.*`(跨域编排需在评审中说明)
 
 禁止依赖:

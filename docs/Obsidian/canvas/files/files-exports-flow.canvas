@@ -12,7 +12,7 @@
 		{"id":"f302000000000030","type":"text","text":"## Response(file)\n\n- Content-Disposition: attachment\n- mimetype: text/csv\n","x":1120,"y":440,"width":520,"height":160,"color":"2"},
 		{"id":"f302000000000031","type":"text","text":"## Error(JSON)\n\n- unified error envelope\n- message_code\n","x":1120,"y":640,"width":520,"height":160,"color":"1"},
 
-		{"id":"f3020000000000ff","type":"file","file":"architecture/files-exports-domain.md","subpath":"#流程图","x":1680,"y":0,"width":900,"height":360,"color":"2"}
+		{"id":"f3020000000000ff","type":"file","file":"architecture/domain/files-exports-domain.md","subpath":"#流程图","x":1680,"y":0,"width":900,"height":360,"color":"2"}
 	],
 	"edges":[
 		{"id":"f302000000001001","fromNode":"f302000000000010","fromSide":"bottom","toNode":"f302000000000011","toSide":"top","label":"GET"},

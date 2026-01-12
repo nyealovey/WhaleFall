@@ -13,9 +13,10 @@ from dataclasses import dataclass
 from flask_jwt_extended import create_access_token, create_refresh_token
 from flask_login import login_user
 
-from app.constants.system_constants import ErrorMessages
-from app.errors import AuthenticationError, AuthorizationError
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.models.user import User
+from app.repositories.users_repository import UsersRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +51,7 @@ class LoginService:
             User | None: 认证成功返回 User,否则返回 None.
 
         """
-        user = User.query.filter_by(username=username).first()
+        user = UsersRepository().get_by_username(username)
         if user and user.check_password(password):
             return user
         return None

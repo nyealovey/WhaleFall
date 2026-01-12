@@ -7,8 +7,8 @@ from uuid import uuid4
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants.sync_constants import SyncOperationType
-from app.errors import AppError
+from app.core.constants.sync_constants import SyncOperationType
+from app.core.exceptions import AppError
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -18,7 +18,7 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.models import Instance
-    from app.types import (
+    from app.core.types import (
         CollectionSummary,
         InventorySummary,
         StructlogEventDict,

@@ -15,11 +15,9 @@ from typing import TYPE_CHECKING, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.constants import DatabaseType
-from app.constants.colors import ThemeColors
-from app.errors import DatabaseError, NotFoundError, ValidationError
-from app.forms.definitions.account_classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
-from app.forms.definitions.account_classification_rule_constants import OPERATOR_OPTIONS
+from app.core.constants import DatabaseType
+from app.core.constants.classification_constants import ICON_OPTIONS, OPERATOR_OPTIONS, RISK_LEVEL_OPTIONS
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -28,11 +26,13 @@ from app.models.account_classification import (
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.services.account_classification.dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
-from app.types.converters import as_bool, as_int, as_optional_str, as_str
+from app.utils.database_type_utils import get_database_type_display_name, normalize_database_type
+from app.utils.payload_converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
+from app.utils.theme_color_utils import is_valid_theme_color
 
 if TYPE_CHECKING:
-    from app.types.structures import PayloadValue
+    from app.core.types.structures import PayloadValue
 
 
 @dataclass(slots=True)
@@ -66,6 +66,27 @@ class AccountClassificationsWriteService:
     def __init__(self, repository: AccountsClassificationsRepository | None = None) -> None:
         """初始化写操作服务."""
         self._repository = repository or AccountsClassificationsRepository()
+
+    def get_classification_or_error(self, classification_id: int) -> AccountClassification:
+        """获取账户分类(不存在则抛错)."""
+        classification = self._repository.get_classification_by_id(classification_id)
+        if classification is None:
+            raise NotFoundError("账户分类不存在", extra={"classification_id": classification_id})
+        return classification
+
+    def get_rule_or_error(self, rule_id: int) -> ClassificationRule:
+        """获取分类规则(不存在则抛错)."""
+        rule = self._repository.get_rule_by_id(rule_id)
+        if rule is None:
+            raise NotFoundError("分类规则不存在", extra={"rule_id": rule_id})
+        return rule
+
+    def get_assignment_or_error(self, assignment_id: int) -> AccountClassificationAssignment:
+        """获取分类分配记录(不存在则抛错)."""
+        assignment = self._repository.get_assignment_by_id(assignment_id)
+        if assignment is None:
+            raise NotFoundError("分类分配不存在", extra={"assignment_id": assignment_id})
+        return assignment
 
     def create_classification(
         self,
@@ -308,10 +329,14 @@ class AccountClassificationsWriteService:
         return any(item["value"] == value for item in options)
 
     def _name_exists(self, name: str, resource: AccountClassification | None) -> bool:
-        query = AccountClassification.query.filter(AccountClassification.name == name)
-        if resource:
-            query = query.filter(AccountClassification.id != resource.id)
-        return bool(db.session.query(query.exists()).scalar())
+        exclude_id = resource.id if resource else None
+        return self._repository.exists_classification_name(name, exclude_classification_id=exclude_id)
+
+    def _get_classification_by_id(self, classification_id: int) -> AccountClassification:
+        classification = self._repository.get_classification_by_id(classification_id)
+        if classification is None:
+            raise NotFoundError("选择的分类不存在", extra={"classification_id": classification_id})
+        return classification
 
     def _validate_and_normalize_classification(
         self,
@@ -325,7 +350,7 @@ class AccountClassificationsWriteService:
             raise ValidationError("分类名称不能为空")
 
         color_key = as_str(payload.get("color"), default=(resource.color if resource else "info")).strip()
-        if not ThemeColors.is_valid_color(color_key):
+        if not is_valid_theme_color(color_key):
             raise ValidationError("无效的颜色选择")
 
         description_value = as_str(
@@ -351,15 +376,9 @@ class AccountClassificationsWriteService:
             "priority": priority_value,
         }
 
-    def _get_classification_by_id(self, classification_id: int) -> AccountClassification:
-        classification = AccountClassification.query.get(classification_id)
-        if not classification:
-            raise NotFoundError("选择的分类不存在", extra={"classification_id": classification_id})
-        return classification
-
     def _get_db_type_options(self) -> list[dict[str, str]]:
         return [
-            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
+            {"value": db_type, "label": get_database_type_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
         ]
 
     def _validate_and_normalize_rule(
@@ -380,7 +399,7 @@ class AccountClassificationsWriteService:
         classification = self._get_classification_by_id(classification_id)
 
         db_type_value_raw = as_optional_str(payload.get("db_type"))
-        db_type_value = DatabaseType.normalize(db_type_value_raw) if db_type_value_raw else None
+        db_type_value = normalize_database_type(db_type_value_raw) if db_type_value_raw else None
         if not db_type_value or not self._is_valid_option(db_type_value, self._get_db_type_options()):
             raise ValidationError("数据库类型取值无效")
 
@@ -455,37 +474,35 @@ class AccountClassificationsWriteService:
             raise ValidationError("规则表达式必须为对象")
         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
-    @staticmethod
     def _rule_name_exists(
+        self,
         *,
         classification_id: int,
         db_type: str,
         rule_name: str,
         resource: ClassificationRule | None,
     ) -> bool:
-        query = ClassificationRule.query.filter_by(
+        exclude_id = resource.id if resource else None
+        return self._repository.exists_rule_name(
             classification_id=classification_id,
             db_type=db_type,
             rule_name=rule_name,
+            exclude_rule_id=exclude_id,
         )
-        if resource:
-            query = query.filter(ClassificationRule.id != resource.id)
-        return bool(db.session.query(query.exists()).scalar())
 
-    @staticmethod
     def _expression_exists(
+        self,
         normalized_expression: str,
         *,
         classification_id: int,
         resource: ClassificationRule | None,
     ) -> bool:
-        query = ClassificationRule.query.filter_by(
+        exclude_id = resource.id if resource else None
+        return self._repository.exists_rule_expression(
             classification_id=classification_id,
             rule_expression=normalized_expression,
+            exclude_rule_id=exclude_id,
         )
-        if resource:
-            query = query.filter(ClassificationRule.id != resource.id)
-        return bool(db.session.query(query.exists()).scalar())
 
     @staticmethod
     def _invalidate_cache(*, rule_id: int) -> None:

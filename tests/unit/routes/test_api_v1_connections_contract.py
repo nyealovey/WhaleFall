@@ -1,8 +1,8 @@
 import pytest
 
 from app import db
-from app.constants import HttpHeaders
-from app.constants.system_constants import ErrorMessages
+from app.core.constants import HttpHeaders
+from app.core.constants.system_constants import ErrorMessages
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.services.connection_adapters.connection_test_service import ConnectionTestService

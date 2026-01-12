@@ -67,7 +67,7 @@ app/views/
 Forms 允许依赖:
 
 - MUST: `wtforms`
-- MAY: `app.constants.*`
+- MAY: `app.core.constants.*`
 
 Forms 禁止依赖:
 
@@ -77,6 +77,7 @@ Views 允许依赖:
 
 - MUST: `app.forms.*`
 - MAY: `app.services.*`(通过基类或明确的 service 注入)
+- MAY: `app.core.exceptions`
 - MAY: `flask` 的模板/URL 工具
 
 ### 4) 命名规范

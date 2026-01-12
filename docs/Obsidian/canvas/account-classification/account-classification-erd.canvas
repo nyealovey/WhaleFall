@@ -6,7 +6,7 @@
 		{"id":"8e5f60718293a4b5","type":"text","text":"## account_classification_assignments\n\nPK:\n- id\n\nFK:\n- classification_id -> account_classifications.id\n- rule_id -> classification_rules.id (nullable)\n- account_id -> account_permission.id\n\nCols:\n- assignment_type (auto/manual)\n- batch_id (nullable)\n- is_active\n","x":360,"y":200,"width":520,"height":460,"color":"6"},
 		{"id":"9f60718293a4b5c6","type":"text","text":"## account_permission\n\nPK:\n- id\n\nCols:\n- instance_id\n- instance_account_id\n- permission_snapshot (v4)\n- permission_facts\n","x":1080,"y":260,"width":520,"height":360,"color":"5"},
 		{"id":"5b2c3d4e5f607182","type":"text","text":"Notes:\n\n- assignments UQ: (account_id, classification_id, batch_id)\n- rule_expression 写入前会 canonicalize (sort_keys / ensure_ascii=False)\n","x":-480,"y":960,"width":1600,"height":200,"color":"2"},
-		{"id":"4b12b4db4aa82820","type":"file","file":"architecture/classification-domain.md","subpath":"#图(Canvas)","x":2320,"y":-400,"width":1200,"height":200,"color":"2"}
+		{"id":"4b12b4db4aa82820","type":"file","file":"architecture/domain/classification-domain.md","subpath":"#图(Canvas)","x":2320,"y":-400,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"1a2b3c4d5e6f7081","fromNode":"6c3d4e5f60718293","fromSide":"right","toNode":"7d4e5f60718293a4","toSide":"left","label":"1..N (FK: classification_id)"},

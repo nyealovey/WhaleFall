@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from app.repositories.tags_repository import TagsRepository
-from app.types.tags import TagStats
+from app.core.types.tags import TagStats
 
 
 class TagStatsService:

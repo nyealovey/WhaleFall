@@ -16,7 +16,7 @@ related:
   - "[[architecture/identity-access]]"
   - "[[operations/observability-ops]]"
   - "[[API/api-v1-api-contract]]"
-  - "[[reference/server/README]]"
+  - "[[reference/service/README]]"
   - "[[canvas/README]]"
 ---
 
@@ -38,47 +38,47 @@ related:
 
 - SOP: [[architecture/flows/sync-session]]
 - 深读:
-  - [[reference/server/sync-session-service]]
+  - [[reference/service/sync-session-service]]
 
 ## 账户同步
 
 - SOP: [[architecture/flows/accounts-sync]]
 - 深读:
-  - [[reference/server/accounts-sync-overview]]
-  - [[reference/server/accounts-sync-adapters]]
-  - [[reference/server/accounts-sync-permission-manager]]
-  - [[reference/server/accounts-permissions-facts-builder]]
+  - [[reference/service/accounts-sync-overview]]
+  - [[reference/service/accounts-sync-adapters]]
+  - [[reference/service/accounts-sync-permission-manager]]
+  - [[reference/service/accounts-permissions-facts-builder]]
 
 ## 容量同步
 
 - SOP: [[architecture/flows/capacity-sync]]
 - 深读:
-  - [[reference/server/database-sync-overview]]
-  - [[reference/server/database-sync-adapters]]
-  - [[reference/server/database-sync-table-sizes]]
+  - [[reference/service/database-sync-overview]]
+  - [[reference/service/database-sync-adapters]]
+  - [[reference/service/database-sync-table-sizes]]
 
 ## 聚合统计
 
 - SOP: [[architecture/flows/aggregation-stats]]
 - 深读:
-  - [[reference/server/aggregation-pipeline]]
-  - [[reference/server/capacity-current-aggregation-service]]
+  - [[reference/service/aggregation-pipeline]]
+  - [[reference/service/capacity-current-aggregation-service]]
 
 ## 标签 bulk
 
 - SOP: [[architecture/flows/tags-bulk]]
 - 深读:
-  - [[reference/server/tags-bulk-actions-service]]
-  - [[reference/server/tags-write-service]]
+  - [[reference/service/tags-bulk-actions-service]]
+  - [[reference/service/tags-write-service]]
 
 ## 自动分类
 
 - SOP: [[architecture/flows/auto-classify]]
 - 深读:
-  - [[reference/server/account-classification-orchestrator]]
-  - [[reference/server/account-classification-dsl-v4]]
-  - [[reference/server/accounts-classifications-write-service]]
-  - [[reference/server/accounts-permissions-facts-builder]]
+  - [[reference/service/account-classification-orchestrator]]
+  - [[reference/service/account-classification-dsl-v4]]
+  - [[reference/service/accounts-classifications-write-service]]
+  - [[reference/service/accounts-permissions-facts-builder]]
 
 ## scheduler 与排障
 

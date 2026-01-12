@@ -15,16 +15,16 @@ from typing import TYPE_CHECKING
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.models.credential import Credential, CredentialCreateParams
 from app.repositories.credentials_repository import CredentialsRepository
 from app.schemas.credentials import CredentialCreatePayload, CredentialUpdatePayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import ResourcePayload
+    from app.core.types import ResourcePayload
 
 
 @dataclass(slots=True)
@@ -121,12 +121,9 @@ class CredentialWriteService:
         self._log_delete(outcome, operator_id=operator_id)
         return outcome
 
-    @staticmethod
-    def _ensure_name_unique(name: str, *, resource: Credential | None) -> None:
-        query = Credential.query.filter(Credential.name == name)
-        if resource:
-            query = query.filter(Credential.id != resource.id)
-        if query.first():
+    def _ensure_name_unique(self, name: str, *, resource: Credential | None) -> None:
+        exclude_id = resource.id if resource else None
+        if self._repository.exists_by_name(name, exclude_credential_id=exclude_id):
             raise ValidationError("凭据名称已存在,请使用其他名称")
 
     def _get_or_error(self, credential_id: int) -> Credential:

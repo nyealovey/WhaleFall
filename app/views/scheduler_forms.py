@@ -8,10 +8,11 @@ from flask import request
 from flask.typing import ResponseReturnValue
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.errors import NotFoundError, SystemError, ValidationError
+from app.core.exceptions import NotFoundError, SystemError, ValidationError
 from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
+from app.views.form_handlers.scheduler_job_form_handler import SchedulerJobFormHandler
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -37,6 +38,7 @@ class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
     """
 
     form_definition = SCHEDULER_JOB_FORM_DEFINITION
+    service_class = SchedulerJobFormHandler
 
     def get(self, *args: object, **kwargs: object) -> Never:
         """GET 请求处理(不支持).

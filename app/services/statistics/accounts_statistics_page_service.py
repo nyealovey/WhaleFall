@@ -12,6 +12,8 @@ from typing import Any
 
 from app.models.instance import Instance
 from app.models.sync_session import SyncSession
+from app.repositories.instances_repository import InstancesRepository
+from app.repositories.sync_sessions_repository import SyncSessionsRepository
 from app.services.statistics.account_statistics_service import build_aggregated_statistics, empty_statistics
 
 
@@ -31,12 +33,12 @@ class AccountsStatisticsPageService:
     @staticmethod
     def _fetch_active_instances() -> list[Instance]:
         """加载所有活跃实例."""
-        return Instance.query.filter_by(is_active=True).all()
+        return InstancesRepository.list_active_instances()
 
     @staticmethod
     def _fetch_recent_syncs(limit: int = 10) -> list[SyncSession]:
         """查询最近的同步会话."""
-        return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
+        return SyncSessionsRepository.list_recent_sessions(limit)
 
     def build_context(self) -> AccountsStatisticsPageContext:
         """构造渲染模板所需的上下文."""
@@ -56,4 +58,3 @@ class AccountsStatisticsPageService:
             recent_accounts=[],
             instances=self._fetch_active_instances(),
         )
-

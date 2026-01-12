@@ -11,8 +11,9 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app import db
-from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.models.instance import Instance
+from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.calculator import PeriodCalculator
 from app.services.aggregation.callbacks import RunnerCallbacks
 from app.services.aggregation.database_aggregation_runner import DatabaseAggregationRunner
@@ -106,7 +107,7 @@ class AggregationService:
             NotFoundError: 当实例不存在时抛出.
 
         """
-        instance = Instance.query.get(instance_id)
+        instance = InstancesRepository.get_instance(instance_id)
         if not instance:
             raise NotFoundError(
                 message="实例不存在",
@@ -693,6 +694,24 @@ class AggregationService:
             use_current_period=resolved,
             log_message="开始计算每季度统计聚合",
         )
+
+    def calculate_database_size_aggregations(
+        self,
+        period_type: str,
+        *,
+        use_current_periods: dict[str, bool] | None = None,
+    ) -> dict[str, Any]:
+        """按周期类型计算数据库级统计聚合(跨所有实例)."""
+        normalized = self._normalize_period_type(period_type)
+        resolved = self._resolve_use_current_period_from_map(normalized, overrides=use_current_periods)
+
+        if normalized == "daily":
+            return self.calculate_daily_aggregations(use_current_period=resolved)
+        if normalized == "weekly":
+            return self.calculate_weekly_aggregations(use_current_period=resolved)
+        if normalized == "monthly":
+            return self.calculate_monthly_aggregations(use_current_period=resolved)
+        return self.calculate_quarterly_aggregations(use_current_period=resolved)
 
     def calculate_daily_database_aggregations_for_instance(
         self,

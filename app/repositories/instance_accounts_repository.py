@@ -17,8 +17,8 @@ from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
-from app.types.instance_accounts import InstanceAccountListFilters, InstanceAccountSummary
-from app.types.listing import PaginatedResult
+from app.core.types.instance_accounts import InstanceAccountListFilters, InstanceAccountSummary
+from app.core.types.listing import PaginatedResult
 
 
 class InstanceAccountsRepository:

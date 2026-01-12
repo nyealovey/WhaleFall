@@ -7,7 +7,7 @@ tags:
   - standards/doc
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-10
 owner: WhaleFall Team
 scope: "`docs/Obsidian/**` 与 `docs/changes/**` 的文档归类, SSOT 边界与冲突处理"
 related:
@@ -17,7 +17,7 @@ related:
   - "[[reference/README]]"
   - "[[operations/README]]"
   - "[[architecture/README]]"
-  - "[[reference/server/README]]"
+  - "[[reference/service/README]]"
 ---
 
 # 文档边界与归类标准(standards vs reference)
@@ -36,10 +36,9 @@ related:
 - Obsidian vault 内的所有笔记:
   - `docs/Obsidian/standards/**`
   - `docs/Obsidian/reference/**`
-  - `docs/Obsidian/reference/server/**`
+  - `docs/Obsidian/reference/service/**`
   - `docs/Obsidian/operations/**`
   - `docs/Obsidian/architecture/**`
-  - `docs/Obsidian/Server/**`(deprecated stubs)
   - `docs/Obsidian/API/**`
 - vault 外但与归类强相关的目录:
   - `docs/changes/**`
@@ -47,6 +46,12 @@ related:
   - `docs/reports/**`
 
 ## 规则(MUST/SHOULD/MAY)
+
+### 0) 引用方向(一次性文档)
+
+- MUST: `docs/Obsidian/**` 禁止在元信息/正文中引用 `docs/plans/**`, `docs/changes/**`, `docs/reports/**` 下的具体一次性文档作为入口/关联/延伸阅读(用后可删).
+- MUST: 一次性文档如果产出可长期复用的结论/规则, 必须上升沉淀到 `docs/Obsidian/**`(standards/reference/architecture/operations/API), 再由一次性文档引用该 SSOT.
+- MAY: `docs/Obsidian/**` 可提及 `docs/plans/**`, `docs/changes/**`, `docs/reports/**` 作为"落点/分类"说明, 但只写目录, 不写具体文件名.
 
 ### 1) 目录边界(语义定义)
 
@@ -59,14 +64,11 @@ related:
 | `docs/Obsidian/reference/**`    | 参考手册(SSOT)         | "它是什么/参数是什么/契约是什么"          | 字段表, 默认值, 示例, 契约说明                          | 开发流程标准, 组织规范, 门禁规则(应引用 standards)                          |
 | `docs/Obsidian/operations/**`   | Runbook            | "怎么部署/怎么回滚/怎么排障"            | 可复制执行的步骤, 风险提示, 验证与回滚                       | 研发编码标准(应引用 standards), 设计动机与长篇背景(应放 architecture)          |
 | `docs/Obsidian/architecture/**` | 架构设计               | "为什么这样设计/关键边界是什么"           | ADR, 分层边界的设计理由, 关键数据流与取舍                    | 可执行的运维步骤(应放 operations), 作为规则 SSOT 的 MUST 列表(应放 standards) |
-| `docs/Obsidian/reference/server/**` | 服务实现解读(Server Docs) | "某个 service 具体怎么工作/失败语义是什么" | 流程图, 决策表, 兼容/兜底清单, 调用方与依赖                   | 对全仓通用的规则 SSOT(应放 standards)                                |
-| `docs/Obsidian/API/**`          | API contract(SSOT) | "对外 API 的 endpoint 清单是什么"   | method/path 清单, 关键约束(摘要), 指向实现与 OpenAPI     | 把 contract 写成大段实现说明(应放 reference/server/architecture)                |
+| `docs/Obsidian/reference/service/**` | 服务实现解读(Service Docs) | "某个 service 具体怎么工作/失败语义是什么" | 流程图, 决策表, 兼容/兜底清单, 调用方与依赖                   | 对全仓通用的规则 SSOT(应放 standards)                                |
+| `docs/Obsidian/API/**`          | API contract(SSOT) | "对外 API 的 endpoint 清单是什么"   | method/path 清单, 关键约束(摘要), 指向实现与 OpenAPI     | 把 contract 写成大段实现说明(应放 reference/service/architecture)                |
 | `docs/changes/**`               | 变更记录               | "这次改了什么/怎么验收/怎么回滚"          | plan/progress/record, 验证命令, 影响面             | 把长期规则写进 changes(应上升为 standards)                            |
 | `docs/plans/**`                 | 计划(执行向)            | "如何一步步落地"                   | 任务拆解, 验证点                                   | 作为最终 SSOT 的规则(应迁移到 standards/reference)                    |
 | `docs/reports/**`               | 报告(阶段性)            | "我们发现了什么/风险是什么"             | 发现清单与证据                                     | 作为长期规则 SSOT(应迁移到 standards)                                |
-
-> [!note] Deprecated
-> `docs/Obsidian/Server/**` 已废弃, 仅保留 deprecated stub 用于兼容历史链接. 新增/迁移的服务实现解读文档必须放在 `docs/Obsidian/reference/server/**`.
 
 ### 2) standards vs reference 的判定
 
@@ -138,7 +140,7 @@ related:
 
 ### 正例: 服务层文档(实现说明)
 
-- `docs/Obsidian/reference/server/accounts-sync-overview.md`
+- `docs/Obsidian/reference/service/accounts-sync-overview.md`
 
 ### 正例: API contract(清单 SSOT)
 
@@ -171,6 +173,12 @@ rg -n "Checklist|清单|步骤|Step\\s+\\d+|Run:" docs/Obsidian/standards
 
 ```bash
 rg -n -P "[\\u3000\\u3001\\u3002\\u3010\\u3011\\uff01\\uff08\\uff09\\uff0c\\uff1a\\uff1b\\uff1f\\u2018\\u2019\\u201c\\u201d\\u2013\\u2014\\u2026]" docs/Obsidian
+```
+
+### 4) 检查 vault 是否存在反向引用(一次性目录)
+
+```bash
+rg -n "docs/(plans|changes|reports)/" docs/Obsidian
 ```
 
 ## 变更历史

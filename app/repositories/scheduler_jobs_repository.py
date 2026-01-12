@@ -12,8 +12,8 @@ from datetime import timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants.sync_constants import SyncOperationType
-from app.errors import ConflictError
+from app.core.constants.sync_constants import SyncOperationType
+from app.core.exceptions import ConflictError
 from app.models.sync_session import SyncSession
 from app.models.unified_log import UnifiedLog
 from app.scheduler import get_scheduler

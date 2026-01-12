@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import ClassVar, cast
 
 from flask import request
@@ -11,13 +12,12 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.errors import NotFoundError
-from app.repositories.users_repository import UsersRepository
-from app.services.users import UsersListService, UsersStatsService, UserWriteService
-from app.types import ResourcePayload
-from app.types.users import UserListFilters
+from app.api.v1.resources.query_parsers import new_parser
+from app.core.exceptions import NotFoundError
+from app.services.users import UserDetailReadService, UsersListService, UsersStatsService, UserWriteService
+from app.core.types import ResourcePayload
+from app.core.types.users import UserListFilters
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.structlog_config import log_info
 
@@ -107,20 +107,30 @@ UserUpdatePayload = ns.model(
 )
 
 
-def _parse_user_list_filters() -> UserListFilters:
-    args = request.args
-    page = resolve_page(args, default=1, minimum=1)
-    limit = resolve_page_size(
-        args,
-        default=10,
-        minimum=1,
-        maximum=200,
-    )
-    sort_field = (args.get("sort", "created_at", type=str) or "created_at").lower()
-    sort_order = (args.get("order", "desc", type=str) or "desc").lower()
-    search = args.get("search", "", type=str) or ""
-    role_filter = args.get("role", "", type=str) or ""
-    status_filter = args.get("status", "", type=str) or ""
+_users_list_query_parser = new_parser()
+_users_list_query_parser.add_argument("page", type=int, default=1, location="args")
+_users_list_query_parser.add_argument("limit", type=int, default=10, location="args")
+_users_list_query_parser.add_argument("sort", type=str, default="created_at", location="args")
+_users_list_query_parser.add_argument("order", type=str, default="desc", location="args")
+_users_list_query_parser.add_argument("search", type=str, default="", location="args")
+_users_list_query_parser.add_argument("role", type=str, default="", location="args")
+_users_list_query_parser.add_argument("status", type=str, default="", location="args")
+
+
+def _parse_user_list_filters(parsed: Mapping[str, object]) -> UserListFilters:
+    raw_page = parsed.get("page")
+    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+    raw_limit = parsed.get("limit")
+    limit = int(raw_limit) if isinstance(raw_limit, int) else 10
+    limit = max(min(limit, 200), 1)
+    sort_field = str(parsed.get("sort") or "created_at").lower()
+    sort_order = str(parsed.get("order") or "desc").lower()
+    if sort_order not in {"asc", "desc"}:
+        sort_order = "desc"
+    search = str(parsed.get("search") or "")
+    role_filter = str(parsed.get("role") or "")
+    status_filter = str(parsed.get("status") or "")
 
     return UserListFilters(
         page=page,
@@ -141,14 +151,12 @@ def _parse_payload() -> ResourcePayload:
 
 
 def _get_user_or_error(user_id: int) -> dict[str, object]:
-    user = UsersRepository().get_by_id(user_id)
-    if user is None:
-        raise NotFoundError("用户不存在", extra={"user_id": user_id})
+    user = UserDetailReadService().get_user_or_error(user_id)
     return user.to_dict()
 
 
 def _build_user_write_service() -> UserWriteService:
-    return UserWriteService(UsersRepository())
+    return UserWriteService()
 
 
 @ns.route("")
@@ -161,12 +169,15 @@ class UsersResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_users_list_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取用户列表."""
-        filters = _parse_user_list_filters()
+        query_snapshot = request.args.to_dict(flat=False)
 
         def _execute():
+            parsed = cast("dict[str, object]", _users_list_query_parser.parse_args())
+            filters = _parse_user_list_filters(parsed)
             result = UsersListService().list_users(filters)
             items = marshal(result.items, USER_ITEM_FIELDS)
             return self.success(
@@ -186,13 +197,7 @@ class UsersResource(BaseResource):
             action="list_users",
             public_error="获取用户列表失败",
             context={
-                "search": filters.search,
-                "role": filters.role,
-                "status": filters.status,
-                "sort": filters.sort_field,
-                "order": filters.sort_order,
-                "page": filters.page,
-                "limit": filters.limit,
+                "query_params": query_snapshot,
             },
         )
 

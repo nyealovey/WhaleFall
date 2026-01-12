@@ -1,6 +1,6 @@
 import pytest
 
-from app.errors import ValidationError
+from app.core.exceptions import ValidationError
 from app.models.account_classification import AccountClassification
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService

@@ -4,12 +4,16 @@ import json
 from typing import TYPE_CHECKING, Unpack
 
 from app import db
-from app.constants.colors import ThemeColors
+from app.utils.theme_color_utils import (
+    get_theme_color_css_class,
+    get_theme_color_name,
+    get_theme_color_value,
+)
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.models.account_permission import AccountPermission
-    from app.types.orm_kwargs import (
+    from app.core.types.orm_kwargs import (
         AccountClassificationAssignmentOrmFields,
         AccountClassificationOrmFields,
         ClassificationRuleOrmFields,
@@ -94,7 +98,7 @@ class AccountClassification(db.Model):
             str: 颜色 HEX 值.
 
         """
-        return ThemeColors.get_color_value(self.color)
+        return get_theme_color_value(self.color)
 
     @property
     def color_name(self) -> str:
@@ -104,7 +108,7 @@ class AccountClassification(db.Model):
             str: 颜色中文名称.
 
         """
-        return ThemeColors.get_color_name(self.color)
+        return get_theme_color_name(self.color)
 
     @property
     def css_class(self) -> str:
@@ -114,7 +118,7 @@ class AccountClassification(db.Model):
             str: 用于前端展示的 class 名称.
 
         """
-        return ThemeColors.get_css_class(self.color)
+        return get_theme_color_css_class(self.color)
 
     def to_dict(self) -> dict:
         """转换为字典.

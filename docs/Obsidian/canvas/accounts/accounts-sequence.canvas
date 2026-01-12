@@ -21,8 +21,8 @@
 		{"id":"a10300000000001b","type":"text","text":"Redis\\n\\n- not used\\n","x":1640,"y":460,"width":280,"height":100,"color":"4"},
 		{"id":"a10300000000001c","type":"text","text":"9) `db.session.commit()`\\n","x":300,"y":820,"width":220,"height":80,"color":"2"},
 		{"id":"a10300000000001d","type":"text","text":"10) return 200/409\\n\\n- unified envelope\\n","x":20,"y":820,"width":220,"height":120,"color":"3"},
-		{"id":"a10300000000001e","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/accounts-permissions-domain.md`\\n- 本图为 manual_single, 会话模式详见 `accounts-sync-flow.canvas`\\n","x":0,"y":1200,"width":2280,"height":160,"color":"2"},
-		{"id":"8f05483933d15e02","type":"file","file":"architecture/accounts-permissions-domain.md","subpath":"#图(Canvas)","x":2400,"y":-80,"width":1200,"height":200,"color":"2"}
+		{"id":"a10300000000001e","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/domain/accounts-permissions-domain.md`\\n- 本图为 manual_single, 会话模式详见 `accounts-sync-flow.canvas`\\n","x":0,"y":1200,"width":2280,"height":160,"color":"2"},
+		{"id":"8f05483933d15e02","type":"file","file":"architecture/domain/accounts-permissions-domain.md","subpath":"#图(Canvas)","x":2400,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"a103000000001001","fromNode":"a103000000000010","fromSide":"right","toNode":"a103000000000011","toSide":"left","label":"call"},

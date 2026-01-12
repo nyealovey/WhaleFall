@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from flask import request
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
+from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.dashboard import DASHBOARD_CHART_FIELDS
-from app.constants.system_constants import SuccessMessages
+from app.core.constants.system_constants import SuccessMessages
 from app.services.dashboard.dashboard_activities_service import DashboardActivitiesService
 from app.services.dashboard.dashboard_charts_service import get_chart_data
 from app.services.dashboard.dashboard_overview_service import get_system_overview, get_system_status
@@ -210,6 +210,9 @@ DashboardChartsSuccessEnvelope = make_success_envelope_model(
     DashboardChartsData,
 )
 
+_dashboard_charts_query_parser = new_parser()
+_dashboard_charts_query_parser.add_argument("type", type=str, default="all", location="args")
+
 DashboardActivitiesSuccessEnvelope = make_success_envelope_model(
     ns,
     "DashboardActivitiesSuccessEnvelope",
@@ -252,11 +255,13 @@ class DashboardChartsResource(BaseResource):
     @ns.response(200, "OK", DashboardChartsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_dashboard_charts_query_parser)
     def get(self):
         """获取仪表板图表数据."""
-        chart_type = request.args.get("type", "all", type=str)
 
         def _execute():
+            args = _dashboard_charts_query_parser.parse_args()
+            chart_type = (args.get("type") or "all").strip() or "all"
             charts = get_chart_data(chart_type)
             response_fields = {key: DASHBOARD_CHART_FIELDS[key] for key in charts if key in DASHBOARD_CHART_FIELDS}
             payload = marshal(charts, response_fields)
@@ -270,7 +275,6 @@ class DashboardChartsResource(BaseResource):
             module="dashboard",
             action="get_dashboard_charts",
             public_error="获取仪表板图表失败",
-            context={"chart_type": chart_type},
         )
 
 

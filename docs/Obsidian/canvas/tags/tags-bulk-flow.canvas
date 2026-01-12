@@ -15,8 +15,8 @@
 		{"id":"t102000000000040","type":"text","text":"## Response\\n\\n- success envelope\\n- counts\\n","x":0,"y":1040,"width":520,"height":140,"color":"2"},
 
 		{"id":"t1020000000000ff","type":"file","file":"architecture/flows/tags-bulk.md","subpath":"#流程图","x":1120,"y":0,"width":1640,"height":360,"color":"2"},
-		{"id":"t1020000000000fe","type":"file","file":"reference/server/tags-bulk-actions-service.md","x":1120,"y":380,"width":1640,"height":280,"color":"2"},
-		{"id":"t1020000000000fd","type":"file","file":"reference/server/tags-write-service.md","x":1120,"y":680,"width":1640,"height":280,"color":"2"}
+		{"id":"t1020000000000fe","type":"file","file":"reference/service/tags-bulk-actions-service.md","x":1120,"y":380,"width":1640,"height":280,"color":"2"},
+		{"id":"t1020000000000fd","type":"file","file":"reference/service/tags-write-service.md","x":1120,"y":680,"width":1640,"height":280,"color":"2"}
 	],
 	"edges":[
 		{"id":"t102000000001001","fromNode":"t102000000000010","fromSide":"bottom","toNode":"t102000000000011","toSide":"top","label":"submit"},

@@ -8,9 +8,19 @@ from typing import Any
 
 from pydantic import Field, StrictStr, field_validator, model_validator
 
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
+from app.core.constants.validation_limits import (
+    DATABASE_NAME_MAX_LENGTH,
+    DESCRIPTION_MAX_LENGTH,
+    HOST_MAX_LENGTH,
+    INSTANCE_NAME_MAX_LENGTH,
+    IPV4_OCTET_MAX,
+    PORT_MAX,
+    PORT_MIN,
+)
 from app.schemas.base import PayloadSchema
-from app.types.converters import as_bool
+from app.utils.payload_converters import as_bool
+from app.utils.database_type_utils import normalize_database_type
 
 
 def _ensure_mapping(data: Any) -> Mapping[str, Any]:
@@ -38,8 +48,8 @@ def _validate_instance_name(value: str) -> str:
     cleaned = value.strip()
     if not cleaned:
         raise ValueError("实例名称不能为空")
-    if len(cleaned) > 100:
-        raise ValueError("实例名称长度不能超过100个字符")
+    if len(cleaned) > INSTANCE_NAME_MAX_LENGTH:
+        raise ValueError(f"实例名称长度不能超过{INSTANCE_NAME_MAX_LENGTH}个字符")
     if not re.match(r"^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$", cleaned):
         raise ValueError("实例名称只能包含字母、数字、下划线、连字符和中文字符")
     return cleaned
@@ -49,8 +59,8 @@ def _normalize_db_type(value: str) -> str:
     cleaned = value.strip()
     if not cleaned:
         raise ValueError("数据库类型不能为空")
-    normalized = DatabaseType.normalize(cleaned)
-    allowed = {DatabaseType.normalize(item) for item in DatabaseType.RELATIONAL}
+    normalized = normalize_database_type(cleaned)
+    allowed = {normalize_database_type(item) for item in DatabaseType.RELATIONAL}
     if normalized not in allowed:
         raise ValueError(f"不支持的数据库类型: {normalized}.支持的类型: {', '.join(sorted(allowed))}")
     return normalized
@@ -60,8 +70,8 @@ def _validate_host(value: str) -> str:
     cleaned = value.strip()
     if not cleaned:
         raise ValueError("主机地址不能为空")
-    if len(cleaned) > 255:
-        raise ValueError("主机地址长度不能超过255个字符")
+    if len(cleaned) > HOST_MAX_LENGTH:
+        raise ValueError(f"主机地址长度不能超过{HOST_MAX_LENGTH}个字符")
     if not _is_valid_host(cleaned):
         raise ValueError("主机地址格式无效,请输入有效的IP地址或域名")
     return cleaned
@@ -72,8 +82,8 @@ def _parse_port(value: Any) -> int:
         port = int(value)
     except (TypeError, ValueError) as exc:
         raise ValueError("端口号必须是整数") from exc
-    if not (1 <= port <= 65535):
-        raise ValueError("端口号必须在1-65535之间")
+    if not (PORT_MIN <= port <= PORT_MAX):
+        raise ValueError(f"端口号必须在{PORT_MIN}-{PORT_MAX}之间")
     return port
 
 
@@ -101,8 +111,8 @@ def _parse_optional_string(value: Any) -> str | None:
 def _validate_database_name(value: str | None) -> str | None:
     if value is None:
         return None
-    if len(value) > 64:
-        raise ValueError("数据库名称长度不能超过64个字符")
+    if len(value) > DATABASE_NAME_MAX_LENGTH:
+        raise ValueError(f"数据库名称长度不能超过{DATABASE_NAME_MAX_LENGTH}个字符")
     if not re.match(r"^[a-zA-Z0-9_\-]+$", value):
         raise ValueError("数据库名称只能包含字母、数字、下划线和连字符")
     return value
@@ -184,8 +194,8 @@ class InstanceCreatePayload(PayloadSchema):
     @field_validator("description")
     @classmethod
     def _validate_description(cls, value: str) -> str:
-        if len(value) > 500:
-            raise ValueError("描述长度不能超过500个字符")
+        if len(value) > DESCRIPTION_MAX_LENGTH:
+            raise ValueError(f"描述长度不能超过{DESCRIPTION_MAX_LENGTH}个字符")
         return value
 
     @field_validator("tag_names", mode="before")
@@ -268,8 +278,8 @@ class InstanceUpdatePayload(PayloadSchema):
     def _validate_description(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        if len(value) > 500:
-            raise ValueError("描述长度不能超过500个字符")
+        if len(value) > DESCRIPTION_MAX_LENGTH:
+            raise ValueError(f"描述长度不能超过{DESCRIPTION_MAX_LENGTH}个字符")
         return value
 
     @field_validator("tag_names", mode="before")
@@ -289,7 +299,7 @@ def _is_valid_host(host: str) -> bool:
     ip_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
     if re.match(ip_pattern, host):
         parts = host.split(".")
-        return all(0 <= int(part) <= 255 for part in parts)
+        return all(0 <= int(part) <= IPV4_OCTET_MAX for part in parts)
 
     domain_pattern = (
         r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from flask import Response, request
 from flask_restx import Namespace, fields, marshal
@@ -12,6 +12,7 @@ import app.services.database_sync as database_sync_module
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import bool_with_default, new_parser, split_comma_separated
 from app.api.v1.restx_models.databases import (
     DATABASE_OPTION_ITEM_FIELDS,
     DATABASES_OPTIONS_RESPONSE_FIELDS,
@@ -20,23 +21,24 @@ from app.api.v1.restx_models.instances import (
     INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
     INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS,
 )
-from app.constants import HttpStatus
-from app.errors import NotFoundError, ValidationError
-from app.models.instance import Instance
-from app.models.instance_database import InstanceDatabase
+from app.core.constants import HttpStatus
+from app.core.exceptions import NotFoundError, ValidationError
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.database_ledger_export_service import DatabaseLedgerExportService
+from app.services.instances.instance_database_detail_read_service import (
+    InstanceDatabaseDetailReadService,
+)
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
 from app.services.instances.instance_database_table_sizes_service import (
     InstanceDatabaseTableSizesService,
 )
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
-from app.types.common_filter_options import CommonDatabasesOptionsFilters
-from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
-from app.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
+from app.core.types.common_filter_options import CommonDatabasesOptionsFilters
+from app.core.types.instance_database_sizes import InstanceDatabaseSizesQuery
+from app.core.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
+from app.core.constants.validation_limits import DATABASE_TABLE_SIZES_LIMIT_MAX
 from app.utils.time_utils import time_utils
 
 ns = Namespace("databases", description="数据库管理")
@@ -167,8 +169,62 @@ DatabaseTableSizesSuccessEnvelope = make_success_envelope_model(
 )
 
 
-def _parse_tags() -> list[str]:
-    return [tag.strip() for tag in request.args.getlist("tags") if tag and tag.strip()]
+_databases_options_query_parser = new_parser()
+_databases_options_query_parser.add_argument("instance_id", type=int, location="args")
+_databases_options_query_parser.add_argument("page", type=int, default=1, location="args")
+_databases_options_query_parser.add_argument("limit", type=int, default=100, location="args")
+_databases_options_query_parser.add_argument("offset", type=str, location="args")
+
+_database_ledgers_query_parser = new_parser()
+_database_ledgers_query_parser.add_argument("search", type=str, default="", location="args")
+_database_ledgers_query_parser.add_argument("db_type", type=str, default="all", location="args")
+_database_ledgers_query_parser.add_argument("instance_id", type=int, location="args")
+_database_ledgers_query_parser.add_argument("tags", type=str, action="append", location="args")
+_database_ledgers_query_parser.add_argument("page", type=int, default=1, location="args")
+_database_ledgers_query_parser.add_argument("limit", type=int, default=20, location="args")
+
+_database_ledgers_export_query_parser = new_parser()
+_database_ledgers_export_query_parser.add_argument("search", type=str, default="", location="args")
+_database_ledgers_export_query_parser.add_argument("db_type", type=str, default="all", location="args")
+_database_ledgers_export_query_parser.add_argument("instance_id", type=int, location="args")
+_database_ledgers_export_query_parser.add_argument("tags", type=str, action="append", location="args")
+
+_databases_sizes_query_parser = new_parser()
+_databases_sizes_query_parser.add_argument("instance_id", type=int, location="args")
+_databases_sizes_query_parser.add_argument("start_date", type=str, location="args")
+_databases_sizes_query_parser.add_argument("end_date", type=str, location="args")
+_databases_sizes_query_parser.add_argument("database_name", type=str, location="args")
+_databases_sizes_query_parser.add_argument("latest_only", type=bool_with_default(False), default=False, location="args")
+_databases_sizes_query_parser.add_argument(
+    "include_inactive",
+    type=bool_with_default(False),
+    default=False,
+    location="args",
+)
+_databases_sizes_query_parser.add_argument("page", type=int, default=1, location="args")
+_databases_sizes_query_parser.add_argument("limit", type=int, default=100, location="args")
+_databases_sizes_query_parser.add_argument("offset", type=str, location="args")
+
+_database_table_sizes_query_parser = new_parser()
+_database_table_sizes_query_parser.add_argument("schema_name", type=str, location="args")
+_database_table_sizes_query_parser.add_argument("table_name", type=str, location="args")
+_database_table_sizes_query_parser.add_argument("page", type=int, default=1, location="args")
+_database_table_sizes_query_parser.add_argument("limit", type=int, default=200, location="args")
+_database_table_sizes_query_parser.add_argument("offset", type=str, location="args")
+
+
+def _parse_tags(raw_tags: list[str] | None) -> list[str]:
+    return split_comma_separated(raw_tags)
+
+
+def _parse_optional_date(value: str | None, field: str) -> date | None:
+    if not value:
+        return None
+    try:
+        parsed_dt = time_utils.to_china(value + "T00:00:00")
+        return parsed_dt.date() if parsed_dt else None
+    except Exception as exc:
+        raise ValidationError(f"{field} 格式错误,应为 YYYY-MM-DD") from exc
 
 
 @ns.route("/options")
@@ -183,29 +239,31 @@ class DatabasesOptionsResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_databases_options_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取数据库选项."""
 
         def _execute():
-            instance_id = request.args.get("instance_id", type=int)
-            if not instance_id:
-                raise ValidationError("instance_id 为必填参数")
+            parsed = cast("dict[str, object]", _databases_options_query_parser.parse_args())
 
-            instance = Instance.query.get(instance_id)
-            if not instance:
-                raise NotFoundError("实例不存在")
-
-            if "offset" in request.args:
+            if parsed.get("offset") is not None:
                 raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
 
-            page = resolve_page(request.args, default=1, minimum=1)
-            limit = resolve_page_size(
-                request.args,
-                default=100,
-                minimum=1,
-                maximum=1000,
-            )
+            instance_id = parsed.get("instance_id")
+            if not isinstance(instance_id, int) or instance_id <= 0:
+                raise ValidationError("instance_id 为必填参数")
+
+            instance = InstanceDetailReadService().get_instance_by_id(instance_id)
+            if instance is None:
+                raise NotFoundError("实例不存在")
+
+            raw_page = parsed.get("page")
+            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+            raw_limit = parsed.get("limit")
+            limit = int(raw_limit) if isinstance(raw_limit, int) else 100
+            limit = max(min(limit, 1000), 1)
             offset = (page - 1) * limit
 
             result = FilterOptionsService().get_common_databases_options(
@@ -248,21 +306,28 @@ class DatabaseLedgersResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_database_ledgers_query_parser)
     def get(self):
         """获取数据库台账."""
-        search = (request.args.get("search") or "").strip()
-        db_type = request.args.get("db_type", "all")
-        instance_id = request.args.get("instance_id", type=int)
-        tags = _parse_tags()
-        page = resolve_page(request.args, default=1, minimum=1)
-        limit = resolve_page_size(
-            request.args,
-            default=20,
-            minimum=1,
-            maximum=200,
-        )
+        query_snapshot = request.args.to_dict(flat=False)
 
         def _execute():
+            parsed = cast("dict[str, object]", _database_ledgers_query_parser.parse_args())
+            search = str(parsed.get("search") or "").strip()
+            db_type = str(parsed.get("db_type") or "all").strip() or "all"
+            raw_instance_id = parsed.get("instance_id")
+            instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+
+            raw_tags = parsed.get("tags")
+            tags = _parse_tags(raw_tags if isinstance(raw_tags, list) else None)
+
+            raw_page = parsed.get("page")
+            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+            raw_limit = parsed.get("limit")
+            limit = int(raw_limit) if isinstance(raw_limit, int) else 20
+            limit = max(min(limit, 200), 1)
+
             result = DatabaseLedgerService().get_ledger(
                 search=search,
                 db_type=db_type,
@@ -288,12 +353,7 @@ class DatabaseLedgersResource(BaseResource):
             action="fetch_ledger",
             public_error="获取数据库台账失败",
             context={
-                "search": search,
-                "db_type": db_type,
-                "instance_id": instance_id,
-                "tags_count": len(tags),
-                "page": page,
-                "limit": limit,
+                "query_params": query_snapshot,
             },
         )
 
@@ -308,19 +368,22 @@ class DatabaseLedgersExportResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_database_ledgers_export_query_parser)
     @api_permission_required("view")
     def get(self):
         """导出数据库台账."""
-        search = (request.args.get("search", "", type=str) or "").strip()
-        db_type = request.args.get("db_type", "all", type=str)
-        instance_id = request.args.get("instance_id", type=int)
-        tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
-        if not tags:
-            raw_tags = request.args.get("tags", "")
-            if raw_tags:
-                tags = [item.strip() for item in raw_tags.split(",") if item.strip()]
+        query_snapshot = request.args.to_dict(flat=False)
 
         def _execute() -> Response:
+            parsed = cast("dict[str, object]", _database_ledgers_export_query_parser.parse_args())
+            search = str(parsed.get("search") or "").strip()
+            db_type = str(parsed.get("db_type") or "all").strip() or "all"
+            raw_instance_id = parsed.get("instance_id")
+            instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+
+            raw_tags = parsed.get("tags")
+            tags = _parse_tags(raw_tags if isinstance(raw_tags, list) else None)
+
             result = DatabaseLedgerExportService().export_database_ledger_csv(
                 search=search,
                 db_type=db_type,
@@ -339,9 +402,7 @@ class DatabaseLedgersExportResource(BaseResource):
             action="export_database_ledger",
             public_error="导出数据库台账失败",
             context={
-                "search": search,
-                "db_type": db_type,
-                "tags_count": len(tags),
+                "query_params": query_snapshot,
             },
         )
 
@@ -358,52 +419,38 @@ class DatabasesSizesResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_databases_sizes_query_parser)
     @api_permission_required("view")
     def get(self):
         """获取实例数据库大小数据."""
         query_snapshot = request.args.to_dict(flat=False)
 
-        instance_id = request.args.get("instance_id", type=int)
-        if not instance_id:
-            raise ValidationError("缺少 instance_id")
-
-        if "offset" in request.args:
-            raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
-
-        def _parse_date(value: str | None, field: str) -> date | None:
-            if not value:
-                return None
-            try:
-                parsed_dt = time_utils.to_china(value + "T00:00:00")
-                return parsed_dt.date() if parsed_dt else None
-            except Exception as exc:
-                raise ValidationError(f"{field} 格式错误,应为 YYYY-MM-DD") from exc
-
-        def _parse_int(value: object | None, *, field: str, default: int) -> int:
-            if value is None or value == "":
-                return default
-
-            def _convert() -> int:
-                if isinstance(value, (bool, int, float, str)):
-                    return int(value)
-                raise TypeError
-
-            try:
-                return _convert()
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"{field} 必须为整数") from exc
-
         def _execute():
+            parsed = cast("dict[str, object]", _databases_sizes_query_parser.parse_args())
+
+            if parsed.get("offset") is not None:
+                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
+
+            instance_id = parsed.get("instance_id")
+            if not isinstance(instance_id, int) or instance_id <= 0:
+                raise ValidationError("缺少 instance_id")
+
             InstanceDetailReadService().get_active_instance(instance_id)
 
-            start_date_raw = request.args.get("start_date")
-            end_date_raw = request.args.get("end_date")
-            database_name = request.args.get("database_name")
-            latest_only = request.args.get("latest_only", "false").lower() == "true"
-            include_inactive = request.args.get("include_inactive", "false").lower() == "true"
+            raw_start_date = parsed.get("start_date")
+            start_date_raw = raw_start_date if isinstance(raw_start_date, str) else None
+            raw_end_date = parsed.get("end_date")
+            end_date_raw = raw_end_date if isinstance(raw_end_date, str) else None
+            raw_database_name = parsed.get("database_name")
+            database_name = raw_database_name if isinstance(raw_database_name, str) else None
+            latest_only = bool(parsed.get("latest_only") or False)
+            include_inactive = bool(parsed.get("include_inactive") or False)
 
-            page = resolve_page(request.args, default=1, minimum=1)
-            limit = _parse_int(request.args.get("limit"), field="limit", default=100)
+            raw_page = parsed.get("page")
+            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+            raw_limit = parsed.get("limit")
+            limit = int(raw_limit) if isinstance(raw_limit, int) else 100
             if limit < 1:
                 limit = 100
             offset = (page - 1) * limit
@@ -411,8 +458,8 @@ class DatabasesSizesResource(BaseResource):
             options = InstanceDatabaseSizesQuery(
                 instance_id=instance_id,
                 database_name=database_name,
-                start_date=_parse_date(start_date_raw, "start_date"),
-                end_date=_parse_date(end_date_raw, "end_date"),
+                start_date=_parse_optional_date(start_date_raw, "start_date"),
+                end_date=_parse_optional_date(end_date_raw, "end_date"),
                 include_inactive=include_inactive,
                 limit=limit,
                 offset=offset,
@@ -450,7 +497,7 @@ class DatabasesSizesResource(BaseResource):
             action="get_database_sizes",
             public_error="获取数据库大小历史数据失败",
             expected_exceptions=(ValidationError,),
-            context={"instance_id": instance_id, "query_params": query_snapshot},
+            context={"query_params": query_snapshot},
         )
 
 
@@ -466,42 +513,34 @@ class DatabaseTableSizesSnapshotResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_database_table_sizes_query_parser)
     @api_permission_required("view")
     def get(self, database_id: int):
         """获取指定数据库的表容量快照."""
         query_snapshot = request.args.to_dict(flat=False)
 
-        if "offset" in request.args:
-            raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
-
-        def _parse_int(value: object | None, *, field: str, default: int) -> int:
-            if value is None or value == "":
-                return default
-
-            def _convert() -> int:
-                if isinstance(value, (bool, int, float, str)):
-                    return int(value)
-                raise TypeError
-
-            try:
-                return _convert()
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"{field} 必须为整数") from exc
-
         def _execute():
-            record = InstanceDatabase.query.filter_by(id=database_id).first()
-            if record is None:
-                raise NotFoundError("数据库不存在")
+            parsed = cast("dict[str, object]", _database_table_sizes_query_parser.parse_args())
+
+            if parsed.get("offset") is not None:
+                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
+
+            record = InstanceDatabaseDetailReadService().get_by_id_or_error(database_id)
 
             InstanceDetailReadService().get_active_instance(record.instance_id)
 
-            schema_name = request.args.get("schema_name")
-            table_name = request.args.get("table_name")
+            raw_schema_name = parsed.get("schema_name")
+            schema_name = raw_schema_name if isinstance(raw_schema_name, str) else None
+            raw_table_name = parsed.get("table_name")
+            table_name = raw_table_name if isinstance(raw_table_name, str) else None
 
-            page = resolve_page(request.args, default=1, minimum=1)
-            limit = _parse_int(request.args.get("limit"), field="limit", default=200)
-            if limit > 2000:
-                raise ValidationError("limit 最大为 2000")
+            raw_page = parsed.get("page")
+            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+            raw_limit = parsed.get("limit")
+            limit = int(raw_limit) if isinstance(raw_limit, int) else 200
+            if limit > DATABASE_TABLE_SIZES_LIMIT_MAX:
+                raise ValidationError(f"limit 最大为 {DATABASE_TABLE_SIZES_LIMIT_MAX}")
             if limit < 1:
                 limit = 200
             offset = (page - 1) * limit
@@ -558,36 +597,39 @@ class DatabaseTableSizesRefreshResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(409, "Conflict", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_database_table_sizes_query_parser)
     @require_csrf
     def post(self, database_id: int):
         """手动采集并刷新表容量快照."""
         query_snapshot = request.args.to_dict(flat=False)
 
-        if "offset" in request.args:
-            raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
-
-        def _parse_int(value: object | None, *, field: str, default: int) -> int:
-            if value is None or value == "":
-                return default
-
-            def _convert() -> int:
-                if isinstance(value, (bool, int, float, str)):
-                    return int(value)
-                raise TypeError
-
-            try:
-                return _convert()
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"{field} 必须为整数") from exc
-
         def _execute():
-            record = InstanceDatabase.query.filter_by(id=database_id).first()
-            if record is None:
-                raise NotFoundError("数据库不存在")
+            parsed = cast("dict[str, object]", _database_table_sizes_query_parser.parse_args())
 
-            instance = Instance.query.filter_by(id=record.instance_id).first()
+            if parsed.get("offset") is not None:
+                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
+
+            raw_schema_name = parsed.get("schema_name")
+            schema_name = raw_schema_name if isinstance(raw_schema_name, str) else None
+            raw_table_name = parsed.get("table_name")
+            table_name = raw_table_name if isinstance(raw_table_name, str) else None
+
+            raw_page = parsed.get("page")
+            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+            raw_limit = parsed.get("limit")
+            limit = int(raw_limit) if isinstance(raw_limit, int) else 200
+            if limit > DATABASE_TABLE_SIZES_LIMIT_MAX:
+                raise ValidationError(f"limit 最大为 {DATABASE_TABLE_SIZES_LIMIT_MAX}")
+            if limit < 1:
+                limit = 200
+            offset = (page - 1) * limit
+
+            record = InstanceDatabaseDetailReadService().get_by_id_or_error(database_id)
+
+            instance = InstanceDetailReadService().get_instance_by_id(record.instance_id)
             if instance is None:
-                raise NotFoundError("实例不存在")
+                raise NotFoundError("实例不存在", extra={"instance_id": record.instance_id})
 
             coordinator = database_sync_module.TableSizeCoordinator(instance)
             if not coordinator.connect(record.database_name):
@@ -608,16 +650,6 @@ class DatabaseTableSizesRefreshResource(BaseResource):
                         message_key="SYNC_DATA_ERROR",
                         extra={"instance_id": instance.id, "database_name": record.database_name},
                     )
-
-                schema_name = request.args.get("schema_name")
-                table_name = request.args.get("table_name")
-                page = resolve_page(request.args, default=1, minimum=1)
-                limit = _parse_int(request.args.get("limit"), field="limit", default=200)
-                if limit > 2000:
-                    raise ValidationError("limit 最大为 2000")
-                if limit < 1:
-                    limit = 200
-                offset = (page - 1) * limit
 
                 options = InstanceDatabaseTableSizesQuery(
                     instance_id=instance.id,

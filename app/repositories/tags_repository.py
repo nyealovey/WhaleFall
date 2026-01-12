@@ -15,8 +15,8 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.models.tag import Tag, instance_tags
-from app.types.listing import PaginatedResult
-from app.types.tags import TagListFilters, TagListRowProjection, TagStats
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagListFilters, TagListRowProjection, TagStats
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
@@ -35,6 +35,14 @@ class TagsRepository:
         if not normalized:
             return None
         return Tag.query.filter_by(name=normalized).first()
+
+    @staticmethod
+    def list_tags_by_ids(tag_ids: Sequence[int]) -> list[Tag]:
+        """按 ID 列表获取标签."""
+        normalized_ids = [int(tag_id) for tag_id in (tag_ids or []) if tag_id]
+        if not normalized_ids:
+            return []
+        return Tag.query.filter(Tag.id.in_(normalized_ids)).all()
 
     def add(self, tag: Tag) -> Tag:
         """新增标签并 flush."""

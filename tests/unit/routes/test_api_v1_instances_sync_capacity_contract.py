@@ -3,7 +3,7 @@ from datetime import date, datetime
 import pytest
 
 from app import db
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 

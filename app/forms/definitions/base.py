@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Generic, Protocol, TypeVar
 
-from app.types import (
+from app.core.types import (
     MutablePayloadDict,
     PayloadMapping,
     ResourceContext,
@@ -109,7 +109,7 @@ class ResourceFormDefinition(Generic[ResourceModelT]):
     Attributes:
         name: 资源英文名(如 instance、credential)
         template: 渲染所用的模板路径
-        service_class: 负责持久化的服务类型
+        service_class: 负责持久化的服务类型(已弃用,迁移期兼容)
         fields: 字段定义列表
         success_message: 保存成功后的提示语
         redirect_endpoint: 保存成功后跳转的端点
@@ -120,7 +120,7 @@ class ResourceFormDefinition(Generic[ResourceModelT]):
 
     name: str
     template: str
-    service_class: type[ResourceFormHandler[ResourceModelT]]
+    service_class: type[ResourceFormHandler[ResourceModelT]] | None = None
     fields: list[ResourceFormField] = field(default_factory=list)
     success_message: str = "保存成功"
     redirect_endpoint: str | None = None

@@ -14,8 +14,8 @@ scope: 批量分配标签与批量移除标签(以 remove-all 为 UI 主路径)
 related:
   - "[[API/tags-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[reference/server/tags-bulk-actions-service]]"
-  - "[[reference/server/tags-write-service]]"
+  - "[[reference/service/tags-bulk-actions-service]]"
+  - "[[reference/service/tags-write-service]]"
   - "[[canvas/tags/tags-bulk-flow.canvas]]"
 ---
 
@@ -78,12 +78,12 @@ flowchart TD
 
 ## 深读(服务层文档)
 
-- [[reference/server/tags-bulk-actions-service]]
-- [[reference/server/tags-write-service]]
+- [[reference/service/tags-bulk-actions-service]]
+- [[reference/service/tags-write-service]]
 
 ## 相关 domain notes
 
-- [[architecture/tags-domain]]
+- [[architecture/domain/tags-domain]]
 
 ## 常见 message_code
 

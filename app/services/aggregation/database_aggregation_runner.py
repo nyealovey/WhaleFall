@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, cast
 
-from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.database_size_aggregation import DatabaseSizeAggregation
-from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
+from app.repositories.aggregation_runner_repository import AggregationRunnerRepository
+from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.callbacks import RunnerCallbacks
 from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
@@ -69,6 +69,7 @@ class DatabaseAggregationRunner:
         commit_with_partition_retry: Callable[[date], None],
         period_calculator: PeriodCalculator,
         module: str,
+        repository: AggregationRunnerRepository | None = None,
     ) -> None:
         """初始化数据库聚合执行器.
 
@@ -83,6 +84,7 @@ class DatabaseAggregationRunner:
         self._commit_with_partition_retry = commit_with_partition_retry
         self._period_calculator = period_calculator
         self._module = module
+        self._repository = repository or AggregationRunnerRepository()
 
     def _invoke_callback(self, callback: Callable[..., None] | None, *args: object) -> None:
         """安全执行回调.
@@ -132,7 +134,7 @@ class DatabaseAggregationRunner:
             周期聚合结果字典,包含处理统计和错误信息.
 
         """
-        instances = Instance.query.filter_by(is_active=True).all()
+        instances = InstancesRepository.list_active_instances()
         summary = PeriodSummary(
             period_type=period_type,
             start_date=start_date,
@@ -347,24 +349,10 @@ class DatabaseAggregationRunner:
             list[DatabasePeriodMetrics]: 每个数据库的聚合指标列表.
 
         """
-        rows = (
-            db.session.query(
-                DatabaseSizeStat.database_name.label("database_name"),
-                func.avg(DatabaseSizeStat.size_mb).label("avg_size_mb"),
-                func.max(DatabaseSizeStat.size_mb).label("max_size_mb"),
-                func.min(DatabaseSizeStat.size_mb).label("min_size_mb"),
-                func.count(DatabaseSizeStat.id).label("data_count"),
-                func.avg(DatabaseSizeStat.data_size_mb).label("avg_data_size_mb"),
-                func.max(DatabaseSizeStat.data_size_mb).label("max_data_size_mb"),
-                func.min(DatabaseSizeStat.data_size_mb).label("min_data_size_mb"),
-            )
-            .filter(
-                DatabaseSizeStat.instance_id == instance_id,
-                DatabaseSizeStat.collected_date >= start_date,
-                DatabaseSizeStat.collected_date <= end_date,
-            )
-            .group_by(DatabaseSizeStat.database_name)
-            .all()
+        rows = self._repository.list_database_size_stat_metrics(
+            instance_id=instance_id,
+            start_date=start_date,
+            end_date=end_date,
         )
 
         metrics: list[DatabasePeriodMetrics] = []
@@ -395,19 +383,10 @@ class DatabaseAggregationRunner:
     ) -> dict[str, tuple[float, float | None]]:
         """查询上一周期各数据库的平均值,用于计算增量指标."""
         prev_start, prev_end = self._period_calculator.get_previous_period(period_type, start_date, end_date)
-        rows = (
-            db.session.query(
-                DatabaseSizeStat.database_name.label("database_name"),
-                func.avg(DatabaseSizeStat.size_mb).label("avg_size_mb"),
-                func.avg(DatabaseSizeStat.data_size_mb).label("avg_data_size_mb"),
-            )
-            .filter(
-                DatabaseSizeStat.instance_id == instance_id,
-                DatabaseSizeStat.collected_date >= prev_start,
-                DatabaseSizeStat.collected_date <= prev_end,
-            )
-            .group_by(DatabaseSizeStat.database_name)
-            .all()
+        rows = self._repository.list_database_size_stat_averages(
+            instance_id=instance_id,
+            start_date=prev_start,
+            end_date=prev_end,
         )
 
         averages: dict[str, tuple[float, float | None]] = {}
@@ -437,12 +416,12 @@ class DatabaseAggregationRunner:
 
         self._ensure_partition_for_date(start_date)
 
-        existing = DatabaseSizeAggregation.query.filter(
-            DatabaseSizeAggregation.instance_id == instance.id,
-            DatabaseSizeAggregation.period_type == period_type,
-            DatabaseSizeAggregation.period_start == start_date,
-        ).all()
-        existing_by_db = {agg.database_name: agg for agg in existing}
+        existing = self._repository.list_existing_database_aggregations(
+            instance_id=instance.id,
+            period_type=period_type,
+            period_start=start_date,
+        )
+        existing_by_db: dict[str, DatabaseSizeAggregation] = {cast(str, agg.database_name): agg for agg in existing}
 
         previous_averages = self._query_previous_period_averages(
             instance_id=instance.id,

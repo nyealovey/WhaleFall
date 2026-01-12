@@ -11,7 +11,7 @@ from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.types.orm_kwargs import AccountPermissionOrmFields
+    from app.core.types.orm_kwargs import AccountPermissionOrmFields
 
 
 class AccountPermission(BaseSyncData):

@@ -9,9 +9,9 @@ from flask.typing import ResponseReturnValue
 from flask_login import current_user
 from flask_wtf.csrf import CSRFError, validate_csrf
 
-from app.constants import FlashCategory, HttpHeaders, UserRole
-from app.constants.system_constants import ErrorMessages
-from app.errors import AuthenticationError, AuthorizationError
+from app.core.constants import FlashCategory, HttpHeaders, UserRole
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.utils.structlog_config import get_system_logger, should_log_debug
 
 P = ParamSpec("P")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from app.services.database_sync.table_size_adapters.base_adapter import BaseTableSizeAdapter
 
@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 else:
     Instance = Any
     DatabaseConnection = Any
+
+_ROW_COUNT_COLUMN_INDEX: Final[int] = 5
 
 
 class SQLServerTableSizeAdapter(BaseTableSizeAdapter):
@@ -70,7 +72,9 @@ class SQLServerTableSizeAdapter(BaseTableSizeAdapter):
                     "size_mb": self._safe_to_int(row[2]) or 0,
                     "data_size_mb": self._safe_to_int(row[3]),
                     "index_size_mb": self._safe_to_int(row[4]),
-                    "row_count": self._safe_to_int(row[5] if len(row) > 5 else None),
+                    "row_count": self._safe_to_int(
+                        row[_ROW_COUNT_COLUMN_INDEX] if len(row) > _ROW_COUNT_COLUMN_INDEX else None,
+                    ),
                 },
             )
 

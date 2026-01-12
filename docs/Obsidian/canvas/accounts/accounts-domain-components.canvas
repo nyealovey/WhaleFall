@@ -20,7 +20,7 @@
 		{"id":"850edf3f49a9cee9","type":"text","text":"### Models\n\n- `SyncSession` (`app/models/sync_session.py`)\n- `SyncInstanceRecord` (`app/models/sync_instance_record.py`)\n","x":0,"y":1000,"width":420,"height":200,"color":"1"},
 		{"id":"e7343026e78994c9","type":"text","text":"### Model\n\n- `InstanceAccount` (`app/models/instance_account.py`)\n","x":920,"y":1000,"width":420,"height":200,"color":"1"},
 		{"id":"2e841f4e65f3a577","type":"text","text":"### Models\n\n- `AccountPermission` (`app/models/account_permission.py`)\n- `AccountChangeLog` (`app/models/account_change_log.py`)\n","x":1380,"y":1000,"width":420,"height":220,"color":"1"},
-		{"id":"056695ae829c6756","type":"file","file":"architecture/accounts-permissions-domain.md","subpath":"#图(Canvas)","x":2360,"y":-80,"width":1200,"height":200,"color":"2"}
+		{"id":"056695ae829c6756","type":"file","file":"architecture/domain/accounts-permissions-domain.md","subpath":"#图(Canvas)","x":2360,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"fdf7b32ada40809f","fromNode":"9c73bbb605ecceb4","fromSide":"right","toNode":"ac54b61eb8db2b85","toSide":"left","label":"trigger"},

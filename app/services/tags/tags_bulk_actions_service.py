@@ -12,9 +12,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, cast
 
-from app.errors import NotFoundError
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
+from app.core.exceptions import NotFoundError
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.repositories.instances_repository import InstancesRepository
+from app.repositories.tags_repository import TagsRepository
 from app.utils.structlog_config import log_info
 
 
@@ -52,14 +55,14 @@ class TagsBulkActionsService:
 
     @staticmethod
     def _get_instances(instance_ids: list[int]) -> list[Instance]:
-        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        instances = InstancesRepository.list_instances_by_ids(instance_ids)
         if not instances:
             raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
         return instances
 
     @staticmethod
     def _get_tags(tag_ids: list[int]) -> list[Tag]:
-        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
+        tags = TagsRepository.list_tags_by_ids(tag_ids)
         if not tags:
             raise NotFoundError("未找到任何标签", extra={"tag_ids": tag_ids})
         return tags
@@ -155,5 +158,5 @@ class TagsBulkActionsService:
             all_tags.update(tags_relation.all())
 
         tags_data = [tag.to_dict() for tag in all_tags]
-        category_names = dict(Tag.get_category_choices())
+        category_names = dict(TAG_CATEGORY_CHOICES)
         return TagsBulkInstanceTagsResult(tags=tags_data, category_names=category_names)

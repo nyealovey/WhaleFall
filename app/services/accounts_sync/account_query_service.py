@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
-
-from sqlalchemy.orm import contains_eager, load_only
-
 from app.models.account_permission import AccountPermission
-from app.models.instance_account import InstanceAccount
+from app.repositories.accounts_sync_repository import AccountsSyncRepository
 
 
 def get_accounts_by_instance(
@@ -29,32 +25,8 @@ def get_accounts_by_instance(
         账户权限对象列表,按用户名升序排列.
 
     """
-    instance_account_rel = cast("Any", AccountPermission.instance_account)
-    query = (
-        AccountPermission.query.join(instance_account_rel)
-        .options(
-            contains_eager(instance_account_rel).load_only(
-                InstanceAccount.is_active,
-                InstanceAccount.deleted_at,
-            ),
-        )
-        .filter(AccountPermission.instance_id == instance_id)
+    return AccountsSyncRepository.list_account_permissions_by_instance(
+        instance_id,
+        include_inactive=include_inactive,
+        include_permission_details=include_permission_details,
     )
-    if not include_permission_details:
-        query = query.options(
-            load_only(
-                AccountPermission.id,
-                AccountPermission.instance_id,
-                AccountPermission.db_type,
-                AccountPermission.instance_account_id,
-                AccountPermission.username,
-                AccountPermission.type_specific,
-                AccountPermission.permission_facts,
-                AccountPermission.last_sync_time,
-                AccountPermission.last_change_type,
-                AccountPermission.last_change_time,
-            ),
-        )
-    if not include_inactive:
-        query = query.filter(InstanceAccount.is_active.is_(True))
-    return query.order_by(AccountPermission.username.asc()).all()

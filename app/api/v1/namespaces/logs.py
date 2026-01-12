@@ -6,24 +6,23 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import ClassVar, cast
 
-from flask import request
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.history import (
     HISTORY_LOG_ITEM_FIELDS,
     HISTORY_LOG_MODULES_FIELDS,
     HISTORY_LOG_STATISTICS_FIELDS,
     HISTORY_LOG_TOP_MODULE_FIELDS,
 )
-from app.constants.system_constants import LogLevel
-from app.errors import ValidationError
+from app.core.constants.system_constants import LogLevel
+from app.core.exceptions import ValidationError
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
-from app.types.history_logs import LogSearchFilters
-from app.utils.pagination_utils import resolve_page, resolve_page_size
+from app.core.types.history_logs import LogSearchFilters
 from app.utils.structlog_config import log_info
 
 ns = Namespace("history_logs", description="日志中心")
@@ -81,6 +80,21 @@ HistoryLogDetailSuccessEnvelope = make_success_envelope_model(
     HistoryLogDetailData,
 )
 
+_history_logs_list_query_parser = new_parser()
+_history_logs_list_query_parser.add_argument("page", type=int, default=1, location="args")
+_history_logs_list_query_parser.add_argument("limit", type=int, default=20, location="args")
+_history_logs_list_query_parser.add_argument("sort", type=str, default="timestamp", location="args")
+_history_logs_list_query_parser.add_argument("order", type=str, default="desc", location="args")
+_history_logs_list_query_parser.add_argument("level", type=str, location="args")
+_history_logs_list_query_parser.add_argument("module", type=str, location="args")
+_history_logs_list_query_parser.add_argument("search", type=str, default="", location="args")
+_history_logs_list_query_parser.add_argument("start_time", type=str, location="args")
+_history_logs_list_query_parser.add_argument("end_time", type=str, location="args")
+_history_logs_list_query_parser.add_argument("hours", type=int, location="args")
+
+_history_log_statistics_query_parser = new_parser()
+_history_log_statistics_query_parser.add_argument("hours", type=int, default=24, location="args")
+
 
 def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
     if not raw_value:
@@ -91,45 +105,46 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
         return None
 
 
-def _resolve_hours_param(raw_hours: str | None) -> int | None:
-    if not raw_hours:
+def _resolve_hours_param(raw_hours: int | None) -> int | None:
+    if raw_hours is None:
         return None
-    try:
-        hours = int(raw_hours)
-    except ValueError as exc:
-        raise ValidationError("hours 参数格式无效") from exc
+    hours = int(raw_hours)
     if hours < 1:
         raise ValidationError("hours 参数必须为正整数")
     max_hours = 24 * 90
     return min(hours, max_hours)
 
 
-def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilters:
-    page = resolve_page(args, default=1, minimum=1)
-    limit = resolve_page_size(
-        args,
-        default=20,
-        minimum=1,
-        maximum=200,
-    )
-    sort_field = (args.get("sort") or "timestamp").lower()
-    sort_order = (args.get("order") or "desc").lower()
+def _extract_log_search_filters(parsed: Mapping[str, object]) -> LogSearchFilters:
+    raw_page = parsed.get("page")
+    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
+
+    raw_limit = parsed.get("limit")
+    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
+    limit = max(min(limit, 200), 1)
+    sort_field = str(parsed.get("sort") or "timestamp").lower()
+    sort_order = str(parsed.get("order") or "desc").lower()
     if sort_order not in {"asc", "desc"}:
         sort_order = "desc"
 
-    level_param = args.get("level")
+    level_param = parsed.get("level")
     log_level = None
-    if level_param:
+    if isinstance(level_param, str) and level_param.strip():
         try:
-            log_level = LogLevel(level_param.upper())
+            log_level = LogLevel(level_param.strip().upper())
         except ValueError as exc:
             raise ValidationError("日志级别参数无效") from exc
 
-    module_param = args.get("module")
-    search_term = (args.get("search") or "").strip()
-    start_time = _parse_iso_datetime(args.get("start_time"))
-    end_time = _parse_iso_datetime(args.get("end_time"))
-    hours = _resolve_hours_param(args.get("hours"))
+    module_value = parsed.get("module")
+    module_param = module_value.strip() if isinstance(module_value, str) and module_value.strip() else None
+    search_term = str(parsed.get("search") or "").strip()
+
+    start_time_raw = parsed.get("start_time")
+    end_time_raw = parsed.get("end_time")
+    start_time = _parse_iso_datetime(start_time_raw if isinstance(start_time_raw, str) else None)
+    end_time = _parse_iso_datetime(end_time_raw if isinstance(end_time_raw, str) else None)
+    raw_hours = parsed.get("hours")
+    hours = _resolve_hours_param(raw_hours if isinstance(raw_hours, int) else None)
 
     return LogSearchFilters(
         page=page,
@@ -156,11 +171,13 @@ class HistoryLogsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_history_logs_list_query_parser)
     def get(self):
         """获取日志列表(支持 query 过滤)."""
 
         def _execute():
-            filters = _extract_log_search_filters(request.args)
+            parsed = cast("dict[str, object]", _history_logs_list_query_parser.parse_args())
+            filters = _extract_log_search_filters(parsed)
             result = HistoryLogsListService().list_logs(filters)
             items = marshal(result.items, HISTORY_LOG_ITEM_FIELDS)
             return self.success(
@@ -194,16 +211,13 @@ class HistoryLogStatisticsResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_history_log_statistics_query_parser)
     def get(self):
         """获取日志统计."""
 
         def _execute():
-            hours = resolve_page_size(  # reuse for integer parsing with caps
-                {"limit": request.args.get("hours")},
-                default=24,
-                minimum=1,
-                maximum=24 * 90,
-            )
+            parsed = _history_log_statistics_query_parser.parse_args()
+            hours = _resolve_hours_param(parsed.get("hours") if isinstance(parsed.get("hours"), int) else None) or 24
             result = HistoryLogsExtrasService().get_statistics(hours=hours)
             stats = cast("dict[str, object]", marshal(result, HISTORY_LOG_STATISTICS_FIELDS))
             total_logs_value = stats.get("total_logs")
@@ -280,4 +294,3 @@ class HistoryLogDetailResource(BaseResource):
             public_error="获取日志详情失败",
             context={"log_id": log_id},
         )
-

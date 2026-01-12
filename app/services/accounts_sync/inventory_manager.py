@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.instance_account import InstanceAccount
+from app.repositories.accounts_sync_repository import AccountsSyncRepository
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from app.models.instance import Instance
-    from app.types import RemoteAccount
+    from app.core.types import RemoteAccount
 
 
 class AccountInventoryManager:
@@ -29,9 +30,10 @@ class AccountInventoryManager:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, repository: AccountsSyncRepository | None = None) -> None:
         """初始化账户清单管理器."""
         self.logger = get_sync_logger()
+        self._repository = repository or AccountsSyncRepository()
 
     def synchronize(
         self,
@@ -73,7 +75,7 @@ class AccountInventoryManager:
         """
         remote_accounts, now_ts = list(remote_accounts or []), time_utils.now()
 
-        existing_accounts = InstanceAccount.query.filter_by(instance_id=instance.id).all()
+        existing_accounts = self._repository.list_instance_accounts(instance_id=instance.id)
         existing_map = {account.username: account for account in existing_accounts}
 
         seen_usernames: set[str] = set()

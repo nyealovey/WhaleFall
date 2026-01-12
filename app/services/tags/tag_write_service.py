@@ -15,19 +15,19 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import NotFoundError, ValidationError
+from app.core.exceptions import NotFoundError, ValidationError
 from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
 from app.schemas.tags import TagUpdatePayload, TagUpsertPayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
-from app.utils.route_safety import log_with_context
+from app.utils.request_payload import parse_payload
+from app.infra.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from app.types import ResourcePayload
+    from app.core.types import ResourcePayload
 
 
 @dataclass(slots=True)
@@ -51,9 +51,9 @@ class TagBatchDeleteOutcome:
 class TagWriteService:
     """标签写操作服务."""
 
-    def __init__(self, repository: TagsRepository) -> None:
+    def __init__(self, repository: TagsRepository | None = None) -> None:
         """初始化写操作服务."""
-        self._repository = repository
+        self._repository = repository or TagsRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
         """创建标签."""
@@ -75,7 +75,6 @@ class TagWriteService:
         try:
             self._repository.add(tag)
         except SQLAlchemyError as exc:
-            db.session.rollback()
             raise ValidationError("保存失败,请稍后再试", extra={"exception": str(exc)}) from exc
 
         self._log_create(tag, operator_id=operator_id)
@@ -105,7 +104,6 @@ class TagWriteService:
         try:
             self._repository.add(tag)
         except SQLAlchemyError as exc:
-            db.session.rollback()
             raise ValidationError("保存失败,请稍后再试", extra={"exception": str(exc)}) from exc
 
         self._log_update(tag, operator_id=operator_id)

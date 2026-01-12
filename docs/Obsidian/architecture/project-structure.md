@@ -74,9 +74,9 @@ related:
 | `app/templates/**` | Jinja2 模板 |
 | `app/static/**` | 静态资源与前端模块(含 vendor) |
 | `app/utils/**` | 可复用工具(纯函数优先), 不承载业务规则 |
-| `app/types/**` | 类型别名, 协议, TypedDict 等 |
-| `app/constants/**` | 常量与枚举 |
-| `app/errors/**` | 统一错误类型(AppError 体系) |
+| `app/core/types/**` | 类型别名, 协议, TypedDict 等 |
+| `app/core/constants/**` | 常量与枚举 |
+| `app/core/exceptions.py` | 统一错误类型(AppError 体系) |
 
 ### 2.2 Web UI vs API v1
 
@@ -186,7 +186,7 @@ related:
 
 - 配置 SSOT: `app/settings.py` + `env.example`(禁止写真实密钥)
 - YAML 配置: `app/config/*.yaml`
-- 本地开发: `docs/getting-started/local-dev.md`
+- 本地开发: [[getting-started/local-dev]]
 - 常用自检: `uv run pytest -m unit`, `./scripts/ci/ruff-report.sh style`, `make typecheck`
 
 ## 6. 文档结构(SSOT)

@@ -1,8 +1,13 @@
 """鲸落 - 标签模型."""
 
 from app import db
-from app.constants.colors import ThemeColors
-from app.types import ColorHex, ColorName, CssClassName
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
+from app.core.types import ColorHex, ColorName, CssClassName
+from app.utils.theme_color_utils import (
+    get_theme_color_css_class,
+    get_theme_color_name,
+    get_theme_color_value,
+)
 from app.utils.time_utils import time_utils
 
 
@@ -70,7 +75,7 @@ class Tag(db.Model):
             颜色的十六进制值.
 
         """
-        return ThemeColors.get_color_value(self.color)
+        return get_theme_color_value(self.color)
 
     @property
     def color_name(self) -> ColorName:
@@ -80,7 +85,7 @@ class Tag(db.Model):
             颜色的中文名称.
 
         """
-        return ThemeColors.get_color_name(self.color)
+        return get_theme_color_name(self.color)
 
     @property
     def css_class(self) -> CssClassName:
@@ -90,7 +95,7 @@ class Tag(db.Model):
             Bootstrap 颜色类名.
 
         """
-        return ThemeColors.get_css_class(self.color)
+        return get_theme_color_css_class(self.color)
 
     def to_dict(self) -> dict:
         """转换为字典格式.
@@ -157,17 +162,7 @@ class Tag(db.Model):
             标签分类的选项列表,每项包含分类代码和显示名称.
 
         """
-        return [
-            ("location", "地区标签"),
-            ("company_type", "公司类型"),
-            ("environment", "环境标签"),
-            ("department", "部门标签"),
-            ("project", "项目标签"),
-            ("virtualization", "虚拟化类型"),
-            ("deployment", "部署方式"),
-            ("architecture", "架构类型"),
-            ("other", "其他标签"),
-        ]
+        return TAG_CATEGORY_CHOICES
 
     def __repr__(self) -> str:
         """返回标签的调试字符串.

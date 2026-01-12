@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import importlib
 import threading
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -14,11 +15,12 @@ from typing import Any, Protocol, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants.sync_constants import SyncOperationType
-from app.errors import NotFoundError, SystemError, ValidationError
+from app.core.constants.sync_constants import SyncOperationType
+from app.core.exceptions import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
+from app.repositories.instances_repository import InstancesRepository
 from app.services.sync_session_service import sync_session_service
-from app.utils.route_safety import log_with_context
+from app.infra.route_safety import log_with_context
 
 
 class SupportsAccountSync(Protocol):
@@ -116,6 +118,12 @@ def _launch_background_sync(
     return thread
 
 
+def _resolve_default_sync_task() -> Callable[..., None]:
+    """惰性加载默认的批量同步任务,避免导入期循环依赖."""
+    module = importlib.import_module("app.tasks.accounts_sync_tasks")
+    return cast("Callable[..., None]", module.sync_accounts)
+
+
 class AccountsSyncActionsService:
     """账户同步动作编排服务."""
 
@@ -123,7 +131,7 @@ class AccountsSyncActionsService:
         self,
         *,
         sync_service: SupportsAccountSync,
-        sync_task: Callable[..., None],
+        sync_task: Callable[..., None] | None = None,
     ) -> None:
         """初始化动作服务.
 
@@ -133,18 +141,18 @@ class AccountsSyncActionsService:
 
         """
         self._sync_service = sync_service
-        self._sync_task = sync_task
+        self._sync_task = sync_task or _resolve_default_sync_task()
 
     @staticmethod
     def _ensure_active_instances() -> int:
-        active_count = Instance.query.filter_by(is_active=True).count()
+        active_count = InstancesRepository.count_active_instances()
         if active_count == 0:
             raise ValidationError("没有找到活跃的数据库实例")
         return int(active_count)
 
     @staticmethod
     def _get_instance(instance_id: int) -> Instance:
-        instance = Instance.query.filter_by(id=instance_id).first()
+        instance = InstancesRepository.get_instance(instance_id)
         if instance is None:
             raise NotFoundError("实例不存在")
         return instance

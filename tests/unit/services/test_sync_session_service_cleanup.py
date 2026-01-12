@@ -1,8 +1,10 @@
+from typing import Any, cast
+
 import pytest
 
 from app import create_app, db
-from app.constants import DatabaseType, SyncSessionStatus
-from app.errors import NotFoundError, ValidationError
+from app.core.constants import DatabaseType, SyncSessionStatus
+from app.core.exceptions import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
@@ -25,7 +27,7 @@ def test_create_session_disallows_custom_session_id() -> None:
         service = SyncSessionService()
 
         with pytest.raises(TypeError):
-            service.create_session(
+            cast(Any, service).create_session(
                 sync_type="manual_task",
                 sync_category="account",
                 created_by=None,

@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from app.repositories.instance_database_sizes_repository import InstanceDatabaseSizesRepository
-from app.types.instance_database_sizes import (
+from app.core.types.instance_database_sizes import (
     InstanceDatabaseSizesHistoryResult,
     InstanceDatabaseSizesLatestResult,
     InstanceDatabaseSizesQuery,

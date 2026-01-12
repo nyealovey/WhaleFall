@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
-from app.constants.sync_constants import SyncCategory
-from app.errors import NotFoundError, SystemError
+from app.core.constants.scheduler_jobs import BUILTIN_TASK_IDS
+from app.core.constants.sync_constants import SyncCategory
+from app.core.exceptions import NotFoundError, SystemError
 from app.repositories.scheduler_jobs_repository import SchedulerJobsRepository
-from app.types.scheduler import SchedulerJobDetail, SchedulerJobListItem
+from app.core.types.scheduler import SchedulerJobDetail, SchedulerJobListItem
 from app.utils.structlog_config import log_error
 
 if TYPE_CHECKING:

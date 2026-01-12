@@ -9,11 +9,7 @@
 - 评审报告建议在标题或文件名中标记日期(例如 `2025-12-24-*.md`).
 - 原始导出物(txt/sql/log 等)请放到 `artifacts/`, 避免污染可读文档.
 
-## Index
+## 如何查找
 
-- `clean-code-analysis.md`
-- `2026-01-04-cache-usage-audit.md`
-- `2026-01-07-api-v1-accounts-instances-databases-path-audit.md`
-- `2026-01-08-services-complexity-report.md`
-- `2026-01-09-standards-boundary-audit.md`
-- `2026-01-09-standards-structure-drift.md`
+- 按日期: `ls docs/reports | sort -r`
+- 按关键词: `rg -n \"keyword\" docs/reports`

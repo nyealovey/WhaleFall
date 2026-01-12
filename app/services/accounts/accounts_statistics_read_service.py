@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.repositories.account_statistics_repository import AccountStatisticsRepository
-from app.types.accounts_statistics import AccountStatisticsResult
+from app.core.types.accounts_statistics import AccountStatisticsResult
 
 
 class AccountsStatisticsReadService:

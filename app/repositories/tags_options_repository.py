@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.models.instance import Instance
 from app.models.tag import Tag
 
@@ -35,4 +36,4 @@ class TagsOptionsRepository:
     @staticmethod
     def list_categories() -> list:
         """列出标签分类."""
-        return Tag.get_category_choices()
+        return TAG_CATEGORY_CHOICES

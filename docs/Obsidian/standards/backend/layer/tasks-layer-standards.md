@@ -8,12 +8,13 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-11
 owner: WhaleFall Team
 scope: "`app/tasks/**` 下所有后台任务函数"
 related:
   - "[[standards/backend/task-and-scheduler]]"
   - "[[standards/backend/sensitive-data-handling]]"
+  - "[[standards/backend/write-operation-boundary]]"
   - "[[standards/backend/layer/services-layer-standards]]"
 ---
 
@@ -42,7 +43,9 @@ related:
 ### 2) 职责边界
 
 - MUST: 任务函数只负责调度入口, 参数规整, 调用 `app.services.*`, 记录任务日志.
-- MUST NOT: 直接访问数据库, 包括 `Model.query`, `db.session`, 原生 SQL.
+- MUST NOT: 直接访问数据库或组装查询, 包括 `Model.query`, `db.session.query`, `db.session.execute`, 原生 SQL.
+- MUST NOT: 在任务函数内执行写入操作, 包括 `db.session.add/delete/merge/flush` 等.
+- MAY: 作为事务边界入口, 任务函数可按阶段调用 `db.session.commit/rollback`(例如长任务分段提交), 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
 - MUST NOT: 在任务函数内堆叠复杂业务逻辑(应下沉到 Service).
 
 ### 3) 可观测性与敏感数据
@@ -95,9 +98,10 @@ def bad_task():
 - 自查命令(示例):
 
 ```bash
-rg -n "Model\\.query|db\\.session" app/tasks
+rg -n "Model\\.query|db\\.session\\.(query|execute|add|add_all|delete|merge|flush)\\(" app/tasks
 ```
 
 ## 变更历史
 
+- 2026-01-11: 明确 tasks 允许 `commit/rollback` 作为事务边界入口, 但禁止 query/execute 与写入操作, 并更新门禁扫描口径.
 - 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.

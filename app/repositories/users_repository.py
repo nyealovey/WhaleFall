@@ -14,10 +14,10 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
-from app.constants import UserRole
+from app.core.constants import UserRole
 from app.models.user import User
-from app.types.listing import PaginatedResult
-from app.types.users import UserListFilters
+from app.core.types.listing import PaginatedResult
+from app.core.types.users import UserListFilters
 
 
 class UsersRepository:
@@ -48,6 +48,14 @@ class UsersRepository:
     def count_users() -> int:
         """统计用户数量."""
         return int(User.query.count() or 0)
+
+    @staticmethod
+    def count_by_role(role: str) -> int:
+        """按角色统计用户数量."""
+        normalized = (role or "").strip()
+        if not normalized:
+            return 0
+        return int(User.query.filter_by(role=normalized).count() or 0)
 
     @staticmethod
     def fetch_stats() -> dict[str, int]:

@@ -19,7 +19,7 @@ from app.repositories.database_statistics_repository import DatabaseStatisticsRe
 from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 from app.repositories.users_repository import UsersRepository
 from app.services.health.health_checks_service import check_cache_health, check_database_health, get_system_uptime
-from app.types.capacity_instances import InstanceAggregationsSummaryFilters
+from app.core.types.capacity_instances import InstanceAggregationsSummaryFilters
 from app.utils.cache_utils import dashboard_cache
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -28,8 +28,6 @@ from app.utils.time_utils import time_utils
 @dashboard_cache(timeout=300)
 def get_system_overview() -> dict:
     """获取系统概览数据(缓存版本)."""
-    db.session.rollback()
-
     total_users = UsersRepository.count_users()
     account_summary = AccountStatisticsRepository.fetch_summary()
     classification_overview = AccountStatisticsRepository.fetch_classification_overview()
@@ -39,17 +37,17 @@ def get_system_overview() -> dict:
     recent_date = time_utils.now_china().date() - timedelta(days=7)
     total_size_mb = 0
     try:
-        _, total_size_mb, _, _ = CapacityInstancesRepository().summarize_latest_stats(
-            InstanceAggregationsSummaryFilters(
-                instance_id=None,
-                db_type=None,
-                period_type=None,
-                start_date=recent_date,
-                end_date=None,
-            ),
-        )
+        with db.session.begin_nested():
+            _, total_size_mb, _, _ = CapacityInstancesRepository().summarize_latest_stats(
+                InstanceAggregationsSummaryFilters(
+                    instance_id=None,
+                    db_type=None,
+                    period_type=None,
+                    start_date=recent_date,
+                    end_date=None,
+                ),
+            )
     except SQLAlchemyError as exc:
-        db.session.rollback()
         log_warning("获取容量统计汇总失败,已使用兜底值", module="dashboard", exception=exc)
     total_capacity_gb = float(total_size_mb) / 1024
     capacity_summary = {

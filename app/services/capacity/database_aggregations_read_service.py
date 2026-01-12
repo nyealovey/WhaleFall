@@ -12,8 +12,8 @@ from decimal import Decimal
 from typing import cast
 
 from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
-from app.types.capacity_common import CapacityInstanceRef
-from app.types.capacity_databases import (
+from app.core.types.capacity_common import CapacityInstanceRef
+from app.core.types.capacity_databases import (
     DatabaseAggregationsFilters,
     DatabaseAggregationsItem,
     DatabaseAggregationsListResult,

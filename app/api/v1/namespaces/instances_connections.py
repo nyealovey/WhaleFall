@@ -16,16 +16,17 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.namespaces.instances import ns
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.constants.system_constants import ErrorMessages
-from app.errors import NotFoundError, ValidationError
-from app.models import Credential, Instance
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import NotFoundError, ValidationError
+from app.services.credentials import CredentialDetailReadService
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
-from app.types import JsonDict, JsonValue
+from app.services.instances.instance_detail_read_service import InstanceDetailReadService
+from app.core.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
 from app.utils.response_utils import jsonify_unified_error_message
-from app.utils.route_safety import log_with_context
+from app.infra.route_safety import log_with_context
 
 ErrorEnvelope = get_error_envelope_model(ns)
 
@@ -182,11 +183,8 @@ def _normalize_instance_id(raw_id: JsonValue | None) -> int:
         raise ValidationError("instance_id 必须是整数") from exc
 
 
-def _require_credential(credential_id: int) -> Credential:
-    credential = Credential.query.get(credential_id)
-    if not credential:
-        raise NotFoundError("凭据不存在")
-    return credential
+def _require_credential(credential_id: int) -> object:
+    return CredentialDetailReadService().get_credential_or_error(credential_id)
 
 
 def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
@@ -199,9 +197,9 @@ def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
 
 
 def _test_existing_instance(connection_test_service: ConnectionTestService, instance_id: int):
-    instance = Instance.query.get(instance_id)
-    if not instance:
-        raise NotFoundError("实例不存在")
+    instance = InstanceDetailReadService().get_instance_by_id(instance_id)
+    if instance is None:
+        raise NotFoundError("实例不存在", extra={"instance_id": instance_id})
     result = connection_test_service.test_connection(instance)
     if result.get("success"):
         return result, 200, "实例连接测试成功"
@@ -233,16 +231,13 @@ def _test_new_connection(connection_test_service: ConnectionTestService, connect
     db_type = _normalize_db_type(connection_params.get("db_type"))
     port = _normalize_port(connection_params.get("port", 0))
     credential = _require_credential(_normalize_credential_id(connection_params.get("credential_id")))
-
-    temp_instance = Instance(
+    result = connection_test_service.test_connection_with_params(
         name=str(connection_params.get("name") or "temp_test"),
         db_type=db_type,
         host=str(connection_params.get("host") or ""),
         port=port,
-        credential_id=credential.id,
-        description="临时测试连接",
+        credential=credential,
     )
-    result = connection_test_service.test_connection(temp_instance)
     if result.get("success"):
         return result, 200, "连接测试成功"
 
@@ -270,11 +265,12 @@ def _execute_batch_tests(
     results: list[JsonDict] = []
     success_count = 0
     fail_count = 0
+    instance_detail_service = InstanceDetailReadService()
 
     for instance_id in instance_ids:
         try:
-            instance = Instance.query.get(instance_id)
-            if not instance:
+            instance = instance_detail_service.get_instance_by_id(instance_id)
+            if instance is None:
                 results.append({"instance_id": instance_id, "success": False, "error": "实例不存在"})
                 fail_count += 1
                 continue

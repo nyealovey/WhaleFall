@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from app.constants import SyncStatus
+from app.core.constants import SyncStatus
 from app.repositories.history_sessions_repository import HistorySessionsRepository
-from app.types.history_sessions import (
+from app.core.types.history_sessions import (
     HistorySessionsListFilters,
     SyncInstanceRecordItem,
     SyncSessionDetailItem,
@@ -19,7 +19,7 @@ from app.types.history_sessions import (
     SyncSessionErrorLogsResult,
     SyncSessionItem,
 )
-from app.types.listing import PaginatedResult
+from app.core.types.listing import PaginatedResult
 
 
 class HistorySessionsReadService:

@@ -15,10 +15,10 @@ from dataclasses import dataclass
 from typing import Protocol, cast
 
 import app.services.cache_service as cache_service_module
-from app.errors import ConflictError, NotFoundError, SystemError, ValidationError
-from app.models.instance import Instance
+from app.core.exceptions import ConflictError, NotFoundError, SystemError, ValidationError
+from app.repositories.instances_repository import InstancesRepository
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.utils.route_safety import log_with_context
+from app.infra.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 
 _CLASSIFICATION_DB_TYPES: list[str] = ["mysql", "postgresql", "sqlserver", "oracle"]
@@ -90,7 +90,7 @@ class CacheActionsService:
         if not instance_id or not username:
             raise ValidationError("缺少必要参数: instance_id 和 username")
 
-        instance = Instance.query.get(instance_id)
+        instance = InstancesRepository.get_instance(instance_id)
         if not instance:
             raise NotFoundError("实例不存在")
 
@@ -113,7 +113,7 @@ class CacheActionsService:
         if not instance_id:
             raise ValidationError("缺少必要参数: instance_id")
 
-        instance = Instance.query.get(instance_id)
+        instance = InstancesRepository.get_instance(instance_id)
         if not instance:
             raise NotFoundError("实例不存在")
 
@@ -132,7 +132,7 @@ class CacheActionsService:
     def clear_all_cache(self, *, operator_id: int | None) -> CacheClearAllResult:
         """清除所有活跃实例的缓存."""
         manager = self._require_cache_service()
-        instances = Instance.query.filter_by(is_active=True).all()
+        instances = InstancesRepository.list_active_instances()
 
         cleared_count = 0
         for instance in instances:

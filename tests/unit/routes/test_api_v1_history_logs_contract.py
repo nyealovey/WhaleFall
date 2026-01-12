@@ -2,8 +2,8 @@ import pytest
 
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
-from app.types.history_logs import HistoryLogListItem, HistoryLogStatistics, HistoryLogTopModule
-from app.types.listing import PaginatedResult
+from app.core.types.history_logs import HistoryLogListItem, HistoryLogStatistics, HistoryLogTopModule
+from app.core.types.listing import PaginatedResult
 
 
 @pytest.mark.unit
