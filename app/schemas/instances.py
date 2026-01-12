@@ -10,7 +10,7 @@ from pydantic import Field, StrictStr, field_validator, model_validator
 
 from app.constants import DatabaseType
 from app.schemas.base import PayloadSchema
-from app.types.converters import as_bool
+from app.utils.payload_converters import as_bool
 
 
 def _ensure_mapping(data: Any) -> Mapping[str, Any]:

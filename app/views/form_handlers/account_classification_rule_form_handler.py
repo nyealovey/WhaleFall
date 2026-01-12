@@ -10,7 +10,7 @@ from app.services.accounts.account_classifications_read_service import AccountCl
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 
 if TYPE_CHECKING:
     from app.models.account_classification import ClassificationRule
@@ -62,4 +62,3 @@ class AccountClassificationRuleFormHandler:
             "db_type_options": db_type_options,
             "operator_options": OPERATOR_OPTIONS,
         }
-

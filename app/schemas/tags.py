@@ -10,7 +10,7 @@ from pydantic import StrictStr, field_validator, model_validator
 
 from app.constants.colors import ThemeColors
 from app.schemas.base import PayloadSchema
-from app.types.converters import as_bool
+from app.utils.payload_converters import as_bool
 
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 

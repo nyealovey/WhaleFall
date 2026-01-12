@@ -20,7 +20,7 @@ from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
 from app.schemas.tags import TagUpdatePayload, TagUpsertPayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 from app.infra.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 

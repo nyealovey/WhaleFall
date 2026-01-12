@@ -11,7 +11,7 @@ from pydantic import StrictStr, field_validator, model_validator
 from app.constants import UserRole
 from app.models.user import MIN_USER_PASSWORD_LENGTH
 from app.schemas.base import PayloadSchema
-from app.types.converters import as_bool
+from app.utils.payload_converters import as_bool
 
 _USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,20}$")
 _ALLOWED_ROLES = {UserRole.ADMIN, UserRole.USER}

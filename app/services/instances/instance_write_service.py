@@ -20,7 +20,7 @@ from app.repositories.instances_repository import InstancesRepository
 from app.repositories.tags_repository import TagsRepository
 from app.schemas.instances import InstanceCreatePayload, InstanceUpdatePayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 

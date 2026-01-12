@@ -7,9 +7,9 @@ tags:
   - standards/backend
 status: active
 created: 2026-01-04
-updated: 2026-01-08
+updated: 2026-01-12
 owner: WhaleFall Team
-scope: "`app/types/request_payload.py`, `app/schemas/**`, `app/services/**`, `app/api/v1/**`, `app/forms/handlers/**`"
+scope: "`app/utils/request_payload.py`, `app/schemas/**`, `app/services/**`, `app/api/v1/**`, `app/forms/handlers/**`"
 related:
   - "[[standards/backend/error-message-schema-unification]]"
 ---
@@ -31,7 +31,7 @@ related:
 
 ### 3.1 请求 payload 解析
 
-- MUST: 在 route/handler/service 的边界使用 `app/types/request_payload.py::parse_payload` 做基础解析与规范化.
+- MUST: 在 route/handler/service 的边界使用 `app/utils/request_payload.py::parse_payload` 做基础解析与规范化.
 - MUST: 对 "必须为 list" 的字段使用 `list_fields`, 并保证输出形状稳定(单值也输出 list).
 - MUST: 对敏感字段(如 password)显式声明 `preserve_raw_fields`, 禁止依赖字段名包含判断.
 - SHOULD: 对 checkbox 类布尔字段使用 `boolean_fields_default_false`, 只对 MultiDict 缺失字段补 False.
@@ -63,7 +63,7 @@ related:
 ```python
 from app.schemas.instances import InstanceCreatePayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 
 sanitized = parse_payload(
     request.form,

@@ -8,7 +8,7 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/constants/**` 下所有常量与枚举定义"
 related:
@@ -64,10 +64,11 @@ related:
 允许依赖:
 
 - MUST: 标准库 `typing`, `enum`
+- MAY: `app.constants.*`(同层内部模块互相 import)
 
 禁止依赖:
 
-- MUST NOT: `app.*` 任何应用模块(保持纯净)
+- MUST NOT: `app.(api|routes|tasks|services|repositories|models|forms|views|utils|settings|infra|schemas).*`
 - SHOULD NOT: 第三方库
 
 ## 正反例

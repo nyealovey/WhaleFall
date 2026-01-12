@@ -1,7 +1,7 @@
 import pytest
 from werkzeug.datastructures import MultiDict
 
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 
 
 @pytest.mark.unit

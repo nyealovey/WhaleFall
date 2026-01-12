@@ -1,5 +1,5 @@
 ---
-title: API v1 层编写规范
+title: API 层编写规范
 aliases:
   - api-layer-standards
   - api-v1-layer-standards
@@ -9,9 +9,9 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-12
 owner: WhaleFall Team
-scope: "`app/api/v1/**` 下所有 REST API 端点与模型"
+scope: "`app/api/**` 下所有 REST API 端点、模型与注册入口"
 related:
   - "[[standards/backend/layer/README|后端分层标准]]"
   - "[[standards/backend/layer/routes-layer-standards]]"
@@ -21,7 +21,7 @@ related:
   - "[[standards/backend/layer/services-layer-standards]]"
 ---
 
-# API v1 层编写规范
+# API 层编写规范
 
 > [!note] 说明
 > API 层负责 HTTP 协议入口与 OpenAPI 文档生成, 业务编排应下沉到 Service, 数据访问应下沉到 Repository.
@@ -34,6 +34,7 @@ related:
 
 ## 适用范围
 
+- `app/api/__init__.py`: API blueprint 注册入口(例如 v1 blueprint).
 - `app/api/v1/namespaces/**`: Flask-RESTX `Namespace` 与 `Resource`.
 - `app/api/v1/models/**`: RESTX `Model`/`fields` 定义(用于 marshal 与 OpenAPI).
 - `app/api/v1/__init__.py`, `app/api/v1/api.py` 等基础设施代码.
@@ -77,7 +78,7 @@ related:
 ##### 适用范围
 
 - Routes 层返回 JSON 的接口(含列表/详情/批量操作).
-- API v1(`app/api/v1/**`) 的所有 REST API 端点.
+- API(`app/api/**`) 的所有 REST API 端点.
 - 任务或脚本需要返回 "可被 UI/调用方直接消费" 的 JSON 载荷时.
 
 ##### 规则(MUST/SHOULD/MAY)
@@ -195,25 +196,27 @@ return jsonify({"success": False, "msg": "failed"}), 400
 ### 6) 目录结构(推荐)
 
 ```text
-app/api/v1/
+app/api/
 ├── __init__.py
-├── api.py
-├── models/
-│   ├── __init__.py
-│   └── envelope.py
-└── namespaces/
+└── v1/
     ├── __init__.py
-    ├── instances.py
-    ├── accounts.py
-    └── ...
-├── resources/
-│   ├── __init__.py
-│   ├── base.py
-│   └── decorators.py
-└── restx_models/
-    ├── __init__.py
-    ├── instances.py
-    └── ...
+    ├── api.py
+    ├── models/
+    │   ├── __init__.py
+    │   └── envelope.py
+    ├── namespaces/
+        ├── __init__.py
+        ├── instances.py
+        ├── accounts.py
+        └── ...
+    ├── resources/
+    │   ├── __init__.py
+    │   ├── base.py
+    │   └── decorators.py
+    └── restx_models/
+        ├── __init__.py
+        ├── instances.py
+        └── ...
 ```
 
 ### 7) 命名规范
@@ -380,8 +383,8 @@ class BadResource(Resource):
 - 自查命令(示例):
 
 ```bash
-rg -n "Model\\.query|db\\.session" app/api/v1
-rg -n "from app\\.services\\." app/api/v1/namespaces
+rg -n "Model\\.query|db\\.session" app/api
+rg -n "from app\\.services\\." app/api
 ```
 
 ## 变更历史
