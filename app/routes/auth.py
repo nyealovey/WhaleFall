@@ -10,6 +10,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from app.core.constants import FlashCategory, HttpHeaders, HttpMethod
 from app.services.auth.login_service import LoginService
 from app.infra.flask_typing import RouteCallable, RouteReturn
+from app.infra.route_safety import safe_route_call
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.redirect_safety import resolve_safe_redirect_target
@@ -49,67 +50,75 @@ def login() -> RouteReturn:
         next: 登录成功后的重定向地址,可选.
 
     """
-    if request.method == HttpMethod.POST:
-        # 添加调试日志
-        auth_logger.info(
-            "收到登录请求",
-            method=request.method,
-            content_type=request.content_type,
-            is_json=request.is_json,
-            ip_address=request.remote_addr,
-        )
-
-        username = request.form.get("username")
-        password = request.form.get("password")
-        remember = bool(request.form.get("remember"))
-
-        if not username or not password:
-            auth_logger.warning(
-                "页面登录失败:用户名或密码为空",
-                username=username,
+    def _execute() -> RouteReturn:
+        if request.method == HttpMethod.POST:
+            auth_logger.info(
+                "收到登录请求",
+                method=request.method,
+                content_type=request.content_type,
+                is_json=request.is_json,
                 ip_address=request.remote_addr,
             )
-            flash("用户名和密码不能为空", FlashCategory.ERROR)
-            return render_template("auth/login.html")
 
-        user = LoginService.authenticate(username=username, password=password)
-        if user:
-            if user.is_active:
-                # 登录成功
-                login_user(user, remember=remember)
+            username = request.form.get("username")
+            password = request.form.get("password")
+            remember = bool(request.form.get("remember"))
 
-                # 记录登录日志
-                auth_logger.info(
-                    "用户页面登录成功",
-                    module="auth",
-                    user_id=user.id,
-                    username=user.username,
+            if not username or not password:
+                auth_logger.warning(
+                    "页面登录失败:用户名或密码为空",
+                    username=username,
                     ip_address=request.remote_addr,
-                    user_agent=request.headers.get(HttpHeaders.USER_AGENT),
                 )
+                flash("用户名和密码不能为空", FlashCategory.ERROR)
+                return render_template("auth/login.html")
 
-                # 页面登录,重定向到首页
-                flash("登录成功!", FlashCategory.SUCCESS)
-                next_page = resolve_safe_redirect_target(request.args.get("next"), fallback=url_for("dashboard.index"))
-                return redirect(next_page)
-            auth_logger.warning(
-                "页面登录失败:账户已被停用",
-                username=username,
-                user_id=user.id,
-                ip_address=request.remote_addr,
-            )
-            flash("账户已被停用", FlashCategory.ERROR)
-        else:
-            auth_logger.warning(
-                "页面登录失败:用户名或密码错误",
-                username=username,
-                ip_address=request.remote_addr,
-            )
-            flash("用户名或密码错误", FlashCategory.ERROR)
+            user = LoginService.authenticate(username=username, password=password)
+            if user:
+                if user.is_active:
+                    login_user(user, remember=remember)
 
-    # GET请求,显示登录页面
+                    auth_logger.info(
+                        "用户页面登录成功",
+                        module="auth",
+                        user_id=user.id,
+                        username=user.username,
+                        ip_address=request.remote_addr,
+                        user_agent=request.headers.get(HttpHeaders.USER_AGENT),
+                    )
 
-    return render_template("auth/login.html")
+                    flash("登录成功!", FlashCategory.SUCCESS)
+                    next_page = resolve_safe_redirect_target(
+                        request.args.get("next"),
+                        fallback=url_for("dashboard.index"),
+                    )
+                    return redirect(next_page)
+
+                auth_logger.warning(
+                    "页面登录失败:账户已被停用",
+                    username=username,
+                    user_id=user.id,
+                    ip_address=request.remote_addr,
+                )
+                flash("账户已被停用", FlashCategory.ERROR)
+            else:
+                auth_logger.warning(
+                    "页面登录失败:用户名或密码错误",
+                    username=username,
+                    ip_address=request.remote_addr,
+                )
+                flash("用户名或密码错误", FlashCategory.ERROR)
+
+        return render_template("auth/login.html")
+
+    return safe_route_call(
+        _execute,
+        module="auth",
+        action="login",
+        public_error="登录失败,请稍后重试",
+        context={"method": request.method},
+        include_actor=False,
+    )
 
 
 auth_bp.add_url_rule(
@@ -128,19 +137,26 @@ def logout() -> RouteReturn:
         重定向到登录页面.
 
     """
-    # 记录登出日志
-    auth_logger.info(
-        "用户登出",
-        user_id=current_user.id,
-        username=current_user.username,
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get(HttpHeaders.USER_AGENT),
+    def _execute() -> RouteReturn:
+        auth_logger.info(
+            "用户登出",
+            user_id=current_user.id,
+            username=current_user.username,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get(HttpHeaders.USER_AGENT),
+        )
+
+        logout_user()
+
+        flash("已成功登出", FlashCategory.INFO)
+        return redirect(url_for("auth.login"))
+
+    return safe_route_call(
+        _execute,
+        module="auth",
+        action="logout",
+        public_error="登出失败,请稍后重试",
     )
-
-    logout_user()
-
-    flash("已成功登出", FlashCategory.INFO)
-    return redirect(url_for("auth.login"))
 
 
 auth_bp.add_url_rule(

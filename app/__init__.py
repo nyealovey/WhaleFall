@@ -79,6 +79,19 @@ def create_app(
 
     """
     resolved_settings = settings or Settings.load()
+
+    # 注入跨模块共享的“基础设施配置”(避免散落读取 os.environ)
+    from app.utils.password_crypto_utils import init_password_manager  # noqa: PLC0415
+    from app.services.connection_adapters.adapters.oracle_adapter import (  # noqa: PLC0415
+        init_oracle_client_settings,
+    )
+
+    init_password_manager(key=resolved_settings.password_encryption_key)
+    init_oracle_client_settings(
+        client_lib_dir=resolved_settings.oracle_client_lib_dir,
+        oracle_home=resolved_settings.oracle_home,
+    )
+
     app = WhaleFallFlask(__name__)
 
     # 配置应用
@@ -126,7 +139,7 @@ def create_app(
 
     if init_scheduler_on_start:
         try:
-            init_scheduler(app)
+            init_scheduler(app, resolved_settings)
         except Exception:
             # 调度器初始化失败不影响应用启动
             scheduler_logger = get_system_logger()

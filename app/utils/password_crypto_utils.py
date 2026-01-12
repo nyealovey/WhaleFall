@@ -3,10 +3,10 @@
 用于安全地存储和获取数据库密码.
 """
 
+from __future__ import annotations
+
 import base64
 import binascii
-import os
-from functools import lru_cache
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -17,7 +17,7 @@ class PasswordManager:
     """密码管理器.
 
     使用 Fernet 对称加密算法安全地加密和解密数据库密码.
-    密钥从环境变量 PASSWORD_ENCRYPTION_KEY 读取,如果未设置则生成临时密钥.
+    密钥由 Settings 统一解析并在应用启动时注入.
 
     Attributes:
         key: 加密密钥(bytes).
@@ -32,36 +32,14 @@ class PasswordManager:
 
     """
 
-    def __init__(self) -> None:
-        """初始化密码加密工具,准备密钥与对称加密器."""
-        self.key = self._get_or_create_key()
-        self.cipher = Fernet(self.key)
+    def __init__(self, *, key: bytes) -> None:
+        """初始化密码加密工具.
 
-    def _get_or_create_key(self) -> bytes:
-        """获取或创建加密密钥.
-
-        从环境变量 PASSWORD_ENCRYPTION_KEY 读取密钥,如果未设置则生成新密钥.
-        生成新密钥时会记录警告日志并提示设置环境变量.
-
-        Returns:
-            加密密钥(bytes).
-
+        Args:
+            key: Fernet key(bytes).
         """
-        key_value = os.getenv("PASSWORD_ENCRYPTION_KEY")
-        if not key_value:
-            # 如果没有设置密钥,生成一个新的
-            generated_key = Fernet.generate_key()
-            system_logger = get_system_logger()
-            system_logger.warning(
-                "未设置 PASSWORD_ENCRYPTION_KEY,将使用临时密钥(重启后无法解密已存储凭据)",
-                module="password_manager",
-            )
-            system_logger.info(
-                '请生成并设置 PASSWORD_ENCRYPTION_KEY(示例: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")',
-                module="password_manager",
-            )
-            return generated_key
-        return key_value.encode()
+        self.key = key
+        self.cipher = Fernet(self.key)
 
     def encrypt_password(self, password: str) -> str:
         """加密密码.
@@ -131,7 +109,19 @@ class PasswordManager:
             return True
 
 
-@lru_cache(maxsize=1)
+_PASSWORD_MANAGER: PasswordManager | None = None
+
+
+def init_password_manager(*, key: str) -> None:
+    """初始化全局 PasswordManager(由 create_app 调用).
+
+    Args:
+        key: Fernet key 字符串.
+    """
+    global _PASSWORD_MANAGER
+    _PASSWORD_MANAGER = PasswordManager(key=key.encode())
+
+
 def get_password_manager() -> PasswordManager:
     """获取密码管理器实例(延迟初始化).
 
@@ -139,4 +129,6 @@ def get_password_manager() -> PasswordManager:
         PasswordManager: 全局复用的管理器实例.
 
     """
-    return PasswordManager()
+    if _PASSWORD_MANAGER is None:
+        raise RuntimeError("PasswordManager 未初始化,请先在 create_app 阶段调用 init_password_manager()")
+    return _PASSWORD_MANAGER

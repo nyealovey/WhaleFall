@@ -1,8 +1,6 @@
 """Oracle 数据库连接适配器."""
 
 from __future__ import annotations
-
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -27,6 +25,16 @@ ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     OSError,
     *ORACLE_DRIVER_EXCEPTIONS,
 )
+
+_ORACLE_CLIENT_LIB_DIR: str | None = None
+_ORACLE_HOME: str | None = None
+
+
+def init_oracle_client_settings(*, client_lib_dir: str | None, oracle_home: str | None) -> None:
+    """初始化 Oracle 客户端路径配置(由 create_app 调用)."""
+    global _ORACLE_CLIENT_LIB_DIR, _ORACLE_HOME
+    _ORACLE_CLIENT_LIB_DIR = client_lib_dir
+    _ORACLE_HOME = oracle_home
 
 
 class OracleConnection(DatabaseConnection):
@@ -62,13 +70,11 @@ class OracleConnection(DatabaseConnection):
             if not is_thin:
                 try:
                     candidate_paths: list[Path] = []
-                    env_lib_dir = os.getenv("ORACLE_CLIENT_LIB_DIR")
-                    if env_lib_dir:
-                        candidate_paths.append(Path(env_lib_dir))
+                    if _ORACLE_CLIENT_LIB_DIR:
+                        candidate_paths.append(Path(_ORACLE_CLIENT_LIB_DIR))
 
-                    oracle_home = os.getenv("ORACLE_HOME")
-                    if oracle_home:
-                        candidate_paths.append(Path(oracle_home) / "lib")
+                    if _ORACLE_HOME:
+                        candidate_paths.append(Path(_ORACLE_HOME) / "lib")
 
                     current_dir = Path(__file__).resolve().parents[2]
                     candidate_paths.append(current_dir / "oracle_client" / "lib")

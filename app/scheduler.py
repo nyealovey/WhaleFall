@@ -30,6 +30,7 @@ from app.utils.structlog_config import get_system_logger
 if TYPE_CHECKING:
     from apscheduler.job import Job
     from flask import Flask
+    from app.settings import Settings
 
 logger = get_system_logger()
 
@@ -397,22 +398,21 @@ def _release_scheduler_lock() -> None:
 atexit.register(_release_scheduler_lock)
 
 
-def _should_start_scheduler() -> bool:
+def _should_start_scheduler(settings: Settings) -> bool:
     """根据环境变量及进程角色判断是否需启动调度器.
 
     Returns:
         bool: True 表示可以启动,False 表示跳过.
 
     """
-    enable_flag = os.environ.get("ENABLE_SCHEDULER", "true").strip().lower()
-    if enable_flag not in ("true", "1", "yes"):
+    if not settings.enable_scheduler:
         logger.info(
             "检测到调度器禁用标记,跳过初始化",
-            env_flag=enable_flag,
+            env_flag=settings.enable_scheduler,
         )
         return False
 
-    server_software = os.environ.get("SERVER_SOFTWARE", "")
+    server_software = settings.server_software
     if server_software.startswith("gunicorn"):
         logger.info(
             "检测到 gunicorn 环境,通过文件锁保持单实例",
@@ -420,16 +420,14 @@ def _should_start_scheduler() -> bool:
         )
 
     # Flask reloader: 只有子进程 (WERKZEUG_RUN_MAIN=true) 才运行调度器
-    if os.environ.get("FLASK_RUN_FROM_CLI") == "true":
-        reloader_flag = os.environ.get("WERKZEUG_RUN_MAIN")
-        if reloader_flag not in ("true", "1"):
-            logger.info("检测到 Flask reloader 父进程,跳过调度器初始化")
-            return False
+    if settings.flask_run_from_cli and not settings.werkzeug_run_main:
+        logger.info("检测到 Flask reloader 父进程,跳过调度器初始化")
+        return False
 
     return True
 
 
-def init_scheduler(app: Flask) -> TaskScheduler | None:
+def init_scheduler(app: Flask, settings: Settings) -> TaskScheduler | None:
     """初始化调度器(仅在允许的进程中启动).
 
     Args:
@@ -439,7 +437,7 @@ def init_scheduler(app: Flask) -> TaskScheduler | None:
         TaskScheduler | None: 初始化成功时返回 TaskScheduler,否则返回 None.
 
     """
-    if not _should_start_scheduler():
+    if not _should_start_scheduler(settings):
         return None
 
     if not _acquire_scheduler_lock():
