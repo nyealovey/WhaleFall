@@ -11,7 +11,6 @@
 - structlog_config: 结构化日志配置
 - query_filter_utils: 筛选器选项格式化工具
 - safe_query_builder: 安全查询构建器
-- database_batch_manager: 数据库批量操作管理器
 - version_parser: 数据库版本解析器
 - sqlserver_connection_utils: SQL Server 连接诊断工具
 """

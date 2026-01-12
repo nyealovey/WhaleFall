@@ -7,7 +7,7 @@ from app.core.constants import FlashCategory
 from app.core.exceptions import SystemError
 from app.routes.instances.manage import instances_bp
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
-from app.core.types import RouteReturn
+from app.infra.flask_typing import RouteReturn
 from app.core.types.instance_statistics import InstanceStatisticsResult
 from app.utils.decorators import view_required
 from app.infra.route_safety import safe_route_call

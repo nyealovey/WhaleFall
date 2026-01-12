@@ -7,9 +7,9 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import create_app, db
+from app.infra.database_batch_manager import DatabaseBatchManager
 from app.models.user import User
 from app.settings import Settings
-from app.utils.database_batch_manager import DatabaseBatchManager
 
 
 @pytest.mark.unit

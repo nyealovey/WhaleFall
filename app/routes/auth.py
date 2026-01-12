@@ -9,7 +9,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 
 from app.core.constants import FlashCategory, HttpHeaders, HttpMethod
 from app.services.auth.login_service import LoginService
-from app.core.types import RouteCallable, RouteReturn
+from app.infra.flask_typing import RouteCallable, RouteReturn
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.redirect_safety import resolve_safe_redirect_target

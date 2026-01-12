@@ -6,7 +6,7 @@ from pathlib import Path
 from flask import Blueprint, current_app, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user
 
-from app.core.types import RouteReturn
+from app.infra.flask_typing import RouteReturn
 
 # 创建蓝图
 main_bp = Blueprint("main", __name__)

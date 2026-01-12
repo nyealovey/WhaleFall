@@ -6,7 +6,7 @@ from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app.core.constants import FlashCategory, UserRole
-from app.core.types import RouteReturn
+from app.infra.flask_typing import RouteReturn
 from app.utils.decorators import view_required
 
 # 创建蓝图
