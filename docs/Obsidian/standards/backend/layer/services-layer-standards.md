@@ -82,9 +82,13 @@ app/services/
 
 ### 5) 事务边界
 
-- MUST: 事务边界由 Service 控制, 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
+- MUST: 默认情况下(Web 请求写路径), 事务边界由 Service 控制, 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
 - MUST: Repository 可以 `flush`, 但 MUST NOT `commit`.
 - SHOULD: 批量写入支持部分回滚时使用 `db.session.begin_nested()`.
+
+> [!note] 事务边界优先级（Web vs Tasks）
+> - Web 请求写路径：Service 为事务边界入口；Routes/API 不得自行 `commit/rollback`（应通过写服务完成写入并提交）。
+> - 长任务/批处理：允许 Tasks/Infra 作为事务边界入口做分阶段 `commit/rollback`；此时 Service/Runner 必须保持“无 `commit/rollback`”，仅做业务编排与必要的 `flush`，提交由 Tasks/Infra 统一掌控。
 
 ### 6) 返回值与 DTO
 
