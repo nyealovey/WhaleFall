@@ -2,7 +2,7 @@ from typing import Any, cast
 
 import pytest
 
-from app.errors import AppError
+from app.core.exceptions import AppError
 from app.models.account_permission import AccountPermission  # noqa: E402
 
 

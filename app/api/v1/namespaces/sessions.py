@@ -4,24 +4,23 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.history import (
     SYNC_SESSION_DETAIL_RESPONSE_FIELDS,
     SYNC_SESSION_ERROR_LOGS_RESPONSE_FIELDS,
     SYNC_SESSION_ITEM_FIELDS,
 )
-from app.errors import NotFoundError
+from app.core.exceptions import NotFoundError
 from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
 from app.services.sync_session_service import sync_session_service
-from app.types.history_sessions import HistorySessionsListFilters
+from app.core.types.history_sessions import HistorySessionsListFilters
 from app.utils.decorators import require_csrf
-from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.structlog_config import log_info
 
 ns = Namespace("history_sessions", description="同步会话")
@@ -47,6 +46,15 @@ HistorySessionDetailSuccessEnvelope = make_success_envelope_model(ns, "HistorySe
 HistorySessionErrorLogsSuccessEnvelope = make_success_envelope_model(ns, "HistorySessionErrorLogsSuccessEnvelope")
 HistorySessionCancelSuccessEnvelope = make_success_envelope_model(ns, "HistorySessionCancelSuccessEnvelope")
 
+_history_sessions_list_query_parser = new_parser()
+_history_sessions_list_query_parser.add_argument("sync_type", type=str, default="", location="args")
+_history_sessions_list_query_parser.add_argument("sync_category", type=str, default="", location="args")
+_history_sessions_list_query_parser.add_argument("status", type=str, default="", location="args")
+_history_sessions_list_query_parser.add_argument("page", type=int, default=1, location="args")
+_history_sessions_list_query_parser.add_argument("limit", type=int, default=20, location="args")
+_history_sessions_list_query_parser.add_argument("sort", type=str, default="started_at", location="args")
+_history_sessions_list_query_parser.add_argument("order", type=str, default="desc", location="args")
+
 
 @ns.route("")
 class HistorySessionsListResource(BaseResource):
@@ -58,20 +66,18 @@ class HistorySessionsListResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_history_sessions_list_query_parser)
     def get(self):
         """获取同步会话列表."""
-        sync_type = (request.args.get("sync_type", "") or "").strip()
-        sync_category = (request.args.get("sync_category", "") or "").strip()
-        status = (request.args.get("status", "") or "").strip()
-        page = resolve_page(request.args, default=1, minimum=1)
-        limit = resolve_page_size(
-            request.args,
-            default=20,
-            minimum=1,
-            maximum=100,
-        )
-        sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
-        sort_order = (request.args.get("order", "desc") or "desc").lower()
+        parsed = _history_sessions_list_query_parser.parse_args()
+        sync_type = str(parsed.get("sync_type") or "").strip()
+        sync_category = str(parsed.get("sync_category") or "").strip()
+        status = str(parsed.get("status") or "").strip()
+        page = max(int(parsed.get("page") or 1), 1)
+        limit = int(parsed.get("limit") or 20)
+        limit = max(min(limit, 100), 1)
+        sort_field = str(parsed.get("sort") or "started_at").strip() or "started_at"
+        sort_order = str(parsed.get("order") or "desc").lower()
         if sort_order not in {"asc", "desc"}:
             sort_order = "desc"
 

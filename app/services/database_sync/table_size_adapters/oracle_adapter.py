@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 import oracledb  # type: ignore[import-not-found]
 
@@ -16,6 +16,8 @@ else:
     Instance = Any
     DatabaseConnection = Any
     QueryResult = Any
+
+_SIZE_VALUE_COLUMN_INDEX: Final[int] = 2
 
 
 class OracleTableSizeAdapter(BaseTableSizeAdapter):
@@ -108,7 +110,7 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
         else:
             schema_name = str(row[0]).strip() if row[0] is not None else ""
             table_name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
-            size_value = row[2] if len(row) > 2 else None
+            size_value = row[_SIZE_VALUE_COLUMN_INDEX] if len(row) > _SIZE_VALUE_COLUMN_INDEX else None
 
         if not schema_name or not table_name:
             return None

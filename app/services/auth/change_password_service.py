@@ -12,15 +12,15 @@ from typing import TYPE_CHECKING
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import AuthenticationError, ValidationError
+from app.core.exceptions import AuthenticationError, ValidationError
 from app.models.user import User
 from app.schemas.auth import ChangePasswordPayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import PayloadMapping
+    from app.core.types import PayloadMapping
 
 
 class ChangePasswordService:

@@ -39,13 +39,13 @@ related:
 - 关键流程 SOP: [[architecture/flows/README|关键流程索引(flows)]]
 - 认证与权限: [[architecture/identity-access|Identity & Access(认证/授权/RBAC/CSRF/JWT)]]
 - 标准(SSOT): [[standards/README|standards]] -> [[standards/backend/README|backend]] / [[standards/ui/README|ui]] / [[standards/doc/README|doc]]
-- 参考(查阅型): [[reference/README|reference]] -> [[reference/server/README|server]] / [[reference/config/README|config]] / [[reference/database/README|database]] / [[reference/security/README|security]] / [[reference/errors/README|errors]]
+- 参考(查阅型): [[reference/README|reference]] -> [[reference/service/README|server]] / [[reference/config/README|config]] / [[reference/database/README|database]] / [[reference/security/README|security]] / [[reference/errors/README|errors]]
 - 可观测与排障: [[operations/observability-ops|Observability Ops(日志字段/定位路径/会话与任务排障)]]
 - 错误码对齐表: [[reference/errors/message-code-catalog|message_code/message_key catalog]]
 - API curl cookbook: [[reference/examples/api-v1-cookbook|API v1 调用 cookbook(curl)]]
 - API contract(SSOT): [[API/api-v1-api-contract|API v1 contract index]] + `docs/Obsidian/API/*-api-contract.md`
 - 交付自检: [[reference/development/new-feature-delivery|新增功能交付清单]]
-- 测试指南(仓库 docs): `docs/getting-started/testing-guide.md`
+- 测试指南(仓库 docs): [[getting-started/testing-guide]]
 
 ## 1. 新增/修改 API(/api/v1)
 
@@ -92,7 +92,7 @@ related:
 
 - 任务实现: `app/tasks/**`
 - 调度器: `app/scheduler.py`
-- job 常量: `app/constants/scheduler_jobs.py`
+- job 常量: `app/core/constants/scheduler_jobs.py`
 
 ### 2.2 关键约束
 
@@ -135,7 +135,7 @@ related:
 
 ### 4.1 常见落点(按能力拆分)
 
-- db_type 常量与展示: `app/constants/database_types.py`
+- db_type 常量与展示: `app/core/constants/database_types.py`
 - 连接适配器:
   - adapters: `app/services/connection_adapters/adapters/*.py`
   - factory/service: `app/services/connection_adapters/connection_factory.py`, `app/services/connection_adapters/connection_test_service.py`

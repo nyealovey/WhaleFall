@@ -17,9 +17,9 @@
 		{"id":"c106000000000052","type":"text","text":"## Charts\\n\\n- filters + series\\n- time range\\n","x":1120,"y":640,"width":520,"height":160,"color":"6"},
 
 		{"id":"c1060000000000ff","type":"file","file":"architecture/flows/aggregation-stats.md","subpath":"#流程图","x":1680,"y":0,"width":1440,"height":360,"color":"2"},
-		{"id":"c1060000000000fe","type":"file","file":"reference/server/aggregation-pipeline.md","x":1680,"y":380,"width":1440,"height":240,"color":"2"},
-		{"id":"c1060000000000fd","type":"file","file":"reference/server/capacity-current-aggregation-service.md","x":1680,"y":640,"width":1440,"height":240,"color":"2"},
-		{"id":"c1060000000000fc","type":"file","file":"reference/server/capacity-aggregations-read-services.md","x":1680,"y":900,"width":1440,"height":240,"color":"2"}
+		{"id":"c1060000000000fe","type":"file","file":"reference/service/aggregation-pipeline.md","x":1680,"y":380,"width":1440,"height":240,"color":"2"},
+		{"id":"c1060000000000fd","type":"file","file":"reference/service/capacity-current-aggregation-service.md","x":1680,"y":640,"width":1440,"height":240,"color":"2"},
+		{"id":"c1060000000000fc","type":"file","file":"reference/service/capacity-aggregations-read-services.md","x":1680,"y":900,"width":1440,"height":240,"color":"2"}
 	],
 	"edges":[
 		{"id":"c106000000001001","fromNode":"c106000000000010","fromSide":"bottom","toNode":"c106000000000020","toSide":"top","label":"input"},

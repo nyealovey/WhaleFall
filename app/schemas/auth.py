@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import StrictStr, model_validator
 
+from app.core.constants.validation_limits import USER_PASSWORD_MAX_LENGTH, USER_PASSWORD_MIN_LENGTH
 from app.schemas.base import PayloadSchema
 from app.schemas.validation import SchemaMessageKeyError
 
@@ -42,7 +43,7 @@ class ChangePasswordPayload(PayloadSchema):
 def _validate_basic_password(password: str) -> None:
     if not password.strip():
         raise SchemaMessageKeyError("密码不能为空", message_key="PASSWORD_INVALID")
-    if len(password) < 6:
-        raise SchemaMessageKeyError("密码长度至少6个字符", message_key="PASSWORD_INVALID")
-    if len(password) > 128:
-        raise SchemaMessageKeyError("密码长度不能超过128个字符", message_key="PASSWORD_INVALID")
+    if len(password) < USER_PASSWORD_MIN_LENGTH:
+        raise SchemaMessageKeyError(f"密码长度至少{USER_PASSWORD_MIN_LENGTH}个字符", message_key="PASSWORD_INVALID")
+    if len(password) > USER_PASSWORD_MAX_LENGTH:
+        raise SchemaMessageKeyError(f"密码长度不能超过{USER_PASSWORD_MAX_LENGTH}个字符", message_key="PASSWORD_INVALID")

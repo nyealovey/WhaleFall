@@ -6,7 +6,7 @@
 		{"id":"e101000000000011","type":"text","text":"## credentials\n\nPK:\n- id\n\nUQ:\n- name\n\nCols:\n- credential_type\n- username\n- password(encrypted)\n","x":560,"y":-260,"width":520,"height":420,"color":"4"},
 		{"id":"e101000000000012","type":"text","text":"## tags\n\nPK:\n- id\n\nUQ:\n- name\n\nCols:\n- display_name\n- category\n- color\n- is_active\n","x":560,"y":200,"width":520,"height":400,"color":"6"},
 		{"id":"e101000000000002","type":"text","text":"Notes:\n\n- 本 ERD 聚焦 instances CRUD 与其直接关联\n- capacity/accounts 等域的明细表不在此图展开\n","x":-400,"y":680,"width":1480,"height":160,"color":"2"},
-		{"id":"8ebe67764747ad18","type":"file","file":"architecture/instances-domain.md","subpath":"#图(Canvas)","x":1280,"y":-400,"width":1200,"height":200,"color":"2"}
+		{"id":"8ebe67764747ad18","type":"file","file":"architecture/domain/instances-domain.md","subpath":"#图(Canvas)","x":1280,"y":-400,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"e101000000001001","fromNode":"e101000000000011","fromSide":"left","toNode":"e101000000000010","toSide":"right","label":"1..N (FK: credential_id)"},

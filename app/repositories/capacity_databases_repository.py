@@ -16,7 +16,7 @@ from app import db
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
-from app.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
+from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 
 
 class CapacityDatabasesRepository:

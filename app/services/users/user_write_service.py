@@ -14,17 +14,17 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants import UserRole
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.core.constants import UserRole
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.user import User
 from app.repositories.users_repository import UsersRepository
 from app.schemas.users import UserCreatePayload, UserUpdatePayload
 from app.schemas.validation import validate_or_raise
-from app.types.request_payload import parse_payload
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import PayloadMapping, ResourcePayload
+    from app.core.types import PayloadMapping, ResourcePayload
 
 
 @dataclass(slots=True)
@@ -41,9 +41,9 @@ class UserWriteService:
 
     MESSAGE_USERNAME_EXISTS: ClassVar[str] = "USERNAME_EXISTS"
 
-    def __init__(self, repository: UsersRepository) -> None:
+    def __init__(self, repository: UsersRepository | None = None) -> None:
         """初始化服务并注入用户仓库."""
-        self._repository = repository
+        self._repository = repository or UsersRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
         """创建用户."""
@@ -105,7 +105,7 @@ class UserWriteService:
             raise ValidationError("不能删除自己的账户")
 
         if user.role == UserRole.ADMIN:
-            admin_count = User.query.filter_by(role=UserRole.ADMIN).count()
+            admin_count = self._repository.count_by_role(UserRole.ADMIN)
             if admin_count <= 1:
                 raise ValidationError("不能删除最后一个管理员账户")
 

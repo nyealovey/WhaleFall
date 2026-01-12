@@ -27,7 +27,7 @@ related:
 ## 索引
 
 - [[API/api-v1-api-contract|API Contract(v1) 索引]]
-- [[reference/server/README|Server 服务层文档]]
+- [[reference/service/README|Service 服务层文档]]
 - [[reference/database/README|数据库参考]]
 - [[reference/config/README|配置参考]]
 - [[reference/security/README|安全参考]]

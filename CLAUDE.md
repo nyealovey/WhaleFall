@@ -81,10 +81,10 @@ make dev-logs
 所有配置集中在 `app/settings.py`。环境变量从 `.env` 解析，带校验与默认值。禁止硬编码配置。
 
 #### 2. 路由安全模式
-所有路由必须使用 `app/utils/route_safety.py` 的 `safe_route_call` 进行统一错误处理与结构化日志：
+所有路由必须使用 `app/infra/route_safety.py` 的 `safe_route_call` 进行统一错误处理与结构化日志：
 
 ```python
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 @blueprint.route("/api/example")
 def example_view() -> Response:
@@ -242,7 +242,7 @@ def example_view() -> Response:
 1. 在 `app/tasks/` 定义任务
 2. 在 `app/scheduler.py` 注册
 3. 确保任务在 `app.app_context()` 内运行
-4. 添加作业配置到 `app/constants/scheduler_jobs.py`
+4. 添加作业配置到 `app/core/constants/scheduler_jobs.py`
 
 ### 新增 Grid.js 列表页
 1. 使用 `grid-wrapper.js` 的 `GridWrapper`
@@ -300,7 +300,7 @@ python scripts/reset_admin_password.py
 
 - `AGENTS.md` - 仓库协作规则与硬约束
 - `app/settings.py` - 配置管理
-- `app/utils/route_safety.py` - 路由错误处理模式
+- `app/infra/route_safety.py` - 路由错误处理模式
 - `app/utils/response_utils.py` - 统一响应辅助函数
 - `app/static/js/common/grid-wrapper.js` - 前端表格封装
 - `docs/Obsidian/standards/backend/README.md` - 后端规范索引

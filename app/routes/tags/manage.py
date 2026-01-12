@@ -5,12 +5,12 @@ from __future__ import annotations
 from flask import Blueprint, render_template, request
 from flask_login import login_required
 
-from app.constants import STATUS_ACTIVE_OPTIONS
-from app.errors import SystemError
+from app.core.constants import STATUS_ACTIVE_OPTIONS
+from app.core.exceptions import SystemError
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.tags.tag_stats_service import TagStatsService
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)

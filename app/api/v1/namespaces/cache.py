@@ -11,7 +11,7 @@ from flask_restx import Namespace, fields
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.utils.decorators import require_csrf
 

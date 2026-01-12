@@ -1,7 +1,7 @@
 import pytest
 
 from app import create_app, db
-from app.constants.http_headers import HttpHeaders
+from app.core.constants.http_headers import HttpHeaders
 from app.models.user import User
 
 

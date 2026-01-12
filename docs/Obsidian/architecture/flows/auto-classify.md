@@ -16,12 +16,12 @@ related:
   - "[[architecture/identity-access]]"
   - "[[API/accounts-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[reference/server/auto-classify-service]]"
-  - "[[reference/server/accounts-classifications-read-service]]"
-  - "[[reference/server/account-classification-orchestrator]]"
-  - "[[reference/server/account-classification-dsl-v4]]"
-  - "[[reference/server/accounts-classifications-write-service]]"
-  - "[[reference/server/accounts-permissions-facts-builder]]"
+  - "[[reference/service/auto-classify-service]]"
+  - "[[reference/service/accounts-classifications-read-service]]"
+  - "[[reference/service/account-classification-orchestrator]]"
+  - "[[reference/service/account-classification-dsl-v4]]"
+  - "[[reference/service/accounts-classifications-write-service]]"
+  - "[[reference/service/accounts-permissions-facts-builder]]"
   - "[[canvas/account-classification/account-classification-flow.canvas]]"
 ---
 
@@ -76,17 +76,17 @@ flowchart TD
 
 ## 深读(服务层文档)
 
-- [[reference/server/auto-classify-service]]
-- [[reference/server/accounts-classifications-read-service]]
-- [[reference/server/account-classification-orchestrator]]
-- [[reference/server/account-classification-dsl-v4]]
-- [[reference/server/accounts-classifications-write-service]]
-- [[reference/server/accounts-permissions-facts-builder]]
+- [[reference/service/auto-classify-service]]
+- [[reference/service/accounts-classifications-read-service]]
+- [[reference/service/account-classification-orchestrator]]
+- [[reference/service/account-classification-dsl-v4]]
+- [[reference/service/accounts-classifications-write-service]]
+- [[reference/service/accounts-permissions-facts-builder]]
 
 ## 相关 domain notes
 
-- [[architecture/classification-domain]]
-- [[architecture/accounts-permissions-domain]]
+- [[architecture/domain/classification-domain]]
+- [[architecture/domain/accounts-permissions-domain]]
 
 ## 常见 message_code
 

@@ -3,7 +3,7 @@ from datetime import date, datetime
 import pytest
 
 from app import create_app, db
-from app.constants import DatabaseType
+from app.core.constants import DatabaseType
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.models.database_size_stat import DatabaseSizeStat

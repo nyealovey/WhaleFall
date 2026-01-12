@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from flask import request, url_for
 
 from app.forms.definitions.credential import CREDENTIAL_FORM_DEFINITION
+from app.views.form_handlers.credential_form_handler import CredentialFormHandler
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ class CredentialFormView(ResourceFormView[Credential]):
     """
 
     form_definition = CREDENTIAL_FORM_DEFINITION
+    service_class = CredentialFormHandler
 
     def _resolve_success_redirect(self, instance: Credential) -> str:
         """解析成功后的重定向地址.

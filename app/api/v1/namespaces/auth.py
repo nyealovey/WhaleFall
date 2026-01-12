@@ -13,9 +13,9 @@ from flask_wtf.csrf import generate_csrf
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
-from app.constants import TimeConstants
-from app.constants.system_constants import SuccessMessages
-from app.errors import ValidationError
+from app.core.constants import TimeConstants
+from app.core.constants.system_constants import SuccessMessages
+from app.core.exceptions import ValidationError
 from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit

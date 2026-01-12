@@ -14,17 +14,17 @@ from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query, contains_eager
 
-from app.constants.colors import ThemeColors
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag, instance_tags
-from app.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
-from app.types.listing import PaginatedResult
-from app.types.tags import TagSummary
-from app.utils.route_safety import log_with_context
+from app.core.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagSummary
+from app.utils.theme_color_utils import get_theme_color_value
+from app.utils.structlog_config import log_warning
 
 
 class AccountsLedgerRepository:
@@ -178,14 +178,12 @@ class AccountsLedgerRepository:
                 .filter(tag_name_column.in_(tags))
             )
         except SQLAlchemyError as exc:  # pragma: no cover - 日志用于排查
-            log_with_context(
-                "warning",
+            log_warning(
                 "标签过滤失败",
                 module="accounts_ledgers",
+                exception=exc,
                 action="_apply_tag_filter",
-                context={"tags": tags},
-                extra={"error_message": str(exc)},
-                include_actor=False,
+                tags=tags,
             )
             return query
 
@@ -196,14 +194,13 @@ class AccountsLedgerRepository:
         try:
             classification_id = int(classification_filter)
         except (ValueError, TypeError) as exc:
-            log_with_context(
-                "warning",
+            safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
+            log_warning(
                 "分类ID转换失败",
                 module="accounts_ledgers",
+                exception=safe_exc,
                 action="_apply_classification_filter",
-                context={"classification": classification_filter},
-                extra={"error_message": str(exc)},
-                include_actor=False,
+                classification=classification_filter,
             )
             return query
 
@@ -270,7 +267,7 @@ class AccountsLedgerRepository:
             classifications[account_id].append(
                 AccountClassificationSummary(
                     name=name,
-                    color=ThemeColors.get_color_value(color or "info"),
+                    color=get_theme_color_value(color or "info"),
                 ),
             )
         return dict(classifications)

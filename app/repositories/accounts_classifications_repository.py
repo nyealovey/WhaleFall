@@ -26,6 +26,75 @@ from app.models.permission_config import PermissionConfig
 class AccountsClassificationsRepository:
     """账户分类管理查询 Repository."""
 
+    def get_classification_by_id(self, classification_id: int) -> AccountClassification | None:
+        """按ID获取账户分类."""
+        return cast("AccountClassification | None", AccountClassification.query.get(classification_id))
+
+    def get_rule_by_id(self, rule_id: int) -> ClassificationRule | None:
+        """按ID获取分类规则."""
+        return cast("ClassificationRule | None", ClassificationRule.query.get(rule_id))
+
+    def get_assignment_by_id(self, assignment_id: int) -> AccountClassificationAssignment | None:
+        """按ID获取分类分配记录."""
+        return cast("AccountClassificationAssignment | None", AccountClassificationAssignment.query.get(assignment_id))
+
+    @staticmethod
+    def exists_classification_name(name: str, *, exclude_classification_id: int | None = None) -> bool:
+        """判断分类名称是否已存在(可排除指定分类 ID)."""
+        normalized = (name or "").strip()
+        if not normalized:
+            return False
+        query = AccountClassification.query.filter(AccountClassification.name == normalized)
+        if exclude_classification_id is not None:
+            query = query.filter(AccountClassification.id != exclude_classification_id)
+        return bool(db.session.query(query.exists()).scalar())
+
+    @staticmethod
+    def exists_rule_name(
+        *,
+        classification_id: int,
+        db_type: str,
+        rule_name: str,
+        exclude_rule_id: int | None = None,
+    ) -> bool:
+        """判断规则名称是否已存在(同分类 + 同 db_type, 可排除指定 rule ID)."""
+        query = ClassificationRule.query.filter_by(
+            classification_id=classification_id,
+            db_type=db_type,
+            rule_name=rule_name,
+        )
+        if exclude_rule_id is not None:
+            query = query.filter(ClassificationRule.id != exclude_rule_id)
+        return bool(db.session.query(query.exists()).scalar())
+
+    @staticmethod
+    def exists_rule_expression(
+        *,
+        classification_id: int,
+        rule_expression: str,
+        exclude_rule_id: int | None = None,
+    ) -> bool:
+        """判断规则表达式是否已存在(同分类, 可排除指定 rule ID)."""
+        query = ClassificationRule.query.filter_by(
+            classification_id=classification_id,
+            rule_expression=rule_expression,
+        )
+        if exclude_rule_id is not None:
+            query = query.filter(ClassificationRule.id != exclude_rule_id)
+        return bool(db.session.query(query.exists()).scalar())
+
+    def fetch_classification_usage(self, classification_id: int) -> tuple[int, int]:
+        """统计分类的规则数量与启用分配数量."""
+        rule_count = int(ClassificationRule.query.filter_by(classification_id=classification_id).count() or 0)
+        assignment_count = int(
+            AccountClassificationAssignment.query.filter_by(
+                classification_id=classification_id,
+                is_active=True,
+            ).count()
+            or 0
+        )
+        return rule_count, assignment_count
+
     def fetch_active_classifications(self) -> list[AccountClassification]:
         """查询启用的账户分类."""
         return (

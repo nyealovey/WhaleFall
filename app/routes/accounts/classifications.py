@@ -9,7 +9,8 @@ from flask import Blueprint, render_template
 from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
 
-from app.constants.colors import ThemeColors
+from app.core.constants.colors import ThemeColors
+from app.infra.route_safety import safe_route_call
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.views.classification_forms import AccountClassificationFormView, ClassificationRuleFormView
 
@@ -26,8 +27,16 @@ accounts_classifications_bp = Blueprint(
 @view_required
 def index() -> str:
     """账户分类管理首页."""
-    color_options = ThemeColors.COLOR_MAP
-    return render_template("accounts/account-classification/index.html", color_options=color_options)
+    def _execute() -> str:
+        color_options = ThemeColors.COLOR_MAP
+        return render_template("accounts/account-classification/index.html", color_options=color_options)
+
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="index",
+        public_error="加载账户分类页面失败",
+    )
 
 
 _classification_create_view = cast(

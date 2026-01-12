@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import cast
 
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
-from app.types.instance_accounts import (
+from app.core.types.instance_accounts import (
     InstanceAccountChangeHistoryAccount,
     InstanceAccountChangeHistoryResult,
     InstanceAccountChangeLogItem,

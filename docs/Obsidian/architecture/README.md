@@ -21,27 +21,17 @@ related:
 > [!info] Purpose
 > 本目录承载 WhaleFall 的架构设计说明, 分层边界, 关键数据流, 以及 ADR (Architecture Decision Records).
 
-## 索引
+## 关键入口(少量)
 
 - [[architecture/developer-entrypoint|开发者入口(常见任务导航)]]
 - [[architecture/project-structure|项目结构与代码落点]]
-- [[architecture/identity-access|认证与权限(Identity & Access)]]
-- [[architecture/glossary-and-boundaries|名词表/边界一页纸]]
 - [[architecture/spec|技术规格与架构说明]]
-- [[architecture/module-dependency-graph|模块依赖边界图]]
 - [[architecture/flows/README|关键流程索引(flows)]]
-- [[architecture/architecture-review|架构评审入口]]
+- [[architecture/module-dependency-graph|模块依赖边界图]]
 - [[architecture/adr/README|ADR 索引]]
 
-## Domain notes
+## 全量浏览(不维护手工清单)
 
-- [[architecture/instances-domain]]
-- [[architecture/credentials-connections-domain]]
-- [[architecture/accounts-permissions-domain]]
-- [[architecture/capacity-partitions-domain]]
-- [[architecture/scheduler-domain]]
-- [[architecture/classification-domain]]
-- [[architecture/tags-domain]]
-- [[architecture/databases-ledger-domain]]
-- [[architecture/files-exports-domain|files-exports]]
-- [[architecture/dashboard-domain]]
+```query
+path:"architecture"
+```

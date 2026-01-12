@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any, cast
 import psycopg  # type: ignore[import-not-found]
 
 if TYPE_CHECKING:
-    from app.types import JsonValue
+    from app.core.types import JsonValue
 else:
     JsonValue = Any
 
-from app.types import DBAPICursor
+from app.core.types import DBAPICursor
 
 from .base import (
     ConnectionAdapterError,

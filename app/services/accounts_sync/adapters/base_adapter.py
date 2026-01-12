@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
-    from app.types import RawAccount, RemoteAccount
+    from app.core.types import RawAccount, RemoteAccount
 else:
     Instance = Any
     RawAccount = dict[str, Any]

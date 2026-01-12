@@ -348,4 +348,4 @@ pytest -m unit "$@"
 |------|----------|
 | 2025-12-25 | 初始版本：按"运行时机/用途"重新设计目录结构 |
 | 2026-01-08 | 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter |
-| 2026-01-09 | 将 scripts 迁移映射/迁移步骤/兼容性过渡迁出到 `docs/changes/refactor/026-scripts-directory-structure-migration.md` |
+| 2026-01-09 | scripts 目录结构迁移: 迁移映射/步骤/兼容性过渡(一次性记录, 用后可删) |

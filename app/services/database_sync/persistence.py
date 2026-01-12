@@ -4,14 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import or_, text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
-from app.models.database_size_stat import DatabaseSizeStat
-from app.models.instance_database import InstanceDatabase
-from app.models.instance_size_stat import InstanceSizeStat
+from app.repositories.capacity_persistence_repository import CapacityPersistenceRepository
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -24,9 +19,10 @@ if TYPE_CHECKING:
 class CapacityPersistence:
     """负责容量采集相关的数据持久化."""
 
-    def __init__(self) -> None:
+    def __init__(self, repository: CapacityPersistenceRepository | None = None) -> None:
         """初始化容量持久化组件,注入系统日志记录器."""
         self.logger = get_system_logger()
+        self._repository = repository or CapacityPersistenceRepository()
 
     def save_database_stats(self, instance: Instance, data: Iterable[dict]) -> int:
         """保存数据库容量数据.
@@ -79,26 +75,8 @@ class CapacityPersistence:
 
         saved = len(records)
 
-        insert_stmt = pg_insert(DatabaseSizeStat).values(records)
-        upsert_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=[
-                DatabaseSizeStat.instance_id,
-                DatabaseSizeStat.database_name,
-                DatabaseSizeStat.collected_date,
-            ],
-            set_={
-                "size_mb": insert_stmt.excluded.size_mb,
-                "data_size_mb": insert_stmt.excluded.data_size_mb,
-                "log_size_mb": insert_stmt.excluded.log_size_mb,
-                "collected_at": insert_stmt.excluded.collected_at,
-                "updated_at": current_utc,
-            },
-        )
-
         try:
-            with db.session.begin_nested():
-                db.session.execute(upsert_stmt)
-                db.session.flush()
+            self._repository.upsert_database_size_stats(records, current_utc=current_utc)
         except SQLAlchemyError as exc:
             self.logger.exception(
                 "save_database_stats_upsert_failed",
@@ -153,27 +131,8 @@ class CapacityPersistence:
             "updated_at": now_utc,
         }
 
-        insert_stmt = pg_insert(InstanceSizeStat).values(payload)
-        upsert_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=[
-                InstanceSizeStat.instance_id,
-                InstanceSizeStat.collected_date,
-            ],
-            index_where=text("is_deleted = false"),
-            set_={
-                "total_size_mb": insert_stmt.excluded.total_size_mb,
-                "database_count": insert_stmt.excluded.database_count,
-                "collected_at": insert_stmt.excluded.collected_at,
-                "updated_at": insert_stmt.excluded.updated_at,
-                "is_deleted": False,
-                "deleted_at": None,
-            },
-        )
-
         try:
-            with db.session.begin_nested():
-                db.session.execute(upsert_stmt)
-                db.session.flush()
+            self._repository.upsert_instance_size_stat(payload, current_utc=now_utc)
         except SQLAlchemyError as exc:
             self.logger.exception(
                 "save_instance_stats_failed",
@@ -201,21 +160,9 @@ class CapacityPersistence:
 
         """
         today = time_utils.now_china().date()
-        stats: list[DatabaseSizeStat] = (
-            DatabaseSizeStat.query.outerjoin(
-                InstanceDatabase,
-                (InstanceDatabase.instance_id == DatabaseSizeStat.instance_id)
-                & (InstanceDatabase.database_name == DatabaseSizeStat.database_name),
-            )
-            .filter(
-                DatabaseSizeStat.instance_id == instance.id,
-                DatabaseSizeStat.collected_date == today,
-                or_(
-                    InstanceDatabase.is_active.is_(True),
-                    InstanceDatabase.is_active.is_(None),
-                ),
-            )
-            .all()
+        stats = self._repository.list_database_size_stats_for_instance_date(
+            instance_id=instance.id,
+            collected_date=today,
         )
 
         if not stats:

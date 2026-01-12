@@ -10,6 +10,8 @@ from __future__ import annotations
 from flask import Response, jsonify, request
 from flask_restx import Api
 
+from app.api.error_mapping import map_exception_to_status
+from app.core.constants import HttpStatus
 from app.utils.response_utils import jsonify_unified_success, unified_error_response
 from app.utils.structlog_config import ErrorContext
 
@@ -33,7 +35,8 @@ class WhaleFallApi(Api):
 
     def handle_error(self, e: Exception) -> Response:  # type: ignore[override]
         """将 RestX 内部异常映射为统一错误封套."""
-        payload, status_code = unified_error_response(e, context=ErrorContext(e, request))
+        status_code = map_exception_to_status(e, default=HttpStatus.INTERNAL_SERVER_ERROR)
+        payload, _ = unified_error_response(e, status_code=status_code, context=ErrorContext(e, request))
         response = jsonify(payload)
         response.status_code = status_code
         return response

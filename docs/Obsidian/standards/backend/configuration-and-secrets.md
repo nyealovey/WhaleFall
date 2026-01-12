@@ -7,11 +7,13 @@ tags:
   - standards/backend
 status: active
 created: 2025-12-25
-updated: 2026-01-09
+updated: 2026-01-12
 owner: WhaleFall Team
 scope: 配置读取(`app/settings.py`)、环境变量(`.env`/`env.example`)、部署注入与密钥管理
 related:
   - "[[standards/backend/sensitive-data-handling]]"
+  - "[[standards/backend/layer/settings-layer-standards]]"
+  - "[[standards/backend/bootstrap-and-entrypoint]]"
 ---
 
 # 配置与密钥(Settings/.env/env.example)
@@ -32,7 +34,9 @@ related:
 ### 1) 单一真源（Settings）
 
 - MUST：新增/修改配置项必须落在 `app/settings.py` 的 `Settings`（解析 + 默认值 + 校验）。
+- MUST：`create_app(settings=...)` 只消费 `Settings`（或其 `to_flask_config()`），不得在工厂函数内直接读取环境变量。
 - MUST NOT：在业务模块中新增 `os.environ.get(...)` 读取配置（除非属于“密钥读取工具”的封装层，且在本文件明确记录）。
+  - 入口脚本（`app.py`, `wsgi.py`）允许设置少量运行默认值，详见 [[standards/backend/bootstrap-and-entrypoint|Bootstrap/Entrypoint 启动规范]]。
 
 ### 2) `.env` 与 `env.example`
 
@@ -56,6 +60,13 @@ related:
 
 - MUST NOT：把密钥/口令/令牌/连接串原文写入日志、错误响应或审计记录。
 - SHOULD：若必须排障，可记录“变量名/是否存在/长度/来源”等非敏感信息。
+
+### 5) 兼容/回退策略（env alias 与 `or` 兜底）
+
+- SHOULD：当环境变量名称需要演进（重命名/拆分/合并）时，允许在 `app/settings.py` 使用 env alias：
+  - `os.environ.get("NEW") or os.environ.get("OLD")`
+- MUST：env alias 必须是“临时迁移策略”，需要在文档/注释标注删除计划；迁移完成后删除，避免长期保留 silent fallback。
+- MUST NOT：对可能合法为 `0/""/[]` 的配置值使用 `or` 兜底（会覆盖合法值），应使用 `is None` 或显式判断空白字符串。
 
 ## 正反例
 

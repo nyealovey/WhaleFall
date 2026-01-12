@@ -8,8 +8,8 @@
 from __future__ import annotations
 
 from app.repositories.credentials_repository import CredentialsRepository
-from app.types.credentials import CredentialListFilters, CredentialListItem
-from app.types.listing import PaginatedResult
+from app.core.types.credentials import CredentialListFilters, CredentialListItem
+from app.core.types.listing import PaginatedResult
 from app.utils.time_utils import time_utils
 
 

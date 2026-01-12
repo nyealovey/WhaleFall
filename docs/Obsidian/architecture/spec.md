@@ -404,8 +404,8 @@ flowchart TD
 
 更细的 DSL v4 语义与守卫口径见:
 
-- [[reference/server/account-classification-dsl-v4|Account Classification DSL v4]]
-- [[reference/server/account-classification-orchestrator|Account Classification Orchestrator]]
+- [[reference/service/account-classification-dsl-v4|Account Classification DSL v4]]
+- [[reference/service/account-classification-orchestrator|Account Classification Orchestrator]]
 
 ### 5.5 容量采集(库存 + size stats)
 

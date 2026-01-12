@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.constants import DATABASE_TYPES
+from app.core.constants import DATABASE_TYPES
 from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
 from app.services.common.filter_options_service import FilterOptionsService
 

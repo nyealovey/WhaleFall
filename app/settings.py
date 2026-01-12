@@ -20,6 +20,8 @@ from pathlib import Path
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
+from app.core.constants.validation_limits import BCRYPT_LOG_ROUNDS_MIN, HOUR_OF_DAY_MAX, HOUR_OF_DAY_MIN
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_ENVIRONMENT = "development"
@@ -64,6 +66,7 @@ DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS = 300
 DEFAULT_PROXY_FIX_TRUSTED_IPS = ("127.0.0.1", "::1")
 
 DEFAULT_API_V1_DOCS_ENABLED = True
+DEFAULT_ENABLE_SCHEDULER = True
 
 
 def _parse_bool(raw: str | None, *, default: bool) -> bool:
@@ -149,6 +152,53 @@ def _load_secret_keys(*, debug: bool) -> tuple[str, str]:
     return secret_key, jwt_secret_key
 
 
+def _load_password_encryption_key(environment_normalized: str, *, debug: bool) -> str:
+    """读取 PASSWORD_ENCRYPTION_KEY.
+
+    说明:
+    - 生产环境必须显式设置,否则 fail-fast(在 `_validate()` 统一报错)。
+    - 非生产环境未设置时,会生成临时密钥用于开发/测试,但重启后无法解密旧数据。
+
+    Returns:
+        str: Fernet key 字符串(可能为空,表示生产环境缺失配置,由 `_validate()` 统一报错)。
+
+    """
+    raw = (os.environ.get("PASSWORD_ENCRYPTION_KEY") or "").strip()
+    if raw:
+        return raw
+
+    if environment_normalized == "production":
+        return ""
+
+    generated = Fernet.generate_key().decode()
+    if debug:
+        logger.warning("⚠️  未设置 PASSWORD_ENCRYPTION_KEY,将使用临时密钥(重启后无法解密已存储凭据)")
+        logger.info(
+            '请生成并设置 PASSWORD_ENCRYPTION_KEY(示例: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")'
+        )
+    return generated
+
+
+def _load_oracle_client_settings() -> tuple[str | None, str | None]:
+    """读取 Oracle 客户端初始化相关配置."""
+    client_lib_dir = (os.environ.get("ORACLE_CLIENT_LIB_DIR") or "").strip() or None
+    oracle_home = (os.environ.get("ORACLE_HOME") or "").strip() or None
+    return client_lib_dir, oracle_home
+
+
+def _load_scheduler_runtime_flags() -> tuple[bool, str, bool, bool]:
+    """读取调度器进程角色相关配置.
+
+    注意:
+    - 这些值属于“运行时环境”而非业务配置,但仍统一由 settings 读取以避免散落 `os.environ.get`。
+    """
+    enable_scheduler = _parse_bool(os.environ.get("ENABLE_SCHEDULER"), default=DEFAULT_ENABLE_SCHEDULER)
+    server_software = os.environ.get("SERVER_SOFTWARE", "")
+    flask_run_from_cli = _parse_bool(os.environ.get("FLASK_RUN_FROM_CLI"), default=False)
+    werkzeug_run_main = _parse_bool(os.environ.get("WERKZEUG_RUN_MAIN"), default=False)
+    return enable_scheduler, server_software, flask_run_from_cli, werkzeug_run_main
+
+
 def _load_jwt_expiration_seconds() -> tuple[int, int]:
     """读取 JWT 访问/刷新令牌有效期(秒)."""
     access_seconds = _parse_int(
@@ -157,9 +207,14 @@ def _load_jwt_expiration_seconds() -> tuple[int, int]:
         name="JWT_ACCESS_TOKEN_EXPIRES",
     )
 
-    refresh_raw = os.environ.get("JWT_REFRESH_TOKEN_EXPIRES") or os.environ.get("JWT_REFRESH_TOKEN_EXPIRES_SECONDS")
+    legacy_refresh_raw = os.environ.get("JWT_REFRESH_TOKEN_EXPIRES_SECONDS")
+    if legacy_refresh_raw is not None and legacy_refresh_raw.strip() != "":
+        raise ValueError(
+            "JWT_REFRESH_TOKEN_EXPIRES_SECONDS 已移除,请使用 JWT_REFRESH_TOKEN_EXPIRES (秒)"
+        )
+
     refresh_seconds = _parse_int(
-        refresh_raw,
+        os.environ.get("JWT_REFRESH_TOKEN_EXPIRES"),
         default=DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS,
         name="JWT_REFRESH_TOKEN_EXPIRES",
     )
@@ -272,11 +327,13 @@ def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, 
         default=DEFAULT_SESSION_LIFETIME_SECONDS,
         name="PERMANENT_SESSION_LIFETIME",
     )
-    remember_cookie_duration_raw = os.environ.get("REMEMBER_COOKIE_DURATION") or os.environ.get(
-        "REMEMBER_COOKIE_DURATION_SECONDS"
-    )
+    legacy_remember_cookie_duration_raw = os.environ.get("REMEMBER_COOKIE_DURATION_SECONDS")
+    if legacy_remember_cookie_duration_raw is not None and legacy_remember_cookie_duration_raw.strip() != "":
+        raise ValueError(
+            "REMEMBER_COOKIE_DURATION_SECONDS 已移除,请使用 REMEMBER_COOKIE_DURATION (秒)"
+        )
     remember_cookie_duration_seconds = _parse_int(
-        remember_cookie_duration_raw,
+        os.environ.get("REMEMBER_COOKIE_DURATION"),
         default=DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS,
         name="REMEMBER_COOKIE_DURATION",
     )
@@ -421,6 +478,7 @@ class Settings:
 
     secret_key: str
     jwt_secret_key: str
+    password_encryption_key: str
 
     jwt_access_token_expires_seconds: int
     jwt_refresh_token_expires_seconds: int
@@ -428,6 +486,9 @@ class Settings:
     database_url: str
     db_connection_timeout_seconds: int
     db_max_connections: int
+
+    oracle_client_lib_dir: str | None
+    oracle_home: str | None
 
     cache_type: str
     cache_redis_url: str | None
@@ -461,6 +522,11 @@ class Settings:
     cors_origins: tuple[str, ...]
 
     api_v1_docs_enabled: bool
+
+    enable_scheduler: bool
+    server_software: str
+    flask_run_from_cli: bool
+    werkzeug_run_main: bool
 
     aggregation_enabled: bool
     aggregation_hour: int
@@ -559,10 +625,12 @@ class Settings:
         environment, environment_normalized, debug = _load_environment()
         app_name, app_version = _load_app_identity()
         secret_key, jwt_secret_key = _load_secret_keys(debug=debug)
+        password_encryption_key = _load_password_encryption_key(environment_normalized, debug=debug)
         jwt_access_seconds, jwt_refresh_seconds = _load_jwt_expiration_seconds()
         database_url, db_connection_timeout_seconds, db_max_connections = _load_database_settings(
             environment_normalized
         )
+        oracle_client_lib_dir, oracle_home = _load_oracle_client_settings()
         (
             cache_type,
             cache_redis_url,
@@ -599,6 +667,8 @@ class Settings:
 
         api_v1_docs_enabled = _load_api_settings(environment_normalized)
 
+        enable_scheduler, server_software, flask_run_from_cli, werkzeug_run_main = _load_scheduler_runtime_flags()
+
         (
             aggregation_enabled,
             aggregation_hour,
@@ -615,11 +685,14 @@ class Settings:
             app_version=app_version,
             secret_key=secret_key,
             jwt_secret_key=jwt_secret_key,
+            password_encryption_key=password_encryption_key,
             jwt_access_token_expires_seconds=jwt_access_seconds,
             jwt_refresh_token_expires_seconds=jwt_refresh_seconds,
             database_url=database_url,
             db_connection_timeout_seconds=db_connection_timeout_seconds,
             db_max_connections=db_max_connections,
+            oracle_client_lib_dir=oracle_client_lib_dir,
+            oracle_home=oracle_home,
             cache_type=cache_type,
             cache_redis_url=cache_redis_url,
             cache_default_timeout_seconds=cache_default_timeout_seconds,
@@ -646,6 +719,10 @@ class Settings:
             login_rate_window_seconds=login_rate_window_seconds,
             cors_origins=cors_origins,
             api_v1_docs_enabled=api_v1_docs_enabled,
+            enable_scheduler=enable_scheduler,
+            server_software=server_software,
+            flask_run_from_cli=flask_run_from_cli,
+            werkzeug_run_main=werkzeug_run_main,
             aggregation_enabled=aggregation_enabled,
             aggregation_hour=aggregation_hour,
             collect_db_size_enabled=collect_db_size_enabled,
@@ -659,12 +736,12 @@ class Settings:
     def _validate(self) -> None:
         """执行跨字段校验,统一抛出可读的 ValueError."""
         errors: list[str] = []
-        password_encryption_key = (os.environ.get("PASSWORD_ENCRYPTION_KEY") or "").strip()
+        password_encryption_key = self.password_encryption_key.strip()
         password_encryption_key_present = bool(password_encryption_key)
         checks: list[tuple[str, bool]] = [
             ("DB_CONNECTION_TIMEOUT 必须为正整数", self.db_connection_timeout_seconds <= 0),
             ("DB_MAX_CONNECTIONS 必须为正整数", self.db_max_connections <= 0),
-            ("BCRYPT_LOG_ROUNDS 不应小于 4", self.bcrypt_log_rounds < 4),
+            (f"BCRYPT_LOG_ROUNDS 不应小于 {BCRYPT_LOG_ROUNDS_MIN}", self.bcrypt_log_rounds < BCRYPT_LOG_ROUNDS_MIN),
             ("PERMANENT_SESSION_LIFETIME 必须为正整数(秒)", self.session_lifetime_seconds <= 0),
             ("REMEMBER_COOKIE_DURATION 必须为正整数(秒)", self.remember_cookie_duration_seconds <= 0),
             ("PROXY_FIX_X_FOR 必须为非负整数", self.proxy_fix_x_for < 0),
@@ -683,7 +760,10 @@ class Settings:
                 password_encryption_key_present and not _is_valid_fernet_key(password_encryption_key),
             ),
             ("DATABASE_SIZE_RETENTION_MONTHS 必须为正整数(月)", self.database_size_retention_months <= 0),
-            ("AGGREGATION_HOUR 必须为 0-23 的整数", self.aggregation_hour < 0 or self.aggregation_hour > 23),
+            (
+                f"AGGREGATION_HOUR 必须为 {HOUR_OF_DAY_MIN}-{HOUR_OF_DAY_MAX} 的整数",
+                self.aggregation_hour < HOUR_OF_DAY_MIN or self.aggregation_hour > HOUR_OF_DAY_MAX,
+            ),
             ("DB_SIZE_COLLECTION_INTERVAL 必须为正整数(小时)", self.db_size_collection_interval_hours <= 0),
             ("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)", self.db_size_collection_timeout_seconds <= 0),
         ]

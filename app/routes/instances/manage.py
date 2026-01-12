@@ -11,7 +11,7 @@ from flask_login import login_required
 
 from app.services.instances.instance_list_page_service import InstanceListPageService
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 from app.views.instance_forms import InstanceFormView
 
 # 创建蓝图

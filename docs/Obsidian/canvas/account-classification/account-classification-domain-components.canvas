@@ -21,7 +21,7 @@
 		{"id":"29a5178b96a4866a","type":"text","text":"## Models\n\nCode: `app/models/account_classification.py`\n\n- account_classifications\n- classification_rules\n- account_classification_assignments\n","x":1560,"y":520,"width":520,"height":200,"color":"1"},
 		{"id":"b157d8239d57b23f","type":"text","text":"## 主库(PostgreSQL)\n\n- classifications/rules/assignments 持久化\n","x":1560,"y":740,"width":520,"height":140,"color":"4"},
 		{"id":"fb2fd1b1678b75aa","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":1560,"y":-80,"width":520,"height":80,"color":"6"},
-		{"id":"73bfb7dd09cda22a","type":"file","file":"architecture/classification-domain.md","subpath":"#图(Canvas)","x":2200,"y":-80,"width":1200,"height":200,"color":"2"}
+		{"id":"73bfb7dd09cda22a","type":"file","file":"architecture/domain/classification-domain.md","subpath":"#图(Canvas)","x":2200,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"5e4d3c2b1a0f9e8d","fromNode":"d6c4b2a1908f7e5d","fromSide":"right","toNode":"360a215b1679cbaf","toSide":"left","label":"invalidate/stats"},

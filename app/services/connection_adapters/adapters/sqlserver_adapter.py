@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pymssql  # type: ignore[import-not-found]
 
-from app.types import DBAPICursor
+from app.core.types import DBAPICursor
 from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
 
 from .base import (
@@ -35,7 +35,7 @@ SQLSERVER_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
-    from app.types import JsonValue
+    from app.core.types import JsonValue
 else:
     Instance = Any
     JsonValue = Any

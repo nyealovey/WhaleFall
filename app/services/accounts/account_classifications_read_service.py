@@ -7,10 +7,10 @@
 
 from __future__ import annotations
 
-from app.errors import SystemError
-from app.models.account_classification import AccountClassification
+from app.core.exceptions import NotFoundError, SystemError
+from app.models.account_classification import AccountClassification, ClassificationRule
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
-from app.types.accounts_classifications import (
+from app.core.types.accounts_classifications import (
     AccountClassificationAssignmentItem,
     AccountClassificationListItem,
     AccountClassificationRuleFilterItem,
@@ -26,6 +26,54 @@ class AccountClassificationsReadService:
     def __init__(self, repository: AccountsClassificationsRepository | None = None) -> None:
         """初始化读取服务."""
         self._repository = repository or AccountsClassificationsRepository()
+
+    def get_classification_by_id(self, classification_id: int) -> AccountClassification | None:
+        """按 ID 获取账户分类(可为空)."""
+        try:
+            return self._repository.get_classification_by_id(classification_id)
+        except Exception as exc:
+            log_error("获取账户分类失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取账户分类失败") from exc
+
+    def get_rule_by_id(self, rule_id: int) -> ClassificationRule | None:
+        """按 ID 获取分类规则(可为空)."""
+        try:
+            return self._repository.get_rule_by_id(rule_id)
+        except Exception as exc:
+            log_error("获取分类规则失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取分类规则失败") from exc
+
+    def get_classification_or_error(self, classification_id: int) -> AccountClassification:
+        """获取账户分类(不存在则抛错)."""
+        try:
+            classification = self._repository.get_classification_by_id(classification_id)
+        except Exception as exc:
+            log_error("获取账户分类失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取账户分类失败") from exc
+
+        if classification is None:
+            raise NotFoundError("账户分类不存在", extra={"classification_id": classification_id})
+        return classification
+
+    def get_rule_or_error(self, rule_id: int) -> ClassificationRule:
+        """获取分类规则(不存在则抛错)."""
+        try:
+            rule = self._repository.get_rule_by_id(rule_id)
+        except Exception as exc:
+            log_error("获取分类规则失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取分类规则失败") from exc
+
+        if rule is None:
+            raise NotFoundError("分类规则不存在", extra={"rule_id": rule_id})
+        return rule
+
+    def get_classification_usage(self, classification_id: int) -> tuple[int, int]:
+        """统计分类的规则/分配使用情况."""
+        try:
+            return self._repository.fetch_classification_usage(classification_id)
+        except Exception as exc:
+            log_error("获取分类使用情况失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取分类使用情况失败") from exc
 
     def list_classifications(self) -> list[AccountClassificationListItem]:
         """获取账户分类列表."""

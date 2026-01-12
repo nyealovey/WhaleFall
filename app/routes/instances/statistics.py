@@ -3,14 +3,14 @@
 from flask import flash, render_template
 from flask_login import login_required
 
-from app.constants import FlashCategory
-from app.errors import SystemError
+from app.core.constants import FlashCategory
+from app.core.exceptions import SystemError
 from app.routes.instances.manage import instances_bp
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
-from app.types import RouteReturn
-from app.types.instance_statistics import InstanceStatisticsResult
+from app.infra.flask_typing import RouteReturn
+from app.core.types.instance_statistics import InstanceStatisticsResult
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 
 @instances_bp.route("/statistics")

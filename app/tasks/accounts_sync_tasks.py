@@ -8,9 +8,10 @@ import structlog
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
-from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import AppError, ValidationError
+from app.core.constants.sync_constants import SyncCategory, SyncOperationType
+from app.core.exceptions import AppError, ValidationError
 from app.models.instance import Instance
+from app.services.accounts_sync.accounts_sync_task_service import AccountsSyncTaskService
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -21,8 +22,8 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.sync_session import SyncSession
-    from app.types.structures import JsonDict
-    from app.types.sync import CollectionSummary, InventorySummary, SyncStagesSummary
+    from app.core.types.structures import JsonDict
+    from app.core.types.sync import CollectionSummary, InventorySummary, SyncStagesSummary
 
 
 def _sync_single_instance(
@@ -179,7 +180,7 @@ def sync_accounts(
         session: SyncSession | None = None
         instances: list[Instance] = []
         try:
-            instances = Instance.query.filter_by(is_active=True).all()
+            instances = AccountsSyncTaskService().list_active_instances()
 
             if not instances:
                 sync_logger.info(

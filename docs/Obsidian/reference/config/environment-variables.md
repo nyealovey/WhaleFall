@@ -114,7 +114,6 @@ CACHE_TYPE=simple
 | `PASSWORD_ENCRYPTION_KEY` | 是(production 必填) | 无(缺失会生成临时密钥) | 数据库凭据加/解密密钥. production 缺失会导致启动失败; 开发缺失会生成临时密钥且重启后无法解密已存储凭据. |
 | `JWT_ACCESS_TOKEN_EXPIRES` | 否 | `3600`(秒) | 访问令牌过期时间(秒). |
 | `JWT_REFRESH_TOKEN_EXPIRES` | 否 | `2592000`(秒) | 刷新令牌过期时间(秒). |
-| `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` | 否(不推荐使用) | `2592000`(秒) | 变量名存在重复: `Settings` 优先读 `JWT_REFRESH_TOKEN_EXPIRES`, 其次读 `JWT_REFRESH_TOKEN_EXPIRES_SECONDS`. 建议统一保留一个. |
 | `BCRYPT_LOG_ROUNDS` | 否 | `12` | 密码哈希 cost(越大越慢更安全). |
 | `LOGIN_RATE_LIMIT` | 否 | `10` | 登录限流: 窗口内允许次数. |
 | `LOGIN_RATE_WINDOW` | 否 | `60`(秒) | 登录限流: 窗口大小(秒). |
@@ -193,7 +192,8 @@ CACHE_TYPE=simple
 
 ## 版本/兼容性说明
 
-- `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` 为历史别名: `Settings` 优先读取 `JWT_REFRESH_TOKEN_EXPIRES`, 其次读取该别名. 建议统一保留一个, 避免多处配置漂移.
+- `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` 已移除,请使用 `JWT_REFRESH_TOKEN_EXPIRES`(秒).
+- `REMEMBER_COOKIE_DURATION_SECONDS` 已移除,请使用 `REMEMBER_COOKIE_DURATION`(秒).
 - SECRET/JWT secret 的严格性取决于 `debug`: 当 `FLASK_DEBUG=false` 时, 即使处于非 production 环境, 缺失 `SECRET_KEY`/`JWT_SECRET_KEY` 也会触发启动失败(因为 `Settings` 会认为需要更严格的密钥口径).
 - `CACHE_TYPE=redis` 且 `FLASK_ENV=production` 时必须提供 `CACHE_REDIS_URL`; 非 production 环境缺失会回退 `redis://localhost:6379/0`.
 - `DATABASE_URL` 仅在 production 强制必填; 非 production 缺失会回退到 `<project_root>/userdata/whalefall_dev.db` 的 SQLite(启动时会记录 warning, 避免静默误用).

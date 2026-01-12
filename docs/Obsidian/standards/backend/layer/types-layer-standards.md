@@ -8,11 +8,12 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-12
 owner: WhaleFall Team
-scope: "`app/types/**` 下所有类型定义与协议"
+scope: "`app/core/types/**` 下所有类型定义与协议"
 related:
   - "[[standards/backend/request-payload-and-schema-validation]]"
+  - "[[standards/backend/shared-kernel-standards]]"
 ---
 
 # Types 类型定义层编写规范
@@ -28,7 +29,7 @@ related:
 
 ## 适用范围
 
-- `app/types/**` 下所有 `.py` 类型定义文件.
+- `app/core/types/**` 下所有 `.py` 类型定义文件.
 
 ## 规则(MUST/SHOULD/MAY)
 
@@ -59,19 +60,24 @@ related:
 
 ### 6) 导出规范
 
-- SHOULD: `app/types/__init__.py` 只导出高频公共类型, 并维护 `__all__`.
+- SHOULD: `app/core/types/__init__.py` 只导出高频公共类型, 并维护 `__all__`.
 
 ### 7) 依赖规则
 
 允许依赖:
 
 - MUST: 标准库 `typing`, `dataclasses`, `collections.abc`
-- MAY: `app.constants.*`(当类型需要引用常量值集合时)
+- MAY: `app.core.constants.*`(当类型需要引用常量值集合时)
 
 禁止依赖:
 
-- MUST NOT: `app.models.*`, `app` 的 `db`
+- MUST NOT: `app.models.*`(包括 `TYPE_CHECKING` 分支), `app` 的 `db`
 - MUST NOT: `app.services.*`, `app.repositories.*`, `app.routes.*`, `app.api.*`
+- MUST NOT: `app.core.exceptions`
+
+补充说明:
+
+- 如果需要表达 "某个 ORM 实体在上层会用到哪些字段/方法", MUST: 通过 `Protocol` 定义最小接口, 而不是在 types 中引用具体 model 类.
 
 ### 8) 代码规模限制
 
@@ -128,6 +134,30 @@ class DatabaseAdapter(Protocol):
     def close(self) -> None: ...
 ```
 
+### 正例: 用 Protocol 替代对 model 的类型引用
+
+```python
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Protocol
+
+
+class SupportsCredentialListRow(Protocol):
+    id: int
+    name: str
+    created_at: datetime | None
+
+    def get_password_masked(self) -> str: ...
+
+
+@dataclass(slots=True)
+class CredentialListRowProjection:
+    credential: SupportsCredentialListRow
+    instance_count: int
+```
+
 ### 反例: 在 types 里写业务逻辑或查库
 
 ```python
@@ -138,6 +168,15 @@ def list_instances():  # 反例: types 不应包含业务函数
     return Instance.query.all()
 ```
 
+### 反例: 即使在 TYPE_CHECKING 中也不应引用 models
+
+```python
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.credential import Credential  # 反例: types 不允许依赖 models
+```
+
 ## 门禁/检查方式
 
 - 评审检查:
@@ -146,9 +185,10 @@ def list_instances():  # 反例: types 不应包含业务函数
 - 自查命令(示例):
 
 ```bash
-rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session" app/types
+rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session" app/core/types
 ```
 
 ## 变更历史
 
 - 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-11: 明确禁止在 `TYPE_CHECKING` 中引用 models, 统一改用 `Protocol`/弱类型, 并补充示例.

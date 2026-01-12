@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from flask import request
 
 from app.forms.definitions.user import USER_FORM_DEFINITION
+from app.views.form_handlers.user_form_handler import UserFormHandler
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ class UserFormView(ResourceFormView[User]):
     """
 
     form_definition = USER_FORM_DEFINITION
+    service_class = UserFormHandler
 
     def get_success_message(self, instance: User) -> str:
         """获取成功消息.

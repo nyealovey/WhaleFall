@@ -14,10 +14,10 @@ from sqlalchemy import Text, asc, cast as sa_cast, desc, distinct, func, or_
 from sqlalchemy.orm import Query
 
 from app import db
-from app.constants.system_constants import LogLevel
+from app.core.constants.system_constants import LogLevel
 from app.models.unified_log import UnifiedLog
-from app.types.history_logs import LogSearchFilters
-from app.types.listing import PaginatedResult
+from app.core.types.history_logs import LogSearchFilters
+from app.core.types.listing import PaginatedResult
 from app.utils.time_utils import time_utils
 
 

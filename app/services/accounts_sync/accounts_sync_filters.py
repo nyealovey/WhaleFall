@@ -16,7 +16,7 @@ from app.utils.safe_query_builder import build_safe_filter_conditions
 from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
-    from app.types import JsonDict
+    from app.core.types import JsonDict
 else:
     JsonDict = dict[str, Any]
 

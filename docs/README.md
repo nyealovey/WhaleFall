@@ -6,7 +6,7 @@
 
 ## 目录
 
-- [快速开始](getting-started/README.md)
+- [快速开始](Obsidian/getting-started/README.md)
 - [架构设计](Obsidian/architecture/README.md)
   - [开发者入口](Obsidian/architecture/developer-entrypoint.md)
   - [API v1 layer-first 路径收敛计划](changes/refactor/024-layer-first-api-restructure-plan.md)

@@ -48,3 +48,31 @@ repos:
         language: system
         pass_filenames: false
         files: ^(app|scripts|tests)/.*\.py$|^(pyrightconfig\.json|pyproject\.toml)$
+
+      - id: forms-layer-guard
+        name: layer-guard (forms)
+        entry: ./scripts/ci/forms-layer-guard.sh
+        language: system
+        pass_filenames: false
+        files: ^app/forms/.*\.py$
+
+      - id: tasks-layer-guard
+        name: layer-guard (tasks)
+        entry: ./scripts/ci/tasks-layer-guard.sh
+        language: system
+        pass_filenames: false
+        files: ^app/tasks/.*\.py$
+
+      - id: api-layer-guard
+        name: layer-guard (api v1)
+        entry: ./scripts/ci/api-layer-guard.sh
+        language: system
+        pass_filenames: false
+        files: ^app/api/v1/.*\.py$
+
+      - id: services-repository-enforcement-guard
+        name: layer-guard (services repository enforcement)
+        entry: ./scripts/ci/services-repository-enforcement-guard.sh
+        language: system
+        pass_filenames: false
+        files: ^app/services/.*\.py$

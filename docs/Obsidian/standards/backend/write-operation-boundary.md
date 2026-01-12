@@ -33,9 +33,9 @@ related:
 
 ### 3.1 允许 `db.session.commit()` 的位置（事务边界入口）
 
-- `app/utils/route_safety.py`：`safe_route_call` 统一在视图成功后提交，异常时回滚
+- `app/infra/route_safety.py`: `safe_route_call` 统一在视图成功后提交, 异常时回滚
 - `app/tasks/**`：任务入口可按需提交/回滚（长任务可分段 commit）
-- `app/utils/logging/queue_worker.py`：worker 入口提交
+- `app/infra/logging/queue_worker.py`: worker 入口提交
 - `scripts/**`：运维/一次性脚本入口提交
 
 ### 3.2 禁止 `db.session.commit()` 的位置

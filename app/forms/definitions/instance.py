@@ -1,12 +1,10 @@
 """实例表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.forms.handlers.instance_form_handler import InstanceFormHandler
 
 INSTANCE_FORM_DEFINITION = ResourceFormDefinition(
     name="instance",
     template="instances/form.html",
-    service_class=InstanceFormHandler,
     success_message="实例保存成功!",
     redirect_endpoint="instances.index",
     fields=[

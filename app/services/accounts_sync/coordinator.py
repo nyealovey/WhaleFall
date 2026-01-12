@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
-    from app.types import (
+    from app.core.types import (
         CollectionSummary,
         InventorySummary,
         RemoteAccount,

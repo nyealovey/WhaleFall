@@ -17,9 +17,9 @@
 		{"id":"g301000000000032","type":"text","text":"## Models\n\n- `app/models/**`","x":420,"y":620,"width":460,"height":140,"color":"1"},
 
 		{"id":"g301000000000040","type":"group","x":-80,"y":820,"width":2000,"height":520,"color":"2","label":"Foundations(base)"},
-		{"id":"g301000000000041","type":"text","text":"## Constants\n\n- `app/constants/**`","x":-60,"y":880,"width":460,"height":140,"color":"4"},
-		{"id":"g301000000000042","type":"text","text":"## Types\n\n- `app/types/**`","x":420,"y":880,"width":460,"height":140,"color":"4"},
-		{"id":"g301000000000043","type":"text","text":"## Errors\n\n- `app/errors/**`","x":900,"y":880,"width":460,"height":140,"color":"4"},
+		{"id":"g301000000000041","type":"text","text":"## Constants\n\n- `app/core/constants/**`","x":-60,"y":880,"width":460,"height":140,"color":"4"},
+		{"id":"g301000000000042","type":"text","text":"## Types\n\n- `app/core/types/**`","x":420,"y":880,"width":460,"height":140,"color":"4"},
+		{"id":"g301000000000043","type":"text","text":"## Exceptions\n\n- `app/core/exceptions.py`","x":900,"y":880,"width":460,"height":140,"color":"4"},
 		{"id":"g301000000000044","type":"text","text":"## Utils\n\n- `app/utils/**`","x":1380,"y":880,"width":460,"height":140,"color":"4"},
 		{"id":"g301000000000045","type":"text","text":"## Settings\n\n- `app/settings.py`","x":-60,"y":1040,"width":460,"height":140,"color":"4"},
 

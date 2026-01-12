@@ -8,6 +8,7 @@ from typing import Any
 
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance_size_aggregation import InstanceSizeAggregation
+from app.repositories.aggregation_repository import AggregationRepository
 
 
 class AggregationQueryService:
@@ -15,6 +16,9 @@ class AggregationQueryService:
 
     提供数据库级和实例级聚合数据的查询和格式化功能.
     """
+
+    def __init__(self, repository: AggregationRepository | None = None) -> None:
+        self._repository = repository or AggregationRepository()
 
     def get_database_aggregations(
         self,
@@ -39,19 +43,13 @@ class AggregationQueryService:
             格式化的聚合数据列表,按周期开始时间倒序排列.
 
         """
-        query = DatabaseSizeAggregation.query.filter(
-            DatabaseSizeAggregation.instance_id == instance_id,
-            DatabaseSizeAggregation.period_type == period_type,
+        aggregations = self._repository.list_database_aggregations(
+            instance_id=instance_id,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
+            database_name=database_name,
         )
-
-        if start_date is not None:
-            query = query.filter(DatabaseSizeAggregation.period_start >= start_date)
-        if end_date is not None:
-            query = query.filter(DatabaseSizeAggregation.period_end <= end_date)
-        if database_name:
-            query = query.filter(DatabaseSizeAggregation.database_name == database_name)
-
-        aggregations = query.order_by(DatabaseSizeAggregation.period_start.desc()).all()
         return [self._format_database_aggregation(agg) for agg in aggregations]
 
     def get_instance_aggregations(
@@ -75,17 +73,12 @@ class AggregationQueryService:
             格式化的聚合数据列表,按周期开始时间倒序排列.
 
         """
-        query = InstanceSizeAggregation.query.filter(
-            InstanceSizeAggregation.instance_id == instance_id,
-            InstanceSizeAggregation.period_type == period_type,
+        aggregations = self._repository.list_instance_aggregations(
+            instance_id=instance_id,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
         )
-
-        if start_date is not None:
-            query = query.filter(InstanceSizeAggregation.period_start >= start_date)
-        if end_date is not None:
-            query = query.filter(InstanceSizeAggregation.period_end <= end_date)
-
-        aggregations = query.order_by(InstanceSizeAggregation.period_start.desc()).all()
         return [self._format_instance_aggregation(agg) for agg in aggregations]
 
     def _format_database_aggregation(self, aggregation: DatabaseSizeAggregation) -> dict[str, Any]:

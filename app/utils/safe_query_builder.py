@@ -7,8 +7,8 @@
 from collections.abc import Mapping, Sequence
 from typing import cast
 
-from app.constants import DatabaseType
-from app.types import JsonValue
+from app.core.constants import DatabaseType
+from app.core.types import JsonValue
 
 
 class SafeQueryBuilder:

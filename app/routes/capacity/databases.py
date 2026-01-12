@@ -5,10 +5,10 @@ from __future__ import annotations
 from flask import Blueprint, render_template, request
 from flask_login import login_required
 
-from app.constants import PERIOD_TYPES
+from app.core.constants import PERIOD_TYPES
 from app.services.capacity.capacity_databases_page_service import CapacityDatabasesPageService
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 # 创建蓝图
 capacity_databases_bp = Blueprint("capacity_databases", __name__)

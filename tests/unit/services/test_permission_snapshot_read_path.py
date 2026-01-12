@@ -3,7 +3,7 @@ from typing import cast
 
 import pytest
 
-from app.errors import AppError
+from app.core.exceptions import AppError
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
 from app.services.instances.instance_accounts_service import InstanceAccountsService

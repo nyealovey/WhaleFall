@@ -39,7 +39,6 @@ related:
 
 ## 相关入口
 
-- 报告索引: `docs/reports/README.md`
-- 报告目录: `docs/reports/`
+- 报告索引/目录: `docs/reports/`
 - ADR 索引: [[architecture/adr/README|ADR]]
 - ADR Backlog: [[architecture/adr/adr-backlog]]

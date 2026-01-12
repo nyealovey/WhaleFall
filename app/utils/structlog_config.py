@@ -12,10 +12,9 @@ import structlog
 from flask import Flask, current_app, g, has_request_context, jsonify
 from flask_login import current_user
 
-from app.constants.system_constants import ErrorSeverity
-from app.errors import map_exception_to_status
+from app.core.constants.system_constants import ErrorSeverity
 from app.settings import APP_VERSION
-from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
+from app.core.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
 from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.logging.error_adapter import (
     ErrorContext,
@@ -25,7 +24,7 @@ from app.utils.logging.error_adapter import (
     get_error_suggestions,
 )
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
-from app.utils.logging.queue_worker import LogQueueWorker
+from app.infra.logging.queue_worker import LogQueueWorker
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -600,7 +599,7 @@ def error_handler(func: Callable[P, ResponseReturnValue]) -> Callable[P, Respons
         except ERROR_HANDLER_EXCEPTIONS as error:
             context = ErrorContext(error)
             payload = enhanced_error_handler(error, context)
-            status_code = map_exception_to_status(error, default=500)
+            status_code = derive_error_metadata(error).status_code
             return jsonify(payload), status_code
 
     return wrapper

@@ -7,17 +7,16 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
-from app.errors import AppError, ValidationError
+from app.core.exceptions import ConflictError, ValidationError
 from app.services.account_classification.dsl_v4 import (
     DslV4Evaluator,
     collect_dsl_v4_validation_errors,
     is_dsl_v4_expression,
 )
+from app.repositories.account_classification_repository import ClassificationRepository
 from app.utils.structlog_config import log_error, log_info
 
 from .cache import ClassificationCache
-from .repositories import ClassificationRepository
 
 if TYPE_CHECKING:
     from app.models.account_classification import ClassificationRule
@@ -427,11 +426,8 @@ class AccountClassificationService:
         if isinstance(raw_facts, dict):
             return raw_facts
 
-        raise AppError(
+        raise ConflictError(
             message_key="PERMISSION_FACTS_MISSING",
-            status_code=HttpStatus.CONFLICT,
-            category=ErrorCategory.BUSINESS,
-            severity=ErrorSeverity.MEDIUM,
         )
 
     @staticmethod

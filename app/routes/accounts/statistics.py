@@ -5,11 +5,11 @@ from typing import Any
 from flask import Blueprint, flash, render_template
 from flask_login import login_required
 
-from app.constants import FlashCategory
-from app.errors import SystemError
+from app.core.constants import FlashCategory
+from app.core.exceptions import SystemError
 from app.services.statistics.accounts_statistics_page_service import AccountsStatisticsPageService
 from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
+from app.infra.route_safety import safe_route_call
 
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 _accounts_statistics_page_service = AccountsStatisticsPageService()

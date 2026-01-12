@@ -1,13 +1,10 @@
 """定时任务表单定义."""
 
 from app.forms.definitions.base import FieldComponent, FieldOption, ResourceFormDefinition, ResourceFormField
-from app.forms.handlers.scheduler_job_form_handler import SchedulerJobFormHandler
-from app.services.scheduler.scheduler_job_write_service import SchedulerJobResource
 
-SCHEDULER_JOB_FORM_DEFINITION: ResourceFormDefinition[SchedulerJobResource] = ResourceFormDefinition(
+SCHEDULER_JOB_FORM_DEFINITION = ResourceFormDefinition(
     name="scheduler_job",
     template="admin/scheduler/index.html",
-    service_class=SchedulerJobFormHandler,
     success_message="任务更新成功",
     fields=[
         ResourceFormField(

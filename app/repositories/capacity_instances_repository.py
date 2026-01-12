@@ -16,7 +16,7 @@ from app import db
 from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
-from app.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
+from app.core.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
 
 
 class CapacityInstancesRepository:
