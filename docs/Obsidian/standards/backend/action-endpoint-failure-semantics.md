@@ -7,7 +7,7 @@ tags:
   - standards/backend
 status: active
 created: 2025-12-28
-updated: 2026-01-08
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/api/v1/**` Flask-RESTX endpoints, 尤其是 `/actions/*`, 以及 `safe_route_call` 事务边界"
 related:
@@ -31,7 +31,7 @@ related:
 ## 2. 适用范围
 
 - `app/api/v1/**` 下的 Flask-RESTX Resource, 特别是 `/actions/*` 这类 side-effect endpoint.
-- 使用 `BaseResource.safe_call(...)` / `safe_route_call(...)` 作为请求级事务边界的接口.
+- 使用 `BaseResource.safe_call(...)` / `safe_route_call(...)` 作为请求级事务边界的接口（`safe_call` 为 `safe_route_call` 的封装，语义等价）.
 
 不包含:
 

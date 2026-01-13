@@ -25,8 +25,6 @@ class DashboardChartsRepository:
         window_days = max(1, min(int(days), 90))
         trend_data: list[dict[str, int | str]] = []
 
-        db.session.rollback()
-
         end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=window_days - 1)
 
