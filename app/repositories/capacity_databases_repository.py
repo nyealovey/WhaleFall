@@ -37,7 +37,12 @@ class CapacityDatabasesRepository:
         if instance_id is not None:
             query = query.filter(InstanceDatabase.instance_id == instance_id)
         row = query.first()
-        return int(getattr(row, "id", 0) or 0) or None
+        if row is None:
+            return None
+        row_id = getattr(row, "id", None)
+        if row_id is None:
+            return None
+        return int(row_id)
 
     def list_aggregations(
         self,

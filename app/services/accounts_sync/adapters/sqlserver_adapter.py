@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 from app.core.constants import DatabaseType
+from app.infra.route_safety import log_fallback
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -680,17 +681,37 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
                 # 若 SID 路径未返回任何角色/权限,尝试按用户名回退
                 if self._is_permissions_empty(result):
-                    self.logger.info(
+                    log_fallback(
+                        "warning",
                         "sqlserver_batch_permissions_sid_empty_fallback",
                         module="sqlserver_account_adapter",
-                        user_count=len(set(usernames)),
-                        database_count=len(database_list),
-                        database_batch_size=batch_size,
-                        database_batch_count=database_batch_count,
+                        action="get_all_users_database_permissions_batch",
+                        fallback_reason="sid_path_empty_permissions",
+                        context={
+                            "user_count": len(set(usernames)),
+                            "database_count": len(database_list),
+                            "database_batch_size": batch_size,
+                            "database_batch_count": database_batch_count,
+                        },
+                        logger_name="sync",
                     )
                     result = self._get_database_permissions_by_name(connection, usernames, database_list)
             else:
                 # 回退到基于用户名的查询,避免因无法读取 SID 而导致权限为空
+                log_fallback(
+                    "warning",
+                    "sqlserver_batch_permissions_sid_unavailable_fallback",
+                    module="sqlserver_account_adapter",
+                    action="get_all_users_database_permissions_batch",
+                    fallback_reason="sid_mapping_unavailable",
+                    context={
+                        "user_count": len(set(usernames)),
+                        "database_count": len(database_list),
+                        "database_batch_size": batch_size,
+                        "database_batch_count": database_batch_count,
+                    },
+                    logger_name="sync",
+                )
                 result = self._get_database_permissions_by_name(connection, usernames, database_list)
 
             elapsed = time.perf_counter() - start_time

@@ -11,14 +11,7 @@ function normalizePrivilegeLabel(label) {
         return '';
     }
     const text = String(label).trim();
-    if (!text) {
-        return '';
-    }
-    return text
-        .split(/[_\s]+/)
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-        .join(' ');
+    return text;
 }
 
 function renderEmptyPill(text = PRIVILEGE_EMPTY_TEXT) {

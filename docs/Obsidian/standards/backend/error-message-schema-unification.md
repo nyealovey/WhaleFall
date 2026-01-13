@@ -36,6 +36,7 @@ related:
 - MAY：批量/多阶段场景可写入 `errors`（错误字符串列表）。
 - SHOULD：如有机器可读需求，在内部结果对象新增 `error_code`（受控枚举），禁止用 `message` 承载机器语义。
 - MUST：对外 API 错误封套使用 `message_code`（见 [[standards/backend/layer/api-layer-standards#失败响应字段(固定口径)]]），不得透传 `error_code` 作为对外稳定字段。
+- MUST NOT：对外 API 的 error envelope **任何位置**（包含 `extra`）都不得出现 `error_code` 字段；如需诊断请使用 `error_id` 或边界层定义的非敏感诊断字段。
 
 ### 2) 消费方约束（禁止互兜底）
 

@@ -149,7 +149,11 @@ class OracleConnection(DatabaseConnection):
         """测试 Oracle 连接并返回版本信息."""
         try:
             if not self.connect():
-                result: dict[str, Any] = {"success": False, "error": "无法建立连接"}
+                result: dict[str, Any] = {
+                    "success": False,
+                    "message": f"Oracle连接失败 (主机: {self.instance.host}:{self.instance.port})",
+                    "error": "无法建立连接",
+                }
             else:
                 version = self.get_version()
                 message = (
@@ -161,7 +165,11 @@ class OracleConnection(DatabaseConnection):
                     "database_version": version,
                 }
         except ORACLE_CONNECTION_EXCEPTIONS as exc:
-            result = {"success": False, "error": str(exc)}
+            result = {
+                "success": False,
+                "message": f"Oracle连接测试失败 (主机: {self.instance.host}:{self.instance.port})",
+                "error": str(exc),
+            }
         finally:
             self.disconnect()
         return result
