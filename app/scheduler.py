@@ -24,8 +24,10 @@ from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.exc import SQLAlchemyError
 from yaml import YAMLError
+from pydantic import ValidationError as PydanticValidationError
 
 from app.utils.structlog_config import get_system_logger
+from app.schemas.yaml_configs import SchedulerTaskConfig, SchedulerTasksConfigFile
 
 if TYPE_CHECKING:
     from apscheduler.job import Job
@@ -549,6 +551,13 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
     except FileNotFoundError:
         logger.exception("配置文件不存在,无法加载默认任务", config_file=str(TASK_CONFIG_PATH))
         return
+    except ValueError as exc:
+        logger.exception(
+            "调度任务配置格式错误,无法加载默认任务",
+            config_file=str(TASK_CONFIG_PATH),
+            error=str(exc),
+        )
+        return
     except CONFIG_IO_EXCEPTIONS as config_error:
         logger.exception("读取配置文件失败", config_file=str(TASK_CONFIG_PATH), error=str(config_error))
         return
@@ -576,23 +585,28 @@ def _should_skip_default_task_creation() -> bool:
     return False
 
 
-def _read_default_task_configs() -> list[dict[str, Any]]:
+def _read_default_task_configs() -> list[SchedulerTaskConfig]:
     """读取调度任务配置."""
     with TASK_CONFIG_PATH.open(encoding="utf-8") as config_buffer:
-        config = yaml.safe_load(config_buffer) or {}
-    return config.get("default_tasks", [])
+        raw_config = yaml.safe_load(config_buffer)
+    try:
+        parsed = SchedulerTasksConfigFile.model_validate(raw_config)
+    except PydanticValidationError as exc:
+        msg = f"配置文件格式错误: {exc}"
+        raise ValueError(msg) from exc
+    return parsed.default_tasks
 
 
-def _register_task_from_config(task_config: dict[str, Any], *, force: bool) -> None:
+def _register_task_from_config(task_config: SchedulerTaskConfig, *, force: bool) -> None:
     """根据配置注册单个任务."""
-    if not task_config.get("enabled", True):
+    if not task_config.enabled:
         return
 
-    task_id = task_config["id"]
-    task_name = task_config["name"]
-    function_name = task_config["function"]
-    trigger_type = task_config["trigger_type"]
-    trigger_params = task_config.get("trigger_params", {})
+    task_id = task_config.id
+    task_name = task_config.name
+    function_name = task_config.function
+    trigger_type = task_config.trigger_type
+    trigger_params = task_config.trigger_params
 
     func = _load_task_callable(function_name)
     if not func:

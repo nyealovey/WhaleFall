@@ -62,3 +62,56 @@ def test_create_classification_succeeds(monkeypatch) -> None:
 
     assert classification.name == "低风险"
     assert classification.priority == 1
+
+
+@pytest.mark.unit
+def test_create_classification_rejects_non_integer_priority(monkeypatch) -> None:
+    service = AccountClassificationsWriteService(repository=_StubAccountsClassificationsRepository())
+
+    monkeypatch.setattr(
+        AccountClassificationsWriteService,
+        "_name_exists",
+        lambda self, name, resource: False,
+        raising=False,
+    )
+
+    with pytest.raises(ValidationError) as exc:
+        service.create_classification(
+            {
+                "name": "低风险",
+                "priority": "not-an-int",
+            },
+        )
+
+    assert str(exc.value) == "优先级必须为整数"
+
+
+@pytest.mark.unit
+def test_update_classification_rejects_non_integer_priority(monkeypatch) -> None:
+    service = AccountClassificationsWriteService(repository=_StubAccountsClassificationsRepository())
+
+    monkeypatch.setattr(
+        AccountClassificationsWriteService,
+        "_name_exists",
+        lambda self, name, resource: False,
+        raising=False,
+    )
+
+    classification = AccountClassification(
+        name="低风险",
+        description="",
+        risk_level="low",
+        color="info",
+        icon_name="fa-tag",
+        priority=10,
+    )
+
+    with pytest.raises(ValidationError) as exc:
+        service.update_classification(
+            classification,
+            {
+                "priority": "not-an-int",
+            },
+        )
+
+    assert str(exc.value) == "优先级必须为整数"

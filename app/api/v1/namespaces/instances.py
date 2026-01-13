@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 from collections.abc import Mapping
-from typing import Any, ClassVar, Literal, cast
+from typing import Any, ClassVar, cast
 
 from flask import Response, request
 from flask_login import current_user
@@ -47,6 +47,7 @@ from app.services.instances.instance_statistics_read_service import InstanceStat
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.core.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 
 ns = Namespace("instances", description="实例管理")
 
@@ -388,11 +389,18 @@ def _parse_instance_filters(parsed: dict[str, object]) -> InstanceListFilters:
     )
 
 
-def _parse_payload() -> Any:
+def _parse_payload() -> dict[str, Any]:
     if request.is_json:
         payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
-    return request.form
+        raw: object = payload if isinstance(payload, dict) else {}
+    else:
+        raw = request.form
+
+    return parse_payload(
+        raw,
+        list_fields=["tag_names"],
+        boolean_fields_default_false=["is_active"],
+    )
 
 
 def _normalize_import_header(value: str | None) -> str:
@@ -540,8 +548,8 @@ class InstancesResource(BaseResource):
         """创建实例."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
-        credential_context_raw = payload.get("credential_id") if hasattr(payload, "get") else None
-        db_type_context_raw = payload.get("db_type") if hasattr(payload, "get") else None
+        credential_context_raw = payload.get("credential_id")
+        db_type_context_raw = payload.get("db_type")
 
         credential_context: int | None
         if isinstance(credential_context_raw, (str, int)):
@@ -868,20 +876,16 @@ class InstancesBatchDeleteResource(BaseResource):
     @require_csrf
     def post(self):
         """批量删除实例."""
-        payload = request.get_json(silent=True) or {}
+        parsed_json = request.get_json(silent=True) if request.is_json else None
+        raw = parsed_json if isinstance(parsed_json, dict) else {}
         operator_id = getattr(current_user, "id", None)
+        raw_ids = raw.get("instance_ids")
+        count = len(raw_ids) if isinstance(raw_ids, list) else 0
 
         def _execute():
-            instance_ids = payload.get("instance_ids", [])
-            deletion_mode_raw = payload.get("deletion_mode")
-            deletion_mode: Literal["soft", "hard"] = "soft"
-            if isinstance(deletion_mode_raw, str) and deletion_mode_raw in {"soft", "hard"}:
-                deletion_mode = cast(Literal["soft", "hard"], deletion_mode_raw)
-
-            result = InstanceBatchDeletionService().delete_instances(
-                instance_ids,
+            result = InstanceBatchDeletionService().delete_instances_from_payload(
+                raw,
                 operator_id=operator_id,
-                deletion_mode=deletion_mode,
             )
             deleted_count = int(result.get("deleted_count", 0) or 0)
             message = (
@@ -897,7 +901,7 @@ class InstancesBatchDeleteResource(BaseResource):
             action="delete_instances_batch",
             public_error="批量删除实例失败",
             expected_exceptions=(ValidationError,),
-            context={"count": len(payload.get("instance_ids", []) or [])},
+            context={"count": count},
         )
 
 

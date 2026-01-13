@@ -132,7 +132,17 @@ class HealthPingResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
         """执行 Ping 健康检查."""
-        return self.success(check_ping(), message="健康检查成功")
+
+        def _execute():
+            return self.success(data=check_ping(), message="健康检查成功")
+
+        return self.safe_call(
+            _execute,
+            module="health",
+            action="ping",
+            public_error="健康检查失败",
+            context={"route": "api_v1.health.ping"},
+        )
 
 
 @ns.route("/basic")

@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import yaml
+from pydantic import ValidationError as PydanticValidationError
 
 from app.utils.structlog_config import get_system_logger
+from app.schemas.yaml_configs import DatabaseFiltersConfigFile
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
@@ -65,34 +67,31 @@ class DatabaseSyncFilterManager:
 
         try:
             with self._config_path.open(encoding="utf-8") as buffer:
-                raw_config = yaml.safe_load(buffer) or {}
+                raw_config = yaml.safe_load(buffer)
         except yaml.YAMLError as exc:  # pragma: no cover - defensive
             logger.exception("解析数据库过滤配置失败", error=str(exc))
             msg = f"解析数据库过滤配置失败: {exc}"
             raise ValueError(msg) from exc
 
-        filters = raw_config.get("database_filters") or {}
+        try:
+            parsed = DatabaseFiltersConfigFile.model_validate(raw_config)
+        except PydanticValidationError as exc:
+            logger.exception("数据库过滤配置格式错误", error=str(exc), path=str(self._config_path))
+            msg = f"数据库过滤配置格式错误: {exc}"
+            raise ValueError(msg) from exc
+
+        filters = parsed.database_filters
         normalized: dict[str, _FilterRule] = {}
 
         for db_type, rule in filters.items():
-            if not isinstance(rule, Mapping):
-                logger.warning("忽略格式异常的数据库过滤规则", db_type=db_type)
-                continue
-
-            exact = {
-                str(name).lower()
-                for name in rule.get("exclude_databases") or []
-                if isinstance(name, str) and name.strip()
-            }
+            exact = {name.lower() for name in rule.exclude_databases}
 
             compiled_patterns: list[_CompiledRule] = []
-            for pattern in rule.get("exclude_patterns") or []:
-                if not isinstance(pattern, str) or not pattern.strip():
-                    continue
+            for pattern in rule.exclude_patterns:
                 regex = self._compile_pattern(pattern)
                 compiled_patterns.append(_CompiledRule(pattern, regex))
 
-            normalized[db_type.lower()] = {
+            normalized[db_type] = {
                 "exclude_databases": exact,
                 "exclude_patterns": compiled_patterns,
             }
@@ -114,9 +113,15 @@ class DatabaseSyncFilterManager:
             Pattern[str]: 忽略大小写的正则表达式.
 
         """
-        escaped = re.escape(pattern)
-        escaped = escaped.replace(r"\%", ".*").replace(r"\_", ".")
-        regex = f"^{escaped}$"
+        parts: list[str] = []
+        for char in pattern:
+            if char == "%":
+                parts.append(".*")
+            elif char == "_":
+                parts.append(".")
+            else:
+                parts.append(re.escape(char))
+        regex = f"^{''.join(parts)}$"
         return re.compile(regex, re.IGNORECASE)
 
     def should_exclude_database(self, instance: Instance, database_name: str | None) -> tuple[bool, str | None]:

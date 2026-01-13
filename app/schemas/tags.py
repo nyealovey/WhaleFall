@@ -160,3 +160,23 @@ class TagUpdatePayload(PayloadSchema):
         if value is None:
             return None
         return as_bool(value, default=False)
+
+
+class TagBatchDeletePayload(PayloadSchema):
+    """批量删除标签 payload."""
+
+    tag_ids: list[int]
+
+    @field_validator("tag_ids", mode="before")
+    @classmethod
+    def _parse_tag_ids(cls, value: Any) -> list[int]:
+        if not isinstance(value, list) or not value:
+            raise ValueError("tag_ids 不能为空")
+
+        if not all(type(item) is int for item in value):
+            raise ValueError("tag_ids 必须为整数数组")
+
+        if any(item <= 0 for item in value):
+            raise ValueError("tag_ids 必须为正整数数组")
+
+        return list(value)

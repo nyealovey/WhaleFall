@@ -13,11 +13,15 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
-from app.core.exceptions import NotFoundError
+from app.core.constants.system_constants import ErrorMessages
+from app.core.exceptions import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.tags_repository import TagsRepository
+from app.schemas.tags_bulk import TagsBulkAssignPayload, TagsBulkInstanceTagsPayload, TagsBulkRemoveAllPayload
+from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 
@@ -50,8 +54,90 @@ class TagsBulkInstanceTagsResult:
     category_names: dict[str, str]
 
 
+@dataclass(frozen=True, slots=True)
+class TagsBulkAssignOutcome:
+    """批量分配标签 endpoint 输出."""
+
+    assigned_count: int
+    instance_ids: list[int]
+    tag_ids: list[int]
+
+
+@dataclass(frozen=True, slots=True)
+class TagsBulkRemoveOutcome:
+    """批量移除标签 endpoint 输出."""
+
+    removed_count: int
+    instance_ids: list[int]
+    tag_ids: list[int]
+
+
+@dataclass(frozen=True, slots=True)
+class TagsBulkRemoveAllOutcome:
+    """批量移除所有标签 endpoint 输出."""
+
+    removed_count: int
+    instance_ids: list[int]
+
+
+@dataclass(frozen=True, slots=True)
+class TagsBulkInstanceTagsOutcome:
+    """批量查询实例标签集合 endpoint 输出."""
+
+    tags: list[dict[str, object]]
+    category_names: dict[str, str]
+    instance_ids: list[int]
+
+
 class TagsBulkActionsService:
     """tags bulk actions 编排服务."""
+
+    def assign_from_payload(self, payload: object | None, *, actor_id: int | None) -> TagsBulkAssignOutcome:
+        sanitized = parse_payload(payload or {}, list_fields=["instance_ids", "tag_ids"])
+        if not sanitized:
+            raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
+        parsed = validate_or_raise(TagsBulkAssignPayload, sanitized)
+        result = self.assign(instance_ids=parsed.instance_ids, tag_ids=parsed.tag_ids, actor_id=actor_id)
+        return TagsBulkAssignOutcome(
+            assigned_count=result.assigned_count,
+            instance_ids=parsed.instance_ids,
+            tag_ids=parsed.tag_ids,
+        )
+
+    def remove_from_payload(self, payload: object | None, *, actor_id: int | None) -> TagsBulkRemoveOutcome:
+        sanitized = parse_payload(payload or {}, list_fields=["instance_ids", "tag_ids"])
+        if not sanitized:
+            raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
+        parsed = validate_or_raise(TagsBulkAssignPayload, sanitized)
+        result = self.remove(instance_ids=parsed.instance_ids, tag_ids=parsed.tag_ids, actor_id=actor_id)
+        return TagsBulkRemoveOutcome(
+            removed_count=result.removed_count,
+            instance_ids=parsed.instance_ids,
+            tag_ids=parsed.tag_ids,
+        )
+
+    def remove_all_from_payload(self, payload: object | None, *, actor_id: int | None) -> TagsBulkRemoveAllOutcome:
+        sanitized = parse_payload(payload or {}, list_fields=["instance_ids"])
+        if not sanitized:
+            raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
+        parsed = validate_or_raise(TagsBulkRemoveAllPayload, sanitized)
+        result = self.remove_all(instance_ids=parsed.instance_ids, actor_id=actor_id)
+        return TagsBulkRemoveAllOutcome(
+            removed_count=result.removed_count,
+            instance_ids=parsed.instance_ids,
+        )
+
+    def list_instance_tags_from_payload(self, payload: object | None) -> TagsBulkInstanceTagsOutcome:
+        sanitized = parse_payload(payload or {}, list_fields=["instance_ids"])
+        if not sanitized:
+            raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
+        parsed = validate_or_raise(TagsBulkInstanceTagsPayload, sanitized)
+        result = self.list_instance_tags(instance_ids=parsed.instance_ids)
+        return TagsBulkInstanceTagsOutcome(
+            tags=result.tags,
+            category_names=result.category_names,
+            instance_ids=parsed.instance_ids,
+        )
 
     @staticmethod
     def _get_instances(instance_ids: list[int]) -> list[Instance]:

@@ -2,7 +2,7 @@
 
 说明:
 - 本模块只负责定义异常类型与语义字段,不包含 HTTP/Flask/Werkzeug 等框架细节.
-- 异常到 HTTP status 的映射应在 API/HTTP 边界完成(见 `app/api/error_mapping.py`).
+- 异常到 HTTP status 的映射应在 API/HTTP 边界完成(见 `app/infra/error_mapping.py`).
 """
 
 from __future__ import annotations

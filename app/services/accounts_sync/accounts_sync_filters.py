@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import yaml
+from pydantic import ValidationError as PydanticValidationError
 
 from app.utils.safe_query_builder import build_safe_filter_conditions
 from app.utils.structlog_config import get_system_logger
+from app.schemas.yaml_configs import AccountFiltersConfigFile
 
 if TYPE_CHECKING:
     from app.core.types import JsonDict
@@ -56,15 +58,16 @@ class DatabaseFilterManager:
 
         try:
             with self.config_file.open(encoding="utf-8") as config_buffer:
-                config = yaml.safe_load(config_buffer) or {}
+                raw_config = yaml.safe_load(config_buffer)
+            parsed = AccountFiltersConfigFile.model_validate(raw_config)
 
-            if "account_filters" not in config:
-                logger.error("配置文件格式错误,缺少 account_filters 节点")
-                msg = "配置文件格式错误,缺少 account_filters 节点"
-                raise ValueError(msg)
-
-            raw_rules = config["account_filters"] or {}
-            filter_rules = cast("DatabaseFilterRules", raw_rules)
+            filter_rules: DatabaseFilterRules = {
+                db_type: {
+                    "exclude_users": rule.exclude_users,
+                    "exclude_patterns": rule.exclude_patterns,
+                }
+                for db_type, rule in parsed.account_filters.items()
+            }
             logger.info("成功加载账户过滤规则配置文件", config_path=self.config_path_str)
             logger.info(
                 "加载的数据库类型",
@@ -74,6 +77,10 @@ class DatabaseFilterManager:
         except yaml.YAMLError as exc:
             logger.exception("解析配置文件失败")
             msg = f"解析配置文件失败: {exc}"
+            raise ValueError(msg) from exc
+        except PydanticValidationError as exc:
+            logger.exception("账户过滤规则配置格式错误", config_path=self.config_path_str, error=str(exc))
+            msg = f"账户过滤规则配置格式错误: {exc}"
             raise ValueError(msg) from exc
         except OSError as exc:
             logger.exception("加载过滤规则配置文件失败", error=str(exc))

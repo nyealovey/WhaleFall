@@ -7,7 +7,7 @@ tags:
   - standards/backend
 status: active
 created: 2026-01-12
-updated: 2026-01-12
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/__init__.py`, `app.py`, `wsgi.py`, `app/api/__init__.py`"
 related:
@@ -53,8 +53,22 @@ related:
 ### 3) 配置入口（Settings）
 
 - MUST: 配置解析/默认值/校验收敛到 `app/settings.py::Settings`，遵循 [[standards/backend/configuration-and-secrets|配置与密钥]]。
-- MAY: `app.py`/`wsgi.py` 使用 `os.environ.setdefault(...)` 写入少量运行默认值（仅限入口脚本）。
+- MAY: `app.py`/`wsgi.py` 使用 `os.environ.setdefault(...)` 写入少量运行默认值（仅限入口脚本，且仅允许下列 allowlist）。
+- MUST: `os.environ.setdefault(...)` 仅用于“运行期识别/启动工具”类变量，不得用于业务语义、功能开关或安全边界变量。
+- MUST NOT: 对任何敏感/密钥/连接信息使用 `setdefault`（例如 `DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `PASSWORD_ENCRYPTION_KEY` 等）。
+- MUST NOT: 对任何会影响业务行为的 feature flag 使用 `setdefault`（例如 `ENABLE_SCHEDULER` 等），必须由部署注入或 Settings 默认值策略决定。
+- SHOULD: 如需新增 allowlist 项，必须在评审中说明“为何必须在入口写默认值”与“为何不应放到 Settings 默认值”，并更新本文档的 allowlist。
 - MUST NOT: 在业务模块中散落 `os.environ.get(...)` 决策业务逻辑。
+
+> [!important] `os.environ.setdefault(...)` allowlist（可执行判据）
+> 仅允许在 `app.py`/`wsgi.py` 中出现以下变量的 `setdefault`，其余一律视为越界：
+>
+> - `FLASK_APP`
+>   - 默认值: `"app"`（`app.py` / `wsgi.py`）
+>   - 理由: 仅用于 Flask 启动工具定位应用入口，不承载业务语义。
+> - `FLASK_ENV`
+>   - 默认值: `"development"`（`app.py`），`"production"`（`wsgi.py`）
+>   - 理由: 仅用于“入口环境默认值”，让 `Settings(environment=...)` 有稳定来源；`setdefault` 不会覆盖部署显式注入的环境变量。
 
 ### 4) API 注册入口的层归属
 
@@ -82,9 +96,12 @@ related:
 
 ```bash
 rg -n "create_app\\(|register_api_blueprints\\(" app/__init__.py app.py wsgi.py app/api/__init__.py
+rg -n "os\\.environ\\.setdefault\\(" app.py wsgi.py
+# 如出现新增 setdefault，请对照 allowlist（仅允许 FLASK_APP/FLASK_ENV）
+rg -n "os\\.environ\\.setdefault\\(" app | rg -v "^(app\\.py|wsgi\\.py):"
 ```
 
 ## 变更历史
 
 - 2026-01-12: 新增启动规范, 明确 `create_app` 为单一工厂入口, 并澄清 API 注册入口的层归属.
-
+- 2026-01-13: 为 `os.environ.setdefault(...)` 增加 allowlist 与禁止项, 让入口默认值策略可审计/可执行检查.

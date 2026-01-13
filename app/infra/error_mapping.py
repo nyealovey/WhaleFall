@@ -1,4 +1,4 @@
-"""WhaleFall - 异常与 HTTP 状态码映射(API 边界).
+"""WhaleFall - 异常与 HTTP 状态码映射(HTTP 边界).
 
 说明:
 - 异常定义属于 shared kernel(`app/core/exceptions.py`),不感知 HTTP.

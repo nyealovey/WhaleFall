@@ -8,7 +8,7 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/services/**` 下所有业务服务"
 related:
@@ -39,7 +39,8 @@ related:
 
 ### 1) 职责边界
 
-- MUST: Service 负责业务编排, 输入校验, 数据规范化, 事务边界控制, 业务日志记录.
+- MUST: Service 负责业务编排、事务语义决策与业务规则校验（跨字段/跨资源/依赖数据库的校验），并记录结构化日志.
+- MUST: 字段级校验/类型转换/默认值/兼容策略 MUST 在 schema（`app/schemas/**`）；Service 在进入核心业务逻辑前必须先 `validate_or_raise(...)` 产出 typed payload.
 - MUST: 通过 `app.repositories.*` 执行数据访问与 Query 组装.
 - MUST NOT: 直接解析 `flask.request`(应由 Routes/API 完成).
 - MUST NOT: 返回 `flask.Response` 或 JSON 封套(应由 Routes/API 完成).
@@ -77,14 +78,19 @@ app/services/
 ### 4) 输入校验与数据规范化
 
 - MUST: 对外部输入(HTTP payload, task payload)做 schema 校验与显式转换, 参考 [[standards/backend/request-payload-and-schema-validation]].
-- SHOULD: 在进入核心业务逻辑前完成数据规整(例如 trim, 类型转换, 默认值补齐), 避免核心逻辑到处判空.
+- MUST: 字段级规范化/校验（`strip()`、类型转换、默认值补齐、字段 alias/形状兼容等）必须收敛到 `app/schemas/**`；Service 禁止手写 `data.get("x") or default`、`int(...)`、`strip()` 等字段级规则。
+- SHOULD: Service 的输入侧仅保留跨字段与业务规则校验（例如互斥字段、跨资源一致性、权限/配额/状态机约束），避免把“字段级规则”散落到业务编排里。
 - MUST NOT: 在 Routes/API 与 Service 两处重复实现相同校验规则.
 
 ### 5) 事务边界
 
-- MUST: 事务边界由 Service 控制, 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
+- MUST: 默认情况下(Web 请求写路径), Service 是事务语义的主要决策点：通过“正常返回 vs 抛异常”驱动上层 `safe_route_call` 的 `commit/rollback`（提交点见 [[standards/backend/write-operation-boundary|写操作事务边界]]）。
 - MUST: Repository 可以 `flush`, 但 MUST NOT `commit`.
 - SHOULD: 批量写入支持部分回滚时使用 `db.session.begin_nested()`.
+
+> [!note] 事务边界优先级（Web vs Tasks）
+> - Web 请求写路径：提交点在 `safe_route_call`（Infra）；Service 为事务语义决策点（通过抛异常触发 rollback，正常返回触发 commit）。Routes/API 不得自行 `commit/rollback`。
+> - 长任务/批处理：允许 Tasks/Infra 作为提交点做分阶段 `commit/rollback`；此时 Service/Runner 必须保持“无 `commit/rollback`”，仅做业务编排与必要的 `flush`，事务语义与提交节奏由 Tasks/Infra 统一掌控。
 
 ### 6) 返回值与 DTO
 
@@ -201,3 +207,4 @@ rg -n "db\\.session\\.commit\\(" app/repositories
 ## 变更历史
 
 - 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-13: 将事务边界表述拆分为“提交点 vs 决策点”, 统一口径对齐 [[standards/backend/write-operation-boundary|写操作事务边界]].

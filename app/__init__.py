@@ -22,9 +22,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
 from app.api import register_api_blueprints
-from app.api.error_mapping import map_exception_to_status
 from app.core.constants import HttpHeaders, HttpStatus
 from app.infra.flask_typing import WhaleFallFlask, WhaleFallLoginManager
+from app.infra.error_mapping import map_exception_to_status
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
 from app.settings import Settings

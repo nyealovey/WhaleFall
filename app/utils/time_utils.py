@@ -6,11 +6,7 @@
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
-import structlog
-
 from app.core.constants import TimeConstants
-
-LOGGER = structlog.get_logger("system")
 
 # 时区配置
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
@@ -88,8 +84,7 @@ class TimeUtils:
                 dt = dt.replace(tzinfo=UTC_TZ)
 
             return dt.astimezone(CHINA_TZ)
-        except (ValueError, TypeError) as e:
-            LOGGER.warning("时间转换错误", error=str(e))
+        except (ValueError, TypeError):
             return None
 
     @staticmethod
@@ -119,8 +114,7 @@ class TimeUtils:
                 dt = dt.replace(tzinfo=CHINA_TZ)
 
             return dt.astimezone(UTC_TZ)
-        except (ValueError, TypeError) as e:
-            LOGGER.warning("时间转换错误", error=str(e))
+        except (ValueError, TypeError):
             return None
 
     @staticmethod

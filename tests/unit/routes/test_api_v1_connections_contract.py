@@ -70,11 +70,81 @@ def test_api_v1_connections_validate_params_contract(app, auth_client) -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_connections_validate_params_strips_whitespace_contract(app, auth_client) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+            ],
+        )
+
+        credential = Credential(
+            name="cred-1",
+            credential_type="database",
+            username="root",
+            password="Passw0rdA",
+        )
+        db.session.add(credential)
+        db.session.commit()
+        credential_id = int(credential.id)
+
+    csrf_token = _get_csrf_token(auth_client)
+    response = auth_client.post(
+        "/api/v1/instances/actions/validate-connection-params",
+        json={
+            "db_type": " mysql ",
+            "port": 3306,
+            "credential_id": credential_id,
+        },
+        headers={HttpHeaders.X_CSRF_TOKEN: csrf_token},
+    )
+    assert response.status_code == 200
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+    assert payload.get("error") is False
+
+
+@pytest.mark.unit
 def test_api_v1_connections_batch_test_contract(auth_client) -> None:
     csrf_token = _get_csrf_token(auth_client)
     response = auth_client.post(
         "/api/v1/instances/actions/batch-test-connections",
         json={"instance_ids": [999]},
+        headers={HttpHeaders.X_CSRF_TOKEN: csrf_token},
+    )
+    assert response.status_code == 200
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+    assert payload.get("error") is False
+
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert {"results", "summary"}.issubset(data.keys())
+
+    results = data.get("results")
+    assert isinstance(results, list)
+    assert len(results) == 1
+    assert results[0].get("instance_id") == 999
+    assert results[0].get("success") is False
+
+    summary = data.get("summary")
+    assert isinstance(summary, dict)
+    assert summary.get("total") == 1
+    assert summary.get("success") == 0
+    assert summary.get("failed") == 1
+
+
+@pytest.mark.unit
+def test_api_v1_connections_batch_test_accepts_scalar_instance_id_contract(auth_client) -> None:
+    csrf_token = _get_csrf_token(auth_client)
+    response = auth_client.post(
+        "/api/v1/instances/actions/batch-test-connections",
+        json={"instance_ids": 999},
         headers={HttpHeaders.X_CSRF_TOKEN: csrf_token},
     )
     assert response.status_code == 200
