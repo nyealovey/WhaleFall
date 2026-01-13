@@ -84,8 +84,10 @@ class ConnectionFactory:
             instance: 数据库实例对象.
 
         Returns:
-            测试结果字典,包含 success 和 error/message 字段.
-            格式:{'success': bool, 'error': str} 或 {'success': bool, 'message': str}
+            测试结果字典,包含 success 与 message 字段(必填),失败时可选包含 error 字段(诊断信息).
+            格式:
+            - 成功: {'success': True, 'message': str, ...}
+            - 失败: {'success': False, 'message': str, 'error': str, ...}
 
         Example:
             >>> result = ConnectionFactory.test_connection(instance)
@@ -95,7 +97,11 @@ class ConnectionFactory:
         """
         connection = ConnectionFactory.create_connection(instance)
         if not connection:
-            return {"success": False, "error": f"不支持的数据库类型: {instance.db_type}"}
+            return {
+                "success": False,
+                "message": "不支持的数据库类型",
+                "error": f"不支持的数据库类型: {instance.db_type}",
+            }
         return connection.test_connection()
 
     @staticmethod

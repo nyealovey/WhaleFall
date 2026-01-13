@@ -8,7 +8,7 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-12
-updated: 2026-01-12
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/schemas/**` 下所有 schema 与校验工具"
 related:
@@ -39,7 +39,7 @@ related:
 
 ### 1) 职责边界
 
-- MUST: 写路径在进入 Service 前必须经过 schema 校验（推荐使用 `app/schemas/validation.py::validate_or_raise`）。
+- MUST: 写路径在进入 Service 的核心业务逻辑前必须经过 schema 校验（推荐在 Service 入口第一步使用 `app/schemas/validation.py::validate_or_raise`）。
 - MUST: schema 负责字段级校验与规范化（例如 `"" -> None`、`str.strip()`、布尔/整数转换）。
 - MUST NOT: schema 访问数据库或依赖 `db.session`。
 - MUST NOT: schema 依赖 `app.models.*`, `app.services.*`, `app.repositories.*`, `app.routes.*`, `app.api.*`。
@@ -108,3 +108,4 @@ rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session\\b" 
 ## 变更历史
 
 - 2026-01-12: 新增 Schemas 层标准, 覆盖 `app/schemas/**`.
+- 2026-01-13: 澄清 schema 校验应由 Service 入口承载, 避免被误读为“必须在 API 层校验后才能进入 Service”.

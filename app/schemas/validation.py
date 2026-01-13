@@ -8,6 +8,7 @@ from typing import TypeVar
 from pydantic import BaseModel, ValidationError as PydanticValidationError
 
 from app.core.exceptions import ValidationError
+from app.core.types.structures import JsonValue, LoggerExtra
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -15,10 +16,11 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 class SchemaMessageKeyError(ValueError):
     """用于从 schema validator 透传 message_key 的错误类型."""
 
-    def __init__(self, message: str, *, message_key: str) -> None:
-        """构造错误并携带 message_key."""
+    def __init__(self, message: str, *, message_key: str, extra: LoggerExtra | None = None) -> None:
+        """构造错误并携带 message_key/extra."""
         super().__init__(message)
         self.message_key = message_key
+        self.extra: dict[str, JsonValue] = dict(extra or {})
 
 
 def validate_or_raise(
@@ -40,17 +42,19 @@ def validate_or_raise(
     try:
         return model.model_validate(payload)
     except PydanticValidationError as exc:
-        message, field, schema_message_key = _extract_first_error(exc)
+        message, field, schema_message_key, extra = _extract_first_error(exc)
         resolved_key = schema_message_key or message_key
         if field and message_key_by_field:
             resolved_key = message_key_by_field.get(field, resolved_key)
-        raise ValidationError(message, message_key=resolved_key) from None
+        raise ValidationError(message, message_key=resolved_key, extra=extra) from None
 
 
-def _extract_first_error(exc: PydanticValidationError) -> tuple[str, str | None, str | None]:
+def _extract_first_error(
+    exc: PydanticValidationError,
+) -> tuple[str, str | None, str | None, LoggerExtra | None]:
     errors = exc.errors()
     if not errors:
-        return "参数校验失败", None, None
+        return "参数校验失败", None, None, None
 
     first = errors[0]
     field = None
@@ -62,12 +66,12 @@ def _extract_first_error(exc: PydanticValidationError) -> tuple[str, str | None,
     if isinstance(ctx, dict) and "error" in ctx:
         raw_error = ctx.get("error")
         if isinstance(raw_error, SchemaMessageKeyError):
-            return str(raw_error), field, raw_error.message_key
+            return str(raw_error), field, raw_error.message_key, raw_error.extra
         if isinstance(raw_error, BaseException):
-            return str(raw_error), field, None
+            return str(raw_error), field, None, None
 
     msg = first.get("msg")
     if isinstance(msg, str) and msg.strip():
-        return msg, field, None
+        return msg, field, None, None
 
-    return "参数校验失败", field, None
+    return "参数校验失败", field, None, None

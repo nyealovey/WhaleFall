@@ -503,20 +503,12 @@ class TagBatchDeleteResource(BaseResource):
         """批量删除标签."""
         raw_json = request.get_json(silent=True)
         raw: object = raw_json if isinstance(raw_json, dict) else {}
-        payload = parse_payload(raw, list_fields=["tag_ids"])
         operator_id = getattr(current_user, "id", None)
+        raw_tag_ids = raw.get("tag_ids") if isinstance(raw, dict) else None
+        count = len(raw_tag_ids) if isinstance(raw_tag_ids, list) else 0
 
         def _execute():
-            raw_tag_ids = payload.get("tag_ids")
-            if not isinstance(raw_tag_ids, list) or not raw_tag_ids:
-                raise ValidationError("tag_ids 不能为空")
-
-            if not all(type(item) is int for item in raw_tag_ids):
-                raise ValidationError("tag_ids 必须为整数数组")
-            if any(item <= 0 for item in raw_tag_ids):
-                raise ValidationError("tag_ids 必须为正整数数组")
-
-            outcome = _build_tag_write_service().batch_delete(raw_tag_ids, operator_id=operator_id)
+            outcome = _build_tag_write_service().batch_delete_from_payload(raw, operator_id=operator_id)
             status = HttpStatus.MULTI_STATUS if outcome.has_failure else HttpStatus.OK
             message = "部分标签未能删除" if outcome.has_failure else "标签批量删除成功"
             return self.success(data={"results": outcome.results}, message=message, status=status)
@@ -526,7 +518,7 @@ class TagBatchDeleteResource(BaseResource):
             module="tags",
             action="batch_delete_tags",
             public_error="批量删除标签失败",
-            context={"count": len(payload.get("tag_ids") or [])},
+            context={"count": count},
             expected_exceptions=(ValidationError,),
         )
 
@@ -609,34 +601,18 @@ class TagsBulkAssignResource(BaseResource):
         """批量分配标签."""
         raw_json = request.get_json(silent=True)
         raw: object = raw_json if isinstance(raw_json, dict) else {}
-        payload = parse_payload(raw, list_fields=["instance_ids", "tag_ids"])
         actor_id = getattr(current_user, "id", None)
 
         def _execute():
-            if not payload:
-                raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
-
-            instance_ids_raw = payload.get("instance_ids", [])
-            tag_ids_raw = payload.get("tag_ids", [])
-
-            try:
-                instance_ids = [int(item) for item in instance_ids_raw]
-                tag_ids = [int(item) for item in tag_ids_raw]
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"ID格式错误: {exc}") from exc
-
-            if not instance_ids or not tag_ids:
-                raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids"))
-
-            result = TagsBulkActionsService().assign(
-                instance_ids=instance_ids,
-                tag_ids=tag_ids,
-                actor_id=actor_id,
-            )
+            outcome = TagsBulkActionsService().assign_from_payload(raw, actor_id=actor_id)
 
             return self.success(
-                data={"assigned_count": result.assigned_count, "instance_ids": instance_ids, "tag_ids": tag_ids},
-                message=f"标签批量分配成功,共分配 {result.assigned_count} 个标签关系",
+                data={
+                    "assigned_count": outcome.assigned_count,
+                    "instance_ids": outcome.instance_ids,
+                    "tag_ids": outcome.tag_ids,
+                },
+                message=f"标签批量分配成功,共分配 {outcome.assigned_count} 个标签关系",
             )
 
         return self.safe_call(
@@ -667,34 +643,18 @@ class TagsBulkRemoveResource(BaseResource):
         """批量移除标签."""
         raw_json = request.get_json(silent=True)
         raw: object = raw_json if isinstance(raw_json, dict) else {}
-        payload = parse_payload(raw, list_fields=["instance_ids", "tag_ids"])
         actor_id = getattr(current_user, "id", None)
 
         def _execute():
-            if not payload:
-                raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
-
-            instance_ids_raw = payload.get("instance_ids", [])
-            tag_ids_raw = payload.get("tag_ids", [])
-
-            try:
-                instance_ids = [int(item) for item in instance_ids_raw]
-                tag_ids = [int(item) for item in tag_ids_raw]
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"ID格式错误: {exc}") from exc
-
-            if not instance_ids or not tag_ids:
-                raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids"))
-
-            result = TagsBulkActionsService().remove(
-                instance_ids=instance_ids,
-                tag_ids=tag_ids,
-                actor_id=actor_id,
-            )
+            outcome = TagsBulkActionsService().remove_from_payload(raw, actor_id=actor_id)
 
             return self.success(
-                data={"removed_count": result.removed_count, "instance_ids": instance_ids, "tag_ids": tag_ids},
-                message=f"标签批量移除成功,共移除 {result.removed_count} 个标签关系",
+                data={
+                    "removed_count": outcome.removed_count,
+                    "instance_ids": outcome.instance_ids,
+                    "tag_ids": outcome.tag_ids,
+                },
+                message=f"标签批量移除成功,共移除 {outcome.removed_count} 个标签关系",
             )
 
         return self.safe_call(
@@ -725,27 +685,14 @@ class TagsBulkInstanceTagsResource(BaseResource):
         """获取实例标签列表."""
         raw_json = request.get_json(silent=True)
         raw: object = raw_json if isinstance(raw_json, dict) else {}
-        data = parse_payload(raw, list_fields=["instance_ids"])
 
         def _execute():
-            if not data:
-                raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
-
-            instance_ids_raw = data.get("instance_ids", [])
-            try:
-                instance_ids = [int(item) for item in instance_ids_raw]
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"ID格式错误: {exc}") from exc
-
-            if not instance_ids:
-                raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids"))
-
-            result = TagsBulkActionsService().list_instance_tags(instance_ids=instance_ids)
+            outcome = TagsBulkActionsService().list_instance_tags_from_payload(raw)
             return self.success(
                 data={
-                    "tags": result.tags,
-                    "category_names": result.category_names,
-                    "instance_ids": instance_ids,
+                    "tags": outcome.tags,
+                    "category_names": outcome.category_names,
+                    "instance_ids": outcome.instance_ids,
                 },
                 message="操作成功",
             )
@@ -778,27 +725,14 @@ class TagsBulkRemoveAllResource(BaseResource):
         """批量移除所有标签."""
         raw_json = request.get_json(silent=True)
         raw: object = raw_json if isinstance(raw_json, dict) else {}
-        payload = parse_payload(raw, list_fields=["instance_ids"])
         actor_id = getattr(current_user, "id", None)
 
         def _execute():
-            if not payload:
-                raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
-
-            instance_ids_raw = payload.get("instance_ids", [])
-            try:
-                instance_ids = [int(item) for item in instance_ids_raw]
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"ID格式错误: {exc}") from exc
-
-            if not instance_ids:
-                raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids"))
-
-            result = TagsBulkActionsService().remove_all(instance_ids=instance_ids, actor_id=actor_id)
+            outcome = TagsBulkActionsService().remove_all_from_payload(raw, actor_id=actor_id)
 
             return self.success(
-                data={"removed_count": result.removed_count, "instance_ids": instance_ids},
-                message=f"批量移除成功,共移除 {result.removed_count} 个标签关系",
+                data={"removed_count": outcome.removed_count, "instance_ids": outcome.instance_ids},
+                message=f"批量移除成功,共移除 {outcome.removed_count} 个标签关系",
             )
 
         return self.safe_call(

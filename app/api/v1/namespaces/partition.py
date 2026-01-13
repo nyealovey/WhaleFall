@@ -352,22 +352,16 @@ class PartitionCleanupResource(BaseResource):
         """清理旧分区."""
         parsed_json = request.get_json(silent=True)
         raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        data = parse_payload(raw)
-        raw_retention = data.get("retention_months", 12)
+        raw_retention = raw.get("retention_months") if isinstance(raw, dict) else None
 
         def _execute():
-            try:
-                retention_months = int(raw_retention)
-            except (TypeError, ValueError) as exc:
-                raise ValidationError("retention_months 必须为数字") from exc
-
-            result = PartitionManagementService().cleanup_old_partitions(retention_months=retention_months)
+            result = PartitionManagementService().cleanup_old_partitions_from_payload(raw)
             payload = {"result": result, "timestamp": time_utils.now().isoformat()}
 
             log_info(
                 "清理旧分区成功",
                 module="partition",
-                retention_months=retention_months,
+                retention_months=raw_retention,
                 user_id=getattr(current_user, "id", None),
             )
             return self.success(data=payload, message="旧分区清理任务已触发")

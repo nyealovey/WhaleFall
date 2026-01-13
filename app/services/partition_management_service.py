@@ -15,6 +15,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.core.exceptions import DatabaseError
 from app.repositories.partition_management_repository import PartitionManagementRepository
+from app.schemas.partitions import PartitionCleanupPayload
+from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
@@ -244,6 +247,12 @@ class PartitionManagementService:
             },
             "actions": [action.to_dict() for action in actions],
         }
+
+    def cleanup_old_partitions_from_payload(self, payload: object | None) -> dict[str, Any]:
+        """从原始 payload 解析并清理旧分区."""
+        sanitized = parse_payload(payload or {})
+        parsed = validate_or_raise(PartitionCleanupPayload, sanitized)
+        return self.cleanup_old_partitions(retention_months=parsed.retention_months)
 
     def cleanup_old_partitions(self, retention_months: int = 12) -> dict[str, Any]:
         """清理超过保留期的旧分区.
