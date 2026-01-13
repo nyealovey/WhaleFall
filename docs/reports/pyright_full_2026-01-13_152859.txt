@@ -1,0 +1,16 @@
+/Users/apple/Github/WhaleFall/tests/unit/schemas/test_permission_snapshot_v4_internal_contract.py
+  /Users/apple/Github/WhaleFall/tests/unit/schemas/test_permission_snapshot_v4_internal_contract.py:9:5 - error: Expected 1 positional argument (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/schemas/test_permission_snapshot_v4_internal_contract.py:24:5 - error: Expected 1 positional argument (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/schemas/test_permission_snapshot_v4_internal_contract.py:63:5 - error: Expected 1 positional argument (reportCallIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_connection_factory_test_connection_contract.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_connection_factory_test_connection_contract.py:20:5 - error: Expected 1 positional argument (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_connection_factory_test_connection_contract.py:42:5 - error: Expected 1 positional argument (reportCallIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_yaml_config_validation_filters.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_yaml_config_validation_filters.py:71:62 - error: Argument of type "_DummyInstance" cannot be assigned to parameter "instance" of type "Instance" in function "should_exclude_database"
+    "_DummyInstance" is not assignable to "Instance" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_yaml_config_validation_filters.py:75:62 - error: Argument of type "_DummyInstance" cannot be assigned to parameter "instance" of type "Instance" in function "should_exclude_database"
+    "_DummyInstance" is not assignable to "Instance" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/utils/test_structlog_log_entry_schema.py
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_structlog_log_entry_schema.py:16:32 - error: Argument of type "Literal['hello']" cannot be assigned to parameter "event_dict" of type "dict[str, Any]" in function "_build_log_entry"
+    "Literal['hello']" is not assignable to "dict[str, Any]" (reportArgumentType)
+8 errors, 0 warnings, 0 informations

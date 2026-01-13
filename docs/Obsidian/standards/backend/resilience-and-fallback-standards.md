@@ -48,6 +48,7 @@ related:
   - `fallback_reason`（简短原因）
   - 关键维度（例如 `action`/`task`/`instance_id` 等，见 [[standards/backend/structured-logging-context-fields]]）
 - MUST NOT: silent fallback（例如 `except Exception: return default` 且不记录任何告警/日志）。
+  - 建议：优先使用 `app.infra.route_safety.log_fallback(...)` 统一写入 `fallback` 与 `fallback_reason`，避免字段命名漂移。
 
 ### 4.2 对写操作的约束（避免语义漂移）
 
@@ -76,4 +77,3 @@ related:
 ## 6. 变更历史
 
 - 2026-01-13：新增标准，统一降级/回退/容错的可观测性与退出机制约束。
-
