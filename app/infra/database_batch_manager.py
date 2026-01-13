@@ -26,7 +26,7 @@ class DatabaseBatchManager:
     """数据库批量操作管理器.
 
     负责管理数据库操作的批量提交,提高性能并确保事务一致性.
-    支持自动批量提交、手动提交和回滚操作,适用于大量数据处理场景.
+    支持自动批量 flush、手动 flush 和清空待处理队列,适用于大量数据处理场景.
 
     Attributes:
         batch_size: 批次大小,达到此数量时自动提交.
@@ -114,8 +114,9 @@ class DatabaseBatchManager:
     def commit_batch(self) -> bool:
         """提交当前批次的所有操作.
 
-        执行队列中的所有操作并提交事务.如果任何操作失败,
-        记录错误但继续处理其他操作(允许部分成功).如果提交失败,回滚整个批次.
+        执行队列中的所有操作并 flush 事务.如果任何操作失败,
+        记录错误但继续处理其他操作(允许部分成功).该方法本身不负责 `commit/rollback`,
+        事务提交由边界入口统一处理.
 
         Returns:
             当批次内所有操作均成功提交时返回 True.
@@ -148,75 +149,71 @@ class DatabaseBatchManager:
                 total_operations=self.total_operations,
             )
 
-            with db.session.begin():
-                for index, operation in enumerate(operations, start=1):
-                    operation_type = operation["type"]
-                    entity = operation["entity"]
-                    description = operation["description"]
+            for index, operation in enumerate(operations, start=1):
+                operation_type = operation["type"]
+                entity = operation["entity"]
+                description = operation["description"]
 
-                    try:
-                        with db.session.begin_nested():
-                            if operation_type == "add":
-                                db.session.add(entity)
-                            elif operation_type == "update":
-                                db.session.merge(entity)
-                            elif operation_type == "delete":
-                                db.session.delete(entity)
+                try:
+                    with db.session.begin_nested():
+                        if operation_type == "add":
+                            db.session.add(entity)
+                        elif operation_type == "update":
+                            db.session.merge(entity)
+                        elif operation_type == "delete":
+                            db.session.delete(entity)
 
-                            # Flush inside a SAVEPOINT so a single IntegrityError won't poison the batch.
-                            db.session.flush()
-                    except Exception as op_error:
-                        batch_failed += 1
-                        self.failed_operations += 1
-                        self.logger.exception(
-                            "批次操作失败: %s",
-                            description,
-                            module="database_batch_manager",
-                            instance_name=self.instance_name,
-                            batch=self.current_batch,
-                            operation_index=index,
-                            operation_type=operation_type,
-                            error=str(op_error),
-                        )
-                        continue
+                        # Flush inside a SAVEPOINT so a single failure won't poison the whole transaction.
+                        db.session.flush()
+                except Exception as op_error:
+                    batch_failed += 1
+                    self.failed_operations += 1
+                    self.logger.exception(
+                        "批次操作失败: %s",
+                        description,
+                        module="database_batch_manager",
+                        instance_name=self.instance_name,
+                        batch=self.current_batch,
+                        operation_index=index,
+                        operation_type=operation_type,
+                        error=str(op_error),
+                    )
+                    continue
 
-                    batch_successful += 1
-                    self.successful_operations += 1
+                batch_successful += 1
+                self.successful_operations += 1
 
         except Exception as e:
             self.logger.exception(
-                "批次 %s 提交失败",
+                "批次 %s 执行失败",
                 self.current_batch,
                 module="database_batch_manager",
                 instance_name=self.instance_name,
                 batch_size=batch_size,
                 error=str(e),
             )
+            raise
 
-            db.session.rollback()
-
-            return False
-        else:
-            if batch_failed:
-                self.logger.warning(
-                    "批次 %s 部分成功",
-                    self.current_batch,
-                    module="database_batch_manager",
-                    instance_name=self.instance_name,
-                    successful_ops=batch_successful,
-                    failed_ops=batch_failed,
-                )
-                return False
-
-            self.logger.info(
-                "批次 %s 提交成功",
+        if batch_failed:
+            self.logger.warning(
+                "批次 %s 部分成功",
                 self.current_batch,
                 module="database_batch_manager",
                 instance_name=self.instance_name,
                 successful_ops=batch_successful,
-                failed_ops=0,
+                failed_ops=batch_failed,
             )
-            return True
+            return False
+
+        self.logger.info(
+            "批次 %s 提交成功",
+            self.current_batch,
+            module="database_batch_manager",
+            instance_name=self.instance_name,
+            successful_ops=batch_successful,
+            failed_ops=0,
+        )
+        return True
 
     def flush_remaining(self) -> bool:
         """提交剩余的所有操作.
@@ -245,7 +242,8 @@ class DatabaseBatchManager:
     def rollback(self) -> None:
         """回滚所有未提交的操作.
 
-        回滚当前事务并清空待处理队列.通常在异常情况下调用.
+        清空待处理队列.该方法不负责 `db.session.rollback`:
+        session 的回滚应由边界入口(例如 `safe_route_call`/tasks/worker)统一处理.
 
         Returns:
             None.
@@ -266,7 +264,6 @@ class DatabaseBatchManager:
                     pending_operations=len(self.pending_operations),
                 )
 
-            db.session.rollback()
             self.pending_operations.clear()
 
         except Exception as e:
@@ -337,7 +334,7 @@ class DatabaseBatchManager:
             # 正常退出,提交剩余操作
             self.flush_remaining()
         else:
-            # 异常退出,回滚操作
+            # 异常退出,清空队列；session 回滚由边界入口统一处理
             self.rollback()
 
         # 记录最终统计

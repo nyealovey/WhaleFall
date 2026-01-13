@@ -67,18 +67,18 @@ related:
 - MUST: 对写路径 JSON body 的 `@ns.expect(Model)` 必须显式 `validate=False`（避免 RESTX 运行期校验与 schema 口径分裂，导致错误封套漂移）。
 - MUST: 写路径的字段级校验/类型转换/默认值/兼容策略必须落在 `app/schemas/**`（schema）侧，禁止在 API 层手写 `data.get("x") or default`、`int(...)`、`strip()` 等规则。
 - MUST: 写路径必须通过 Service 执行业务动作；Service MUST 使用 `validate_or_raise(...)` 产出 typed payload（详见 [[standards/backend/request-payload-and-schema-validation]] 与 [[standards/backend/layer/schemas-layer-standards]]）。
-- SHOULD: `parse_payload(...)` 只做一次（在 API 边界或 Service 入口二选一），避免 API/Service 两处重复解析导致语义漂移。
+- MUST: `parse_payload(...)` 在一次请求链路中只执行一次（API 边界或 Service 入口二选一）；禁止 API+Service 双重解析导致语义漂移。
 
 #### 2.2 写路径推荐流水线（API v1）
 
 写路径推荐“薄 API + 强 schema + 强 service”流水线：
 
-1) API 层：获取 raw payload（JSON dict / MultiDict）并做 `parse_payload(...)`（仅形状适配 + 最小规范化）
-2) Service 层：`validate_or_raise(PayloadSchema, sanitized)`，只消费 schema 对象执行业务逻辑
+1) API 层：获取 raw payload（JSON dict / MultiDict），仅做形状获取与 OpenAPI 文档声明（不做字段级规则）
+2) Service 层入口：`parse_payload(raw_payload)` + `validate_or_raise(PayloadSchema, sanitized)`，只消费 schema 对象执行业务逻辑
 3) API 层：仅做 `BaseResource.success(...)` / `BaseResource.error_message(...)` 输出统一封套
 
 > [!note]
-> 如果某个写服务需要被 tasks/scripts 复用，推荐把 `parse_payload + validate_or_raise` 收敛在该 Service 的入口；API 只负责把 raw dict 传入 Service。
+> 写服务如需被 tasks/scripts 复用，应把 `parse_payload + validate_or_raise` 收敛在该 Service 的入口；API 只负责把 raw dict 传入 Service（避免出现“API 先 parse_payload，Service 又 parse_payload”的双重解析）。
 
 ### 3) 响应封套与错误口径
 
@@ -194,9 +194,10 @@ related:
 return jsonify({"success": False, "msg": "failed"}), 400
 ```
 
-### 4) 统一兜底(safe_route_call)
+### 4) 统一兜底(safe_call/safe_route_call)
 
-- MUST: 所有 `Resource` 方法通过 `safe_route_call(...)` 包裹实际执行函数.
+- MUST: 所有 `Resource` 方法必须通过 `BaseResource.safe_call(...)`（推荐）或 `safe_route_call(...)` 包裹实际执行函数.
+- MUST: `BaseResource.safe_call(...)` 是对 `safe_route_call(...)` 的统一封装（语义等价，事务/异常语义一致）；评审时视为满足 `safe_route_call` 的 MUST。
 - MUST: `safe_route_call` 入参至少包含 `module`, `action`, `public_error`.
 - SHOULD: 在 `context` 中带上关键参数, 但必须遵循 [[standards/backend/sensitive-data-handling|敏感数据处理]] 约束.
 - MUST NOT: 在端点内 `try/except Exception` 后吞异常继续返回成功.
@@ -399,7 +400,7 @@ class BadResource(Resource):
 ## 门禁/检查方式
 
 - 评审检查:
-  - 是否所有 `Resource` 方法都通过 `safe_route_call` 统一兜底?
+  - 是否所有 `Resource` 方法都通过 `BaseResource.safe_call(...)` 或 `safe_route_call(...)` 统一兜底?
   - 是否出现 `Model.query`/`db.session`/原生 SQL?
   - 是否遵循统一封套与错误字段标准?
   - 写路径是否遵循“RESTX model(文档) + parse_payload(适配) + schema(校验) + service(编排)”的分层?

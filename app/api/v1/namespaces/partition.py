@@ -23,7 +23,6 @@ from app.services.partition import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.decorators import require_csrf
-from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 
@@ -286,33 +285,16 @@ class PartitionsResource(BaseResource):
         """创建分区."""
         parsed_json = request.get_json(silent=True)
         raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        data = parse_payload(raw)
-        partition_date_str = data.get("date")
+        partition_date_str = raw.get("date") if isinstance(raw, dict) else None
 
         def _execute():
-            if not partition_date_str:
-                raise ValidationError("缺少日期参数")
-
-            try:
-                parsed_dt = time_utils.to_china(str(partition_date_str) + "T00:00:00")
-            except Exception as exc:
-                raise ValidationError("日期格式错误,请使用 YYYY-MM-DD 格式") from exc
-            if parsed_dt is None:
-                raise ValidationError("无法解析日期")
-            partition_date = parsed_dt.date()
-
-            today = time_utils.now_china().date()
-            current_month_start = today.replace(day=1)
-            if partition_date < current_month_start:
-                raise ValidationError("只能创建当前或未来月份的分区")
-
-            result = PartitionManagementService().create_partition(partition_date)
+            result = PartitionManagementService().create_partition_from_payload(raw)
             payload = {"result": result, "timestamp": time_utils.now().isoformat()}
 
             log_info(
                 "创建分区成功",
                 module="partition",
-                partition_date=str(partition_date),
+                partition_window=result.get("partition_window"),
                 user_id=getattr(current_user, "id", None),
             )
             return self.success(data=payload, message="分区创建任务已触发")

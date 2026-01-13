@@ -12,6 +12,30 @@ from app.schemas.base import PayloadSchema
 from app.schemas.validation import SchemaMessageKeyError
 
 
+class LoginPayload(PayloadSchema):
+    """登录 payload."""
+
+    username: StrictStr
+    password: StrictStr
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_required_fields(cls, data: Any) -> Any:
+        if not isinstance(data, Mapping):
+            raise SchemaMessageKeyError("用户名和密码不能为空", message_key="VALIDATION_ERROR")
+
+        username = data.get("username")
+        password = data.get("password")
+        if username is None or password is None:
+            raise SchemaMessageKeyError("用户名和密码不能为空", message_key="VALIDATION_ERROR")
+        if isinstance(username, str) and not username.strip():
+            raise SchemaMessageKeyError("用户名和密码不能为空", message_key="VALIDATION_ERROR")
+        if isinstance(password, str) and password == "":
+            raise SchemaMessageKeyError("用户名和密码不能为空", message_key="VALIDATION_ERROR")
+
+        return data
+
+
 class ChangePasswordPayload(PayloadSchema):
     """修改密码 payload."""
 

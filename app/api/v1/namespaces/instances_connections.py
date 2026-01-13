@@ -18,14 +18,13 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.core.constants.system_constants import ErrorMessages
 from app.core.exceptions import NotFoundError, ValidationError
-from app.services.credentials import CredentialDetailReadService
-from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
+from app.services.connections.instance_connections_write_service import InstanceConnectionsWriteService
 from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
+from app.services.credentials import CredentialDetailReadService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.core.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
-from app.utils.request_payload import parse_payload
 from app.utils.response_utils import jsonify_unified_error_message
 from app.infra.route_safety import log_with_context
 
@@ -123,10 +122,6 @@ ConnectionStatusSuccessEnvelope = make_success_envelope_model(
     ConnectionStatusData,
 )
 
-MIN_ALLOWED_PORT = 1
-MAX_ALLOWED_PORT = 65535
-MAX_BATCH_TEST_SIZE = 50
-
 BATCH_TEST_EXCEPTIONS: tuple[type[BaseException], ...] = (
     SQLAlchemyError,
     ConnectionError,
@@ -134,68 +129,17 @@ BATCH_TEST_EXCEPTIONS: tuple[type[BaseException], ...] = (
 )
 
 
-def _parse_payload() -> JsonDict:
+def _parse_json_payload() -> JsonDict:
     raw = request.get_json(silent=True)
     if raw is None:
         return {}
     if not isinstance(raw, dict):
         raise ValidationError("请求数据格式必须是 JSON 对象")
-    sanitized = parse_payload(raw, list_fields=["instance_ids"])
-    return cast("JsonDict", sanitized)
-
-
-def _normalize_db_type(raw_db_type: JsonValue | None) -> str:
-    db_type = str(raw_db_type or "").lower()
-    if not ConnectionFactory.is_type_supported(db_type):
-        raise ValidationError(f"不支持的数据库类型: {db_type}")
-    return db_type
-
-
-def _normalize_port(raw_port: JsonValue | None) -> int:
-    if not isinstance(raw_port, (str, int, float, bool)):
-        raise ValidationError("端口号必须是有效的数字")
-    try:
-        port = int(raw_port)
-    except (ValueError, TypeError) as exc:
-        raise ValidationError("端口号必须是有效的数字") from exc
-    if port < MIN_ALLOWED_PORT or port > MAX_ALLOWED_PORT:
-        raise ValidationError(f"端口号必须在{MIN_ALLOWED_PORT}-{MAX_ALLOWED_PORT}之间")
-    return port
-
-
-def _normalize_credential_id(raw_id: JsonValue | None) -> int:
-    if raw_id is None:
-        raise ValidationError("credential_id 不能为空")
-    if not isinstance(raw_id, (str, int)):
-        raise ValidationError("credential_id 必须是整数")
-    try:
-        return int(raw_id)
-    except (ValueError, TypeError) as exc:
-        raise ValidationError("credential_id 必须是整数") from exc
-
-
-def _normalize_instance_id(raw_id: JsonValue | None) -> int:
-    if raw_id is None:
-        raise ValidationError("instance_id 不能为空")
-    if not isinstance(raw_id, (str, int)):
-        raise ValidationError("instance_id 必须是整数")
-    try:
-        return int(raw_id)
-    except (ValueError, TypeError) as exc:
-        raise ValidationError("instance_id 必须是整数") from exc
+    return cast("JsonDict", raw)
 
 
 def _require_credential(credential_id: int) -> object:
     return CredentialDetailReadService().get_credential_or_error(credential_id)
-
-
-def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
-    db_type = _normalize_db_type(data.get("db_type"))
-    port = _normalize_port(data.get("port", 0))
-    credential_id = data.get("credential_id")
-    if credential_id is not None:
-        _require_credential(_normalize_credential_id(credential_id))
-    return db_type, port
 
 
 def _test_existing_instance(connection_test_service: ConnectionTestService, instance_id: int):
@@ -224,19 +168,23 @@ def _test_existing_instance(connection_test_service: ConnectionTestService, inst
     return response
 
 
-def _test_new_connection(connection_test_service: ConnectionTestService, connection_params: JsonDict):
-    required_fields = ["db_type", "host", "port", "credential_id"]
-    missing_fields = [field for field in required_fields if not connection_params.get(field)]
-    if missing_fields:
-        raise ValidationError(f"缺少必需参数: {', '.join(missing_fields)}")
+def _test_new_connection(connection_test_service: ConnectionTestService, connection_params: object):
+    parsed = cast(object, connection_params)
+    name = cast("str | None", getattr(parsed, "name"))
+    db_type = cast("str", getattr(parsed, "db_type"))
+    host = cast("str", getattr(parsed, "host"))
+    port = cast("int", getattr(parsed, "port"))
+    credential_id = cast("int", getattr(parsed, "credential_id"))
 
-    db_type = _normalize_db_type(connection_params.get("db_type"))
-    port = _normalize_port(connection_params.get("port", 0))
-    credential = _require_credential(_normalize_credential_id(connection_params.get("credential_id")))
+    resolved_name = "temp_test"
+    if isinstance(name, str) and name.strip():
+        resolved_name = name
+
+    credential = _require_credential(credential_id)
     result = connection_test_service.test_connection_with_params(
-        name=str(connection_params.get("name") or "temp_test"),
+        name=resolved_name,
         db_type=db_type,
-        host=str(connection_params.get("host") or ""),
+        host=host,
         port=port,
         credential=credential,
     )
@@ -326,22 +274,20 @@ class InstancesConnectionsTestResource(BaseResource):
     @require_csrf
     def post(self):
         """执行连接测试."""
-        data = _parse_payload()
-        if not data:
-            raise ValidationError("请求数据不能为空")
-
+        raw = _parse_json_payload()
+        write_service = InstanceConnectionsWriteService()
         connection_test_service = ConnectionTestService()
 
         def _execute():
-            if "instance_id" in data:
-                instance_id = _normalize_instance_id(data.get("instance_id"))
-                maybe_error = _test_existing_instance(connection_test_service, instance_id)
+            parsed = write_service.parse_connection_test_payload(raw)
+            if parsed.instance_id is not None:
+                maybe_error = _test_existing_instance(connection_test_service, parsed.instance_id)
                 if isinstance(maybe_error, Response):
                     return maybe_error
                 success_payload, status_code, message = cast("tuple[JsonDict, int, str]", maybe_error)
                 return self.success(data=success_payload, message=message, status=status_code)
 
-            maybe_error = _test_new_connection(connection_test_service, data)
+            maybe_error = _test_new_connection(connection_test_service, parsed)
             if isinstance(maybe_error, Response):
                 return maybe_error
             success_payload, status_code, message = cast("tuple[JsonDict, int, str]", maybe_error)
@@ -353,7 +299,7 @@ class InstancesConnectionsTestResource(BaseResource):
             action="test_connection",
             public_error="连接测试失败",
             expected_exceptions=(ValidationError, NotFoundError),
-            context={"has_instance_id": "instance_id" in data},
+            context={"has_instance_id": "instance_id" in raw},
         )
 
 
@@ -373,12 +319,11 @@ class InstancesConnectionsValidateParamsResource(BaseResource):
     @require_csrf
     def post(self):
         """验证连接参数."""
-        data = _parse_payload()
-        if not data:
-            raise ValidationError("请求数据不能为空")
+        raw = _parse_json_payload()
+        write_service = InstanceConnectionsWriteService()
 
         def _execute():
-            _validate_connection_payload(data)
+            write_service.validate_connection_params_from_payload(raw)
             return self.success(message="连接参数验证通过")
 
         return self.safe_call(
@@ -405,28 +350,12 @@ class InstancesConnectionsBatchTestResource(BaseResource):
     @require_csrf
     def post(self):
         """执行批量连接测试."""
-        data = _parse_payload()
+        raw = _parse_json_payload()
+        write_service = InstanceConnectionsWriteService()
 
         def _execute():
-            if "instance_ids" not in data:
-                raise ValidationError("缺少实例ID列表")
-
-            instance_ids_raw = data["instance_ids"]
-            if not isinstance(instance_ids_raw, list) or not instance_ids_raw:
-                raise ValidationError("实例ID列表不能为空")
-
-            instance_ids: list[int] = []
-            for item in instance_ids_raw:
-                if not isinstance(item, (str, int)):
-                    raise ValidationError("实例ID列表必须为整数")
-                try:
-                    instance_ids.append(int(item))
-                except (TypeError, ValueError) as exc:
-                    raise ValidationError("实例ID列表必须为整数") from exc
-
-            if len(instance_ids) > MAX_BATCH_TEST_SIZE:
-                raise ValidationError(f"批量测试数量不能超过{MAX_BATCH_TEST_SIZE}个")
-
+            parsed = write_service.parse_batch_test_payload(raw)
+            instance_ids = parsed.instance_ids
             results, success_count, fail_count = _execute_batch_tests(ConnectionTestService(), instance_ids)
             summary = {"total": len(instance_ids), "success": success_count, "failed": fail_count}
             return self.success(
@@ -440,7 +369,7 @@ class InstancesConnectionsBatchTestResource(BaseResource):
             action="batch_test_connections",
             public_error="批量测试连接失败",
             expected_exceptions=(ValidationError,),
-            context={"payload_keys": list(cast("dict", data).keys()) if isinstance(data, dict) else []},
+            context={"payload_keys": list(raw.keys())},
         )
 
 

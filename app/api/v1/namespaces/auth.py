@@ -15,7 +15,6 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.core.constants import TimeConstants
 from app.core.constants.system_constants import SuccessMessages
-from app.core.exceptions import ValidationError
 from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
 from app.utils.request_payload import parse_payload
@@ -165,17 +164,12 @@ class LoginResource(BaseResource):
         """执行登录."""
 
         def _execute():
-            payload = _parse_payload()
-            username_raw = payload.get("username")
-            username = username_raw if isinstance(username_raw, str) else ""
-
-            password_raw = payload.get("password")
-            password = password_raw if isinstance(password_raw, str) else None
-
-            if not username or not password:
-                raise ValidationError(message="用户名和密码不能为空")
-
-            result = LoginService().login(username=username, password=password)
+            if request.is_json:
+                parsed_json = request.get_json(silent=True)
+                raw_payload: object = parsed_json if isinstance(parsed_json, dict) else {}
+            else:
+                raw_payload = request.form
+            result = LoginService().login_from_payload(raw_payload)
             return self.success(
                 data=result.to_payload(),
                 message=SuccessMessages.LOGIN_SUCCESS,
