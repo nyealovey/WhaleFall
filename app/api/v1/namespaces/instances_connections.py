@@ -25,6 +25,7 @@ from app.services.connections.instance_connection_status_service import Instance
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.core.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 from app.utils.response_utils import jsonify_unified_error_message
 from app.infra.route_safety import log_with_context
 
@@ -139,7 +140,8 @@ def _parse_payload() -> JsonDict:
         return {}
     if not isinstance(raw, dict):
         raise ValidationError("请求数据格式必须是 JSON 对象")
-    return cast("JsonDict", raw)
+    sanitized = parse_payload(raw, list_fields=["instance_ids"])
+    return cast("JsonDict", sanitized)
 
 
 def _normalize_db_type(raw_db_type: JsonValue | None) -> str:

@@ -2,27 +2,30 @@
 
 目标:
 - 将环境变量读取、默认值、校验集中到单一入口,避免散落在各模块中重复解析.
-- `create_app(settings=...)` 只消费 Settings,不再直接 `os.getenv`.
+- `create_app(settings=...)` 只消费 Settings,不再直接读取环境变量.
 
 说明:
-- Settings 会在 `load()` 时调用 `python-dotenv` 的 `load_dotenv()` 以支持本地 `.env`.
+- Settings 使用 `pydantic-settings` 的 `BaseSettings` 从环境变量与本地 `.env`(可选)读取配置.
 - 生产环境默认更严格: 缺失关键密钥/连接串会直接抛出 ValueError.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 import secrets
-from dataclasses import dataclass
 from pathlib import Path
 
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
+from pydantic import Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants.validation_limits import BCRYPT_LOG_ROUNDS_MIN, HOUR_OF_DAY_MAX, HOUR_OF_DAY_MIN
 
 logger = logging.getLogger(__name__)
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DOTENV_PATH = PROJECT_ROOT / ".env"
 
 DEFAULT_ENVIRONMENT = "development"
 APP_VERSION = "1.4.0"
@@ -69,29 +72,7 @@ DEFAULT_API_V1_DOCS_ENABLED = True
 DEFAULT_ENABLE_SCHEDULER = True
 
 
-def _parse_bool(raw: str | None, *, default: bool) -> bool:
-    if raw is None:
-        return default
-    normalized = raw.strip().lower()
-    if normalized in {"true", "1", "yes", "y", "on"}:
-        return True
-    if normalized in {"false", "0", "no", "n", "off"}:
-        return False
-    raise ValueError(f"无法解析布尔值: {raw!r}")
-
-
-def _parse_int(raw: str | None, *, default: int, name: str) -> int:
-    if raw is None or raw.strip() == "":
-        return default
-    try:
-        return int(raw)
-    except ValueError as exc:  # pragma: no cover - 防御性
-        raise ValueError(f"{name} 必须是整数,当前值为 {raw!r}") from exc
-
-
-def _parse_csv(raw: str | None, *, default: tuple[str, ...]) -> tuple[str, ...]:
-    if raw is None:
-        return default
+def _parse_csv(raw: str) -> tuple[str, ...]:
     parts = [item.strip() for item in raw.split(",")]
     return tuple(item for item in parts if item)
 
@@ -105,435 +86,163 @@ def _is_valid_fernet_key(value: str) -> bool:
 
 
 def _resolve_sqlite_fallback_url() -> str:
-    project_root = Path(__file__).resolve().parent.parent
-    db_path = project_root / "userdata" / "whalefall_dev.db"
+    db_path = PROJECT_ROOT / "userdata" / "whalefall_dev.db"
     return f"sqlite:///{db_path.absolute()}"
 
 
-def _load_environment() -> tuple[str, str, bool]:
-    """读取运行环境与 debug 标志.
-
-    Returns:
-        tuple: (environment 原始值, environment 归一化值, debug)
-
-    """
-    environment = os.environ.get("FLASK_ENV", DEFAULT_ENVIRONMENT)
-    normalized = environment.strip().lower()
-    debug_default = normalized != "production"
-    debug = _parse_bool(os.environ.get("FLASK_DEBUG"), default=debug_default)
-    return environment, normalized, debug
-
-
-def _load_app_identity() -> tuple[str, str]:
-    """读取应用名称与版本号."""
-    app_name = os.environ.get("APP_NAME", "鲸落")
-    return app_name, APP_VERSION
-
-
-def _load_secret_keys(*, debug: bool) -> tuple[str, str]:
-    """读取并生成 SECRET_KEY / JWT_SECRET_KEY."""
-    secret_key = os.environ.get("SECRET_KEY") or ""
-    jwt_secret_key = os.environ.get("JWT_SECRET_KEY") or ""
-
-    if not secret_key:
-        if debug:
-            secret_key = secrets.token_urlsafe(32)
-            logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY,生产环境请设置环境变量")
-        else:
-            raise ValueError("SECRET_KEY environment variable must be set in production")
-
-    if not jwt_secret_key:
-        if debug:
-            jwt_secret_key = secrets.token_urlsafe(32)
-            logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY,生产环境请设置环境变量")
-        else:
-            raise ValueError("JWT_SECRET_KEY environment variable must be set in production")
-
-    return secret_key, jwt_secret_key
-
-
-def _load_password_encryption_key(environment_normalized: str, *, debug: bool) -> str:
-    """读取 PASSWORD_ENCRYPTION_KEY.
-
-    说明:
-    - 生产环境必须显式设置,否则 fail-fast(在 `_validate()` 统一报错)。
-    - 非生产环境未设置时,会生成临时密钥用于开发/测试,但重启后无法解密旧数据。
-
-    Returns:
-        str: Fernet key 字符串(可能为空,表示生产环境缺失配置,由 `_validate()` 统一报错)。
-
-    """
-    raw = (os.environ.get("PASSWORD_ENCRYPTION_KEY") or "").strip()
-    if raw:
-        return raw
-
-    if environment_normalized == "production":
-        return ""
-
-    generated = Fernet.generate_key().decode()
-    if debug:
-        logger.warning("⚠️  未设置 PASSWORD_ENCRYPTION_KEY,将使用临时密钥(重启后无法解密已存储凭据)")
-        logger.info(
-            '请生成并设置 PASSWORD_ENCRYPTION_KEY(示例: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")'
-        )
-    return generated
-
-
-def _load_oracle_client_settings() -> tuple[str | None, str | None]:
-    """读取 Oracle 客户端初始化相关配置."""
-    client_lib_dir = (os.environ.get("ORACLE_CLIENT_LIB_DIR") or "").strip() or None
-    oracle_home = (os.environ.get("ORACLE_HOME") or "").strip() or None
-    return client_lib_dir, oracle_home
-
-
-def _load_scheduler_runtime_flags() -> tuple[bool, str, bool, bool]:
-    """读取调度器进程角色相关配置.
-
-    注意:
-    - 这些值属于“运行时环境”而非业务配置,但仍统一由 settings 读取以避免散落 `os.environ.get`。
-    """
-    enable_scheduler = _parse_bool(os.environ.get("ENABLE_SCHEDULER"), default=DEFAULT_ENABLE_SCHEDULER)
-    server_software = os.environ.get("SERVER_SOFTWARE", "")
-    flask_run_from_cli = _parse_bool(os.environ.get("FLASK_RUN_FROM_CLI"), default=False)
-    werkzeug_run_main = _parse_bool(os.environ.get("WERKZEUG_RUN_MAIN"), default=False)
-    return enable_scheduler, server_software, flask_run_from_cli, werkzeug_run_main
-
-
-def _load_jwt_expiration_seconds() -> tuple[int, int]:
-    """读取 JWT 访问/刷新令牌有效期(秒)."""
-    access_seconds = _parse_int(
-        os.environ.get("JWT_ACCESS_TOKEN_EXPIRES"),
-        default=DEFAULT_JWT_ACCESS_TOKEN_EXPIRES_SECONDS,
-        name="JWT_ACCESS_TOKEN_EXPIRES",
-    )
-
-    legacy_refresh_raw = os.environ.get("JWT_REFRESH_TOKEN_EXPIRES_SECONDS")
-    if legacy_refresh_raw is not None and legacy_refresh_raw.strip() != "":
-        raise ValueError(
-            "JWT_REFRESH_TOKEN_EXPIRES_SECONDS 已移除,请使用 JWT_REFRESH_TOKEN_EXPIRES (秒)"
-        )
-
-    refresh_seconds = _parse_int(
-        os.environ.get("JWT_REFRESH_TOKEN_EXPIRES"),
-        default=DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS,
-        name="JWT_REFRESH_TOKEN_EXPIRES",
-    )
-    return access_seconds, refresh_seconds
-
-
-def _load_database_settings(environment_normalized: str) -> tuple[str, int, int]:
-    """读取主库连接串与连接池参数."""
-    database_url_raw = os.environ.get("DATABASE_URL")
-    if not database_url_raw:
-        if environment_normalized == "production":
-            raise ValueError("DATABASE_URL environment variable must be set in production")
-        database_url = _resolve_sqlite_fallback_url()
-        if environment_normalized not in {"testing", "test"}:
-            logger.warning("⚠️  未设置 DATABASE_URL, 非 production 环境将回退 SQLite: %s", database_url)
-    else:
-        database_url = database_url_raw
-    connection_timeout_seconds = _parse_int(
-        os.environ.get("DB_CONNECTION_TIMEOUT"),
-        default=DEFAULT_DB_CONNECTION_TIMEOUT_SECONDS,
-        name="DB_CONNECTION_TIMEOUT",
-    )
-    max_connections = _parse_int(
-        os.environ.get("DB_MAX_CONNECTIONS"),
-        default=DEFAULT_DB_MAX_CONNECTIONS,
-        name="DB_MAX_CONNECTIONS",
-    )
-    return database_url, connection_timeout_seconds, max_connections
-
-
-def _load_cache_settings(environment_normalized: str) -> tuple[str, str | None, int, int, int, int, int]:
-    """读取缓存配置与业务缓存 TTL."""
-    cache_type = os.environ.get("CACHE_TYPE", DEFAULT_CACHE_TYPE).strip().lower()
-    cache_default_timeout_seconds = _parse_int(
-        os.environ.get("CACHE_DEFAULT_TIMEOUT"),
-        default=DEFAULT_CACHE_DEFAULT_TIMEOUT_SECONDS,
-        name="CACHE_DEFAULT_TIMEOUT",
-    )
-
-    cache_redis_url_raw = os.environ.get("CACHE_REDIS_URL")
-    cache_redis_url: str | None = None
-    if cache_type == "redis":
-        if cache_redis_url_raw:
-            cache_redis_url = cache_redis_url_raw
-        elif environment_normalized != "production":
-            cache_redis_url = DEFAULT_CACHE_REDIS_URL
-        else:
-            raise ValueError("CACHE_REDIS_URL must be set when CACHE_TYPE=redis in production")
-
-    cache_default_ttl_seconds = _parse_int(
-        os.environ.get("CACHE_DEFAULT_TTL"),
-        default=DEFAULT_CACHE_DEFAULT_TTL_SECONDS,
-        name="CACHE_DEFAULT_TTL",
-    )
-    cache_rule_evaluation_ttl_seconds = _parse_int(
-        os.environ.get("CACHE_RULE_EVALUATION_TTL"),
-        default=DEFAULT_CACHE_RULE_EVALUATION_TTL_SECONDS,
-        name="CACHE_RULE_EVALUATION_TTL",
-    )
-    cache_rule_ttl_seconds = _parse_int(
-        os.environ.get("CACHE_RULE_TTL"),
-        default=DEFAULT_CACHE_RULE_TTL_SECONDS,
-        name="CACHE_RULE_TTL",
-    )
-    cache_account_ttl_seconds = _parse_int(
-        os.environ.get("CACHE_ACCOUNT_TTL"),
-        default=DEFAULT_CACHE_ACCOUNT_TTL_SECONDS,
-        name="CACHE_ACCOUNT_TTL",
-    )
-    return (
-        cache_type,
-        cache_redis_url,
-        cache_default_timeout_seconds,
-        cache_default_ttl_seconds,
-        cache_rule_evaluation_ttl_seconds,
-        cache_rule_ttl_seconds,
-        cache_account_ttl_seconds,
-    )
-
-
-def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, int, int, tuple[str, ...]]:
-    """读取 Web/日志/会话等基础配置."""
-    bcrypt_log_rounds = _parse_int(
-        os.environ.get("BCRYPT_LOG_ROUNDS"),
-        default=DEFAULT_BCRYPT_LOG_ROUNDS,
-        name="BCRYPT_LOG_ROUNDS",
-    )
-    force_https = _parse_bool(os.environ.get("FORCE_HTTPS"), default=False)
-    max_content_length_bytes = _parse_int(
-        os.environ.get("MAX_CONTENT_LENGTH"),
-        default=DEFAULT_MAX_CONTENT_LENGTH_BYTES,
-        name="MAX_CONTENT_LENGTH",
-    )
-
-    log_level = os.environ.get("LOG_LEVEL", DEFAULT_LOG_LEVEL)
-    log_file = os.environ.get("LOG_FILE", DEFAULT_LOG_FILE)
-    log_max_size_bytes = _parse_int(
-        os.environ.get("LOG_MAX_SIZE"),
-        default=DEFAULT_LOG_MAX_SIZE_BYTES,
-        name="LOG_MAX_SIZE",
-    )
-    log_backup_count = _parse_int(
-        os.environ.get("LOG_BACKUP_COUNT"),
-        default=DEFAULT_LOG_BACKUP_COUNT,
-        name="LOG_BACKUP_COUNT",
-    )
-
-    session_lifetime_seconds = _parse_int(
-        os.environ.get("PERMANENT_SESSION_LIFETIME"),
-        default=DEFAULT_SESSION_LIFETIME_SECONDS,
-        name="PERMANENT_SESSION_LIFETIME",
-    )
-    legacy_remember_cookie_duration_raw = os.environ.get("REMEMBER_COOKIE_DURATION_SECONDS")
-    if legacy_remember_cookie_duration_raw is not None and legacy_remember_cookie_duration_raw.strip() != "":
-        raise ValueError(
-            "REMEMBER_COOKIE_DURATION_SECONDS 已移除,请使用 REMEMBER_COOKIE_DURATION (秒)"
-        )
-    remember_cookie_duration_seconds = _parse_int(
-        os.environ.get("REMEMBER_COOKIE_DURATION"),
-        default=DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS,
-        name="REMEMBER_COOKIE_DURATION",
-    )
-    login_rate_limit = _parse_int(
-        os.environ.get("LOGIN_RATE_LIMIT"),
-        default=10,
-        name="LOGIN_RATE_LIMIT",
-    )
-    login_rate_window_seconds = _parse_int(
-        os.environ.get("LOGIN_RATE_WINDOW"),
-        default=60,
-        name="LOGIN_RATE_WINDOW",
-    )
-    cors_origins = _parse_csv(os.environ.get("CORS_ORIGINS"), default=DEFAULT_CORS_ORIGINS)
-
-    return (
-        bcrypt_log_rounds,
-        force_https,
-        max_content_length_bytes,
-        log_level,
-        log_file,
-        log_max_size_bytes,
-        log_backup_count,
-        session_lifetime_seconds,
-        remember_cookie_duration_seconds,
-        login_rate_limit,
-        login_rate_window_seconds,
-        cors_origins,
-    )
-
-
-def _load_proxy_fix_settings(environment_normalized: str) -> tuple[int, int, int, int, int, tuple[str, ...]]:
-    """读取反向代理头部解析(ProxyFix)相关配置.
-
-    说明:
-    - `ProxyFix` 的信任层数参数必须与上游代理链一致,否则会导致 `remote_addr` 等信息解析错误.
-    - 默认策略: 生产环境启用 `x_for/x_proto=1` 以适配内置 Nginx 反代; 其他环境默认关闭.
-
-    Args:
-        environment_normalized: 归一化后的环境名称(如 production/development).
-
-    Returns:
-        tuple: (x_for, x_proto, x_host, x_port, x_prefix, trusted_ips)
-
-    """
-    default_x = 1 if environment_normalized == "production" else 0
-    proxy_fix_x_for = _parse_int(
-        os.environ.get("PROXY_FIX_X_FOR"),
-        default=default_x,
-        name="PROXY_FIX_X_FOR",
-    )
-    proxy_fix_x_proto = _parse_int(
-        os.environ.get("PROXY_FIX_X_PROTO"),
-        default=default_x,
-        name="PROXY_FIX_X_PROTO",
-    )
-    proxy_fix_x_host = _parse_int(
-        os.environ.get("PROXY_FIX_X_HOST"),
-        default=0,
-        name="PROXY_FIX_X_HOST",
-    )
-    proxy_fix_x_port = _parse_int(
-        os.environ.get("PROXY_FIX_X_PORT"),
-        default=0,
-        name="PROXY_FIX_X_PORT",
-    )
-    proxy_fix_x_prefix = _parse_int(
-        os.environ.get("PROXY_FIX_X_PREFIX"),
-        default=0,
-        name="PROXY_FIX_X_PREFIX",
-    )
-    trusted_ips = _parse_csv(os.environ.get("PROXY_FIX_TRUSTED_IPS"), default=DEFAULT_PROXY_FIX_TRUSTED_IPS)
-    return (
-        proxy_fix_x_for,
-        proxy_fix_x_proto,
-        proxy_fix_x_host,
-        proxy_fix_x_port,
-        proxy_fix_x_prefix,
-        trusted_ips,
-    )
-
-
-def _load_feature_flags() -> tuple[bool, int, bool, int, int, int]:
-    """读取任务相关功能开关与参数."""
-    aggregation_enabled = _parse_bool(os.environ.get("AGGREGATION_ENABLED"), default=DEFAULT_AGGREGATION_ENABLED)
-    aggregation_hour = _parse_int(
-        os.environ.get("AGGREGATION_HOUR"),
-        default=DEFAULT_AGGREGATION_HOUR,
-        name="AGGREGATION_HOUR",
-    )
-    collect_db_size_enabled = _parse_bool(
-        os.environ.get("COLLECT_DB_SIZE_ENABLED"),
-        default=DEFAULT_COLLECT_DB_SIZE_ENABLED,
-    )
-    database_size_retention_months = _parse_int(
-        os.environ.get("DATABASE_SIZE_RETENTION_MONTHS"),
-        default=DEFAULT_DATABASE_SIZE_RETENTION_MONTHS,
-        name="DATABASE_SIZE_RETENTION_MONTHS",
-    )
-    db_size_collection_interval_hours = _parse_int(
-        os.environ.get("DB_SIZE_COLLECTION_INTERVAL"),
-        default=DEFAULT_DB_SIZE_COLLECTION_INTERVAL_HOURS,
-        name="DB_SIZE_COLLECTION_INTERVAL",
-    )
-    db_size_collection_timeout_seconds = _parse_int(
-        os.environ.get("DB_SIZE_COLLECTION_TIMEOUT"),
-        default=DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS,
-        name="DB_SIZE_COLLECTION_TIMEOUT",
-    )
-    return (
-        aggregation_enabled,
-        aggregation_hour,
-        collect_db_size_enabled,
-        database_size_retention_months,
-        db_size_collection_interval_hours,
-        db_size_collection_timeout_seconds,
-    )
-
-
-def _load_api_settings(environment_normalized: str) -> bool:
-    """读取 RestX/OpenAPI 相关开关.
-
-    Phase 4 策略:
-    - `/api/v1/**` 始终启用
-    - 生产环境默认关闭 Swagger UI,仅保留 OpenAPI JSON 导出能力
-    """
-    docs_default = DEFAULT_API_V1_DOCS_ENABLED
-    if environment_normalized == "production":
-        docs_default = False
-    return _parse_bool(os.environ.get("API_V1_DOCS_ENABLED"), default=docs_default)
-
-
-@dataclass(frozen=True, slots=True)
-class Settings:
+class Settings(BaseSettings):
     """应用运行时设置集合."""
 
-    environment: str
-    debug: bool
+    model_config = SettingsConfigDict(
+        env_ignore_empty=True,
+        extra="ignore",
+        frozen=True,
+        str_strip_whitespace=True,
+    )
 
-    app_name: str
-    app_version: str
+    environment: str = Field(default=DEFAULT_ENVIRONMENT, validation_alias="FLASK_ENV")
+    debug: bool = Field(default=False, validation_alias="FLASK_DEBUG")
 
-    secret_key: str
-    jwt_secret_key: str
-    password_encryption_key: str
+    app_name: str = Field(default="鲸落", validation_alias="APP_NAME")
+    app_version: str = APP_VERSION
 
-    jwt_access_token_expires_seconds: int
-    jwt_refresh_token_expires_seconds: int
+    secret_key: str = Field(default="", validation_alias="SECRET_KEY")
+    jwt_secret_key: str = Field(default="", validation_alias="JWT_SECRET_KEY")
+    password_encryption_key: str = Field(default="", validation_alias="PASSWORD_ENCRYPTION_KEY")
 
-    database_url: str
-    db_connection_timeout_seconds: int
-    db_max_connections: int
+    jwt_access_token_expires_seconds: int = Field(
+        default=DEFAULT_JWT_ACCESS_TOKEN_EXPIRES_SECONDS,
+        validation_alias="JWT_ACCESS_TOKEN_EXPIRES",
+    )
+    jwt_refresh_token_expires_seconds: int = Field(
+        default=DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS,
+        validation_alias="JWT_REFRESH_TOKEN_EXPIRES",
+    )
 
-    oracle_client_lib_dir: str | None
-    oracle_home: str | None
+    # 已移除的 legacy env(只用于 fail-fast 提示).
+    legacy_jwt_refresh_token_expires_seconds: int | None = Field(
+        default=None,
+        validation_alias="JWT_REFRESH_TOKEN_EXPIRES_SECONDS",
+        repr=False,
+    )
 
-    cache_type: str
-    cache_redis_url: str | None
-    cache_default_timeout_seconds: int
-    cache_default_ttl_seconds: int
-    cache_rule_evaluation_ttl_seconds: int
-    cache_rule_ttl_seconds: int
-    cache_account_ttl_seconds: int
+    database_url: str = Field(default="", validation_alias="DATABASE_URL")
+    db_connection_timeout_seconds: int = Field(
+        default=DEFAULT_DB_CONNECTION_TIMEOUT_SECONDS,
+        validation_alias="DB_CONNECTION_TIMEOUT",
+    )
+    db_max_connections: int = Field(default=DEFAULT_DB_MAX_CONNECTIONS, validation_alias="DB_MAX_CONNECTIONS")
 
-    bcrypt_log_rounds: int
-    force_https: bool
-    proxy_fix_x_for: int
-    proxy_fix_x_proto: int
-    proxy_fix_x_host: int
-    proxy_fix_x_port: int
-    proxy_fix_x_prefix: int
-    proxy_fix_trusted_ips: tuple[str, ...]
+    oracle_client_lib_dir: str | None = Field(default=None, validation_alias="ORACLE_CLIENT_LIB_DIR")
+    oracle_home: str | None = Field(default=None, validation_alias="ORACLE_HOME")
 
-    max_content_length_bytes: int
+    cache_type: str = Field(default=DEFAULT_CACHE_TYPE, validation_alias="CACHE_TYPE")
+    cache_redis_url: str | None = Field(default=None, validation_alias="CACHE_REDIS_URL")
+    cache_default_timeout_seconds: int = Field(
+        default=DEFAULT_CACHE_DEFAULT_TIMEOUT_SECONDS,
+        validation_alias="CACHE_DEFAULT_TIMEOUT",
+    )
+    cache_default_ttl_seconds: int = Field(default=DEFAULT_CACHE_DEFAULT_TTL_SECONDS, validation_alias="CACHE_DEFAULT_TTL")
+    cache_rule_evaluation_ttl_seconds: int = Field(
+        default=DEFAULT_CACHE_RULE_EVALUATION_TTL_SECONDS,
+        validation_alias="CACHE_RULE_EVALUATION_TTL",
+    )
+    cache_rule_ttl_seconds: int = Field(default=DEFAULT_CACHE_RULE_TTL_SECONDS, validation_alias="CACHE_RULE_TTL")
+    cache_account_ttl_seconds: int = Field(default=DEFAULT_CACHE_ACCOUNT_TTL_SECONDS, validation_alias="CACHE_ACCOUNT_TTL")
 
-    log_level: str
-    log_file: str
-    log_max_size_bytes: int
-    log_backup_count: int
+    bcrypt_log_rounds: int = Field(default=DEFAULT_BCRYPT_LOG_ROUNDS, validation_alias="BCRYPT_LOG_ROUNDS")
+    force_https: bool = Field(default=False, validation_alias="FORCE_HTTPS")
 
-    session_lifetime_seconds: int
-    remember_cookie_duration_seconds: int
-    login_rate_limit: int
-    login_rate_window_seconds: int
+    proxy_fix_x_for: int = Field(default=0, validation_alias="PROXY_FIX_X_FOR")
+    proxy_fix_x_proto: int = Field(default=0, validation_alias="PROXY_FIX_X_PROTO")
+    proxy_fix_x_host: int = Field(default=0, validation_alias="PROXY_FIX_X_HOST")
+    proxy_fix_x_port: int = Field(default=0, validation_alias="PROXY_FIX_X_PORT")
+    proxy_fix_x_prefix: int = Field(default=0, validation_alias="PROXY_FIX_X_PREFIX")
+    proxy_fix_trusted_ips: tuple[str, ...] = Field(
+        default=DEFAULT_PROXY_FIX_TRUSTED_IPS,
+        validation_alias="PROXY_FIX_TRUSTED_IPS",
+    )
 
-    cors_origins: tuple[str, ...]
+    max_content_length_bytes: int = Field(default=DEFAULT_MAX_CONTENT_LENGTH_BYTES, validation_alias="MAX_CONTENT_LENGTH")
 
-    api_v1_docs_enabled: bool
+    log_level: str = Field(default=DEFAULT_LOG_LEVEL, validation_alias="LOG_LEVEL")
+    log_file: str = Field(default=DEFAULT_LOG_FILE, validation_alias="LOG_FILE")
+    log_max_size_bytes: int = Field(default=DEFAULT_LOG_MAX_SIZE_BYTES, validation_alias="LOG_MAX_SIZE")
+    log_backup_count: int = Field(default=DEFAULT_LOG_BACKUP_COUNT, validation_alias="LOG_BACKUP_COUNT")
 
-    enable_scheduler: bool
-    server_software: str
-    flask_run_from_cli: bool
-    werkzeug_run_main: bool
+    session_lifetime_seconds: int = Field(
+        default=DEFAULT_SESSION_LIFETIME_SECONDS,
+        validation_alias="PERMANENT_SESSION_LIFETIME",
+    )
+    remember_cookie_duration_seconds: int = Field(
+        default=DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS,
+        validation_alias="REMEMBER_COOKIE_DURATION",
+    )
 
-    aggregation_enabled: bool
-    aggregation_hour: int
-    collect_db_size_enabled: bool
-    database_size_retention_months: int
-    db_size_collection_interval_hours: int
-    db_size_collection_timeout_seconds: int
+    # 已移除的 legacy env(只用于 fail-fast 提示).
+    legacy_remember_cookie_duration_seconds: int | None = Field(
+        default=None,
+        validation_alias="REMEMBER_COOKIE_DURATION_SECONDS",
+        repr=False,
+    )
+
+    login_rate_limit: int = Field(default=10, validation_alias="LOGIN_RATE_LIMIT")
+    login_rate_window_seconds: int = Field(default=60, validation_alias="LOGIN_RATE_WINDOW")
+
+    cors_origins: tuple[str, ...] = Field(default=DEFAULT_CORS_ORIGINS, validation_alias="CORS_ORIGINS")
+
+    api_v1_docs_enabled: bool = Field(default=DEFAULT_API_V1_DOCS_ENABLED, validation_alias="API_V1_DOCS_ENABLED")
+
+    enable_scheduler: bool = Field(default=DEFAULT_ENABLE_SCHEDULER, validation_alias="ENABLE_SCHEDULER")
+    server_software: str = Field(default="", validation_alias="SERVER_SOFTWARE")
+    flask_run_from_cli: bool = Field(default=False, validation_alias="FLASK_RUN_FROM_CLI")
+    werkzeug_run_main: bool = Field(default=False, validation_alias="WERKZEUG_RUN_MAIN")
+
+    aggregation_enabled: bool = Field(default=DEFAULT_AGGREGATION_ENABLED, validation_alias="AGGREGATION_ENABLED")
+    aggregation_hour: int = Field(default=DEFAULT_AGGREGATION_HOUR, validation_alias="AGGREGATION_HOUR")
+    collect_db_size_enabled: bool = Field(default=DEFAULT_COLLECT_DB_SIZE_ENABLED, validation_alias="COLLECT_DB_SIZE_ENABLED")
+    database_size_retention_months: int = Field(
+        default=DEFAULT_DATABASE_SIZE_RETENTION_MONTHS,
+        validation_alias="DATABASE_SIZE_RETENTION_MONTHS",
+    )
+    db_size_collection_interval_hours: int = Field(
+        default=DEFAULT_DB_SIZE_COLLECTION_INTERVAL_HOURS,
+        validation_alias="DB_SIZE_COLLECTION_INTERVAL",
+    )
+    db_size_collection_timeout_seconds: int = Field(
+        default=DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS,
+        validation_alias="DB_SIZE_COLLECTION_TIMEOUT",
+    )
+
+    @field_validator("cache_type")
+    @classmethod
+    def _normalize_cache_type(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("oracle_client_lib_dir", "oracle_home", "cache_redis_url", mode="before")
+    @classmethod
+    def _strip_blank_to_none(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
+
+    @field_validator("cors_origins", "proxy_fix_trusted_ips", mode="before")
+    @classmethod
+    def _parse_csv_values(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return _parse_csv(value)
+        if isinstance(value, (list, tuple, set)):
+            items = []
+            for item in value:
+                text = str(item).strip()
+                if text:
+                    items.append(text)
+            return tuple(items)
+        return value
 
     @property
     def is_production(self) -> bool:
@@ -611,127 +320,105 @@ class Settings:
 
     @classmethod
     def load(cls) -> Settings:
-        """从环境变量加载设置并执行必要校验.
+        """从环境变量加载 Settings 并执行必要校验."""
+        load_dotenv(dotenv_path=DOTENV_PATH if DOTENV_PATH.exists() else None, override=False)
+        return cls()
 
-        Returns:
-            Settings: 已解析并校验后的设置对象.
+    @model_validator(mode="after")
+    def _apply_migrations_and_validate(self) -> Settings:
+        environment_normalized = self.environment.strip().lower()
 
-        Raises:
-            ValueError: 当生产环境缺失关键配置或配置值非法时抛出.
+        debug = self._resolve_debug(environment_normalized)
+        self._fail_fast_for_legacy_envs()
+        self._ensure_secret_keys(debug)
+        self._ensure_password_encryption_key(debug, environment_normalized)
+        self._ensure_database_url(environment_normalized)
+        self._normalize_cache_redis_url(environment_normalized)
+        self._apply_proxy_fix_defaults(environment_normalized)
+        self._apply_api_docs_default(environment_normalized)
 
-        """
-        load_dotenv()
+        self._validate()
+        return self
 
-        environment, environment_normalized, debug = _load_environment()
-        app_name, app_version = _load_app_identity()
-        secret_key, jwt_secret_key = _load_secret_keys(debug=debug)
-        password_encryption_key = _load_password_encryption_key(environment_normalized, debug=debug)
-        jwt_access_seconds, jwt_refresh_seconds = _load_jwt_expiration_seconds()
-        database_url, db_connection_timeout_seconds, db_max_connections = _load_database_settings(
-            environment_normalized
-        )
-        oracle_client_lib_dir, oracle_home = _load_oracle_client_settings()
-        (
-            cache_type,
-            cache_redis_url,
-            cache_default_timeout_seconds,
-            cache_default_ttl_seconds,
-            cache_rule_evaluation_ttl_seconds,
-            cache_rule_ttl_seconds,
-            cache_account_ttl_seconds,
-        ) = _load_cache_settings(environment_normalized)
+    def _resolve_debug(self, environment_normalized: str) -> bool:
+        if "debug" in self.model_fields_set:
+            return bool(self.debug)
+        debug = environment_normalized != "production"
+        object.__setattr__(self, "debug", debug)
+        return debug
 
-        (
-            bcrypt_log_rounds,
-            force_https,
-            max_content_length_bytes,
-            log_level,
-            log_file,
-            log_max_size_bytes,
-            log_backup_count,
-            session_lifetime_seconds,
-            remember_cookie_duration_seconds,
-            login_rate_limit,
-            login_rate_window_seconds,
-            cors_origins,
-        ) = _load_web_settings()
+    def _fail_fast_for_legacy_envs(self) -> None:
+        if self.legacy_jwt_refresh_token_expires_seconds is not None:
+            raise ValueError("JWT_REFRESH_TOKEN_EXPIRES_SECONDS 已移除,请使用 JWT_REFRESH_TOKEN_EXPIRES (秒)")
+        if self.legacy_remember_cookie_duration_seconds is not None:
+            raise ValueError("REMEMBER_COOKIE_DURATION_SECONDS 已移除,请使用 REMEMBER_COOKIE_DURATION (秒)")
 
-        (
-            proxy_fix_x_for,
-            proxy_fix_x_proto,
-            proxy_fix_x_host,
-            proxy_fix_x_port,
-            proxy_fix_x_prefix,
-            proxy_fix_trusted_ips,
-        ) = _load_proxy_fix_settings(environment_normalized)
+    def _ensure_secret_keys(self, debug: bool) -> None:
+        if not self.secret_key:
+            if not debug:
+                raise ValueError("SECRET_KEY environment variable must be set in production")
+            object.__setattr__(self, "secret_key", secrets.token_urlsafe(32))
+            logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY,生产环境请设置环境变量")
 
-        api_v1_docs_enabled = _load_api_settings(environment_normalized)
+        if not self.jwt_secret_key:
+            if not debug:
+                raise ValueError("JWT_SECRET_KEY environment variable must be set in production")
+            object.__setattr__(self, "jwt_secret_key", secrets.token_urlsafe(32))
+            logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY,生产环境请设置环境变量")
 
-        enable_scheduler, server_software, flask_run_from_cli, werkzeug_run_main = _load_scheduler_runtime_flags()
+    def _ensure_password_encryption_key(self, debug: bool, environment_normalized: str) -> None:
+        if self.password_encryption_key:
+            return
+        if environment_normalized == "production":
+            return
 
-        (
-            aggregation_enabled,
-            aggregation_hour,
-            collect_db_size_enabled,
-            database_size_retention_months,
-            db_size_collection_interval_hours,
-            db_size_collection_timeout_seconds,
-        ) = _load_feature_flags()
+        generated = Fernet.generate_key().decode()
+        object.__setattr__(self, "password_encryption_key", generated)
+        if debug:
+            logger.warning("⚠️  未设置 PASSWORD_ENCRYPTION_KEY,将使用临时密钥(重启后无法解密已存储凭据)")
+            logger.info(
+                '请生成并设置 PASSWORD_ENCRYPTION_KEY(示例: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")'
+            )
 
-        settings = cls(
-            environment=environment,
-            debug=debug,
-            app_name=app_name,
-            app_version=app_version,
-            secret_key=secret_key,
-            jwt_secret_key=jwt_secret_key,
-            password_encryption_key=password_encryption_key,
-            jwt_access_token_expires_seconds=jwt_access_seconds,
-            jwt_refresh_token_expires_seconds=jwt_refresh_seconds,
-            database_url=database_url,
-            db_connection_timeout_seconds=db_connection_timeout_seconds,
-            db_max_connections=db_max_connections,
-            oracle_client_lib_dir=oracle_client_lib_dir,
-            oracle_home=oracle_home,
-            cache_type=cache_type,
-            cache_redis_url=cache_redis_url,
-            cache_default_timeout_seconds=cache_default_timeout_seconds,
-            cache_default_ttl_seconds=cache_default_ttl_seconds,
-            cache_rule_evaluation_ttl_seconds=cache_rule_evaluation_ttl_seconds,
-            cache_rule_ttl_seconds=cache_rule_ttl_seconds,
-            cache_account_ttl_seconds=cache_account_ttl_seconds,
-            bcrypt_log_rounds=bcrypt_log_rounds,
-            force_https=force_https,
-            proxy_fix_x_for=proxy_fix_x_for,
-            proxy_fix_x_proto=proxy_fix_x_proto,
-            proxy_fix_x_host=proxy_fix_x_host,
-            proxy_fix_x_port=proxy_fix_x_port,
-            proxy_fix_x_prefix=proxy_fix_x_prefix,
-            proxy_fix_trusted_ips=proxy_fix_trusted_ips,
-            max_content_length_bytes=max_content_length_bytes,
-            log_level=log_level,
-            log_file=log_file,
-            log_max_size_bytes=log_max_size_bytes,
-            log_backup_count=log_backup_count,
-            session_lifetime_seconds=session_lifetime_seconds,
-            remember_cookie_duration_seconds=remember_cookie_duration_seconds,
-            login_rate_limit=login_rate_limit,
-            login_rate_window_seconds=login_rate_window_seconds,
-            cors_origins=cors_origins,
-            api_v1_docs_enabled=api_v1_docs_enabled,
-            enable_scheduler=enable_scheduler,
-            server_software=server_software,
-            flask_run_from_cli=flask_run_from_cli,
-            werkzeug_run_main=werkzeug_run_main,
-            aggregation_enabled=aggregation_enabled,
-            aggregation_hour=aggregation_hour,
-            collect_db_size_enabled=collect_db_size_enabled,
-            database_size_retention_months=database_size_retention_months,
-            db_size_collection_interval_hours=db_size_collection_interval_hours,
-            db_size_collection_timeout_seconds=db_size_collection_timeout_seconds,
-        )
-        settings._validate()
-        return settings
+    def _ensure_database_url(self, environment_normalized: str) -> None:
+        if self.database_url:
+            return
+        if environment_normalized == "production":
+            raise ValueError("DATABASE_URL environment variable must be set in production")
+
+        database_url = _resolve_sqlite_fallback_url()
+        object.__setattr__(self, "database_url", database_url)
+        if environment_normalized not in {"testing", "test"}:
+            logger.warning("⚠️  未设置 DATABASE_URL, 非 production 环境将回退 SQLite: %s", database_url)
+
+    def _normalize_cache_redis_url(self, environment_normalized: str) -> None:
+        cache_type = self.cache_type
+        cache_redis_url = self.cache_redis_url
+
+        if cache_type != "redis":
+            if cache_redis_url is not None:
+                object.__setattr__(self, "cache_redis_url", None)
+            return
+
+        if cache_redis_url:
+            return
+        if environment_normalized == "production":
+            raise ValueError("CACHE_REDIS_URL must be set when CACHE_TYPE=redis in production")
+        object.__setattr__(self, "cache_redis_url", DEFAULT_CACHE_REDIS_URL)
+
+    def _apply_proxy_fix_defaults(self, environment_normalized: str) -> None:
+        default_x = 1 if environment_normalized == "production" else 0
+        if "proxy_fix_x_for" not in self.model_fields_set:
+            object.__setattr__(self, "proxy_fix_x_for", default_x)
+        if "proxy_fix_x_proto" not in self.model_fields_set:
+            object.__setattr__(self, "proxy_fix_x_proto", default_x)
+
+    def _apply_api_docs_default(self, environment_normalized: str) -> None:
+        if environment_normalized != "production":
+            return
+        if "api_v1_docs_enabled" in self.model_fields_set:
+            return
+        object.__setattr__(self, "api_v1_docs_enabled", False)
 
     def _validate(self) -> None:
         """执行跨字段校验,统一抛出可读的 ValueError."""

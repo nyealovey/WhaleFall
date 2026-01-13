@@ -9,7 +9,7 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-12
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/api/**` 下所有 REST API 端点、模型与注册入口"
 related:
@@ -183,12 +183,9 @@ return jsonify({"success": False, "msg": "failed"}), 400
 - MUST: `app.services.*`
 - MAY: `app.core.types.*`, `app.core.constants.*`, `app.core.exceptions`, `app.utils.*`
 
-需要评估:
-
-- MAY: `app.repositories.*` (仅限简单只读查询, 且必须在评审中说明为什么不下沉到 Service)
-
 禁止依赖:
 
+- MUST NOT: `app.repositories.*` (应通过 Service, 即使只读也不例外)
 - MUST NOT: `app.models.*` 的查询接口(例如 `Model.query`)
 - MUST NOT: `app` 的数据库会话(例如 `db.session`)
 - MUST NOT: `app.routes.*` (避免与页面路由层交叉依赖)

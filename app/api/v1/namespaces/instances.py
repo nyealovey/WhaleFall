@@ -47,6 +47,7 @@ from app.services.instances.instance_statistics_read_service import InstanceStat
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.core.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 
 ns = Namespace("instances", description="实例管理")
 
@@ -388,11 +389,18 @@ def _parse_instance_filters(parsed: dict[str, object]) -> InstanceListFilters:
     )
 
 
-def _parse_payload() -> Any:
+def _parse_payload() -> dict[str, Any]:
     if request.is_json:
         payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
-    return request.form
+        raw: object = payload if isinstance(payload, dict) else {}
+    else:
+        raw = request.form
+
+    return parse_payload(
+        raw,
+        list_fields=["tag_names"],
+        boolean_fields_default_false=["is_active"],
+    )
 
 
 def _normalize_import_header(value: str | None) -> str:
@@ -540,8 +548,8 @@ class InstancesResource(BaseResource):
         """创建实例."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
-        credential_context_raw = payload.get("credential_id") if hasattr(payload, "get") else None
-        db_type_context_raw = payload.get("db_type") if hasattr(payload, "get") else None
+        credential_context_raw = payload.get("credential_id")
+        db_type_context_raw = payload.get("db_type")
 
         credential_context: int | None
         if isinstance(credential_context_raw, (str, int)):
@@ -868,7 +876,12 @@ class InstancesBatchDeleteResource(BaseResource):
     @require_csrf
     def post(self):
         """批量删除实例."""
-        payload = request.get_json(silent=True) or {}
+        if request.is_json:
+            parsed_json = request.get_json(silent=True)
+            raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        else:
+            raw = {}
+        payload = parse_payload(raw, list_fields=["instance_ids"])
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
