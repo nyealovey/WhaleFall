@@ -8,15 +8,12 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.core.constants import DatabaseType
-from app.core.constants.classification_constants import ICON_OPTIONS, OPERATOR_OPTIONS, RISK_LEVEL_OPTIONS
 from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
 from app.models.account_classification import (
     AccountClassification,
@@ -24,15 +21,19 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
-from app.services.account_classification.dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
-from app.utils.database_type_utils import get_database_type_display_name, normalize_database_type
-from app.utils.payload_converters import as_bool, as_int, as_optional_str, as_str
+from app.schemas.account_classifications import (
+    AccountClassificationCreatePayload,
+    AccountClassificationRuleCreatePayload,
+    AccountClassificationRuleUpdatePayload,
+    AccountClassificationUpdatePayload,
+)
+from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
-from app.utils.theme_color_utils import is_valid_theme_color
 
 if TYPE_CHECKING:
-    from app.core.types.structures import PayloadValue
+    from collections.abc import Mapping
 
 
 @dataclass(slots=True)
@@ -95,15 +96,19 @@ class AccountClassificationsWriteService:
         operator_id: int | None = None,
     ) -> AccountClassification:
         """创建账户分类."""
-        normalized = self._validate_and_normalize_classification(payload or {}, resource=None)
+        sanitized = parse_payload(payload or {})
+        parsed = validate_or_raise(AccountClassificationCreatePayload, sanitized)
+
+        if self._name_exists(parsed.name, None):
+            raise ValidationError("分类名称已存在", message_key="NAME_EXISTS")
 
         classification = AccountClassification(
-            name=cast(str, normalized["name"]),
-            description=cast(str, normalized["description"]),
-            risk_level=cast(str, normalized["risk_level"]),
-            color=cast(str, normalized["color"]),
-            icon_name=cast(str, normalized["icon_name"]),
-            priority=cast(int, normalized["priority"]),
+            name=parsed.name,
+            description=parsed.description,
+            risk_level=parsed.risk_level,
+            color=parsed.color,
+            icon_name=parsed.icon_name,
+            priority=parsed.priority,
         )
 
         try:
@@ -130,14 +135,24 @@ class AccountClassificationsWriteService:
         operator_id: int | None = None,
     ) -> AccountClassification:
         """更新账户分类."""
-        normalized = self._validate_and_normalize_classification(payload or {}, resource=classification)
+        sanitized = parse_payload(payload or {})
+        parsed = validate_or_raise(AccountClassificationUpdatePayload, sanitized)
 
-        classification.name = cast(str, normalized["name"])
-        classification.description = cast(str, normalized["description"])
-        classification.risk_level = cast(str, normalized["risk_level"])
-        classification.color = cast(str, normalized["color"])
-        classification.icon_name = cast(str, normalized["icon_name"])
-        classification.priority = cast(int, normalized["priority"])
+        if "name" in parsed.model_fields_set and parsed.name is not None:
+            if self._name_exists(parsed.name, classification):
+                raise ValidationError("分类名称已存在", message_key="NAME_EXISTS")
+            classification.name = parsed.name
+
+        if "description" in parsed.model_fields_set and parsed.description is not None:
+            classification.description = parsed.description
+        if "risk_level" in parsed.model_fields_set and parsed.risk_level is not None:
+            classification.risk_level = parsed.risk_level
+        if "color" in parsed.model_fields_set and parsed.color is not None:
+            classification.color = parsed.color
+        if "icon_name" in parsed.model_fields_set and parsed.icon_name is not None:
+            classification.icon_name = parsed.icon_name
+        if "priority" in parsed.model_fields_set and parsed.priority is not None:
+            classification.priority = parsed.priority
 
         try:
             self._repository.add_classification(classification)
@@ -162,15 +177,39 @@ class AccountClassificationsWriteService:
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """创建分类规则."""
-        normalized = self._validate_and_normalize_rule(payload or {}, resource=None)
+        raw_payload: Mapping[str, object] = payload or {}
+        raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
+        sanitized = parse_payload(raw_payload)
+        sanitized_payload: dict[str, object] = {key: value for key, value in sanitized.items()}
+        if "rule_expression" in raw_payload:
+            sanitized_payload["rule_expression"] = raw_expression
+        parsed = validate_or_raise(AccountClassificationRuleCreatePayload, sanitized_payload)
+
+        classification = self._get_classification_by_id(parsed.classification_id)
+
+        if self._rule_name_exists(
+            classification_id=classification.id,
+            db_type=parsed.db_type,
+            rule_name=parsed.rule_name,
+            resource=None,
+        ):
+            raise ValidationError("同一数据库类型下规则名称重复", message_key="NAME_EXISTS")
+
+        if self._expression_exists(
+            parsed.rule_expression,
+            classification_id=classification.id,
+            resource=None,
+        ):
+            raise ValidationError("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
+
         rule = ClassificationRule(
-            classification_id=cast(int, normalized["classification_id"]),
-            db_type=cast(str, normalized["db_type"]),
-            rule_name=cast(str, normalized["rule_name"]),
-            rule_expression=cast(str, normalized["rule_expression"]),
-            is_active=cast(bool, normalized["is_active"]),
+            classification_id=classification.id,
+            db_type=parsed.db_type,
+            rule_name=parsed.rule_name,
+            rule_expression=parsed.rule_expression,
+            is_active=parsed.is_active,
         )
-        rule.operator = cast(str, normalized["operator"])
+        rule.operator = parsed.operator
 
         try:
             self._repository.add_rule(rule)
@@ -197,14 +236,47 @@ class AccountClassificationsWriteService:
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """更新分类规则."""
-        normalized = self._validate_and_normalize_rule(payload or {}, resource=rule)
+        raw_payload: Mapping[str, object] = payload or {}
+        raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
+        sanitized = parse_payload(raw_payload)
+        sanitized_payload: dict[str, object] = {key: value for key, value in sanitized.items()}
+        if "rule_expression" in raw_payload:
+            sanitized_payload["rule_expression"] = raw_expression
+        parsed = validate_or_raise(AccountClassificationRuleUpdatePayload, sanitized_payload)
 
-        rule.rule_name = cast(str, normalized["rule_name"])
-        rule.classification_id = cast(int, normalized["classification_id"])
-        rule.db_type = cast(str, normalized["db_type"])
-        rule.operator = cast(str, normalized["operator"])
-        rule.rule_expression = cast(str, normalized["rule_expression"])
-        rule.is_active = cast(bool, normalized["is_active"])
+        classification = self._get_classification_by_id(parsed.classification_id)
+
+        effective_expression = (
+            parsed.rule_expression
+            if "rule_expression" in parsed.model_fields_set and parsed.rule_expression is not None
+            else rule.rule_expression
+        )
+
+        if self._rule_name_exists(
+            classification_id=classification.id,
+            db_type=parsed.db_type,
+            rule_name=parsed.rule_name,
+            resource=rule,
+        ):
+            raise ValidationError("同一数据库类型下规则名称重复", message_key="NAME_EXISTS")
+
+        if self._expression_exists(
+            effective_expression,
+            classification_id=classification.id,
+            resource=rule,
+        ):
+            raise ValidationError("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
+
+        rule.rule_name = parsed.rule_name
+        rule.classification_id = classification.id
+        rule.db_type = parsed.db_type
+        rule.operator = parsed.operator
+
+        if "rule_expression" in parsed.model_fields_set and parsed.rule_expression is not None:
+            rule.rule_expression = parsed.rule_expression
+
+        if "is_active" in parsed.model_fields_set and parsed.is_active is not None:
+            rule.is_active = parsed.is_active
 
         try:
             self._repository.add_rule(rule)
@@ -317,17 +389,6 @@ class AccountClassificationsWriteService:
         )
         return outcome
 
-    @staticmethod
-    def _parse_priority(raw_value: PayloadValue | None, default: int) -> int:
-        candidate = as_int(raw_value, default=default)
-        if candidate is None:
-            raise ValidationError("优先级必须为整数")
-        return max(0, min(int(candidate), 100))
-
-    @staticmethod
-    def _is_valid_option(value: str, options: list[dict[str, str]]) -> bool:
-        return any(item["value"] == value for item in options)
-
     def _name_exists(self, name: str, resource: AccountClassification | None) -> bool:
         exclude_id = resource.id if resource else None
         return self._repository.exists_classification_name(name, exclude_classification_id=exclude_id)
@@ -337,142 +398,6 @@ class AccountClassificationsWriteService:
         if classification is None:
             raise NotFoundError("选择的分类不存在", extra={"classification_id": classification_id})
         return classification
-
-    def _validate_and_normalize_classification(
-        self,
-        data: dict[str, object],
-        *,
-        resource: AccountClassification | None,
-    ) -> dict[str, object]:
-        payload = cast("dict[str, PayloadValue]", data)
-        name = as_str(payload.get("name"), default=(resource.name if resource else "")).strip()
-        if not name:
-            raise ValidationError("分类名称不能为空")
-
-        color_key = as_str(payload.get("color"), default=(resource.color if resource else "info")).strip()
-        if not is_valid_theme_color(color_key):
-            raise ValidationError("无效的颜色选择")
-
-        description_value = as_str(
-            payload.get("description"), default=(resource.description if resource else "")
-        ).strip()
-        risk_level_value = as_str(payload.get("risk_level"), default=(resource.risk_level if resource else "medium"))
-        icon_name_value = as_str(payload.get("icon_name"), default=(resource.icon_name if resource else "fa-tag"))
-        priority_value = self._parse_priority(payload.get("priority"), resource.priority if resource else 0)
-
-        if not self._is_valid_option(risk_level_value, RISK_LEVEL_OPTIONS):
-            raise ValidationError("风险等级取值无效")
-        if not self._is_valid_option(icon_name_value, ICON_OPTIONS):
-            raise ValidationError("图标取值无效")
-        if self._name_exists(name, resource):
-            raise ValidationError("分类名称已存在", message_key="NAME_EXISTS")
-
-        return {
-            "name": name,
-            "description": description_value,
-            "risk_level": risk_level_value,
-            "color": color_key,
-            "icon_name": icon_name_value,
-            "priority": priority_value,
-        }
-
-    def _get_db_type_options(self) -> list[dict[str, str]]:
-        return [
-            {"value": db_type, "label": get_database_type_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
-        ]
-
-    def _validate_and_normalize_rule(
-        self,
-        data: dict[str, object],
-        *,
-        resource: ClassificationRule | None,
-    ) -> dict[str, object]:
-        payload = cast("dict[str, PayloadValue]", data)
-        required_fields = ["rule_name", "classification_id", "db_type", "operator"]
-        missing = [field for field in required_fields if not payload.get(field)]
-        if missing:
-            raise ValidationError(f"缺少必填字段: {', '.join(missing)}")
-
-        classification_id = as_int(payload.get("classification_id"))
-        if classification_id is None:
-            raise ValidationError("选择的分类不存在")
-        classification = self._get_classification_by_id(classification_id)
-
-        db_type_value_raw = as_optional_str(payload.get("db_type"))
-        db_type_value = normalize_database_type(db_type_value_raw) if db_type_value_raw else None
-        if not db_type_value or not self._is_valid_option(db_type_value, self._get_db_type_options()):
-            raise ValidationError("数据库类型取值无效")
-
-        operator_value = as_optional_str(payload.get("operator"))
-        if not operator_value or not self._is_valid_option(operator_value, OPERATOR_OPTIONS):
-            raise ValidationError("匹配逻辑取值无效")
-
-        normalized_expression = self._normalize_expression(
-            payload.get("rule_expression"),
-            fallback=(resource.rule_expression if resource else "{}"),
-        )
-
-        normalized = {
-            "rule_name": as_str(payload.get("rule_name"), default="").strip(),
-            "classification_id": classification.id,
-            "db_type": db_type_value,
-            "operator": operator_value,
-            "rule_expression": normalized_expression,
-            "is_active": as_bool(payload.get("is_active"), default=True),
-        }
-
-        if self._rule_name_exists(
-            classification_id=classification.id,
-            db_type=db_type_value,
-            rule_name=cast(str, normalized["rule_name"]),
-            resource=resource,
-        ):
-            raise ValidationError("同一数据库类型下规则名称重复", message_key="NAME_EXISTS")
-
-        if self._expression_exists(
-            normalized_expression,
-            classification_id=classification.id,
-            resource=resource,
-        ):
-            raise ValidationError("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
-
-        try:
-            parsed_expression = json.loads(normalized_expression)
-        except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
-            raise ValidationError(f"规则表达式格式错误: {exc}") from exc
-
-        if not is_dsl_v4_expression(parsed_expression):
-            raise ValidationError(
-                "仅支持 DSL v4 表达式(version=4)",
-                message_key="DSL_V4_REQUIRED",
-            )
-
-        errors = collect_dsl_v4_validation_errors(parsed_expression)
-        if errors:
-            raise ValidationError(
-                "DSL v4 规则表达式校验失败",
-                message_key="INVALID_DSL_EXPRESSION",
-                extra={"errors": errors},
-            )
-
-        return normalized
-
-    @staticmethod
-    def _normalize_expression(expression: object, *, fallback: str) -> str:
-        raw_value = expression
-        if raw_value is None:
-            raw_value = fallback
-        if isinstance(raw_value, str) and not raw_value.strip():
-            raw_value = fallback
-        try:
-            parsed = json.loads(raw_value) if isinstance(raw_value, str) else raw_value
-        except (TypeError, ValueError) as exc:
-            raise ValidationError(f"规则表达式格式错误: {exc}") from exc
-        if parsed is None:
-            parsed = {}
-        if not isinstance(parsed, dict):
-            raise ValidationError("规则表达式必须为对象")
-        return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
     def _rule_name_exists(
         self,

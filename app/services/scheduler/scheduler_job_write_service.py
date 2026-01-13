@@ -15,7 +15,10 @@ from apscheduler.triggers.cron import CronTrigger
 from app.core.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.core.exceptions import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
-from app.core.types import MutablePayloadDict, PayloadMapping, ResourceIdentifier, SupportsResourceId
+from app.core.types import PayloadMapping, ResourceIdentifier, SupportsResourceId
+from app.schemas.scheduler_jobs import SchedulerJobUpsertPayload
+from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_error, log_info
 
 if TYPE_CHECKING:
@@ -70,17 +73,10 @@ class SchedulerJobWriteService:
         if str(job.id) not in BUILTIN_TASK_IDS:
             raise ValidationError("只能修改内置任务的触发器", message_key="FORBIDDEN")
 
-        sanitized: MutablePayloadDict = dict(payload)
-        trigger_type_value = sanitized.get("trigger_type")
-        if not isinstance(trigger_type_value, str):
-            raise ValidationError("缺少触发器类型配置", message_key="VALIDATION_ERROR")
-        trigger_type = trigger_type_value.strip()
-        if not trigger_type:
-            raise ValidationError("缺少触发器类型配置", message_key="VALIDATION_ERROR")
-        if trigger_type != "cron":
-            raise ValidationError("仅支持 cron 触发器", message_key="VALIDATION_ERROR")
+        sanitized = parse_payload(payload)
+        parsed = validate_or_raise(SchedulerJobUpsertPayload, sanitized)
 
-        trigger = self._build_trigger(trigger_type, sanitized)
+        trigger = self._build_trigger(parsed.trigger_type, cron_expression=parsed.cron_expression)
         if trigger is None:
             raise ValidationError("无效的触发器配置", message_key="VALIDATION_ERROR")
 
@@ -100,13 +96,13 @@ class SchedulerJobWriteService:
         )
         return resource
 
-    def _build_trigger(self, trigger_type: str, data: PayloadMapping) -> CronTrigger | None:
+    def _build_trigger(self, trigger_type: str, *, cron_expression: str) -> CronTrigger | None:
         if trigger_type != "cron":
             return None
-        return self._build_cron_trigger(data)
+        return self._build_cron_trigger(cron_expression)
 
-    def _build_cron_trigger(self, data: PayloadMapping) -> CronTrigger | None:
-        cron_kwargs = self._collect_cron_fields(data)
+    def _build_cron_trigger(self, cron_expression: str) -> CronTrigger | None:
+        cron_kwargs = self._collect_cron_fields(cron_expression)
         if not cron_kwargs:
             return None
 
@@ -116,8 +112,8 @@ class SchedulerJobWriteService:
             log_error("CronTrigger 构建失败", module="scheduler", error=str(exc))
             return None
 
-    def _collect_cron_fields(self, data: PayloadMapping) -> dict[str, str]:
-        parts = self._split_cron_expression(data)
+    def _collect_cron_fields(self, cron_expression: str) -> dict[str, str]:
+        parts = self._split_cron_expression(cron_expression)
         if len(parts) == CRON_PARTS_WITH_YEAR:
             second, minute, hour, day, month, day_of_week, year = parts
             return {
@@ -152,11 +148,8 @@ class SchedulerJobWriteService:
         raise ValidationError("cron_expression 格式非法", message_key="VALIDATION_ERROR")
 
     @staticmethod
-    def _split_cron_expression(data: PayloadMapping) -> list[str]:
-        expr_value = data.get("cron_expression")
-        if not isinstance(expr_value, str):
-            raise ValidationError("缺少 cron_expression", message_key="VALIDATION_ERROR")
-        expr = expr_value.strip()
+    def _split_cron_expression(cron_expression: str) -> list[str]:
+        expr = cron_expression.strip()
         if not expr:
             raise ValidationError("缺少 cron_expression", message_key="VALIDATION_ERROR")
         return expr.split()

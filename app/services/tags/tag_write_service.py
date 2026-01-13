@@ -18,7 +18,7 @@ from app import db
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
-from app.schemas.tags import TagUpdatePayload, TagUpsertPayload
+from app.schemas.tags import TagBatchDeletePayload, TagUpdatePayload, TagUpsertPayload
 from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload
 from app.infra.route_safety import log_with_context
@@ -179,6 +179,12 @@ class TagWriteService:
                 results.append({"tag_id": tag_id, "status": "error", "message": str(exc)})
 
         return TagBatchDeleteOutcome(results=results, has_failure=has_failure)
+
+    def batch_delete_from_payload(self, payload: ResourcePayload, *, operator_id: int | None = None) -> TagBatchDeleteOutcome:
+        """从原始 payload 解析并批量删除标签."""
+        sanitized = parse_payload(payload, list_fields=["tag_ids"])
+        parsed = validate_or_raise(TagBatchDeletePayload, sanitized)
+        return self.batch_delete(parsed.tag_ids, operator_id=operator_id)
 
     @staticmethod
     def _log_create(tag: Tag, *, operator_id: int | None) -> None:

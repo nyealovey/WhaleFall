@@ -55,6 +55,31 @@ related:
 - SHOULD: 业务级校验与数据规范化在 Service 内完成, 参考 [[standards/backend/request-payload-and-schema-validation]].
 - MUST NOT: 把 RESTX 的 `ns.model` 当作唯一校验来源(它更偏文档与序列化).
 
+#### 2.1 输入治理分层（RESTX model vs parse_payload vs pydantic schema）
+
+> [!summary] TL;DR
+> - RESTX `ns.model`: 负责 OpenAPI 文档（schema/示例），不作为运行期 canonical 校验来源。
+> - `parse_payload`: 负责把外部输入（JSON mapping / MultiDict）适配为稳定 dict，并做最小基础规范化（例如 NUL 清理、字符串 strip、list 形状稳定）。
+> - pydantic schema(`app/schemas/**`): 负责写路径的 canonical 校验/规范化/兼容（类型转换、默认值、字段 alias、形状迁移），由 Service 消费 typed payload。
+
+规则（可执行、可检查）:
+
+- MUST: 对写路径 JSON body 的 `@ns.expect(Model)` 必须显式 `validate=False`（避免 RESTX 运行期校验与 schema 口径分裂，导致错误封套漂移）。
+- MUST: 写路径的字段级校验/类型转换/默认值/兼容策略必须落在 `app/schemas/**`（schema）侧，禁止在 API 层手写 `data.get("x") or default`、`int(...)`、`strip()` 等规则。
+- MUST: 写路径必须通过 Service 执行业务动作；Service MUST 使用 `validate_or_raise(...)` 产出 typed payload（详见 [[standards/backend/request-payload-and-schema-validation]] 与 [[standards/backend/layer/schemas-layer-standards]]）。
+- SHOULD: `parse_payload(...)` 只做一次（在 API 边界或 Service 入口二选一），避免 API/Service 两处重复解析导致语义漂移。
+
+#### 2.2 写路径推荐流水线（API v1）
+
+写路径推荐“薄 API + 强 schema + 强 service”流水线：
+
+1) API 层：获取 raw payload（JSON dict / MultiDict）并做 `parse_payload(...)`（仅形状适配 + 最小规范化）
+2) Service 层：`validate_or_raise(PayloadSchema, sanitized)`，只消费 schema 对象执行业务逻辑
+3) API 层：仅做 `BaseResource.success(...)` / `BaseResource.error_message(...)` 输出统一封套
+
+> [!note]
+> 如果某个写服务需要被 tasks/scripts 复用，推荐把 `parse_payload + validate_or_raise` 收敛在该 Service 的入口；API 只负责把 raw dict 传入 Service。
+
 ### 3) 响应封套与错误口径
 
 - MUST: 对外 JSON 响应使用统一封套, 字段与示例见下文 [[#响应封套(JSON Envelope)]].
@@ -377,13 +402,19 @@ class BadResource(Resource):
   - 是否所有 `Resource` 方法都通过 `safe_route_call` 统一兜底?
   - 是否出现 `Model.query`/`db.session`/原生 SQL?
   - 是否遵循统一封套与错误字段标准?
+  - 写路径是否遵循“RESTX model(文档) + parse_payload(适配) + schema(校验) + service(编排)”的分层?
+    - `@ns.expect(Model, validate=False)` 是否显式关闭 RESTX 运行期校验?
+    - 是否把字段级校验/类型转换/默认值写在 API 层?
 - 自查命令(示例):
 
 ```bash
 rg -n "Model\\.query|db\\.session" app/api
 rg -n "from app\\.services\\." app/api
+rg -n "validate_or_raise\\(" app/api/v1
+rg -n "@ns\\.expect\\([^\\n]*Payload\\b" app/api/v1/namespaces | rg -v "validate=False" || true
 ```
 
 ## 变更历史
 
 - 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-13: 明确 RESTX model/`parse_payload`/pydantic schema 的分工与写路径推荐流水线, 减少“口头约定”与校验口径漂移.

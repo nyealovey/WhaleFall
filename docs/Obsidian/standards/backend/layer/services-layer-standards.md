@@ -8,7 +8,7 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/services/**` 下所有业务服务"
 related:
@@ -82,13 +82,13 @@ app/services/
 
 ### 5) 事务边界
 
-- MUST: 默认情况下(Web 请求写路径), 事务边界由 Service 控制, 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
+- MUST: 默认情况下(Web 请求写路径), Service 是事务语义的主要决策点：通过“正常返回 vs 抛异常”驱动上层 `safe_route_call` 的 `commit/rollback`（提交点见 [[standards/backend/write-operation-boundary|写操作事务边界]]）。
 - MUST: Repository 可以 `flush`, 但 MUST NOT `commit`.
 - SHOULD: 批量写入支持部分回滚时使用 `db.session.begin_nested()`.
 
 > [!note] 事务边界优先级（Web vs Tasks）
-> - Web 请求写路径：Service 为事务边界入口；Routes/API 不得自行 `commit/rollback`（应通过写服务完成写入并提交）。
-> - 长任务/批处理：允许 Tasks/Infra 作为事务边界入口做分阶段 `commit/rollback`；此时 Service/Runner 必须保持“无 `commit/rollback`”，仅做业务编排与必要的 `flush`，提交由 Tasks/Infra 统一掌控。
+> - Web 请求写路径：提交点在 `safe_route_call`（Infra）；Service 为事务语义决策点（通过抛异常触发 rollback，正常返回触发 commit）。Routes/API 不得自行 `commit/rollback`。
+> - 长任务/批处理：允许 Tasks/Infra 作为提交点做分阶段 `commit/rollback`；此时 Service/Runner 必须保持“无 `commit/rollback`”，仅做业务编排与必要的 `flush`，事务语义与提交节奏由 Tasks/Infra 统一掌控。
 
 ### 6) 返回值与 DTO
 
@@ -205,3 +205,4 @@ rg -n "db\\.session\\.commit\\(" app/repositories
 ## 变更历史
 
 - 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-13: 将事务边界表述拆分为“提交点 vs 决策点”, 统一口径对齐 [[standards/backend/write-operation-boundary|写操作事务边界]].

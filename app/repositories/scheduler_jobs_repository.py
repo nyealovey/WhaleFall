@@ -58,14 +58,20 @@ class SchedulerJobsRepository:
 
     @staticmethod
     def resolve_session_last_run(*, category: str | None, limit: int = 10) -> str | None:
-        """按同步分类推断上次运行时间."""
+        """按同步分类推断上次运行时间.
+
+        约束:
+        - 仅使用 completed_at(完成时间), 不做 updated_at/started_at/created_at 回退.
+        - 若存在定时任务会话, 优先返回定时任务会话的 completed_at.
+        - 否则返回第一条手动会话的 completed_at.
+        """
         if not category:
             return None
 
         sessions = SyncSession.get_sessions_by_category(category, limit=limit)
         manual_fallback: str | None = None
         for session in sessions:
-            ts = session.completed_at or session.updated_at or session.started_at or session.created_at
+            ts = session.completed_at
             if not ts:
                 continue
             if session.sync_type == SyncOperationType.SCHEDULED_TASK.value:

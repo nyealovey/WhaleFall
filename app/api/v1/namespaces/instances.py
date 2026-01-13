@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 from collections.abc import Mapping
-from typing import Any, ClassVar, Literal, cast
+from typing import Any, ClassVar, cast
 
 from flask import Response, request
 from flask_login import current_user
@@ -876,25 +876,16 @@ class InstancesBatchDeleteResource(BaseResource):
     @require_csrf
     def post(self):
         """批量删除实例."""
-        if request.is_json:
-            parsed_json = request.get_json(silent=True)
-            raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        else:
-            raw = {}
-        payload = parse_payload(raw, list_fields=["instance_ids"])
+        parsed_json = request.get_json(silent=True) if request.is_json else None
+        raw = parsed_json if isinstance(parsed_json, dict) else {}
         operator_id = getattr(current_user, "id", None)
+        raw_ids = raw.get("instance_ids")
+        count = len(raw_ids) if isinstance(raw_ids, list) else 0
 
         def _execute():
-            instance_ids = payload.get("instance_ids", [])
-            deletion_mode_raw = payload.get("deletion_mode")
-            deletion_mode: Literal["soft", "hard"] = "soft"
-            if isinstance(deletion_mode_raw, str) and deletion_mode_raw in {"soft", "hard"}:
-                deletion_mode = cast(Literal["soft", "hard"], deletion_mode_raw)
-
-            result = InstanceBatchDeletionService().delete_instances(
-                instance_ids,
+            result = InstanceBatchDeletionService().delete_instances_from_payload(
+                raw,
                 operator_id=operator_id,
-                deletion_mode=deletion_mode,
             )
             deleted_count = int(result.get("deleted_count", 0) or 0)
             message = (
@@ -910,7 +901,7 @@ class InstancesBatchDeleteResource(BaseResource):
             action="delete_instances_batch",
             public_error="批量删除实例失败",
             expected_exceptions=(ValidationError,),
-            context={"count": len(payload.get("instance_ids", []) or [])},
+            context={"count": count},
         )
 
 

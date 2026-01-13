@@ -8,7 +8,7 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/routes/**` 下所有 Flask Blueprint 路由"
 related:
@@ -73,7 +73,7 @@ related:
 
 - MUST NOT: `app.models.*` 的查询接口(例如 `Model.query`)
 - MUST NOT: `app.repositories.*` (应通过 Service)
-- MUST NOT: `db.session`(事务边界由 Service 控制)
+- MUST NOT: `db.session`（提交点在 `safe_route_call`；事务语义由 Service 决策，详见 [[standards/backend/write-operation-boundary|写操作事务边界]]）
 
 ### 6) 装饰器顺序
 
@@ -168,3 +168,4 @@ rg -n "safe_route_call\\(" app/routes
 ## 变更历史
 
 - 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-13: 将事务边界描述对齐为“提交点在 safe_route_call；事务语义由 Service 决策”.

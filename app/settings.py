@@ -86,8 +86,12 @@ def _is_valid_fernet_key(value: str) -> bool:
 
 
 def _resolve_sqlite_fallback_url() -> str:
-    db_path = PROJECT_ROOT / "userdata" / "whalefall_dev.db"
+    db_path = _resolve_sqlite_fallback_path()
     return f"sqlite:///{db_path.absolute()}"
+
+
+def _resolve_sqlite_fallback_path() -> Path:
+    return PROJECT_ROOT / "userdata" / "whalefall_dev.db"
 
 
 class Settings(BaseSettings):
@@ -117,13 +121,6 @@ class Settings(BaseSettings):
     jwt_refresh_token_expires_seconds: int = Field(
         default=DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS,
         validation_alias="JWT_REFRESH_TOKEN_EXPIRES",
-    )
-
-    # 已移除的 legacy env(只用于 fail-fast 提示).
-    legacy_jwt_refresh_token_expires_seconds: int | None = Field(
-        default=None,
-        validation_alias="JWT_REFRESH_TOKEN_EXPIRES_SECONDS",
-        repr=False,
     )
 
     database_url: str = Field(default="", validation_alias="DATABASE_URL")
@@ -177,13 +174,6 @@ class Settings(BaseSettings):
     remember_cookie_duration_seconds: int = Field(
         default=DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS,
         validation_alias="REMEMBER_COOKIE_DURATION",
-    )
-
-    # 已移除的 legacy env(只用于 fail-fast 提示).
-    legacy_remember_cookie_duration_seconds: int | None = Field(
-        default=None,
-        validation_alias="REMEMBER_COOKIE_DURATION_SECONDS",
-        repr=False,
     )
 
     login_rate_limit: int = Field(default=10, validation_alias="LOGIN_RATE_LIMIT")
@@ -329,7 +319,6 @@ class Settings(BaseSettings):
         environment_normalized = self.environment.strip().lower()
 
         debug = self._resolve_debug(environment_normalized)
-        self._fail_fast_for_legacy_envs()
         self._ensure_secret_keys(debug)
         self._ensure_password_encryption_key(debug, environment_normalized)
         self._ensure_database_url(environment_normalized)
@@ -346,12 +335,6 @@ class Settings(BaseSettings):
         debug = environment_normalized != "production"
         object.__setattr__(self, "debug", debug)
         return debug
-
-    def _fail_fast_for_legacy_envs(self) -> None:
-        if self.legacy_jwt_refresh_token_expires_seconds is not None:
-            raise ValueError("JWT_REFRESH_TOKEN_EXPIRES_SECONDS 已移除,请使用 JWT_REFRESH_TOKEN_EXPIRES (秒)")
-        if self.legacy_remember_cookie_duration_seconds is not None:
-            raise ValueError("REMEMBER_COOKIE_DURATION_SECONDS 已移除,请使用 REMEMBER_COOKIE_DURATION (秒)")
 
     def _ensure_secret_keys(self, debug: bool) -> None:
         if not self.secret_key:
@@ -389,7 +372,12 @@ class Settings(BaseSettings):
         database_url = _resolve_sqlite_fallback_url()
         object.__setattr__(self, "database_url", database_url)
         if environment_normalized not in {"testing", "test"}:
-            logger.warning("⚠️  未设置 DATABASE_URL, 非 production 环境将回退 SQLite: %s", database_url)
+            sqlite_db_file = _resolve_sqlite_fallback_path().name
+            logger.warning(
+                "⚠️  未设置 DATABASE_URL, 非 production 环境将回退 SQLite "
+                "(fallback_sqlite_enabled=true, sqlite_db_file=%s)",
+                sqlite_db_file,
+            )
 
     def _normalize_cache_redis_url(self, environment_normalized: str) -> None:
         cache_type = self.cache_type
