@@ -16,7 +16,10 @@ related:
 
 # 写操作事务边界(Write Operation Boundary)
 
-本项目约定：**事务提交/回滚只发生在“事务边界入口（提交点）”**，其余可复用业务层不得直接 `commit()` / `rollback()`。
+本项目约定：
+
+- MUST: **事务提交/回滚只发生在“事务边界入口（提交点）”**。
+- MUST NOT: 其余可复用业务层不得直接 `commit()` / `rollback()`。
 
 > [!important] 术语（避免“边界入口”语义混用）
 > - **事务边界入口（提交点 / Commit point）**：代码中实际调用 `db.session.commit()` / `db.session.rollback()` 的位置。
@@ -38,14 +41,14 @@ related:
 
 ## 3. 规则（允许/禁止，强约束）
 
-### 3.1 允许 `db.session.commit()` 的位置（事务边界入口/提交点）
+### 3.1 MUST: 允许 `db.session.commit()` 的位置（事务边界入口/提交点）
 
 - `app/infra/route_safety.py`: `safe_route_call` 统一在视图成功后提交, 异常时回滚
 - `app/tasks/**`：任务入口可按需提交/回滚（长任务可分段 commit）
 - `app/infra/logging/queue_worker.py`: worker 入口提交
 - `scripts/**`：运维/一次性脚本入口提交
 
-### 3.2 禁止 `db.session.commit()` 的位置
+### 3.2 MUST NOT: 禁止 `db.session.commit()` 的位置
 
 - `app/services/**`：可复用 service/repository 不允许 commit（必须用 `flush()`）
 - `app/routes/**`：routes 不允许直写 `db.session.*`（由 `safe_route_call` + service 组合完成）
@@ -73,7 +76,7 @@ related:
 当 service 需要“失败不落库但不中断外层流程”（例如：返回失败结果而不是抛异常）时：
 
 - 使用 `with db.session.begin_nested(): ... db.session.flush()` 创建 **savepoint**
-- 禁止在 services 内使用 `db.session.rollback()` 回滚整个请求事务
+- MUST NOT: 禁止在 services 内使用 `db.session.rollback()` 回滚整个请求事务
 
 ## 6. 正反例
 

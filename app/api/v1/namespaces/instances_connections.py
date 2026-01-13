@@ -153,8 +153,6 @@ def _test_existing_instance(connection_test_service: ConnectionTestService, inst
     extra: JsonDict = {}
     if result.get("error_id"):
         extra["connection_error_id"] = str(result["error_id"])
-    if result.get("error_code"):
-        extra["error_code"] = str(result["error_code"])
     if result.get("details"):
         extra["details"] = cast("JsonValue", result["details"])
 
@@ -194,8 +192,6 @@ def _test_new_connection(connection_test_service: ConnectionTestService, connect
     extra: JsonDict = {}
     if result.get("error_id"):
         extra["connection_error_id"] = str(result["error_id"])
-    if result.get("error_code"):
-        extra["error_code"] = str(result["error_code"])
     if result.get("details"):
         extra["details"] = cast("JsonValue", result["details"])
 

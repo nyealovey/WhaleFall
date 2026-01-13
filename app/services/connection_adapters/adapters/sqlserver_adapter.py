@@ -158,7 +158,11 @@ class SQLServerConnection(DatabaseConnection):
         """测试连接并返回版本信息."""
         try:
             if not self.connect():
-                result: dict[str, JsonValue] = {"success": False, "error": "无法建立连接"}
+                result: dict[str, JsonValue] = {
+                    "success": False,
+                    "message": f"SQL Server连接失败 (主机: {self.instance.host}:{self.instance.port})",
+                    "error": "无法建立连接",
+                }
             else:
                 version = self.get_version()
                 message = (
@@ -171,7 +175,11 @@ class SQLServerConnection(DatabaseConnection):
                     "database_version": version,
                 }
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
-            result = {"success": False, "error": str(exc)}
+            result = {
+                "success": False,
+                "message": f"SQL Server连接测试失败 (主机: {self.instance.host}:{self.instance.port})",
+                "error": str(exc),
+            }
         finally:
             self.disconnect()
         return result

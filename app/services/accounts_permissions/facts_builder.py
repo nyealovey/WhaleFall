@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from typing import Any, Final
 
 from app.core.constants import DatabaseType
+from app.schemas.internal_contracts.permission_snapshot_v4 import normalize_permission_snapshot_categories_v4
 
 JsonDict = dict[str, Any]
 PERMISSION_SNAPSHOT_VERSION_V4: Final[int] = 4
@@ -26,21 +27,6 @@ def _ensure_dict(value: object) -> dict[str, Any]:
     if isinstance(value, dict):
         return dict(value)
     return {}
-
-
-def _ensure_str_list_from_dicts(value: object, *, dict_key: str) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    output: list[str] = []
-    for item in value:
-        if isinstance(item, str) and item:
-            output.append(item)
-            continue
-        if isinstance(item, dict):
-            val = item.get(dict_key)
-            if isinstance(val, str) and val:
-                output.append(val)
-    return output
 
 
 def _extract_privilege_list(value: object) -> list[str]:
@@ -145,31 +131,21 @@ def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
         return _ensure_str_list(roles_value)
 
     if db_type == DatabaseType.POSTGRESQL:
-        return _ensure_str_list_from_dicts(categories.get("predefined_roles"), dict_key="role") or _ensure_str_list(
-            categories.get("predefined_roles"),
-        )
+        return _ensure_str_list(categories.get("predefined_roles"))
 
     if db_type == DatabaseType.SQLSERVER:
-        server_roles = _ensure_str_list_from_dicts(categories.get("server_roles"), dict_key="name") or _ensure_str_list(
-            categories.get("server_roles"),
-        )
+        server_roles = _ensure_str_list(categories.get("server_roles"))
 
         database_roles: list[str] = []
         database_roles_value = categories.get("database_roles")
         if isinstance(database_roles_value, dict):
             for entry in database_roles_value.values():
-                database_roles.extend(_ensure_str_list_from_dicts(entry, dict_key="name") or _ensure_str_list(entry))
-        elif isinstance(database_roles_value, list):
-            database_roles = _ensure_str_list_from_dicts(database_roles_value, dict_key="name") or _ensure_str_list(
-                database_roles_value,
-            )
+                database_roles.extend(_ensure_str_list(entry))
 
         return [*server_roles, *database_roles]
 
     if db_type == DatabaseType.ORACLE:
-        return _ensure_str_list_from_dicts(categories.get("oracle_roles"), dict_key="role") or _ensure_str_list(
-            categories.get("oracle_roles"),
-        )
+        return _ensure_str_list(categories.get("oracle_roles"))
 
     return []
 
@@ -355,6 +331,7 @@ def build_permission_facts(
 
     errors = _extract_snapshot_errors(snapshot)
     categories = _resolve_categories(snapshot, errors)
+    categories = normalize_permission_snapshot_categories_v4(db_type, categories)
     if not categories:
         errors.append("PERMISSION_DATA_MISSING")
 
