@@ -40,15 +40,21 @@ related:
   - 这类模块应同时遵循本规范与 [[standards/backend/layer/utils-layer-standards]] 的“纯工具”约束。
 
 > [!important]
-> 本仓库不提供 `app.core.constants` / `app.core.types` 的 re-export；所有调用方必须改用 `app.core.constants` / `app.core.types`。
+> 禁止在 `app/core/__init__.py` 进行 re-export；调用方必须显式 import `app.core.constants.*` / `app.core.types.*`。
 
 ## 规则（MUST/SHOULD/MAY）
 
 ### 1) 职责边界
 
 - MUST: shared kernel 只承载“稳定契约/语义对象/纯工具”，不承载业务编排。
-- MUST NOT: 引入 HTTP/Flask/Werkzeug 概念（例如 status code 映射、request context、Response）。
-- MUST NOT: 引入数据库/事务概念（例如 `db.session`、ORM query、Repository）。
+- MUST NOT: 依赖 HTTP 运行时与框架边界（Flask/Werkzeug/RestX 等），包括但不限于：
+  - request context（例如 `request`/`g`/`current_app`/`session`）
+  - `Response`/`Blueprint`/RESTX `Namespace` 等框架对象
+  - 错误 → HTTP status 的映射/转换（应由 API/Infra 在边界处完成）
+- MUST NOT: 触达数据库运行时与事务边界（SQLAlchemy/db/repository），包括但不限于：
+  - `db.session`、`Model.query`、ORM 查询/写入、事务 `commit/rollback`
+  - Repository（shared kernel 不应感知数据访问组织方式）
+- MAY: 存在“协议/契约层”的抽象与常量（例如 HTTP headers/method/status 的常量、type-only 的结构描述），但必须保持**无框架依赖、无 I/O、无副作用**。
 - SHOULD: 对外暴露最小稳定接口（函数/类），避免泄漏实现细节。
 
 ### 2) 依赖规则（关键）

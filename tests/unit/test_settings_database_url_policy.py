@@ -1,8 +1,9 @@
 import os
+import logging
 
 import pytest
 
-from app.settings import Settings
+from app.settings import PROJECT_ROOT, Settings
 
 
 @pytest.mark.unit
@@ -26,3 +27,17 @@ def test_settings_does_not_mutate_dyld_library_path(monkeypatch) -> None:
     Settings.load()
 
     assert os.environ.get("DYLD_LIBRARY_PATH") == original
+
+
+@pytest.mark.unit
+def test_settings_does_not_log_database_url_when_sqlite_fallback(monkeypatch, caplog) -> None:
+    monkeypatch.setenv("FLASK_ENV", "development")
+    # Prevent `load_dotenv()` from injecting a value from local `.env`.
+    monkeypatch.setenv("DATABASE_URL", "")
+
+    caplog.set_level(logging.WARNING, logger="app.settings")
+
+    Settings.load()
+
+    assert "sqlite:" not in caplog.text
+    assert str(PROJECT_ROOT) not in caplog.text

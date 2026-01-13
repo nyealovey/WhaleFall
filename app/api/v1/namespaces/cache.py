@@ -14,6 +14,7 @@ from app.api.v1.resources.decorators import api_login_required, api_permission_r
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 
 ns = Namespace("cache", description="缓存管理")
 
@@ -105,7 +106,9 @@ class CacheClearUserResource(BaseResource):
     @require_csrf
     def post(self):
         """清除用户缓存."""
-        payload = request.get_json(silent=True) or {}
+        parsed_json = request.get_json(silent=True)
+        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        payload = parse_payload(raw)
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -153,7 +156,9 @@ class CacheClearInstanceResource(BaseResource):
     @require_csrf
     def post(self):
         """清除实例缓存."""
-        payload = request.get_json(silent=True) or {}
+        parsed_json = request.get_json(silent=True)
+        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        payload = parse_payload(raw)
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -227,7 +232,9 @@ class CacheClearClassificationActionResource(BaseResource):
     @require_csrf
     def post(self):
         """清除分类缓存."""
-        payload = request.get_json(silent=True) or {}
+        parsed_json = request.get_json(silent=True)
+        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        payload = parse_payload(raw)
         operator_id = getattr(current_user, "id", None)
 
         def _execute():

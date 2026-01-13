@@ -27,6 +27,14 @@ SchedulerJobsListSuccessEnvelope = make_success_envelope_model(ns, "SchedulerJob
 SchedulerJobDetailSuccessEnvelope = make_success_envelope_model(ns, "SchedulerJobDetailSuccessEnvelope")
 SchedulerJobUpdateSuccessEnvelope = make_success_envelope_model(ns, "SchedulerJobUpdateSuccessEnvelope")
 
+SchedulerJobUpdatePayload = ns.model(
+    "SchedulerJobUpdatePayload",
+    {
+        "trigger_type": fields.String(required=True, description="触发器类型", example="cron"),
+        "cron_expression": fields.String(required=True, description="cron 表达式", example="*/5 * * * *"),
+    },
+)
+
 SchedulerJobRunData = ns.model(
     "SchedulerJobRunData",
     {
@@ -124,6 +132,7 @@ class SchedulerJobDetailResource(BaseResource):
     @ns.response(409, "Conflict", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("admin")
+    @ns.expect(SchedulerJobUpdatePayload, validate=False)
     @require_csrf
     def put(self, job_id: str):
         """更新调度任务."""

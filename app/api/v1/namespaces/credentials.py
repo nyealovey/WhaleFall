@@ -19,6 +19,7 @@ from app.core.exceptions import NotFoundError
 from app.services.credentials import CredentialDetailReadService, CredentialsListService, CredentialWriteService
 from app.core.types.credentials import CredentialListFilters
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 
 ns = Namespace("credentials", description="凭据管理")
 
@@ -116,8 +117,17 @@ def _normalize_status(raw_value: str) -> str | None:
 
 
 def _parse_payload() -> dict[str, Any]:
-    payload = request.get_json(silent=True)
-    return payload if isinstance(payload, dict) else {}
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        raw: object = payload if isinstance(payload, dict) else {}
+    else:
+        raw = request.form
+
+    return parse_payload(
+        raw,
+        preserve_raw_fields=["password"],
+        boolean_fields_default_false=["is_active"],
+    )
 
 
 def _build_filters(parsed: dict[str, object], *, allow_sort: bool) -> CredentialListFilters:

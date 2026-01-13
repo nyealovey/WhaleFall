@@ -283,33 +283,18 @@ class PartitionsResource(BaseResource):
     @require_csrf
     def post(self):
         """创建分区."""
-        data = request.get_json(silent=True) or {}
-        partition_date_str = data.get("date")
+        parsed_json = request.get_json(silent=True)
+        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        partition_date_str = raw.get("date") if isinstance(raw, dict) else None
 
         def _execute():
-            if not partition_date_str:
-                raise ValidationError("缺少日期参数")
-
-            try:
-                parsed_dt = time_utils.to_china(str(partition_date_str) + "T00:00:00")
-            except Exception as exc:
-                raise ValidationError("日期格式错误,请使用 YYYY-MM-DD 格式") from exc
-            if parsed_dt is None:
-                raise ValidationError("无法解析日期")
-            partition_date = parsed_dt.date()
-
-            today = time_utils.now_china().date()
-            current_month_start = today.replace(day=1)
-            if partition_date < current_month_start:
-                raise ValidationError("只能创建当前或未来月份的分区")
-
-            result = PartitionManagementService().create_partition(partition_date)
+            result = PartitionManagementService().create_partition_from_payload(raw)
             payload = {"result": result, "timestamp": time_utils.now().isoformat()}
 
             log_info(
                 "创建分区成功",
                 module="partition",
-                partition_date=str(partition_date),
+                partition_window=result.get("partition_window"),
                 user_id=getattr(current_user, "id", None),
             )
             return self.success(data=payload, message="分区创建任务已触发")
@@ -347,22 +332,18 @@ class PartitionCleanupResource(BaseResource):
     @require_csrf
     def post(self):
         """清理旧分区."""
-        data = request.get_json(silent=True) or {}
-        raw_retention = data.get("retention_months", 12)
+        parsed_json = request.get_json(silent=True)
+        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        raw_retention = raw.get("retention_months") if isinstance(raw, dict) else None
 
         def _execute():
-            try:
-                retention_months = int(raw_retention)
-            except (TypeError, ValueError) as exc:
-                raise ValidationError("retention_months 必须为数字") from exc
-
-            result = PartitionManagementService().cleanup_old_partitions(retention_months=retention_months)
+            result = PartitionManagementService().cleanup_old_partitions_from_payload(raw)
             payload = {"result": result, "timestamp": time_utils.now().isoformat()}
 
             log_info(
                 "清理旧分区成功",
                 module="partition",
-                retention_months=retention_months,
+                retention_months=raw_retention,
                 user_id=getattr(current_user, "id", None),
             )
             return self.success(data=payload, message="旧分区清理任务已触发")

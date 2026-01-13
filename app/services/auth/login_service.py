@@ -17,6 +17,9 @@ from app.core.constants.system_constants import ErrorMessages
 from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.models.user import User
 from app.repositories.users_repository import UsersRepository
+from app.schemas.auth import LoginPayload
+from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +41,12 @@ class LoginResult:
 
 class LoginService:
     """登录编排服务."""
+
+    def login_from_payload(self, payload: object | None) -> LoginResult:
+        """从原始 payload 解析并执行登录."""
+        sanitized = parse_payload(payload or {}, preserve_raw_fields=["password"])
+        parsed = validate_or_raise(LoginPayload, sanitized)
+        return self.login(username=parsed.username, password=parsed.password)
 
     @staticmethod
     def authenticate(*, username: str, password: str) -> User | None:

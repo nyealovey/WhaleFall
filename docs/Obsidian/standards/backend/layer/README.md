@@ -9,7 +9,7 @@ tags:
   - standards/index
 status: active
 created: 2026-01-09
-updated: 2026-01-12
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: 后端分层(layer)标准入口与索引
 related:
@@ -28,27 +28,41 @@ graph TD
   API["API(app/api)"]
   Tasks["Tasks(app/tasks)"]
   Services["Services(app/services)"]
+  Schemas["Schemas(app/schemas)"]
   Repositories["Repositories(app/repositories)"]
   Models["Models(app/models)"]
   FormsViews["Forms/Views(app/forms, app/views)"]
+  Infra["Infra(app/infra, app/scheduler.py)"]
   Utils["Utils(app/utils)"]
+  Settings["Settings(app/settings.py)"]
   SharedKernel["Shared Kernel(app/core)"]
   Constants["Constants(app/core/constants)"]
   Types["Types(app/core/types)"]
 
-  Routes --> Services & FormsViews & Utils
-  API --> Services & Utils
+  Routes --> Services & FormsViews & Utils & Infra
+  API --> Services & Utils & Infra
   Tasks --> Services & Utils
-  Services --> Repositories & Utils
+  Services --> Repositories & Utils & Schemas
+  Schemas --> Utils
   Repositories --> Models & Utils
   Models --> Utils
-  Routes & API & Tasks & Services & Repositories & Models & FormsViews & Utils --> SharedKernel
-  Routes & API & Tasks & Services & Repositories & Models & FormsViews & Utils --> Constants
-  Routes & API & Tasks & Services & Repositories & Models & FormsViews & Utils --> Types
+  Infra --> Utils
+  Settings --> Constants
+  Routes & API & Tasks & Services & Schemas & Repositories & Models & FormsViews & Utils & Infra & Settings --> SharedKernel
+  Routes & API & Tasks & Services & Schemas & Repositories & Models & FormsViews & Utils & Infra & Settings --> Constants
+  Routes & API & Tasks & Services & Schemas & Repositories & Models & FormsViews & Utils & Infra & Settings --> Types
 ```
 
+> [!info] 依赖图说明（Overview + Exceptions）
+> - 该图仅展示主依赖方向（推荐路径），不枚举所有被允许的例外依赖。
+> - 例外依赖必须以各层规范中的 MUST/SHOULD/MAY 条款为准；禁止在业务代码里自行“发明例外”。
+> - 常见例外（仅列举，具体约束见对应层文档）：
+>   - `app.services.*` → `app.models.*`：允许用于类型标注或实例化；数据访问与 Query 组装仍必须通过 `app.repositories.*`。
+>   - `app.services.*` → 其他 `app.services.*`：允许跨域编排，但必须在评审中说明原因与替代方案。
+>   - `app.infra.*` → `app.services.*` / `app.repositories.*`：优先用回调注入或惰性导入；如确需依赖必须在评审说明理由与循环依赖风险。
+
 > [!note]
-> `app/core/**` 为 shared kernel(跨层复用的核心对象),不属于某个业务层; 规范见 [[standards/backend/shared-kernel-standards|Shared Kernel 编写规范]]；异常定义见 `app/core/exceptions.py`, 异常→HTTP status 映射见 `app/api/error_mapping.py`。
+> `app/core/**` 为 shared kernel(跨层复用的核心对象),不属于某个业务层; 规范见 [[standards/backend/shared-kernel-standards|Shared Kernel 编写规范]]；异常定义见 `app/core/exceptions.py`, 异常→HTTP status 映射见 `app/infra/error_mapping.py`。
 
 ## 关键入口(少量)
 

@@ -12,8 +12,9 @@ from app import db
 from app.core.exceptions import SystemError, ValidationError
 from app.models.instance import Instance
 from app.repositories.instances_batch_repository import InstancesBatchRepository
-from app.schemas.instances import InstanceCreatePayload
+from app.schemas.instances import InstanceCreatePayload, InstancesBatchDeletePayload
 from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -212,6 +213,21 @@ class InstanceBatchDeletionService:
 
     def __init__(self, repository: InstancesBatchRepository | None = None) -> None:
         self._repository = repository or InstancesBatchRepository()
+
+    def delete_instances_from_payload(
+        self,
+        payload: object | None,
+        *,
+        operator_id: int | None = None,
+    ) -> dict[str, Any]:
+        """从原始 payload 解析并批量删除实例."""
+        sanitized = parse_payload(payload or {}, list_fields=["instance_ids"])
+        parsed = validate_or_raise(InstancesBatchDeletePayload, sanitized)
+        return self.delete_instances(
+            parsed.instance_ids,
+            operator_id=operator_id,
+            deletion_mode=parsed.deletion_mode,
+        )
 
     def delete_instances(
         self,

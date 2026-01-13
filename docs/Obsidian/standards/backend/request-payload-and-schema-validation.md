@@ -7,11 +7,13 @@ tags:
   - standards/backend
 status: active
 created: 2026-01-04
-updated: 2026-01-12
+updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/utils/request_payload.py`, `app/schemas/**`, `app/services/**`, `app/api/v1/**`, `app/forms/handlers/**`"
 related:
   - "[[standards/backend/error-message-schema-unification]]"
+  - "[[standards/backend/layer/schemas-layer-standards]]"
+  - "[[standards/backend/compatibility-and-deprecation]]"
 ---
 
 # 请求 payload 解析与 schema 校验标准
@@ -19,19 +21,21 @@ related:
 ## 1. 目的
 
 - 统一写路径的取参逻辑, 避免 form/json/query 的解析与清洗散落在 routes/services/forms 中.
+- 统一写路径的取参逻辑, 避免 form/json(body) 的解析与清洗散落在 routes/services/forms 中.
 - 统一字段校验与类型转换, 让 service 层只消费"已解析, 已规范化, 已校验"的 typed payload.
 - 收敛 `or`/truthy 兜底, 把默认值与兼容策略显式化并可审计.
 
 ## 2. 适用范围
 
 - 所有写操作(创建/更新/批量写入/修改密码)的入口与服务层.
-- 任何从 Werkzeug `MultiDict` 或 JSON mapping 进入系统的用户输入.
+- 任何从 JSON mapping(`request.get_json()`) 或 `MultiDict`(`request.form` 等) 进入系统的**写路径 body payload**.
+- 不包含 query 参数(`request.args`): API 使用 `reqparse`/`@ns.expect(parser)`；Routes 参考 [[standards/backend/layer/routes-layer-standards]] 的建议做显式 `strip/cast`。
 
 ## 3. 规则
 
 ### 3.1 请求 payload 解析
 
-- MUST: 在 route/handler/service 的边界使用 `app/utils/request_payload.py::parse_payload` 做基础解析与规范化.
+- MUST: 对写路径 body payload（JSON dict / `request.form` MultiDict / task payload）在进入业务编排前必须使用 `app/utils/request_payload.py::parse_payload` 做基础解析与规范化；且在一次请求链路中 MUST 只执行一次（API/Routes/Service 入口三选一，优先选择可复用入口：Service）。
 - MUST: 对 "必须为 list" 的字段使用 `list_fields`, 并保证输出形状稳定(单值也输出 list).
 - MUST: 对敏感字段(如 password)显式声明 `preserve_raw_fields`, 禁止依赖字段名包含判断.
 - SHOULD: 对 checkbox 类布尔字段使用 `boolean_fields_default_false`, 只对 MultiDict 缺失字段补 False.

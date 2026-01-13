@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, StrictStr, field_validator, model_validator
 
@@ -293,6 +293,47 @@ class InstanceUpdatePayload(PayloadSchema):
         if value is None:
             return None
         return as_bool(value, default=False)
+
+
+class InstancesBatchDeletePayload(PayloadSchema):
+    """批量删除实例 payload."""
+
+    instance_ids: list[int]
+    deletion_mode: Literal["soft", "hard"] = "soft"
+
+    @field_validator("instance_ids", mode="before")
+    @classmethod
+    def _parse_instance_ids(cls, value: Any) -> list[int]:
+        if value is None:
+            raise ValueError("请选择要删除的实例")
+
+        raw_items: list[Any]
+        if isinstance(value, (list, tuple, set)):
+            raw_items = list(value)
+        else:
+            raw_items = [value]
+
+        if not raw_items:
+            raise ValueError("请选择要删除的实例")
+
+        parsed: list[int] = []
+        for item in raw_items:
+            if isinstance(item, bool):
+                raise ValueError("实例ID列表无效")
+            try:
+                parsed.append(int(item))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("实例ID列表无效") from exc
+        return parsed
+
+    @field_validator("deletion_mode", mode="before")
+    @classmethod
+    def _parse_deletion_mode(cls, value: Any) -> Literal["soft", "hard"]:
+        if value is None:
+            return "soft"
+        if isinstance(value, str) and value in {"soft", "hard"}:
+            return "hard" if value == "hard" else "soft"
+        return "soft"
 
 
 def _is_valid_host(host: str) -> bool:

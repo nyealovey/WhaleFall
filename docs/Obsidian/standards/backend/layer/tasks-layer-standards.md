@@ -48,6 +48,10 @@ related:
 - MAY: 作为事务边界入口, 任务函数可按阶段调用 `db.session.commit/rollback`(例如长任务分段提交), 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
 - MUST NOT: 在任务函数内堆叠复杂业务逻辑(应下沉到 Service).
 
+> [!note] 事务边界优先级（Tasks 场景）
+> - 优先：任务只是调度入口时, 应让 Service 完整控制事务边界（task 不做 `commit/rollback`）, 以保持与 Web 请求写路径一致。
+> - 例外：长任务/批处理需要分阶段提交时, Tasks/Infra 可以作为事务边界入口执行 `commit/rollback`；此时必须确保被调用的 Service/Runner 不做 `commit/rollback`（只做必要 `flush`/状态变更）, 避免重复提交或隐式嵌套事务。
+
 ### 3) 可观测性与敏感数据
 
 - MUST: 使用结构化日志(例如 `get_system_logger()`), 禁止 `print`.

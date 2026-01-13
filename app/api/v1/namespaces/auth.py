@@ -15,9 +15,9 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.core.constants import TimeConstants
 from app.core.constants.system_constants import SuccessMessages
-from app.core.exceptions import ValidationError
 from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 
 ns = Namespace("auth", description="认证")
@@ -110,11 +110,17 @@ MeData = ns.model(
 MeSuccessEnvelope = make_success_envelope_model(ns, "MeSuccessEnvelope", MeData)
 
 
-def _parse_payload() -> Any:
+def _parse_payload() -> dict[str, Any]:
     if request.is_json:
         payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
-    return request.form
+        raw: object = payload if isinstance(payload, dict) else {}
+    else:
+        raw = request.form
+
+    return parse_payload(
+        raw,
+        preserve_raw_fields=["password", "old_password", "new_password", "confirm_password"],
+    )
 
 
 @ns.route("/csrf-token")
@@ -125,9 +131,19 @@ class CsrfTokenResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
         """获取 CSRF Token."""
-        return self.success(
-            data={"csrf_token": generate_csrf()},
-            message=SuccessMessages.OPERATION_SUCCESS,
+
+        def _execute():
+            return self.success(
+                data={"csrf_token": generate_csrf()},
+                message=SuccessMessages.OPERATION_SUCCESS,
+            )
+
+        return self.safe_call(
+            _execute,
+            module="auth",
+            action="get_csrf_token",
+            public_error="获取 CSRF Token 失败",
+            context={"route": "api_v1.auth.csrf_token"},
         )
 
 
@@ -146,17 +162,25 @@ class LoginResource(BaseResource):
     @require_csrf
     def post(self):
         """执行登录."""
-        payload = _parse_payload()
-        username = (payload.get("username") or "").strip() if hasattr(payload, "get") else ""
-        password = payload.get("password") if hasattr(payload, "get") else None
 
-        if not username or not password:
-            raise ValidationError(message="用户名和密码不能为空")
+        def _execute():
+            if request.is_json:
+                parsed_json = request.get_json(silent=True)
+                raw_payload: object = parsed_json if isinstance(parsed_json, dict) else {}
+            else:
+                raw_payload = request.form
+            result = LoginService().login_from_payload(raw_payload)
+            return self.success(
+                data=result.to_payload(),
+                message=SuccessMessages.LOGIN_SUCCESS,
+            )
 
-        result = LoginService().login(username=username, password=password)
-        return self.success(
-            data=result.to_payload(),
-            message=SuccessMessages.LOGIN_SUCCESS,
+        return self.safe_call(
+            _execute,
+            module="auth",
+            action="login",
+            public_error="登录失败",
+            context={"route": "api_v1.auth.login", "ip_address": request.remote_addr},
         )
 
 
@@ -172,8 +196,18 @@ class LogoutResource(BaseResource):
     @require_csrf
     def post(self):
         """执行登出."""
-        logout_user()
-        return self.success(message=SuccessMessages.LOGOUT_SUCCESS)
+
+        def _execute():
+            logout_user()
+            return self.success(message=SuccessMessages.LOGOUT_SUCCESS)
+
+        return self.safe_call(
+            _execute,
+            module="auth",
+            action="logout",
+            public_error="登出失败",
+            context={"user_id": getattr(current_user, "id", None), "route": "api_v1.auth.logout"},
+        )
 
 
 @ns.route("/change-password")
@@ -252,8 +286,18 @@ class MeResource(BaseResource):
     @jwt_required()
     def get(self):
         """获取当前用户信息."""
-        payload = AuthMeReadService().get_me(identity=get_jwt_identity())
-        return self.success(
-            data=payload,
-            message=SuccessMessages.OPERATION_SUCCESS,
+
+        def _execute():
+            payload = AuthMeReadService().get_me(identity=get_jwt_identity())
+            return self.success(
+                data=payload,
+                message=SuccessMessages.OPERATION_SUCCESS,
+            )
+
+        return self.safe_call(
+            _execute,
+            module="auth",
+            action="get_me",
+            public_error="获取当前用户信息失败",
+            context={"route": "api_v1.auth.me"},
         )
