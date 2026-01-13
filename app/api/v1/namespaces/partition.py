@@ -23,6 +23,7 @@ from app.services.partition import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 
@@ -283,7 +284,9 @@ class PartitionsResource(BaseResource):
     @require_csrf
     def post(self):
         """创建分区."""
-        data = request.get_json(silent=True) or {}
+        parsed_json = request.get_json(silent=True)
+        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        data = parse_payload(raw)
         partition_date_str = data.get("date")
 
         def _execute():
@@ -347,7 +350,9 @@ class PartitionCleanupResource(BaseResource):
     @require_csrf
     def post(self):
         """清理旧分区."""
-        data = request.get_json(silent=True) or {}
+        parsed_json = request.get_json(silent=True)
+        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
+        data = parse_payload(raw)
         raw_retention = data.get("retention_months", 12)
 
         def _execute():

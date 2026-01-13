@@ -25,6 +25,7 @@ from app.services.tags.tags_bulk_actions_service import TagsBulkActionsService
 from app.core.types import ResourcePayload
 from app.core.types.tags import TagListFilters
 from app.utils.decorators import require_csrf
+from app.utils.request_payload import parse_payload
 
 ns = Namespace("tags", description="标签管理")
 
@@ -248,8 +249,12 @@ def _build_tag_list_filters(parsed: dict[str, object]) -> TagListFilters:
 def _parse_payload() -> ResourcePayload:
     if request.is_json:
         payload = request.get_json(silent=True)
-        return cast(ResourcePayload, payload) if isinstance(payload, dict) else {}
-    return cast(ResourcePayload, request.form)
+        raw: object = payload if isinstance(payload, dict) else {}
+    else:
+        raw = request.form
+
+    sanitized = parse_payload(raw, boolean_fields_default_false=["is_active"])
+    return cast(ResourcePayload, sanitized)
 
 
 def _build_tag_write_service() -> TagWriteService:
@@ -496,7 +501,9 @@ class TagBatchDeleteResource(BaseResource):
     @require_csrf
     def post(self):
         """批量删除标签."""
-        payload = request.get_json(silent=True) or {}
+        raw_json = request.get_json(silent=True)
+        raw: object = raw_json if isinstance(raw_json, dict) else {}
+        payload = parse_payload(raw, list_fields=["tag_ids"])
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -600,7 +607,9 @@ class TagsBulkAssignResource(BaseResource):
     @require_csrf
     def post(self):
         """批量分配标签."""
-        payload = request.get_json(silent=True) or {}
+        raw_json = request.get_json(silent=True)
+        raw: object = raw_json if isinstance(raw_json, dict) else {}
+        payload = parse_payload(raw, list_fields=["instance_ids", "tag_ids"])
         actor_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -656,7 +665,9 @@ class TagsBulkRemoveResource(BaseResource):
     @require_csrf
     def post(self):
         """批量移除标签."""
-        payload = request.get_json(silent=True) or {}
+        raw_json = request.get_json(silent=True)
+        raw: object = raw_json if isinstance(raw_json, dict) else {}
+        payload = parse_payload(raw, list_fields=["instance_ids", "tag_ids"])
         actor_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -712,7 +723,9 @@ class TagsBulkInstanceTagsResource(BaseResource):
     @require_csrf
     def post(self):
         """获取实例标签列表."""
-        data = request.get_json(silent=True) or {}
+        raw_json = request.get_json(silent=True)
+        raw: object = raw_json if isinstance(raw_json, dict) else {}
+        data = parse_payload(raw, list_fields=["instance_ids"])
 
         def _execute():
             if not data:
@@ -763,7 +776,9 @@ class TagsBulkRemoveAllResource(BaseResource):
     @require_csrf
     def post(self):
         """批量移除所有标签."""
-        payload = request.get_json(silent=True) or {}
+        raw_json = request.get_json(silent=True)
+        raw: object = raw_json if isinstance(raw_json, dict) else {}
+        payload = parse_payload(raw, list_fields=["instance_ids"])
         actor_id = getattr(current_user, "id", None)
 
         def _execute():
