@@ -177,7 +177,14 @@ def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
     if level == LogLevel.DEBUG:
         return None
 
-    module = event_dict.get("module") or _extract_module_from_logger(event_dict.get("logger")) or "app"
+    module_value = event_dict.get("module")
+    module: str | None
+    if isinstance(module_value, str) and module_value:
+        module = module_value
+    else:
+        module = _extract_module_from_logger(event_dict.get("logger"))
+    if module is None:
+        module = "app"
     message = str(event_dict.get("event") or "")
 
     timestamp = event_dict.get("timestamp", time_utils.now())

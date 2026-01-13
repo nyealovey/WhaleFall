@@ -163,6 +163,11 @@ app/services/
 
 - MUST: 业务关键路径记录结构化日志(使用 `app.utils.structlog_config`).
 - MUST: 日志字段遵循敏感数据约束, 参考 [[standards/backend/sensitive-data-handling|敏感数据处理]].
+- MUST: “关键路径”判定采用 checklist（满足其一即必须打点）：
+  - 写操作：create/update/delete/restore/批量写入/任何会触发事务提交的路径
+  - 外部依赖交互：数据库连接/远程拉取/调度器修改/缓存读写/文件系统读写
+  - 对外 action：`/actions/*` 类端点或会触发外部副作用的服务编排
+  - 存在回退/降级/workaround 分支：必须包含 `fallback=true` 与 `fallback_reason`（见 [[standards/backend/resilience-and-fallback-standards|回退/降级标准]]）
 
 ## 正反例
 

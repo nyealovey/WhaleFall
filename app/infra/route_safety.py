@@ -30,6 +30,7 @@ class LogContextOptions(TypedDict, total=False):
     context: ContextMapping | None
     extra: LoggerExtra | None
     include_actor: bool
+    logger_name: str
 
 
 def log_with_context(
@@ -50,7 +51,8 @@ def log_with_context(
         **options: 支持 context, extra, include_actor 选项以扩展日志内容.
 
     """
-    logger = get_logger("app")
+    logger_name = options.get("logger_name", "app")
+    logger = get_logger(logger_name)
     payload: ContextDict = {"module": module, "action": action}
 
     include_actor = options.get("include_actor", True)
@@ -71,6 +73,37 @@ def log_with_context(
 
     log_method = getattr(logger, level, logger.error)
     log_method(event, **payload)
+
+
+def log_fallback(
+    level: LogLevel,
+    event: str,
+    *,
+    module: str,
+    action: str,
+    fallback_reason: str,
+    **options: Unpack[LogContextOptions],
+) -> None:
+    """记录降级/回退/Workaround 的结构化日志(强制 `fallback=true`).
+
+    说明：
+    - 该 helper 用于统一回退口径字段，避免各处自定义 key 导致不可检索。
+    - 调用方仍需在 `context/extra` 中补充关键维度（instance_id/task/...）。
+    """
+    extra_opt = dict(cast("LoggerExtra | None", options.get("extra")) or {})
+    extra_opt["fallback"] = True
+    extra_opt["fallback_reason"] = fallback_reason
+
+    log_with_context(
+        level,
+        event,
+        module=module,
+        action=action,
+        context=cast("ContextMapping | None", options.get("context")),
+        extra=extra_opt,
+        include_actor=options.get("include_actor", True),
+        logger_name=options.get("logger_name", "app"),
+    )
 
 
 def safe_route_call(

@@ -142,6 +142,7 @@ related:
 - MUST: `suggestions: list`
 - MUST: `context: object`
 - MAY: `extra: object`(仅允许放非敏感的诊断字段)
+  - MUST NOT: `extra` 中不得包含 `error_code`（避免下游形成 `message_code/error_code` 互兜底链）；诊断请使用 `error_id` 或明确的非敏感字段（如 `connection_error_id`）。
 
 ###### 4) `data` 的结构约束(面向列表页)
 
