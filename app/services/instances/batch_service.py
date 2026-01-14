@@ -8,7 +8,6 @@ from typing import Any, Literal
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.core.exceptions import SystemError, ValidationError
 from app.models.instance import Instance
 from app.repositories.instances_batch_repository import InstancesBatchRepository
@@ -191,7 +190,7 @@ class InstanceBatchCreationService:
                 errors.append(f"第 {index} 个实例数据无效: {exc}")
                 continue
 
-            db.session.add(instance)
+            self._repository.add_instance(instance)
             created_count += 1
             log_info(
                 "batch_create_instance",
@@ -298,7 +297,7 @@ class InstanceBatchDeletionService:
                 if deletion_mode == "soft":
                     if not instance.deleted_at:
                         instance.deleted_at = now_ts
-                    db.session.add(instance)
+                    self._repository.save_instance(instance)
                     deleted_count += 1
                     log_info(
                         "batch_soft_delete_instance",
@@ -314,7 +313,7 @@ class InstanceBatchDeletionService:
                     for key, value in per_stats.items():
                         stats[key] += value
 
-                    db.session.delete(instance)
+                    self._repository.delete_instance(instance)
                     deleted_count += 1
 
                     log_info(

@@ -100,8 +100,7 @@ class SyncSessionService:
         try:
             session = SyncSession(sync_type=sync_type, sync_category=sync_category, created_by=created_by)
             with db.session.begin_nested():
-                db.session.add(session)
-                db.session.flush()
+                self._repository.add_session(session)
         except Exception as exc:
             self.sync_logger.exception(
                 "创建同步会话失败",
@@ -166,10 +165,9 @@ class SyncSessionService:
                         instance_name=instance.name if instance else None,
                         sync_category=sync_category,  # 使用传入的同步分类
                     )
-                    db.session.add(record)
                     records.append(record)
 
-                db.session.flush()
+                self._repository.add_records(records)
         except Exception as exc:
             self.sync_logger.exception(
                 "添加实例记录失败",
@@ -206,7 +204,7 @@ class SyncSessionService:
         try:
             with db.session.begin_nested():
                 record.start_sync()
-                db.session.flush()
+                self._repository.flush()
         except Exception as exc:
             self.sync_logger.exception(
                 "开始实例同步失败",
@@ -261,11 +259,11 @@ class SyncSessionService:
                     items_deleted=items_deleted,
                     sync_details=self._clean_sync_details(sync_details),
                 )
-                db.session.flush()
+                self._repository.flush()
 
                 # 更新会话统计
                 self._update_session_statistics(record.session_id)
-                db.session.flush()
+                self._repository.flush()
         except Exception as exc:
             self.sync_logger.exception(
                 "完成实例同步失败",
@@ -312,11 +310,11 @@ class SyncSessionService:
         try:
             with db.session.begin_nested():
                 record.fail_sync(error_message=error_message, sync_details=self._clean_sync_details(sync_details))
-                db.session.flush()
+                self._repository.flush()
 
                 # 更新会话统计
                 self._update_session_statistics(record.session_id)
-                db.session.flush()
+                self._repository.flush()
         except Exception as exc:
             self.sync_logger.exception(
                 "标记实例同步失败时出错",
@@ -367,7 +365,7 @@ class SyncSessionService:
                 succeeded_instances=succeeded_instances,
                 failed_instances=failed_instances,
             )
-            db.session.flush()
+            self._repository.flush()
         except Exception as exc:
             self.sync_logger.exception(
                 "更新会话统计失败",
@@ -436,7 +434,10 @@ class SyncSessionService:
             self.sync_logger.exception(
                 "获取类型会话列表失败",
                 module="sync_session",
+                action="get_sessions_by_type",
                 sync_type=sync_type,
+                fallback=True,
+                fallback_reason="sync_sessions_list_by_type_failed",
                 error=str(e),
             )
             return []
@@ -458,7 +459,10 @@ class SyncSessionService:
             self.sync_logger.exception(
                 "获取分类会话列表失败",
                 module="sync_session",
+                action="get_sessions_by_category",
                 sync_category=sync_category,
+                fallback=True,
+                fallback_reason="sync_sessions_list_by_category_failed",
                 error=str(e),
             )
             return []
@@ -481,7 +485,10 @@ class SyncSessionService:
             self.sync_logger.exception(
                 "获取最近会话列表失败",
                 module="sync_session",
+                action="get_recent_sessions",
                 limit=limit,
+                fallback=True,
+                fallback_reason="sync_sessions_list_recent_failed",
                 error=str(e),
             )
             return []
@@ -509,7 +516,7 @@ class SyncSessionService:
                 session.status = SyncSessionStatus.CANCELLED
                 session.completed_at = time_utils.now()
                 session.updated_at = time_utils.now()
-                db.session.flush()
+                self._repository.flush()
 
             self.sync_logger.info("取消同步会话", module="sync_session", session_id=session_id)
         except Exception as exc:

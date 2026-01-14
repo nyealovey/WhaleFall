@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.core.exceptions import AuthenticationError, ValidationError
 from app.models.user import User
+from app.repositories.users_repository import UsersRepository
 from app.schemas.auth import ChangePasswordPayload
 from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload
@@ -20,6 +21,9 @@ from app.utils.structlog_config import log_info
 
 class ChangePasswordService:
     """修改密码写服务."""
+
+    def __init__(self, repository: UsersRepository | None = None) -> None:
+        self._repository = repository or UsersRepository()
 
     def change_password(self, payload: object | None, *, user: User | None) -> User:
         """修改当前用户密码."""
@@ -41,8 +45,7 @@ class ChangePasswordService:
 
         try:
             with db.session.begin_nested():
-                db.session.add(user)
-                db.session.flush()
+                self._repository.add(user)
         except SQLAlchemyError as exc:
             raise ValidationError("密码修改失败,请稍后再试", extra={"exception": str(exc)}) from exc
 
