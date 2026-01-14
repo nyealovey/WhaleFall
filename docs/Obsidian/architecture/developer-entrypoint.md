@@ -8,7 +8,7 @@ tags:
   - developer
 status: active
 created: 2026-01-10
-updated: 2026-01-10
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: 常见开发任务(API/task/UI/db adapter)导航与关键文档入口
 related:
@@ -118,7 +118,7 @@ related:
 
 ### 3.2 常见场景入口
 
-- Grid 列表页 wiring: [[standards/ui/grid-list-page-skeleton-guidelines|Grid list page skeleton 指南]]
+- Grid 列表页: [[standards/ui/grid-standards|Grid 列表页标准]]
 - modules 分层: [[standards/ui/javascript-module-standards|前端模块化(modules)规范]] + [[standards/ui/layer/README|前端分层(layer)标准索引]]
 - 异步任务反馈: [[standards/ui/async-task-feedback-guidelines|异步任务反馈规范]]
 - 可复用组件 DOM id: [[standards/ui/component-dom-id-scope-guidelines|可复用组件 DOM id 作用域规范]]

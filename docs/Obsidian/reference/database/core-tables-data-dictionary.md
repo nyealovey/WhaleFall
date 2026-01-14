@@ -30,7 +30,6 @@ Source:
 
 - model: `app/models/unified_log.py`
 - writer: `app/utils/logging/handlers.py` -> `DatabaseLogHandler`
-- cleanup: `app/tasks/log_cleanup_tasks.py` -> `cleanup_old_logs`
 
 用途:
 
@@ -57,7 +56,7 @@ Source:
 
 保留策略:
 
-- `cleanup_old_logs` 会删除 `timestamp < now() - 30 days` 的记录.
+- 当前未提供自动清理任务, 如需清理请走运维/手工归档策略.
 
 常用自查 SQL:
 
@@ -85,7 +84,6 @@ ORDER BY timestamp ASC;
 Source:
 
 - model: `app/models/sync_session.py`
-- cleanup: `app/tasks/log_cleanup_tasks.py` -> `cleanup_old_logs`
 
 用途:
 
@@ -112,14 +110,13 @@ Source:
 
 保留策略:
 
-- `cleanup_old_logs` 会删除 `created_at < now() - 30 days` 的记录.
+- 当前未提供自动清理任务, 如需清理请走运维/手工归档策略.
 
 ### 2.2 `sync_instance_records`
 
 Source:
 
 - model: `app/models/sync_instance_record.py`
-- cleanup: `app/tasks/log_cleanup_tasks.py` -> `cleanup_old_logs`
 
 用途:
 
@@ -141,7 +138,7 @@ Source:
 
 保留策略:
 
-- `cleanup_old_logs` 会删除 `created_at < now() - 30 days` 的记录.
+- 当前未提供自动清理任务, 如需清理请走运维/手工归档策略.
 
 常用自查 SQL:
 
@@ -163,7 +160,7 @@ ORDER BY created_at DESC;
 > - `instance_size_stats`
 > - `instance_size_aggregations`
 >
-> 入口: `app/services/partition_management_service.py` + `app/tasks/partition_management_tasks.py`.
+> 入口: `app/services/partition_management_service.py` (API: `app/api/v1/namespaces/partition.py`).
 
 ### 3.1 `database_size_stats`
 
@@ -197,7 +194,7 @@ Source:
 保留策略:
 
 - 按月分区, 默认保留 `DATABASE_SIZE_RETENTION_MONTHS`(默认 12)个月.
-- `cleanup_database_size_partitions` 会删除更早的分区表.
+- 旧分区清理由管理员通过 Partition API 触发,最终落到 `PartitionManagementService.cleanup_old_partitions`.
 
 ### 3.2 `database_size_aggregations`
 
@@ -286,4 +283,3 @@ Source:
 ## 4. 变更历史
 
 - 2026-01-10: 新增核心表数据字典, 覆盖 unified_logs, sync_sessions, capacity stats.
-

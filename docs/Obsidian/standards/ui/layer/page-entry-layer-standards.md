@@ -8,13 +8,13 @@ tags:
   - standards/ui/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: "`app/templates/**` 的 page_id + `app/static/js/bootstrap/page-loader.js` + 各页面入口脚本"
 related:
   - "[[standards/ui/layer/README]]"
   - "[[standards/ui/javascript-module-standards]]"
-  - "[[standards/ui/grid-list-page-skeleton-guidelines]]"
+  - "[[standards/ui/grid-standards]]"
   - "[[standards/ui/component-dom-id-scope-guidelines]]"
   - "[[standards/backend/layer/routes-layer-standards]]"
 ---
@@ -34,7 +34,7 @@ related:
 
 - `app/templates/**` 中设置 `page_id` 并通过 `body[data-page]` 暴露给前端.
 - `app/static/js/bootstrap/page-loader.js` 作为统一启动器.
-- 各页面入口脚本(通常位于 `app/static/js/modules/views/**` 的页面文件末尾, 负责挂载 `window.<PageId>`).
+- 各页面入口脚本(推荐位于 `app/static/js/modules/pages/**`; legacy 可能位于 `app/static/js/modules/views/**`, 需逐步迁移), 负责挂载 `window.<PageId>`.
 
 ## 规则(MUST/SHOULD/MAY)
 
@@ -55,24 +55,25 @@ related:
 - MUST NOT: 在 Page Entry 内实现可复用组件的 DOM 细节(应下沉到 view/ui modules).
 - MUST NOT: 在 Page Entry 内写入 API path 常量或拼接复杂 query(应下沉到 service 或 `Views.GridPage`).
 
-### 3) 读取全局依赖的唯一位置
+### 3) 全局依赖读取规则
 
-- MUST: 仅 Page Entry 允许直接读取以下全局:
-  - `window.DOMHelpers`, `window.httpU`, `window.UI`, `window.toast`
-  - vendor globals(如 `gridjs`, `Chart`, `bootstrap`)
-- MUST: 下层(services/stores/views/ui modules)通过参数接收依赖, 不得在内部随意读取 `window.*`.
-- MAY: 迁移期 legacy 代码可临时读取 `window.*`, 但新增代码必须遵循上述规则, 并在评审中说明迁移计划.
+- MUST: Page Entry 负责读取全局依赖并完成 wiring.
+- MUST: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- SHOULD: 下层优先通过参数接收依赖; 如确需读取 `window.*`, 仅允许访问 allowlist 内的全局.
+- MAY: 迁移期 legacy 代码可临时读取 allowlist 外 `window.*`, 但必须在评审中说明原因, 并给出迁移计划.
 
 ### 4) 模板数据下发与 dataset 契约
 
 - MUST: 页面模板通过"单一根节点"承载页面配置, 使用 `data-*` 下发, 避免散落全局变量.
-- MUST: dataset key 使用 `kebab-case`, 对应 JS 侧通过 `element.dataset.*` 读取.
+- MUST: dataset key 使用 `kebab-case`, 对应 JS 侧通过 `element.dataset.*`(camelCase) 读取.
+  - 示例: `data-page-size="20"` -> `root.dataset.pageSize`
+  - 示例: `data-user-id="42"` -> `root.dataset.userId`
 - SHOULD: 对 JSON 字符串使用 `JSON.parse` + try/catch, 失败时回退到空对象/空数组, 且不得吞掉异常导致页面进入半初始化状态.
 - MUST: 对来自 dataset 的动态键名建立 allowlist(allowed keys), 禁止透传危险键到对象写入/URL 参数.
 
 ### 5) 列表页 wiring 必须使用 GridPage skeleton
 
-- MUST: Grid 列表页使用 `window.Views.GridPage.mount(config)` 作为唯一入口, 参考 [[standards/ui/grid-list-page-skeleton-guidelines]].
+- MUST: Grid 列表页使用 `window.Views.GridPage.mount(config)` 作为唯一入口, 参考 [[standards/ui/grid-standards]].
 - MUST NOT: 页面脚本直接 `new GridWrapper(...)` 或 `new gridjs.Grid(...)`.
 
 ### 6) 生命周期与清理
@@ -123,10 +124,11 @@ function escapeHtml(s) {
 
 ```bash
 rg -n "\\{%\\s*set\\s+page_id\\s*=\\s*" app/templates
-rg -n "new\\s+GridWrapper\\(|new\\s+gridjs\\.Grid\\(" app/static/js/modules/views
-rg -n "function\\s+(escapeHtml|serializeForm|resolveErrorMessage)\\(" app/static/js/modules/views
+rg -n "new\\s+GridWrapper\\(|new\\s+gridjs\\.Grid\\(" app/static/js/modules
+rg -n "function\\s+(escapeHtml|serializeForm|resolveErrorMessage)\\(" app/static/js/modules
 ```
 
 ## 变更历史
 
 - 2026-01-09: 新增 Page Entry 分层标准, 对齐后端 Routes 层的"入口薄"原则, 并与 `Views.GridPage` skeleton 约束对齐.
+- 2026-01-14: 对齐 `window.*` allowlist SSOT, 明确 `modules/pages/**` 迁移方向, 并补齐 dataset `kebab-case` -> `dataset.camelCase` 示例.

@@ -1259,11 +1259,14 @@ function mountInstancesListPage() {
      * @returns {string} 简短时间文本
      */
     function formatShortTimestamp(value) {
-        if (!value || !global.dayjs) {
+        if (!value) {
             return '';
         }
-        const dayjsValue = global.dayjs(value);
-        return dayjsValue.isValid() ? dayjsValue.format('MM/DD HH:mm') : '';
+        const timeUtils = global.timeUtils;
+        if (timeUtils?.formatPattern) {
+            return timeUtils.formatPattern(value, 'MM/DD HH:mm', '');
+        }
+        return '';
     }
 
     /**

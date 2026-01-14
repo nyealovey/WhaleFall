@@ -47,7 +47,6 @@ related:
 - Tasks:
   - `app/tasks/capacity_collection_tasks.py`
   - `app/tasks/capacity_aggregation_tasks.py`
-  - `app/tasks/partition_management_tasks.py`
 - Services:
   - `app/services/database_sync/**`
   - `app/services/aggregation/aggregation_service.py`
