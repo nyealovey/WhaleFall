@@ -14,6 +14,7 @@ from sqlalchemy import desc, func
 
 from app import db
 from app.models.database_size_aggregation import DatabaseSizeAggregation
+from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 
 
@@ -46,6 +47,38 @@ class AggregationRepository:
             .first()
             is not None
         )
+
+    @staticmethod
+    def count_active_instances_with_database_size_aggregation(*, period_type: str, period_start: date) -> int:
+        """统计指定周期内存在数据库级聚合记录的活跃实例数量."""
+        active_filter = cast(Any, Instance.is_active).is_(True)
+        value = (
+            db.session.query(func.count(func.distinct(DatabaseSizeAggregation.instance_id)))
+            .join(Instance, Instance.id == DatabaseSizeAggregation.instance_id)
+            .filter(
+                active_filter,
+                DatabaseSizeAggregation.period_type == period_type,
+                DatabaseSizeAggregation.period_start == period_start,
+            )
+            .scalar()
+        )
+        return int(value or 0)
+
+    @staticmethod
+    def count_active_instances_with_instance_size_aggregation(*, period_type: str, period_start: date) -> int:
+        """统计指定周期内存在实例级聚合记录的活跃实例数量."""
+        active_filter = cast(Any, Instance.is_active).is_(True)
+        value = (
+            db.session.query(func.count(func.distinct(InstanceSizeAggregation.instance_id)))
+            .join(Instance, Instance.id == InstanceSizeAggregation.instance_id)
+            .filter(
+                active_filter,
+                InstanceSizeAggregation.period_type == period_type,
+                InstanceSizeAggregation.period_start == period_start,
+            )
+            .scalar()
+        )
+        return int(value or 0)
 
     @staticmethod
     def fetch_latest_aggregation_time() -> datetime | None:
