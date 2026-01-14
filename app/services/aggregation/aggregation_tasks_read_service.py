@@ -51,10 +51,22 @@ class AggregationTasksReadService:
         return self._instances_core_repository.count_active_instances()
 
     def has_aggregation_for_period(self, *, period_type: str, period_start: date) -> bool:
-        """判断某周期聚合是否已存在(实例级 + 数据库级均已落库)."""
-        return self._aggregation_repository.has_aggregation_for_period(
+        """判断某周期聚合是否已完成(覆盖全部活跃实例)."""
+        expected_instances = self.count_active_instances()
+        if expected_instances <= 0:
+            return False
+
+        database_aggregated_instances = self._aggregation_repository.count_active_instances_with_database_size_aggregation(
             period_type=period_type,
             period_start=period_start,
+        )
+        instance_aggregated_instances = self._aggregation_repository.count_active_instances_with_instance_size_aggregation(
+            period_type=period_type,
+            period_start=period_start,
+        )
+        return (
+            database_aggregated_instances >= expected_instances
+            and instance_aggregated_instances >= expected_instances
         )
 
     def get_status(self) -> AggregationStatus:
