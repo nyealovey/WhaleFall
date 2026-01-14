@@ -16,7 +16,7 @@
 </div>
 {%- endmacro %}
 
-{% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', col_class='col-md-2 col-12', allow_empty=True, multiple=False, use_tom_select=False) -%}
+{% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', col_class='col-md-2 col-12', allow_empty=True, multiple=False) -%}
 {% set option_list = options or [] %}
 {% set ns = namespace(has_builtin_all=False) %}
 {% for option in option_list %}
@@ -31,8 +31,7 @@
             name="{{ field_name }}"
             class="form-select"
             {% if multiple %}multiple{% endif %}
-            {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
-            {% if use_tom_select %}data-tom-select{% endif %}>
+            {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}>
         {% if allow_empty and not ns.has_builtin_all %}
         <option value="">{{ placeholder or '全部' }}</option>
         {% endif %}
@@ -56,61 +55,60 @@
 </div>
 {%- endmacro %}
 
-{% macro db_type_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('数据库类型', 'db_type', 'db_type', options, current_value, '全部类型', col_class, use_tom_select=use_tom_select) }}
+{% macro db_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('数据库类型', 'db_type', 'db_type', options, current_value, '全部类型', col_class) }}
 {%- endmacro %}
 
-{% macro status_active_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{% macro status_active_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro status_sync_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{% macro status_sync_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro credential_type_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('凭据类型', 'credential_type', 'credential_type', options, current_value, '全部类型', col_class, use_tom_select=use_tom_select) }}
+{% macro credential_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('凭据类型', 'credential_type', 'credential_type', options, current_value, '全部类型', col_class) }}
 {%- endmacro %}
 
-{% macro classification_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('账户分类', 'classification', 'classification', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
+{% macro classification_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('账户分类', 'classification', 'classification', options, current_value, '全部分类', col_class) }}
 {%- endmacro %}
 
-{% macro tag_category_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('标签分类', 'category', 'category', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
+{% macro tag_category_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('标签分类', 'category', 'category', options, current_value, '全部分类', col_class) }}
 {%- endmacro %}
 
-{% macro log_level_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('日志级别', 'level', 'level', options, current_value, '全部级别', col_class, use_tom_select=use_tom_select) }}
+{% macro log_level_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('日志级别', 'level', 'level', options, current_value, '全部级别', col_class) }}
 {%- endmacro %}
 
-{% macro module_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('模块', 'module', 'module', options, current_value, '全部模块', col_class, use_tom_select=use_tom_select) }}
+{% macro module_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('模块', 'module', 'module', options, current_value, '全部模块', col_class) }}
 {%- endmacro %}
 
-{% macro time_range_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('时间范围', 'time_range', 'time_range', options, current_value, '选择时间范围', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{% macro time_range_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('时间范围', 'time_range', 'time_range', options, current_value, '选择时间范围', col_class, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro sync_type_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('操作方式', 'sync_type', 'sync_type', options, current_value, '全部方式', col_class, use_tom_select=use_tom_select) }}
+{% macro sync_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('操作方式', 'sync_type', 'sync_type', options, current_value, '全部方式', col_class) }}
 {%- endmacro %}
 
-{% macro sync_category_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('分类', 'sync_category', 'sync_category', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
+{% macro sync_category_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('分类', 'sync_category', 'sync_category', options, current_value, '全部分类', col_class) }}
 {%- endmacro %}
 
-{% macro period_type_filter(options, current_value='', col_class='col-md-2 col-12', use_tom_select=False) -%}
-    {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{% macro period_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', col_class, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro instance_filter(options, current_value='', col_class='col-md-2 col-12', disabled=False, use_tom_select=False) -%}
+{% macro instance_filter(options, current_value='', col_class='col-md-2 col-12', disabled=False) -%}
 <div class="{{ col_class }}">
     <label for="instance" class="form-label">实例</label>
     <select id="instance"
             name="instance"
             class="form-select"
-            {% if use_tom_select %}data-tom-select{% endif %}
             {% if disabled %}disabled{% endif %}>
         <option value="">所有实例</option>
         {% for option in options or [] %}
@@ -124,13 +122,12 @@
 </div>
 {%- endmacro %}
 
-{% macro database_filter(options, current_value='', col_class='col-md-2 col-12', disabled=False, use_tom_select=False) -%}
+{% macro database_filter(options, current_value='', col_class='col-md-2 col-12', disabled=False) -%}
 <div class="{{ col_class }}">
     <label for="database" class="form-label">数据库</label>
     <select id="database"
             name="database_id"
             class="form-select"
-            {% if use_tom_select %}data-tom-select{% endif %}
             {% if disabled %}disabled{% endif %}>
         <option value="">所有数据库</option>
         {% for option in options or [] %}

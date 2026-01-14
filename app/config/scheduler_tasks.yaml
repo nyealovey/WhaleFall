@@ -17,35 +17,6 @@ default_tasks:
     enabled: true
     description: 每日同步所有数据库实例的账户信息
 
-  - id: cleanup_logs
-    name: 清理旧日志
-    function: cleanup_old_logs
-    trigger_type: cron
-    trigger_params:
-      second: 0
-      minute: 0
-      hour: 2
-      day: '*'
-      month: '*'
-      day_of_week: '*'
-    enabled: true
-    description: 清理30天前的日志和临时文件
-
-
-  - id: monitor_partition_health
-    name: 监控分区健康状态
-    function: monitor_partition_health
-    trigger_type: cron
-    trigger_params:
-      second: 0
-      minute: 30
-      hour: 0
-      day: '*'
-      month: '*'
-      day_of_week: '*'
-    enabled: true
-    description: 每日监控分区健康状态和性能
-
   - id: collect_database_sizes
     name: 容量同步
     function: collect_database_sizes

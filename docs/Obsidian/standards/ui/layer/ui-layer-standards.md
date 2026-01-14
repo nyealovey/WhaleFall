@@ -8,7 +8,7 @@ tags:
   - standards/ui/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: "`app/static/js/modules/ui/**` 下可复用 UI 工具与交互组件"
 related:
@@ -52,9 +52,11 @@ related:
 
 ### 3) 依赖与全局读取
 
+- MUST: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
 - MUST: UI Modules 允许依赖:
   - `window.DOMHelpers`
   - `window.UI`(同层工具)
+  - `window.EventBus`(仅在需要跨组件同步/观测时使用)
   - vendor libs(如 `bootstrap`)
 - MUST: 依赖缺失时必须 fail fast(打印 `console.error` 并 return), 避免半初始化.
 
@@ -107,3 +109,4 @@ rg -n "__proto__|prototype|constructor" app/static/js/modules/ui
 ## 变更历史
 
 - 2026-01-09: 新增 UI Modules 分层标准, 明确其"无业务依赖"定位, 并固化 DOM id scope, 安全键过滤与 destroy 约束.
+- 2026-01-14: 对齐 `window.*` allowlist SSOT, 明确 `EventBus` 仅用于跨组件同步/观测.

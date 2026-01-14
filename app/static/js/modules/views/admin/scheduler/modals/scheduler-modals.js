@@ -225,8 +225,6 @@
         function buildPayload(formElement, formData, originalJob) {
             const isBuiltInJob = [
                 'sync_accounts',
-                'cleanup_logs',
-                'monitor_partition_health',
                 'collect_database_sizes',
                 'calculate_database_size_aggregations',
             ].includes(originalJob.id);

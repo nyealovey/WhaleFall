@@ -9,12 +9,13 @@ tags:
   - standards/index
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: 前端分层(layer)标准入口与索引
 related:
   - "[[standards/ui/README]]"
   - "[[standards/ui/javascript-module-standards]]"
+  - "[[standards/ui/vendor-library-usage-standards]]"
   - "[[standards/backend/layer/README]]"
 ---
 
@@ -56,10 +57,50 @@ graph TD
 
 约束要点:
 
-- Page Entry 允许读取 `window.*` 与 DOM dataset, 负责组合依赖并启动页面.
+- Page Entry 允许读取 allowlist 内的 `window.*` 与 DOM dataset, 负责组合依赖并启动页面.
 - Views 负责 DOM 与交互, 业务动作通过 store actions 或 service 方法驱动.
 - Stores 负责状态与 actions, 只依赖 services, 不直接触碰 DOM.
 - Services 负责 HTTP 调用与参数/响应规整, 不依赖 UI 与 DOM.
+
+## 全局依赖(window.*) 访问规则(SSOT)
+
+> [!info] 原则
+> - 仅允许访问 allowlist 内的全局, 避免隐式耦合.
+> - 能注入就注入: 新增依赖优先通过参数注入, 或收敛到 UI Modules.
+> - 除 allowlist 外, 禁止在下层随意读取 `window.*`.
+
+允许的全局(按层):
+
+- Page Entry:
+  - `window.DOMHelpers`, `window.httpU`, `window.UI`, `window.toast`
+  - `window.Views`(启动 view skeleton)
+  - common globals: `window.timeUtils`, `window.TimeFormats`, `window.NumberFormat`, `window.LodashUtils`, `window.TableQueryParams`, `window.ColorTokens`, `window.FormValidator`, `window.ValidationRules`
+  - vendor globals(如 `gridjs`, `Chart`, `bootstrap`)
+- Views:
+  - `window.DOMHelpers`, `window.UI`, `window.toast`
+  - `window.Views`(同层互用)
+  - common globals: `window.timeUtils`, `window.TimeFormats`, `window.NumberFormat`, `window.LodashUtils`, `window.TableQueryParams`, `window.ColorTokens`, `window.FormValidator`, `window.ValidationRules`
+  - vendor globals(如 `Chart`, `bootstrap`)
+- UI Modules:
+  - `window.DOMHelpers`, `window.UI`
+  - common globals: `window.timeUtils`, `window.TimeFormats`, `window.NumberFormat`, `window.LodashUtils`
+  - `window.EventBus`(仅在需要跨组件同步/观测时使用, 禁止做业务编排)
+  - vendor globals(如 `bootstrap`)
+- Stores:
+  - `window.mitt`(仅作为 `emitter` fallback)
+  - `window.LodashUtils`(仅在必要时, 且避免在 store 内做复杂业务逻辑)
+- Services:
+  - `window.httpU`(仅作为 `httpClient` fallback)
+  - `window.LodashUtils`(仅在必要时, 且避免在 service 内做复杂业务逻辑)
+
+禁止的全局(统一口径):
+
+- `window.EventBus` 禁止在 Services/Stores 使用.
+- `window.toast` 禁止在 Services/Stores 使用.
+- `document` 禁止在 Services/Stores 使用(详见对应层标准).
+
+> [!note] 迁移期
+> legacy 代码如不满足 allowlist, 必须在评审中说明原因, 并给出迁移计划(例如把依赖上移到 Page Entry 注入).
 
 ## 索引
 

@@ -7,7 +7,7 @@
 		{"id":"d1e2f3a4b5c60789","type":"text","text":"## 调度器封装(Runtime)\n\nCode: `app/scheduler.py`\n\n- APScheduler + jobstore\n- 文件锁\n- 加载/注册 jobs\n- 事件监听(成功/失败)\n","x":460,"y":0,"width":420,"height":220,"color":"2"},
 		{"id":"e3f1a2b4c6d8097a","type":"text","text":"## 任务配置(YAML)\n\nCode: `app/config/scheduler_tasks.yaml`\n\n- Cron/Interval/Date\n- 任务函数映射\n","x":460,"y":240,"width":420,"height":180,"color":"2"},
 		{"id":"f0e1d2c3b4a59687","type":"text","text":"## jobstore(持久化)\n\n- SQLite: `userdata/scheduler.db`\n- 记录 jobs/next_run\n","x":460,"y":440,"width":420,"height":160,"color":"1"},
-		{"id":"1a2b3c4d5e6f7081","type":"text","text":"## 实际任务(Tasks)\n\nCode: `app/tasks/*.py`\n\n- 账户同步\n- 容量采集/聚合\n- 分区管理\n- 日志清理/其它\n","x":920,"y":0,"width":420,"height":220,"color":"2"},
+		{"id":"1a2b3c4d5e6f7081","type":"text","text":"## 实际任务(Tasks)\n\nCode: `app/tasks/*.py`\n\n- 账户同步\n- 容量采集/聚合\n- 分区管理\n- 其它\n","x":920,"y":0,"width":420,"height":220,"color":"2"},
 		{"id":"2b3c4d5e6f708192","type":"text","text":"## 业务域分发\n\n- Accounts Sync\n- Capacity/Aggregation/Partition\n- Others\n\n说明: 调度域本身不连外部 DB\n","x":920,"y":240,"width":420,"height":200,"color":"4"},
 		{"id":"3c4d5e6f708192a3","type":"text","text":"## 会话追踪(任务侧可选)\n\nCode: `app/services/sync_session_service.py`\n\n- 按需创建 SyncSession\n- SyncInstanceRecord 记录进度/统计\n\n调度域自身: 主要依赖 jobstore + event log\n","x":920,"y":460,"width":420,"height":240,"color":"5"},
 		{"id":"4d5e6f708192a3b4","type":"text","text":"## External DB\n\n(由任务/业务域连接)\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n","x":1380,"y":0,"width":360,"height":220,"color":"4"},

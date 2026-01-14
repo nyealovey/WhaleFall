@@ -248,14 +248,12 @@ make quality
 make test
 ```
 
-### Grid.js 迁移标准
+### Grid.js 列表页(规范与迁移)
 
-前端表格统一使用 Grid.js，遵循 [docs/Obsidian/standards/ui/gridjs-migration-standard.md](docs/Obsidian/standards/ui/gridjs-migration-standard.md) 标准：
+前端列表页统一使用 Grid.js + GridWrapper, 规范 SSOT 与迁移自检入口如下:
 
-- 统一的 API 接口格式
-- 标准的 GridWrapper 封装
-- 服务端分页、排序、筛选
-- 禁止修改 `grid-wrapper.js`
+- [Grid 列表页标准](docs/Obsidian/standards/ui/grid-standards.md) - wiring/分页/日志单一真源
+- [Grid.js 列表页迁移 checklist](docs/Obsidian/reference/development/gridjs-migration-checklist.md) - 交付自检清单
 
 ### 代码质量
 
@@ -322,7 +320,7 @@ def example_view() -> Response:
 
 ### 重构文档
 - [Refactor 索引](docs/changes/refactor/README.md) - 重构/瘦身/治理文档入口
-- [Grid.js 迁移标准](docs/Obsidian/standards/ui/gridjs-migration-standard.md) - 前端表格迁移规范
+- [Grid.js 列表页迁移 checklist](docs/Obsidian/reference/development/gridjs-migration-checklist.md) - 前端表格迁移交付自检
 
 ### 分析报告
 - [Clean Code 分析报告](docs/reports/clean-code-analysis.md) - 代码质量分析

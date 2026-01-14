@@ -5,11 +5,11 @@ aliases:
 tags:
   - standards
   - standards/ui
-status: draft
+status: active
 created: 2025-12-28
-updated: 2026-01-08
+updated: 2026-01-14
 owner: WhaleFall FE
-scope: "`app/templates/**`, `app/static/css/**`, `docs/Obsidian/standards/ui/**`"
+scope: "`app/templates/**`, `app/static/css/**`"
 related:
   - "[[standards/ui/design-token-governance-guidelines]]"
   - "[[standards/halfwidth-character-standards]]"
@@ -157,10 +157,10 @@ related:
 - 人工检查: PR review 时搜索 `style="` 并确认无新增 `height/width: Npx` 用于关键布局.
 - 自查命令:
   - `rg -n \"style=\\\"[^\\\"]*(height|width)\\s*:\\s*\\d+px\" app/templates`
-- 建议门禁:
-  - 使用 `scripts/ci/inline-px-style-guard.sh` 扫描 templates 中的 inline px layout sizing, 阻止回归.
+- MUST: 门禁脚本: `./scripts/ci/inline-px-style-guard.sh`(扫描 templates 中新增的 inline px layout sizing, 阻止回归).
 
 ## 变更历史
 
 - 2025-12-28: 新增标准草案, 明确 page frame, controls, tables, charts 的 sizing contract, 为后续移除 inline px 与尺寸收敛提供依据.
 - 2026-01-08: 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter, 并更新 standards 引用路径.
+- 2026-01-14: 升级为 active, scope 聚焦到实现载体, 并将 `inline-px-style-guard.sh` 作为 MUST 门禁口径.

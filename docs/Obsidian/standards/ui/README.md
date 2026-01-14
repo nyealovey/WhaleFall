@@ -8,7 +8,7 @@ tags:
   - standards/index
 status: active
 created: 2025-12-23
-updated: 2026-01-10
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: UI standards 入口与索引
 related:
@@ -23,10 +23,10 @@ related:
 
 - [[standards/ui/layer/README|前端分层(layer)标准索引]]
 - [[standards/ui/javascript-module-standards|前端模块化(modules)规范]]
+- [[standards/ui/vendor-library-usage-standards|第三方库(vendor)使用标准]]
 - [[standards/ui/design-token-governance-guidelines|设计 Token 治理(CSS Variables)]]
 - [[standards/ui/button-hierarchy-guidelines|按钮层级与状态]]
-- [[standards/ui/grid-list-page-skeleton-guidelines|Grid list page skeleton 指南]]
-- [[standards/ui/pagination-sorting-parameter-guidelines|分页与排序参数规范]]
+- [[standards/ui/grid-standards|Grid 列表页标准]]
 - [[standards/ui/danger-operation-confirmation-guidelines|高风险操作二次确认]]
 
 ## 全量浏览(不维护手工清单)

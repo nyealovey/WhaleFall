@@ -7,7 +7,7 @@ tags:
   - standards/ui
 status: active
 created: 2025-12-23
-updated: 2026-01-08
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: 删除/批量/权限/高资源消耗等高风险操作的确认交互与按钮语义
 related:
@@ -52,6 +52,17 @@ related:
 - SHOULD：默认焦点放在“取消”，降低误触确认概率。
 - MUST：点击确认后进入 loading，并禁用至少一个按钮，防止重复提交。
 
+> [!info] 风险类型 -> confirmClass 决策表
+> 判定目标: 让 reviewer 能在 30 秒内判断该用 `btn-danger` 还是 `btn-warning`.
+>
+> | 风险类型 | 判定口径(满足其一即可) | 示例 | confirmClass |
+> |---|---|---|---|
+> | 不可逆数据破坏 | 删除/覆盖后无法恢复, 或恢复成本不可控 | 永久删除, 清空, 覆盖写 | `btn-danger` |
+> | 权限/安全不可逆 | 可能导致越权/降权不可恢复, 或出现"无人可管理" | 移除管理员, 变更关键策略 | `btn-danger` |
+> | 高成本但可恢复 | 可取消/可回滚/可重试, 且不直接造成数据丢失 | 全量同步, 重算, 重建索引 | `btn-warning` |
+>
+> 若无法明确归类, 默认按 `btn-danger` 处理, 并在评审中补齐"可恢复"依据或后端回滚能力说明.
+
 ## 正反例
 
 ### 正例：使用统一确认组件
@@ -76,3 +87,4 @@ UI.confirmDanger({
 
 - 2025-12-25：按 `documentation-standards.md` 补齐标准结构与门禁入口，收敛为可执行的规则。
 - 2026-01-08: 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter.
+- 2026-01-14: 补齐风险类型与 `confirmClass` 的决策表, 提升可审查性与一致性.

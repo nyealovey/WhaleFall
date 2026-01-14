@@ -8,13 +8,13 @@ tags:
   - standards/ui/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-14
 owner: WhaleFall Team
-scope: "`app/static/js/modules/views/**` 下所有页面与组件视图"
+scope: "`app/static/js/modules/views/**` 下所有页面与组件视图(不含 Page Entry)"
 related:
   - "[[standards/ui/layer/README]]"
   - "[[standards/ui/javascript-module-standards]]"
-  - "[[standards/ui/grid-list-page-skeleton-guidelines]]"
+  - "[[standards/ui/grid-standards]]"
   - "[[standards/ui/component-dom-id-scope-guidelines]]"
   - "[[standards/ui/danger-operation-confirmation-guidelines]]"
   - "[[standards/ui/async-task-feedback-guidelines]]"
@@ -35,6 +35,7 @@ related:
 
 - `app/static/js/modules/views/**` 下的页面脚本与组件脚本.
 - 包含 `views/components/**` 与 `views/grid-page.js` 生态(plugins 等).
+- Page Entry(页面启动脚本)属于 [[standards/ui/layer/page-entry-layer-standards|Page Entry 标准]], 推荐逐步迁移到 `app/static/js/modules/pages/**`.
 
 ## 规则(MUST/SHOULD/MAY)
 
@@ -50,7 +51,8 @@ related:
 ### 2) 依赖注入与全局读取
 
 - MUST: view 通过参数接收 store/service/容器等依赖.
-- MUST: 仅 Page Entry(页面启动层)允许读取 `window.DOMHelpers/httpU/UI/toast`.
+- MUST: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- MUST: Views 禁止读取 allowlist 外全局, 且不得读取 `window.httpU`.
 - SHOULD: 组件型 view 导出 `createXView({ store, container, ... })`, 返回 `{ mount, update, destroy }`.
 
 ### 3) 事件绑定与释放
@@ -121,3 +123,4 @@ rg -n "innerHTML\\s*=\\s*.*\\+" app/static/js/modules/views
 ## 变更历史
 
 - 2026-01-09: 新增前端 Views 分层标准, 明确 DOM/交互职责边界, 并固化 GridPage skeleton 与 XSS 转义约束.
+- 2026-01-14: 对齐 `window.*` allowlist SSOT, 并明确 Page Entry 与 Views 的物理目录边界与迁移方向.

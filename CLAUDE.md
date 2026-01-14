@@ -152,14 +152,17 @@ def example_view() -> Response:
 
 ### 前端架构
 
-#### Grid.js 标准
+#### Grid.js 列表页规范
 所有列表页使用 Grid.js 统一封装：
 - **封装器**：`app/static/js/common/grid-wrapper.js`（GridWrapper 类）
-- **骨架**：`window.Views.GridPage.mount(...)` 实现一致的 wiring
+- **骨架**：`window.Views.GridPage.mount(...)` 收敛 wiring
 - **分页**：使用 `page`（从 1 开始）与 `limit` 参数
-- **后端契约**：返回 `{success: true, data: {items: [], total: N}}`
 
-**必须遵循**：`docs/Obsidian/standards/ui/gridjs-migration-standard.md`
+**必须遵循(standards SSOT)**：
+- `docs/Obsidian/standards/ui/grid-standards.md`
+
+**迁移交付自检(checklist)**：
+- `docs/Obsidian/reference/development/gridjs-migration-checklist.md`
 
 #### 关键前端组件
 - **FilterCard**：`app/static/js/common/filter-card.js` - 统一筛选 UI，带防抖
@@ -178,9 +181,8 @@ def example_view() -> Response:
 - **任务与调度**：APScheduler 使用模式
 
 ### UI 规范（docs/Obsidian/standards/ui/）
-- **Grid.js 迁移**：分页、排序、筛选标准
-- **Grid 列表页骨架**：统一页面结构
-- **分页与排序**：参数命名约定
+- **Grid 列表页标准**：wiring/分页/日志单一真源
+- **Grid.js 列表页迁移 checklist**：迁移交付自检
 
 ### 编码规范
 - **Python**：模块/函数/变量用 `snake_case`，类名用 `CapWords`
