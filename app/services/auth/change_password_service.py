@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
@@ -19,19 +17,16 @@ from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
-if TYPE_CHECKING:
-    from app.core.types import PayloadMapping
-
 
 class ChangePasswordService:
     """修改密码写服务."""
 
-    def change_password(self, payload: PayloadMapping, *, user: User | None) -> User:
+    def change_password(self, payload: object | None, *, user: User | None) -> User:
         """修改当前用户密码."""
         if user is None:
             raise ValidationError("用户未登录")
 
-        sanitized = parse_payload(payload or {}, preserve_raw_fields=["old_password", "new_password", "confirm_password"])
+        sanitized = parse_payload(payload, preserve_raw_fields=["old_password", "new_password", "confirm_password"])
         params = validate_or_raise(ChangePasswordPayload, sanitized)
         old_password = params.old_password
         new_password = params.new_password

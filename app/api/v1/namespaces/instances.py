@@ -47,7 +47,6 @@ from app.services.instances.instance_statistics_read_service import InstanceStat
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.core.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
-from app.utils.request_payload import parse_payload
 
 ns = Namespace("instances", description="实例管理")
 
@@ -389,18 +388,11 @@ def _parse_instance_filters(parsed: dict[str, object]) -> InstanceListFilters:
     )
 
 
-def _parse_payload() -> dict[str, Any]:
+def _get_raw_payload() -> object:
     if request.is_json:
         payload = request.get_json(silent=True)
-        raw: object = payload if isinstance(payload, dict) else {}
-    else:
-        raw = request.form
-
-    return parse_payload(
-        raw,
-        list_fields=["tag_names"],
-        boolean_fields_default_false=["is_active"],
-    )
+        return payload if isinstance(payload, dict) else {}
+    return request.form
 
 
 def _normalize_import_header(value: str | None) -> str:
@@ -546,7 +538,7 @@ class InstancesResource(BaseResource):
     @require_csrf
     def post(self):
         """创建实例."""
-        payload = _parse_payload()
+        payload: Any = _get_raw_payload()
         operator_id = getattr(current_user, "id", None)
         credential_context_raw = payload.get("credential_id")
         db_type_context_raw = payload.get("db_type")
@@ -686,7 +678,7 @@ class InstanceDetailResource(BaseResource):
     @require_csrf
     def put(self, instance_id: int):
         """更新实例."""
-        payload = _parse_payload()
+        payload: Any = _get_raw_payload()
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
