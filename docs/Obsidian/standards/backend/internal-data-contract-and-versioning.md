@@ -9,7 +9,7 @@ tags:
   - standards/backend
 status: active
 created: 2026-01-13
-updated: 2026-01-13
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: 内部 JSON payload（snapshot/cache/JSON column）的结构稳定、版本化与兼容退出策略
 related:
@@ -55,7 +55,50 @@ related:
 - MUST: 写入端必须只写入**最新版本**的 canonical 形状（禁止“写旧版本以兼容下游”）。
 - MUST: 读取端必须显式处理：
   - 已支持版本：转换为 canonical 形状
-  - 未知版本：fail-fast（抛异常/返回错误），禁止 silent fallback 为 `{}`/`[]`
+  - 未知版本：fail-fast（默认：抛异常），禁止 silent fallback 为 `{}`/`[]`
+    - MAY: 仅当链路为 best-effort（例如统计/展示）且不会影响写操作时，允许返回“显式错误结果”（例如 `ok=false`/`errors` 非空/`Outcome.errors` 非空）而不抛异常；
+      但调用方 MUST 将其视为失败并停止进一步消费（不得继续按空结构执行业务）。
+    - MUST NOT: 在未知版本场景“吞掉问题并继续执行”，例如返回 `{}`/`[]` 且不携带任何错误标记。
+
+#### 4.1.1 best-effort 的统一返回结构（强约束）
+
+当允许“返回错误结果”而不抛异常时，返回值 MUST 为 dict，并满足以下最小结构（用于门禁化与避免口径漂移）：
+
+- MUST: 统一字段
+  - `ok`: bool
+  - `contract`: str（契约名，建议为稳定短字符串，如 `"permission_snapshot.categories"`）
+  - `version`: int | None（检测到的版本；缺失时为 None）
+  - `supported_versions`: list[int]（可枚举的支持版本）
+- MUST: `ok=true` 时包含：
+  - `data`: object（canonical 形状）
+- MUST: `ok=false` 时包含：
+  - `error_code`: str（稳定短字符串/枚举）
+  - `message`: str（可读错误说明）
+  - `errors`: list[str]（MUST 非空，且应包含 `error_code`）
+
+示例：
+
+```python
+# 成功（ok=true）
+{
+    "ok": True,
+    "contract": "permission_snapshot.categories",
+    "version": 4,
+    "supported_versions": [4],
+    "data": {"server_roles": ["sysadmin"]},
+}
+
+# 失败（ok=false）
+{
+    "ok": False,
+    "contract": "permission_snapshot.categories",
+    "version": 3,
+    "supported_versions": [4],
+    "error_code": "INTERNAL_CONTRACT_UNKNOWN_VERSION",
+    "message": "permission_snapshot.version=3 不受支持",
+    "errors": ["INTERNAL_CONTRACT_UNKNOWN_VERSION"],
+}
+```
 
 ### 4.2 单入口 canonicalization（强约束）
 
@@ -92,4 +135,3 @@ rg -n \"get\\(\\\"\\w+\\\"\\)\\s*or\\s*.*get\\(\" app/services app/repositories
 ## 6. 变更历史
 
 - 2026-01-13：新增标准，收敛 internal payload 的版本化与单入口 canonicalization 口径。
-

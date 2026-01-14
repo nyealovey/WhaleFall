@@ -11,7 +11,10 @@ from datetime import UTC, datetime
 from typing import Any, Final
 
 from app.core.constants import DatabaseType
-from app.schemas.internal_contracts.permission_snapshot_v4 import normalize_permission_snapshot_categories_v4
+from app.schemas.internal_contracts.permission_snapshot_v4 import (
+    normalize_permission_snapshot_categories_v4,
+    parse_permission_snapshot_categories_v4,
+)
 
 JsonDict = dict[str, Any]
 PERMISSION_SNAPSHOT_VERSION_V4: Final[int] = 4
@@ -55,17 +58,6 @@ def _extract_mapping_of_lists(value: object) -> dict[str, list[str]]:
         if isinstance(entry, dict):
             output[key] = _extract_privilege_list(entry)
     return output
-
-
-def _extract_snapshot_categories(snapshot: object) -> dict[str, Any] | None:
-    if not isinstance(snapshot, dict):
-        return None
-    if snapshot.get("version") != PERMISSION_SNAPSHOT_VERSION_V4:
-        return None
-    categories = snapshot.get("categories")
-    if isinstance(categories, dict):
-        return dict(categories)
-    return None
 
 
 def _extract_snapshot_type_specific(snapshot: object, *, db_type: str) -> JsonDict:
@@ -113,14 +105,6 @@ def _extract_snapshot_errors(snapshot: Mapping[str, object] | None) -> list[str]
     if not isinstance(raw_errors, list):
         return []
     return [item for item in raw_errors if isinstance(item, str) and item]
-
-
-def _resolve_categories(snapshot: Mapping[str, object] | None, errors: list[str]) -> dict[str, Any]:
-    categories = _extract_snapshot_categories(snapshot)
-    if categories is None:
-        errors.append("SNAPSHOT_MISSING")
-        return {}
-    return categories
 
 
 def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
@@ -330,7 +314,25 @@ def build_permission_facts(
     db_type = str(getattr(record, "db_type", "") or "").lower()
 
     errors = _extract_snapshot_errors(snapshot)
-    categories = _resolve_categories(snapshot, errors)
+    parsed_categories = parse_permission_snapshot_categories_v4(snapshot)
+    categories: dict[str, Any] = {}
+    meta: JsonDict = {
+        "source": "snapshot",
+        "snapshot_contract": parsed_categories.get("contract", "permission_snapshot.categories"),
+        "snapshot_contract_ok": parsed_categories.get("ok"),
+        "snapshot_version": parsed_categories.get("version"),
+        "snapshot_supported_versions": parsed_categories.get("supported_versions", [PERMISSION_SNAPSHOT_VERSION_V4]),
+    }
+    if parsed_categories["ok"] is True:
+        data = parsed_categories.get("data")
+        if isinstance(data, dict):
+            categories = dict(data)
+    else:
+        errors.extend(parsed_categories.get("errors", []))
+        meta["source"] = "snapshot_contract_error"
+        meta["snapshot_error_code"] = parsed_categories.get("error_code")
+        meta["snapshot_error_message"] = parsed_categories.get("message")
+
     categories = normalize_permission_snapshot_categories_v4(db_type, categories)
     if not categories:
         errors.append("PERMISSION_DATA_MISSING")
@@ -383,8 +385,5 @@ def build_permission_facts(
         "roles": sorted(set(roles)),
         "privileges": privileges,
         "errors": errors,
-        "meta": {
-            "source": "snapshot",
-            "snapshot_version": 4,
-        },
+        "meta": meta,
     }

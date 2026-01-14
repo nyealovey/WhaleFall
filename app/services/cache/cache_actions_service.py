@@ -15,14 +15,19 @@ from dataclasses import dataclass
 from typing import Protocol, cast
 
 import app.services.cache_service as cache_service_module
-from app.core.exceptions import ConflictError, NotFoundError, SystemError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, SystemError
+from app.schemas.cache_actions import (
+    CLASSIFICATION_DB_TYPES,
+    ClearClassificationCachePayload,
+    ClearInstanceCachePayload,
+    ClearUserCachePayload,
+)
+from app.schemas.validation import validate_or_raise
 from app.repositories.instances_repository import InstancesRepository
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.infra.route_safety import log_with_context
+from app.infra.route_safety import log_fallback
 from app.utils.structlog_config import log_info
-
-_CLASSIFICATION_DB_TYPES: list[str] = ["mysql", "postgresql", "sqlserver", "oracle"]
-_VALID_CLASSIFICATION_DB_TYPES: set[str] = set(_CLASSIFICATION_DB_TYPES)
+from app.utils.request_payload import parse_payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,11 +89,13 @@ class CacheActionsService:
         stats = manager.get_cache_stats()
         return CacheStatsResult(stats=stats)
 
-    def clear_user_cache(self, *, instance_id: int | None, username: str | None, operator_id: int | None) -> str:
+    def clear_user_cache(self, payload: object | None, *, operator_id: int | None) -> str:
         """清除指定用户在指定实例上的缓存."""
+        sanitized = parse_payload(payload)
+        params = validate_or_raise(ClearUserCachePayload, sanitized)
         manager = self._require_cache_service()
-        if not instance_id or not username:
-            raise ValidationError("缺少必要参数: instance_id 和 username")
+        instance_id = params.instance_id
+        username = params.username
 
         instance = InstancesRepository.get_instance(instance_id)
         if not instance:
@@ -107,11 +114,12 @@ class CacheActionsService:
         )
         return "用户缓存清除成功"
 
-    def clear_instance_cache(self, *, instance_id: int | None, operator_id: int | None) -> str:
+    def clear_instance_cache(self, payload: object | None, *, operator_id: int | None) -> str:
         """清除指定实例的缓存."""
+        sanitized = parse_payload(payload)
+        params = validate_or_raise(ClearInstanceCachePayload, sanitized)
         manager = self._require_cache_service()
-        if not instance_id:
-            raise ValidationError("缺少必要参数: instance_id")
+        instance_id = params.instance_id
 
         instance = InstancesRepository.get_instance(instance_id)
         if not instance:
@@ -135,47 +143,65 @@ class CacheActionsService:
         instances = InstancesRepository.list_active_instances()
 
         cleared_count = 0
+        failed_count = 0
         for instance in instances:
             try:
-                if manager.invalidate_instance_cache(instance.id):
-                    cleared_count += 1
+                if not manager.invalidate_instance_cache(instance.id):
+                    failed_count += 1
+                    log_fallback(
+                        "warning",
+                        "清除实例缓存失败",
+                        module="cache",
+                        action="clear_all_cache",
+                        fallback_reason="cache_invalidate_failed",
+                        context={"instance_id": instance.id},
+                        extra={"operator_id": operator_id, "error_type": "invalidate_failed"},
+                    )
+                    continue
+                cleared_count += 1
             except cache_service_module.CACHE_EXCEPTIONS as exc:
-                log_with_context(
-                    "error",
+                failed_count += 1
+                log_fallback(
+                    "warning",
                     "清除实例缓存失败",
                     module="cache",
                     action="clear_all_cache",
+                    fallback_reason="cache_invalidate_failed",
                     context={"instance_id": instance.id},
-                    extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
+                    extra={
+                        "operator_id": operator_id,
+                        "error_type": exc.__class__.__name__,
+                        "error_message": str(exc),
+                    },
                 )
 
         log_info(
             "批量清除缓存完成",
             module="cache",
             cleared_count=cleared_count,
+            failed_count=failed_count,
+            fallback_count=failed_count,
             operator_id=operator_id,
         )
         return CacheClearAllResult(cleared_count=cleared_count)
 
-    def clear_classification_cache(self, *, db_type: str | None, operator_id: int | None) -> str:
+    def clear_classification_cache(self, payload: object | None, *, operator_id: int | None) -> str:
         """清除分类规则缓存(可按 db_type 定向清除)."""
-        db_type_raw = (db_type or "").strip()
-        if db_type_raw:
-            normalized_type = db_type_raw.lower()
-            if normalized_type not in _VALID_CLASSIFICATION_DB_TYPES:
-                raise ValidationError(f"不支持的数据库类型: {db_type_raw}")
+        sanitized = parse_payload(payload)
+        params = validate_or_raise(ClearClassificationCachePayload, sanitized)
 
-            result = AccountClassificationService().invalidate_db_type_cache(normalized_type)
+        if params.db_type:
+            result = AccountClassificationService().invalidate_db_type_cache(params.db_type)
             if not result:
-                raise ConflictError(f"数据库类型 {db_type_raw} 缓存清除失败")
+                raise ConflictError(f"数据库类型 {params.db_type} 缓存清除失败")
 
             log_info(
-                f"数据库类型 {db_type_raw} 缓存清除成功",
+                f"数据库类型 {params.db_type} 缓存清除成功",
                 module="cache",
                 operator_id=operator_id,
-                db_type=normalized_type,
+                db_type=params.db_type,
             )
-            return f"数据库类型 {db_type_raw} 缓存已清除"
+            return f"数据库类型 {params.db_type} 缓存已清除"
 
         result = AccountClassificationService().invalidate_cache()
         if not result:
@@ -195,7 +221,7 @@ class CacheActionsService:
         stats = manager.get_cache_stats()
         db_type_stats: dict[str, dict[str, object]] = {}
 
-        for db_type in _CLASSIFICATION_DB_TYPES:
+        for db_type in CLASSIFICATION_DB_TYPES:
             try:
                 rules_cache = manager.get_classification_rules_by_db_type_cache(db_type)
                 db_type_stats[db_type] = {
@@ -203,11 +229,12 @@ class CacheActionsService:
                     "rules_count": len(rules_cache) if rules_cache else 0,
                 }
             except cache_service_module.CACHE_EXCEPTIONS as exc:
-                log_with_context(
-                    "error",
+                log_fallback(
+                    "warning",
                     "获取数据库类型缓存统计失败",
                     module="cache",
                     action="get_classification_cache_stats",
+                    fallback_reason="cache_stats_failed",
                     context={"db_type": db_type},
                     extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
                 )

@@ -8,7 +8,7 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: "`app/forms/**`, `app/views/**` 下所有表单与表单视图"
 related:
@@ -77,6 +77,7 @@ Views 允许依赖:
 
 - MUST: `app.forms.*`
 - MAY: `app.services.*`(通过基类或明确的 service 注入)
+- MAY: `typing.TYPE_CHECKING` 下引用 `app.models.*`（仅用于类型标注, 运行时不得 import/不得 query）
 - MAY: `app.core.exceptions`
 - MAY: `flask` 的模板/URL 工具
 

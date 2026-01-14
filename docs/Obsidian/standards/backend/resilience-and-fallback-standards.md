@@ -9,7 +9,7 @@ tags:
   - standards/backend
 status: active
 created: 2026-01-13
-updated: 2026-01-13
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: 运行期容错、降级、failover 与临时 workaround 的引入约束（避免 silent fallback 与语义漂移）
 related:
@@ -49,6 +49,21 @@ related:
   - 关键维度（例如 `action`/`task`/`instance_id` 等，见 [[standards/backend/structured-logging-context-fields]]）
 - MUST NOT: silent fallback（例如 `except Exception: return default` 且不记录任何告警/日志）。
   - 建议：优先使用 `app.infra.route_safety.log_fallback(...)` 统一写入 `fallback` 与 `fallback_reason`，避免字段命名漂移。
+
+#### 4.1.1 判据：什么算 fallback（需要 `fallback=true`）
+
+满足任一条件，即判定为“fallback/降级/回退/workaround”，必须记录 `fallback=true` 与 `fallback_reason`：
+
+- 主路径因异常/超时/不可用而切换到替代实现（例如 cache → 内存、主服务 → 备用服务）。
+- 主路径因异常而返回兜底值/默认值（例如 `except ...: return None/False`），且该返回值会改变语义/能力。
+- 批处理/循环中单项失败后继续执行其他项（partial failure，不影响整体完成）。
+- 明确的 workaround 分支（绕过缺陷/兼容第三方行为差异）。
+
+一般不视为 fallback（通常不需要打 `fallback=true`）：
+
+- cache miss（key 不存在）这类“正常条件分支”。
+- 业务规则分支（例如按权限/状态选择不同路径）且不属于降级语义。
+- 输入校验失败（`ValidationError`）导致的提前返回。
 
 ### 4.2 对写操作的约束（避免语义漂移）
 
