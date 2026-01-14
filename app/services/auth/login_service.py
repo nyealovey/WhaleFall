@@ -44,7 +44,7 @@ class LoginService:
 
     def login_from_payload(self, payload: object | None) -> LoginResult:
         """从原始 payload 解析并执行登录."""
-        sanitized = parse_payload(payload or {}, preserve_raw_fields=["password"])
+        sanitized = parse_payload(payload, preserve_raw_fields=["password"])
         parsed = validate_or_raise(LoginPayload, sanitized)
         return self.login(username=parsed.username, password=parsed.password)
 

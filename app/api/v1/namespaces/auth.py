@@ -17,7 +17,6 @@ from app.core.constants import TimeConstants
 from app.core.constants.system_constants import SuccessMessages
 from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
-from app.utils.request_payload import parse_payload
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 
 ns = Namespace("auth", description="认证")
@@ -110,17 +109,11 @@ MeData = ns.model(
 MeSuccessEnvelope = make_success_envelope_model(ns, "MeSuccessEnvelope", MeData)
 
 
-def _parse_payload() -> dict[str, Any]:
+def _get_raw_payload() -> object:
     if request.is_json:
         payload = request.get_json(silent=True)
-        raw: object = payload if isinstance(payload, dict) else {}
-    else:
-        raw = request.form
-
-    return parse_payload(
-        raw,
-        preserve_raw_fields=["password", "old_password", "new_password", "confirm_password"],
-    )
+        return payload if isinstance(payload, dict) else {}
+    return request.form
 
 
 @ns.route("/csrf-token")
@@ -164,11 +157,7 @@ class LoginResource(BaseResource):
         """执行登录."""
 
         def _execute():
-            if request.is_json:
-                parsed_json = request.get_json(silent=True)
-                raw_payload: object = parsed_json if isinstance(parsed_json, dict) else {}
-            else:
-                raw_payload = request.form
+            raw_payload: Any = _get_raw_payload()
             result = LoginService().login_from_payload(raw_payload)
             return self.success(
                 data=result.to_payload(),
@@ -226,10 +215,10 @@ class ChangePasswordResource(BaseResource):
     @require_csrf
     def post(self):
         """修改密码."""
-        payload = _parse_payload()
+        raw_payload: Any = _get_raw_payload()
 
         def _execute():
-            ChangePasswordService().change_password(payload, user=current_user._get_current_object())
+            ChangePasswordService().change_password(raw_payload, user=current_user._get_current_object())
             return self.success(message=SuccessMessages.PASSWORD_CHANGED)
 
         return self.safe_call(
