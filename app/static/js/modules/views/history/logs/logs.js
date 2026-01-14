@@ -409,11 +409,7 @@
             return;
         }
         const selectElement = selectWrapper.first();
-        if (selectElement.tomselect) {
-            if (!selectElement.tomselect.getValue()) {
-                selectElement.tomselect.setValue('1d', true);
-            }
-        } else if (!selectElement.value) {
+        if (!selectElement.value) {
             selectElement.value = '1d';
         }
     }
@@ -454,13 +450,6 @@
             selectEl.classList.remove(className);
         });
         selectEl.classList.add(`log-level-select--${tone}`);
-        const tomSelect = selectEl.tomselect;
-        if (tomSelect?.wrapper) {
-            LOG_LEVEL_SELECT_TONE_CLASSES.forEach((className) => {
-                tomSelect.wrapper.classList.remove(className);
-            });
-            tomSelect.wrapper.classList.add(`log-level-select--${tone}`);
-        }
     }
 
     /**

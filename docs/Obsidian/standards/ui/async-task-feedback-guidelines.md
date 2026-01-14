@@ -7,9 +7,9 @@ tags:
   - standards/ui
 status: active
 created: 2025-12-29
-updated: 2026-01-08
+updated: 2026-01-14
 owner: WhaleFall Team
-scope: 所有触发异步任务/批量同步/批量操作的前端入口与后端启动接口
+scope: 所有触发异步任务/批量同步/批量操作的前端入口
 related:
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]"
@@ -61,11 +61,17 @@ related:
 - SHOULD：确认弹窗/成功提示中提供“前往会话中心查看结果/进度”的 CTA（参考 `UI.confirmDanger` 的 `resultUrl/resultText` 选项）。
 - MAY：后端返回 `data.session_id` 时，前端可在日志/埋点中携带该 ID 用于定位（当前 outcome.meta 支持 `session_id`）。
 
-### 5) 后端契约（producer-owned contract）
+### 5) 后端契约(入口)
 
-- MUST: 异步任务启动接口返回标准 JSON envelope(见 [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]).
-- MUST：成功启动时返回 `success=true` 且 `data.session_id`（或等价标识），并给出可展示的 `message`。
-- MUST：失败统一使用 `unified_error_response/unified_error_message`（包含 `recoverable/suggestions`），禁止手写 `{success:false}`。
+> [!info] SSOT
+> 后端响应封套与错误字段以以下标准为准:
+> - [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API Layer: 响应封套(JSON Envelope)]]
+> - [[standards/backend/error-message-schema-unification|错误消息字段统一]]
+>
+> UI 侧依赖的字段摘要:
+> - `message`: 用户可见摘要(用于 started/failed 的默认文案).
+> - `recoverable`/`suggestions`: 失败时的恢复信息(如存在).
+> - `data.session_id`: 异步会话标识(如存在, 用于观测与定位).
 
 ## 正反例（推荐用法）
 
@@ -98,3 +104,4 @@ notify?.call(toast, outcome.message);
 
 - 2025-12-29：新增规范文档，固化 async action 的反馈口径、结果入口与后端契约要求。
 - 2026-01-08: 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter, 并统一内部链接为 wikilinks.
+- 2026-01-14: 将后端 MUST 契约迁移为 SSOT 链接, UI 标准仅保留前端依赖字段摘要.

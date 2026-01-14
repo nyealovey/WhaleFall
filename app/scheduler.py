@@ -77,8 +77,6 @@ CRON_FIELDS = ("second", "minute", "hour", "day", "month", "day_of_week", "year"
 TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
 TASK_FUNCTIONS: dict[str, JobFunc | str] = {
     "sync_accounts": "app.tasks.accounts_sync_tasks:sync_accounts",
-    "cleanup_old_logs": "app.tasks.log_cleanup_tasks:cleanup_old_logs",
-    "monitor_partition_health": "app.tasks.partition_management_tasks:monitor_partition_health",
     "collect_database_sizes": "app.tasks.capacity_collection_tasks:collect_database_sizes",
     "calculate_database_size_aggregations": "app.tasks.capacity_aggregation_tasks:calculate_database_size_aggregations",
 }

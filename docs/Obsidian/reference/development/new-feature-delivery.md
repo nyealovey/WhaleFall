@@ -7,7 +7,7 @@ tags:
   - reference/development
 status: active
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: 新增功能(API/页面/异步任务/脚本/配置)的最小交付清单(面向提交/评审)
 related:
@@ -57,7 +57,7 @@ related:
 - [ ] modules 分层(services/stores/views/ui)遵循:
   - [[standards/ui/layer/README]]
   - [[standards/ui/javascript-module-standards]]
-- [ ] Grid 列表页 wiring 使用 `Views.GridPage` skeleton: [[standards/ui/grid-list-page-skeleton-guidelines]]
+- [ ] Grid 列表页: [[standards/ui/grid-standards]]
 - [ ] 危险操作二次确认: [[standards/ui/danger-operation-confirmation-guidelines]]
 - [ ] 异步任务反馈: [[standards/ui/async-task-feedback-guidelines]]
 - [ ] 设计 Token 与颜色治理: [[standards/ui/design-token-governance-guidelines]] / [[standards/ui/color-guidelines]]
@@ -83,4 +83,3 @@ related:
 ## 变更历史
 
 - 2026-01-09: 从 `standards/new-feature-delivery-standard` 调整为 reference checklist, 避免将"执行清单"与"规范 SSOT"混写.
-

@@ -320,6 +320,10 @@
       return formatChineseDateTimeString(timestamp);
     },
 
+    formatPattern(value, pattern, fallback = "-") {
+      return formatWithPattern(value, pattern, fallback);
+    },
+
     formatRelativeTime(timestamp) {
       const diffSeconds = diffInSeconds(timestamp);
       if (diffSeconds === null) {
