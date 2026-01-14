@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from flask_caching import Cache
 
 import app.services.cache_service as cache_service_module
 import app.services.cache.cache_actions_service as cache_actions_service_module
@@ -29,7 +31,7 @@ def test_rate_limiter_cache_failure_logs_fallback(monkeypatch) -> None:
         def get(_key: str):  # noqa: ANN001
             raise ConnectionError("boom")
 
-    limiter = rate_limiter_module.RateLimiter(cache=_DummyCache())
+    limiter = rate_limiter_module.RateLimiter(cache=cast(Cache, _DummyCache()))
     result = limiter.is_allowed("user-1", "login", limit=1, window=60)
     assert result.get("allowed") is True
 
@@ -61,7 +63,7 @@ def test_cache_service_get_rule_evaluation_cache_failure_logs_fallback(monkeypat
 
     dummy_logger = _DummyLogger()
     monkeypatch.setattr(cache_service_module, "logger", dummy_logger)
-    service = CacheService(cache=_DummyCache())
+    service = CacheService(cache=cast(Cache, _DummyCache()))
     assert service.get_rule_evaluation_cache(rule_id=1, account_id=2) is None
 
     assert dummy_logger.warnings
@@ -89,7 +91,7 @@ def test_cache_service_set_rule_evaluation_cache_failure_logs_fallback(monkeypat
 
     dummy_logger = _DummyLogger()
     monkeypatch.setattr(cache_service_module, "logger", dummy_logger)
-    service = CacheService(cache=_DummyCache())
+    service = CacheService(cache=cast(Cache, _DummyCache()))
     assert service.set_rule_evaluation_cache(rule_id=1, account_id=2, result=True) is False
 
     assert dummy_logger.warnings
@@ -116,7 +118,7 @@ def test_cache_service_set_rule_evaluation_cache_ttl_zero_is_preserved(monkeypat
 
     dummy_cache = _DummyCache()
     monkeypatch.setattr(cache_service_module, "logger", _DummyLogger())
-    service = CacheService(cache=dummy_cache)
+    service = CacheService(cache=cast(Cache, dummy_cache))
 
     assert service.set_rule_evaluation_cache(rule_id=1, account_id=2, result=True, ttl=0) is True
     assert dummy_cache.calls == [0]
@@ -212,4 +214,3 @@ def test_cache_actions_classification_stats_partial_failure_logs_fallback(monkey
     assert result.db_type_stats["postgresql"]["rules_cached"] is True
     assert result.db_type_stats["mysql"]["rules_cached"] is False
     assert "cache_stats_failed" in fallback_calls
-

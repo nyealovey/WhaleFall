@@ -8,10 +8,10 @@ from __future__ import annotations
 from flask import Blueprint, render_template
 from flask_login import login_required
 
-from app.services.instances.instance_detail_page_service import InstanceDetailPageService
 from app.infra.flask_typing import RouteReturn
-from app.utils.decorators import view_required
 from app.infra.route_safety import safe_route_call
+from app.services.instances.instance_detail_page_service import InstanceDetailPageService
+from app.utils.decorators import view_required
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
 

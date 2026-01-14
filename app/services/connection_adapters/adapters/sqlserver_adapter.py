@@ -34,8 +34,8 @@ SQLSERVER_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
 
 
 if TYPE_CHECKING:
-    from app.models.instance import Instance
     from app.core.types import JsonValue
+    from app.models.instance import Instance
 else:
     Instance = Any
     JsonValue = Any

@@ -12,12 +12,12 @@ from typing import cast
 
 from sqlalchemy import func
 
-from app.models.database_table_size_stat import DatabaseTableSizeStat
 from app.core.types.instance_database_table_sizes import (
     InstanceDatabaseTableSizeEntry,
     InstanceDatabaseTableSizesQuery,
     InstanceDatabaseTableSizesResult,
 )
+from app.models.database_table_size_stat import DatabaseTableSizeStat
 
 
 class InstanceDatabaseTableSizesRepository:

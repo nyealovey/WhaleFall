@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, cast
 
 from app.core.constants import DatabaseType
 from app.core.constants.classification_constants import OPERATOR_OPTIONS
+from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.services.common.filter_options_service import FilterOptionsService
-from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 from app.utils.database_type_utils import get_database_type_display_name
 from app.utils.request_payload import parse_payload
 
@@ -27,11 +27,12 @@ class AccountClassificationRuleFormHandler:
         write_service: AccountClassificationsWriteService | None = None,
         filter_options_service: FilterOptionsService | None = None,
     ) -> None:
+        """初始化表单处理器."""
         self._read_service = read_service or AccountClassificationsReadService()
         self._write_service = write_service or AccountClassificationsWriteService()
         self._filter_options_service = filter_options_service or FilterOptionsService()
 
-    def load(self, resource_id: ResourceIdentifier) -> "ClassificationRule | None":
+    def load(self, resource_id: ResourceIdentifier) -> ClassificationRule | None:
         """加载分类规则资源."""
         if not isinstance(resource_id, int):
             return None
@@ -40,8 +41,8 @@ class AccountClassificationRuleFormHandler:
     def upsert(
         self,
         payload: ResourcePayload,
-        resource: "ClassificationRule | None" = None,
-    ) -> "ClassificationRule":
+        resource: ClassificationRule | None = None,
+    ) -> ClassificationRule:
         """创建或更新分类规则."""
         sanitized = cast(
             "dict[str, object]",
@@ -51,7 +52,7 @@ class AccountClassificationRuleFormHandler:
             return self._write_service.create_rule(sanitized)
         return self._write_service.update_rule(resource, sanitized)
 
-    def build_context(self, *, resource: "ClassificationRule | None") -> ResourceContext:
+    def build_context(self, *, resource: ClassificationRule | None) -> ResourceContext:
         """构造表单渲染上下文."""
         del resource
         db_type_options = [

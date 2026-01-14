@@ -10,7 +10,6 @@ from typing import Any, cast
 from app import db
 from app.core.constants import SyncSessionStatus, SyncStatus
 from app.core.exceptions import NotFoundError, ValidationError
-from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.repositories.sync_sessions_repository import SyncSessionsRepository
@@ -145,24 +144,24 @@ class SyncSessionService:
             Exception: 当数据库操作失败时抛出.
 
         """
-        try:
-            records = []
-            instances = self._repository.list_instances_by_ids(instance_ids)
-            instance_dict = {inst.id: inst for inst in instances}
-            missing_instance_ids = sorted(set(instance_ids) - set(instance_dict))
-            if missing_instance_ids:
-                raise ValidationError(
-                    "存在无效的 instance_id",
-                    extra={"missing_instance_ids": missing_instance_ids},
-                )
+        instances = self._repository.list_instances_by_ids(instance_ids)
+        instance_dict = {inst.id: inst for inst in instances}
+        missing_instance_ids = sorted(set(instance_ids) - set(instance_dict))
+        if missing_instance_ids:
+            raise ValidationError(
+                "存在无效的 instance_id",
+                extra={"missing_instance_ids": missing_instance_ids},
+            )
 
+        records: list[SyncInstanceRecord] = []
+        try:
             with db.session.begin_nested():
                 for instance_id in instance_ids:
-                    instance = instance_dict.get(instance_id)
+                    instance = instance_dict[instance_id]
                     record = SyncInstanceRecord(
                         session_id=session_id,
                         instance_id=instance_id,
-                        instance_name=instance.name if instance else None,
+                        instance_name=instance.name,
                         sync_category=sync_category,  # 使用传入的同步分类
                     )
                     records.append(record)
@@ -177,16 +176,16 @@ class SyncSessionService:
                 error=str(exc),
             )
             raise
-        else:
-            self.sync_logger.info(
-                "添加实例记录",
-                module="sync_session",
-                session_id=session_id,
-                instance_count=len(records),
-                sync_category=sync_category,
-            )
 
-            return records
+        self.sync_logger.info(
+            "添加实例记录",
+            module="sync_session",
+            session_id=session_id,
+            instance_count=len(records),
+            sync_category=sync_category,
+        )
+
+        return records
 
     def start_instance_sync(self, record_id: int) -> None:
         """开始实例同步.
@@ -222,7 +221,7 @@ class SyncSessionService:
                 instance_name=record.instance_name,
             )
 
-            return None
+            return
 
     def complete_instance_sync(
         self,
@@ -285,7 +284,7 @@ class SyncSessionService:
                 items_deleted=items_deleted,
             )
 
-            return None
+            return
 
     def fail_instance_sync(
         self,
@@ -333,7 +332,7 @@ class SyncSessionService:
                 error_message=error_message,
             )
 
-            return None
+            return
 
     def _update_session_statistics(self, session_id: str) -> None:
         """更新会话统计信息.

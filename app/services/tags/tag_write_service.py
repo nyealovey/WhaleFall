@@ -16,12 +16,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.core.exceptions import NotFoundError, ValidationError
+from app.infra.route_safety import log_with_context
 from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
 from app.schemas.tags import TagBatchDeletePayload, TagUpdatePayload, TagUpsertPayload
 from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload
-from app.infra.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:

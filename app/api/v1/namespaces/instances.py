@@ -36,6 +36,7 @@ from app.core.constants.import_templates import (
     INSTANCE_IMPORT_TEMPLATE_HEADERS,
 )
 from app.core.exceptions import ValidationError
+from app.core.types.instances import InstanceListFilters
 from app.services.capacity.instance_capacity_sync_actions_service import InstanceCapacitySyncActionsService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.instances_export_service import InstancesExportService
@@ -45,7 +46,6 @@ from app.services.instances.instance_detail_read_service import InstanceDetailRe
 from app.services.instances.instance_list_service import InstanceListService
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
 from app.services.instances.instance_write_service import InstanceWriteService
-from app.core.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
 
 ns = Namespace("instances", description="实例管理")

@@ -13,10 +13,10 @@ from sqlalchemy import and_, desc, func, tuple_
 from sqlalchemy.orm import Query, Session
 
 from app import db
+from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
-from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 
 
 class CapacityDatabasesRepository:

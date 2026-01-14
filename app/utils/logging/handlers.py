@@ -147,11 +147,11 @@ class DatabaseLogHandler:
         return event_dict
 
 
-def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
+def _build_log_entry(event_dict: object) -> dict[str, Any] | None:
     """把 structlog 事件转换为 UnifiedLog 可用的字段字典.
 
     Args:
-        event_dict: structlog 事件字典.
+        event_dict: structlog 事件字典或其他可打印对象.
 
     Returns:
         包含日志字段的字典,如果是 DEBUG 级别则返回 None.
@@ -168,6 +168,7 @@ def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
             "timestamp": time_utils.now(),
         }
 
+    event_dict = cast("dict[str, Any]", event_dict)
     level_str = str(event_dict.get("level", "INFO")).upper()
     try:
         level = LogLevel(level_str)

@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any, cast
 
 from app.core.constants import SyncStatus
-from app.repositories.history_sessions_repository import HistorySessionsRepository
 from app.core.types.history_sessions import (
     HistorySessionsListFilters,
     SyncInstanceRecordItem,
@@ -20,6 +19,7 @@ from app.core.types.history_sessions import (
     SyncSessionItem,
 )
 from app.core.types.listing import PaginatedResult
+from app.repositories.history_sessions_repository import HistorySessionsRepository
 
 
 class HistorySessionsReadService:

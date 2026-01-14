@@ -12,8 +12,8 @@ else:
     from app.core.types import JsonDict
     from app.core.types.classification import ClassificationEngineResult
 
-from app.services.account_classification.orchestrator import AccountClassificationService
 from app.core.exceptions import AppError
+from app.services.account_classification.orchestrator import AccountClassificationService
 from app.utils.structlog_config import log_error, log_info
 
 

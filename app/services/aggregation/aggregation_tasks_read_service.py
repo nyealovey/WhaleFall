@@ -34,6 +34,7 @@ class AggregationTasksReadService:
         aggregation_repository: AggregationRepository | None = None,
         instances_core_repository: InstancesRepository | None = None,
     ) -> None:
+        """初始化统计聚合任务读取服务."""
         self._instances_repository = instances_repository or FilterOptionsRepository()
         self._aggregation_repository = aggregation_repository or AggregationRepository()
         self._instances_core_repository = instances_core_repository or InstancesRepository()

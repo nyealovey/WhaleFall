@@ -23,8 +23,8 @@ from flask_wtf.csrf import CSRFProtect
 
 from app.api import register_api_blueprints
 from app.core.constants import HttpHeaders, HttpStatus
-from app.infra.flask_typing import WhaleFallFlask, WhaleFallLoginManager
 from app.infra.error_mapping import map_exception_to_status
+from app.infra.flask_typing import WhaleFallFlask, WhaleFallLoginManager
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
 from app.settings import Settings
@@ -81,10 +81,10 @@ def create_app(
     resolved_settings = settings or Settings.load()
 
     # 注入跨模块共享的“基础设施配置”(避免散落读取 os.environ)
-    from app.utils.password_crypto_utils import init_password_manager  # noqa: PLC0415
     from app.services.connection_adapters.adapters.oracle_adapter import (  # noqa: PLC0415
         init_oracle_client_settings,
     )
+    from app.utils.password_crypto_utils import init_password_manager  # noqa: PLC0415
 
     init_password_manager(key=resolved_settings.password_encryption_key)
     init_oracle_client_settings(

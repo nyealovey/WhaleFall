@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from flask import request
 from flask_login import current_user
@@ -12,6 +12,7 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.types import ContextDict
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.utils.decorators import require_csrf
 
@@ -118,7 +119,13 @@ class CacheClearUserResource(BaseResource):
             module="cache",
             action="clear_user_cache",
             public_error="清除用户缓存失败",
-            context={"instance_id": raw.get("instance_id"), "username": raw.get("username")},
+            context=cast(
+                ContextDict,
+                {
+                    "instance_id": raw.get("instance_id"),
+                    "username": raw.get("username"),
+                },
+            ),
             expected_exceptions=(ValidationError, NotFoundError, ConflictError),
         )
 
@@ -161,7 +168,7 @@ class CacheClearInstanceResource(BaseResource):
             module="cache",
             action="clear_instance_cache",
             public_error="清除实例缓存失败",
-            context={"instance_id": raw.get("instance_id")},
+            context=cast(ContextDict, {"instance_id": raw.get("instance_id")}),
             expected_exceptions=(ValidationError, NotFoundError, ConflictError),
         )
 
@@ -235,7 +242,13 @@ class CacheClearClassificationActionResource(BaseResource):
             module="cache",
             action="clear_classification_cache",
             public_error="清除分类缓存失败",
-            context={"target": "classification", "db_type": raw.get("db_type")},
+            context=cast(
+                ContextDict,
+                {
+                    "target": "classification",
+                    "db_type": raw.get("db_type"),
+                },
+            ),
             expected_exceptions=(ValidationError, ConflictError),
         )
 

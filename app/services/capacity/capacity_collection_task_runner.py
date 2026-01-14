@@ -93,6 +93,7 @@ class CapacityCollectionTaskRunner:
 
     @staticmethod
     def no_active_instances_result() -> dict[str, object]:
+        """构造“无活跃实例”时的成功返回结构."""
         return {
             "success": True,
             "message": "没有活跃的数据库实例需要同步",
@@ -102,14 +103,17 @@ class CapacityCollectionTaskRunner:
 
     @staticmethod
     def start_instance_sync(record_id: int) -> None:
+        """标记实例同步开始."""
         sync_session_service.start_instance_sync(record_id)
 
     @staticmethod
     def fail_instance_sync(record_id: int, error_message: str) -> None:
+        """标记实例同步失败."""
         sync_session_service.fail_instance_sync(record_id, error_message)
 
     @staticmethod
     def create_capacity_session(active_instances: list[Instance]) -> tuple[SyncSession, list[SyncInstanceRecord]]:
+        """创建容量同步会话并批量生成实例记录."""
         session = sync_session_service.create_session(
             sync_type=SyncOperationType.SCHEDULED_TASK.value,
             sync_category=SyncCategory.CAPACITY.value,
@@ -250,6 +254,7 @@ class CapacityCollectionTaskRunner:
         instance: Instance,
         sync_logger: structlog.BoundLogger,
     ) -> tuple[dict[str, object], CapacitySyncTotals]:
+        """执行单个实例的容量同步并返回结果与累计统计."""
         totals = CapacitySyncTotals()
         sync_logger.info(
             "开始实例容量同步",
@@ -443,6 +448,7 @@ class CapacityCollectionTaskRunner:
         instance_id: int,
         logger: structlog.BoundLogger,
     ) -> dict[str, object]:
+        """采集指定实例的数据库大小并返回结果."""
         instance = self._load_active_instance(instance_id)
         collector = CapacitySyncCoordinator(instance)
         if not collector.connect():

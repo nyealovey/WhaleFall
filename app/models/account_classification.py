@@ -12,12 +12,12 @@ from app.utils.theme_color_utils import (
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.models.account_permission import AccountPermission
     from app.core.types.orm_kwargs import (
         AccountClassificationAssignmentOrmFields,
         AccountClassificationOrmFields,
         ClassificationRuleOrmFields,
     )
+    from app.models.account_permission import AccountPermission
 
 
 class AccountClassification(db.Model):

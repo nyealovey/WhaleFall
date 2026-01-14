@@ -22,8 +22,6 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from app.models.instance import Instance
-    from app.models.instance_account import InstanceAccount
     from app.core.types import (
         JsonDict,
         JsonValue,
@@ -34,6 +32,8 @@ if TYPE_CHECKING:
         RemoteAccountMap,
         SyncSummary,
     )
+    from app.models.instance import Instance
+    from app.models.instance_account import InstanceAccount
 else:
     Instance = Any
     InstanceAccount = Any

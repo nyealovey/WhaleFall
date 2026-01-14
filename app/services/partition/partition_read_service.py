@@ -13,8 +13,6 @@ from datetime import date, timedelta
 from typing import Any, cast
 
 from app.core.exceptions import SystemError, ValidationError
-from app.repositories.partition_repository import PartitionRepository
-from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.core.types.listing import PaginatedResult
 from app.core.types.partition import (
     PartitionCoreMetricsResult,
@@ -23,6 +21,8 @@ from app.core.types.partition import (
     PartitionStatusSnapshot,
     PeriodWindow,
 )
+from app.repositories.partition_repository import PartitionRepository
+from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 

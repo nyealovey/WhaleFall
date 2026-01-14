@@ -23,6 +23,7 @@ class ChangePasswordService:
     """修改密码写服务."""
 
     def __init__(self, repository: UsersRepository | None = None) -> None:
+        """初始化服务."""
         self._repository = repository or UsersRepository()
 
     def change_password(self, payload: object | None, *, user: User | None) -> User:

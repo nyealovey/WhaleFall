@@ -65,6 +65,7 @@ class TableSizeCoordinator:
 
         Args:
             instance: 实例对象.
+            repository: 数据落库仓库(可选,用于依赖注入).
 
         """
         self.instance = instance

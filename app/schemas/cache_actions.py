@@ -94,7 +94,7 @@ class ClearClassificationCachePayload(PayloadSchema):
         if value is None:
             return None
         if not isinstance(value, str):
-            raise ValueError("db_type 必须为字符串")
+            raise ValueError("db_type 必须为字符串")  # noqa: TRY004
         cleaned = value.strip()
         if not cleaned:
             return None
@@ -102,4 +102,3 @@ class ClearClassificationCachePayload(PayloadSchema):
         if normalized not in VALID_CLASSIFICATION_DB_TYPES:
             raise ValueError(f"不支持的数据库类型: {cleaned}")
         return normalized
-

@@ -34,6 +34,7 @@ class AppError(Exception):
         extra: 结构化日志附加字段.
         severity: 错误严重度.
         category: 错误分类.
+
     """
 
     metadata = ExceptionMetadata(
@@ -59,6 +60,7 @@ class AppError(Exception):
             extra: 结构化日志附加字段.
             severity: 错误严重度.
             category: 错误分类.
+
         """
         self.message_key = message_key or self.metadata.default_message_key
         self.message = message or getattr(ErrorMessages, self.message_key, ErrorMessages.INTERNAL_ERROR)
@@ -70,7 +72,6 @@ class AppError(Exception):
     @property
     def recoverable(self) -> bool:
         """表示该异常是否可恢复."""
-
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
 
 

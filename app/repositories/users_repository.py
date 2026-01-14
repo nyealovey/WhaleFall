@@ -15,9 +15,9 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.core.constants import UserRole
-from app.models.user import User
 from app.core.types.listing import PaginatedResult
 from app.core.types.users import UserListFilters
+from app.models.user import User
 
 
 class UsersRepository:

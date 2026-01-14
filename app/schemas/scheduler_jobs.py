@@ -41,7 +41,7 @@ class SchedulerJobUpsertPayload(PayloadSchema):
     @classmethod
     def _parse_trigger_type(cls, value: Any) -> str:
         if not isinstance(value, str):
-            raise ValueError("缺少触发器类型配置")
+            raise ValueError("缺少触发器类型配置")  # noqa: TRY004
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("缺少触发器类型配置")
@@ -58,7 +58,7 @@ class SchedulerJobUpsertPayload(PayloadSchema):
     @classmethod
     def _parse_cron_expression(cls, value: Any) -> str:
         if not isinstance(value, str):
-            raise ValueError("缺少 cron_expression")
+            raise ValueError("缺少 cron_expression")  # noqa: TRY004
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("缺少 cron_expression")
@@ -71,4 +71,3 @@ class SchedulerJobUpsertPayload(PayloadSchema):
         if len(parts) not in _CRON_PARTS_ALLOWED:
             raise ValueError("cron_expression 格式非法")
         return value
-

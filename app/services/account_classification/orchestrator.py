@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.exceptions import ConflictError, ValidationError
+from app.repositories.account_classification_repository import ClassificationRepository
 from app.services.account_classification.dsl_v4 import (
     DslV4Evaluator,
     collect_dsl_v4_validation_errors,
     is_dsl_v4_expression,
 )
-from app.repositories.account_classification_repository import ClassificationRepository
 from app.utils.structlog_config import log_error, log_info
 
 from .cache import ClassificationCache

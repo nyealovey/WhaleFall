@@ -47,6 +47,7 @@ class InstanceBatchCreationService:
     """
 
     def __init__(self, repository: InstancesBatchRepository | None = None) -> None:
+        """初始化批量创建服务."""
         self._repository = repository or InstancesBatchRepository()
 
     def create_instances(
@@ -211,6 +212,7 @@ class InstanceBatchDeletionService:
     """
 
     def __init__(self, repository: InstancesBatchRepository | None = None) -> None:
+        """初始化批量删除服务."""
         self._repository = repository or InstancesBatchRepository()
 
     def delete_instances_from_payload(

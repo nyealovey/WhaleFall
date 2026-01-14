@@ -14,10 +14,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import app_start_time, cache
 from app.core.constants import TimeConstants
+from app.infra.route_safety import log_with_context
 from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS
 from app.settings import APP_VERSION
-from app.infra.route_safety import log_with_context
 from app.utils.time_utils import time_utils
 
 RESOURCE_USAGE_THRESHOLD = 90

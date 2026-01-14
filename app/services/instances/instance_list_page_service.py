@@ -11,15 +11,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.constants import STATUS_ACTIVE_OPTIONS, DatabaseType
+from app.models.credential import Credential
+from app.repositories.credentials_repository import CredentialsRepository
+from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.database_type_utils import (
     build_database_type_select_option,
     get_database_type_color,
     get_database_type_display_name,
     get_database_type_icon,
 )
-from app.models.credential import Credential
-from app.repositories.credentials_repository import CredentialsRepository
-from app.services.common.filter_options_service import FilterOptionsService
 
 
 @dataclass(slots=True)

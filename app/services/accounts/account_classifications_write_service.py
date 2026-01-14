@@ -21,7 +21,6 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
-from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
 from app.schemas.account_classifications import (
     AccountClassificationCreatePayload,
     AccountClassificationRuleCreatePayload,
@@ -29,6 +28,7 @@ from app.schemas.account_classifications import (
     AccountClassificationUpdatePayload,
 )
 from app.schemas.validation import validate_or_raise
+from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
@@ -180,7 +180,7 @@ class AccountClassificationsWriteService:
         raw_payload: Mapping[str, object] = payload or {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
         sanitized = parse_payload(raw_payload)
-        sanitized_payload: dict[str, object] = {key: value for key, value in sanitized.items()}
+        sanitized_payload: dict[str, object] = dict(sanitized)
         if "rule_expression" in raw_payload:
             sanitized_payload["rule_expression"] = raw_expression
         parsed = validate_or_raise(AccountClassificationRuleCreatePayload, sanitized_payload)
@@ -239,7 +239,7 @@ class AccountClassificationsWriteService:
         raw_payload: Mapping[str, object] = payload or {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
         sanitized = parse_payload(raw_payload)
-        sanitized_payload: dict[str, object] = {key: value for key, value in sanitized.items()}
+        sanitized_payload: dict[str, object] = dict(sanitized)
         if "rule_expression" in raw_payload:
             sanitized_payload["rule_expression"] = raw_expression
         parsed = validate_or_raise(AccountClassificationRuleUpdatePayload, sanitized_payload)

@@ -16,8 +16,8 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from app.models.instance import Instance
     from app.core.types import RemoteAccount
+    from app.models.instance import Instance
 
 
 class AccountInventoryManager:

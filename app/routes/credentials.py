@@ -12,14 +12,14 @@ from app.core.constants import (
     DATABASE_TYPES,
     STATUS_ACTIVE_OPTIONS,
 )
+from app.core.types.credentials import CredentialListFilters
+from app.infra.route_safety import safe_route_call
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.credentials.credential_detail_page_service import CredentialDetailPageService
-from app.core.types.credentials import CredentialListFilters
 from app.utils.decorators import (
     view_required,
 )
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.infra.route_safety import safe_route_call
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import MultiDict
