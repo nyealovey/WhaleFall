@@ -7,7 +7,7 @@ tags:
   - standards/ui
 status: active
 created: 2025-12-29
-updated: 2026-01-08
+updated: 2026-01-14
 owner: WhaleFall Team
 scope: "`app/templates/**` 与 `app/static/js/**` 中所有可复用组件(含 Jinja 宏)"
 related:
@@ -40,13 +40,15 @@ related:
 模板侧：
 
 - MUST：为组件最外层提供可定位容器：
-  - `data-*-scope="<scope>"`（推荐）或 `id="<scope>-container"`（允许）。
+  - `data-wf-scope="<scope>"`(推荐)或 `id="<scope>-container"`(允许).
 - MUST：内部节点 id 必须从 `<scope>` 派生，形式建议为：`<scope>-<part>`。
+- MUST: `<scope>` 使用 `kebab-case`, 且必须在页面内唯一.
+- SHOULD: `<scope>` 以组件/域前缀开头, 例如 `tag-selector-<field-id>`.
 
 JS 侧：
 
 - MUST：先定位 scope 容器，再在容器内查找内部节点：
-  - `const container = document.querySelector([data-*-scope="<scope>"])`
+  - `const container = document.querySelector('[data-wf-scope="<scope>"]')`
   - `container.querySelector(...)`
 
 ### 3) 内部节点查询优先“容器内 querySelector”（SHOULD）
@@ -64,7 +66,7 @@ JS 侧：
 模板宏（示意）：
 
 ```html
-<div data-tag-selector-scope="{{ field_id }}">
+<div data-wf-scope="{{ field_id }}">
   <button id="{{ field_id }}-open">选择标签</button>
   <div id="{{ field_id }}-preview"><div id="{{ field_id }}-chips"></div></div>
   <input id="{{ field_id }}-selected" type="hidden" name="tags">
@@ -88,3 +90,4 @@ TagSelectorHelper.setupForForm({
 
 - 2025-12-29：初始化标准，作为 TagSelectorFilter 多实例治理的通用约束入口。
 - 2026-01-08: 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter.
+- 2026-01-14: 固化容器属性为 `data-wf-scope`, 补齐 selector 示例与 `<scope>` 命名规则.

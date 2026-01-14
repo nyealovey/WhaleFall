@@ -13,6 +13,7 @@ scope: "`app/static/js/modules/**`(services/stores/views/ui)与相关全局对�
 related:
   - "[[standards/ui/component-dom-id-scope-guidelines]]"
   - "[[standards/ui/layer/README]]"
+  - "[[standards/ui/vendor-library-usage-standards]]"
 ---
 
 # 前端模块化(modules)规范

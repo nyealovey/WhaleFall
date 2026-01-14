@@ -180,15 +180,14 @@ app/
 | services/form_service/user_service.py | 259 |  |
 | services/account_classification/classifiers/oracle_classifier.py | 254 |  |
 
-#### 3.1.4 Tasks层 - 异步任务（2,180行，5个文件）
+#### 3.1.4 Tasks层 - 异步任务（733行，4个文件）
 
 | 文件路径 | 行数 | 功能说明 |
 |---------|------|---------|
-| tasks/capacity_aggregation_tasks.py | 804 |  |
-| tasks/capacity_collection_tasks.py | 758 |  |
-| tasks/accounts_sync_tasks.py | 288 |  |
-| tasks/partition_management_tasks.py | 221 |  |
-| tasks/log_cleanup_tasks.py | 109 |  |
+| tasks/accounts_sync_tasks.py | 282 |  |
+| tasks/capacity_aggregation_tasks.py | 215 |  |
+| tasks/capacity_collection_tasks.py | 150 |  |
+| tasks/partition_management_tasks.py | 86 |  |
 
 #### 3.1.5 Models层 - 数据模型（3,073行，19个文件）
 
@@ -341,12 +340,11 @@ app/
 - `sync_session_service.py`: 542行 - 同步会话
 - `cache_service.py`: 514行 - 缓存服务
 
-#### 3.2.3 Tasks（异步任务层）- 5个文件，2,180行
-- `capacity_collection_tasks.py`: 758行 - 容量数据采集
-- `capacity_aggregation_tasks.py`: 804行 - 容量数据聚合
-- `accounts_sync_tasks.py`: 288行 - 账户同步任务
-- `partition_management_tasks.py`: 221行 - 分区管理任务
-- `log_cleanup_tasks.py`: 109行 - 日志清理任务
+#### 3.2.3 Tasks（异步任务层）- 4个文件，733行
+- `capacity_collection_tasks.py`: 150行 - 容量数据采集
+- `capacity_aggregation_tasks.py`: 215行 - 容量数据聚合
+- `accounts_sync_tasks.py`: 282行 - 账户同步任务
+- `partition_management_tasks.py`: 86行 - 分区管理任务
 
 #### 3.2.4 Models（数据模型层）- 19个文件，3,073行
 **核心业务模型**：

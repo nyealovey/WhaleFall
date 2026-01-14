@@ -11,12 +11,7 @@
    - 官网: https://ricostacruz.com/nprogress/
    - 大小: ~2KB (gzipped)
 
-3. Tom Select v2.3.1
-   - 文件: tom-select/tom-select.complete.min.js, tom-select/tom-select.bootstrap5.min.css
-   - 官网: https://tom-select.js.org/
-   - 大小: ~20KB (gzipped)
-
-总大小: ~30KB (gzipped)
+总大小: ~10KB (gzipped)
 
 现有库(保留):
 - jQuery (已有)
