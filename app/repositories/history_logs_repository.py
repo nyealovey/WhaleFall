@@ -15,9 +15,9 @@ from sqlalchemy.orm import Query
 
 from app import db
 from app.core.constants.system_constants import LogLevel
-from app.models.unified_log import UnifiedLog
 from app.core.types.history_logs import LogSearchFilters
 from app.core.types.listing import PaginatedResult
+from app.models.unified_log import UnifiedLog
 from app.utils.time_utils import time_utils
 
 

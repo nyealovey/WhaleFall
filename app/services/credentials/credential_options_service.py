@@ -14,6 +14,7 @@ class CredentialOptionsService:
     """凭据下拉选项读取服务."""
 
     def __init__(self, repository: CredentialsRepository | None = None) -> None:
+        """初始化服务."""
         self._repository = repository or CredentialsRepository()
 
     def list_active_credential_options(self) -> list[dict[str, object]]:
@@ -26,4 +27,3 @@ class CredentialOptionsService:
             }
             for cred in credentials
         ]
-

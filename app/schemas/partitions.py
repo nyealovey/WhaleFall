@@ -61,7 +61,7 @@ class PartitionCleanupPayload(PayloadSchema):
             return DEFAULT_RETENTION_MONTHS
 
         if isinstance(value, bool):
-            raise ValueError("retention_months 必须为数字")
+            raise ValueError("retention_months 必须为数字")  # noqa: TRY004
 
         try:
             parsed = int(value)

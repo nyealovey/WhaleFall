@@ -102,7 +102,6 @@ def normalize_permission_snapshot_categories_v4(db_type: str, categories: Mappin
     - SQL Server: `server_roles`/`database_roles` 允许 list[str] 或 list[{"name": str}]（以及 dict 映射到这些 list）
     - Oracle: `oracle_roles` 允许 list[str] 或 list[{"role": str}]
     """
-
     normalized: JsonDict = dict(categories)
 
     if db_type == DatabaseType.POSTGRESQL:

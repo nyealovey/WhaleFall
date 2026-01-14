@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+from dataclasses import dataclass
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -37,6 +38,7 @@ class PasswordManager:
 
         Args:
             key: Fernet key(bytes).
+
         """
         self.key = key
         self.cipher = Fernet(self.key)
@@ -109,7 +111,12 @@ class PasswordManager:
             return True
 
 
-_PASSWORD_MANAGER: PasswordManager | None = None
+@dataclass(slots=True)
+class _PasswordManagerState:
+    manager: PasswordManager | None = None
+
+
+_PASSWORD_MANAGER_STATE = _PasswordManagerState()
 
 
 def init_password_manager(*, key: str) -> None:
@@ -117,9 +124,9 @@ def init_password_manager(*, key: str) -> None:
 
     Args:
         key: Fernet key 字符串.
+
     """
-    global _PASSWORD_MANAGER
-    _PASSWORD_MANAGER = PasswordManager(key=key.encode())
+    _PASSWORD_MANAGER_STATE.manager = PasswordManager(key=key.encode())
 
 
 def get_password_manager() -> PasswordManager:
@@ -129,6 +136,7 @@ def get_password_manager() -> PasswordManager:
         PasswordManager: 全局复用的管理器实例.
 
     """
-    if _PASSWORD_MANAGER is None:
+    manager = _PASSWORD_MANAGER_STATE.manager
+    if manager is None:
         raise RuntimeError("PasswordManager 未初始化,请先在 create_app 阶段调用 init_password_manager()")
-    return _PASSWORD_MANAGER
+    return manager

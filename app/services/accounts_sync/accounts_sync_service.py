@@ -17,7 +17,6 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.models import Instance
     from app.core.types import (
         CollectionSummary,
         InventorySummary,
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
         SyncOperationResult,
         SyncStagesSummary,
     )
+    from app.models import Instance
 else:
     CollectionSummary = dict[str, Any]
     InventorySummary = dict[str, Any]

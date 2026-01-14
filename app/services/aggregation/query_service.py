@@ -18,6 +18,7 @@ class AggregationQueryService:
     """
 
     def __init__(self, repository: AggregationRepository | None = None) -> None:
+        """初始化聚合查询服务."""
         self._repository = repository or AggregationRepository()
 
     def get_database_aggregations(

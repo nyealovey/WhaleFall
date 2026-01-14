@@ -13,13 +13,13 @@ import psutil
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
+from app.core.types.capacity_instances import InstanceAggregationsSummaryFilters
 from app.repositories.account_statistics_repository import AccountStatisticsRepository
 from app.repositories.capacity_instances_repository import CapacityInstancesRepository
 from app.repositories.database_statistics_repository import DatabaseStatisticsRepository
 from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 from app.repositories.users_repository import UsersRepository
 from app.services.health.health_checks_service import check_cache_health, check_database_health, get_system_uptime
-from app.core.types.capacity_instances import InstanceAggregationsSummaryFilters
 from app.utils.cache_utils import dashboard_cache
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils

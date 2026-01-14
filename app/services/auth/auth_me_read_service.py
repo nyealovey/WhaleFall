@@ -16,6 +16,7 @@ class AuthMeReadService:
     """读取当前用户信息服务."""
 
     def __init__(self, repository: UsersRepository | None = None) -> None:
+        """初始化服务."""
         self._repository = repository or UsersRepository()
 
     def get_me(self, *, identity: str | int | None) -> dict[str, object]:

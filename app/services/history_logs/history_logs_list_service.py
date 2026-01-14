@@ -7,9 +7,9 @@
 
 from __future__ import annotations
 
-from app.repositories.history_logs_repository import HistoryLogsRepository
 from app.core.types.history_logs import HistoryLogListItem, LogSearchFilters
 from app.core.types.listing import PaginatedResult
+from app.repositories.history_logs_repository import HistoryLogsRepository
 from app.utils.time_utils import time_utils
 
 

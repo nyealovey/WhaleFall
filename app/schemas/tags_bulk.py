@@ -13,15 +13,12 @@ from app.schemas.base import PayloadSchema
 def _parse_id_list(value: Any) -> list[int]:
     if value is None:
         return []
-    if isinstance(value, (list, tuple, set)):
-        raw_items = list(value)
-    else:
-        raw_items = [value]
+    raw_items = list(value) if isinstance(value, (list, tuple, set)) else [value]
 
     parsed: list[int] = []
     for item in raw_items:
         if isinstance(item, bool):
-            raise ValueError("ID格式错误: bool")
+            raise ValueError("ID格式错误: bool")  # noqa: TRY004
         try:
             parsed.append(int(item))
         except (TypeError, ValueError) as exc:
@@ -84,4 +81,3 @@ class TagsBulkRemoveAllPayload(PayloadSchema):
         if not self.instance_ids:
             raise ValueError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids"))
         return self
-

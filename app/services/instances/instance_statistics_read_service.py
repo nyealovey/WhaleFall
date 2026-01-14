@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from typing import cast
 
-from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 from app.core.types.instance_statistics import (
     InstanceDbTypeStat,
     InstancePortStat,
     InstanceStatisticsResult,
     InstanceVersionStat,
 )
+from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 
 
 class InstanceStatisticsReadService:

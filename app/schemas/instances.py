@@ -19,8 +19,8 @@ from app.core.constants.validation_limits import (
     PORT_MIN,
 )
 from app.schemas.base import PayloadSchema
-from app.utils.payload_converters import as_bool
 from app.utils.database_type_utils import normalize_database_type
+from app.utils.payload_converters import as_bool
 
 
 def _ensure_mapping(data: Any) -> Mapping[str, Any]:
@@ -307,11 +307,7 @@ class InstancesBatchDeletePayload(PayloadSchema):
         if value is None:
             raise ValueError("请选择要删除的实例")
 
-        raw_items: list[Any]
-        if isinstance(value, (list, tuple, set)):
-            raw_items = list(value)
-        else:
-            raw_items = [value]
+        raw_items = list(value) if isinstance(value, (list, tuple, set)) else [value]
 
         if not raw_items:
             raise ValueError("请选择要删除的实例")
@@ -319,7 +315,7 @@ class InstancesBatchDeletePayload(PayloadSchema):
         parsed: list[int] = []
         for item in raw_items:
             if isinstance(item, bool):
-                raise ValueError("实例ID列表无效")
+                raise ValueError("实例ID列表无效")  # noqa: TRY004
             try:
                 parsed.append(int(item))
             except (TypeError, ValueError) as exc:

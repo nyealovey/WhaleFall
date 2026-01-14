@@ -22,16 +22,17 @@ from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from yaml import YAMLError
-from pydantic import ValidationError as PydanticValidationError
 
-from app.utils.structlog_config import get_system_logger
 from app.schemas.yaml_configs import SchedulerTaskConfig, SchedulerTasksConfigFile
+from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
     from apscheduler.job import Job
     from flask import Flask
+
     from app.settings import Settings
 
 logger = get_system_logger()
@@ -432,6 +433,7 @@ def init_scheduler(app: Flask, settings: Settings) -> TaskScheduler | None:
 
     Args:
         app: Flask 应用实例,用于任务上下文.
+        settings: 应用配置,用于判断是否允许启动调度器等.
 
     Returns:
         TaskScheduler | None: 初始化成功时返回 TaskScheduler,否则返回 None.

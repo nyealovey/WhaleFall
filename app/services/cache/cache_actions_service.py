@@ -16,6 +16,8 @@ from typing import Protocol, cast
 
 import app.services.cache_service as cache_service_module
 from app.core.exceptions import ConflictError, NotFoundError, SystemError
+from app.infra.route_safety import log_fallback
+from app.repositories.instances_repository import InstancesRepository
 from app.schemas.cache_actions import (
     CLASSIFICATION_DB_TYPES,
     ClearClassificationCachePayload,
@@ -23,11 +25,9 @@ from app.schemas.cache_actions import (
     ClearUserCachePayload,
 )
 from app.schemas.validation import validate_or_raise
-from app.repositories.instances_repository import InstancesRepository
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.infra.route_safety import log_fallback
-from app.utils.structlog_config import log_info
 from app.utils.request_payload import parse_payload
+from app.utils.structlog_config import log_info
 
 
 @dataclass(frozen=True, slots=True)

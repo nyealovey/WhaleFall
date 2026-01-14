@@ -12,8 +12,8 @@ from werkzeug.exceptions import HTTPException
 
 from app.core.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, UserRole
 from app.core.exceptions import AppError, SystemError
-from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.infra.route_safety import log_fallback, safe_route_call
+from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.utils.user_role_utils import get_user_role_display_name
 from app.views.user_forms import UserFormView
 

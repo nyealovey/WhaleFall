@@ -16,12 +16,12 @@ from app import db
 from app.core.constants import SyncStatus
 from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import SystemError as AppSystemError, ValidationError
+from app.core.types.capacity_aggregations import CurrentAggregationRequest
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
 from app.services.sync_session_service import SyncItemStats, sync_session_service
-from app.core.types.capacity_aggregations import CurrentAggregationRequest
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 

@@ -20,10 +20,10 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.models.sync_instance_record import SyncInstanceRecord
-    from app.models.sync_session import SyncSession
     from app.core.types.structures import JsonDict
     from app.core.types.sync import CollectionSummary, InventorySummary, SyncStagesSummary
+    from app.models.sync_instance_record import SyncInstanceRecord
+    from app.models.sync_session import SyncSession
 
 
 def _sync_single_instance(

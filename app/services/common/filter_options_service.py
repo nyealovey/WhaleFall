@@ -11,7 +11,6 @@ from typing import cast
 
 from app.core.constants import DatabaseType
 from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
-from app.repositories.filter_options_repository import FilterOptionsRepository
 from app.core.types.common_filter_options import (
     CommonDatabaseOptionItem,
     CommonDatabasesOptionsFilters,
@@ -21,17 +20,18 @@ from app.core.types.common_filter_options import (
     CommonInstanceOptionItem,
     CommonInstancesOptionsResult,
 )
+from app.repositories.filter_options_repository import FilterOptionsRepository
+from app.utils.database_type_utils import (
+    get_database_type_color,
+    get_database_type_display_name,
+    get_database_type_icon,
+)
 from app.utils.query_filter_utils import (
     build_category_options,
     build_classification_options,
     build_database_select_options,
     build_instance_select_options,
     build_tag_options,
-)
-from app.utils.database_type_utils import (
-    get_database_type_color,
-    get_database_type_display_name,
-    get_database_type_icon,
 )
 
 

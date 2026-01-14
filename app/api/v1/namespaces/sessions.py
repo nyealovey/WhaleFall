@@ -17,9 +17,9 @@ from app.api.v1.restx_models.history import (
     SYNC_SESSION_ITEM_FIELDS,
 )
 from app.core.exceptions import NotFoundError
+from app.core.types.history_sessions import HistorySessionsListFilters
 from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
 from app.services.sync_session_service import sync_session_service
-from app.core.types.history_sessions import HistorySessionsListFilters
 from app.utils.decorators import require_csrf
 from app.utils.structlog_config import log_info
 

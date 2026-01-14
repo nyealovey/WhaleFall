@@ -10,8 +10,6 @@ from __future__ import annotations
 from typing import Any, cast
 
 from app.core.constants import DatabaseType
-from app.repositories.instance_accounts_repository import InstanceAccountsRepository
-from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.core.types.instance_accounts import (
     InstanceAccountChangeHistoryAccount,
     InstanceAccountChangeHistoryResult,
@@ -23,6 +21,8 @@ from app.core.types.instance_accounts import (
     InstanceAccountPermissions,
     InstanceAccountPermissionsResult,
 )
+from app.repositories.instance_accounts_repository import InstanceAccountsRepository
+from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.time_utils import time_utils
 
 

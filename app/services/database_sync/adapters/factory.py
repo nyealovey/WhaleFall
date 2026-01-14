@@ -8,11 +8,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.core.constants import DatabaseType
-from app.utils.database_type_utils import normalize_database_type
 from app.services.database_sync.adapters.mysql_adapter import MySQLCapacityAdapter
 from app.services.database_sync.adapters.oracle_adapter import OracleCapacityAdapter
 from app.services.database_sync.adapters.postgresql_adapter import PostgreSQLCapacityAdapter
 from app.services.database_sync.adapters.sqlserver_adapter import SQLServerCapacityAdapter
+from app.utils.database_type_utils import normalize_database_type
 
 if TYPE_CHECKING:
     from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
