@@ -7,8 +7,8 @@ from app.services.scheduler.scheduler_job_write_service import SchedulerJobResou
 
 
 class _DummyJob:
-    id = "cleanup_logs"
-    name = "cleanup_logs"
+    id = "sync_accounts"
+    name = "sync_accounts"
 
 
 class _DummyScheduler:
