@@ -8,7 +8,6 @@ from __future__ import annotations
 import atexit
 import fcntl  # type: ignore[attr-defined]
 import os
-import sqlite3
 import time
 from collections.abc import Callable
 from importlib import import_module
@@ -76,55 +75,11 @@ DEFAULT_TASK_CREATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
 CONFIG_IO_EXCEPTIONS: tuple[type[BaseException], ...] = (OSError, YAMLError)
 CRON_FIELDS = ("second", "minute", "hour", "day", "month", "day_of_week", "year")
 TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
-REMOVED_JOB_IDS: tuple[str, ...] = ("cleanup_logs", "monitor_partition_health")
 TASK_FUNCTIONS: dict[str, JobFunc | str] = {
     "sync_accounts": "app.tasks.accounts_sync_tasks:sync_accounts",
     "collect_database_sizes": "app.tasks.capacity_collection_tasks:collect_database_sizes",
     "calculate_database_size_aggregations": "app.tasks.capacity_aggregation_tasks:calculate_database_size_aggregations",
 }
-
-
-def _purge_removed_jobs_from_jobstore(sqlite_path: Path) -> None:
-    """从 APScheduler jobstore 中移除已废弃的内置任务.
-
-    说明:
-    - 这些任务已从代码与默认配置移除,但旧版本可能已将 job 持久化到 scheduler.db.
-    - 若不清理,APScheduler 在加载 job 时可能因为找不到任务函数而导致启动异常.
-    """
-    if not sqlite_path.exists():
-        return
-
-    deleted = 0
-    try:
-        connection = sqlite3.connect(str(sqlite_path))
-    except sqlite3.Error as exc:  # pragma: no cover - 极端情况
-        logger.warning("连接调度器数据库失败,跳过已移除任务清理", error=str(exc))
-        return
-
-    try:
-        cursor = connection.cursor()
-        try:
-            placeholders = ",".join(["?"] * len(REMOVED_JOB_IDS))
-            cursor.execute(
-                f"DELETE FROM apscheduler_jobs WHERE id IN ({placeholders})",
-                REMOVED_JOB_IDS,
-            )
-            deleted = cursor.rowcount if cursor.rowcount and cursor.rowcount > 0 else 0
-            connection.commit()
-        except sqlite3.OperationalError as exc:
-            # 表不存在时说明 jobstore 尚未初始化,无需处理
-            if "no such table" not in str(exc):
-                logger.warning("清理已移除任务失败", error=str(exc))
-        except sqlite3.Error as exc:  # pragma: no cover - 防御性日志
-            logger.warning("清理已移除任务失败", error=str(exc))
-    finally:
-        try:
-            connection.close()
-        except sqlite3.Error:  # pragma: no cover
-            pass
-
-    if deleted > 0:
-        logger.info("已从 jobstore 移除废弃任务", deleted=deleted, job_ids=list(REMOVED_JOB_IDS))
 
 
 def _load_task_callable(function_name: str) -> JobFunc | None:
@@ -500,8 +455,6 @@ def init_scheduler(app: Flask, settings: Settings) -> TaskScheduler | None:
             logger.info("创建SQLite调度器数据库文件")
             sqlite_path.parent.mkdir(exist_ok=True)
             sqlite_path.touch()
-
-        _purge_removed_jobs_from_jobstore(sqlite_path)
 
         scheduler.start()
         time.sleep(2)

@@ -11,12 +11,10 @@ if TYPE_CHECKING:
         accounts_sync_tasks,
         capacity_aggregation_tasks,
         capacity_collection_tasks,
-        partition_management_tasks,
     )
 
 __all__ = [
     "accounts_sync_tasks",
     "capacity_aggregation_tasks",
     "capacity_collection_tasks",
-    "partition_management_tasks",
 ]

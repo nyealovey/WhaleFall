@@ -160,7 +160,7 @@ ORDER BY created_at DESC;
 > - `instance_size_stats`
 > - `instance_size_aggregations`
 >
-> 入口: `app/services/partition_management_service.py` + `app/tasks/partition_management_tasks.py`.
+> 入口: `app/services/partition_management_service.py` (API: `app/api/v1/namespaces/partition.py`).
 
 ### 3.1 `database_size_stats`
 
@@ -194,7 +194,7 @@ Source:
 保留策略:
 
 - 按月分区, 默认保留 `DATABASE_SIZE_RETENTION_MONTHS`(默认 12)个月.
-- `cleanup_database_size_partitions` 会删除更早的分区表.
+- 旧分区清理由管理员通过 Partition API 触发,最终落到 `PartitionManagementService.cleanup_old_partitions`.
 
 ### 3.2 `database_size_aggregations`
 
