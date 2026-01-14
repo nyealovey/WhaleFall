@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.models.instance_account import InstanceAccount
 from app.repositories.accounts_sync_repository import AccountsSyncRepository
+from app.repositories.instance_accounts_write_repository import InstanceAccountsWriteRepository
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -30,10 +31,15 @@ class AccountInventoryManager:
 
     """
 
-    def __init__(self, repository: AccountsSyncRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: AccountsSyncRepository | None = None,
+        write_repository: InstanceAccountsWriteRepository | None = None,
+    ) -> None:
         """初始化账户清单管理器."""
         self.logger = get_sync_logger()
         self._repository = repository or AccountsSyncRepository()
+        self._write_repository = write_repository or InstanceAccountsWriteRepository()
 
     def synchronize(
         self,
@@ -113,7 +119,7 @@ class AccountInventoryManager:
                         record.is_active = is_active
                         record.first_seen_at = now_ts
                         record.last_seen_at = now_ts
-                        db.session.add(record)
+                        self._write_repository.add(record)
                         existing_map[username] = record
                         created += 1
 
@@ -127,7 +133,7 @@ class AccountInventoryManager:
                         record.updated_at = now_ts
                         deactivated += 1
 
-                db.session.flush()
+                self._write_repository.flush()
         except SQLAlchemyError as exc:
             self.logger.exception(
                 "account_inventory_sync_flush_failed",

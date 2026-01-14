@@ -59,10 +59,15 @@ def collect_database_sizes() -> dict[str, Any]:
                     sync_logger.exception(
                         "实例同步异常(未分类)",
                         module="capacity_sync",
+                        task="collect_database_sizes",
+                        action="process_capacity_instance",
                         session_id=session_obj.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
+                        fallback=True,
+                        fallback_reason="capacity_instance_sync_failed",
                         error=str(exc),
+                        error_type=type(exc).__name__,
                     )
                     runner.fail_instance_sync(record.id, error_msg)
                     db.session.commit()

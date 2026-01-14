@@ -65,7 +65,17 @@ class OracleConnection(DatabaseConnection):
             if hasattr(oracledb, "is_thin"):
                 try:
                     is_thin = bool(oracledb.is_thin())  # type: ignore[call-arg]
-                except Exception:  # pragma: no cover - 防御性
+                except Exception as exc:  # pragma: no cover - 防御性
+                    self.db_logger.warning(
+                        "oracle_is_thin_check_failed_fallback",
+                        module="connection",
+                        action="connect",
+                        instance_id=self.instance.id,
+                        fallback=True,
+                        fallback_reason="oracledb_is_thin_check_failed",
+                        error_type=type(exc).__name__,
+                        error=str(exc),
+                    )
                     is_thin = False
             if not is_thin:
                 try:

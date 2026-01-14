@@ -110,3 +110,19 @@ class InstancesBatchRepository:
 
         return stats
 
+    @staticmethod
+    def add_instance(instance: Instance) -> Instance:
+        """新增实例(不 commit)."""
+        db.session.add(instance)
+        return instance
+
+    @staticmethod
+    def save_instance(instance: Instance) -> Instance:
+        """保存实例变更(不 commit)."""
+        db.session.add(instance)
+        return instance
+
+    @staticmethod
+    def delete_instance(instance: Instance) -> None:
+        """删除实例(不 commit)."""
+        db.session.delete(instance)

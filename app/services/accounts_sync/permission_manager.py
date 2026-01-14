@@ -510,7 +510,10 @@ class AccountPermissionManager:
                 "account_permission_facts_build_failed",
                 module="accounts_sync",
                 phase="collection",
+                fallback=True,
+                fallback_reason="FACTS_BUILD_FAILED",
                 error=str(exc),
+                error_type=type(exc).__name__,
             )
             record.permission_facts = {
                 "version": 2,

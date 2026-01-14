@@ -106,17 +106,18 @@ class InventoryManager:
                     if record:
                         self._refresh_existing_record(record, today=today, now_ts=now_ts, stats=stats)
                     else:
-                        self._create_new_record(
+                        new_record = self._create_new_record(
                             instance_id=instance.id,
                             database_name=name,
                             today=today,
                             now_ts=now_ts,
                         )
+                        self._repository.add(new_record)
                         stats.created += 1
 
                 stats.deactivated = self._deactivate_missing_records(existing_records, seen_names, now_ts)
 
-                db.session.flush()
+                self._repository.flush()
         except SQLAlchemyError as exc:
             self.logger.exception(
                 "inventory_sync_flush_failed",
@@ -182,7 +183,7 @@ class InventoryManager:
         database_name: str,
         today: date,
         now_ts: datetime,
-    ) -> None:
+    ) -> InstanceDatabase:
         new_record = InstanceDatabase()
         new_record.instance_id = instance_id
         new_record.database_name = database_name
@@ -191,7 +192,7 @@ class InventoryManager:
         new_record.is_active = True
         new_record.created_at = now_ts
         new_record.updated_at = now_ts
-        db.session.add(new_record)
+        return new_record
 
     @staticmethod
     def _deactivate_missing_records(

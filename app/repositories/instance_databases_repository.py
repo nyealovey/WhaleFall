@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import cast
 
+from app import db
 from app.models.instance_database import InstanceDatabase
 
 
@@ -23,3 +24,14 @@ class InstanceDatabasesRepository:
     def list_by_instance_id(instance_id: int) -> list[InstanceDatabase]:
         """按实例 ID 获取数据库记录列表."""
         return InstanceDatabase.query.filter_by(instance_id=instance_id).all()
+
+    @staticmethod
+    def add(record: InstanceDatabase) -> InstanceDatabase:
+        """新增记录(不 commit)."""
+        db.session.add(record)
+        return record
+
+    @staticmethod
+    def flush() -> None:
+        """显式 flush,用于增量同步批量更新."""
+        db.session.flush()
