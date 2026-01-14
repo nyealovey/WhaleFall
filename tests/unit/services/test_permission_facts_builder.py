@@ -79,3 +79,14 @@ def test_build_permission_facts_postgresql_maps_role_attributes_to_capabilities(
     assert "can_create_role" in facts["capabilities"]
     assert "can_create_db" in facts["capabilities"]
     assert "GRANT_ADMIN" in facts["capabilities"]
+
+
+@pytest.mark.unit
+def test_build_permission_facts_includes_internal_contract_error_in_meta() -> None:
+    record = _StubRecord(db_type="sqlserver")
+    facts = build_permission_facts(record=record, snapshot={"version": 3, "categories": {}})
+    meta = facts.get("meta", {})
+    assert isinstance(meta, dict)
+    assert meta.get("snapshot_contract_ok") is False
+    assert meta.get("snapshot_error_code") == "INTERNAL_CONTRACT_UNKNOWN_VERSION"
+    assert "INTERNAL_CONTRACT_UNKNOWN_VERSION" in facts.get("errors", [])
