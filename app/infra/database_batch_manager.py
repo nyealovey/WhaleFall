@@ -279,6 +279,9 @@ class DatabaseBatchManager:
                 module="database_batch_manager",
                 instance_name=self.instance_name,
                 error=str(e),
+                fallback=True,
+                fallback_reason="database_batch_manager_rollback_failed",
+                exception_type=e.__class__.__name__,
             )
 
     def get_statistics(self) -> dict[str, int]:

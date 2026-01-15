@@ -65,6 +65,9 @@ related:
 
 ### 4.1 返回值形态 (Flask-RESTX)
 
+> [!note]
+> 本节约束仅适用于 Flask-RESTX 的 `Resource` 方法（例如 `Resource.get/post/...`）。同 scope 目录下的 blueprint routes（例如输出 `openapi.json` 的路由函数）不属于 `Resource` 方法，不在本条 MUST/MUST NOT 的约束范围内。
+
 - MUST: Resource 只允许返回:
   - `(JsonDict, status_code)` 或 `(JsonDict, status_code, headers)` 等可序列化结构.
   - `flask.Response` 对象(且必须已设置 `response.status_code`).

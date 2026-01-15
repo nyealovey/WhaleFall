@@ -15,9 +15,20 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
+from flask import has_request_context, request
+
 from app.core.types.structures import MutablePayloadDict, PayloadValue, ScalarValue
 
 _STRING_LIKE_TYPES = (str, bytes, bytearray)
+_PARSE_PAYLOAD_MARKER = "_wf_parse_payload_called"
+
+
+def _guard_parse_payload_called_once() -> None:
+    if not has_request_context():
+        return
+    if getattr(request, _PARSE_PAYLOAD_MARKER, False):
+        raise RuntimeError("parse_payload 只允许在一次请求链路内执行一次")
+    setattr(request, _PARSE_PAYLOAD_MARKER, True)
 
 
 def parse_payload(
@@ -41,6 +52,7 @@ def parse_payload(
         规范化后的 payload dict.
 
     """
+    _guard_parse_payload_called_once()
     list_field_set = set(list_fields)
     raw_field_set = set(preserve_raw_fields)
 
@@ -203,4 +215,3 @@ def _should_preserve_raw(
     return field_name in preserve_raw_fields or (
         preserve_raw_password_fields_by_name and "password" in field_name.lower()
     )
-
