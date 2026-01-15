@@ -22,7 +22,9 @@ from app.core.types.instance_accounts import (
     InstanceAccountPermissionsResult,
 )
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
+from app.schemas.internal_contracts.type_specific_v1 import normalize_type_specific_v1
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
+from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
 
@@ -31,6 +33,7 @@ class InstanceAccountsService:
 
     def __init__(self, repository: InstanceAccountsRepository | None = None) -> None:
         """初始化服务并注入实例账户仓库."""
+        self._logger = get_system_logger()
         self._repository = repository or InstanceAccountsRepository()
 
     def list_accounts(self, filters: InstanceAccountListFilters) -> InstanceAccountListResult:
@@ -43,7 +46,34 @@ class InstanceAccountsService:
         for account in page_result.items:
             instance_account = getattr(account, "instance_account", None)
             is_active = bool(instance_account and getattr(instance_account, "is_active", False))
-            type_specific = cast("dict[str, Any]", getattr(account, "type_specific", None) or {})
+            raw_type_specific = getattr(account, "type_specific", None)
+
+            # COMPAT: 历史数据可能缺失 `account_permission.type_specific.version`；统一在读入口补齐并记录命中。
+            # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
+            if isinstance(raw_type_specific, dict) and type(raw_type_specific.get("version")) is not int:
+                self._logger.info(
+                    "account_permission.type_specific legacy payload normalized",
+                    module="instance_accounts_service",
+                    fallback=True,
+                    fallback_reason="TYPE_SPECIFIC_LEGACY_MISSING_VERSION",
+                    instance_id=int(getattr(account, "instance_id", 0) or 0),
+                    account_id=int(getattr(account, "id", 0) or 0),
+                    raw_version=raw_type_specific.get("version"),
+                )
+
+            try:
+                normalized_type_specific = normalize_type_specific_v1(raw_type_specific)
+            except Exception as exc:
+                self._logger.exception(
+                    "account_permission.type_specific payload invalid",
+                    module="instance_accounts_service",
+                    instance_id=int(getattr(account, "instance_id", 0) or 0),
+                    account_id=int(getattr(account, "id", 0) or 0),
+                    error=str(exc),
+                )
+                raise
+
+            type_specific = cast("dict[str, Any]", normalized_type_specific if normalized_type_specific is not None else {})
 
             item = InstanceAccountListItem(
                 id=cast(int, getattr(account, "id", 0)),
