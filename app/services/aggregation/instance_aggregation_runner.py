@@ -81,6 +81,7 @@ class InstanceAggregationRunner:
             commit_with_partition_retry: 提交数据的回调函数.
             period_calculator: 周期计算器实例.
             module: 模块名称.
+            repository: 聚合执行仓库(可选,用于依赖注入).
 
         """
         self._ensure_partition_for_date = ensure_partition_for_date

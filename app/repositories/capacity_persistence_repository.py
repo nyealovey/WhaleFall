@@ -62,7 +62,7 @@ class CapacityPersistenceRepository:
                 "total_size_mb": insert_stmt.excluded.total_size_mb,
                 "database_count": insert_stmt.excluded.database_count,
                 "collected_at": insert_stmt.excluded.collected_at,
-                "updated_at": insert_stmt.excluded.updated_at,
+                "updated_at": current_utc,
                 "is_deleted": False,
                 "deleted_at": None,
             },
@@ -91,4 +91,3 @@ class CapacityPersistenceRepository:
             )
             .all()
         )
-

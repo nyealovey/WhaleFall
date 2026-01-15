@@ -16,18 +16,16 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.core.exceptions import NotFoundError, ValidationError
+from app.infra.route_safety import log_with_context
 from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
 from app.schemas.tags import TagBatchDeletePayload, TagUpdatePayload, TagUpsertPayload
 from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload
-from app.infra.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from app.core.types import ResourcePayload
 
 
 @dataclass(slots=True)
@@ -55,7 +53,7 @@ class TagWriteService:
         """初始化写操作服务."""
         self._repository = repository or TagsRepository()
 
-    def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
+    def create(self, payload: object | None, *, operator_id: int | None = None) -> Tag:
         """创建标签."""
         sanitized = parse_payload(payload, boolean_fields_default_false=["is_active"])
         parsed = validate_or_raise(TagUpsertPayload, sanitized)
@@ -80,7 +78,7 @@ class TagWriteService:
         self._log_create(tag, operator_id=operator_id)
         return tag
 
-    def update(self, tag_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
+    def update(self, tag_id: int, payload: object | None, *, operator_id: int | None = None) -> Tag:
         """更新标签."""
         tag = self._repository.get_by_id(tag_id)
         if not tag:
@@ -180,7 +178,7 @@ class TagWriteService:
 
         return TagBatchDeleteOutcome(results=results, has_failure=has_failure)
 
-    def batch_delete_from_payload(self, payload: ResourcePayload, *, operator_id: int | None = None) -> TagBatchDeleteOutcome:
+    def batch_delete_from_payload(self, payload: object | None, *, operator_id: int | None = None) -> TagBatchDeleteOutcome:
         """从原始 payload 解析并批量删除标签."""
         sanitized = parse_payload(payload, list_fields=["tag_ids"])
         parsed = validate_or_raise(TagBatchDeletePayload, sanitized)

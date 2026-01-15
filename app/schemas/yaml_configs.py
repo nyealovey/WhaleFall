@@ -39,7 +39,7 @@ class SchedulerTaskConfig(PayloadSchema):
         if value is None:
             return {}
         if not isinstance(value, Mapping):
-            raise ValueError("trigger_params 必须为对象")
+            raise ValueError("trigger_params 必须为对象")  # noqa: TRY004
         return dict(value)
 
 
@@ -52,7 +52,7 @@ class SchedulerTasksConfigFile(PayloadSchema):
     @classmethod
     def _validate_root(cls, data: Any) -> Any:
         if not isinstance(data, Mapping):
-            raise ValueError("配置文件格式错误，必须为 YAML mapping")
+            raise ValueError("配置文件格式错误，必须为 YAML mapping")  # noqa: TRY004
         return data
 
 
@@ -88,14 +88,14 @@ class AccountFiltersConfigFile(PayloadSchema):
     @classmethod
     def _validate_root(cls, data: Any) -> Any:
         if not isinstance(data, Mapping):
-            raise ValueError("配置文件格式错误，必须为 YAML mapping")
+            raise ValueError("配置文件格式错误，必须为 YAML mapping")  # noqa: TRY004
         return data
 
     @field_validator("account_filters", mode="before")
     @classmethod
     def _normalize_db_type_keys(cls, value: Any) -> Any:
         if not isinstance(value, Mapping):
-            raise ValueError("account_filters 必须为对象")
+            raise ValueError("account_filters 必须为对象")  # noqa: TRY004
         normalized: dict[str, Any] = {}
         for key, rule in value.items():
             if not isinstance(key, str) or not key.strip():
@@ -136,14 +136,14 @@ class DatabaseFiltersConfigFile(PayloadSchema):
     @classmethod
     def _validate_root(cls, data: Any) -> Any:
         if not isinstance(data, Mapping):
-            raise ValueError("配置文件格式错误，必须为 YAML mapping")
+            raise ValueError("配置文件格式错误，必须为 YAML mapping")  # noqa: TRY004
         return data
 
     @field_validator("database_filters", mode="before")
     @classmethod
     def _normalize_db_type_keys(cls, value: Any) -> Any:
         if not isinstance(value, Mapping):
-            raise ValueError("database_filters 必须为对象")
+            raise ValueError("database_filters 必须为对象")  # noqa: TRY004
         normalized: dict[str, Any] = {}
         for key, rule in value.items():
             if not isinstance(key, str) or not key.strip():
@@ -160,4 +160,3 @@ __all__ = [
     "SchedulerTaskConfig",
     "SchedulerTasksConfigFile",
 ]
-

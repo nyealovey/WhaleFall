@@ -15,6 +15,7 @@ class AccountsSyncTaskService:
     """账户同步任务所需的数据读取服务."""
 
     def __init__(self, repository: FilterOptionsRepository | None = None) -> None:
+        """初始化服务."""
         self._repository = repository or FilterOptionsRepository()
 
     def list_active_instances(self) -> list[Instance]:

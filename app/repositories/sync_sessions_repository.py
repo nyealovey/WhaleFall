@@ -74,3 +74,25 @@ class SyncSessionsRepository:
             )
             or 0,
         )
+
+    @staticmethod
+    def add_session(session: SyncSession) -> SyncSession:
+        """新增同步会话并 flush."""
+        db.session.add(session)
+        db.session.flush()
+        return session
+
+    @staticmethod
+    def add_records(records: list[SyncInstanceRecord]) -> list[SyncInstanceRecord]:
+        """批量新增实例记录并 flush."""
+        normalized = list(records or [])
+        if not normalized:
+            return []
+        db.session.add_all(normalized)
+        db.session.flush()
+        return normalized
+
+    @staticmethod
+    def flush() -> None:
+        """显式 flush,用于更新已存在对象的状态变更."""
+        db.session.flush()

@@ -15,6 +15,7 @@ class CapacityTasksReadService:
     """容量任务读取服务."""
 
     def __init__(self, repository: FilterOptionsRepository | None = None) -> None:
+        """初始化服务."""
         self._repository = repository or FilterOptionsRepository()
 
     def list_active_instances(self, *, db_type: str | None = None) -> list[Instance]:

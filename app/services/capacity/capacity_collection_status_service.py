@@ -26,6 +26,7 @@ class CapacityCollectionStatusService:
     """容量采集状态读取服务."""
 
     def __init__(self, repository: CapacityCollectionStatusRepository | None = None) -> None:
+        """初始化服务."""
         self._repository = repository or CapacityCollectionStatusRepository()
 
     def get_status(self, *, today: date) -> CapacityCollectionStatus:
@@ -39,4 +40,3 @@ class CapacityCollectionStatusService:
             today_records=today_stats,
             latest_collection=latest_time,
         )
-

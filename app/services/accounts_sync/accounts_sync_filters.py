@@ -13,9 +13,9 @@ from typing import TYPE_CHECKING, Any, TypeAlias, cast
 import yaml
 from pydantic import ValidationError as PydanticValidationError
 
+from app.schemas.yaml_configs import AccountFiltersConfigFile
 from app.utils.safe_query_builder import build_safe_filter_conditions
 from app.utils.structlog_config import get_system_logger
-from app.schemas.yaml_configs import AccountFiltersConfigFile
 
 if TYPE_CHECKING:
     from app.core.types import JsonDict

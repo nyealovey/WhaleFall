@@ -11,7 +11,6 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import cast
 
-from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
 from app.core.types.capacity_common import CapacityInstanceRef
 from app.core.types.capacity_databases import (
     DatabaseAggregationsFilters,
@@ -20,6 +19,7 @@ from app.core.types.capacity_databases import (
     DatabaseAggregationsSummary,
     DatabaseAggregationsSummaryFilters,
 )
+from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
 
 
 class DatabaseAggregationsReadService:

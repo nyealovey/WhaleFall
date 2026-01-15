@@ -12,9 +12,9 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.types import ContextDict
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.utils.decorators import require_csrf
-from app.utils.request_payload import parse_payload
 
 ns = Namespace("cache", description="缓存管理")
 
@@ -107,18 +107,11 @@ class CacheClearUserResource(BaseResource):
     def post(self):
         """清除用户缓存."""
         parsed_json = request.get_json(silent=True)
-        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        payload = parse_payload(raw)
+        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            instance_id = cast("int | None", payload.get("instance_id"))
-            username = cast("str | None", payload.get("username"))
-            message = CacheActionsService().clear_user_cache(
-                instance_id=instance_id,
-                username=username,
-                operator_id=operator_id,
-            )
+            message = CacheActionsService().clear_user_cache(raw, operator_id=operator_id)
             return self.success(message=message)
 
         return self.safe_call(
@@ -126,7 +119,13 @@ class CacheClearUserResource(BaseResource):
             module="cache",
             action="clear_user_cache",
             public_error="清除用户缓存失败",
-            context={"instance_id": payload.get("instance_id"), "username": payload.get("username")},
+            context=cast(
+                ContextDict,
+                {
+                    "instance_id": raw.get("instance_id"),
+                    "username": raw.get("username"),
+                },
+            ),
             expected_exceptions=(ValidationError, NotFoundError, ConflictError),
         )
 
@@ -157,13 +156,11 @@ class CacheClearInstanceResource(BaseResource):
     def post(self):
         """清除实例缓存."""
         parsed_json = request.get_json(silent=True)
-        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        payload = parse_payload(raw)
+        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            instance_id = cast("int | None", payload.get("instance_id"))
-            message = CacheActionsService().clear_instance_cache(instance_id=instance_id, operator_id=operator_id)
+            message = CacheActionsService().clear_instance_cache(raw, operator_id=operator_id)
             return self.success(message=message)
 
         return self.safe_call(
@@ -171,7 +168,7 @@ class CacheClearInstanceResource(BaseResource):
             module="cache",
             action="clear_instance_cache",
             public_error="清除实例缓存失败",
-            context={"instance_id": payload.get("instance_id")},
+            context=cast(ContextDict, {"instance_id": raw.get("instance_id")}),
             expected_exceptions=(ValidationError, NotFoundError, ConflictError),
         )
 
@@ -233,13 +230,11 @@ class CacheClearClassificationActionResource(BaseResource):
     def post(self):
         """清除分类缓存."""
         parsed_json = request.get_json(silent=True)
-        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        payload = parse_payload(raw)
+        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            db_type = cast("str | None", payload.get("db_type"))
-            message = CacheActionsService().clear_classification_cache(db_type=db_type, operator_id=operator_id)
+            message = CacheActionsService().clear_classification_cache(raw, operator_id=operator_id)
             return self.success(message=message)
 
         return self.safe_call(
@@ -247,7 +242,13 @@ class CacheClearClassificationActionResource(BaseResource):
             module="cache",
             action="clear_classification_cache",
             public_error="清除分类缓存失败",
-            context={"target": "classification", "db_type": payload.get("db_type")},
+            context=cast(
+                ContextDict,
+                {
+                    "target": "classification",
+                    "db_type": raw.get("db_type"),
+                },
+            ),
             expected_exceptions=(ValidationError, ConflictError),
         )
 

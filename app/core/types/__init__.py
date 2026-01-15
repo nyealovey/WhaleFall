@@ -6,6 +6,13 @@
 from app.core.types.accounts import PermissionSnapshot, RawAccount, RemoteAccount
 from app.core.types.classification import ClassificationEngineResult, RuleExpression
 from app.core.types.dbapi import DBAPIConnection, DBAPICursor
+from app.core.types.internal_contracts import (
+    InternalContractErrorResult,
+    InternalContractOkResult,
+    InternalContractResult,
+    build_internal_contract_error,
+    build_internal_contract_ok,
+)
 from app.core.types.query_protocols import QueryProtocol
 from app.core.types.resources import (
     ResourceContext,
@@ -67,6 +74,9 @@ __all__ = [
     "DBAPICursor",
     "DiffEntry",
     "FormErrorMapping",
+    "InternalContractErrorResult",
+    "InternalContractOkResult",
+    "InternalContractResult",
     "InventorySummary",
     "JsonDict",
     "JsonValue",
@@ -97,4 +107,6 @@ __all__ = [
     "SyncStagesSummary",
     "SyncSummary",
     "TemplateContext",
+    "build_internal_contract_error",
+    "build_internal_contract_ok",
 ]

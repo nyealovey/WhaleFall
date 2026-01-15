@@ -7,9 +7,9 @@
 
 from __future__ import annotations
 
-from app.repositories.users_repository import UsersRepository
 from app.core.types.listing import PaginatedResult
 from app.core.types.users import UserListFilters, UserListItem
+from app.repositories.users_repository import UsersRepository
 
 
 class UsersListService:

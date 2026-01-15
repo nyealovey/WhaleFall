@@ -15,14 +15,14 @@ from sqlalchemy import func, or_
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
-from app.models.database_size_stat import DatabaseSizeStat
-from app.models.instance_database import InstanceDatabase
 from app.core.types.instance_database_sizes import (
     InstanceDatabaseSizeEntry,
     InstanceDatabaseSizesHistoryResult,
     InstanceDatabaseSizesLatestResult,
     InstanceDatabaseSizesQuery,
 )
+from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance_database import InstanceDatabase
 
 
 class InstanceDatabaseSizesRepository:

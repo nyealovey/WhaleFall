@@ -1,6 +1,8 @@
 """Oracle 数据库连接适配器."""
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -26,15 +28,20 @@ ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     *ORACLE_DRIVER_EXCEPTIONS,
 )
 
-_ORACLE_CLIENT_LIB_DIR: str | None = None
-_ORACLE_HOME: str | None = None
+
+@dataclass(slots=True)
+class _OracleClientSettings:
+    client_lib_dir: str | None = None
+    oracle_home: str | None = None
+
+
+_ORACLE_CLIENT_SETTINGS = _OracleClientSettings()
 
 
 def init_oracle_client_settings(*, client_lib_dir: str | None, oracle_home: str | None) -> None:
     """初始化 Oracle 客户端路径配置(由 create_app 调用)."""
-    global _ORACLE_CLIENT_LIB_DIR, _ORACLE_HOME
-    _ORACLE_CLIENT_LIB_DIR = client_lib_dir
-    _ORACLE_HOME = oracle_home
+    _ORACLE_CLIENT_SETTINGS.client_lib_dir = client_lib_dir
+    _ORACLE_CLIENT_SETTINGS.oracle_home = oracle_home
 
 
 class OracleConnection(DatabaseConnection):
@@ -65,16 +72,28 @@ class OracleConnection(DatabaseConnection):
             if hasattr(oracledb, "is_thin"):
                 try:
                     is_thin = bool(oracledb.is_thin())  # type: ignore[call-arg]
-                except Exception:  # pragma: no cover - 防御性
+                except Exception as exc:  # pragma: no cover - 防御性
+                    self.db_logger.warning(
+                        "oracle_is_thin_check_failed_fallback",
+                        module="connection",
+                        action="connect",
+                        instance_id=self.instance.id,
+                        fallback=True,
+                        fallback_reason="oracledb_is_thin_check_failed",
+                        error_type=type(exc).__name__,
+                        error=str(exc),
+                    )
                     is_thin = False
             if not is_thin:
                 try:
                     candidate_paths: list[Path] = []
-                    if _ORACLE_CLIENT_LIB_DIR:
-                        candidate_paths.append(Path(_ORACLE_CLIENT_LIB_DIR))
+                    client_lib_dir = _ORACLE_CLIENT_SETTINGS.client_lib_dir
+                    if client_lib_dir:
+                        candidate_paths.append(Path(client_lib_dir))
 
-                    if _ORACLE_HOME:
-                        candidate_paths.append(Path(_ORACLE_HOME) / "lib")
+                    oracle_home = _ORACLE_CLIENT_SETTINGS.oracle_home
+                    if oracle_home:
+                        candidate_paths.append(Path(oracle_home) / "lib")
 
                     current_dir = Path(__file__).resolve().parents[2]
                     candidate_paths.append(current_dir / "oracle_client" / "lib")
@@ -211,7 +230,18 @@ class OracleConnection(DatabaseConnection):
         """
         try:
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
-        except ORACLE_CONNECTION_EXCEPTIONS:
+        except ORACLE_CONNECTION_EXCEPTIONS as exc:
+            self.db_logger.warning(
+                "Oracle版本查询失败",
+                module="connection",
+                action="get_version",
+                instance_id=self.instance.id,
+                db_type="Oracle",
+                fallback=True,
+                fallback_reason="DB_VERSION_QUERY_FAILED",
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
             return None
         if result:
             first_value = result[0][0] if result[0] else None

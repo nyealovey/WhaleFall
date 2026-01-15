@@ -14,17 +14,17 @@ from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query, contains_eager
 
+from app.core.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
+from app.core.types.listing import PaginatedResult
+from app.core.types.tags import TagSummary
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag, instance_tags
-from app.core.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
-from app.core.types.listing import PaginatedResult
-from app.core.types.tags import TagSummary
-from app.utils.theme_color_utils import get_theme_color_value
 from app.utils.structlog_config import log_warning
+from app.utils.theme_color_utils import get_theme_color_value
 
 
 class AccountsLedgerRepository:

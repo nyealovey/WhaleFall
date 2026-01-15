@@ -21,7 +21,6 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
-from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
 from app.schemas.account_classifications import (
     AccountClassificationCreatePayload,
     AccountClassificationRuleCreatePayload,
@@ -29,6 +28,7 @@ from app.schemas.account_classifications import (
     AccountClassificationUpdatePayload,
 )
 from app.schemas.validation import validate_or_raise
+from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
@@ -91,12 +91,12 @@ class AccountClassificationsWriteService:
 
     def create_classification(
         self,
-        payload: dict[str, object] | None,
+        payload: object | None,
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
         """创建账户分类."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationCreatePayload, sanitized)
 
         if self._name_exists(parsed.name, None):
@@ -130,12 +130,12 @@ class AccountClassificationsWriteService:
     def update_classification(
         self,
         classification: AccountClassification,
-        payload: dict[str, object] | None,
+        payload: object | None,
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
         """更新账户分类."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationUpdatePayload, sanitized)
 
         if "name" in parsed.model_fields_set and parsed.name is not None:
@@ -172,15 +172,15 @@ class AccountClassificationsWriteService:
 
     def create_rule(
         self,
-        payload: dict[str, object] | None,
+        payload: Mapping[str, object] | None,
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """创建分类规则."""
         raw_payload: Mapping[str, object] = payload or {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
-        sanitized = parse_payload(raw_payload)
-        sanitized_payload: dict[str, object] = {key: value for key, value in sanitized.items()}
+        sanitized = parse_payload(raw_payload, boolean_fields_default_false=["is_active"])
+        sanitized_payload: dict[str, object] = dict(sanitized)
         if "rule_expression" in raw_payload:
             sanitized_payload["rule_expression"] = raw_expression
         parsed = validate_or_raise(AccountClassificationRuleCreatePayload, sanitized_payload)
@@ -231,15 +231,15 @@ class AccountClassificationsWriteService:
     def update_rule(
         self,
         rule: ClassificationRule,
-        payload: dict[str, object] | None,
+        payload: Mapping[str, object] | None,
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """更新分类规则."""
         raw_payload: Mapping[str, object] = payload or {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
-        sanitized = parse_payload(raw_payload)
-        sanitized_payload: dict[str, object] = {key: value for key, value in sanitized.items()}
+        sanitized = parse_payload(raw_payload, boolean_fields_default_false=["is_active"])
+        sanitized_payload: dict[str, object] = dict(sanitized)
         if "rule_expression" in raw_payload:
             sanitized_payload["rule_expression"] = raw_expression
         parsed = validate_or_raise(AccountClassificationRuleUpdatePayload, sanitized_payload)

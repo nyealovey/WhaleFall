@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any, cast
 
 from app.core.constants import SyncStatus
-from app.repositories.history_sessions_repository import HistorySessionsRepository
 from app.core.types.history_sessions import (
     HistorySessionsListFilters,
     SyncInstanceRecordItem,
@@ -20,6 +19,9 @@ from app.core.types.history_sessions import (
     SyncSessionItem,
 )
 from app.core.types.listing import PaginatedResult
+from app.repositories.history_sessions_repository import HistorySessionsRepository
+from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
+from app.utils.structlog_config import get_system_logger
 
 
 class HistorySessionsReadService:
@@ -27,6 +29,7 @@ class HistorySessionsReadService:
 
     def __init__(self, repository: HistorySessionsRepository | None = None) -> None:
         """初始化服务并注入会话仓库."""
+        self._logger = get_system_logger()
         self._repository = repository or HistorySessionsRepository()
 
     def list_sessions(self, filters: HistorySessionsListFilters) -> PaginatedResult[SyncSessionItem]:
@@ -100,9 +103,38 @@ class HistorySessionsReadService:
             updated_at=(resolved.updated_at.isoformat() if getattr(resolved, "updated_at", None) else None),
         )
 
-    @staticmethod
-    def _to_record_item(record: object) -> SyncInstanceRecordItem:
+    def _to_record_item(self, record: object) -> SyncInstanceRecordItem:
         resolved = cast("Any", record)
+        raw_sync_details = getattr(resolved, "sync_details", None)
+
+        # COMPAT: 历史数据可能缺失 `sync_details.version`；统一在读入口补齐并记录命中。
+        # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
+        if isinstance(raw_sync_details, dict):
+            raw_version = raw_sync_details.get("version")
+            if type(raw_version) is not int:
+                self._logger.info(
+                    "sync_details legacy payload normalized",
+                    module="history_sessions",
+                    fallback=True,
+                    fallback_reason="SYNC_DETAILS_LEGACY_MISSING_VERSION",
+                    session_id=str(getattr(resolved, "session_id", "") or ""),
+                    record_id=int(getattr(resolved, "id", 0) or 0),
+                    raw_version=raw_version,
+                )
+
+        try:
+            sync_details = normalize_sync_details_v1(raw_sync_details)
+        except Exception as exc:
+            # fail-fast: 数据形状异常属于数据一致性问题，不应 silent fallback。
+            self._logger.exception(
+                "sync_details payload invalid",
+                module="history_sessions",
+                session_id=str(getattr(resolved, "session_id", "") or ""),
+                record_id=int(getattr(resolved, "id", 0) or 0),
+                error=str(exc),
+            )
+            raise
+
         return SyncInstanceRecordItem(
             id=int(getattr(resolved, "id", 0) or 0),
             session_id=str(getattr(resolved, "session_id", "") or ""),
@@ -117,6 +149,6 @@ class HistorySessionsReadService:
             items_updated=int(getattr(resolved, "items_updated", 0) or 0),
             items_deleted=int(getattr(resolved, "items_deleted", 0) or 0),
             error_message=cast("str | None", getattr(resolved, "error_message", None)),
-            sync_details=getattr(resolved, "sync_details", None),
+            sync_details=sync_details,
             created_at=(resolved.created_at.isoformat() if getattr(resolved, "created_at", None) else None),
         )

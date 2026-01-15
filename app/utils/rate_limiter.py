@@ -160,7 +160,12 @@ class RateLimiter:
                 system_logger.warning(
                     "缓存速率限制检查失败,降级到内存模式",
                     module="rate_limiter",
-                    error=str(cache_error),
+                    fallback=True,
+                    fallback_reason="rate_limiter_cache_check_failed",
+                    endpoint=context.endpoint,
+                    identifier=context.identifier,
+                    error_type=cache_error.__class__.__name__,
+                    error_message=str(cache_error),
                 )
                 return self._check_memory(context)
         return self._check_memory(context)

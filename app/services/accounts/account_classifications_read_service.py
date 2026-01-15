@@ -8,8 +8,6 @@
 from __future__ import annotations
 
 from app.core.exceptions import NotFoundError, SystemError
-from app.models.account_classification import AccountClassification, ClassificationRule
-from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.core.types.accounts_classifications import (
     AccountClassificationAssignmentItem,
     AccountClassificationListItem,
@@ -17,6 +15,8 @@ from app.core.types.accounts_classifications import (
     AccountClassificationRuleListItem,
     AccountClassificationRuleStatItem,
 )
+from app.models.account_classification import AccountClassification, ClassificationRule
+from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.utils.structlog_config import log_error
 
 

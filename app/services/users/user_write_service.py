@@ -24,7 +24,7 @@ from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.core.types import PayloadMapping, ResourcePayload
+    from app.core.types import PayloadMapping
 
 
 @dataclass(slots=True)
@@ -45,7 +45,7 @@ class UserWriteService:
         """初始化服务并注入用户仓库."""
         self._repository = repository or UsersRepository()
 
-    def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
+    def create(self, payload: object | None, *, operator_id: int | None = None) -> User:
         """创建用户."""
         sanitized = parse_payload(
             payload,
@@ -71,7 +71,7 @@ class UserWriteService:
         self._log_create(user, operator_id=operator_id)
         return user
 
-    def update(self, user_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
+    def update(self, user_id: int, payload: object | None, *, operator_id: int | None = None) -> User:
         """更新用户."""
         user = self._get_or_error(user_id)
         sanitized = parse_payload(

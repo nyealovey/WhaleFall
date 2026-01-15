@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
@@ -53,10 +52,10 @@ class InstanceWriteService:
         self._repository = repository or InstancesRepository()
         self._credentials_repository = credentials_repository or CredentialsRepository()
 
-    def create(self, payload: Mapping[str, object] | None, *, operator_id: int | None = None) -> Instance:
+    def create(self, payload: object | None, *, operator_id: int | None = None) -> Instance:
         """创建实例."""
         sanitized = parse_payload(
-            payload or {},
+            payload,
             list_fields=["tag_names"],
             boolean_fields_default_false=["is_active"],
         )
@@ -104,14 +103,14 @@ class InstanceWriteService:
     def update(
         self,
         instance_id: int,
-        payload: Mapping[str, object] | None,
+        payload: object | None,
         *,
         operator_id: int | None = None,
     ) -> Instance:
         """更新实例."""
         instance = self._repository.get_active_instance(instance_id)
         sanitized = parse_payload(
-            payload or {},
+            payload,
             list_fields=["tag_names"],
             boolean_fields_default_false=["is_active"],
         )

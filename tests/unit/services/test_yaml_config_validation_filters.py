@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pytest
 
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
@@ -67,7 +69,7 @@ def test_database_filters_yaml_validated_at_entry(tmp_path) -> None:
 
     manager = DatabaseSyncFilterManager(config_path=config_path)
 
-    instance = _DummyInstance("mysql")
+    instance = cast(Any, _DummyInstance("mysql"))
     should_exclude, reason = manager.should_exclude_database(instance, "information_schema")
     assert should_exclude is True
     assert reason == "exclude_database"
@@ -84,4 +86,3 @@ def test_database_filters_yaml_invalid_schema_raises_value_error(tmp_path) -> No
 
     with pytest.raises(ValueError):
         DatabaseSyncFilterManager(config_path=config_path)
-

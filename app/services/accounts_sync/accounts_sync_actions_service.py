@@ -17,10 +17,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.constants.sync_constants import SyncOperationType
 from app.core.exceptions import NotFoundError, SystemError, ValidationError
+from app.infra.route_safety import log_with_context
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.services.sync_session_service import sync_session_service
-from app.infra.route_safety import log_with_context
 
 
 class SupportsAccountSync(Protocol):

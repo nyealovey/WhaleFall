@@ -15,11 +15,11 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
+from app.core.types.credentials import CredentialListFilters, CredentialListRowProjection
+from app.core.types.listing import PaginatedResult
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.core.types.credentials import CredentialListFilters, CredentialListRowProjection
-from app.core.types.listing import PaginatedResult
 
 
 class CredentialsRepository:

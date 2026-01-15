@@ -14,6 +14,54 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 
+def _process_instance_with_fallback(
+    *,
+    runner: CapacityCollectionTaskRunner,
+    session_obj: Any,
+    record: Any,
+    instance: Any,
+    sync_logger: Any,
+) -> tuple[dict[str, object], CapacitySyncTotals]:
+    runner.start_instance_sync(record.id)
+    db.session.commit()
+    try:
+        payload, delta = runner.process_capacity_instance(
+            session=session_obj,
+            record=record,
+            instance=instance,
+            sync_logger=sync_logger,
+        )
+    except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
+        db.session.rollback()
+        error_msg = f"实例同步异常: {exc!s}"
+        sync_logger.exception(
+            "实例同步异常(未分类)",
+            module="capacity_sync",
+            task="collect_database_sizes",
+            action="process_capacity_instance",
+            session_id=session_obj.session_id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            fallback=True,
+            fallback_reason="capacity_instance_sync_failed",
+            error=str(exc),
+            error_type=type(exc).__name__,
+        )
+        runner.fail_instance_sync(record.id, error_msg)
+        db.session.commit()
+        payload = {
+            "instance_id": instance.id,
+            "instance_name": instance.name,
+            "success": False,
+            "error": str(exc),
+        }
+        delta = CapacitySyncTotals(total_failed=1)
+    else:
+        db.session.commit()
+
+    return payload, delta
+
+
 def collect_database_sizes() -> dict[str, Any]:
     """容量同步定时任务(采集所有活跃实例的数据库容量)."""
     app = create_app(init_scheduler_on_start=False)
@@ -44,37 +92,13 @@ def collect_database_sizes() -> dict[str, Any]:
             results: list[dict[str, object]] = []
 
             for instance, record in zip(active_instances, records, strict=False):
-                runner.start_instance_sync(record.id)
-                db.session.commit()
-                try:
-                    payload, delta = runner.process_capacity_instance(
-                        session=session_obj,
-                        record=record,
-                        instance=instance,
-                        sync_logger=sync_logger,
-                    )
-                except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
-                    db.session.rollback()
-                    error_msg = f"实例同步异常: {exc!s}"
-                    sync_logger.exception(
-                        "实例同步异常(未分类)",
-                        module="capacity_sync",
-                        session_id=session_obj.session_id,
-                        instance_id=instance.id,
-                        instance_name=instance.name,
-                        error=str(exc),
-                    )
-                    runner.fail_instance_sync(record.id, error_msg)
-                    db.session.commit()
-                    payload = {
-                        "instance_id": instance.id,
-                        "instance_name": instance.name,
-                        "success": False,
-                        "error": str(exc),
-                    }
-                    delta = CapacitySyncTotals(total_failed=1)
-                else:
-                    db.session.commit()
+                payload, delta = _process_instance_with_fallback(
+                    runner=runner,
+                    session_obj=session_obj,
+                    record=record,
+                    instance=instance,
+                    sync_logger=sync_logger,
+                )
 
                 totals.total_synced += delta.total_synced
                 totals.total_failed += delta.total_failed
@@ -145,6 +169,3 @@ def collect_database_sizes() -> dict[str, Any]:
             }
         else:
             return result
-
-from app.tasks.capacity_collection_manual_tasks import collect_database_sizes_by_type, collect_specific_instance_database_sizes
-from app.tasks.capacity_collection_status_tasks import get_collection_status, validate_collection_config

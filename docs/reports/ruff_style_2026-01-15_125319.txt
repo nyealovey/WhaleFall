@@ -1,0 +1,86 @@
+D413 [*] Missing blank line after last section ("Notes")
+  --> app/services/accounts_permissions/facts_builder.py:82:5
+   |
+80 |     """Best-effort parse ISO 8601 datetime.
+81 |
+82 |     Notes:
+   |     ^^^^^
+83 |
+84 |     - `permission_facts` 是派生结构；此处不希望因为单个字段格式异常而中断整条 facts 构建。
+   |
+help: Add blank line after "Notes"
+
+D412 [*] No blank lines allowed between a section header and its content ("Notes")
+  --> app/services/accounts_permissions/facts_builder.py:82:5
+   |
+80 |     """Best-effort parse ISO 8601 datetime.
+81 |
+82 |     Notes:
+   |     ^^^^^
+83 |
+84 |     - `permission_facts` 是派生结构；此处不希望因为单个字段格式异常而中断整条 facts 构建。
+   |
+help: Remove blank line(s)
+
+D413 [*] Missing blank line after last section ("Notes")
+  --> app/services/capacity/capacity_collection_task_runner.py:79:5
+   |
+77 |     """Best-effort int coercion for task payloads.
+78 |
+79 |     Notes:
+   |     ^^^^^
+80 |
+81 |     - 该 runner 的外部输入可能来自 legacy/字符串化数据源；这里返回 0 用于统计字段兜底。
+   |
+help: Add blank line after "Notes"
+
+D412 [*] No blank lines allowed between a section header and its content ("Notes")
+  --> app/services/capacity/capacity_collection_task_runner.py:79:5
+   |
+77 |     """Best-effort int coercion for task payloads.
+78 |
+79 |     Notes:
+   |     ^^^^^
+80 |
+81 |     - 该 runner 的外部输入可能来自 legacy/字符串化数据源；这里返回 0 用于统计字段兜底。
+   |
+help: Remove blank line(s)
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> migrations/versions/20260115122054_backfill_sync_details_version.py:9:1
+   |
+ 7 |   """
+ 8 |
+ 9 | / from __future__ import annotations
+10 | |
+11 | | from alembic import op
+   | |______________________^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> migrations/versions/20260115122843_backfill_account_permission_type_specific_version.py:9:1
+   |
+ 7 |   """
+ 8 |
+ 9 | / from __future__ import annotations
+10 | |
+11 | | from alembic import op
+   | |______________________^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> migrations/versions/20260115123302_backfill_account_change_log_diff_version.py:9:1
+   |
+ 7 |   """
+ 8 |
+ 9 | / from __future__ import annotations
+10 | |
+11 | | from alembic import op
+   | |______________________^
+   |
+help: Organize imports
+
+Found 7 errors.
+[*] 7 fixable with the `--fix` option.

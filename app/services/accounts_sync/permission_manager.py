@@ -14,6 +14,8 @@ from app.core.exceptions import ConflictError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.repositories.accounts_sync_repository import AccountsSyncRepository
+from app.schemas.internal_contracts.account_change_log_diff_v1 import wrap_entries_v1
+from app.schemas.internal_contracts.type_specific_v1 import normalize_type_specific_v1
 from app.services.accounts_permissions.facts_builder import build_permission_facts
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.structlog_config import get_sync_logger
@@ -22,8 +24,6 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from app.models.instance import Instance
-    from app.models.instance_account import InstanceAccount
     from app.core.types import (
         JsonDict,
         JsonValue,
@@ -34,6 +34,8 @@ if TYPE_CHECKING:
         RemoteAccountMap,
         SyncSummary,
     )
+    from app.models.instance import Instance
+    from app.models.instance_account import InstanceAccount
 else:
     Instance = Any
     InstanceAccount = Any
@@ -483,7 +485,7 @@ class AccountPermissionManager:
                     removed_keys=removed_keys,
                 )
             if sanitized_type_specific is not None:
-                record.type_specific = dict(sanitized_type_specific)
+                record.type_specific = normalize_type_specific_v1(sanitized_type_specific)
                 permissions = {**permissions, "type_specific": dict(sanitized_type_specific)}
 
         db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
@@ -510,7 +512,10 @@ class AccountPermissionManager:
                 "account_permission_facts_build_failed",
                 module="accounts_sync",
                 phase="collection",
+                fallback=True,
+                fallback_reason="FACTS_BUILD_FAILED",
                 error=str(exc),
+                error_type=type(exc).__name__,
             )
             record.permission_facts = {
                 "version": 2,
@@ -740,8 +745,8 @@ class AccountPermissionManager:
         log.username = username
         log.change_type = change_type
         log.change_time = time_utils.now()
-        log.privilege_diff = privilege_diff
-        log.other_diff = other_diff
+        log.privilege_diff = wrap_entries_v1(privilege_diff)
+        log.other_diff = wrap_entries_v1(other_diff)
         log.message = summary
         log.session_id = session_id
         db.session.add(log)
