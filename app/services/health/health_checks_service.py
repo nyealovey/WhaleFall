@@ -128,7 +128,15 @@ def get_system_uptime() -> str:
     try:
         current_time = time_utils.now_china()
         uptime = current_time - app_start_time
-    except UPTIME_EXCEPTIONS:
+    except UPTIME_EXCEPTIONS as exc:
+        log_with_context(
+            "warning",
+            "获取应用运行时间失败",
+            module="health",
+            action="get_system_uptime",
+            extra={"error_message": str(exc)},
+            include_actor=False,
+        )
         return "未知"
 
     days = uptime.days

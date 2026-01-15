@@ -223,7 +223,18 @@ class SQLServerConnection(DatabaseConnection):
         """
         try:
             result = self.execute_query("SELECT @@VERSION")
-        except SQLSERVER_CONNECTION_EXCEPTIONS:
+        except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
+            self.db_logger.warning(
+                "SQL Server版本查询失败",
+                module="connection",
+                action="get_version",
+                instance_id=self.instance.id,
+                db_type="SQLServer",
+                fallback=True,
+                fallback_reason="DB_VERSION_QUERY_FAILED",
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
             return None
         if result:
             version_val = result[0][0] if result[0] else None
