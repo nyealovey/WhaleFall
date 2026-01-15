@@ -16,6 +16,7 @@ from app.models.account_permission import AccountPermission
 from app.repositories.accounts_sync_repository import AccountsSyncRepository
 from app.services.accounts_permissions.facts_builder import build_permission_facts
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
+from app.schemas.internal_contracts.type_specific_v1 import normalize_type_specific_v1
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -483,7 +484,7 @@ class AccountPermissionManager:
                     removed_keys=removed_keys,
                 )
             if sanitized_type_specific is not None:
-                record.type_specific = dict(sanitized_type_specific)
+                record.type_specific = normalize_type_specific_v1(sanitized_type_specific)
                 permissions = {**permissions, "type_specific": dict(sanitized_type_specific)}
 
         db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
