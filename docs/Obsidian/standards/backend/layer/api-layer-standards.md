@@ -154,6 +154,7 @@ related:
 ###### 5) 错误消息与兼容约束
 
 - MUST: 错误消息口径遵循 [[standards/backend/error-message-schema-unification|错误消息字段统一]], 禁止在任何层新增 `error/message` 互兜底链.
+- MUST: 对外 API payload（包括 success envelope 的 `data` 内嵌结构）不得出现字段名 `error_code`；如需机器可读错误码，统一使用 `message_code`（或边界层定义的命名空间字段），并在边界层完成映射，禁止下游写互兜底链。
 - SHOULD: 当返回结构发生演进时, 优先通过新增字段向前兼容, 避免重命名/挪字段导致调用方写兼容分支.
 
 ##### 正反例

@@ -40,6 +40,7 @@ related:
 
 - HTTP body payload（见 [[standards/backend/request-payload-and-schema-validation]]）
 - YAML 配置文件（见 [[standards/backend/yaml-config-validation]]）
+- 结构化日志/审计日志的上下文字段（例如 `UnifiedLog.context`）：该类字段以“可扩展诊断上下文”为目标，允许自由扩展 key，但必须遵循 [[standards/backend/sensitive-data-handling]] 的脱敏约束。
 
 ## 3. 术语
 

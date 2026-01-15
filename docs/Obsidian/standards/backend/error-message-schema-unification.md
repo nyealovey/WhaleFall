@@ -33,10 +33,12 @@ related:
 
 - MUST：产生方必须写入 `message`（人类可读、可展示的摘要文案）。
 - SHOULD：失败时可写入 `error`（诊断信息/异常信息摘要），避免把堆栈/巨型 SQL 直接塞进 `message`。
+  - MUST：该 `error` 为**内部结果对象**字段；对外 API JSON envelope 的 `error` 字段语义固定为 boolean（见 [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]），不得把诊断字符串写入对外 envelope 的 `error`。
+  - SHOULD：如确需对外携带非敏感诊断信息，只允许在边界层放入 error envelope 的 `extra`（例如 `extra.diagnostic_error`），且必须遵循 [[standards/backend/sensitive-data-handling]]。
 - MAY：批量/多阶段场景可写入 `errors`（错误字符串列表）。
 - SHOULD：如有机器可读需求，在内部结果对象新增 `error_code`（受控枚举），禁止用 `message` 承载机器语义。
 - MUST：对外 API 错误封套使用 `message_code`（见 [[standards/backend/layer/api-layer-standards#失败响应字段(固定口径)]]），不得透传 `error_code` 作为对外稳定字段。
-- MUST NOT：对外 API 的 error envelope **任何位置**（包含 `extra`）都不得出现 `error_code` 字段；如需诊断请使用 `error_id` 或边界层定义的非敏感诊断字段。
+- MUST NOT：对外 API 的 payload **任何位置**（包含 error envelope 的任意字段、以及 success envelope 的 `data` 内嵌结构）都不得出现 `error_code` 字段名；如需诊断请使用 `error_id` 或边界层定义的非敏感诊断字段。
 
 ### 2) 消费方约束（禁止互兜底）
 

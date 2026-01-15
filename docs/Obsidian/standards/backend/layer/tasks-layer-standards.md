@@ -47,6 +47,11 @@ related:
 - MUST NOT: 在任务函数内执行写入操作, 包括 `db.session.add/delete/merge/flush` 等.
 - MAY: 作为事务边界入口, 任务函数可按阶段调用 `db.session.commit/rollback`(例如长任务分段提交), 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
 - MUST NOT: 在任务函数内堆叠复杂业务逻辑(应下沉到 Service).
+  - 判据（满足任一条件，默认视为“复杂”，必须下沉到 Service/Runner，或在 PR 中写明例外理由并补测试覆盖）：
+    - 单任务函数 > 50 行（以逻辑行计；不含空行/注释/纯日志行）；
+    - 出现多阶段业务编排（例如：收集 → 计算 → 写入 → 统计聚合）且无独立的 runner/service 承载；
+    - 出现多段 `commit/rollback` 或循环内 I/O（外部调用/网络/DB 查询等）；
+    - 出现跨域规则判断/大量条件分支，且无法通过函数抽取解释清楚。
 
 > [!note] 事务边界优先级（Tasks 场景）
 > - 优先：任务只是调度入口时, 应让 Service 完整控制事务边界（task 不做 `commit/rollback`）, 以保持与 Web 请求写路径一致。
