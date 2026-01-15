@@ -14,6 +14,7 @@ from app.core.exceptions import ConflictError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.repositories.accounts_sync_repository import AccountsSyncRepository
+from app.schemas.internal_contracts.account_change_log_diff_v1 import wrap_entries_v1
 from app.services.accounts_permissions.facts_builder import build_permission_facts
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.schemas.internal_contracts.type_specific_v1 import normalize_type_specific_v1
@@ -744,8 +745,8 @@ class AccountPermissionManager:
         log.username = username
         log.change_type = change_type
         log.change_time = time_utils.now()
-        log.privilege_diff = privilege_diff
-        log.other_diff = other_diff
+        log.privilege_diff = wrap_entries_v1(privilege_diff)
+        log.other_diff = wrap_entries_v1(other_diff)
         log.message = summary
         log.session_id = session_id
         db.session.add(log)
