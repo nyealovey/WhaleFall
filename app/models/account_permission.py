@@ -1,7 +1,9 @@
 """鲸落 - 账户权限快照数据模型."""
 
+from functools import lru_cache
 from typing import TYPE_CHECKING, Unpack
 
+import structlog
 from sqlalchemy import cast, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -12,6 +14,17 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.core.types.orm_kwargs import AccountPermissionOrmFields
+
+
+@lru_cache(maxsize=8)
+def _log_dialect_detection_fallback(fallback_reason: str) -> None:
+    structlog.get_logger("app").warning(
+        "account_permission_dialect_detection_fallback",
+        module="account_permission",
+        action="capability_expression",
+        fallback=True,
+        fallback_reason=fallback_reason,
+    )
 
 
 class AccountPermission(BaseSyncData):
@@ -88,7 +101,8 @@ class AccountPermission(BaseSyncData):
         try:
             bind = db.session.get_bind()
             dialect_name = str(getattr(getattr(bind, "dialect", None), "name", "") or "")
-        except Exception:  # pragma: no cover - defensive: fallback when session not bound
+        except Exception as exc:  # pragma: no cover - defensive: fallback when session not bound
+            _log_dialect_detection_fallback(exc.__class__.__name__)
             dialect_name = ""
 
         expression = cls.permission_facts["capabilities"].contains([name])

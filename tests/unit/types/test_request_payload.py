@@ -1,4 +1,5 @@
 import pytest
+from flask import Flask
 from werkzeug.datastructures import MultiDict
 
 from app.utils.request_payload import parse_payload
@@ -46,3 +47,24 @@ def test_parse_payload_sets_missing_boolean_fields_to_false_for_multidict() -> N
     payload: MultiDict[str, str] = MultiDict([("username", "alice")])
     sanitized = parse_payload(payload, boolean_fields_default_false=["is_active"])
     assert sanitized["is_active"] is False
+
+
+@pytest.mark.unit
+def test_parse_payload_guard_allows_single_call_per_request() -> None:
+    app = Flask(__name__)
+    with app.test_request_context("/"):
+        sanitized = parse_payload({"username": "alice"})
+        assert sanitized["username"] == "alice"
+
+    with app.test_request_context("/"):
+        sanitized = parse_payload({"username": "bob"})
+        assert sanitized["username"] == "bob"
+
+
+@pytest.mark.unit
+def test_parse_payload_guard_raises_when_called_twice_in_request() -> None:
+    app = Flask(__name__)
+    with app.test_request_context("/"):
+        parse_payload({"username": "alice"})
+        with pytest.raises(RuntimeError, match="parse_payload"):
+            parse_payload({"username": "bob"})

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from app.core.constants.classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
 from app.core.constants.colors import ThemeColors
 from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
-from app.utils.request_payload import parse_payload
 
 if TYPE_CHECKING:
     from app.models.account_classification import AccountClassification
@@ -40,10 +39,10 @@ class AccountClassificationFormHandler:
         resource: AccountClassification | None = None,
     ) -> AccountClassification:
         """创建或更新账户分类."""
-        sanitized = cast("dict[str, object]", parse_payload(payload or {}))
+        raw_payload = payload or {}
         if resource is None:
-            return self._write_service.create_classification(sanitized)
-        return self._write_service.update_classification(resource, sanitized)
+            return self._write_service.create_classification(raw_payload)
+        return self._write_service.update_classification(resource, raw_payload)
 
     def build_context(self, *, resource: AccountClassification | None) -> ResourceContext:
         """构造表单渲染上下文."""

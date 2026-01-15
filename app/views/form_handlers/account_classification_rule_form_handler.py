@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from app.core.constants import DatabaseType
 from app.core.constants.classification_constants import OPERATOR_OPTIONS
@@ -11,7 +11,6 @@ from app.services.accounts.account_classifications_read_service import AccountCl
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.database_type_utils import get_database_type_display_name
-from app.utils.request_payload import parse_payload
 
 if TYPE_CHECKING:
     from app.models.account_classification import ClassificationRule
@@ -44,13 +43,10 @@ class AccountClassificationRuleFormHandler:
         resource: ClassificationRule | None = None,
     ) -> ClassificationRule:
         """创建或更新分类规则."""
-        sanitized = cast(
-            "dict[str, object]",
-            parse_payload(payload or {}, boolean_fields_default_false=["is_active"]),
-        )
+        raw_payload = payload or {}
         if resource is None:
-            return self._write_service.create_rule(sanitized)
-        return self._write_service.update_rule(resource, sanitized)
+            return self._write_service.create_rule(raw_payload)
+        return self._write_service.update_rule(resource, raw_payload)
 
     def build_context(self, *, resource: ClassificationRule | None) -> ResourceContext:
         """构造表单渲染上下文."""

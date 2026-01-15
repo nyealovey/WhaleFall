@@ -91,12 +91,12 @@ class AccountClassificationsWriteService:
 
     def create_classification(
         self,
-        payload: dict[str, object] | None,
+        payload: object | None,
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
         """创建账户分类."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationCreatePayload, sanitized)
 
         if self._name_exists(parsed.name, None):
@@ -130,12 +130,12 @@ class AccountClassificationsWriteService:
     def update_classification(
         self,
         classification: AccountClassification,
-        payload: dict[str, object] | None,
+        payload: object | None,
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
         """更新账户分类."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationUpdatePayload, sanitized)
 
         if "name" in parsed.model_fields_set and parsed.name is not None:
@@ -172,14 +172,14 @@ class AccountClassificationsWriteService:
 
     def create_rule(
         self,
-        payload: dict[str, object] | None,
+        payload: Mapping[str, object] | None,
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """创建分类规则."""
         raw_payload: Mapping[str, object] = payload or {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
-        sanitized = parse_payload(raw_payload)
+        sanitized = parse_payload(raw_payload, boolean_fields_default_false=["is_active"])
         sanitized_payload: dict[str, object] = dict(sanitized)
         if "rule_expression" in raw_payload:
             sanitized_payload["rule_expression"] = raw_expression
@@ -231,14 +231,14 @@ class AccountClassificationsWriteService:
     def update_rule(
         self,
         rule: ClassificationRule,
-        payload: dict[str, object] | None,
+        payload: Mapping[str, object] | None,
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """更新分类规则."""
         raw_payload: Mapping[str, object] = payload or {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
-        sanitized = parse_payload(raw_payload)
+        sanitized = parse_payload(raw_payload, boolean_fields_default_false=["is_active"])
         sanitized_payload: dict[str, object] = dict(sanitized)
         if "rule_expression" in raw_payload:
             sanitized_payload["rule_expression"] = raw_expression

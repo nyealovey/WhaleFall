@@ -182,8 +182,16 @@ class LogQueueWorker:
                 if models:
                     db.session.add_all(models)
                     db.session.commit()
-        except Exception:
-            queue_logger.exception("写入结构化日志到数据库失败")
+        except Exception as exc:
+            queue_logger.exception(
+                "写入结构化日志到数据库失败",
+                extra={
+                    "fallback": True,
+                    "fallback_reason": "unified_log_persist_failed",
+                    "exception_type": exc.__class__.__name__,
+                    "entry_count": len(entries),
+                },
+            )
             if db is not None:
                 with contextlib.suppress(Exception):
                     db.session.rollback()

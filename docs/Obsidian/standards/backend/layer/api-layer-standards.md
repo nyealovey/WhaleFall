@@ -134,7 +134,9 @@ related:
 - MUST: `error: true`
 - MUST: `error_id: string`
 - MUST: `category: string`
+  - MUST: 取值必须来自 `app/core/constants/system_constants.py` 的 `ErrorCategory`（单一真源），禁止业务侧自由拼字符串。
 - MUST: `severity: string`
+  - MUST: 取值必须来自 `app/core/constants/system_constants.py` 的 `ErrorSeverity`（单一真源），禁止业务侧自由拼字符串。
 - MUST: `message_code: string`
 - MUST: `message: string`(可展示的失败摘要)
 - MUST: `timestamp: string`(ISO8601)

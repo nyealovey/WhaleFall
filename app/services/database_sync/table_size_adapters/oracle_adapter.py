@@ -81,7 +81,16 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
     ) -> str:
         try:
             result = connection.execute_query("SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM dual")
-        except Exception:
+        except Exception as exc:
+            self.logger.warning(
+                "oracle_current_schema_resolve_fallback",
+                module="database_sync",
+                action="oracle_table_size.resolve_current_schema",
+                instance=getattr(instance, "name", None),
+                fallback=True,
+                fallback_reason="oracle_current_schema_query_failed",
+                exception_type=exc.__class__.__name__,
+            )
             result = []
 
         schema_name = str(result[0][0]).strip() if result and result[0] and result[0][0] is not None else ""
