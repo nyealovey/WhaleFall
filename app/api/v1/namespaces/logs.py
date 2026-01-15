@@ -96,13 +96,13 @@ _history_log_statistics_query_parser = new_parser()
 _history_log_statistics_query_parser.add_argument("hours", type=int, default=24, location="args")
 
 
-def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
+def _parse_iso_datetime(raw_value: str | None, *, param_name: str) -> datetime | None:
     if not raw_value:
         return None
     try:
         return datetime.fromisoformat(raw_value)
-    except ValueError:
-        return None
+    except ValueError as exc:
+        raise ValidationError(f"{param_name} 参数必须为 ISO 8601 时间字符串") from exc
 
 
 def _resolve_hours_param(raw_hours: int | None) -> int | None:
@@ -141,8 +141,8 @@ def _extract_log_search_filters(parsed: Mapping[str, object]) -> LogSearchFilter
 
     start_time_raw = parsed.get("start_time")
     end_time_raw = parsed.get("end_time")
-    start_time = _parse_iso_datetime(start_time_raw if isinstance(start_time_raw, str) else None)
-    end_time = _parse_iso_datetime(end_time_raw if isinstance(end_time_raw, str) else None)
+    start_time = _parse_iso_datetime(start_time_raw if isinstance(start_time_raw, str) else None, param_name="start_time")
+    end_time = _parse_iso_datetime(end_time_raw if isinstance(end_time_raw, str) else None, param_name="end_time")
     raw_hours = parsed.get("hours")
     hours = _resolve_hours_param(raw_hours if isinstance(raw_hours, int) else None)
 

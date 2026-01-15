@@ -230,7 +230,18 @@ class OracleConnection(DatabaseConnection):
         """
         try:
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
-        except ORACLE_CONNECTION_EXCEPTIONS:
+        except ORACLE_CONNECTION_EXCEPTIONS as exc:
+            self.db_logger.warning(
+                "Oracle版本查询失败",
+                module="connection",
+                action="get_version",
+                instance_id=self.instance.id,
+                db_type="Oracle",
+                fallback=True,
+                fallback_reason="DB_VERSION_QUERY_FAILED",
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
             return None
         if result:
             first_value = result[0][0] if result[0] else None

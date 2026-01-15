@@ -9,7 +9,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, cast
 
 import structlog
-from flask import Flask, current_app, g, has_request_context, jsonify
+from flask import Flask, current_app, g, has_app_context, has_request_context, jsonify
 from flask_login import current_user
 
 from app.core.constants.system_constants import ErrorSeverity
@@ -292,10 +292,9 @@ def should_log_debug() -> bool:
         如果启用调试日志返回 True,否则返回 False.
 
     """
-    try:
-        return bool(current_app.config.get("ENABLE_DEBUG_LOG", False))
-    except RuntimeError:
+    if not has_app_context():
         return False
+    return bool(current_app.config.get("ENABLE_DEBUG_LOG", False))
 
 
 def log_info(message: str, module: str = "app", **kwargs: LogField) -> None:
