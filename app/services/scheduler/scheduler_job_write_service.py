@@ -14,8 +14,8 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.core.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.core.exceptions import NotFoundError, SystemError, ValidationError
-from app.scheduler import get_scheduler
 from app.core.types import PayloadMapping, ResourceIdentifier, SupportsResourceId
+from app.scheduler import get_scheduler
 from app.schemas.scheduler_jobs import SchedulerJobUpsertPayload
 from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload

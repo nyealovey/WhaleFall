@@ -11,8 +11,16 @@ from collections.abc import Mapping
 from typing import Any
 
 from app.core.constants import DatabaseType
+from app.core.types import InternalContractResult, build_internal_contract_error, build_internal_contract_ok
 
 JsonDict = dict[str, Any]
+
+PERMISSION_SNAPSHOT_VERSION_V4 = 4
+PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS: list[int] = [PERMISSION_SNAPSHOT_VERSION_V4]
+
+INTERNAL_CONTRACT_INVALID_PAYLOAD = "INTERNAL_CONTRACT_INVALID_PAYLOAD"
+INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS = "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS"
+INTERNAL_CONTRACT_UNKNOWN_VERSION = "INTERNAL_CONTRACT_UNKNOWN_VERSION"
 
 
 def _normalize_str_list(value: object, *, dict_key: str | None = None) -> list[str]:
@@ -31,6 +39,61 @@ def _normalize_str_list(value: object, *, dict_key: str | None = None) -> list[s
     return output
 
 
+def parse_permission_snapshot_categories_v4(snapshot: object) -> InternalContractResult:
+    """解析 permission_snapshot(v4) 的 categories.
+
+    说明:
+    - 该函数用于 internal contract 的读入口（单入口 canonicalization 之前的版本/形状判定）。
+    - 未知版本默认应 fail-fast；若调用方是 best-effort 链路，可使用本函数返回的错误结构做显式失败。
+    """
+    contract = "permission_snapshot.categories"
+
+    if not isinstance(snapshot, Mapping):
+        return build_internal_contract_error(
+            contract=contract,
+            version=None,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_INVALID_PAYLOAD,
+            message="permission_snapshot 必须为 dict",
+        )
+
+    raw_version = snapshot.get("version")
+    version = raw_version if type(raw_version) is int else None
+    if version is None:
+        return build_internal_contract_error(
+            contract=contract,
+            version=None,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS,
+            message="permission_snapshot.version 缺失或不是整数",
+        )
+    if version != PERMISSION_SNAPSHOT_VERSION_V4:
+        return build_internal_contract_error(
+            contract=contract,
+            version=version,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_UNKNOWN_VERSION,
+            message=f"permission_snapshot.version={version} 不受支持",
+        )
+
+    categories = snapshot.get("categories")
+    if not isinstance(categories, dict):
+        return build_internal_contract_error(
+            contract=contract,
+            version=version,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS,
+            message="permission_snapshot.categories 缺失或不是 dict",
+        )
+
+    return build_internal_contract_ok(
+        contract=contract,
+        version=version,
+        supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+        data=dict(categories),
+    )
+
+
 def normalize_permission_snapshot_categories_v4(db_type: str, categories: Mapping[str, object]) -> JsonDict:
     """Normalize v4 snapshot categories into canonical shapes (single entry).
 
@@ -39,7 +102,6 @@ def normalize_permission_snapshot_categories_v4(db_type: str, categories: Mappin
     - SQL Server: `server_roles`/`database_roles` 允许 list[str] 或 list[{"name": str}]（以及 dict 映射到这些 list）
     - Oracle: `oracle_roles` 允许 list[str] 或 list[{"role": str}]
     """
-
     normalized: JsonDict = dict(categories)
 
     if db_type == DatabaseType.POSTGRESQL:

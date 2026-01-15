@@ -172,11 +172,15 @@ class DatabaseBatchManager:
                         "批次操作失败: %s",
                         description,
                         module="database_batch_manager",
+                        action="commit_batch",
                         instance_name=self.instance_name,
                         batch=self.current_batch,
                         operation_index=index,
                         operation_type=operation_type,
+                        fallback=True,
+                        fallback_reason="db_batch_op_failed",
                         error=str(op_error),
+                        error_type=type(op_error).__name__,
                     )
                     continue
 
@@ -199,9 +203,12 @@ class DatabaseBatchManager:
                 "批次 %s 部分成功",
                 self.current_batch,
                 module="database_batch_manager",
+                action="commit_batch",
                 instance_name=self.instance_name,
                 successful_ops=batch_successful,
                 failed_ops=batch_failed,
+                fallback=True,
+                fallback_reason="db_batch_partial_failure",
             )
             return False
 
@@ -272,6 +279,9 @@ class DatabaseBatchManager:
                 module="database_batch_manager",
                 instance_name=self.instance_name,
                 error=str(e),
+                fallback=True,
+                fallback_reason="database_batch_manager_rollback_failed",
+                exception_type=e.__class__.__name__,
             )
 
     def get_statistics(self) -> dict[str, int]:

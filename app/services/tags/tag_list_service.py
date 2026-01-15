@@ -7,9 +7,9 @@
 
 from __future__ import annotations
 
-from app.repositories.tags_repository import TagsRepository
 from app.core.types.listing import PaginatedResult
 from app.core.types.tags import TagListFilters, TagListItem, TagStats
+from app.repositories.tags_repository import TagsRepository
 
 
 class TagListService:

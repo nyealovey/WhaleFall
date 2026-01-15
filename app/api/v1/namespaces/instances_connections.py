@@ -18,15 +18,16 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.core.constants.system_constants import ErrorMessages
 from app.core.exceptions import NotFoundError, ValidationError
+from app.core.types import JsonDict, JsonValue
+from app.infra.route_safety import log_with_context
+from app.schemas.instances_connections import InstanceConnectionTestPayload
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
-from app.services.connections.instance_connections_write_service import InstanceConnectionsWriteService
 from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
+from app.services.connections.instance_connections_write_service import InstanceConnectionsWriteService
 from app.services.credentials import CredentialDetailReadService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
-from app.core.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
 from app.utils.response_utils import jsonify_unified_error_message
-from app.infra.route_safety import log_with_context
 
 ErrorEnvelope = get_error_envelope_model(ns)
 
@@ -166,13 +167,12 @@ def _test_existing_instance(connection_test_service: ConnectionTestService, inst
     return response
 
 
-def _test_new_connection(connection_test_service: ConnectionTestService, connection_params: object):
-    parsed = cast(object, connection_params)
-    name = cast("str | None", getattr(parsed, "name"))
-    db_type = cast("str", getattr(parsed, "db_type"))
-    host = cast("str", getattr(parsed, "host"))
-    port = cast("int", getattr(parsed, "port"))
-    credential_id = cast("int", getattr(parsed, "credential_id"))
+def _test_new_connection(connection_test_service: ConnectionTestService, connection_params: InstanceConnectionTestPayload):
+    name = connection_params.name
+    db_type = cast("str", connection_params.db_type)
+    host = cast("str", connection_params.host)
+    port = cast("int", connection_params.port)
+    credential_id = cast("int", connection_params.credential_id)
 
     resolved_name = "temp_test"
     if isinstance(name, str) and name.strip():

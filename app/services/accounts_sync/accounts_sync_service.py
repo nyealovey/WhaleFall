@@ -17,7 +17,6 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.models import Instance
     from app.core.types import (
         CollectionSummary,
         InventorySummary,
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
         SyncOperationResult,
         SyncStagesSummary,
     )
+    from app.models import Instance
 else:
     CollectionSummary = dict[str, Any]
     InventorySummary = dict[str, Any]
@@ -251,6 +251,7 @@ class AccountSyncService:
 
         """
         session = None
+        record: Any | None = None
         result: SyncOperationResult
         try:
             # 创建同步会话
@@ -281,11 +282,24 @@ class AccountSyncService:
             # 更新实例同步状态
             if result.get("success", False):
                 details = cast("SyncStagesSummary | None", result.get("details"))
-                inventory = cast("InventorySummary", {})
-                collection = cast("CollectionSummary", {})
-                if isinstance(details, dict):
-                    inventory = cast("InventorySummary", details.get("inventory", {}))
-                    collection = cast("CollectionSummary", details.get("collection", {}))
+                if not isinstance(details, dict):
+                    raise ValueError("sync result.details must be a dict when success=true")
+
+                inventory_value = details.get("inventory")
+                if inventory_value is None:
+                    inventory = cast("InventorySummary", {})
+                elif isinstance(inventory_value, dict):
+                    inventory = cast("InventorySummary", inventory_value)
+                else:
+                    raise ValueError("sync result.details.inventory must be a dict")
+
+                collection_value = details.get("collection")
+                if collection_value is None:
+                    collection = cast("CollectionSummary", {})
+                elif isinstance(collection_value, dict):
+                    collection = cast("CollectionSummary", collection_value)
+                else:
+                    raise ValueError("sync result.details.collection must be a dict")
                 sync_session_service.complete_instance_sync(
                     record.id,
                     stats=SyncItemStats(
@@ -296,11 +310,16 @@ class AccountSyncService:
                         items_updated=collection.get("updated", 0),
                         items_deleted=inventory.get("deactivated", 0),
                     ),
-                    sync_details=dict(details) if isinstance(details, dict) else {},
+                    sync_details=dict(details),
                 )
             else:
                 error_details = result.get("details")
-                error_payload = dict(error_details) if isinstance(error_details, dict) else {}
+                if isinstance(error_details, dict):
+                    error_payload = dict(error_details)
+                elif error_details is None:
+                    error_payload = None
+                else:
+                    error_payload = {"raw_details": str(error_details)}
                 sync_session_service.fail_instance_sync(
                     record.id,
                     error_message=result.get("message") or "同步失败",
@@ -308,6 +327,20 @@ class AccountSyncService:
                 )
 
         except ACCOUNT_SYNC_EXCEPTIONS as exc:
+            if record is not None:
+                try:
+                    sync_session_service.fail_instance_sync(record.id, error_message=str(exc))
+                except Exception as fail_exc:  # pragma: no cover - defensive
+                    self.sync_logger.exception(
+                        "标记实例同步失败时出错",
+                        module="accounts_sync",
+                        phase="error",
+                        operation="sync_accounts",
+                        instance_name=instance.name,
+                        instance_id=instance.id,
+                        sync_type=sync_type,
+                        error=str(fail_exc),
+                    )
             self.sync_logger.exception(
                 "会话同步失败",
                 module="accounts_sync",

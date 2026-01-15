@@ -10,14 +10,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.core.constants import DatabaseType
-from app.utils.database_type_utils import get_database_type_display_name
+from app.core.types.instance_accounts import InstanceAccountSummary
+from app.core.types.tags import TagSummary
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.repositories.credentials_repository import CredentialsRepository
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
 from app.repositories.instances_repository import InstancesRepository
-from app.core.types.instance_accounts import InstanceAccountSummary
-from app.core.types.tags import TagSummary
+from app.utils.database_type_utils import get_database_type_display_name
 
 
 @dataclass(slots=True)

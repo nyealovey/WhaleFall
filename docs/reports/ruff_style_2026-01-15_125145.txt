@@ -1,0 +1,90 @@
+D413 [*] Missing blank line after last section ("Notes")
+  --> app/services/accounts_permissions/facts_builder.py:82:5
+   |
+80 |     """Best-effort parse ISO 8601 datetime.
+81 |
+82 |     Notes:
+   |     ^^^^^
+83 |     - `permission_facts` 是派生结构；此处不希望因为单个字段格式异常而中断整条 facts 构建。
+84 |     - 解析失败返回 None，上层通常会把它视作“无法判定”（例如 `_is_expired` -> False）。
+   |
+help: Add blank line after "Notes"
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> app/services/accounts_sync/permission_manager.py:3:1
+   |
+ 1 |   """账户权限同步管理器,实现权限增量及变更日志."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | import time
+ 6 | | from collections.abc import Mapping
+ 7 | | from dataclasses import dataclass
+ 8 | | from typing import TYPE_CHECKING, Any, cast
+ 9 | |
+10 | | from sqlalchemy.exc import SQLAlchemyError
+11 | |
+12 | | from app import db
+13 | | from app.core.exceptions import ConflictError
+14 | | from app.models.account_change_log import AccountChangeLog
+15 | | from app.models.account_permission import AccountPermission
+16 | | from app.repositories.accounts_sync_repository import AccountsSyncRepository
+17 | | from app.schemas.internal_contracts.account_change_log_diff_v1 import wrap_entries_v1
+18 | | from app.services.accounts_permissions.facts_builder import build_permission_facts
+19 | | from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
+20 | | from app.schemas.internal_contracts.type_specific_v1 import normalize_type_specific_v1
+21 | | from app.utils.structlog_config import get_sync_logger
+22 | | from app.utils.time_utils import time_utils
+   | |___________________________________________^
+23 |
+24 |   if TYPE_CHECKING:
+   |
+help: Organize imports
+
+D413 [*] Missing blank line after last section ("Notes")
+  --> app/services/capacity/capacity_collection_task_runner.py:79:5
+   |
+77 |     """Best-effort int coercion for task payloads.
+78 |
+79 |     Notes:
+   |     ^^^^^
+80 |     - 该 runner 的外部输入可能来自 legacy/字符串化数据源；这里返回 0 用于统计字段兜底。
+81 |     - 该函数仅用于统计/展示，不用于安全边界或业务关键判定。
+   |
+help: Add blank line after "Notes"
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> migrations/versions/20260115122054_backfill_sync_details_version.py:8:1
+   |
+ 7 |   """
+ 8 | / from __future__ import annotations
+ 9 | |
+10 | | from alembic import op
+   | |______________________^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> migrations/versions/20260115122843_backfill_account_permission_type_specific_version.py:8:1
+   |
+ 7 |   """
+ 8 | / from __future__ import annotations
+ 9 | |
+10 | | from alembic import op
+   | |______________________^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> migrations/versions/20260115123302_backfill_account_change_log_diff_version.py:8:1
+   |
+ 7 |   """
+ 8 | / from __future__ import annotations
+ 9 | |
+10 | | from alembic import op
+   | |______________________^
+   |
+help: Organize imports
+
+Found 6 errors.
+[*] 6 fixable with the `--fix` option.

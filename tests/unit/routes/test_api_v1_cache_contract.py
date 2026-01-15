@@ -6,6 +6,16 @@ from app.models.instance import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService
 
 
+def _get_csrf_token(client) -> str:  # type: ignore[no-untyped-def]
+    csrf_response = client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+    return csrf_token
+
+
 @pytest.mark.unit
 def test_api_v1_cache_requires_auth(client) -> None:
     response = client.get("/api/v1/cache/stats")
@@ -14,19 +24,48 @@ def test_api_v1_cache_requires_auth(client) -> None:
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
-    csrf_response = client.get("/api/v1/auth/csrf-token")
-    assert csrf_response.status_code == 200
-    csrf_payload = csrf_response.get_json()
-    assert isinstance(csrf_payload, dict)
-    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
-    assert isinstance(csrf_token, str)
-    headers = {"X-CSRFToken": csrf_token}
+    headers = {"X-CSRFToken": _get_csrf_token(client)}
 
     clear_all_response = client.post("/api/v1/cache/actions/clear-all", json={}, headers=headers)
     assert clear_all_response.status_code == 401
     payload = clear_all_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
+
+
+@pytest.mark.unit
+def test_api_v1_cache_actions_missing_payload_contract(auth_client) -> None:
+    headers = {"X-CSRFToken": _get_csrf_token(auth_client)}
+
+    clear_user_response = auth_client.post(
+        "/api/v1/cache/actions/clear-user",
+        json={},
+        headers=headers,
+    )
+    assert clear_user_response.status_code == 400
+    payload = clear_user_response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("message_code") == "VALIDATION_ERROR"
+
+    clear_instance_response = auth_client.post(
+        "/api/v1/cache/actions/clear-instance",
+        json={},
+        headers=headers,
+    )
+    assert clear_instance_response.status_code == 400
+    payload = clear_instance_response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("message_code") == "VALIDATION_ERROR"
+
+    clear_classification_response = auth_client.post(
+        "/api/v1/cache/actions/clear-classification",
+        json={"db_type": "not-supported"},
+        headers=headers,
+    )
+    assert clear_classification_response.status_code == 400
+    payload = clear_classification_response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("message_code") == "VALIDATION_ERROR"
 
 
 @pytest.mark.unit
@@ -74,13 +113,7 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
         db.session.commit()
         instance_id = instance.id
 
-    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
-    assert csrf_response.status_code == 200
-    csrf_payload = csrf_response.get_json()
-    assert isinstance(csrf_payload, dict)
-    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
-    assert isinstance(csrf_token, str)
-    headers = {"X-CSRFToken": csrf_token}
+    headers = {"X-CSRFToken": _get_csrf_token(auth_client)}
 
     stats_response = auth_client.get("/api/v1/cache/stats")
     assert stats_response.status_code == 200

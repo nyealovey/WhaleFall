@@ -175,6 +175,9 @@ class CacheService:
                 rule_id=rule_id,
                 account_id=account_id,
                 error=str(exc),
+                fallback=True,
+                fallback_reason="cache_get_rule_evaluation_failed",
+                error_type=exc.__class__.__name__,
             )
         return result
 
@@ -211,7 +214,8 @@ class CacheService:
                 "account_id": account_id,
             }
 
-            ttl = ttl or self.rule_evaluation_ttl  # 规则评估缓存默认 1 天
+            if ttl is None:
+                ttl = self.rule_evaluation_ttl  # 规则评估缓存默认 1 天
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug(
                 "规则评估缓存已设置",
@@ -227,6 +231,9 @@ class CacheService:
                 rule_id=rule_id,
                 account_id=account_id,
                 error=str(exc),
+                fallback=True,
+                fallback_reason="cache_set_rule_evaluation_failed",
+                error_type=exc.__class__.__name__,
             )
         return success
 
@@ -250,7 +257,13 @@ class CacheService:
                 logger.debug("分类规则缓存命中", cache_key=cache_key)
                 result = data
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("获取分类规则缓存失败", error=str(exc))
+            logger.warning(
+                "获取分类规则缓存失败",
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_get_classification_rules_failed",
+                error_type=exc.__class__.__name__,
+            )
         return result
 
     def set_classification_rules_cache(self, rules: list[dict[str, Any]], ttl: int | None = None) -> bool:
@@ -276,12 +289,19 @@ class CacheService:
                 "count": len(rules),
             }
 
-            ttl = ttl or self.rule_ttl  # 规则缓存默认 2 小时
+            if ttl is None:
+                ttl = self.rule_ttl  # 规则缓存默认 2 小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug("分类规则缓存已设置", cache_key=cache_key, ttl=ttl, count=len(rules))
             success = True
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("设置分类规则缓存失败", error=str(exc))
+            logger.warning(
+                "设置分类规则缓存失败",
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_set_classification_rules_failed",
+                error_type=exc.__class__.__name__,
+            )
         return success
 
     def invalidate_account_cache(self, account_id: int) -> bool:
@@ -304,7 +324,14 @@ class CacheService:
             logger.info("清除账户缓存", account_id=account_id)
             success = True
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("清除账户缓存失败", account_id=account_id, error=str(exc))
+            logger.warning(
+                "清除账户缓存失败",
+                account_id=account_id,
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_invalidate_account_failed",
+                error_type=exc.__class__.__name__,
+            )
         return success
 
     def invalidate_classification_cache(self) -> bool:
@@ -325,7 +352,13 @@ class CacheService:
             logger.info("清除分类缓存")
             success = True
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("清除分类缓存失败", error=str(exc))
+            logger.warning(
+                "清除分类缓存失败",
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_invalidate_classification_failed",
+                error_type=exc.__class__.__name__,
+            )
         return success
 
     def invalidate_all_rule_evaluation_cache(self) -> bool:
@@ -380,7 +413,14 @@ class CacheService:
                 else:
                     logger.warning("数据库类型规则缓存格式错误", db_type=db_type, cache_key=cache_key)
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("获取数据库类型规则缓存失败", db_type=db_type, error=str(exc))
+            logger.warning(
+                "获取数据库类型规则缓存失败",
+                db_type=db_type,
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_get_db_type_rules_failed",
+                error_type=exc.__class__.__name__,
+            )
         return rules
 
     def set_classification_rules_by_db_type_cache(
@@ -413,7 +453,8 @@ class CacheService:
                 "db_type": db_type,
             }
 
-            ttl = ttl or self.rule_ttl  # 规则缓存默认 2 小时
+            if ttl is None:
+                ttl = self.rule_ttl  # 规则缓存默认 2 小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug(
                 "数据库类型规则缓存已设置",
@@ -424,7 +465,14 @@ class CacheService:
             )
             success = True
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("设置数据库类型规则缓存失败", db_type=db_type, error=str(exc))
+            logger.warning(
+                "设置数据库类型规则缓存失败",
+                db_type=db_type,
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_set_db_type_rules_failed",
+                error_type=exc.__class__.__name__,
+            )
         return success
 
     def invalidate_db_type_cache(self, db_type: str) -> bool:
@@ -447,7 +495,14 @@ class CacheService:
             logger.info("清除数据库类型缓存", db_type=db_type)
             success = True
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("清除数据库类型缓存失败", db_type=db_type, error=str(exc))
+            logger.warning(
+                "清除数据库类型缓存失败",
+                db_type=db_type,
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_invalidate_db_type_failed",
+                error_type=exc.__class__.__name__,
+            )
         return success
 
     def invalidate_all_db_type_cache(self) -> bool:
@@ -469,7 +524,13 @@ class CacheService:
             logger.info("清除所有数据库类型缓存")
             success = True
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("清除所有数据库类型缓存失败", error=str(exc))
+            logger.warning(
+                "清除所有数据库类型缓存失败",
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_invalidate_all_db_type_failed",
+                error_type=exc.__class__.__name__,
+            )
         return success
 
     def health_check(self) -> bool:
@@ -493,7 +554,13 @@ class CacheService:
             self.cache.delete(test_key)
             is_healthy = result == test_value
         except CACHE_EXCEPTIONS as exc:
-            logger.warning("缓存健康检查失败", error=str(exc))
+            logger.warning(
+                "缓存健康检查失败",
+                error=str(exc),
+                fallback=True,
+                fallback_reason="cache_health_check_failed",
+                error_type=exc.__class__.__name__,
+            )
         return is_healthy
 
 

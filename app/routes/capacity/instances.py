@@ -6,9 +6,9 @@ from flask import Blueprint, render_template, request
 from flask_login import login_required
 
 from app.core.constants import DATABASE_TYPES, PERIOD_TYPES
+from app.infra.route_safety import safe_route_call
 from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.decorators import view_required
-from app.infra.route_safety import safe_route_call
 
 # 创建蓝图
 capacity_instances_bp = Blueprint("capacity_instances", __name__)

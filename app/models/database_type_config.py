@@ -74,14 +74,16 @@ class DatabaseTypeConfig(db.Model):
         """获取 JSON 存储的特性列表.
 
         Returns:
-            list[str]: 解码后的特性集合,解析失败时返回空列表.
+            list[str]: 解码后的特性集合.
 
         """
         if self.features:
             try:
                 return json.loads(self.features)
-            except (json.JSONDecodeError, TypeError):
-                return []
+            except (json.JSONDecodeError, TypeError) as exc:
+                config_id = getattr(self, "id", None)
+                name = getattr(self, "name", None)
+                raise ValueError(f"database_type_config.features JSON decode failed (id={config_id}, name={name})") from exc
         return []
 
     @features_list.setter

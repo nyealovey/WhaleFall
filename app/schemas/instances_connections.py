@@ -26,7 +26,7 @@ def _parse_int(value: Any, *, message: str) -> int:
     if value is None or value == "":
         raise ValueError(message)
     if isinstance(value, bool):
-        raise ValueError(message)
+        raise ValueError(message)  # noqa: TRY004
     try:
         return int(value)
     except (TypeError, ValueError) as exc:
@@ -90,7 +90,7 @@ class InstanceConnectionTestPayload(PayloadSchema):
         if value is None:
             return None
         if not isinstance(value, str):
-            raise ValueError("不支持的数据库类型")
+            raise ValueError("不支持的数据库类型")  # noqa: TRY004
         cleaned = value.strip().lower()
         if not cleaned:
             return None
@@ -148,7 +148,7 @@ class InstanceConnectionParamsPayload(PayloadSchema):
     @classmethod
     def _parse_db_type(cls, value: Any) -> str:
         if not isinstance(value, str):
-            raise ValueError("不支持的数据库类型")
+            raise ValueError("不支持的数据库类型")  # noqa: TRY004
         cleaned = value.strip().lower()
         if not cleaned:
             raise ValueError("缺少 db_type")
@@ -189,7 +189,7 @@ class InstanceConnectionBatchTestPayload(PayloadSchema):
     @classmethod
     def _parse_instance_ids(cls, value: Any) -> list[int]:
         if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
-            raise ValueError("实例ID列表不能为空")
+            raise ValueError("实例ID列表不能为空")  # noqa: TRY004
         raw_list = list(value)
         if not raw_list:
             raise ValueError("实例ID列表不能为空")
@@ -197,7 +197,7 @@ class InstanceConnectionBatchTestPayload(PayloadSchema):
         parsed: list[int] = []
         for item in raw_list:
             if isinstance(item, bool):
-                raise ValueError("实例ID列表必须为整数")
+                raise ValueError("实例ID列表必须为整数")  # noqa: TRY004
             try:
                 parsed.append(int(item))
             except (TypeError, ValueError) as exc:
@@ -207,4 +207,3 @@ class InstanceConnectionBatchTestPayload(PayloadSchema):
             raise ValueError(f"批量测试数量不能超过{MAX_BATCH_TEST_SIZE}个")
 
         return parsed
-

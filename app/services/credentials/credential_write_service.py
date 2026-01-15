@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -22,9 +21,6 @@ from app.schemas.credentials import CredentialCreatePayload, CredentialUpdatePay
 from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
-
-if TYPE_CHECKING:
-    from app.core.types import ResourcePayload
 
 
 @dataclass(slots=True)
@@ -43,10 +39,10 @@ class CredentialWriteService:
         """初始化服务并注入凭据仓库."""
         self._repository = repository or CredentialsRepository()
 
-    def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Credential:
+    def create(self, payload: object | None, *, operator_id: int | None = None) -> Credential:
         """创建凭据."""
         sanitized = parse_payload(
-            payload or {},
+            payload,
             preserve_raw_fields=["password"],
             boolean_fields_default_false=["is_active"],
         )
@@ -72,11 +68,11 @@ class CredentialWriteService:
         self._log_create(credential, operator_id=operator_id)
         return credential
 
-    def update(self, credential_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> Credential:
+    def update(self, credential_id: int, payload: object | None, *, operator_id: int | None = None) -> Credential:
         """更新凭据."""
         credential = self._get_or_error(credential_id)
         sanitized = parse_payload(
-            payload or {},
+            payload,
             preserve_raw_fields=["password"],
             boolean_fields_default_false=["is_active"],
         )

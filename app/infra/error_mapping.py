@@ -34,7 +34,6 @@ _EXCEPTION_STATUS_MAP: tuple[tuple[type[Exception], int], ...] = (
 
 def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL_SERVER_ERROR) -> int:
     """根据异常类型推导 HTTP 状态码."""
-
     for exc_type, status in _EXCEPTION_STATUS_MAP:
         if isinstance(error, exc_type):
             return status

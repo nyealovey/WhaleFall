@@ -15,8 +15,6 @@ from app.utils.structlog_config import get_sync_logger
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from app.models.instance import Instance
-    from app.models.instance_account import InstanceAccount
     from app.core.types import (
         CollectionSummary,
         InventorySummary,
@@ -25,6 +23,8 @@ if TYPE_CHECKING:
         SyncConnection,
         SyncStagesSummary,
     )
+    from app.models.instance import Instance
+    from app.models.instance_account import InstanceAccount
 else:
     Instance = Any
     InstanceAccount = Any

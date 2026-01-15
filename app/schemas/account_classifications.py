@@ -68,7 +68,7 @@ def _parse_priority(value: Any, *, fallback: int | None) -> int | None:
     if value is None:
         return fallback
     if isinstance(value, bool):
-        raise ValueError("优先级必须为整数")
+        raise ValueError("优先级必须为整数")  # noqa: TRY004
     try:
         parsed = int(value)
     except (TypeError, ValueError) as exc:
@@ -80,7 +80,7 @@ def _parse_positive_int(value: Any, *, message: str) -> int:
     if value is None or value == "":
         raise ValueError(message)
     if isinstance(value, bool):
-        raise ValueError(message)
+        raise ValueError(message)  # noqa: TRY004
     try:
         parsed = int(value)
     except (TypeError, ValueError) as exc:
@@ -105,7 +105,7 @@ def _normalize_rule_expression(value: Any) -> tuple[str, dict[str, object]]:
     if raw_value is None:
         raw_value = {}
     if not isinstance(raw_value, dict):
-        raise ValueError("规则表达式必须为对象")
+        raise ValueError("规则表达式必须为对象")  # noqa: TRY004
 
     normalized = json.dumps(raw_value, ensure_ascii=False, sort_keys=True)
     return normalized, raw_value
@@ -449,4 +449,3 @@ class AccountClassificationRuleUpdatePayload(PayloadSchema):
         if value is None:
             return None
         return as_bool(value, default=False)
-

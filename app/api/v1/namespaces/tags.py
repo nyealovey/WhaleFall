@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import ClassVar, cast
+from typing import Any, ClassVar, cast
 
 from flask import request
 from flask_login import current_user
@@ -15,17 +15,14 @@ from app.api.v1.resources.decorators import api_login_required, api_permission_r
 from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.tags import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS, TAGGABLE_INSTANCE_FIELDS
 from app.core.constants import HttpStatus
-from app.core.constants.system_constants import ErrorMessages
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.types.tags import TagListFilters
+from app.services.tags.tag_detail_read_service import TagDetailReadService
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
-from app.services.tags.tag_detail_read_service import TagDetailReadService
 from app.services.tags.tag_write_service import TagWriteService
 from app.services.tags.tags_bulk_actions_service import TagsBulkActionsService
-from app.core.types import ResourcePayload
-from app.core.types.tags import TagListFilters
 from app.utils.decorators import require_csrf
-from app.utils.request_payload import parse_payload
 
 ns = Namespace("tags", description="标签管理")
 
@@ -246,15 +243,11 @@ def _build_tag_list_filters(parsed: dict[str, object]) -> TagListFilters:
     )
 
 
-def _parse_payload() -> ResourcePayload:
+def _get_raw_payload() -> object:
     if request.is_json:
         payload = request.get_json(silent=True)
-        raw: object = payload if isinstance(payload, dict) else {}
-    else:
-        raw = request.form
-
-    sanitized = parse_payload(raw, boolean_fields_default_false=["is_active"])
-    return cast(ResourcePayload, sanitized)
+        return payload if isinstance(payload, dict) else {}
+    return request.form
 
 
 def _build_tag_write_service() -> TagWriteService:
@@ -310,7 +303,7 @@ class TagsResource(BaseResource):
     @require_csrf
     def post(self):
         """创建标签."""
-        payload = _parse_payload()
+        payload = cast(Any, _get_raw_payload())
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -431,7 +424,7 @@ class TagDetailResource(BaseResource):
     @require_csrf
     def put(self, tag_id: int):
         """更新标签."""
-        payload = _parse_payload()
+        payload = cast(Any, _get_raw_payload())
         operator_id = getattr(current_user, "id", None)
 
         def _execute():

@@ -7,8 +7,8 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from app.models.instance import Instance
     from app.core.types import RawAccount, RemoteAccount
+    from app.models.instance import Instance
 else:
     Instance = Any
     RawAccount = dict[str, Any]

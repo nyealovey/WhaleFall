@@ -20,7 +20,7 @@ from flask.views import MethodView
 from app.core.constants import FlashCategory
 from app.core.exceptions import AppError
 from app.core.types import ResourcePayload, SupportsResourceId, TemplateContext
-from app.infra.route_safety import safe_route_call
+from app.infra.route_safety import log_fallback, safe_route_call
 
 if TYPE_CHECKING:
     from flask.typing import ResponseReturnValue
@@ -251,7 +251,19 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         if endpoint:
             try:
                 return url_for(str(endpoint))
-            except Exception:
+            except Exception as exc:
+                log_fallback(
+                    "warning",
+                    "resource_form_redirect_endpoint_url_for_failed",
+                    module="resource_forms",
+                    action="_resolve_fallback_redirect",
+                    fallback_reason="url_for_failed",
+                    extra={
+                        "redirect_endpoint": str(endpoint),
+                        "error_type": type(exc).__name__,
+                        "error_message": str(exc),
+                    },
+                )
                 return url_for("main.index")
         return url_for("main.index")
 

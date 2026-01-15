@@ -117,6 +117,9 @@ class InstanceCapacitySyncActionsService:
                     "容量同步后触发聚合失败",
                     module="databases_capacity",
                     exception=exc,
+                    fallback=True,
+                    fallback_reason="aggregation_calculation_failed",
+                    action="sync_instance_capacity",
                     instance_id=instance.id,
                 )
 

@@ -88,4 +88,3 @@ class AccountsSyncRepository:
                 username=username,
             ).first(),
         )
-

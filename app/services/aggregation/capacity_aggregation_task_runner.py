@@ -48,6 +48,7 @@ class CapacityAggregationTaskRunner:
 
     @staticmethod
     def list_active_instances() -> list[Instance]:
+        """获取启用的实例列表."""
         return AggregationTasksReadService().list_active_instances()
 
     @staticmethod
@@ -56,6 +57,7 @@ class CapacityAggregationTaskRunner:
         logger: structlog.BoundLogger,
         allowed_periods: Sequence[str],
     ) -> list[str]:
+        """根据请求周期与允许周期选择执行列表."""
         allowed = list(allowed_periods)
         if not allowed:
             return []
@@ -89,6 +91,7 @@ class CapacityAggregationTaskRunner:
 
     @staticmethod
     def has_aggregation_for_period(period_type: str, period_start: date) -> bool:
+        """判断指定周期是否已完成聚合."""
         return AggregationTasksReadService().has_aggregation_for_period(period_type=period_type, period_start=period_start)
 
     def filter_periods_already_aggregated(
@@ -98,6 +101,7 @@ class CapacityAggregationTaskRunner:
         selected_periods: Sequence[str],
         logger: structlog.BoundLogger,
     ) -> list[str]:
+        """过滤已聚合的周期."""
         skipped: dict[str, str] = {}
         remaining: list[str] = []
 
@@ -119,6 +123,7 @@ class CapacityAggregationTaskRunner:
 
     @staticmethod
     def build_skip_response(message: str) -> dict[str, Any]:
+        """构造跳过执行的返回结构."""
         return {
             "status": STATUS_SKIPPED,
             "message": message,
@@ -131,6 +136,7 @@ class CapacityAggregationTaskRunner:
 
     @staticmethod
     def start_instance_sync(record_id: int) -> None:
+        """标记实例聚合同步开始."""
         sync_session_service.start_instance_sync(record_id)
 
     @staticmethod
@@ -142,6 +148,7 @@ class CapacityAggregationTaskRunner:
         details: dict[str, Any],
         error_message: str | None,
     ) -> None:
+        """根据执行结果更新实例同步记录."""
         if success:
             stats = SyncItemStats(items_synced=int(aggregated_count or 0))
             sync_session_service.complete_instance_sync(
@@ -158,6 +165,7 @@ class CapacityAggregationTaskRunner:
 
     @staticmethod
     def fail_instance_sync(record_id: int, error_message: str) -> None:
+        """标记实例聚合同步失败."""
         sync_session_service.fail_instance_sync(record_id, error_message=error_message)
 
     @staticmethod
@@ -169,6 +177,7 @@ class CapacityAggregationTaskRunner:
         selected_periods: Sequence[str],
         logger: structlog.BoundLogger,
     ) -> tuple[SyncSession, dict[int, SyncInstanceRecord]]:
+        """创建聚合同步会话及实例记录."""
         if manual_run:
             sync_type = SyncOperationType.MANUAL_TASK.value
         else:
@@ -286,6 +295,7 @@ class CapacityAggregationTaskRunner:
         selected_periods: Sequence[str],
         logger: structlog.BoundLogger,
     ) -> tuple[dict[str, Any], bool, int]:
+        """执行单实例聚合并返回明细/成功标记/聚合数量."""
         try:
             summary = service.calculate_instance_aggregations(
                 instance.id,
@@ -340,6 +350,7 @@ class CapacityAggregationTaskRunner:
         selected_periods: Sequence[str],
         logger: structlog.BoundLogger,
     ) -> tuple[list[dict[str, Any]], int]:
+        """汇总数据库级聚合结果."""
         period_summaries: list[dict[str, Any]] = []
         total_database_aggregations = 0
 

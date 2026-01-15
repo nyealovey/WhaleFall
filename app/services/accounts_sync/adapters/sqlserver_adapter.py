@@ -19,9 +19,9 @@ from app.utils.structlog_config import get_sync_logger
 if TYPE_CHECKING:
     from re import Pattern
 
-    from app.models.instance import Instance
     from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
     from app.core.types.sync import SyncConnection
+    from app.models.instance import Instance
 else:
     Instance = Any
     JsonDict = dict[str, Any]

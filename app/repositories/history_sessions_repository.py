@@ -12,10 +12,10 @@ from typing import Any, cast
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.exceptions import NotFoundError
-from app.models.sync_instance_record import SyncInstanceRecord
-from app.models.sync_session import SyncSession
 from app.core.types.history_sessions import HistorySessionsListFilters
 from app.core.types.listing import PaginatedResult
+from app.models.sync_instance_record import SyncInstanceRecord
+from app.models.sync_session import SyncSession
 
 
 class HistorySessionsRepository:

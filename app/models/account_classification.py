@@ -12,12 +12,12 @@ from app.utils.theme_color_utils import (
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.models.account_permission import AccountPermission
     from app.core.types.orm_kwargs import (
         AccountClassificationAssignmentOrmFields,
         AccountClassificationOrmFields,
         ClassificationRuleOrmFields,
     )
+    from app.models.account_permission import AccountPermission
 
 
 class AccountClassification(db.Model):
@@ -205,13 +205,15 @@ class ClassificationRule(db.Model):
         """获取规则表达式(解析 JSON).
 
         Returns:
-            dict: 解析后的规则表达式,失败返回空字典.
+            dict: 解析后的规则表达式.
 
         """
         try:
             return json.loads(self.rule_expression)
-        except (json.JSONDecodeError, TypeError):
-            return {}
+        except (json.JSONDecodeError, TypeError) as exc:
+            rule_id = getattr(self, "id", None)
+            rule_name = getattr(self, "rule_name", None)
+            raise ValueError(f"rule_expression JSON decode failed (rule_id={rule_id}, rule_name={rule_name})") from exc
 
     def set_rule_expression(self, expression: dict) -> None:
         """设置规则表达式(保存为 JSON).

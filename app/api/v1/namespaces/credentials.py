@@ -16,10 +16,9 @@ from app.api.v1.restx_models.credentials import CREDENTIAL_LIST_ITEM_FIELDS
 from app.core.constants import HttpStatus
 from app.core.constants.system_constants import SuccessMessages
 from app.core.exceptions import NotFoundError
-from app.services.credentials import CredentialDetailReadService, CredentialsListService, CredentialWriteService
 from app.core.types.credentials import CredentialListFilters
+from app.services.credentials import CredentialDetailReadService, CredentialsListService, CredentialWriteService
 from app.utils.decorators import require_csrf
-from app.utils.request_payload import parse_payload
 
 ns = Namespace("credentials", description="凭据管理")
 
@@ -116,18 +115,11 @@ def _normalize_status(raw_value: str) -> str | None:
     return None
 
 
-def _parse_payload() -> dict[str, Any]:
+def _get_raw_payload() -> object:
     if request.is_json:
         payload = request.get_json(silent=True)
-        raw: object = payload if isinstance(payload, dict) else {}
-    else:
-        raw = request.form
-
-    return parse_payload(
-        raw,
-        preserve_raw_fields=["password"],
-        boolean_fields_default_false=["is_active"],
-    )
+        return payload if isinstance(payload, dict) else {}
+    return request.form
 
 
 def _build_filters(parsed: dict[str, object], *, allow_sort: bool) -> CredentialListFilters:
@@ -229,7 +221,7 @@ class CredentialsResource(BaseResource):
     @require_csrf
     def post(self):
         """创建凭据."""
-        payload = _parse_payload()
+        payload = cast(Any, _get_raw_payload())
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -291,7 +283,7 @@ class CredentialDetailResource(BaseResource):
     @require_csrf
     def put(self, credential_id: int):
         """更新凭据."""
-        payload = _parse_payload()
+        payload = cast(Any, _get_raw_payload())
         operator_id = getattr(current_user, "id", None)
 
         def _execute():

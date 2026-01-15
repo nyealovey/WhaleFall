@@ -102,6 +102,14 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     assert "per_page" not in data
     assert "perPage" not in data
 
+    invalid_time_response = auth_client.get("/api/v1/logs?start_time=not-a-time")
+    assert invalid_time_response.status_code == 400
+    payload = invalid_time_response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is False
+    assert payload.get("error") is True
+    assert payload.get("message_code") == "VALIDATION_ERROR"
+
     modules_response = auth_client.get("/api/v1/logs/modules")
     assert modules_response.status_code == 200
     payload = modules_response.get_json()

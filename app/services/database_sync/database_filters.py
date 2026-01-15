@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING, Any, TypedDict
 import yaml
 from pydantic import ValidationError as PydanticValidationError
 
-from app.utils.structlog_config import get_system_logger
 from app.schemas.yaml_configs import DatabaseFiltersConfigFile
+from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
