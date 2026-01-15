@@ -41,13 +41,44 @@ related:
 - SHOULD: 对 checkbox 类布尔字段使用 `boolean_fields_default_false`, 只对 MultiDict 缺失字段补 False.
 - MUST NOT: 在业务代码中重复做 strip/NUL 清理与 list 折叠, 以免出现语义漂移.
 
+#### 3.1.1 职责边界：parse_payload vs schema（避免双重规范化导致漂移）
+
+| 层 | 负责 | 不负责 |
+|---|---|---|
+| `parse_payload` | shape-level 适配（JSON mapping / MultiDict → 稳定 dict）、NUL 清理、list 形状稳定、MultiDict 缺失布尔字段补 False（受控） | 字段语义级默认值、字段 alias/迁移、业务规则、对外错误码口径 |
+| schema（`app/schemas/**`） | semantic-level 规范化与校验（类型转换、默认值、`"" -> None`、alias/形状迁移），并产出 typed payload | 在 service 内直接读 `request.*`、在多层重复做 parse/strip/兜底链 |
+
 ### 3.2 Schema 校验与错误映射
 
 - MUST: 写路径 schema 统一放在 `app/schemas/**`, 并继承 `app/schemas/base.py::PayloadSchema`.
 - MUST: service 层使用 `app/schemas/validation.py::validate_or_raise` 执行校验并抛出项目 `ValidationError`.
-- MUST: schema 校验失败时输出中文错误文案, 用 `ValueError("...")` 表达.
+- MUST: schema validator 内可用 `ValueError("...")` 表达字段校验失败（会被 pydantic 收集为校验错误）；`validate_or_raise(...)` 必须将其转换为项目 `ValidationError`，禁止让 `ValueError` 穿透到 routes/api。
 - MUST: 需要透传 `message_key` 时, schema 侧抛出 `SchemaMessageKeyError(message, message_key="...")`.
 - SHOULD: 可选字符串字段统一 canonicalize, 常见规则为 `"" -> None`, 避免 "空串 vs 未提供" 语义漂移.
+
+最小链路示例（ValueError → ValidationError）：
+
+```python
+from pydantic import field_validator
+
+from app.schemas.base import PayloadSchema
+from app.schemas.validation import SchemaMessageKeyError
+
+
+class ExamplePayload(PayloadSchema):
+    name: str
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("名称不能为空")
+        if value == "forbidden":
+            raise SchemaMessageKeyError("不允许的名称", message_key="INVALID_NAME")
+        return value
+```
+
+> 说明：service 调用 `validate_or_raise(ExamplePayload, sanitized)` 时会捕获 pydantic 校验错误并抛出项目 `ValidationError`（HTTP 边界再映射为统一错误封套）。
 
 ### 3.3 Service 层消费规范
 
