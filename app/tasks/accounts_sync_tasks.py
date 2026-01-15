@@ -85,8 +85,21 @@ def _sync_single_instance(
             return 0, 1
 
         summary_dict: SyncStagesSummary = cast("SyncStagesSummary", summary)
-        inventory_summary: InventorySummary = summary_dict.get("inventory", {}) or {}
-        collection_summary: CollectionSummary = summary_dict.get("collection", {}) or {}
+        inventory_value = summary_dict.get("inventory")
+        if inventory_value is None:
+            inventory_summary = cast("InventorySummary", {})
+        elif isinstance(inventory_value, dict):
+            inventory_summary = cast("InventorySummary", inventory_value)
+        else:
+            raise ValueError("sync summary.inventory must be a dict")
+
+        collection_value = summary_dict.get("collection")
+        if collection_value is None:
+            collection_summary = cast("CollectionSummary", {})
+        elif isinstance(collection_value, dict):
+            collection_summary = cast("CollectionSummary", collection_value)
+        else:
+            raise ValueError("sync summary.collection must be a dict")
 
         stats = SyncItemStats(
             items_created=inventory_summary.get("created", 0),

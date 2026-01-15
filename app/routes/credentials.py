@@ -54,8 +54,13 @@ def _build_credential_filters(
     sort_field = "created_at"
     sort_order = "desc"
     if allow_sort:
-        sort_field = (args.get("sort", "created_at", type=str) or "created_at").lower()
-        sort_order_candidate = (args.get("order", "desc", type=str) or "desc").lower()
+        raw_sort = args.get("sort", "created_at", type=str)
+        sort_field_value = raw_sort.strip() if isinstance(raw_sort, str) else ""
+        sort_field = sort_field_value.lower() if sort_field_value else "created_at"
+
+        raw_order = args.get("order", "desc", type=str)
+        sort_order_value = raw_order.strip() if isinstance(raw_order, str) else ""
+        sort_order_candidate = sort_order_value.lower() if sort_order_value else "desc"
         sort_order = sort_order_candidate if sort_order_candidate in {"asc", "desc"} else "desc"
 
     return CredentialListFilters(
