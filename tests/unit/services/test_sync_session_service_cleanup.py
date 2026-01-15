@@ -12,9 +12,9 @@ from app.services.sync_session_service import SyncItemStats, SyncSessionService
 
 
 @pytest.mark.unit
-def test_clean_sync_details_keeps_empty_dict() -> None:
+def test_clean_sync_details_injects_version_for_empty_dict() -> None:
     service = SyncSessionService()
-    assert service._clean_sync_details({}) == {}
+    assert service._clean_sync_details({}) == {"version": 1}
 
 
 @pytest.mark.unit

@@ -76,9 +76,8 @@ def _build_success(message: str, payload: dict[str, object]) -> dict[str, object
 def _to_int(value: object) -> int:
     """Best-effort int coercion for task payloads.
 
-    Notes:
-    - 该 runner 的外部输入可能来自 legacy/字符串化数据源；这里返回 0 用于统计字段兜底。
-    - 该函数仅用于统计/展示，不用于安全边界或业务关键判定。
+    该 runner 的外部输入可能来自 legacy/字符串化数据源；这里返回 0 用于统计字段兜底。
+    该函数仅用于统计/展示，不用于安全边界或业务关键判定。
     """
     if isinstance(value, (int, float)):
         return int(value)

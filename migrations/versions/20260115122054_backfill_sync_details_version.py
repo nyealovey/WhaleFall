@@ -5,10 +5,10 @@ Revises: 20260104120000
 Create Date: 2026-01-15 12:20:56.260330
 
 """
+
 from __future__ import annotations
 
 from alembic import op
-
 
 # revision identifiers, used by Alembic.
 revision = "20260115122054"

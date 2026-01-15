@@ -7,12 +7,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 DIFF_VERSION_V1 = 1
 
 
-def wrap_entries_v1(entries: list[object]) -> dict[str, Any]:
+def wrap_entries_v1(entries: Sequence[object]) -> dict[str, Any]:
     """Wrap diff entries into v1 dict shape (write entry)."""
     return {"version": DIFF_VERSION_V1, "entries": list(entries)}
 
@@ -43,4 +44,3 @@ __all__ = [
     "extract_diff_entries",
     "wrap_entries_v1",
 ]
-
