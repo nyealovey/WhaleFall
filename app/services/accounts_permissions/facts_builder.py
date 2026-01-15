@@ -79,9 +79,8 @@ def _extract_snapshot_type_specific(snapshot: object, *, db_type: str) -> JsonDi
 def _parse_iso_datetime(value: str) -> datetime | None:
     """Best-effort parse ISO 8601 datetime.
 
-    Notes:
-    - `permission_facts` 是派生结构；此处不希望因为单个字段格式异常而中断整条 facts 构建。
-    - 解析失败返回 None，上层通常会把它视作“无法判定”（例如 `_is_expired` -> False）。
+    `permission_facts` 是派生结构；此处不希望因为单个字段格式异常而中断整条 facts 构建。
+    解析失败返回 None，上层通常会把它视作“无法判定”（例如 `_is_expired` -> False）。
     """
     raw = (value or "").strip()
     if not raw:

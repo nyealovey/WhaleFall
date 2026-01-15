@@ -7,6 +7,6 @@ from app.schemas.internal_contracts.type_specific_v1 import normalize_type_speci
 def test_normalize_type_specific_v1_injects_version() -> None:
     raw = {"host": "localhost"}
     normalized = normalize_type_specific_v1(raw)
+    assert normalized is not None
     assert normalized["version"] == 1
     assert normalized["host"] == "localhost"
-
