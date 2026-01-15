@@ -13,6 +13,7 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.repositories.sync_sessions_repository import SyncSessionsRepository
+from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
 from app.utils.structlog_config import get_sync_logger, get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -61,6 +62,10 @@ class SyncSessionService:
         if sync_details is None:
             return None
 
+        normalized = normalize_sync_details_v1(sync_details)
+        if normalized is None:
+            return None
+
         def clean_value(value: object) -> object:
             if isinstance(value, (datetime, date)):
                 return value.isoformat()
@@ -70,7 +75,7 @@ class SyncSessionService:
                 return [clean_value(item) for item in value]
             return value
 
-        return cast("dict[str, Any]", clean_value(sync_details))
+        return cast("dict[str, Any]", clean_value(normalized))
 
     def create_session(
         self,
