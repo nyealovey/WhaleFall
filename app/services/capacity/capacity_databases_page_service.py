@@ -95,6 +95,10 @@ class CapacityDatabasesPageService:
 
     @staticmethod
     def _coerce_int(value: str) -> int | None:
+        """Best-effort parse query-string int.
+
+        页面筛选参数允许为空/脏值；无法解析时返回 None 表示“不参与筛选”。
+        """
         try:
             return int(value)
         except (TypeError, ValueError):
