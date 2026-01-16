@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
-
 import psutil
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -22,7 +20,6 @@ from app.repositories.users_repository import UsersRepository
 from app.services.health.health_checks_service import check_cache_health, check_database_health, get_system_uptime
 from app.utils.cache_utils import dashboard_cache
 from app.utils.structlog_config import log_info, log_warning
-from app.utils.time_utils import time_utils
 
 
 @dashboard_cache(timeout=300)
@@ -34,7 +31,6 @@ def get_system_overview() -> dict:
     instance_summary = InstanceStatisticsRepository.fetch_summary()
     database_summary = DatabaseStatisticsRepository.fetch_summary()
 
-    recent_date = time_utils.now_china().date() - timedelta(days=7)
     total_size_mb = 0
     try:
         with db.session.begin_nested():
@@ -43,7 +39,7 @@ def get_system_overview() -> dict:
                     instance_id=None,
                     db_type=None,
                     period_type=None,
-                    start_date=recent_date,
+                    start_date=None,
                     end_date=None,
                 ),
             )
