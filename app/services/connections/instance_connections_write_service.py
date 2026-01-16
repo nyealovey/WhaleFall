@@ -22,12 +22,12 @@ class InstanceConnectionsWriteService:
 
     def parse_connection_test_payload(self, payload: object | None) -> InstanceConnectionTestPayload:
         """解析并校验连接测试 payload."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         return validate_or_raise(InstanceConnectionTestPayload, sanitized)
 
     def validate_connection_params_from_payload(self, payload: object | None) -> tuple[str, int]:
         """解析并校验连接参数,并验证可选 credential_id 是否存在."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         parsed = validate_or_raise(InstanceConnectionParamsPayload, sanitized)
         if parsed.credential_id is not None:
             CredentialDetailReadService().get_credential_or_error(parsed.credential_id)
@@ -35,6 +35,5 @@ class InstanceConnectionsWriteService:
 
     def parse_batch_test_payload(self, payload: object | None) -> InstanceConnectionBatchTestPayload:
         """解析并校验批量连接测试 payload."""
-        sanitized = parse_payload(payload or {}, list_fields=["instance_ids"])
+        sanitized = parse_payload(payload, list_fields=["instance_ids"])
         return validate_or_raise(InstanceConnectionBatchTestPayload, sanitized)
-

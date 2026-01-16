@@ -79,7 +79,7 @@ class AccountInventoryManager:
             Exception: 当数据库提交失败时抛出.
 
         """
-        remote_accounts, now_ts = list(remote_accounts or []), time_utils.now()
+        remote_accounts, now_ts = list(remote_accounts), time_utils.now()
 
         existing_accounts = self._repository.list_instance_accounts(instance_id=instance.id)
         existing_map = {account.username: account for account in existing_accounts}
