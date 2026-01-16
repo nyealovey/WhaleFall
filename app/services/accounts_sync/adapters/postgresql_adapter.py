@@ -6,6 +6,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from app.core.constants import DatabaseType
+from app.schemas.external_contracts.postgresql_account import PostgreSQLRawAccountSchema
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.safe_query_builder import SafeQueryBuilder
@@ -173,24 +174,23 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         """
         _ = instance
-        permissions = cast("PermissionSnapshot", account.get("permissions") or {})
-        type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
-        role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
+        parsed = PostgreSQLRawAccountSchema.model_validate(account)
+        permissions = parsed.permissions
         normalized_permissions: PermissionSnapshot = {
-            "predefined_roles": cast("list[str]", permissions.get("predefined_roles", [])),
-            "role_attributes": role_attributes,
-            "database_privileges_pg": cast("JsonDict", permissions.get("database_privileges_pg", {})),
-            "system_privileges": cast("list[str]", permissions.get("system_privileges", [])),
-            "type_specific": type_specific,
+            "predefined_roles": permissions.predefined_roles,
+            "role_attributes": permissions.role_attributes,
+            "database_privileges_pg": cast("JsonDict", permissions.database_privileges_pg),
+            "system_privileges": permissions.system_privileges,
+            "type_specific": permissions.type_specific,
         }
         return cast(
             "RemoteAccount",
             {
-                "username": account["username"],
-                "display_name": account["username"],
+                "username": parsed.username,
+                "display_name": parsed.username,
                 "db_type": DatabaseType.POSTGRESQL,
-                "is_superuser": account.get("is_superuser", False),
-                "is_locked": bool(account.get("is_locked", False)),
+                "is_superuser": parsed.is_superuser,
+                "is_locked": parsed.is_locked,
                 "is_active": True,
                 "permissions": normalized_permissions,
             },
@@ -305,7 +305,12 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 continue
             processed += 1
             try:
-                existing_permissions = cast("PermissionSnapshot", account.get("permissions") or {})
+                existing_permissions_value = account.get("permissions")
+                existing_permissions: PermissionSnapshot
+                if isinstance(existing_permissions_value, dict):
+                    existing_permissions = cast("PermissionSnapshot", existing_permissions_value)
+                else:
+                    existing_permissions = cast("PermissionSnapshot", {})
                 permissions = self._get_role_permissions(
                     connection,
                     username,
@@ -321,7 +326,16 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     username=username,
                     error=str(exc),
                 )
-                account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
+                permissions_value = account.get("permissions")
+                if not isinstance(permissions_value, dict):
+                    permissions_value = {}
+                    account["permissions"] = cast(PermissionSnapshot, permissions_value)
+                permissions = cast(PermissionSnapshot, permissions_value)
+                errors_list = permissions.get("errors")
+                if not isinstance(errors_list, list):
+                    errors_list = []
+                    permissions["errors"] = errors_list
+                errors_list.append(str(exc))
 
         self.logger.info(
             "fetch_postgresql_permissions_completed",
@@ -339,8 +353,12 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         """将已有权限数据与新查询数据合并."""
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
-        seed_type_specific = cast("JsonDict", seed_permissions.get("type_specific") or {})
-        seed_role_attributes = cast("JsonDict", seed_permissions.get("role_attributes") or {})
+        seed_type_specific_value = seed_permissions.get("type_specific")
+        seed_type_specific = cast("JsonDict", seed_type_specific_value) if isinstance(seed_type_specific_value, dict) else {}
+        seed_role_attributes_value = seed_permissions.get("role_attributes")
+        seed_role_attributes = (
+            cast("JsonDict", seed_role_attributes_value) if isinstance(seed_role_attributes_value, dict) else {}
+        )
 
         if seed_type_specific.get("valid_until") is not None:
             type_specific.setdefault("valid_until", seed_type_specific["valid_until"])

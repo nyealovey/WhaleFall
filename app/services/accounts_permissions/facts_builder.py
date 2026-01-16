@@ -13,7 +13,9 @@ from typing import Any, Final
 from app.core.constants import DatabaseType
 from app.schemas.internal_contracts.permission_snapshot_v4 import (
     normalize_permission_snapshot_categories_v4,
+    normalize_permission_snapshot_type_specific_v4,
     parse_permission_snapshot_categories_v4,
+    parse_permission_snapshot_type_specific_v4,
 )
 
 JsonDict = dict[str, Any]
@@ -58,22 +60,6 @@ def _extract_mapping_of_lists(value: object) -> dict[str, list[str]]:
         if isinstance(entry, dict):
             output[key] = _extract_privilege_list(entry)
     return output
-
-
-def _extract_snapshot_type_specific(snapshot: object, *, db_type: str) -> JsonDict:
-    if not isinstance(snapshot, dict):
-        return {}
-    if snapshot.get("version") != PERMISSION_SNAPSHOT_VERSION_V4:
-        return {}
-
-    type_specific = snapshot.get("type_specific")
-    if not isinstance(type_specific, dict):
-        return {}
-
-    entry = type_specific.get(db_type)
-    if isinstance(entry, dict):
-        return dict(entry)
-    return {}
 
 
 def _parse_iso_datetime(value: str) -> datetime | None:
@@ -342,7 +328,26 @@ def build_permission_facts(
     if not categories:
         errors.append("PERMISSION_DATA_MISSING")
 
-    type_specific = _extract_snapshot_type_specific(snapshot, db_type=db_type)
+    parsed_type_specific = parse_permission_snapshot_type_specific_v4(snapshot)
+    meta["type_specific_contract"] = parsed_type_specific.get("contract", "permission_snapshot.type_specific")
+    meta["type_specific_contract_ok"] = parsed_type_specific.get("ok")
+    meta["type_specific_version"] = parsed_type_specific.get("version")
+    meta["type_specific_supported_versions"] = parsed_type_specific.get(
+        "supported_versions",
+        [PERMISSION_SNAPSHOT_VERSION_V4],
+    )
+
+    type_specific_bucket: dict[str, Any] = {}
+    if parsed_type_specific["ok"] is True:
+        data = parsed_type_specific.get("data")
+        if isinstance(data, dict):
+            type_specific_bucket = dict(data)
+    else:
+        errors.extend(parsed_type_specific.get("errors", []))
+        meta["type_specific_error_code"] = parsed_type_specific.get("error_code")
+        meta["type_specific_error_message"] = parsed_type_specific.get("message")
+
+    type_specific = normalize_permission_snapshot_type_specific_v4(db_type, type_specific_bucket)
 
     roles = _extract_roles(db_type, categories)
     privileges, global_privileges, server_privileges, system_privileges = _extract_privileges(categories)
