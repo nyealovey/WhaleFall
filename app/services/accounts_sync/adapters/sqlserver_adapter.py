@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from app.core.constants import DatabaseType
 from app.infra.route_safety import log_fallback
+from app.schemas.external_contracts.sqlserver_account import SQLServerRawAccountSchema
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -196,22 +197,19 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         """
         del instance
-        username = self._normalize_str(account.get("username"))
-        if not username:
-            username = ""
-        permissions = cast("PermissionSnapshot", account.get("permissions") or {})
-        type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
-        if "is_disabled" not in type_specific:
-            type_specific["is_disabled"] = bool(account.get("is_disabled", False))
-        is_disabled = bool(type_specific.get("is_disabled", account.get("is_disabled", False)))
+        parsed = SQLServerRawAccountSchema.model_validate(account)
+        username = self._normalize_str(parsed.username) or ""
+        type_specific = parsed.permissions.type_specific
+        is_disabled_value = type_specific.get("is_disabled")
+        is_disabled = is_disabled_value if isinstance(is_disabled_value, bool) else parsed.is_disabled
         type_specific["is_disabled"] = is_disabled
-        is_superuser = bool(account.get("is_superuser", False))
-        is_locked = bool(account.get("is_locked", False))
+        is_superuser = parsed.is_superuser
+        is_locked = parsed.is_locked
         normalized_permissions: PermissionSnapshot = {
-            "server_roles": permissions.get("server_roles", []),
-            "server_permissions": permissions.get("server_permissions", []),
-            "database_roles": permissions.get("database_roles", {}),
-            "database_permissions": permissions.get("database_permissions", {}),
+            "server_roles": parsed.permissions.server_roles,
+            "server_permissions": parsed.permissions.server_permissions,
+            "database_roles": parsed.permissions.database_roles,
+            "database_permissions": cast("JsonDict", parsed.permissions.database_permissions),
             "type_specific": type_specific,
         }
         return {
@@ -285,9 +283,12 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     precomputed_db_permissions=db_permissions_map,
                 )
                 type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
-                existing_type_specific = cast(
-                    "JsonDict",
-                    account.get("permissions", {}).get("type_specific", {}) or {},
+                permissions_value = account.get("permissions")
+                existing_type_specific_value = (
+                    permissions_value.get("type_specific") if isinstance(permissions_value, dict) else None
+                )
+                existing_type_specific = (
+                    cast("JsonDict", existing_type_specific_value) if isinstance(existing_type_specific_value, dict) else {}
                 )
                 for key, value in existing_type_specific.items():
                     type_specific.setdefault(key, value)
@@ -300,7 +301,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     username=username,
                     error=str(exc),
                 )
-                account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
+                permissions_value = account.get("permissions")
+                if not isinstance(permissions_value, dict):
+                    permissions_value = {}
+                    account["permissions"] = cast(PermissionSnapshot, permissions_value)
+                permissions = cast(PermissionSnapshot, permissions_value)
+                errors_list = permissions.get("errors")
+                if not isinstance(errors_list, list):
+                    errors_list = []
+                    permissions["errors"] = errors_list
+                errors_list.append(str(exc))
 
         self.logger.info(
             "fetch_sqlserver_permissions_completed",
@@ -444,19 +454,28 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             PermissionSnapshot: server/database 角色与权限的聚合结果.
 
         """
+        server_roles_map: dict[str, list[str]] = precomputed_server_roles if precomputed_server_roles is not None else {}
         server_roles = self._deduplicate_preserve_order(
-            (precomputed_server_roles or {}).get(login_name, []),
+            server_roles_map.get(login_name, []),
+        )
+        server_permissions_map: dict[str, list[str]] = (
+            precomputed_server_permissions if precomputed_server_permissions is not None else {}
         )
         server_permissions = self._deduplicate_preserve_order(
-            (precomputed_server_permissions or {}).get(login_name, []),
+            server_permissions_map.get(login_name, []),
         )
+
+        db_roles_map: dict[str, dict[str, list[str]]] = precomputed_db_roles if precomputed_db_roles is not None else {}
+        login_db_roles = db_roles_map.get(login_name)
         database_roles = {
-            db_name: self._deduplicate_preserve_order(roles or [])
-            for db_name, roles in ((precomputed_db_roles or {}).get(login_name) or {}).items()
+            db_name: self._deduplicate_preserve_order(roles)
+            for db_name, roles in (login_db_roles.items() if isinstance(login_db_roles, dict) else ())
         }
-        database_permissions = self._copy_database_permissions(
-            (precomputed_db_permissions or {}).get(login_name) or {},
+
+        db_permissions_map: dict[str, JsonValue] = (
+            precomputed_db_permissions if precomputed_db_permissions is not None else {}
         )
+        database_permissions = self._copy_database_permissions(db_permissions_map.get(login_name))
 
         permissions: PermissionSnapshot = {
             "server_roles": server_roles,
@@ -515,19 +534,22 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     "schema": {},
                     "table": {},
                 }
-                schema_map = perms.get("schema") or {}
+                schema_map_value = perms.get("schema")
+                schema_map = schema_map_value if isinstance(schema_map_value, dict) else {}
                 db_entry["schema"] = {
                     schema_name: self._deduplicate_preserve_order(values)
                     for schema_name, values in schema_map.items()
                     if schema_name
                 }
-                table_map = perms.get("table") or {}
+                table_map_value = perms.get("table")
+                table_map = table_map_value if isinstance(table_map_value, dict) else {}
                 db_entry["table"] = {
                     table_name: self._deduplicate_preserve_order(values)
                     for table_name, values in table_map.items()
                     if table_name
                 }
-                column_map = perms.get("column") or {}
+                column_map_value = perms.get("column")
+                column_map = column_map_value if isinstance(column_map_value, dict) else {}
                 if column_map:
                     db_entry["column"] = {
                         column_name: self._deduplicate_preserve_order(values)
@@ -1232,8 +1254,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         if not result:
             return True
         for payload in result.values():
-            perms = payload.get("permissions") or {}
-            roles = payload.get("roles") or {}
+            perms_value = payload.get("permissions")
+            perms = perms_value if isinstance(perms_value, dict) else {}
+            roles_value = payload.get("roles")
+            roles = roles_value if isinstance(roles_value, dict) else {}
             if perms or roles:
                 return False
         return True

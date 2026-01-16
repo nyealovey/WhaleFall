@@ -89,4 +89,31 @@ def test_build_permission_facts_includes_internal_contract_error_in_meta() -> No
     assert isinstance(meta, dict)
     assert meta.get("snapshot_contract_ok") is False
     assert meta.get("snapshot_error_code") == "INTERNAL_CONTRACT_UNKNOWN_VERSION"
+    assert meta.get("type_specific_contract_ok") is False
+    assert meta.get("type_specific_error_code") == "INTERNAL_CONTRACT_UNKNOWN_VERSION"
     assert "INTERNAL_CONTRACT_UNKNOWN_VERSION" in facts.get("errors", [])
+
+
+@pytest.mark.unit
+def test_build_permission_facts_includes_internal_contract_error_when_version_is_not_int() -> None:
+    record = _StubRecord(db_type="sqlserver")
+    facts = build_permission_facts(record=record, snapshot={"version": "4", "categories": {}, "type_specific": {}})
+    meta = facts.get("meta", {})
+    assert isinstance(meta, dict)
+    assert meta.get("snapshot_contract_ok") is False
+    assert meta.get("snapshot_error_code") == "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS"
+    assert meta.get("type_specific_contract_ok") is False
+    assert meta.get("type_specific_error_code") == "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS"
+    assert "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS" in facts.get("errors", [])
+
+
+@pytest.mark.unit
+def test_build_permission_facts_includes_type_specific_contract_error_when_shape_invalid() -> None:
+    record = _StubRecord(db_type="sqlserver")
+    facts = build_permission_facts(record=record, snapshot={"version": 4, "categories": {}, "type_specific": None})
+    meta = facts.get("meta", {})
+    assert isinstance(meta, dict)
+    assert meta.get("snapshot_contract_ok") is True
+    assert meta.get("type_specific_contract_ok") is False
+    assert meta.get("type_specific_error_code") == "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS"
+    assert "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS" in facts.get("errors", [])

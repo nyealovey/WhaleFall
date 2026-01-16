@@ -503,15 +503,15 @@ function mountAccountsListPage(global) {
       console.warn("TagSelectorHelper 未加载，跳过标签筛选初始化");
       return;
     }
-    const filterContainer = document.querySelector(`[data-tag-selector-scope="${TAG_SELECTOR_SCOPE}"]`);
-    const hiddenInput = filterContainer?.querySelector(`#${TAG_SELECTOR_SCOPE}-selected`);
-    const initialValues = parseInitialTagValues(hiddenInput?.value || null);
-    global.TagSelectorHelper.setupForForm({
-      modalSelector: "#tagSelectorModal",
-      rootSelector: "[data-tag-selector]",
-      scope: TAG_SELECTOR_SCOPE,
-      container: filterContainer,
-      hiddenValueKey: "name",
+	    const filterContainer = document.querySelector(`[data-tag-selector-scope="${TAG_SELECTOR_SCOPE}"]`);
+	    const hiddenInput = filterContainer?.querySelector(`#${TAG_SELECTOR_SCOPE}-selected`);
+	    const initialValues = parseInitialTagValues(hiddenInput?.value || null);
+	    global.TagSelectorHelper.setupForForm({
+	      modalSelector: `#${TAG_SELECTOR_SCOPE}-modal`,
+	      rootSelector: "[data-tag-selector]",
+	      scope: TAG_SELECTOR_SCOPE,
+	      container: filterContainer,
+	      hiddenValueKey: "name",
       initialValues,
       onConfirm: () => {
         if (gridPage?.filterCard?.emit) {
@@ -698,11 +698,12 @@ function mountAccountsListPage(global) {
       console.error("viewAccountPermissions 未注册");
       return;
     }
-    viewer(accountId, {
-      apiUrl: `/api/v1/accounts/ledgers/${accountId}/permissions`,
-      trigger,
-    });
-  }
+	    viewer(accountId, {
+	      apiUrl: `/api/v1/accounts/ledgers/${accountId}/permissions`,
+	      scope: "accounts-permission",
+	      trigger,
+	    });
+	  }
 }
 
 window.AccountsListPage = {

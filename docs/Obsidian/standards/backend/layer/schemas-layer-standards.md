@@ -8,12 +8,13 @@ tags:
   - standards/backend/layer
 status: active
 created: 2026-01-12
-updated: 2026-01-13
+updated: 2026-01-16
 owner: WhaleFall Team
 scope: "`app/schemas/**` 下所有 schema 与校验工具"
 related:
   - "[[standards/backend/layer/README|后端分层标准]]"
   - "[[standards/backend/request-payload-and-schema-validation]]"
+  - "[[standards/backend/or-fallback-decision-table]]"
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[standards/backend/sensitive-data-handling]]"
   - "[[standards/backend/layer/types-layer-standards]]"
@@ -57,8 +58,9 @@ related:
 ### 3) 默认值与兜底(`or` 使用约束)
 
 - MUST: schema 中的默认值必须是“语义默认值”，并且可被审计（字段默认/`default_factory`/显式 `None`）。
-- SHOULD: 当合法值可能为 `0/""/[]` 时，禁止用 `or` 兜底（会覆盖合法值），应使用 `is None` 判断。
-- MAY: 对“空白字符串视为缺省”的字段使用 `cleaned or None` 做 canonicalization，但必须在注释/命名中明确语义（例如 `_parse_optional_string`）。
+- MUST: 当合法值可能为 `0/""/[]/{}` 时，禁止用 `or` 兜底（会覆盖合法值）；应改为 `is None` 或显式缺失判定（参见 [[standards/backend/or-fallback-decision-table]]）。
+- SHOULD: update/patch 场景必须用 `model_fields_set` 区分“缺失”与“显式提供但为空”（例如 `[]` 表示“清空”）。
+- MAY: 对“空白字符串视为缺省”的字段使用 `cleaned or None` 做 canonicalization，但必须在注释/命名中明确语义，并补单测覆盖空白/缺失/合法空串策略（例如 `_parse_optional_string`）。
 
 ### 4) 组织方式与命名
 

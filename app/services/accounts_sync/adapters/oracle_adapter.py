@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 from app.core.constants import DatabaseType
+from app.schemas.external_contracts.oracle_account import OracleRawAccountSchema
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -133,27 +134,26 @@ class OracleAccountAdapter(BaseAccountAdapter):
 
         """
         _ = instance
-        permissions = cast(
-            "PermissionSnapshot",
-            account.get("permissions")
-            or {
-                "oracle_roles": [],
-                "system_privileges": [],
-                "type_specific": {},
-            },
-        )
-        permissions.setdefault("type_specific", {})
-        username = str(account.get("username") or "")
+        parsed = OracleRawAccountSchema.model_validate(account)
+        username = parsed.username
+        permissions = parsed.permissions
         return cast(
             "RemoteAccount",
             {
                 "username": username,
                 "display_name": username,
                 "db_type": DatabaseType.ORACLE,
-                "is_superuser": bool(account.get("is_superuser", False)),
-                "is_locked": bool(account.get("is_locked", False)),
+                "is_superuser": parsed.is_superuser,
+                "is_locked": parsed.is_locked,
                 "is_active": True,
-                "permissions": permissions,
+                "permissions": cast(
+                    "PermissionSnapshot",
+                    {
+                        "oracle_roles": permissions.oracle_roles,
+                        "system_privileges": permissions.system_privileges,
+                        "type_specific": permissions.type_specific,
+                    },
+                ),
             },
         )
 
@@ -245,7 +245,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, username)
-                permissions.setdefault("type_specific", {})
                 account["permissions"] = permissions
             except ORACLE_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
@@ -255,13 +254,16 @@ class OracleAccountAdapter(BaseAccountAdapter):
                     username=username,
                     error=str(exc),
                 )
-                permissions = cast("PermissionSnapshot", account.get("permissions") or {})
-                errors_list = permissions.setdefault("errors", [])
+                permissions_value = account.get("permissions")
+                if not isinstance(permissions_value, dict):
+                    permissions_value = {}
+                    account["permissions"] = cast(PermissionSnapshot, permissions_value)
+                permissions = cast(PermissionSnapshot, permissions_value)
+                errors_list = permissions.get("errors")
                 if not isinstance(errors_list, list):
                     errors_list = []
+                    permissions["errors"] = errors_list
                 errors_list.append(str(exc))
-                permissions["errors"] = errors_list
-                account["permissions"] = permissions
 
         self.logger.info(
             "fetch_oracle_permissions_completed",

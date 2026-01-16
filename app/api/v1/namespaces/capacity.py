@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
 from typing import ClassVar
 
 from flask import request
@@ -22,13 +21,17 @@ from app.api.v1.restx_models.capacity import (
 )
 from app.core.exceptions import ValidationError
 from app.core.types.capacity_aggregations import CurrentAggregationRequest
-from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
-from app.core.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
+from app.schemas.capacity_query import (
+    CapacityDatabasesAggregationsQuery,
+    CapacityDatabasesSummaryQuery,
+    CapacityInstancesAggregationsQuery,
+    CapacityInstancesSummaryQuery,
+)
+from app.schemas.validation import validate_or_raise
 from app.services.capacity.current_aggregation_service import CurrentAggregationService
 from app.services.capacity.database_aggregations_read_service import DatabaseAggregationsReadService
 from app.services.capacity.instance_aggregations_read_service import InstanceAggregationsReadService
 from app.utils.decorators import require_csrf
-from app.utils.time_utils import time_utils
 
 ns = Namespace("capacity", description="容量统计")
 
@@ -192,41 +195,6 @@ for argument in _capacity_instances_query_parser.args:
     _capacity_instances_summary_query_parser.args.append(argument)
 
 
-def _parse_date(value: str, field: str) -> date:
-    try:
-        parsed_dt = time_utils.to_china(value + "T00:00:00")
-    except Exception as exc:
-        msg = f"{field} 格式错误,应为 YYYY-MM-DD"
-        raise ValidationError(msg) from exc
-    if parsed_dt is None:
-        raise ValidationError("无法解析日期")
-    return parsed_dt.date()
-
-
-def _resolve_date_range(params: dict[str, object]) -> tuple[date | None, date | None]:
-    start_date_raw = params.get("start_date")
-    end_date_raw = params.get("end_date")
-    time_range_raw = params.get("time_range")
-
-    start_date_str = start_date_raw.strip() if isinstance(start_date_raw, str) and start_date_raw.strip() else None
-    end_date_str = end_date_raw.strip() if isinstance(end_date_raw, str) and end_date_raw.strip() else None
-    time_range = time_range_raw.strip() if isinstance(time_range_raw, str) and time_range_raw.strip() else None
-
-    if time_range and not start_date_str and not end_date_str:
-        try:
-            delta_days = int(time_range)
-        except (TypeError, ValueError) as exc:
-            raise ValidationError("time_range 必须为整数(天)") from exc
-
-        end_date_obj = time_utils.now_china().date()
-        start_date_obj = end_date_obj - timedelta(days=delta_days)
-        return start_date_obj, end_date_obj
-
-    start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
-    end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
-    return start_date, end_date
-
-
 @ns.route("/aggregations/current")
 class CapacityCurrentAggregationResource(BaseResource):
     """当前周期容量聚合资源."""
@@ -287,24 +255,9 @@ class CapacityDatabasesAggregationsResource(BaseResource):
         """获取数据库容量聚合列表."""
         query_params = request.args.to_dict(flat=False)
 
-        parsed = _capacity_databases_query_parser.parse_args()
-        start_date_str = str(parsed.get("start_date") or "").strip() or None
-        end_date_str = str(parsed.get("end_date") or "").strip() or None
-        start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
-        end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
-
-        filters = DatabaseAggregationsFilters(
-            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
-            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
-            database_name=str(parsed.get("database_name") or "").strip() or None,
-            database_id=parsed.get("database_id") if isinstance(parsed.get("database_id"), int) else None,
-            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
-            start_date=start_date,
-            end_date=end_date,
-            page=max(int(parsed.get("page") or 1), 1),
-            limit=max(min(int(parsed.get("limit") or 20), 200), 1),
-            get_all=bool(parsed.get("get_all") or False),
-        )
+        parsed = dict(_capacity_databases_query_parser.parse_args())
+        query = validate_or_raise(CapacityDatabasesAggregationsQuery, parsed)
+        filters = query.to_filters()
 
         def _execute():
             result = DatabaseAggregationsReadService().list_aggregations(filters)
@@ -347,21 +300,9 @@ class CapacityDatabasesSummaryResource(BaseResource):
         """获取数据库容量聚合汇总."""
         query_params = request.args.to_dict(flat=False)
 
-        parsed = _capacity_databases_summary_query_parser.parse_args()
-        start_date_str = str(parsed.get("start_date") or "").strip() or None
-        end_date_str = str(parsed.get("end_date") or "").strip() or None
-        start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
-        end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
-
-        filters = DatabaseAggregationsSummaryFilters(
-            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
-            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
-            database_name=str(parsed.get("database_name") or "").strip() or None,
-            database_id=parsed.get("database_id") if isinstance(parsed.get("database_id"), int) else None,
-            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        parsed = dict(_capacity_databases_summary_query_parser.parse_args())
+        query = validate_or_raise(CapacityDatabasesSummaryQuery, parsed)
+        filters = query.to_filters()
 
         def _execute():
             result = DatabaseAggregationsReadService().build_summary(filters)
@@ -396,18 +337,9 @@ class CapacityInstancesAggregationsResource(BaseResource):
         """获取实例容量聚合列表."""
         query_params = request.args.to_dict(flat=False)
 
-        parsed = _capacity_instances_query_parser.parse_args()
-        start_date, end_date = _resolve_date_range(dict(parsed))
-        filters = InstanceAggregationsFilters(
-            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
-            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
-            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
-            start_date=start_date,
-            end_date=end_date,
-            page=max(int(parsed.get("page") or 1), 1),
-            limit=max(min(int(parsed.get("limit") or 20), 200), 1),
-            get_all=bool(parsed.get("get_all") or False),
-        )
+        parsed = dict(_capacity_instances_query_parser.parse_args())
+        query = validate_or_raise(CapacityInstancesAggregationsQuery, parsed)
+        filters = query.to_filters()
 
         def _execute():
             result = InstanceAggregationsReadService().list_aggregations(filters)
@@ -451,15 +383,9 @@ class CapacityInstancesSummaryResource(BaseResource):
         """获取实例容量聚合汇总."""
         query_params = request.args.to_dict(flat=False)
 
-        parsed = _capacity_instances_summary_query_parser.parse_args()
-        start_date, end_date = _resolve_date_range(dict(parsed))
-        filters = InstanceAggregationsSummaryFilters(
-            instance_id=parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None,
-            db_type=parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None,
-            period_type=parsed.get("period_type") if isinstance(parsed.get("period_type"), str) else None,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        parsed = dict(_capacity_instances_summary_query_parser.parse_args())
+        query = validate_or_raise(CapacityInstancesSummaryQuery, parsed)
+        filters = query.to_filters()
 
         def _execute():
             result = InstanceAggregationsReadService().build_summary(filters)

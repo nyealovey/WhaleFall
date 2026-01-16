@@ -607,9 +607,9 @@
   const TagSelectorHelper = {
     setupForForm(options = {}) {
       const {
-        modalSelector = "#tagSelectorModal",
+        modalSelector: rawModalSelector = null,
         rootSelector = "[data-tag-selector]",
-        scope = "",
+        scope: rawScope = "",
         container = null,
         openButtonSelector = null,
         previewSelector = null,
@@ -619,6 +619,12 @@
         initialValues = [],
         onConfirm = null,
       } = options;
+      const scope = typeof rawScope === "string" ? rawScope.trim() : "";
+      const modalSelector = rawModalSelector || (scope ? `#${scope}-modal` : "");
+      if (!modalSelector) {
+        console.error("TagSelectorHelper.setupForForm: 缺少 scope 或 modalSelector，无法定位标签选择器模态框");
+        return;
+      }
 
       // DOM 就绪后再创建实例，保证模态节点已经存在
       manager.whenReady(() => {
@@ -679,9 +685,9 @@
 
     setupForFilter(options = {}) {
       const {
-        modalSelector = "#tagSelectorModal",
+        modalSelector: rawModalSelector = null,
         rootSelector = "[data-tag-selector]",
-        scope = "",
+        scope: rawScope = "",
         container = null,
         openButtonSelector = null,
         hiddenInputSelector = null,
@@ -690,6 +696,12 @@
         chipsSelector = null,
         onConfirm = null,
       } = options;
+      const scope = typeof rawScope === "string" ? rawScope.trim() : "";
+      const modalSelector = rawModalSelector || (scope ? `#${scope}-modal` : "");
+      if (!modalSelector) {
+        console.error("TagSelectorHelper.setupForFilter: 缺少 scope 或 modalSelector，无法定位标签选择器模态框");
+        return;
+      }
 
       // 过滤模式同样等待 DOMReady，确保隐藏域已渲染
       manager.whenReady(() => {
@@ -754,9 +766,9 @@
 
     clearSelection(options = {}) {
       const {
-        modalSelector = "#tagSelectorModal",
+        modalSelector: rawModalSelector = null,
         rootSelector = "[data-tag-selector]",
-        scope = "",
+        scope: rawScope = "",
         container = null,
         hiddenInputSelector = null,
         previewSelector = null,
@@ -764,6 +776,12 @@
         hiddenValueKey = "name",
         onCleared = null,
       } = options;
+      const scope = typeof rawScope === "string" ? rawScope.trim() : "";
+      const modalSelector = rawModalSelector || (scope ? `#${scope}-modal` : "");
+      if (!modalSelector) {
+        console.error("TagSelectorHelper.clearSelection: 缺少 scope 或 modalSelector，无法定位标签选择器模态框");
+        return;
+      }
 
       manager.whenReady(() => {
         const modalElement = toElement(modalSelector);

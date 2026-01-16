@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from app.core.constants import DatabaseType
+from app.schemas.external_contracts.mysql_account import MySQLRawAccountSchema
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.safe_query_builder import SafeQueryBuilder
@@ -175,30 +176,22 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         """
         _ = instance
-        permissions = cast(JsonDict, account.get("permissions") or {})
-        type_specific_value = permissions.get("type_specific")
-        if not isinstance(type_specific_value, dict):
-            type_specific: JsonDict = {}
-        else:
-            type_specific = cast(JsonDict, type_specific_value)
-        username = str(account.get("username") or "")
-        if "@" in username:
-            user_part, host_part = username.split("@", 1)
-            type_specific.setdefault("original_username", user_part)
-            type_specific.setdefault("host", host_part)
-        permissions["type_specific"] = type_specific
+        parsed = MySQLRawAccountSchema.model_validate(account)
+        username = parsed.username
+        permissions = parsed.permissions
+        type_specific = permissions.type_specific
         normalized: RemoteAccount = {
-            "username": cast(str, account["username"]),
-            "display_name": cast(str, account["username"]),
+            "username": username,
+            "display_name": username,
             "db_type": DatabaseType.MYSQL,
-            "is_superuser": bool(account.get("is_superuser", False)),
-            "is_locked": bool(account.get("is_locked", False)),
+            "is_superuser": parsed.is_superuser,
+            "is_locked": parsed.is_locked,
             "is_active": True,
             "permissions": cast(
                 PermissionSnapshot,
                 {
-                    "global_privileges": cast(list[str], permissions.get("global_privileges", [])),
-                    "database_privileges": cast(JsonDict, permissions.get("database_privileges", {})),
+                    "global_privileges": permissions.global_privileges,
+                    "database_privileges": permissions.database_privileges,
                     "type_specific": type_specific,
                 },
             ),
@@ -208,6 +201,64 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 内部工具方法
     # ------------------------------------------------------------------
+    def _resolve_account_identity(
+        self,
+        account: RemoteAccount,
+    ) -> tuple[str, str, str, JsonDict] | None:
+        """从标准化账号结构中解析用于权限查询的身份信息.
+
+        返回:
+        - username: 唯一用户名（可能包含 host）
+        - original_username: 用于 SHOW GRANTS 的用户名部分
+        - host: 用于 SHOW GRANTS 的 host 部分
+        - existing_type_specific: 合并回 permissions.type_specific 的额外字段
+        """
+        username_value = account.get("username")
+        if not isinstance(username_value, str) or not username_value:
+            return None
+
+        permissions_value = account.get("permissions")
+        if not isinstance(permissions_value, dict):
+            return None
+
+        type_specific_value = permissions_value.get("type_specific")
+        existing_type_specific = cast(JsonDict, type_specific_value) if isinstance(type_specific_value, dict) else {}
+
+        original_username_val = existing_type_specific.get("original_username")
+        original_username = (
+            original_username_val.strip()
+            if isinstance(original_username_val, str) and original_username_val.strip()
+            else None
+        )
+
+        host_val = existing_type_specific.get("host")
+        host = host_val.strip() if isinstance(host_val, str) and host_val.strip() else None
+
+        if (not original_username or host is None) and "@" in username_value:
+            user_part, host_part = username_value.split("@", 1)
+            if not original_username:
+                original_username = user_part
+            if host is None:
+                host = host_part
+
+        if not original_username or host is None:
+            return None
+
+        return username_value, original_username, host, existing_type_specific
+
+    def _append_permissions_error(self, account: RemoteAccount, message: str) -> None:
+        permissions_value = account.get("permissions")
+        if not isinstance(permissions_value, dict):
+            permissions_value = {}
+            account["permissions"] = cast(PermissionSnapshot, permissions_value)
+        permissions = cast(PermissionSnapshot, permissions_value)
+
+        errors_list = permissions.get("errors")
+        if not isinstance(errors_list, list):
+            errors_list = []
+            permissions["errors"] = errors_list
+        errors_list.append(message)
+
     def _build_filter_conditions(self) -> tuple[str, list[str]]:
         """构建 MySQL 账户过滤条件.
 
@@ -344,29 +395,18 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         processed = 0
         for account in accounts:
-            username_value = account.get("username")
-            username = cast(str | None, username_value if isinstance(username_value, str) else None)
-            if not username or username not in target_usernames:
+            resolved = self._resolve_account_identity(account)
+            if resolved is None:
                 continue
-            permissions_container = cast("PermissionSnapshot", account.get("permissions") or {})
-            existing_type_specific = cast("JsonDict", permissions_container.get("type_specific") or {})
-            original_username_val = existing_type_specific.get("original_username")
-            host_val = existing_type_specific.get("host")
-            original_username = cast(
-                str | None, original_username_val if isinstance(original_username_val, str) else None
-            )
-            host = cast(str | None, host_val if isinstance(host_val, str) else None)
-            if (not original_username or host is None) and "@" in username:
-                user_part, host_part = username.split("@", 1)
-                original_username = original_username or user_part
-                host = host if host is not None else host_part
-            if not original_username or host is None:
+            username, original_username, host, existing_type_specific = resolved
+            if username not in target_usernames:
                 continue
 
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, original_username, host)
-                type_specific = cast(JsonDict, permissions.get("type_specific") or {})
+                permissions_type_specific = permissions.get("type_specific")
+                type_specific = cast(JsonDict, permissions_type_specific) if isinstance(permissions_type_specific, dict) else {}
                 permissions["type_specific"] = type_specific
                 for key, value in existing_type_specific.items():
                     if value is not None:
@@ -381,12 +421,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     host=host,
                     error=str(exc),
                 )
-                perms_for_error = cast(JsonDict, account.setdefault("permissions", {}))
-                errors_list = perms_for_error.get("errors")
-                if not isinstance(errors_list, list):
-                    errors_list = []
-                    perms_for_error["errors"] = errors_list
-                errors_list.append(str(exc))
+                self._append_permissions_error(account, str(exc))
 
         self.logger.info(
             "fetch_mysql_permissions_completed",

@@ -177,7 +177,7 @@ class AccountClassificationsWriteService:
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """创建分类规则."""
-        raw_payload: Mapping[str, object] = payload or {}
+        raw_payload: Mapping[str, object] = payload if payload is not None else {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
         sanitized = parse_payload(raw_payload, boolean_fields_default_false=["is_active"])
         sanitized_payload: dict[str, object] = dict(sanitized)
@@ -236,7 +236,7 @@ class AccountClassificationsWriteService:
         operator_id: int | None = None,
     ) -> ClassificationRule:
         """更新分类规则."""
-        raw_payload: Mapping[str, object] = payload or {}
+        raw_payload: Mapping[str, object] = payload if payload is not None else {}
         raw_expression = raw_payload.get("rule_expression") if "rule_expression" in raw_payload else None
         sanitized = parse_payload(raw_payload, boolean_fields_default_false=["is_active"])
         sanitized_payload: dict[str, object] = dict(sanitized)

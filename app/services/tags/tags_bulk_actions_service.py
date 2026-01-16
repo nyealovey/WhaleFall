@@ -94,7 +94,7 @@ class TagsBulkActionsService:
 
     def assign_from_payload(self, payload: object | None, *, actor_id: int | None) -> TagsBulkAssignOutcome:
         """从 payload 解析并批量分配标签."""
-        sanitized = parse_payload(payload or {}, list_fields=["instance_ids", "tag_ids"])
+        sanitized = parse_payload(payload, list_fields=["instance_ids", "tag_ids"])
         if not sanitized:
             raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
         parsed = validate_or_raise(TagsBulkAssignPayload, sanitized)
@@ -107,7 +107,7 @@ class TagsBulkActionsService:
 
     def remove_from_payload(self, payload: object | None, *, actor_id: int | None) -> TagsBulkRemoveOutcome:
         """从 payload 解析并批量移除指定标签."""
-        sanitized = parse_payload(payload or {}, list_fields=["instance_ids", "tag_ids"])
+        sanitized = parse_payload(payload, list_fields=["instance_ids", "tag_ids"])
         if not sanitized:
             raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
         parsed = validate_or_raise(TagsBulkAssignPayload, sanitized)
@@ -120,7 +120,7 @@ class TagsBulkActionsService:
 
     def remove_all_from_payload(self, payload: object | None, *, actor_id: int | None) -> TagsBulkRemoveAllOutcome:
         """从 payload 解析并批量移除所有标签."""
-        sanitized = parse_payload(payload or {}, list_fields=["instance_ids"])
+        sanitized = parse_payload(payload, list_fields=["instance_ids"])
         if not sanitized:
             raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
         parsed = validate_or_raise(TagsBulkRemoveAllPayload, sanitized)
@@ -132,7 +132,7 @@ class TagsBulkActionsService:
 
     def list_instance_tags_from_payload(self, payload: object | None) -> TagsBulkInstanceTagsOutcome:
         """从 payload 解析并批量查询实例标签集合."""
-        sanitized = parse_payload(payload or {}, list_fields=["instance_ids"])
+        sanitized = parse_payload(payload, list_fields=["instance_ids"])
         if not sanitized:
             raise ValidationError(ErrorMessages.REQUEST_DATA_EMPTY, message_key="REQUEST_DATA_EMPTY")
         parsed = validate_or_raise(TagsBulkInstanceTagsPayload, sanitized)

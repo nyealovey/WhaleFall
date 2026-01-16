@@ -7,7 +7,7 @@ tags:
   - getting-started/testing
 status: active
 created: 2026-01-10
-updated: 2026-01-10
+updated: 2026-01-16
 owner: WhaleFall Team
 scope: 如何运行与编写 WhaleFall 测试
 related:
@@ -22,6 +22,9 @@ related:
 
 > [!note] 命令约定
 > 本文默认使用 `uv run pytest ...`(推荐). 如果你已激活 `.venv`, 可将其替换为 `pytest ...`.
+
+> [!tip] Python 版本
+> 若使用 Python 3.14 在本机出现 `pymssql` 构建失败，可使用 Python 3.11 运行测试，例如：`uv run --python $(which python3.11) -m pytest -m unit`.
 
 本文档帮助你快速上手 WhaleFall 项目的测试工作.
 

@@ -87,12 +87,16 @@
 
 </div>
 
-{% include 'components/permission_modal.html' %}
+{% with permission_scope='accounts-permission' %}
+    {% include 'components/permission_modal.html' %}
+{% endwith %}
 {% endblock %}
 
 {% block extra_js %}
 <div id="list-page-tag-selector">
-    {% include 'components/tag_selector.html' %}
+    {% with tag_selector_scope='account-tag-selector' %}
+        {% include 'components/tag_selector.html' %}
+    {% endwith %}
 </div>
 {% include 'components/scripts/tag_selector_scripts.html' %}
 {% include 'components/scripts/permission_service_scripts.html' %}

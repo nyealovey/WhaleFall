@@ -474,7 +474,7 @@ class AccountPermissionManager:
             None: 属性赋值完成后返回.
 
         """
-        if "type_specific" in (permissions or {}):
+        if "type_specific" in permissions:
             raw_type_specific = permissions.get("type_specific")
             sanitized_type_specific, removed_keys = self._sanitize_type_specific(raw_type_specific)
             if removed_keys:
@@ -557,7 +557,7 @@ class AccountPermissionManager:
         type_specific: JsonDict = {}
         errors: list[str] = []
 
-        for key, value in (permissions or {}).items():
+        for key, value in permissions.items():
             if key == "type_specific":
                 if isinstance(value, dict):
                     sanitized, removed_keys = AccountPermissionManager._sanitize_type_specific(value)
