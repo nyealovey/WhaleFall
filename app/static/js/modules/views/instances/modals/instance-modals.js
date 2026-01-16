@@ -5,7 +5,9 @@
    * 创建实例新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.http] - HTTP 请求工具
+   * @param {Object} [options.instanceService] - 实例服务(推荐注入)
+   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 InstanceService)
+   * @param {Object} [options.InstanceService] - InstanceService 类(兼容注入)
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -15,17 +17,31 @@
    */
   function createController(options) {
     const {
-      http = window.httpU,
+      instanceService: injectedInstanceService = null,
+      http = null,
+      InstanceService = window.InstanceService,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
       DOMHelpers = window.DOMHelpers,
     } = options || {};
 
-    if (!http) throw new Error('InstanceModals: httpU 未初始化');
-    if (!window.InstanceService) throw new Error('InstanceModals: InstanceService 未加载');
     if (!DOMHelpers) throw new Error('InstanceModals: DOMHelpers 未加载');
-    const instanceService = new window.InstanceService(http);
+    let instanceService = injectedInstanceService;
+    if (!instanceService) {
+      if (!InstanceService) {
+        throw new Error('InstanceModals: InstanceService 未加载');
+      }
+      instanceService = new InstanceService(http);
+    }
+    if (
+      !instanceService ||
+      typeof instanceService.getInstance !== 'function' ||
+      typeof instanceService.createInstance !== 'function' ||
+      typeof instanceService.updateInstance !== 'function'
+    ) {
+      throw new Error('InstanceModals: instanceService 未初始化');
+    }
 
     const modalEl = document.getElementById('instanceModal');
     if (!modalEl) throw new Error('InstanceModals: 找不到 #instanceModal');

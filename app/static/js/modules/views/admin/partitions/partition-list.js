@@ -61,6 +61,19 @@
       return;
     }
 
+    const PartitionService = global.PartitionService;
+    if (!PartitionService) {
+      console.error("PartitionService 未初始化，无法挂载分区列表");
+      return;
+    }
+    let partitionService = null;
+    try {
+      partitionService = new PartitionService();
+    } catch (error) {
+      console.error("初始化 PartitionService 失败:", error);
+      return;
+    }
+
     const GridPage = global.Views?.GridPage;
     gridPage = GridPage.mount({
       root: "#admin-partitions-page-root",
@@ -69,7 +82,7 @@
         sort: false,
         columns: buildColumns(global.gridjs.html),
         server: {
-          url: "/api/v1/partitions?sort=name&order=asc",
+          url: partitionService.getGridUrl(),
           headers: {
             "X-Requested-With": "XMLHttpRequest",
           },

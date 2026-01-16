@@ -90,15 +90,15 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @param {void} 无参数。直接使用全局依赖。
    * @return {boolean} 初始化是否成功
    */
-  function initializeService() {
-    try {
-      syncSessionsService = new SyncSessionsService(global.httpU);
-      return true;
-    } catch (error) {
-      console.error('初始化 SyncSessionsService 失败:', error);
-      return false;
-    }
-  }
+	  function initializeService() {
+	    try {
+	      syncSessionsService = new SyncSessionsService();
+	      return true;
+	    } catch (error) {
+	      console.error('初始化 SyncSessionsService 失败:', error);
+	      return false;
+	    }
+	  }
 
   /**
    * 初始化同步会话详情模态。
@@ -145,7 +145,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: '/api/v1/sync-sessions?sort=started_at&order=desc',
+          url: syncSessionsService.getGridUrl(),
           headers: { 'X-Requested-With': 'XMLHttpRequest' },
           then: handleServerResponse,
           total: (response) => {

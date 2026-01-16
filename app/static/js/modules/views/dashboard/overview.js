@@ -37,7 +37,7 @@ function mountDashboardOverview(global) {
         console.error('DashboardService 未初始化，无法加载仪表盘数据');
         return;
     }
-    const dashboardService = new DashboardService(global.httpU);
+    const dashboardService = new DashboardService();
 
     ready(() => {
         bindActions();

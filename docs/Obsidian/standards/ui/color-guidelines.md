@@ -7,7 +7,7 @@ tags:
   - standards/ui
 status: active
 created: 2025-12-02
-updated: 2026-01-08
+updated: 2026-01-15
 owner: WhaleFall Team
 scope: 所有管理页面(表格/卡片/详情弹窗/筛选区/标签与状态展示)
 related:
@@ -35,7 +35,7 @@ related:
 
 ### 1) Token 与颜色来源
 
-- MUST：色彩统一由 `app/static/css/variables.css` 或既有 Token 输出，禁止在 CSS/HTML/JS 中硬编码 HEX/RGB/RGBA。
+- MUST：色彩统一由 Token 输出；除 `app/static/css/variables.css` 中用于定义 Token 的颜色字面量外，其余 CSS/HTML/JS 禁止硬编码 HEX/RGB/RGBA。
 - MUST：新增颜色必须先在 `variables.css` 定义 Token，并在评审中说明“原因 + 退场机制”。
 - SHOULD：优先通过组件 class（`status-pill`、`chip-outline`、`ledger-chip` 等）承载色彩，而不是页面级别自定义。
 

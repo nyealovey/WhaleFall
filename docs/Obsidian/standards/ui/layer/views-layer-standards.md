@@ -8,7 +8,7 @@ tags:
   - standards/ui/layer
 status: active
 created: 2026-01-09
-updated: 2026-01-14
+updated: 2026-01-15
 owner: WhaleFall Team
 scope: "`app/static/js/modules/views/**` 下所有页面与组件视图(不含 Page Entry)"
 related:
@@ -58,7 +58,7 @@ related:
 ### 3) 事件绑定与释放
 
 - MUST: 所有事件绑定必须在 `destroy()` 中解除.
-- MUST: 禁止内联 `onclick="..."`. 使用 `data-action` + delegation, 或通过 `DOMHelpers`/原生 addEventListener 绑定.
+- MUST: 事件必须通过 JS 绑定（`data-action` + delegation，或 `DOMHelpers`/原生 addEventListener）；模板内联事件处理器（`onclick="..."`）禁止，见 [[standards/ui/template-event-binding-standards]]。
 - SHOULD: 列表页行内动作使用 `Views.GridPlugins.actionDelegation`, 避免重复写 click handler.
 
 ### 4) XSS 与 HTML 输出

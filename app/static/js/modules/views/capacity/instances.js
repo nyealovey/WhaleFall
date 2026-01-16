@@ -62,30 +62,18 @@ function mountInstanceAggregationsPage(window) {
       return;
     }
 
+    const apiFactory = window.CapacityStatsService?.buildInstanceApiConfig;
+    if (typeof apiFactory !== "function") {
+      console.error("CapacityStatsService 未初始化，无法加载容量统计页面");
+      return;
+    }
+
     window.instanceCapacityStatsManager = new window.CapacityStats.Manager({
       labelExtractor,
       scope: "instance",
       filterFormId: "#instance-aggregations-filter-form",
       autoApplyOnFilterChange: false,
-      api: {
-        summaryEndpoint: "/api/v1/capacity/instances/summary",
-        trendEndpoint: "/api/v1/capacity/instances",
-        changeEndpoint: "/api/v1/capacity/instances",
-        percentEndpoint: "/api/v1/capacity/instances",
-        summaryDefaults: {},
-        trendDefaults: {
-          chart_mode: "instance",
-          get_all: "true",
-        },
-        changeDefaults: {
-          get_all: "true",
-        },
-        percentDefaults: {
-          get_all: "true",
-        },
-        calculateEndpoint: "/api/v1/capacity/aggregations/current",
-        instanceOptionsEndpoint: "/api/v1/instances/options",
-      },
+      api: apiFactory(),
       summaryCards: [
         { selector: "#totalInstances", field: "total_instances", formatter: "number" },
         { selector: "#totalDatabases", field: "total_size_mb", formatter: "sizeFromMB" },

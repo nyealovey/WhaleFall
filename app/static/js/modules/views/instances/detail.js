@@ -75,15 +75,15 @@ if (typeof getRowMeta !== 'function') {
     return;
 }
 
-try {
-    if (InstanceManagementService) {
-        instanceService = new InstanceManagementService(window.httpU);
-    } else {
-        throw new Error('InstanceManagementService 未加载');
-    }
-} catch (error) {
-    console.error('初始化 InstanceManagementService 失败:', error);
-}
+	try {
+	    if (InstanceManagementService) {
+	        instanceService = new InstanceManagementService();
+	    } else {
+	        throw new Error('InstanceManagementService 未加载');
+	    }
+	} catch (error) {
+	    console.error('初始化 InstanceManagementService 失败:', error);
+	}
 
 /**
  * 确保实例服务已初始化。
@@ -556,10 +556,7 @@ function syncCapacity(instanceId, instanceName, event) {
  * @return {void}
  */
 function viewInstanceAccountPermissions(accountId) {
-    // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
-    window.viewAccountPermissions(accountId, {
-        apiUrl: `/api/v1/accounts/ledgers/${accountId}/permissions`
-    });
+    window.viewAccountPermissions(accountId);
 }
 
 /**
@@ -1873,16 +1870,16 @@ function initializeDatabaseTableSizesModal() {
         console.warn('InstanceDatabaseTableSizesModal 未加载，表容量模态不可用');
         return;
     }
-    try {
-        tableSizesModal = factory({
-            http: window.httpU,
-            ui: window.UI,
-            InstanceManagementService: window.InstanceManagementService,
-        });
-    } catch (error) {
-        console.error('初始化表容量模态失败:', error);
-        tableSizesModal = null;
-    }
+	    try {
+	        tableSizesModal = factory({
+	            ui: window.UI,
+	            service: instanceService,
+	            InstanceManagementService: window.InstanceManagementService,
+	        });
+	    } catch (error) {
+	        console.error('初始化表容量模态失败:', error);
+	        tableSizesModal = null;
+	    }
 }
 
 function ensureTableSizesModal() {
@@ -1916,13 +1913,13 @@ function initializeInstanceModals() {
         console.warn('InstanceModals 未加载，实例编辑不可用');
         return;
     }
-    try {
-        instanceModals = window.InstanceModals.createController({
-            http: window.httpU,
-            FormValidator: window.FormValidator,
-            ValidationRules: window.ValidationRules,
-            toast: window.toast,
-            DOMHelpers: window.DOMHelpers,
+	    try {
+	        instanceModals = window.InstanceModals.createController({
+	            instanceService: InstanceService ? new InstanceService() : null,
+	            FormValidator: window.FormValidator,
+	            ValidationRules: window.ValidationRules,
+	            toast: window.toast,
+	            DOMHelpers: window.DOMHelpers,
         });
         instanceModals.init?.();
     } catch (error) {
@@ -1939,13 +1936,13 @@ function ensureInstanceCrudService() {
         console.warn('InstanceService 未注册，无法执行实例删除');
         return false;
     }
-    try {
-        instanceCrudService = new InstanceService(window.httpU);
-        return true;
-    } catch (error) {
-        console.error('初始化 InstanceService 失败:', error);
-        return false;
-    }
+	    try {
+	        instanceCrudService = new InstanceService();
+	        return true;
+	    } catch (error) {
+	        console.error('初始化 InstanceService 失败:', error);
+	        return false;
+	    }
 }
 
 /**

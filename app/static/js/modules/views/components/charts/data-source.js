@@ -5,7 +5,7 @@
   if (!CapacityStatsService) {
     throw new Error("CapacityStatsService 未初始化，无法发起容量统计请求");
   }
-  const capacityStatsService = new CapacityStatsService(window.httpU);
+  const capacityStatsService = new CapacityStatsService();
 
   /**
    * 确保响应包含 data 对象。

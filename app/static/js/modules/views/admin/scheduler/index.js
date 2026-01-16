@@ -128,7 +128,7 @@ function mountSchedulerPage() {
         if (!SchedulerService) {
             throw new Error('SchedulerService 未加载');
         }
-        schedulerService = new SchedulerService(window.httpU);
+        schedulerService = new SchedulerService();
         if (window.createSchedulerStore) {
             schedulerStore = window.createSchedulerStore({
                 service: schedulerService,

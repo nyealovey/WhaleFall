@@ -1,7 +1,0 @@
-app/models/sync_instance_record.py:73:    sync_details = db.Column(db.JSON)
-app/models/account_change_log.py:50:    privilege_diff = db.Column(db.JSON, nullable=True)  # 权限变更差异
-app/models/account_change_log.py:51:    other_diff = db.Column(db.JSON, nullable=True)  # 其他字段变更差异
-app/models/unified_log.py:65:    context = Column(JSON, nullable=True)
-app/models/account_permission.py:58:    type_specific = db.Column(db.JSON, nullable=True)  # 其他类型特定字段
-app/models/account_permission.py:62:        db.JSON().with_variant(postgresql.JSONB(), "postgresql"),
-app/models/account_permission.py:68:        db.JSON().with_variant(postgresql.JSONB(), "postgresql"),

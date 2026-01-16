@@ -12,23 +12,17 @@
     return;
   }
 
-  const DEFAULT_ENDPOINTS = {
-    tags: "/api/v1/tags/options",
-    categories: "/api/v1/tags/categories",
-  };
   const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
   const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
 
   function buildSafeEndpoints(custom = {}) {
-    const safe = {
-      tags: DEFAULT_ENDPOINTS.tags,
-      categories: DEFAULT_ENDPOINTS.categories,
-    };
-    if (custom && typeof custom.tags === "string") {
-      safe.tags = custom.tags;
+    const source = custom && typeof custom === "object" ? custom : {};
+    const safe = {};
+    if (typeof source.tags === "string") {
+      safe.tags = source.tags;
     }
-    if (custom && typeof custom.categories === "string") {
-      safe.categories = custom.categories;
+    if (typeof source.categories === "string") {
+      safe.categories = source.categories;
     }
     return safe;
   }
@@ -210,7 +204,7 @@
         stats: { total: 0, selected: 0, active: 0, filtered: 0 },
       };
 
-      this.service = new TagManagementService(window.httpU, this.options.endpoints);
+      this.service = new TagManagementService(undefined, this.options.endpoints);
       this.store = createTagManagementStore({
         service: this.service,
         emitter: window.mitt ? window.mitt() : null,
