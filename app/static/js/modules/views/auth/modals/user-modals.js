@@ -5,7 +5,9 @@
    * 创建用户新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.http] - HTTP 请求工具
+   * @param {Object} [options.userService] - 用户服务(推荐注入)
+   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 UserService)
+   * @param {Object} [options.UserService] - UserService 类(兼容注入)
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -15,20 +17,35 @@
    */
   function createController(options) {
     const {
-      http = window.httpU,
+      userService: injectedUserService = null,
+      http = null,
+      UserService = window.UserService,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
       DOMHelpers = window.DOMHelpers,
     } = options || {};
 
-    if (!http) {
-      throw new Error('UserModals: httpU 未初始化');
-    }
     if (!DOMHelpers) {
       throw new Error('UserModals: DOMHelpers 未加载');
     }
     const { selectOne } = DOMHelpers;
+
+    let userService = injectedUserService;
+    if (!userService) {
+      if (!UserService) {
+        throw new Error('UserModals: UserService 未加载');
+      }
+      userService = new UserService(http);
+    }
+    if (
+      !userService ||
+      typeof userService.getUser !== 'function' ||
+      typeof userService.createUser !== 'function' ||
+      typeof userService.updateUser !== 'function'
+    ) {
+      throw new Error('UserModals: userService 未初始化');
+    }
 
     const modalEl = document.getElementById('userModal');
     if (!modalEl) {
@@ -144,7 +161,7 @@
         submitBtn.textContent = '保存';
         updateModeMeta('edit');
 
-        const payload = await http.get(`/api/v1/users/${userId}`);
+        const payload = await userService.getUser(userId);
         if (!payload?.success || !payload?.data?.user) {
           toast?.error?.(payload?.message || '获取用户信息失败');
           return;
@@ -254,7 +271,8 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      http.post('/api/v1/users', payload)
+      userService
+        .createUser(payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '创建用户失败');
@@ -278,12 +296,13 @@
      */
     function submitUpdate(payload) {
       const userId = payload.id;
-      if (!userId) {
+     if (!userId) {
         toast?.error?.('缺少用户ID');
         toggleLoading(false);
         return;
       }
-      http.put(`/api/v1/users/${userId}`, payload)
+      userService
+        .updateUser(userId, payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '更新用户失败');

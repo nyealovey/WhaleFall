@@ -1,0 +1,3 @@
+运行 ESLint 命令: /Users/apple/Github/WhaleFall/node_modules/.bin/eslint app/static/js --ext .js --max-warnings 0 --quiet
+报告输出: /Users/apple/Github/WhaleFall/docs/reports/eslint_quick_2026-01-15_160134.txt
+✅ ESLint 完成，报告位于 /Users/apple/Github/WhaleFall/docs/reports/eslint_quick_2026-01-15_160134.txt

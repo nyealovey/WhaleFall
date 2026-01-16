@@ -47,6 +47,18 @@
     }
 
     /**
+     * 凭据列表 Grid 数据源 URL（含默认排序）。
+     *
+     * @returns {string} API URL
+     */
+    getGridUrl() {
+      const params = new URLSearchParams();
+      params.set("sort", "id");
+      params.set("order", "desc");
+      return `${BASE_PATH}?${params.toString()}`;
+    }
+
+    /**
      * 获取单个凭据详情。
      *
      * @param {number|string} id - 凭据 ID

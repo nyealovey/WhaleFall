@@ -1,6 +1,16 @@
 (function (global) {
   "use strict";
 
+  const ENDPOINTS = {
+    instanceSummary: "/api/v1/capacity/instances/summary",
+    instanceTrend: "/api/v1/capacity/instances",
+    databaseSummary: "/api/v1/capacity/databases/summary",
+    databaseTrend: "/api/v1/capacity/databases",
+    calculateCurrent: "/api/v1/capacity/aggregations/current",
+    instanceOptions: "/api/v1/instances/options",
+    databaseOptions: "/api/v1/databases/options",
+  };
+
   /**
    * 统一选择 http 客户端。
    *
@@ -113,6 +123,68 @@
       return this.httpClient.post(url, payload);
     }
   }
+
+  /**
+   * 实例维度容量统计页面 API 配置（仅承载 endpoint 与默认 query）。
+   *
+   * @returns {Object} CapacityStats.Manager.api 配置
+   */
+  CapacityStatsService.buildInstanceApiConfig = function buildInstanceApiConfig() {
+    return {
+      summaryEndpoint: ENDPOINTS.instanceSummary,
+      trendEndpoint: ENDPOINTS.instanceTrend,
+      changeEndpoint: ENDPOINTS.instanceTrend,
+      percentEndpoint: ENDPOINTS.instanceTrend,
+      summaryDefaults: {},
+      trendDefaults: {
+        chart_mode: "instance",
+        get_all: "true",
+      },
+      changeDefaults: {
+        get_all: "true",
+      },
+      percentDefaults: {
+        get_all: "true",
+      },
+      calculateEndpoint: ENDPOINTS.calculateCurrent,
+      instanceOptionsEndpoint: ENDPOINTS.instanceOptions,
+    };
+  };
+
+  /**
+   * 数据库维度容量统计页面 API 配置（仅承载 endpoint 与默认 query）。
+   *
+   * @returns {Object} CapacityStats.Manager.api 配置
+   */
+  CapacityStatsService.buildDatabaseApiConfig = function buildDatabaseApiConfig() {
+    return {
+      summaryEndpoint: ENDPOINTS.databaseSummary,
+      trendEndpoint: ENDPOINTS.databaseTrend,
+      changeEndpoint: ENDPOINTS.databaseTrend,
+      percentEndpoint: ENDPOINTS.databaseTrend,
+      summaryDefaults: {
+        api: "true",
+      },
+      trendDefaults: {
+        api: "true",
+        chart_mode: "database",
+        get_all: "true",
+      },
+      changeDefaults: {
+        api: "true",
+        chart_mode: "database",
+        get_all: "true",
+      },
+      percentDefaults: {
+        api: "true",
+        chart_mode: "database",
+        get_all: "true",
+      },
+      calculateEndpoint: ENDPOINTS.calculateCurrent,
+      instanceOptionsEndpoint: ENDPOINTS.instanceOptions,
+      databaseOptionsEndpoint: ENDPOINTS.databaseOptions,
+    };
+  };
 
   global.CapacityStatsService = CapacityStatsService;
 })(window);

@@ -42,7 +42,7 @@ function mountAccountClassificationPage(window, document) {
         console.error('AccountClassificationService 未加载，账户分类页面无法初始化');
         return;
     }
-    const service = new AccountClassificationService(window.httpU);
+    const service = new AccountClassificationService();
     /**
      * 将服务的各 API 封装为前端调用入口。
      */

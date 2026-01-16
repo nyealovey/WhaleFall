@@ -66,6 +66,12 @@ function mountCapacityDatabasesPage(window) {
       return;
     }
 
+    const apiFactory = window.CapacityStatsService?.buildDatabaseApiConfig;
+    if (typeof apiFactory !== "function") {
+      console.error("CapacityStatsService 未初始化，无法加载容量统计页面");
+      return;
+    }
+
     window.databaseCapacityStatsManager = new window.CapacityStats.Manager({
       labelExtractor,
       supportsDatabaseFilter: true,
@@ -85,33 +91,7 @@ function mountCapacityDatabasesPage(window) {
           percent: "#changePercentChartLoading",
         },
       },
-      api: {
-        summaryEndpoint: "/api/v1/capacity/databases/summary",
-        trendEndpoint: "/api/v1/capacity/databases",
-        changeEndpoint: "/api/v1/capacity/databases",
-        percentEndpoint: "/api/v1/capacity/databases",
-        summaryDefaults: {
-          api: "true",
-        },
-        trendDefaults: {
-          api: "true",
-          chart_mode: "database",
-          get_all: "true",
-        },
-        changeDefaults: {
-          api: "true",
-          chart_mode: "database",
-          get_all: "true",
-        },
-        percentDefaults: {
-          api: "true",
-          chart_mode: "database",
-          get_all: "true",
-        },
-        calculateEndpoint: "/api/v1/capacity/aggregations/current",
-        instanceOptionsEndpoint: "/api/v1/instances/options",
-        databaseOptionsEndpoint: "/api/v1/databases/options",
-      },
+      api: apiFactory(),
       fields: {
         change: "size_change_mb",
         percent: "size_change_percent",

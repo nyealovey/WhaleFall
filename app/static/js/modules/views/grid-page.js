@@ -109,7 +109,6 @@
       helpers,
       UI: global.UI || null,
       toast: global.toast || null,
-      http: global.httpU || null,
       gridWrapper: null,
       filterCard: null,
       state,

@@ -5,7 +5,9 @@
    * 创建凭据新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.http] - HTTP 请求工具
+   * @param {Object} [options.credentialService] - 凭据服务(推荐注入)
+   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 CredentialsService)
+   * @param {Object} [options.CredentialsService] - CredentialsService 类(兼容注入)
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -15,23 +17,33 @@
    */
   function createController(options) {
     const {
-      http = window.httpU,
+      credentialService: injectedCredentialService = null,
+      http = null,
+      CredentialsService = window.CredentialsService,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
       DOMHelpers = window.DOMHelpers,
     } = options || {};
 
-    if (!http) {
-      throw new Error('CredentialModals: httpU 未初始化');
-    }
-    if (!window.CredentialsService) {
-      throw new Error('CredentialModals: CredentialsService 未加载');
-    }
     if (!DOMHelpers) {
       throw new Error('CredentialModals: DOMHelpers 未加载');
     }
-    const credentialService = new window.CredentialsService(http);
+    let credentialService = injectedCredentialService;
+    if (!credentialService) {
+      if (!CredentialsService) {
+        throw new Error('CredentialModals: CredentialsService 未加载');
+      }
+      credentialService = new CredentialsService(http);
+    }
+    if (
+      !credentialService ||
+      typeof credentialService.getCredential !== 'function' ||
+      typeof credentialService.createCredential !== 'function' ||
+      typeof credentialService.updateCredential !== 'function'
+    ) {
+      throw new Error('CredentialModals: credentialService 未初始化');
+    }
 
     const modalEl = document.getElementById('credentialModal');
     if (!modalEl) {

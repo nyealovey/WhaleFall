@@ -20,7 +20,7 @@ const toast = window.toast || {
     info: console.info,
 };
 
-const tagService = new TagManagementService(window.httpU);
+const tagService = new TagManagementService();
 const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
 const isSafeKey = (key) => {
     const normalized = typeof key === 'number' ? String(key) : key;

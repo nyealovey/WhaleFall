@@ -47,6 +47,18 @@
     }
 
     /**
+     * 用户列表 Grid 数据源 URL（含默认排序）。
+     *
+     * @returns {string} API URL
+     */
+    getGridUrl() {
+      const params = new URLSearchParams();
+      params.set("sort", "created_at");
+      params.set("order", "desc");
+      return `${BASE_PATH}?${params.toString()}`;
+    }
+
+    /**
      * 获取单个用户详情。
      *
      * @param {number|string} userId - 用户 ID
