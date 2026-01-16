@@ -94,11 +94,17 @@ function flattenPrivilegeStrings(rawPrivileges) {
  * 显示权限模态框
  * @param {Object} permissions - 权限数据
  * @param {Object} account - 账户数据
+ * @param {Object} [options] - 可选配置
+ * @param {string} [options.scope] - 权限模态框 scope，用于派生 DOM id
  * @returns {void}
  */
-function showPermissionsModal(permissions, account) {
-
+function showPermissionsModal(permissions, account, { scope } = {}) {
     try {
+        const resolvedScope = typeof scope === 'string' ? scope.trim() : '';
+        if (!resolvedScope) {
+            console.error('showPermissionsModal 缺少 scope，无法定位权限模态框');
+            return;
+        }
         if (!account || typeof account !== 'object') {
             console.error('showPermissionsModal 需要有效的 account 参数');
             toast.error('无法获取账户信息，请稍后重试', { title: '错误' });
@@ -113,12 +119,12 @@ function showPermissionsModal(permissions, account) {
 
         // 获取数据库类型
         const dbType = account.db_type || (account.instance_name ? account.instance_name : 'unknown');
-
-        // 检查权限对象的所有属性
-
-        ensurePermissionModal();
-        updateModalContent(permissions, account, dbType);
-        openPermissionModal();
+        const instance = ensurePermissionModal(resolvedScope);
+        if (!instance) {
+            return;
+        }
+        updateModalContent(resolvedScope, permissions, account, dbType);
+        instance.open();
     } catch (error) {
         console.error('showPermissionsModal 函数执行出错:', error);
         console.error('错误堆栈:', error.stack);
@@ -127,48 +133,100 @@ function showPermissionsModal(permissions, account) {
 }
 
 /**
- * 创建权限模态框HTML
- * @param {void} 无参数。内部缓存 window.PermissionModalInstance。
- * @returns {HTMLElement} 模态框元素
+ * 解析权限模态框的容器节点。
+ *
+ * @param {string} scope scope，用于定位组件容器。
+ * @returns {HTMLElement|null} 容器元素，未找到则返回 null。
  */
-function ensurePermissionModal() {
-    if (window.PermissionModalInstance) {
-        return window.PermissionModalInstance;
+function resolvePermissionModalContainer(scope) {
+    const helpers = window.DOMHelpers;
+    if (!helpers) {
+        return null;
+    }
+    return helpers.selectOne(`[data-wf-scope="${scope}"]`)?.first?.() || null;
+}
+
+/**
+ * 创建权限模态框实例（按 scope 缓存）。
+ *
+ * @param {string} scope - 权限模态框 scope，用于派生 DOM id。
+ * @returns {Object|null} 模态框实例，初始化失败时返回 null。
+ */
+function ensurePermissionModal(scope) {
+    const resolvedScope = typeof scope === 'string' ? scope.trim() : '';
+    if (!resolvedScope) {
+        console.error('ensurePermissionModal 缺少 scope，无法初始化权限模态框');
+        return null;
+    }
+    const cache = window.PermissionModalInstances && typeof window.PermissionModalInstances === 'object'
+        ? window.PermissionModalInstances
+        : (window.PermissionModalInstances = {});
+    if (cache[resolvedScope]) {
+        return cache[resolvedScope];
     }
     const factory = window.UI?.createModal;
     if (!factory) {
         throw new Error('UI.createModal 未加载，无法初始化权限模态框');
     }
-    window.PermissionModalInstance = factory({
-        modalSelector: '#permissionsModal',
-        onClose: resetPermissionModal,
+    const container = resolvePermissionModalContainer(resolvedScope);
+    if (!container) {
+        console.error('ensurePermissionModal 未找到权限模态框容器', { scope: resolvedScope });
+        return null;
+    }
+    const modalSelector = `#${resolvedScope}-modal`;
+    const modalElement = container.querySelector(modalSelector);
+    if (!modalElement) {
+        console.error('ensurePermissionModal 未找到权限模态框节点', { scope: resolvedScope, modalSelector });
+        return null;
+    }
+    const instance = factory({
+        modalSelector,
+        onClose: () => resetPermissionModal(resolvedScope),
     });
-    return window.PermissionModalInstance;
+    if (!instance) {
+        console.error('ensurePermissionModal 初始化失败', { scope: resolvedScope, modalSelector });
+        return null;
+    }
+    cache[resolvedScope] = instance;
+    return instance;
 }
 
 /**
  * 打开权限模态框。
  *
- * @param {void} 无参数。依赖 ensurePermissionModal。
+ * @param {string} scope 权限模态框 scope。
  * @returns {void}
  */
-function openPermissionModal() {
-    const instance = ensurePermissionModal();
+function openPermissionModal(scope) {
+    const instance = ensurePermissionModal(scope);
+    if (!instance) {
+        return;
+    }
     instance.open();
 }
 
 /**
  * 重置模态内容，显示加载状态。
  *
- * @param {void} 无参数。直接更新模态 DOM。
+ * @param {string} scope 权限模态框 scope。
  * @returns {void}
  */
-function resetPermissionModal() {
+function resetPermissionModal(scope) {
+    const resolvedScope = typeof scope === 'string' ? scope.trim() : '';
+    if (!resolvedScope) {
+        console.error('resetPermissionModal 缺少 scope，跳过重置');
+        return;
+    }
     const helpers = window.DOMHelpers;
     if (!helpers) {
         return;
     }
-    const body = helpers.selectOne('#permissionsModalBody');
+    const container = resolvePermissionModalContainer(resolvedScope);
+    if (!container) {
+        console.error('resetPermissionModal 未找到权限模态框容器', { scope: resolvedScope });
+        return;
+    }
+    const body = helpers.selectOne(`#${resolvedScope}-body`, container);
     if (body.length) {
         body.html(`
             <div class="permission-modal__loading text-center">
@@ -179,11 +237,11 @@ function resetPermissionModal() {
             </div>
         `);
     }
-    const title = helpers.selectOne('#permissionsModalTitle');
+    const title = helpers.selectOne(`#${resolvedScope}-title`, container);
     if (title.length) {
         title.text('账户权限详情');
     }
-    const meta = helpers.selectOne('#permissionsModalMeta');
+    const meta = helpers.selectOne(`#${resolvedScope}-meta`, container);
     if (meta.length) {
         meta.text('加载中...');
     }
@@ -197,14 +255,26 @@ function resetPermissionModal() {
  * @param {string} dbType 数据库类型。
  * @returns {void}
  */
-function updateModalContent(permissions, account, dbType) {
+function updateModalContent(scope, permissions, account, dbType) {
+    const resolvedScope = typeof scope === 'string' ? scope.trim() : '';
+    if (!resolvedScope) {
+        console.error('updateModalContent 缺少 scope，无法更新权限内容');
+        return;
+    }
     const helpers = window.DOMHelpers;
     if (!helpers) {
         throw new Error('DOMHelpers 未初始化');
     }
-    const title = helpers.selectOne('#permissionsModalTitle');
-    title.text('账户权限详情');
-    const meta = helpers.selectOne('#permissionsModalMeta');
+    const container = resolvePermissionModalContainer(resolvedScope);
+    if (!container) {
+        console.error('updateModalContent 未找到权限模态框容器', { scope: resolvedScope });
+        return;
+    }
+    const title = helpers.selectOne(`#${resolvedScope}-title`, container);
+    if (title.length) {
+        title.text('账户权限详情');
+    }
+    const meta = helpers.selectOne(`#${resolvedScope}-meta`, container);
     if (meta.length) {
         const metaParts = [];
         if (account.username) {
@@ -218,7 +288,7 @@ function updateModalContent(permissions, account, dbType) {
         }
         meta.text(metaParts.length ? metaParts.join(' · ') : '账号信息缺失');
     }
-    const body = helpers.selectOne('#permissionsModalBody');
+    const body = helpers.selectOne(`#${resolvedScope}-body`, container);
     const categories = permissions?.snapshot?.categories;
     if (categories && typeof categories === 'object') {
         body.html(renderPermissionsByType(categories, dbType));
@@ -497,12 +567,12 @@ function renderDefaultPermissions(permissions, dbType) {
 }
 
 // 导出到全局作用域
-function getOrCreateModal() {
-    return ensurePermissionModal();
+function getOrCreateModal(scope) {
+    return ensurePermissionModal(scope);
 }
 
 window.showPermissionsModal = showPermissionsModal;
-window.createPermissionsModal = function () {
-    return getOrCreateModal();
+window.createPermissionsModal = function (scope) {
+    return getOrCreateModal(scope);
 };
 window.renderPermissionsByType = renderPermissionsByType;

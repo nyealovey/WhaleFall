@@ -556,7 +556,7 @@ function syncCapacity(instanceId, instanceName, event) {
  * @return {void}
  */
 function viewInstanceAccountPermissions(accountId) {
-    window.viewAccountPermissions(accountId);
+    window.viewAccountPermissions(accountId, { scope: 'instance-permission' });
 }
 
 /**

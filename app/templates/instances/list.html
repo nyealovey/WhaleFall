@@ -100,7 +100,9 @@
 
 {% block extra_js %}
 <div id="list-page-tag-selector">
-    {% include 'components/tag_selector.html' %}
+    {% with tag_selector_scope='instance-tag-selector' %}
+        {% include 'components/tag_selector.html' %}
+    {% endwith %}
 </div>
 {% include 'components/scripts/tag_selector_scripts.html' %}
 {% include 'components/scripts/connection_manager_scripts.html' %}
