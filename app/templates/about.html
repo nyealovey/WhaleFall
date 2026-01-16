@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'AboutPage' %}
 
 {% block title %}关于鲸落{% endblock %}
 
@@ -192,4 +193,8 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/views/about/index.js') }}"></script>
 {% endblock %}

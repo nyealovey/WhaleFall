@@ -1,39 +1,73 @@
-(function (global, document) {
-  'use strict';
+/**
+ * 挂载账户统计页面。
+ *
+ * 由 `app/static/js/bootstrap/page-loader.js` 在 DOMContentLoaded 后调用。
+ *
+ * @param {Window} global - 全局 window 对象
+ * @returns {void}
+ */
+function mountAccountsStatisticsPage(global) {
+  "use strict";
 
   const REFRESH_SELECTOR = '[data-action="refresh-stats"]';
-  const API_ENDPOINT = '/api/v1/accounts/statistics';
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const refreshButton = document.querySelector(REFRESH_SELECTOR);
-    if (refreshButton) {
-      refreshButton.addEventListener('click', handleRefreshClick);
-    }
-  });
+  const document = global.document;
+  if (!document) {
+    return;
+  }
+
+  const refreshButton = document.querySelector(REFRESH_SELECTOR);
+  if (!refreshButton) {
+    return;
+  }
+
+  const AccountsStatisticsService = global.AccountsStatisticsService;
+  if (typeof AccountsStatisticsService !== "function") {
+    console.error("AccountsStatisticsService 未初始化");
+    return;
+  }
+
+  let service = null;
+  try {
+    service = new AccountsStatisticsService();
+  } catch (error) {
+    console.error("初始化 AccountsStatisticsService 失败:", error);
+    return;
+  }
+
+  refreshButton.addEventListener("click", handleRefreshClick);
 
   function handleRefreshClick(event) {
     event.preventDefault();
+
     const button = event.currentTarget;
     toggleLoading(button, true);
-    global.httpU
-      .get(API_ENDPOINT, { headers: { Accept: 'application/json' } })
+
+    if (!service?.fetchStatistics) {
+      notify("统计服务未初始化", "error");
+      toggleLoading(button, false);
+      return;
+    }
+
+    service
+      .fetchStatistics()
       .then((payload) => {
-        const stats = payload?.data?.stats || payload?.stats || {};
+        const stats = payload?.data?.stats ?? payload?.stats ?? {};
         applyStats(stats);
-        notify('统计数据已刷新', 'success');
+        notify("统计数据已刷新", "success");
       })
       .catch((error) => {
-        console.error('刷新账户统计失败:', error);
-        notify('刷新失败，请稍后再试', 'error');
+        console.error("刷新账户统计失败:", error);
+        notify("刷新失败，请稍后再试", "error");
       })
       .finally(() => toggleLoading(button, false));
   }
 
   function applyStats(stats) {
-    setValue('total_accounts', stats.total_accounts);
-    setValue('active_accounts', stats.active_accounts);
-    setValue('locked_accounts', stats.locked_accounts);
-    setValue('total_instances', stats.total_instances);
+    setValue("total_accounts", stats.total_accounts);
+    setValue("active_accounts", stats.active_accounts);
+    setValue("locked_accounts", stats.locked_accounts);
+    setValue("total_instances", stats.total_instances);
     updateDbTypeTable(stats.db_type_stats, stats.total_accounts);
     updateClassificationTable(stats.classification_stats, stats.total_accounts);
   }
@@ -55,7 +89,7 @@
     }
     const normalizedTotal = Number(totalAccounts) || 0;
     Object.entries(dbTypeStats).forEach(([type, meta]) => {
-      const key = String(type || '').toLowerCase();
+      const key = String(type || "").toLowerCase();
       const row = document.querySelector(`[data-db-type-row="${key}"]`);
       if (!row) {
         return;
@@ -73,9 +107,9 @@
       if (percentLabel) {
         percentLabel.textContent = `${percent.toFixed(1)}%`;
       }
-      updateStatusPill(row, 'success', meta?.active);
-      updateStatusPill(row, 'warning', meta?.locked);
-      updateStatusPill(row, 'muted', meta?.deleted ?? 0);
+      updateStatusPill(row, "success", meta?.active);
+      updateStatusPill(row, "warning", meta?.locked);
+      updateStatusPill(row, "muted", meta?.deleted ?? 0);
     });
   }
 
@@ -85,7 +119,9 @@
     }
     const normalizedTotal = Number(totalAccounts) || 0;
     Object.entries(classStats).forEach(([classification, meta]) => {
-      const key = String(classification || '').toLowerCase().replace(/\s+/g, '-');
+      const key = String(classification || "")
+        .toLowerCase()
+        .replace(/\\s+/g, "-");
       const row = document.querySelector(`[data-classification-row="${key}"]`);
       if (!row) {
         return;
@@ -112,13 +148,22 @@
     }
     const selector = `.status-pill--${tone}`;
     const node = row.querySelector(selector);
-    if (node) {
-      const resolveLockText = global.UI?.Terms?.resolveLockStatusText;
-      const lockedLabel = typeof resolveLockText === 'function' ? resolveLockText(true) : '已锁定';
-      const resolveDeleteText = global.UI?.Terms?.resolveDeletionStatusText;
-      const deletedLabel = typeof resolveDeleteText === 'function' ? resolveDeleteText(true) : '已删除';
-      node.textContent = `${tone === 'success' ? '活跃' : tone === 'warning' ? lockedLabel : deletedLabel} ${formatInteger(value)}`;
+    if (!node) {
+      return;
     }
+
+    const resolveLockText = global.UI?.Terms?.resolveLockStatusText;
+    const lockedLabel = typeof resolveLockText === "function"
+      ? resolveLockText(true)
+      : "已锁定";
+    const resolveDeleteText = global.UI?.Terms?.resolveDeletionStatusText;
+    const deletedLabel = typeof resolveDeleteText === "function"
+      ? resolveDeleteText(true)
+      : "已删除";
+
+    node.textContent = `${
+      tone === "success" ? "活跃" : tone === "warning" ? lockedLabel : deletedLabel
+    } ${formatInteger(value)}`;
   }
 
   function resolvePercent(count, total) {
@@ -135,17 +180,17 @@
     }
     if (loading) {
       button.dataset.originalContent = button.innerHTML;
-      button.setAttribute('disabled', 'disabled');
+      button.setAttribute("disabled", "disabled");
       button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       return;
     }
     button.innerHTML = button.dataset.originalContent || '<i class="fas fa-sync-alt"></i>';
-    button.removeAttribute('disabled');
+    button.removeAttribute("disabled");
   }
 
   function formatInteger(value) {
     if (value === null || value === undefined) {
-      return '-';
+      return "-";
     }
     if (global.NumberFormat?.formatInteger) {
       return global.NumberFormat.formatInteger(value, { fallback: value });
@@ -162,11 +207,11 @@
       return;
     }
     if (global.toast) {
-      if (tone === 'success' && global.toast.success) {
+      if (tone === "success" && global.toast.success) {
         global.toast.success(message);
         return;
       }
-      if (tone === 'error' && global.toast.error) {
+      if (tone === "error" && global.toast.error) {
         global.toast.error(message);
         return;
       }
@@ -175,10 +220,17 @@
         return;
       }
     }
-    if (tone === 'error') {
+    if (tone === "error") {
       console.error(message);
     } else {
       console.info(message);
     }
   }
-})(window, document);
+}
+
+window.AccountsStatisticsPage = {
+  mount: function () {
+    mountAccountsStatisticsPage(window);
+  },
+};
+

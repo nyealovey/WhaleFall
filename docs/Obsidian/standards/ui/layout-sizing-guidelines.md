@@ -7,7 +7,7 @@ tags:
   - standards/ui
 status: active
 created: 2025-12-28
-updated: 2026-01-14
+updated: 2026-01-15
 owner: WhaleFall FE
 scope: "`app/templates/**`, `app/static/css/**`"
 related:
@@ -57,8 +57,9 @@ related:
 
 ### 4) 尺寸单位与写法 (MUST)
 
-- MUST: 关键布局尺寸必须由 "Token + class" 提供, 模板中禁止新增 `style="height: Npx"` / `style="width: Npx"`.
-  - 例外: 仅允许非布局性质的微调 (例如 1px hairline) 且必须在代码评审中说明原因.
+- MUST: 关键布局尺寸必须由 "Token + class" 提供，模板中禁止新增 `style="height: Npx"` / `style="width: Npx"`。
+  - 门禁：`./scripts/ci/inline-px-style-guard.sh` 使用 baseline 锁定现状（允许减少、禁止新增）；如确需新增必须在评审中说明原因并同步更新 baseline（不推荐）。
+  - 微调（例如 1px hairline）必须落在组件 CSS 内（非模板 inline）。
 - SHOULD: 固定尺寸优先使用 `rem`, 响应式高度/宽度优先使用 `clamp()` 或 `min()/max()` 组合视口单位.
 - MAY: 在第三方库强约束场景使用 `px` (例如渲染像素对齐), 但必须落在组件 CSS 内, 禁止回到模板 inline.
 

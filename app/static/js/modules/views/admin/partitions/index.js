@@ -23,7 +23,7 @@ function mountAdminPartitionsPage(global) {
         console.error('PartitionService 未初始化，无法加载分区管理脚本');
         return;
     }
-    const partitionService = new PartitionService(global.httpU);
+    const partitionService = new PartitionService();
     let partitionStore = null;
     const partitionStoreSubscriptions = [];
     let modalsController = null;

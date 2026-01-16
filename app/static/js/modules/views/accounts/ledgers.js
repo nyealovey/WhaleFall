@@ -42,6 +42,13 @@ function mountAccountsListPage(global) {
     return;
   }
 
+  const AccountsLedgersService = global.AccountsLedgersService;
+  if (!AccountsLedgersService) {
+    console.error("AccountsLedgersService 未初始化");
+    return;
+  }
+  const accountsLedgersService = new AccountsLedgersService();
+
   const pageRoot = document.getElementById("accounts-page-root");
   if (!pageRoot) {
     console.warn("未找到账户台账页面根元素");
@@ -53,7 +60,8 @@ function mountAccountsListPage(global) {
 
   const ACCOUNT_FILTER_FORM_ID = "account-filter-form";
   const TAG_SELECTOR_SCOPE = "account-tag-selector";
-  const exportEndpoint = pageRoot.dataset.exportUrl || "/api/v1/accounts/ledgers/exports";
+  const resolveExportEndpoint = () =>
+    pageRoot.dataset.exportUrl ?? accountsLedgersService.getExportUrl();
   const currentDbType = pageRoot.dataset.currentDbType || "all";
   const includeDbTypeColumn = !currentDbType || currentDbType === "all";
   const basePath = resolveBasePath(currentDbType);
@@ -86,7 +94,7 @@ function mountAccountsListPage(global) {
       return;
     }
     try {
-      instanceService = new Service(global.httpU);
+      instanceService = new Service();
     } catch (error) {
       console.error("初始化 InstanceManagementService 失败:", error);
       instanceService = null;
@@ -122,7 +130,7 @@ function mountAccountsListPage(global) {
         sort: false,
         columns: buildColumns({ includeDbTypeColumn }),
         server: {
-          url: "/api/v1/accounts/ledgers?sort=username&order=asc",
+          url: accountsLedgersService.getGridUrl(),
           headers: { "X-Requested-With": "XMLHttpRequest" },
           then: handleServerResponse({ includeDbTypeColumn }),
           total: (response) => {
@@ -158,7 +166,7 @@ function mountAccountsListPage(global) {
         }),
         GridPlugins.exportButton({
           selector: '[data-action="export-accounts-csv"]',
-          endpoint: exportEndpoint,
+          endpoint: resolveExportEndpoint,
         }),
         GridPlugins.actionDelegation({
           actions: {

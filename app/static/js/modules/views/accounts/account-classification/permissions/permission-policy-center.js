@@ -6,7 +6,7 @@
     console.error("AccountClassificationService 未初始化，权限策略中心无法加载");
     return;
   }
-  const accountClassificationService = new AccountClassificationService(window.httpU);
+  const accountClassificationService = new AccountClassificationService();
   const permissionPlaceholderCache = new Map();
 
   /**

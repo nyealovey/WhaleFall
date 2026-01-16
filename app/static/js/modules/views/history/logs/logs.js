@@ -62,7 +62,7 @@
             console.error('LogsService 未初始化');
             return;
         }
-        logsService = new global.LogsService(global.httpU);
+        logsService = new global.LogsService();
 
         const pageRoot = document.getElementById('logs-page-root');
         if (!pageRoot) {
@@ -109,7 +109,7 @@
                 sort: false,
                 columns: buildColumns(),
                 server: {
-                    url: '/api/v1/logs?sort=timestamp&order=desc',
+                    url: logsService.getGridUrl(),
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                     },

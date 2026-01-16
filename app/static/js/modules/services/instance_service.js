@@ -87,6 +87,18 @@
       return this.httpClient.get(`${BASE_PATH}${query}`);
     }
 
+    /**
+     * 实例列表 Grid 数据源 URL（含默认排序）。
+     *
+     * @returns {string} API URL
+     */
+    getGridUrl() {
+      const params = new URLSearchParams();
+      params.set("sort", "id");
+      params.set("order", "desc");
+      return `${BASE_PATH}?${params.toString()}`;
+    }
+
     getInstance(instanceId) {
       if (instanceId === undefined || instanceId === null || instanceId === '') {
         throw new Error('InstanceService: getInstance 需要 instanceId');

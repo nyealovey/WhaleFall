@@ -84,6 +84,18 @@
     }
 
     /**
+     * 同步会话列表 Grid 数据源 URL（含默认排序）。
+     *
+     * @returns {string} API URL
+     */
+    getGridUrl() {
+      const params = new URLSearchParams();
+      params.set("sort", "started_at");
+      params.set("order", "desc");
+      return `${BASE_PATH}?${params.toString()}`;
+    }
+
+    /**
      * 获取会话详情。
      *
      * @param {string} sessionId - 会话 ID

@@ -10,6 +10,7 @@
     batchRemoveAll: "/api/v1/tags/bulk/actions/remove-all",
     batchDelete: "/api/v1/tags/batch-delete",
   };
+  const CRUD_BASE_PATH = "/api/v1/tags";
 
   /**
    * 选择一个可用的 http 客户端，若调用方未传递则退回全局 httpU/http。
@@ -159,6 +160,39 @@
     }
 
     /**
+     * 标签管理页 Grid 数据源 URL。
+     *
+     * @returns {string} API URL
+     */
+    getGridUrl() {
+      return CRUD_BASE_PATH;
+    }
+
+    getTag(tagId) {
+      if (tagId === undefined || tagId === null) {
+        throw new Error("TagManagementService: getTag 需要 tagId");
+      }
+      return this.httpClient.get(`${CRUD_BASE_PATH}/${tagId}`);
+    }
+
+    createTag(payload) {
+      if (!payload) {
+        throw new Error("TagManagementService: createTag 需要 payload");
+      }
+      return this.httpClient.post(CRUD_BASE_PATH, payload);
+    }
+
+    updateTag(tagId, payload) {
+      if (tagId === undefined || tagId === null) {
+        throw new Error("TagManagementService: updateTag 需要 tagId");
+      }
+      if (!payload) {
+        throw new Error("TagManagementService: updateTag 需要 payload");
+      }
+      return this.httpClient.put(`${CRUD_BASE_PATH}/${tagId}`, payload);
+    }
+
+    /**
      * 删除单个标签。
      *
      * @param {number|string} tagId - 标签 ID
@@ -169,7 +203,7 @@
       if (tagId === undefined || tagId === null) {
         throw new Error("TagManagementService: deleteTag 需要 tagId");
       }
-      return this.httpClient.delete(`/api/v1/tags/${tagId}`);
+      return this.httpClient.delete(`${CRUD_BASE_PATH}/${tagId}`);
     }
   }
 
