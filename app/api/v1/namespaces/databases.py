@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
-from typing import ClassVar, cast
+from typing import ClassVar
 
 from flask import Response, request
 from flask_restx import Namespace, fields, marshal
@@ -12,7 +11,7 @@ import app.services.database_sync as database_sync_module
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.api.v1.resources.query_parsers import bool_with_default, new_parser, split_comma_separated
+from app.api.v1.resources.query_parsers import bool_with_default, new_parser
 from app.api.v1.restx_models.databases import (
     DATABASE_OPTION_ITEM_FIELDS,
     DATABASES_OPTIONS_RESPONSE_FIELDS,
@@ -22,11 +21,15 @@ from app.api.v1.restx_models.instances import (
     INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS,
 )
 from app.core.constants import HttpStatus
-from app.core.constants.validation_limits import DATABASE_TABLE_SIZES_LIMIT_MAX
 from app.core.exceptions import NotFoundError, ValidationError
-from app.core.types.common_filter_options import CommonDatabasesOptionsFilters
-from app.core.types.instance_database_sizes import InstanceDatabaseSizesQuery
-from app.core.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
+from app.schemas.databases_query import (
+    DatabaseLedgersExportQuery,
+    DatabaseLedgersQuery,
+    DatabasesOptionsQuery,
+    DatabasesSizesQuery,
+    DatabaseTableSizesQuery,
+)
+from app.schemas.validation import validate_or_raise
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.database_ledger_export_service import DatabaseLedgerExportService
 from app.services.instances.instance_database_detail_read_service import (
@@ -39,7 +42,6 @@ from app.services.instances.instance_database_table_sizes_service import (
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.utils.decorators import require_csrf
-from app.utils.time_utils import time_utils
 
 ns = Namespace("databases", description="数据库管理")
 
@@ -213,20 +215,6 @@ _database_table_sizes_query_parser.add_argument("limit", type=int, default=200, 
 _database_table_sizes_query_parser.add_argument("offset", type=str, location="args")
 
 
-def _parse_tags(raw_tags: list[str] | None) -> list[str]:
-    return split_comma_separated(raw_tags)
-
-
-def _parse_optional_date(value: str | None, field: str) -> date | None:
-    if not value:
-        return None
-    try:
-        parsed_dt = time_utils.to_china(value + "T00:00:00")
-        return parsed_dt.date() if parsed_dt else None
-    except Exception as exc:
-        raise ValidationError(f"{field} 格式错误,应为 YYYY-MM-DD") from exc
-
-
 @ns.route("/options")
 class DatabasesOptionsResource(BaseResource):
     """数据库选项资源."""
@@ -245,43 +233,27 @@ class DatabasesOptionsResource(BaseResource):
         """获取数据库选项."""
 
         def _execute():
-            parsed = cast("dict[str, object]", _databases_options_query_parser.parse_args())
+            parsed = dict(_databases_options_query_parser.parse_args())
+            query = validate_or_raise(DatabasesOptionsQuery, parsed)
 
-            if parsed.get("offset") is not None:
-                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
-
-            instance_id = parsed.get("instance_id")
-            if not isinstance(instance_id, int) or instance_id <= 0:
-                raise ValidationError("instance_id 为必填参数")
-
-            instance = InstanceDetailReadService().get_instance_by_id(instance_id)
+            instance = InstanceDetailReadService().get_instance_by_id(query.instance_id)
             if instance is None:
                 raise NotFoundError("实例不存在")
 
-            raw_page = parsed.get("page")
-            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-            raw_limit = parsed.get("limit")
-            limit = int(raw_limit) if isinstance(raw_limit, int) else 100
-            limit = max(min(limit, 1000), 1)
-            offset = (page - 1) * limit
+            options = query.to_filters(resolved_instance_id=int(instance.id))
 
             result = FilterOptionsService().get_common_databases_options(
-                CommonDatabasesOptionsFilters(
-                    instance_id=int(instance.id),
-                    limit=limit,
-                    offset=offset,
-                ),
+                options,
             )
             total_count = int(getattr(result, "total_count", 0) or 0)
-            pages = (total_count + limit - 1) // limit if total_count else 0
+            pages = (total_count + query.limit - 1) // query.limit if total_count else 0
             payload = marshal(
                 {
                     "databases": getattr(result, "databases", []),
                     "total_count": total_count,
-                    "page": page,
+                    "page": query.page,
                     "pages": pages,
-                    "limit": limit,
+                    "limit": query.limit,
                 },
                 DATABASES_OPTIONS_RESPONSE_FIELDS,
             )
@@ -312,29 +284,16 @@ class DatabaseLedgersResource(BaseResource):
         query_snapshot = request.args.to_dict(flat=False)
 
         def _execute():
-            parsed = cast("dict[str, object]", _database_ledgers_query_parser.parse_args())
-            search = str(parsed.get("search") or "").strip()
-            db_type = str(parsed.get("db_type") or "all").strip() or "all"
-            raw_instance_id = parsed.get("instance_id")
-            instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
-
-            raw_tags = parsed.get("tags")
-            tags = _parse_tags(raw_tags if isinstance(raw_tags, list) else None)
-
-            raw_page = parsed.get("page")
-            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-            raw_limit = parsed.get("limit")
-            limit = int(raw_limit) if isinstance(raw_limit, int) else 20
-            limit = max(min(limit, 200), 1)
+            parsed = dict(_database_ledgers_query_parser.parse_args())
+            query = validate_or_raise(DatabaseLedgersQuery, parsed)
 
             result = DatabaseLedgerService().get_ledger(
-                search=search,
-                db_type=db_type,
-                instance_id=instance_id,
-                tags=tags,
-                page=page,
-                per_page=limit,
+                search=query.search,
+                db_type=query.db_type,
+                instance_id=query.instance_id,
+                tags=query.tags,
+                page=query.page,
+                per_page=query.limit,
             )
             items = marshal(result.items, DatabaseLedgerItemModel)
             return self.success(
@@ -375,20 +334,14 @@ class DatabaseLedgersExportResource(BaseResource):
         query_snapshot = request.args.to_dict(flat=False)
 
         def _execute() -> Response:
-            parsed = cast("dict[str, object]", _database_ledgers_export_query_parser.parse_args())
-            search = str(parsed.get("search") or "").strip()
-            db_type = str(parsed.get("db_type") or "all").strip() or "all"
-            raw_instance_id = parsed.get("instance_id")
-            instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
-
-            raw_tags = parsed.get("tags")
-            tags = _parse_tags(raw_tags if isinstance(raw_tags, list) else None)
+            parsed = dict(_database_ledgers_export_query_parser.parse_args())
+            query = validate_or_raise(DatabaseLedgersExportQuery, parsed)
 
             result = DatabaseLedgerExportService().export_database_ledger_csv(
-                search=search,
-                db_type=db_type,
-                instance_id=instance_id,
-                tags=tags,
+                search=query.search,
+                db_type=query.db_type,
+                instance_id=query.instance_id,
+                tags=query.tags,
             )
             return Response(
                 result.content,
@@ -426,61 +379,28 @@ class DatabasesSizesResource(BaseResource):
         query_snapshot = request.args.to_dict(flat=False)
 
         def _execute():
-            parsed = cast("dict[str, object]", _databases_sizes_query_parser.parse_args())
+            parsed = dict(_databases_sizes_query_parser.parse_args())
+            query = validate_or_raise(DatabasesSizesQuery, parsed)
 
-            if parsed.get("offset") is not None:
-                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
+            InstanceDetailReadService().get_active_instance(query.instance_id)
 
-            instance_id = parsed.get("instance_id")
-            if not isinstance(instance_id, int) or instance_id <= 0:
-                raise ValidationError("缺少 instance_id")
-
-            InstanceDetailReadService().get_active_instance(instance_id)
-
-            raw_start_date = parsed.get("start_date")
-            start_date_raw = raw_start_date if isinstance(raw_start_date, str) else None
-            raw_end_date = parsed.get("end_date")
-            end_date_raw = raw_end_date if isinstance(raw_end_date, str) else None
-            raw_database_name = parsed.get("database_name")
-            database_name = raw_database_name if isinstance(raw_database_name, str) else None
-            latest_only = bool(parsed.get("latest_only") or False)
-            include_inactive = bool(parsed.get("include_inactive") or False)
-
-            raw_page = parsed.get("page")
-            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-            raw_limit = parsed.get("limit")
-            limit = int(raw_limit) if isinstance(raw_limit, int) else 100
-            if limit < 1:
-                limit = 100
-            offset = (page - 1) * limit
-
-            options = InstanceDatabaseSizesQuery(
-                instance_id=instance_id,
-                database_name=database_name,
-                start_date=_parse_optional_date(start_date_raw, "start_date"),
-                end_date=_parse_optional_date(end_date_raw, "end_date"),
-                include_inactive=include_inactive,
-                limit=limit,
-                offset=offset,
-            )
-
-            result = InstanceDatabaseSizesService().fetch_sizes(options, latest_only=latest_only)
+            options = query.to_options()
+            result = InstanceDatabaseSizesService().fetch_sizes(options, latest_only=query.latest_only)
             databases = marshal(result.databases, INSTANCE_DATABASE_SIZE_ENTRY_FIELDS)
 
             total = int(result.total or 0)
-            resolved_limit = int(result.limit or limit)
+            resolved_limit = int(result.limit or query.limit)
             pages = (total + resolved_limit - 1) // resolved_limit if total else 0
 
             payload: dict[str, object] = {
                 "total": total,
                 "limit": resolved_limit,
-                "page": page,
+                "page": query.page,
                 "pages": pages,
                 "databases": databases,
             }
 
-            if latest_only:
+            if query.latest_only:
                 payload.update(
                     {
                         "active_count": getattr(result, "active_count", 0),
@@ -520,51 +440,26 @@ class DatabaseTableSizesSnapshotResource(BaseResource):
         query_snapshot = request.args.to_dict(flat=False)
 
         def _execute():
-            parsed = cast("dict[str, object]", _database_table_sizes_query_parser.parse_args())
-
-            if parsed.get("offset") is not None:
-                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
+            parsed = dict(_database_table_sizes_query_parser.parse_args())
+            query = validate_or_raise(DatabaseTableSizesQuery, parsed)
 
             record = InstanceDatabaseDetailReadService().get_by_id_or_error(database_id)
 
             InstanceDetailReadService().get_active_instance(record.instance_id)
 
-            raw_schema_name = parsed.get("schema_name")
-            schema_name = raw_schema_name if isinstance(raw_schema_name, str) else None
-            raw_table_name = parsed.get("table_name")
-            table_name = raw_table_name if isinstance(raw_table_name, str) else None
-
-            raw_page = parsed.get("page")
-            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-            raw_limit = parsed.get("limit")
-            limit = int(raw_limit) if isinstance(raw_limit, int) else 200
-            if limit > DATABASE_TABLE_SIZES_LIMIT_MAX:
-                raise ValidationError(f"limit 最大为 {DATABASE_TABLE_SIZES_LIMIT_MAX}")
-            if limit < 1:
-                limit = 200
-            offset = (page - 1) * limit
-
-            options = InstanceDatabaseTableSizesQuery(
-                instance_id=record.instance_id,
-                database_name=record.database_name,
-                schema_name=schema_name,
-                table_name=table_name,
-                limit=limit,
-                offset=offset,
-            )
+            options = query.to_options(instance_id=record.instance_id, database_name=record.database_name)
 
             result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
             tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
 
             total = int(result.total or 0)
-            resolved_limit = int(result.limit or limit)
+            resolved_limit = int(result.limit or query.limit)
             pages = (total + resolved_limit - 1) // resolved_limit if total else 0
 
             payload: dict[str, object] = {
                 "total": total,
                 "limit": resolved_limit,
-                "page": page,
+                "page": query.page,
                 "pages": pages,
                 "collected_at": result.collected_at,
                 "tables": tables,
@@ -604,26 +499,8 @@ class DatabaseTableSizesRefreshResource(BaseResource):
         query_snapshot = request.args.to_dict(flat=False)
 
         def _execute():
-            parsed = cast("dict[str, object]", _database_table_sizes_query_parser.parse_args())
-
-            if parsed.get("offset") is not None:
-                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
-
-            raw_schema_name = parsed.get("schema_name")
-            schema_name = raw_schema_name if isinstance(raw_schema_name, str) else None
-            raw_table_name = parsed.get("table_name")
-            table_name = raw_table_name if isinstance(raw_table_name, str) else None
-
-            raw_page = parsed.get("page")
-            page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-            raw_limit = parsed.get("limit")
-            limit = int(raw_limit) if isinstance(raw_limit, int) else 200
-            if limit > DATABASE_TABLE_SIZES_LIMIT_MAX:
-                raise ValidationError(f"limit 最大为 {DATABASE_TABLE_SIZES_LIMIT_MAX}")
-            if limit < 1:
-                limit = 200
-            offset = (page - 1) * limit
+            parsed = dict(_database_table_sizes_query_parser.parse_args())
+            query = validate_or_raise(DatabaseTableSizesQuery, parsed)
 
             record = InstanceDatabaseDetailReadService().get_by_id_or_error(database_id)
 
@@ -651,25 +528,18 @@ class DatabaseTableSizesRefreshResource(BaseResource):
                         extra={"instance_id": instance.id, "database_name": record.database_name},
                     )
 
-                options = InstanceDatabaseTableSizesQuery(
-                    instance_id=instance.id,
-                    database_name=record.database_name,
-                    schema_name=schema_name,
-                    table_name=table_name,
-                    limit=limit,
-                    offset=offset,
-                )
+                options = query.to_options(instance_id=instance.id, database_name=record.database_name)
                 result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
                 tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
 
                 total = int(result.total or 0)
-                resolved_limit = int(result.limit or limit)
+                resolved_limit = int(result.limit or query.limit)
                 pages = (total + resolved_limit - 1) // resolved_limit if total else 0
 
                 payload: dict[str, object] = {
                     "total": total,
                     "limit": resolved_limit,
-                    "page": page,
+                    "page": query.page,
                     "pages": pages,
                     "collected_at": result.collected_at,
                     "tables": tables,
