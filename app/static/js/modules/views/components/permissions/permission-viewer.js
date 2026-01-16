@@ -83,6 +83,7 @@
      * @param {Function} [options.onError] - 错误回调
      * @param {Function} [options.onFinally] - 完成回调
      * @param {Element|Event} [options.trigger] - 触发元素
+     * @param {string} [options.scope] - 权限模态框 scope，用于派生 DOM id
      * @return {void}
      */
     function viewAccountPermissions(accountId, options = {}) {
@@ -91,6 +92,7 @@
             onError,
             onFinally,
             trigger,
+            scope,
         } = options;
 
         const triggerButton = resolveButton(trigger);
@@ -102,7 +104,7 @@
                 const responsePayload = data?.data;
                 if (data?.success && responsePayload && typeof responsePayload === 'object') {
                     if (window.showPermissionsModal) {
-                        window.showPermissionsModal(responsePayload?.permissions, responsePayload?.account);
+                        window.showPermissionsModal(responsePayload?.permissions, responsePayload?.account, { scope });
                     } else {
                         console.error('showPermissionsModal 函数未定义');
                     }

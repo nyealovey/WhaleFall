@@ -332,7 +332,9 @@
 </div>
 
 
-{% include 'components/permission_modal.html' %}
+{% with permission_scope='instance-permission' %}
+    {% include 'components/permission_modal.html' %}
+{% endwith %}
 
 {% if current_user.role == 'admin' %}
     {% include 'instances/modals/instance-modals.html' %}
