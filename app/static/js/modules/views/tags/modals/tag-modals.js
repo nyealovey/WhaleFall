@@ -5,7 +5,9 @@
    * 创建标签新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.http] - HTTP 请求工具
+   * @param {Object} [options.tagService] - 标签服务(推荐注入)
+   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 TagManagementService)
+   * @param {Object} [options.TagManagementService] - TagManagementService 类(兼容注入)
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -15,18 +17,33 @@
    */
   function createController(options) {
     const {
-      http = window.httpU,
+      tagService: injectedTagService = null,
+      http = null,
+      TagManagementService = window.TagManagementService,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
       DOMHelpers = window.DOMHelpers,
     } = options || {};
 
-    if (!http) {
-      throw new Error('TagModals: httpU 未初始化');
-    }
     if (!DOMHelpers) {
       throw new Error('TagModals: DOMHelpers 未加载');
+    }
+
+    let tagService = injectedTagService;
+    if (!tagService) {
+      if (!TagManagementService) {
+        throw new Error('TagModals: TagManagementService 未加载');
+      }
+      tagService = new TagManagementService(http);
+    }
+    if (
+      !tagService ||
+      typeof tagService.getTag !== 'function' ||
+      typeof tagService.createTag !== 'function' ||
+      typeof tagService.updateTag !== 'function'
+    ) {
+      throw new Error('TagModals: tagService 未初始化');
     }
 
     const modalEl = document.getElementById('tagModal');
@@ -156,7 +173,7 @@
         titleEl.textContent = '编辑标签';
         updateSubmitButtonCopy();
         setMetaState('加载中', 'status-pill--muted');
-        const payload = await http.get(`/api/v1/tags/${tagId}`);
+        const payload = await tagService.getTag(tagId);
         if (!payload?.success || !payload?.data?.tag) {
           throw new Error(payload?.message || '加载标签失败');
         }
@@ -229,7 +246,8 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      http.post('/api/v1/tags', payload)
+      tagService
+        .createTag(payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '添加标签失败');
@@ -253,12 +271,13 @@
      */
     function submitUpdate(payload) {
       const tagId = payload.id;
-      if (!tagId) {
+     if (!tagId) {
         toast?.error?.('缺少标签ID');
         toggleLoading(false);
         return;
       }
-      http.put(`/api/v1/tags/${tagId}`, payload)
+      tagService
+        .updateTag(tagId, payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '保存标签失败');

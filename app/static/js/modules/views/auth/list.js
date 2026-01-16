@@ -51,7 +51,6 @@ function mountAuthListPage(global) {
     return;
   }
 
-  const http = global.httpU;
   const gridHtml = gridjs.html;
   const { ready, selectOne } = helpers;
 
@@ -70,7 +69,7 @@ function mountAuthListPage(global) {
   let currentUserId = null;
 
   ready(() => {
-    userService = new UserService(http);
+    userService = new UserService();
     initializeUserModals();
     initializeGridPage();
     bindCreateButton();
@@ -88,7 +87,7 @@ function mountAuthListPage(global) {
       return;
     }
     userModals = global.UserModals.createController({
-      http: global.httpU,
+      userService,
       FormValidator: global.FormValidator,
       ValidationRules: global.ValidationRules,
       toast: global.toast,
@@ -121,7 +120,7 @@ function mountAuthListPage(global) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: "/api/v1/users?sort=created_at&order=desc",
+          url: userService.getGridUrl(),
           headers: {
             "X-Requested-With": "XMLHttpRequest",
           },

@@ -50,7 +50,13 @@ function mountTagsIndexPage(global) {
     return;
   }
 
-  const http = global.httpU;
+  const TagManagementService = global.TagManagementService;
+  if (!TagManagementService) {
+    console.error("TagManagementService 未初始化");
+    return;
+  }
+  const tagService = new TagManagementService();
+
   const gridHtml = gridjs.html;
   const { ready, selectOne } = helpers;
 
@@ -98,7 +104,7 @@ function mountTagsIndexPage(global) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: "/api/v1/tags",
+          url: tagService.getGridUrl(),
           headers: { "X-Requested-With": "XMLHttpRequest" },
           then: handleServerResponse,
           total: (response) => {
@@ -185,7 +191,7 @@ function mountTagsIndexPage(global) {
       return;
     }
     tagModals = global.TagModals.createController({
-      http: global.httpU,
+      tagService,
       FormValidator: global.FormValidator,
       ValidationRules: global.ValidationRules,
       toast: global.toast,
@@ -221,8 +227,8 @@ function mountTagsIndexPage(global) {
     if (!tagId || !canManageTags) {
       return;
     }
-    if (!http?.delete) {
-      console.error("httpU 未初始化，无法删除标签");
+    if (typeof tagService.deleteTag !== "function") {
+      console.error("tagService 未初始化，无法删除标签");
       return;
     }
 
@@ -262,7 +268,7 @@ function mountTagsIndexPage(global) {
     }
 
     try {
-      const resp = await http.delete(`/api/v1/tags/${tagId}`);
+      const resp = await tagService.deleteTag(tagId);
       if (!resp?.success) {
         throw new Error(resp?.message || "删除标签失败");
       }

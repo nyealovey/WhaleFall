@@ -58,10 +58,11 @@ function mountCredentialsListPage(global) {
   const CredentialsService = global.CredentialsService;
   const createCredentialsStore = global.createCredentialsStore;
   let credentialsStore = null;
+  let credentialsService = null;
 
   try {
     if (CredentialsService && typeof createCredentialsStore === "function") {
-      const credentialsService = new CredentialsService(global.httpU);
+      credentialsService = new CredentialsService();
       credentialsStore = createCredentialsStore({
         service: credentialsService,
         emitter: global.mitt ? global.mitt() : null,
@@ -69,13 +70,14 @@ function mountCredentialsListPage(global) {
     }
   } catch (error) {
     console.error("初始化 CredentialsService/CredentialsStore 失败:", error);
+    credentialsService = null;
     credentialsStore = null;
   }
 
   const CredentialModals = global.CredentialModals;
   const credentialModals = CredentialModals?.createController
     ? CredentialModals.createController({
-        http: global.httpU,
+        credentialService: credentialsService,
         FormValidator: global.FormValidator,
         ValidationRules: global.ValidationRules,
         toast: global.toast,
@@ -129,7 +131,7 @@ function mountCredentialsListPage(global) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: "/api/v1/credentials?sort=id&order=desc",
+          url: credentialsService.getGridUrl(),
           headers: { "X-Requested-With": "XMLHttpRequest" },
           then: handleServerResponse,
           total: (response) => {

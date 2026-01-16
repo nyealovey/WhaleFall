@@ -37,7 +37,7 @@ function mountInstanceStatisticsPage() {
     let instanceService = null;
     try {
         if (InstanceManagementService) {
-            instanceService = new InstanceManagementService(global.httpU);
+            instanceService = new InstanceManagementService();
         } else {
             throw new Error('InstanceManagementService 未加载');
         }

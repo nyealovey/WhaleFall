@@ -102,24 +102,24 @@ function mountInstancesListPage() {
      *
      * @return {void}
      */
-    function initializeServices() {
-        if (global.InstanceService) {
-            try {
-                instanceService = new global.InstanceService(global.httpU);
-            } catch (error) {
-                console.error('初始化 InstanceService 失败:', error);
-                instanceService = null;
-            }
-        }
-        if (global.InstanceManagementService) {
-            try {
-                managementService = new global.InstanceManagementService(global.httpU);
-            } catch (error) {
-                console.error('初始化 InstanceManagementService 失败:', error);
-                managementService = null;
-            }
-        }
-    }
+	    function initializeServices() {
+	        if (global.InstanceService) {
+	            try {
+	                instanceService = new global.InstanceService();
+	            } catch (error) {
+	                console.error('初始化 InstanceService 失败:', error);
+	                instanceService = null;
+	            }
+	        }
+	        if (global.InstanceManagementService) {
+	            try {
+	                managementService = new global.InstanceManagementService();
+	            } catch (error) {
+	                console.error('初始化 InstanceManagementService 失败:', error);
+	                managementService = null;
+	            }
+	        }
+	    }
 
     /**
      * 初始化实例 Store。
@@ -731,8 +731,11 @@ function mountInstancesListPage() {
      * @returns {string} API 地址。
      */
     function buildBaseUrl() {
-        const base = '/api/v1/instances';
-        return `${base}?sort=id&order=desc`;
+        if (instanceService?.getGridUrl) {
+            return instanceService.getGridUrl();
+        }
+        console.error('InstanceService 未初始化，无法构造实例列表 API URL');
+        return '';
     }
 
     /**

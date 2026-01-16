@@ -55,11 +55,11 @@ function getSafe(map, key, fallback) {
  */
 function mountAggregationsChart(context = window) {
 const runtime = context || window;
-const PartitionService = runtime.PartitionService;
-if (!PartitionService) {
-    throw new Error('PartitionService 未初始化');
-}
-const partitionService = new PartitionService(runtime.httpU);
+	const PartitionService = runtime.PartitionService;
+	if (!PartitionService) {
+	    throw new Error('PartitionService 未初始化');
+	}
+	const partitionService = new PartitionService();
 const createPartitionStore = runtime.createPartitionStore;
 
 /**

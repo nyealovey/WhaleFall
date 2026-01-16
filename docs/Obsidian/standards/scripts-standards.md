@@ -7,7 +7,7 @@ tags:
   - standards/general
 status: active
 created: 2025-12-25
-updated: 2026-01-09
+updated: 2026-01-15
 owner: WhaleFall Team
 scope: "`scripts/` 目录下所有脚本"
 related:
@@ -328,6 +328,7 @@ pytest -m unit "$@"
 | `pyright-report.sh` | Python 类型检查 | `./scripts/ci/pyright-report.sh` |
 | `eslint-report.sh` | JavaScript 代码风格 | `./scripts/ci/eslint-report.sh quick` |
 | `error-message-drift-guard.sh` | 错误消息漂移 | `./scripts/ci/error-message-drift-guard.sh` |
+| `inline-handler-guard.sh` | 模板 inline handler 回归 | `./scripts/ci/inline-handler-guard.sh` |
 | `pagination-param-guard.sh` | 分页参数一致性 | `./scripts/ci/pagination-param-guard.sh` |
 | `secrets-guard.sh` | 环境变量密钥 | `./scripts/ci/secrets-guard.sh` |
 | `tag-selector-filter-id-guard.sh` | TagSelectorFilter 固定 DOM id 回归 | `./scripts/ci/tag-selector-filter-id-guard.sh` |
@@ -349,3 +350,4 @@ pytest -m unit "$@"
 | 2025-12-25 | 初始版本：按"运行时机/用途"重新设计目录结构 |
 | 2026-01-08 | 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter |
 | 2026-01-09 | scripts 目录结构迁移: 迁移映射/步骤/兼容性过渡(一次性记录, 用后可删) |
+| 2026-01-15 | 新增门禁：补充 `inline-handler-guard.sh`（模板 inline handler 回归） |

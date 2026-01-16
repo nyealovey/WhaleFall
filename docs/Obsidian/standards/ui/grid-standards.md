@@ -10,7 +10,7 @@ tags:
   - standards/ui
 status: active
 created: 2026-01-14
-updated: 2026-01-14
+updated: 2026-01-15
 owner: WhaleFall Team
 scope: 所有基于 Grid.js 的列表页, 以及 `GridWrapper`/`Views.GridPage`/plugins 生态
 related:
@@ -46,7 +46,7 @@ related:
   - Action delegation: `Views.GridPlugins.actionDelegation(...)`
   - Export: `Views.GridPlugins.exportButton(...)`
 - MUST NOT: 页面脚本自行拼接分页/排序 query params(交由 `GridWrapper` + `TableQueryParams`).
-- MUST NOT: 页面内绑定内联 `onclick="..."`(统一使用 `actionDelegation`/`data-action`).
+- MUST NOT: 模板内联 `onclick="..."`（全站模板规则见 [[standards/ui/template-event-binding-standards]]；列表页统一使用 `actionDelegation`/`data-action`）。
 
 ### 2) 单一真源 helpers(MUST)
 

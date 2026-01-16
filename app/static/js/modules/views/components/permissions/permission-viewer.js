@@ -19,7 +19,7 @@
     }
     let permissionService = null;
     try {
-        permissionService = new PermissionService(window.httpU);
+        permissionService = new PermissionService();
     } catch (error) {
         console.error('初始化 PermissionService 失败:', error);
         return;
@@ -87,20 +87,17 @@
      */
     function viewAccountPermissions(accountId, options = {}) {
         const {
-            apiUrl = `/api/v1/accounts/ledgers/${accountId}/permissions`,
             onSuccess,
             onError,
             onFinally,
             trigger,
         } = options;
 
-        const finalApiUrl = apiUrl.replace('${accountId}', accountId);
-
         const triggerButton = resolveButton(trigger);
         toggleButtonLoading(triggerButton, true);
 
         permissionService
-            .fetchByUrl(finalApiUrl)
+            .fetchAccountPermissions(accountId)
             .then((data) => {
                 const responsePayload = data?.data;
                 if (data?.success && responsePayload && typeof responsePayload === 'object') {
@@ -130,14 +127,11 @@
      * 直接拉取账户权限数据（返回 Promise）。
      *
      * @param {number|string} accountId - 账户 ID
-     * @param {string} [apiUrl] - API 地址
      * @return {Promise<Object>} 权限数据 Promise
      * @throws {Error} 当获取失败时抛出
      */
-    function fetchAccountPermissions(accountId, apiUrl = `/api/v1/accounts/ledgers/${accountId}/permissions`) {
-        const finalApiUrl = apiUrl.replace('${accountId}', accountId);
-
-        return permissionService.fetchByUrl(finalApiUrl).then((data) => {
+    function fetchAccountPermissions(accountId) {
+        return permissionService.fetchAccountPermissions(accountId).then((data) => {
             if (data?.success && data.data && typeof data.data === 'object') {
                 return data.data;
             }

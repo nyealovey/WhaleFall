@@ -11,8 +11,9 @@
 
   function ensureDeps(options) {
     const ui = options?.ui || window.UI;
+    const injectedService = options?.service || null;
     const Service = options?.InstanceManagementService || window.InstanceManagementService;
-    const http = options?.http || window.httpU;
+    const http = options?.http || null;
 
     if (!ui?.createModal) {
       throw new Error('DatabaseTableSizesModal: UI.createModal 未初始化');
@@ -23,16 +24,25 @@
     if (!Service) {
       throw new Error('DatabaseTableSizesModal: InstanceManagementService 未加载');
     }
-    if (!http) {
-      throw new Error('DatabaseTableSizesModal: httpU 未初始化');
-    }
     if (!gridjs?.Grid) {
       throw new Error('DatabaseTableSizesModal: gridjs.Grid 未加载');
     }
 
+    let service = injectedService;
+    if (!service) {
+      service = new Service(http);
+    }
+    if (
+      !service ||
+      typeof service.fetchDatabaseTableSizes !== 'function' ||
+      typeof service.refreshDatabaseTableSizes !== 'function'
+    ) {
+      throw new Error('DatabaseTableSizesModal: service 未初始化');
+    }
+
     return {
       ui,
-      service: new Service(http),
+      service,
     };
   }
 

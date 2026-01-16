@@ -74,6 +74,18 @@
     }
 
     /**
+     * 分区列表 Grid 数据源 URL（含默认排序）。
+     *
+     * @returns {string} API URL
+     */
+    getGridUrl() {
+      const params = new URLSearchParams();
+      params.set("sort", "name");
+      params.set("order", "asc");
+      return `${BASE_PATH}?${params.toString()}`;
+    }
+
+    /**
      * 创建分区。
      *
      * @param {Object} payload - 创建参数

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'AccountsStatisticsPage' %}
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}账户统计 - 鲸落{% endblock %}
@@ -182,5 +183,6 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/accounts_statistics_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/accounts/statistics.js') }}"></script>
 {% endblock %}

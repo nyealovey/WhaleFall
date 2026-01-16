@@ -18,7 +18,6 @@ class ConnectionManager {
      * @throws {Error} 当 ConnectionService 未初始化时抛出
      */
     constructor() {
-        this.baseUrl = '/api/v1/instances';
         this.helpers = window.DOMHelpers;
         if (!this.helpers) {
             console.error('DOMHelpers 未初始化，连接管理组件无法渲染提示');
@@ -26,7 +25,7 @@ class ConnectionManager {
         if (!window.ConnectionService) {
             throw new Error('ConnectionService 未初始化');
         }
-        this.connectionService = new window.ConnectionService(window.httpU);
+        this.connectionService = new window.ConnectionService();
     }
 
     /**
