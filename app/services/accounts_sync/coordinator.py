@@ -263,7 +263,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 instance_id=self.instance.id,
                 instance_name=self.instance.name,
             )
-            raw_accounts = self._adapter.fetch_remote_accounts(self.instance, self._connection) or []
+            raw_accounts = self._adapter.fetch_remote_accounts(self.instance, self._connection)
             self._cached_accounts = list(raw_accounts)
             self._enriched_usernames.clear()
             self.logger.info(

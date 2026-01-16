@@ -250,7 +250,7 @@ class PartitionManagementService:
 
     def create_partition_from_payload(self, payload: object | None) -> dict[str, Any]:
         """从原始 payload 解析并创建分区."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         parsed = validate_or_raise(PartitionCreatePayload, sanitized)
 
         today = time_utils.now_china().date()
@@ -262,7 +262,7 @@ class PartitionManagementService:
 
     def cleanup_old_partitions_from_payload(self, payload: object | None) -> dict[str, Any]:
         """从原始 payload 解析并清理旧分区."""
-        sanitized = parse_payload(payload or {})
+        sanitized = parse_payload(payload)
         parsed = validate_or_raise(PartitionCleanupPayload, sanitized)
         return self.cleanup_old_partitions(retention_months=parsed.retention_months)
 

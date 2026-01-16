@@ -37,6 +37,8 @@ from app.core.constants.import_templates import (
 )
 from app.core.exceptions import ValidationError
 from app.core.types.instances import InstanceListFilters
+from app.schemas.instances_query import InstanceListFiltersQuery, InstancesExportQuery, InstancesOptionsQuery
+from app.schemas.validation import validate_or_raise
 from app.services.capacity.instance_capacity_sync_actions_service import InstanceCapacitySyncActionsService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.instances_export_service import InstancesExportService
@@ -351,41 +353,8 @@ _instances_export_query_parser.add_argument("db_type", type=str, default="", loc
 
 
 def _parse_instance_filters(parsed: dict[str, object]) -> InstanceListFilters:
-    raw_page = parsed.get("page")
-    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-    raw_limit = parsed.get("limit")
-    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
-    limit = max(min(limit, 100), 1)
-    sort_field = str(parsed.get("sort") or "id").lower()
-    sort_order = str(parsed.get("order") or "desc").lower()
-    if sort_order not in {"asc", "desc"}:
-        sort_order = "desc"
-
-    search = str(parsed.get("search") or "").strip()
-    db_type = str(parsed.get("db_type") or "").strip()
-    status_value = str(parsed.get("status") or "").strip()
-
-    raw_tags = parsed.get("tags")
-    tags: list[str] = []
-    if isinstance(raw_tags, list):
-        tags = [item.strip() for item in raw_tags if isinstance(item, str) and item.strip()]
-    elif isinstance(raw_tags, str) and raw_tags.strip():
-        tags = [raw_tags.strip()]
-
-    include_deleted = bool(parsed.get("include_deleted") or False)
-
-    return InstanceListFilters(
-        page=page,
-        limit=limit,
-        sort_field=sort_field,
-        sort_order=sort_order,
-        search=search,
-        db_type=db_type,
-        status=status_value,
-        tags=tags,
-        include_deleted=include_deleted,
-    )
+    query = validate_or_raise(InstanceListFiltersQuery, parsed)
+    return query.to_filters()
 
 
 def _get_raw_payload() -> object:
@@ -469,7 +438,8 @@ class InstancesOptionsResource(BaseResource):
     def get(self):
         """获取实例选项."""
         parsed = _instances_options_query_parser.parse_args()
-        db_type = str(parsed.get("db_type") or "").strip() or None
+        query = validate_or_raise(InstancesOptionsQuery, parsed)
+        db_type = query.db_type
 
         def _execute():
             result = FilterOptionsService().get_common_instances_options(db_type=db_type)
@@ -586,8 +556,9 @@ class InstancesExportResource(BaseResource):
     def get(self):
         """导出实例."""
         parsed = _instances_export_query_parser.parse_args()
-        search = str(parsed.get("search") or "")
-        db_type = str(parsed.get("db_type") or "")
+        query = validate_or_raise(InstancesExportQuery, parsed)
+        search = query.search
+        db_type = query.db_type
 
         def _execute() -> Response:
             result = _instances_export_service.export_instances_csv(search=search, db_type=db_type)

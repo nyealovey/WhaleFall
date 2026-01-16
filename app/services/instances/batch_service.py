@@ -222,7 +222,7 @@ class InstanceBatchDeletionService:
         operator_id: int | None = None,
     ) -> dict[str, Any]:
         """从原始 payload 解析并批量删除实例."""
-        sanitized = parse_payload(payload or {}, list_fields=["instance_ids"])
+        sanitized = parse_payload(payload, list_fields=["instance_ids"])
         parsed = validate_or_raise(InstancesBatchDeletePayload, sanitized)
         return self.delete_instances(
             parsed.instance_ids,

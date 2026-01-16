@@ -94,6 +94,74 @@ def parse_permission_snapshot_categories_v4(snapshot: object) -> InternalContrac
     )
 
 
+def parse_permission_snapshot_type_specific_v4(snapshot: object) -> InternalContractResult:
+    """解析 permission_snapshot(v4) 的 type_specific.
+
+    说明:
+    - 该函数用于 internal contract 的读入口（单入口 canonicalization 之前的版本/形状判定）。
+    - 未知版本默认应 fail-fast；若调用方是 best-effort 链路，可使用本函数返回的错误结构做显式失败。
+    """
+    contract = "permission_snapshot.type_specific"
+
+    if not isinstance(snapshot, Mapping):
+        return build_internal_contract_error(
+            contract=contract,
+            version=None,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_INVALID_PAYLOAD,
+            message="permission_snapshot 必须为 dict",
+        )
+
+    raw_version = snapshot.get("version")
+    version = raw_version if type(raw_version) is int else None
+    if version is None:
+        return build_internal_contract_error(
+            contract=contract,
+            version=None,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS,
+            message="permission_snapshot.version 缺失或不是整数",
+        )
+    if version != PERMISSION_SNAPSHOT_VERSION_V4:
+        return build_internal_contract_error(
+            contract=contract,
+            version=version,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_UNKNOWN_VERSION,
+            message=f"permission_snapshot.version={version} 不受支持",
+        )
+
+    type_specific = snapshot.get("type_specific")
+    if not isinstance(type_specific, dict):
+        return build_internal_contract_error(
+            contract=contract,
+            version=version,
+            supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+            error_code=INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS,
+            message="permission_snapshot.type_specific 缺失或不是 dict",
+        )
+
+    return build_internal_contract_ok(
+        contract=contract,
+        version=version,
+        supported_versions=PERMISSION_SNAPSHOT_SUPPORTED_VERSIONS,
+        data=dict(type_specific),
+    )
+
+
+def normalize_permission_snapshot_type_specific_v4(db_type: str, type_specific: Mapping[str, object]) -> JsonDict:
+    """Normalize v4 snapshot type_specific into canonical shapes (single entry).
+
+    当前 v4 约定：`type_specific` 为 mapping，按 `db_type` 分桶：
+    - type_specific[db_type] 为 dict（不同数据库的特有字段集合）
+    - 该 normalize 函数返回单一 db_type 的 canonical dict（未知/非法形状返回空 dict）
+    """
+    entry = type_specific.get(db_type)
+    if isinstance(entry, dict):
+        return dict(entry)
+    return {}
+
+
 def normalize_permission_snapshot_categories_v4(db_type: str, categories: Mapping[str, object]) -> JsonDict:
     """Normalize v4 snapshot categories into canonical shapes (single entry).
 

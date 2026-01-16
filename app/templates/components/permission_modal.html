@@ -1,6 +1,7 @@
 <!-- 权限查看模态框模板 -->
+{% set scope = permission_scope %}
 {% set permission_modal_body %}
-    <div id="permissionsModalBody" class="permission-modal">
+    <div id="{{ scope }}-body" class="permission-modal">
         <div class="permission-modal__loading text-center">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">加载中...</span>
@@ -9,19 +10,30 @@
         </div>
     </div>
 {% endset %}
+{% set permission_modal_title %}
+    <div class="permission-modal__title">
+        <span class="chip-outline chip-outline--brand">
+            <i class="fas fa-shield-alt me-2"></i>
+            <span id="{{ scope }}-title">账户权限详情</span>
+        </span>
+        <span class="status-pill status-pill--muted" id="{{ scope }}-meta">加载中...</span>
+    </div>
+{% endset %}
 {% set permission_modal_footer %}
     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>
         <i class="fas fa-times me-1"></i>关闭
     </button>
 {% endset %}
-{% with
-    modal_id='permissionsModal',
-    modal_label_id='permissionsModalLabel',
-    title='<div class="permission-modal__title"><span class="chip-outline chip-outline--brand"><i class="fas fa-shield-alt me-2"></i><span id="permissionsModalTitle">账户权限详情</span></span><span class="status-pill status-pill--muted" id="permissionsModalMeta">加载中...</span></div>',
-    body=permission_modal_body,
-    footer=permission_modal_footer,
-    size='xl',
-    scrollable=True
-%}
-    {% include 'components/ui/modal.html' %}
-{% endwith %}
+<div data-wf-scope="{{ scope }}">
+    {% with
+        modal_id=scope ~ '-modal',
+        modal_label_id=scope ~ '-modal-label',
+        title=permission_modal_title,
+        body=permission_modal_body,
+        footer=permission_modal_footer,
+        size='xl',
+        scrollable=True
+    %}
+        {% include 'components/ui/modal.html' %}
+    {% endwith %}
+</div>

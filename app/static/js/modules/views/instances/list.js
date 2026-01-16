@@ -753,7 +753,7 @@ function mountInstancesListPage() {
         const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
         const initialValues = parseInitialTagValues(hiddenInput?.value || null);
         global.TagSelectorHelper.setupForForm({
-            modalSelector: '#tagSelectorModal',
+            modalSelector: `#${scope}-modal`,
             rootSelector: '[data-tag-selector]',
             scope,
             container: filterContainer,

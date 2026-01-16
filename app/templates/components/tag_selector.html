@@ -54,10 +54,11 @@
     </button>
 {% endset %}
 
-<div data-tag-selector-modal>
+{% set scope = tag_selector_scope %}
+<div data-tag-selector-modal data-wf-scope="{{ scope }}">
   {% with
-      modal_id='tagSelectorModal',
-      modal_label_id='tagSelectorModalLabel',
+      modal_id=scope ~ '-modal',
+      modal_label_id=scope ~ '-modal-label',
       title='<i class="fas fa-tags me-2 text-primary"></i>选择标签',
       body=tag_selector_modal_body,
       footer=tag_selector_modal_footer,
