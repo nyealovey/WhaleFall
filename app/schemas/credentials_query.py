@@ -154,6 +154,7 @@ class CredentialListFiltersQuery(PayloadSchema):
         return _parse_sort_order(value, default="desc")
 
     def to_filters(self) -> CredentialListFilters:
+        """转换为凭据列表 filters 对象."""
         return CredentialListFilters(
             page=self.page,
             limit=self.limit,

@@ -1,11 +1,11 @@
-"""HTTP 头常量。
+"""HTTP 头常量.
 
 仅保留当前代码路径实际使用的 header 名称，避免“顺手”堆叠未用常量。
 """
 
 
 class HttpHeaders:
-    """HTTP 头名称常量（避免魔法字符串）。"""
+    """HTTP 头名称常量（避免魔法字符串）."""
 
     CONTENT_TYPE = "Content-Type"
     AUTHORIZATION = "Authorization"

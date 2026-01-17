@@ -108,6 +108,7 @@ class UserListFiltersQuery(PayloadSchema):
         return cleaned if cleaned else None
 
     def to_filters(self) -> UserListFilters:
+        """转换为用户列表 filters 对象."""
         return UserListFilters(
             page=self.page,
             limit=self.limit,

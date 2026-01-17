@@ -81,6 +81,7 @@ class TagsListQuery(PayloadSchema):
         return cleaned or "all"
 
     def to_filters(self) -> TagListFilters:
+        """转换为标签列表 filters 对象."""
         status_filter = self.status if self.status not in {"", "all"} else ""
         return TagListFilters(
             page=self.page,

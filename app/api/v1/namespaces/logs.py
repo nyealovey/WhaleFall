@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from datetime import datetime
 from typing import ClassVar, cast
 
 from flask_restx import Namespace, fields, marshal
@@ -16,6 +18,7 @@ from app.api.v1.restx_models.history import (
     HISTORY_LOG_STATISTICS_FIELDS,
     HISTORY_LOG_TOP_MODULE_FIELDS,
 )
+from app.core.constants.system_constants import LogLevel
 from app.core.exceptions import ValidationError
 from app.core.types.history_logs import LogSearchFilters
 from app.schemas.history_logs_query import HistoryLogsListQuery, HistoryLogStatisticsQuery
