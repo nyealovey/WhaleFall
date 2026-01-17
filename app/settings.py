@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import secrets
 from pathlib import Path
@@ -99,6 +100,9 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_ignore_empty=True,
+        # 允许使用 env.example 里的 CSV（如 "a,b,c"），由 field_validator 做解析。
+        # 同时兼容 JSON 数组格式（如 '["a","b"]'）。
+        enable_decoding=False,
         extra="ignore",
         frozen=True,
         str_strip_whitespace=True,
@@ -236,7 +240,15 @@ class Settings(BaseSettings):
         if value is None:
             return None
         if isinstance(value, str):
-            return _parse_csv(value)
+            raw = value.strip()
+            if not raw:
+                return ()
+            if raw.startswith("["):
+                parsed = json.loads(raw)
+                if not isinstance(parsed, list):
+                    raise ValueError("must be a JSON array or a comma-separated string")
+                return tuple(item for item in (str(v).strip() for v in parsed) if item)
+            return _parse_csv(raw)
         if isinstance(value, (list, tuple, set)):
             items = []
             for item in value:
