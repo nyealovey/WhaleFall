@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from app.models.instance import Instance
 
 
-CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+CONNECTION_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionAdapterError,
     RuntimeError,
     LookupError,

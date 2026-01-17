@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import Any, TypeAlias, cast
 
 import yaml
 from pydantic import ValidationError as PydanticValidationError
@@ -17,16 +17,10 @@ from app.schemas.yaml_configs import AccountFiltersConfigFile
 from app.utils.safe_query_builder import build_safe_filter_conditions
 from app.utils.structlog_config import get_system_logger
 
-if TYPE_CHECKING:
-    from app.core.types import JsonDict
-else:
-    JsonDict = dict[str, Any]
-
 logger = get_system_logger()
 
 _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "account_filters.yaml"
 
-FilterRule = JsonDict
 DatabaseFilterRules: TypeAlias = dict[str, Mapping[str, Sequence[str]]]
 
 

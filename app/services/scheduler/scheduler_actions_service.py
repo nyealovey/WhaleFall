@@ -68,7 +68,7 @@ class SchedulerJobsReloadResult:
     reloaded_count: int
 
 
-BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConflictError,
     NotFoundError,
     RuntimeError,
@@ -76,7 +76,7 @@ BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     LookupError,
     SQLAlchemyError,
 )
-JOB_REMOVAL_EXCEPTIONS: tuple[type[BaseException], ...] = (JobLookupError, ValueError)
+JOB_REMOVAL_EXCEPTIONS: tuple[type[Exception], ...] = (JobLookupError, ValueError)
 
 
 class SchedulerActionsService:
@@ -107,14 +107,15 @@ class SchedulerActionsService:
                     raw_kwargs = getattr(job, "kwargs", None)
                     job_kwargs: dict[str, Any] = dict(raw_kwargs) if isinstance(raw_kwargs, Mapping) else {}
 
-                    if job_id in BUILTIN_TASK_IDS:
-                        manual_kwargs = dict(job_kwargs)
-                        if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
-                            manual_kwargs["manual_run"] = True
-                            manual_kwargs["created_by"] = captured_created_by
-                        job.func(*getattr(job, "args", ()), **manual_kwargs)
-                    else:
-                        job.func(*getattr(job, "args", ()), **job_kwargs)
+                    if job_id in BUILTIN_TASK_IDS and job_id in {
+                        "sync_accounts",
+                        "calculate_database_size_aggregations",
+                    }:
+                        job_kwargs = dict(job_kwargs)
+                        job_kwargs["manual_run"] = True
+                        job_kwargs["created_by"] = captured_created_by
+
+                    job.func(*getattr(job, "args", ()), **job_kwargs)
 
                 log_info(
                     "任务立即执行成功",

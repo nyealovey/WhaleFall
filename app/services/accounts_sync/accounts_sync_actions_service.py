@@ -48,7 +48,7 @@ class SupportsAccountSync(Protocol):
         ...
 
 
-BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
+BACKGROUND_SYNC_EXCEPTIONS: tuple[type[Exception], ...] = (
     ValidationError,
     SystemError,
     SQLAlchemyError,

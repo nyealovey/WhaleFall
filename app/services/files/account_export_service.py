@@ -10,22 +10,13 @@ from __future__ import annotations
 import csv
 import io
 from collections.abc import Sequence
-from dataclasses import dataclass
 
 from app.core.constants import DatabaseType
 from app.core.types.accounts_ledgers import AccountFilters, AccountLedgerMetrics
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
+from app.services.files.csv_export_result import CsvExportResult
 from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.time_utils import time_utils
-
-
-@dataclass(frozen=True, slots=True)
-class CsvExportResult:
-    """CSV 导出结果."""
-
-    filename: str
-    content: str
-    mimetype: str = "text/csv; charset=utf-8"
 
 
 class AccountExportService:

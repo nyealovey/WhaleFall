@@ -237,25 +237,26 @@ class CacheService:
             )
         return success
 
-    def get_classification_rules_cache(self) -> list[dict[str, Any]] | None:
+    def get_classification_rules_cache(self) -> dict[str, object] | None:
         """获取分类规则缓存.
 
         Returns:
-            缓存的规则列表,缓存未命中或出错时返回 None.
+            缓存的规则 payload(包含 rules/cached_at/count),缓存未命中或出错时返回 None.
 
         """
         if not self.cache:
             return None
 
         cache_key = "classification_rules:all"
-        result: list[dict[str, Any]] | None = None
+        result: dict[str, object] | None = None
         try:
             cached_data = self.cache.get(cache_key)
 
             if cached_data:
                 data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
                 logger.debug("分类规则缓存命中", cache_key=cache_key)
-                result = data
+                if isinstance(data, dict):
+                    result = data
         except CACHE_EXCEPTIONS as exc:
             logger.warning(
                 "获取分类规则缓存失败",

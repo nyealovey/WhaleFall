@@ -11,7 +11,7 @@
 
 ## Latest Verification（最近一次验证）
 
-- Date: 2026-01-17T15:40:13+0800
+- Date: 2026-01-17T19:57:30+0800
 - Result: PASS (`make format && make typecheck && uv run pytest -m unit`)
 
 ## Modules（按依赖→耦合排序；同层级 CRUD→同步/自动化）
@@ -43,26 +43,26 @@
 - [x] services/instances + routes/instances + templates/instances（实例）
 - [x] services/accounts + routes/accounts + templates/accounts（账户）
 - [x] services/ledgers + repositories/ledgers + templates/(TBD)（台账）
-- [ ] services/history_logs + services/history_sessions + routes/history + templates/history（历史）
-- [ ] services/dashboard + services/statistics + services/aggregation + routes/(TBD) + templates/dashboard（仪表盘/统计）
+- [x] services/history_logs + services/history_sessions + routes/history + templates/history（历史）
+- [x] services/dashboard + services/statistics + services/aggregation + routes/(TBD) + templates/dashboard（仪表盘/统计）
 
 ### 基础服务（被多业务复用）
 
-- [ ] services/common（通用服务）
-- [ ] services/connection_adapters + services/connections（连接/适配器）
-- [ ] services/cache + services/cache_service（缓存）
-- [ ] services/partition（分区）
-- [ ] services/files（文件）
-- [ ] services/health（健康检查）
-- [ ] services/logging（日志）
+- [x] services/common（通用服务）
+- [x] services/connection_adapters + services/connections（连接/适配器）
+- [x] services/cache + services/cache_service（缓存）
+- [x] services/partition（分区）
+- [x] services/files（文件）
+- [x] services/health（健康检查）
+- [x] services/logging（日志）
 
 ### 同步/自动化（高耦合/复杂流程）
 
-- [ ] scheduler（app/scheduler.py + services/scheduler + core/constants/scheduler_jobs.py）
-- [ ] accounts_sync（services/accounts_sync + tasks/accounts_sync_tasks.py）
-- [ ] database_sync（services/database_sync）
-- [ ] capacity-sync（services/capacity + tasks/capacity_*）
-- [ ] account_classification（services/account_classification + utils/account_classification_dsl_v4.py）
+- [x] scheduler（app/scheduler.py + services/scheduler + core/constants/scheduler_jobs.py）
+- [x] accounts_sync（services/accounts_sync + tasks/accounts_sync_tasks.py）
+- [x] database_sync（services/database_sync）
+- [x] capacity-sync（services/capacity + tasks/capacity_*）
+- [x] account_classification（services/account_classification + utils/account_classification_dsl_v4.py）
 
 ## Verification Log（每模块一条）
 
@@ -93,3 +93,17 @@
 - 2026-01-17 services/instances: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 services/accounts: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 services/ledgers: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/history_logs + services/history_sessions: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/dashboard + services/statistics + services/aggregation: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/common: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/connection_adapters + services/connections: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/cache + services/cache_service: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/partition: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/files: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/health: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/logging: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 scheduler: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 accounts_sync: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 database_sync: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 capacity-sync: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 account_classification: PASS (make format/typecheck/pytest -m unit)

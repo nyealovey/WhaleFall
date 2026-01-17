@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -36,19 +36,8 @@ if TYPE_CHECKING:
     )
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
-else:
-    Instance = Any
-    InstanceAccount = Any
-    JsonDict = dict[str, Any]
-    JsonValue = Any
-    OtherDiffEntry = dict[str, Any]
-    PermissionDiffPayload = dict[str, Any]
-    PrivilegeDiffEntry = dict[str, Any]
-    RemoteAccount = dict[str, Any]
-    RemoteAccountMap = dict[str, Any]
-    SyncSummary = dict[str, Any]
 
-PERMISSION_LOG_EXCEPTIONS: tuple[type[BaseException], ...] = (
+PERMISSION_LOG_EXCEPTIONS: tuple[type[Exception], ...] = (
     SQLAlchemyError,
     RuntimeError,
     ValueError,

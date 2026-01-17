@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from app.models.account_classification import ClassificationRule
     from app.models.account_permission import AccountPermission
 
-CLASSIFICATION_RUNTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (
+CLASSIFICATION_RUNTIME_EXCEPTIONS: tuple[type[Exception], ...] = (
     SQLAlchemyError,
     ValueError,
     KeyError,
@@ -30,7 +30,7 @@ CLASSIFICATION_RUNTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
     ConnectionError,
 )
-CACHE_INVALIDATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+CACHE_INVALIDATION_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionError,
     RuntimeError,
     ValueError,

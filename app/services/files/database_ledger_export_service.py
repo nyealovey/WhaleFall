@@ -10,21 +10,12 @@ from __future__ import annotations
 import csv
 import io
 from collections.abc import Iterable
-from dataclasses import dataclass
 
 from app.core.types.ledgers import DatabaseLedgerItem
+from app.services.files.csv_export_result import CsvExportResult
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.time_utils import time_utils
-
-
-@dataclass(frozen=True, slots=True)
-class CsvExportResult:
-    """CSV 导出结果."""
-
-    filename: str
-    content: str
-    mimetype: str = "text/csv; charset=utf-8"
 
 
 class DatabaseLedgerExportService:

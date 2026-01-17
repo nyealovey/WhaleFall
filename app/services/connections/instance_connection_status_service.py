@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 from app.core.exceptions import NotFoundError
 from app.core.types import JsonDict
+from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.utils.time_utils import time_utils
 
@@ -30,9 +31,8 @@ class InstanceConnectionStatusService:
         return self._build_connection_status_payload(instance)
 
     @staticmethod
-    def _build_connection_status_payload(instance: object) -> JsonDict:
-        resolved = instance
-        last_connected_raw = getattr(resolved, "last_connected", None)
+    def _build_connection_status_payload(instance: Instance) -> JsonDict:
+        last_connected_raw = instance.last_connected
         if isinstance(last_connected_raw, datetime):
             last_connected = last_connected_raw.isoformat()
         elif isinstance(last_connected_raw, str):
@@ -56,12 +56,12 @@ class InstanceConnectionStatusService:
                 status = "poor"
 
         return {
-            "instance_id": getattr(resolved, "id", 0),
-            "instance_name": getattr(resolved, "name", ""),
-            "db_type": getattr(resolved, "db_type", ""),
-            "host": getattr(resolved, "host", ""),
-            "port": getattr(resolved, "port", None),
+            "instance_id": int(instance.id),
+            "instance_name": instance.name,
+            "db_type": instance.db_type,
+            "host": instance.host,
+            "port": instance.port,
             "last_connected": last_connected,
             "status": status,
-            "is_active": bool(getattr(resolved, "is_active", False)),
+            "is_active": bool(instance.is_active),
         }
