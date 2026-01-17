@@ -31,4 +31,3 @@ def test_routes_modules_must_use_safe_route_call() -> None:
         missing.extend(_scan_for_missing_safe_route_call(path, display_path=path.relative_to(repo_root)))
 
     assert not missing, "发现未使用 safe_route_call 的 routes 模块:\n" + "\n".join(sorted(missing))
-

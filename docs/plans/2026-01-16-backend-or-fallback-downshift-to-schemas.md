@@ -13,6 +13,28 @@
 
 ---
 
+## 当前进度（截至 2026-01-17）
+
+> 依据 `git log`（最新 commit: `c9243578`）与文件现状整理；本节作为“推进记录 + 下一步入口”。
+
+- ✅ Task 1（可复跑扫描基线）：已落地 `scripts/audits/python_or_fallback_scan.py` + `docs/plans/2026-01-16-or-fallback-baseline.md`。
+- ✅ Task 2（决策表 + 门禁脚本）：已落地 `docs/Obsidian/standards/backend/or-fallback-decision-table.md` 与 `scripts/ci/or-fallback-pattern-guard.sh`，并已接入 pre-commit（本次补齐）。
+- ✅ Task 3（internal contract 未知版本 silent fallback）：`permission_snapshot(v4)` 已拆分 categories/type_specific 的 `parse/normalize` 单入口；业务层不再 `return {}`/`[]` 继续消费，而是把 contract error 记录到 `meta/errors` 并保持输出稳定（best-effort 链路）。本次补齐 schema 层的 type_specific 单测。
+- ✅ Task 4（外部 account adapter 下沉）：`app/schemas/external_contracts/*_account.py` 已建立并在各 adapter 中使用，unit tests 已覆盖缺失/空 dict/非法 shape 等关键场景。
+- ✅ Task 5（写路径 `payload or {}` 清理）：`parse_payload(payload or {})` 形态在 `app/services/**` 已清零（可用 `rg` 验证）。
+- ✅ Task 6（目录治理 Batch）：已完成多批“query 参数规范化下沉到 schema”（instances/capacity/databases + history_sessions + credentials + users + partition + tags + accounts + history_logs 等）。`python_or_fallback_scan.py` 在：
+  - `app/api/v1/namespaces/**` 的 `or` chains/candidate 已清零（验收点：API query 入口不再出现 truthy 兜底链）。
+  - `app/services/**` / `app/repositories/**` 的 `""/0/False/[]/{}` 候选链已清零（验收点：业务层不再通过 `or` 覆盖合法 falsy 值）。
+  - 其中 `... or {}` / `... or []` 已清零，并已纳入 `scripts/ci/or-fallback-pattern-guard.sh` 门禁，防止回归。
+  - 复跑命令：
+    - `uv run python scripts/audits/python_or_fallback_scan.py --paths app/api/v1/namespaces --exclude 'tests/**' --format json`
+    - `uv run python scripts/audits/python_or_fallback_scan.py --paths app/services app/repositories --exclude 'tests/**' --format json`
+- ✅ Task 7（internal contract version/backfill）：已对 `sync_details` / `account_change_log_diff` / `account_permission.type_specific` 等 internal payload 引入 version + backfill（见 `da2449e3`/`d470b52f`/`524b97eb`）。
+
+建议下一步（低风险、高收益顺序）：
+1) 将 `python_or_fallback_scan.py` 的输出纳入 CI 产物（保留趋势），并用 `or-fallback-pattern-guard.sh` 保证“高风险形态不回归”。
+2) 评估是否需要进一步收敛 `or_chains_total`（不含 falsy 候选的纯布尔/短路用法），避免把“规约治理”扩大为“机械消灭 or”。
+
 ## 背景与问题定义
 
 - 审计报告 `docs/reports/2026-01-15-backend-standards-audit-report.md` 的 AST 统计：
@@ -95,7 +117,7 @@ class ExamplePayload(BaseModel):
 - `app/schemas/internal_contracts/<contract>_vN.py`
   - `parse_<contract>(payload) -> InternalContractResult`
   - `normalize_<contract>(...) -> canonical dict`
-- best-effort 调用者必须检查 `ok`，`ok=false` 时停止消费。
+- best-effort 调用者必须检查 `ok`；`ok=false` 时不得继续把 `data` 当作有效 payload 消费（应记录错误并以显式错误结构/字段返回），禁止 `{}`/`[]` silent fallback。
 
 ### C. 外部依赖/采集 adapter
 
@@ -178,7 +200,7 @@ rg -n "get\(\"[\w_]+\"\)\s*or\s*.*get\(\"[\w_]+\"\)" app/services app/repositori
 - 从：
   - `if snapshot.get("version") != 4: return {}`
 - 改为：
-  - 调用 parse 函数；`ok=false` 时必须停止消费（按链路语义选择：抛异常 fail-fast 或返回显式错误结果供上层处理）。
+  - 调用 parse 函数；`ok=false` 时不得继续把 data 当作有效 payload 消费（best-effort 链路可将错误写入 `meta/errors` 并保持返回结构稳定），禁止 `return {}`/`[]` 静默兜底后继续执行。
 
 **Step 3: 补单测**
 - 覆盖：

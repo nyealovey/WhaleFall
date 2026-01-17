@@ -83,7 +83,9 @@ class DatabaseTypeConfig(db.Model):
             except (json.JSONDecodeError, TypeError) as exc:
                 config_id = getattr(self, "id", None)
                 name = getattr(self, "name", None)
-                raise ValueError(f"database_type_config.features JSON decode failed (id={config_id}, name={name})") from exc
+                raise ValueError(
+                    f"database_type_config.features JSON decode failed (id={config_id}, name={name})"
+                ) from exc
         return []
 
     @features_list.setter

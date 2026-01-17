@@ -17,6 +17,8 @@ from app.api.v1.restx_models.tags import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
 from app.core.constants import HttpStatus
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.core.types.tags import TagListFilters
+from app.schemas.tags_query import TagOptionsQuery, TagsListQuery
+from app.schemas.validation import validate_or_raise
 from app.services.tags.tag_detail_read_service import TagDetailReadService
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
@@ -136,7 +138,9 @@ TagsBulkInstancesData = ns.model(
         "instances": fields.List(fields.Nested(TaggableInstanceModel)),
     },
 )
-TagsBulkInstancesSuccessEnvelope = make_success_envelope_model(ns, "TagsBulkInstancesSuccessEnvelope", TagsBulkInstancesData)
+TagsBulkInstancesSuccessEnvelope = make_success_envelope_model(
+    ns, "TagsBulkInstancesSuccessEnvelope", TagsBulkInstancesData
+)
 
 TagsBulkTagsData = ns.model(
     "TagsBulkTagsData",
@@ -189,7 +193,9 @@ TagBulkRemoveAllData = ns.model(
         "instance_ids": fields.List(fields.Integer),
     },
 )
-TagBulkRemoveAllSuccessEnvelope = make_success_envelope_model(ns, "TagBulkRemoveAllSuccessEnvelope", TagBulkRemoveAllData)
+TagBulkRemoveAllSuccessEnvelope = make_success_envelope_model(
+    ns, "TagBulkRemoveAllSuccessEnvelope", TagBulkRemoveAllData
+)
 
 TagBulkInstanceTagsPayload = ns.model(
     "TagBulkInstanceTagsPayload",
@@ -224,23 +230,8 @@ _tag_options_query_parser.add_argument("category", type=str, default="", locatio
 
 
 def _build_tag_list_filters(parsed: dict[str, object]) -> TagListFilters:
-    raw_page = parsed.get("page")
-    page = int(raw_page) if isinstance(raw_page, int) else 1
-    page = max(page, 1)
-    raw_limit = parsed.get("limit")
-    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
-    limit = max(min(limit, 200), 1)
-    search = cast(str, parsed.get("search") or "")
-    category = cast(str, parsed.get("category") or "")
-    status_param = cast(str, parsed.get("status") or "all")
-    status_filter = status_param if status_param not in {"", "all"} else ""
-    return TagListFilters(
-        page=page,
-        limit=limit,
-        search=search.strip(),
-        category=category.strip(),
-        status_filter=status_filter,
-    )
+    query = validate_or_raise(TagsListQuery, parsed)
+    return query.to_filters()
 
 
 def _get_raw_payload() -> object:
@@ -339,8 +330,8 @@ class TagOptionsResource(BaseResource):
 
         def _execute():
             parsed = _tag_options_query_parser.parse_args()
-            category = (parsed.get("category") or "").strip()
-            result = TagOptionsService().list_tag_options(category)
+            query = validate_or_raise(TagOptionsQuery, dict(parsed))
+            result = TagOptionsService().list_tag_options(query.category)
             tags_data = marshal(result.tags, TAG_OPTION_FIELDS)
             return self.success(
                 data={

@@ -19,6 +19,7 @@ tags_bulk_bp = Blueprint("tags_bulk", __name__)
 @view_required
 def batch_assign() -> RouteReturn:
     """批量分配标签页面(仅管理员)."""
+
     def _execute() -> RouteReturn:
         if current_user.role != UserRole.ADMIN:
             flash("您没有权限访问此页面", FlashCategory.ERROR)

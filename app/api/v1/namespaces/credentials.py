@@ -17,6 +17,8 @@ from app.core.constants import HttpStatus
 from app.core.constants.system_constants import SuccessMessages
 from app.core.exceptions import NotFoundError
 from app.core.types.credentials import CredentialListFilters
+from app.schemas.credentials_query import CredentialListFiltersQuery
+from app.schemas.validation import validate_or_raise
 from app.services.credentials import CredentialDetailReadService, CredentialsListService, CredentialWriteService
 from app.utils.decorators import require_csrf
 
@@ -101,65 +103,11 @@ _credentials_list_query_parser.add_argument("sort", type=str, default="created_a
 _credentials_list_query_parser.add_argument("order", type=str, default="desc", location="args")
 
 
-def _normalize_choice(raw_value: str) -> str | None:
-    value = (raw_value or "").strip()
-    if not value or value.lower() == "all":
-        return None
-    return value
-
-
-def _normalize_status(raw_value: str) -> str | None:
-    value = (raw_value or "").strip().lower()
-    if value in {"active", "inactive"}:
-        return value
-    return None
-
-
 def _get_raw_payload() -> object:
     if request.is_json:
         payload = request.get_json(silent=True)
         return payload if isinstance(payload, dict) else {}
     return request.form
-
-
-def _build_filters(parsed: dict[str, object], *, allow_sort: bool) -> CredentialListFilters:
-    raw_page = parsed.get("page")
-    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-    raw_limit = parsed.get("limit")
-    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
-    limit = max(min(limit, 200), 1)
-
-    search = cast(str, parsed.get("search") or "").strip()
-    credential_type = _normalize_choice(cast(str, parsed.get("credential_type") or ""))
-    db_type = _normalize_choice(cast(str, parsed.get("db_type") or ""))
-    status = _normalize_status(cast(str, parsed.get("status") or ""))
-
-    raw_tags = parsed.get("tags")
-    tags: list[str] = []
-    if isinstance(raw_tags, list):
-        tags = [item.strip() for item in raw_tags if isinstance(item, str) and item.strip()]
-    elif isinstance(raw_tags, str) and raw_tags.strip():
-        tags = [raw_tags.strip()]
-
-    sort_field = "created_at"
-    sort_order = "desc"
-    if allow_sort:
-        sort_field = cast(str, parsed.get("sort") or "created_at").lower()
-        sort_order_candidate = cast(str, parsed.get("order") or "desc").lower()
-        sort_order = sort_order_candidate if sort_order_candidate in {"asc", "desc"} else "desc"
-
-    return CredentialListFilters(
-        page=page,
-        limit=limit,
-        search=search,
-        credential_type=credential_type,
-        db_type=db_type,
-        status=status,
-        tags=tags,
-        sort_field=sort_field,
-        sort_order=sort_order,
-    )
 
 
 @ns.route("")
@@ -177,7 +125,8 @@ class CredentialsResource(BaseResource):
     def get(self):
         """获取凭据列表."""
         parsed = cast("dict[str, object]", _credentials_list_query_parser.parse_args())
-        filters = _build_filters(parsed, allow_sort=True)
+        query = validate_or_raise(CredentialListFiltersQuery, parsed)
+        filters: CredentialListFilters = query.to_filters()
 
         def _execute():
             result = CredentialsListService().list_credentials(filters)

@@ -134,7 +134,7 @@ class InstanceWriteService:
             instance.credential_id = params.credential_id
 
         if "description" in params.model_fields_set:
-            instance.description = params.description or ""
+            instance.description = "" if params.description is None else params.description
 
         if "database_name" in params.model_fields_set:
             instance.database_name = params.database_name

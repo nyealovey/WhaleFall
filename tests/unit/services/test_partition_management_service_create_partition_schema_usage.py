@@ -52,4 +52,3 @@ def test_partition_management_service_create_partition_from_payload_rejects_past
 
     with pytest.raises(ValidationError, match="只能创建当前或未来月份的分区"):
         service.create_partition_from_payload({"date": "2025-12-01"})
-

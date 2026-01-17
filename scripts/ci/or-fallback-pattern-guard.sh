@@ -39,6 +39,19 @@ if [[ -n "${alias_hits}" ]]; then
   exit 1
 fi
 
+# 1.5) services/repositories: 禁止 `... or {}` / `... or []`（空集合语义必须显式化）
+EMPTY_COLLECTION_FALLBACK_PATTERN="\\bor\\s*(\\{\\s*\\}|\\[\\s*\\])"
+
+empty_fallback_hits="$("${RG_BIN}" -n --hidden --type py -- "${EMPTY_COLLECTION_FALLBACK_PATTERN}" "${TARGETS_ALIAS_CHAIN[@]}" || true)"
+if [[ -n "${empty_fallback_hits}" ]]; then
+  echo "检测到 services/repositories 中的空集合 or 兜底（禁止）：" >&2
+  echo "${empty_fallback_hits}" >&2
+  echo "" >&2
+  echo "请将默认值/缺失处理下沉到 schema/adapter（Pydantic default/default_factory 或 explicit None/key-in-dict 判定），避免把缺失/None/显式空合并为同一语义。" >&2
+  echo "参考：docs/Obsidian/standards/backend/or-fallback-decision-table.md" >&2
+  exit 1
+fi
+
 # 2) internal contract: version 不匹配时禁止 return {} / []
 TARGETS_INTERNAL_CONTRACT=(
   "app/schemas/internal_contracts"

@@ -142,9 +142,7 @@ class InstanceBatchCreationService:
     def _find_duplicate_names(valid_data: Sequence[InstanceCreatePayload]) -> list[str]:
         """定位 payload 内部的重复名称."""
         name_counter = Counter(
-            item.name.strip()
-            for item in valid_data
-            if item.name is not None and str(item.name).strip()
+            item.name.strip() for item in valid_data if item.name is not None and str(item.name).strip()
         )
         return sorted({name for name, count in name_counter.items() if name and count > 1})
 
@@ -154,9 +152,7 @@ class InstanceBatchCreationService:
         duplicate_names: list[str],
     ) -> set[str]:
         """查找数据库中已存在的实例名."""
-        payload_names = [
-            item.name for item in valid_data if item.name and item.name not in duplicate_names
-        ]
+        payload_names = [item.name for item in valid_data if item.name and item.name not in duplicate_names]
         if not payload_names:
             return set()
         return self._repository.fetch_existing_instance_names(payload_names)

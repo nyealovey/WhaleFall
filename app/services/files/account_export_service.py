@@ -81,7 +81,7 @@ class AccountExportService:
                         getattr(instance, "name", "") if instance else "",
                         instance_host if instance else "",
                         tags_display,
-                        (instance_db_type or "").upper() if instance_db_type else "",
+                        str(instance_db_type).upper() if instance_db_type is not None else "",
                         classification_str,
                         lock_status,
                     ],

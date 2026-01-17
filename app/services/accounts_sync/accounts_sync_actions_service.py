@@ -262,7 +262,8 @@ class AccountsSyncActionsService:
         is_success, normalized = self._normalize_sync_result(raw_result, context=f"实例 {instance.name} 账户同步")
 
         if is_success:
-            instance.sync_count = (cast("int | None", instance.sync_count) or 0) + 1
+            sync_count_value = cast("int | None", instance.sync_count)
+            instance.sync_count = (0 if sync_count_value is None else sync_count_value) + 1
             log_with_context(
                 "info",
                 "实例账户同步成功",

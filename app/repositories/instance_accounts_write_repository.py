@@ -24,4 +24,3 @@ class InstanceAccountsWriteRepository:
     def flush() -> None:
         """显式 flush,用于增量同步批量更新."""
         db.session.flush()
-

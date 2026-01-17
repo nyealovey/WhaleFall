@@ -21,6 +21,7 @@ def index() -> RouteReturn:
         重定向响应到登录页面.
 
     """
+
     def _execute() -> RouteReturn:
         if current_user.is_authenticated:
             return redirect(url_for("dashboard.index"))
@@ -75,6 +76,7 @@ def apple_touch_icon() -> RouteReturn:
         Response: 发送图标文件.
 
     """
+
     def _execute() -> RouteReturn:
         icon_name = "apple-touch-icon-precomposed.png" if "precomposed" in request.path else "apple-touch-icon.png"
         static_root = current_app.static_folder or str(Path(current_app.root_path) / "static")

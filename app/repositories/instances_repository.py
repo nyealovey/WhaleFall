@@ -35,7 +35,7 @@ class InstancesRepository:
     @staticmethod
     def get_by_name(name: str) -> Instance | None:
         """按名称获取实例(可为空)."""
-        normalized = (name or "").strip()
+        normalized = name.strip()
         if not normalized:
             return None
         return cast("Instance | None", Instance.query.filter_by(name=normalized).first())
@@ -43,7 +43,7 @@ class InstancesRepository:
     @staticmethod
     def get_by_name_excluding_id(name: str, *, exclude_instance_id: int) -> Instance | None:
         """按名称获取实例(排除指定 ID,可为空)."""
-        normalized = (name or "").strip()
+        normalized = name.strip()
         if not normalized:
             return None
         return cast(
@@ -77,12 +77,13 @@ class InstancesRepository:
     @staticmethod
     def count_active_instances() -> int:
         """统计启用实例数量."""
-        return int(Instance.query.filter_by(is_active=True).count() or 0)
+        return int(Instance.query.filter_by(is_active=True).count())
 
     @staticmethod
     def list_instances_by_ids(instance_ids: list[int]) -> list[Instance]:
         """按 ID 列表获取实例."""
-        normalized_ids = [int(instance_id) for instance_id in (instance_ids or []) if instance_id]
+        resolved_ids = instance_ids if instance_ids is not None else []
+        normalized_ids = [int(instance_id) for instance_id in resolved_ids if instance_id]
         if not normalized_ids:
             return []
         return Instance.query.filter(Instance.id.in_(normalized_ids)).all()
@@ -98,7 +99,7 @@ class InstancesRepository:
         """导出场景使用的实例列表查询(不分页)."""
         query: Query[Any] = cast(Query[Any], Instance.query)
 
-        normalized_search = (search or "").strip()
+        normalized_search = search.strip()
         if normalized_search:
             query = query.filter(
                 or_(
@@ -108,7 +109,7 @@ class InstancesRepository:
                 ),
             )
 
-        normalized_db_type = (db_type or "").strip()
+        normalized_db_type = db_type.strip()
         if normalized_db_type:
             query = query.filter(Instance.db_type == normalized_db_type)
 

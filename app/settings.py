@@ -102,6 +102,10 @@ class Settings(BaseSettings):
         extra="ignore",
         frozen=True,
         str_strip_whitespace=True,
+        # 对 tuple/list/dict 等字段，pydantic-settings 默认会尝试把环境变量当 JSON 解析。
+        # 本仓库约定 `CORS_ORIGINS` / `PROXY_FIX_TRUSTED_IPS` 使用逗号分隔（见 env.example / 文档）。
+        # 因此关闭自动 JSON 解码，统一交由 schema validator 解析。
+        enable_decoding=False,
     )
 
     environment: str = Field(default=DEFAULT_ENVIRONMENT, validation_alias="FLASK_ENV")
@@ -139,13 +143,17 @@ class Settings(BaseSettings):
         default=DEFAULT_CACHE_DEFAULT_TIMEOUT_SECONDS,
         validation_alias="CACHE_DEFAULT_TIMEOUT",
     )
-    cache_default_ttl_seconds: int = Field(default=DEFAULT_CACHE_DEFAULT_TTL_SECONDS, validation_alias="CACHE_DEFAULT_TTL")
+    cache_default_ttl_seconds: int = Field(
+        default=DEFAULT_CACHE_DEFAULT_TTL_SECONDS, validation_alias="CACHE_DEFAULT_TTL"
+    )
     cache_rule_evaluation_ttl_seconds: int = Field(
         default=DEFAULT_CACHE_RULE_EVALUATION_TTL_SECONDS,
         validation_alias="CACHE_RULE_EVALUATION_TTL",
     )
     cache_rule_ttl_seconds: int = Field(default=DEFAULT_CACHE_RULE_TTL_SECONDS, validation_alias="CACHE_RULE_TTL")
-    cache_account_ttl_seconds: int = Field(default=DEFAULT_CACHE_ACCOUNT_TTL_SECONDS, validation_alias="CACHE_ACCOUNT_TTL")
+    cache_account_ttl_seconds: int = Field(
+        default=DEFAULT_CACHE_ACCOUNT_TTL_SECONDS, validation_alias="CACHE_ACCOUNT_TTL"
+    )
 
     bcrypt_log_rounds: int = Field(default=DEFAULT_BCRYPT_LOG_ROUNDS, validation_alias="BCRYPT_LOG_ROUNDS")
     force_https: bool = Field(default=False, validation_alias="FORCE_HTTPS")
@@ -160,7 +168,9 @@ class Settings(BaseSettings):
         validation_alias="PROXY_FIX_TRUSTED_IPS",
     )
 
-    max_content_length_bytes: int = Field(default=DEFAULT_MAX_CONTENT_LENGTH_BYTES, validation_alias="MAX_CONTENT_LENGTH")
+    max_content_length_bytes: int = Field(
+        default=DEFAULT_MAX_CONTENT_LENGTH_BYTES, validation_alias="MAX_CONTENT_LENGTH"
+    )
 
     log_level: str = Field(default=DEFAULT_LOG_LEVEL, validation_alias="LOG_LEVEL")
     log_file: str = Field(default=DEFAULT_LOG_FILE, validation_alias="LOG_FILE")
@@ -190,7 +200,9 @@ class Settings(BaseSettings):
 
     aggregation_enabled: bool = Field(default=DEFAULT_AGGREGATION_ENABLED, validation_alias="AGGREGATION_ENABLED")
     aggregation_hour: int = Field(default=DEFAULT_AGGREGATION_HOUR, validation_alias="AGGREGATION_HOUR")
-    collect_db_size_enabled: bool = Field(default=DEFAULT_COLLECT_DB_SIZE_ENABLED, validation_alias="COLLECT_DB_SIZE_ENABLED")
+    collect_db_size_enabled: bool = Field(
+        default=DEFAULT_COLLECT_DB_SIZE_ENABLED, validation_alias="COLLECT_DB_SIZE_ENABLED"
+    )
     database_size_retention_months: int = Field(
         default=DEFAULT_DATABASE_SIZE_RETENTION_MONTHS,
         validation_alias="DATABASE_SIZE_RETENTION_MONTHS",

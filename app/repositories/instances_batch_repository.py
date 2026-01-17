@@ -30,7 +30,8 @@ class InstancesBatchRepository:
     @staticmethod
     def list_instances_by_ids(instance_ids: list[int]) -> list[Instance]:
         """按 ID 列表获取实例."""
-        normalized_ids = [int(instance_id) for instance_id in (instance_ids or []) if instance_id]
+        resolved_ids = instance_ids if instance_ids is not None else []
+        normalized_ids = [int(instance_id) for instance_id in resolved_ids if instance_id]
         if not normalized_ids:
             return []
         return Instance.query.filter(Instance.id.in_(normalized_ids)).all()
@@ -38,7 +39,8 @@ class InstancesBatchRepository:
     @staticmethod
     def fetch_existing_instance_names(names: list[str]) -> set[str]:
         """查询已存在的实例名称集合."""
-        normalized = [name for name in (names or []) if name]
+        resolved_names = names if names is not None else []
+        normalized = [name for name in resolved_names if name]
         if not normalized:
             return set()
         rows = db.session.execute(select(Instance.name).where(Instance.name.in_(normalized))).all()
@@ -61,7 +63,9 @@ class InstancesBatchRepository:
             "deleted_tag_links": 0,
         }
 
-        account_ids_subquery = select(AccountPermission.id).where(AccountPermission.instance_id == instance_id).subquery()
+        account_ids_subquery = (
+            select(AccountPermission.id).where(AccountPermission.instance_id == instance_id).subquery()
+        )
 
         stats["deleted_assignments"] += AccountClassificationAssignment.query.filter(
             AccountClassificationAssignment.account_id.in_(account_ids_subquery),
@@ -106,7 +110,8 @@ class InstancesBatchRepository:
         tag_delete_result = db.session.execute(
             instance_tags.delete().where(instance_tags.c.instance_id == instance_id),
         )
-        stats["deleted_tag_links"] += int(tag_delete_result.rowcount or 0)
+        rowcount_value = tag_delete_result.rowcount
+        stats["deleted_tag_links"] += int(rowcount_value) if rowcount_value is not None else 0
 
         return stats
 

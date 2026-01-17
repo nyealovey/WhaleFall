@@ -1,9 +1,9 @@
 import pytest
 
 import app.scheduler as scheduler_module
+from app.core.types.scheduler import SchedulerJobDetail, SchedulerJobListItem
 from app.services.scheduler.scheduler_job_write_service import SchedulerJobWriteService
 from app.services.scheduler.scheduler_jobs_read_service import SchedulerJobsReadService
-from app.core.types.scheduler import SchedulerJobDetail, SchedulerJobListItem
 
 
 @pytest.mark.unit

@@ -59,4 +59,3 @@ def test_api_v1_json_body_endpoints_declare_ns_expect_model() -> None:
                     missing.append(f"{rel}:{item.lineno}: {node.name}.{item.name} missing @ns.expect")
 
     assert not missing, "发现缺少 @ns.expect 的 JSON body 端点:\n" + "\n".join(missing)
-

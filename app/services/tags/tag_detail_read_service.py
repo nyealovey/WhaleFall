@@ -29,4 +29,3 @@ class TagDetailReadService:
         if tag is None:
             raise NotFoundError("标签不存在", extra={"tag_id": tag_id})
         return tag
-

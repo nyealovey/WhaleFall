@@ -18,17 +18,14 @@ class CapacityCollectionStatusRepository:
     @staticmethod
     def count_all_stats() -> int:
         """统计全部采集记录数."""
-        return int(InstanceSizeStat.query.count() or 0)
+        return int(InstanceSizeStat.query.count())
 
     @staticmethod
     def count_stats_since(*, since_date: date) -> int:
         """统计从某日期开始的采集记录数(包含当天)."""
-        return int(
-            InstanceSizeStat.query.filter(InstanceSizeStat.created_at >= since_date).count() or 0,
-        )
+        return int(InstanceSizeStat.query.filter(InstanceSizeStat.created_at >= since_date).count())
 
     @staticmethod
     def get_latest_stat() -> InstanceSizeStat | None:
         """获取最新采集记录."""
         return InstanceSizeStat.query.order_by(InstanceSizeStat.created_at.desc()).first()
-

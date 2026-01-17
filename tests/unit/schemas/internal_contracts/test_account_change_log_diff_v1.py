@@ -13,4 +13,3 @@ def test_extract_diff_entries_supports_legacy_list_shape() -> None:
 def test_extract_diff_entries_supports_v1_dict_shape() -> None:
     raw = {"version": 1, "entries": [{"action": "GRANT", "object": "db"}]}
     assert extract_diff_entries(raw) == [{"action": "GRANT", "object": "db"}]
-

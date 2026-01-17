@@ -138,7 +138,8 @@ class DatabaseSyncFilterManager:
         if not database_name:
             return False, None
 
-        db_type = (getattr(instance, "db_type", None) or "").lower()
+        db_type_value = getattr(instance, "db_type", None)
+        db_type = "" if db_type_value is None else str(db_type_value).lower()
         if not db_type:
             return False, None
 
@@ -199,7 +200,7 @@ class DatabaseSyncFilterManager:
             database_name = str(raw_name) if raw_name is not None else None
             should_exclude, _ = self.should_exclude_database(instance, database_name)
             if should_exclude:
-                excluded.append(database_name or "")
+                excluded.append(database_name if database_name is not None else "")
             else:
                 kept.append(row)
         return kept, excluded

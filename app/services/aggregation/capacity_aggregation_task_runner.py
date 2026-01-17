@@ -69,7 +69,7 @@ class CapacityAggregationTaskRunner:
         unknown: list[str] = []
         seen: set[str] = set()
         for item in requested:
-            key = (item or "").strip().lower()
+            key = item.strip().lower()
             if not key:
                 continue
             if key in allowed_periods:
@@ -92,7 +92,9 @@ class CapacityAggregationTaskRunner:
     @staticmethod
     def has_aggregation_for_period(period_type: str, period_start: date) -> bool:
         """判断指定周期是否已完成聚合."""
-        return AggregationTasksReadService().has_aggregation_for_period(period_type=period_type, period_start=period_start)
+        return AggregationTasksReadService().has_aggregation_for_period(
+            period_type=period_type, period_start=period_start
+        )
 
     def filter_periods_already_aggregated(
         self,
@@ -150,7 +152,7 @@ class CapacityAggregationTaskRunner:
     ) -> None:
         """根据执行结果更新实例同步记录."""
         if success:
-            stats = SyncItemStats(items_synced=int(aggregated_count or 0))
+            stats = SyncItemStats(items_synced=int(aggregated_count))
             sync_session_service.complete_instance_sync(
                 record_id,
                 stats=stats,
@@ -214,7 +216,8 @@ class CapacityAggregationTaskRunner:
     def _extract_processed_records(result: dict[str, Any] | None) -> int:
         if not result:
             return 0
-        return int(result.get("processed_records") or 0)
+        value = result.get("processed_records")
+        return int(value) if value is not None else 0
 
     @staticmethod
     def _extract_error_message(result: dict[str, Any] | None) -> str:
@@ -302,7 +305,8 @@ class CapacityAggregationTaskRunner:
                 periods=list(selected_periods),
                 use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
             )
-            period_results = summary.get("periods", {}) or {}
+            raw_periods = summary.get("periods")
+            period_results = raw_periods if isinstance(raw_periods, dict) else {}
         except AGGREGATION_TASK_EXCEPTIONS as period_exc:  # pragma: no cover
             logger.exception(
                 "实例聚合执行异常",

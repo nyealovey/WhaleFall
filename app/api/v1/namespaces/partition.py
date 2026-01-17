@@ -19,6 +19,8 @@ from app.api.v1.restx_models.partition import (
     PARTITION_STATUS_RESPONSE_FIELDS,
 )
 from app.core.exceptions import ValidationError
+from app.schemas.partition_query import PartitionCoreMetricsQuery, PartitionsListQuery
+from app.schemas.validation import validate_or_raise
 from app.services.partition import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
@@ -219,14 +221,14 @@ class PartitionsResource(BaseResource):
     def get(self):
         """获取分区列表."""
         parsed = _partitions_list_query_parser.parse_args()
-        search_term = str(parsed.get("search") or "").strip()
-        table_type = str(parsed.get("table_type") or "").strip()
-        status_filter = str(parsed.get("status") or "").strip()
-        sort_field = str(parsed.get("sort") or "name").strip() or "name"
-        sort_order = str(parsed.get("order") or "asc").strip() or "asc"
-        page = max(int(parsed.get("page") or 1), 1)
-        limit = int(parsed.get("limit") or 20)
-        limit = max(min(limit, 200), 1)
+        query = validate_or_raise(PartitionsListQuery, parsed)
+        search_term = query.search
+        table_type = query.table_type
+        status_filter = query.status
+        sort_field = query.sort_field
+        sort_order = query.sort_order
+        page = query.page
+        limit = query.limit
 
         def _execute():
             result = _partition_read_service.list_partitions(
@@ -400,8 +402,9 @@ class PartitionCoreMetricsResource(BaseResource):
     def get(self):
         """获取核心聚合指标."""
         parsed = _partition_core_metrics_query_parser.parse_args()
-        requested_period_type = str(parsed.get("period_type") or "daily").lower()
-        requested_days = int(parsed.get("days") or 7)
+        query = validate_or_raise(PartitionCoreMetricsQuery, parsed)
+        requested_period_type = query.period_type
+        requested_days = query.days
 
         def _execute():
             result = _partition_read_service.build_core_metrics(period_type=requested_period_type, days=requested_days)

@@ -123,7 +123,8 @@ class SchedulerJobsReadService:
             trigger_args["day"] = fields.get("day", "*")
             trigger_args["month"] = fields.get("month", "*")
             trigger_args["day_of_week"] = fields.get("day_of_week", "*")
-            trigger_args["year"] = fields.get("year") or ""
+            year_value = fields.get("year")
+            trigger_args["year"] = "" if year_value is None else str(year_value)
             return trigger_type, trigger_args
 
         if isinstance(fields, list) and len(fields) >= CRON_FIELD_COUNT:
@@ -133,7 +134,8 @@ class SchedulerJobsReadService:
             trigger_args["day"] = str(fields[CRON_DAY_INDEX] or "*")
             trigger_args["month"] = str(fields[CRON_MONTH_INDEX] or "*")
             trigger_args["day_of_week"] = str(fields[CRON_DAY_OF_WEEK_INDEX] or "*")
-            trigger_args["year"] = str(fields[CRON_YEAR_INDEX] or "")
+            year_value = fields[CRON_YEAR_INDEX]
+            trigger_args["year"] = "" if year_value is None else str(year_value)
             return trigger_type, trigger_args
 
         return trigger_type, {

@@ -30,4 +30,3 @@ def test_log_fallback_always_sets_fallback_fields(monkeypatch) -> None:
     assert isinstance(payload, dict)
     assert payload.get("fallback") is True
     assert payload.get("fallback_reason") == "reason"
-

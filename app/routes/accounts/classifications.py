@@ -27,6 +27,7 @@ accounts_classifications_bp = Blueprint(
 @view_required
 def index() -> str:
     """账户分类管理首页."""
+
     def _execute() -> str:
         color_options = ThemeColors.COLOR_MAP
         return render_template("accounts/account-classification/index.html", color_options=color_options)

@@ -74,10 +74,11 @@ class DatabaseLedgerService:
         """
         try:
             per_page = per_page or self.DEFAULT_PAGINATION
+            resolved_tags = tags if tags is not None else []
             filters = DatabaseLedgerFilters(
                 search=search.strip(),
                 db_type=(db_type or "all"),
-                tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                tags=[tag.strip() for tag in resolved_tags if tag.strip()],
                 instance_id=instance_id,
                 page=page,
                 per_page=per_page,
@@ -123,10 +124,11 @@ class DatabaseLedgerService:
 
         """
         try:
+            resolved_tags = tags if tags is not None else []
             filters = DatabaseLedgerFilters(
                 search=search.strip(),
                 db_type=(db_type or "all"),
-                tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                tags=[tag.strip() for tag in resolved_tags if tag.strip()],
                 instance_id=instance_id,
                 page=1,
                 per_page=self.DEFAULT_PAGINATION,

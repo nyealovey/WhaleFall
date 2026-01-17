@@ -114,8 +114,15 @@ def fetch_aggregations(params: AggregationQueryParams) -> dict[str, Any]:
 
     """
     repository = CapacityDatabasesRepository()
-    page = max(1, int(getattr(params, "page", 1) or 1))
-    per_page = max(1, int(getattr(params, "per_page", 20) or 20))
+
+    page_value = getattr(params, "page", None)
+    page = 1 if page_value in (None, "") else int(page_value)
+    page = max(page, 1)
+
+    per_page_value = getattr(params, "per_page", None)
+    per_page = 20 if per_page_value in (None, "") else int(per_page_value)
+    per_page = max(per_page, 1)
+
     if params.offset and params.offset >= 0 and page == 1:
         page = (int(params.offset) // per_page) + 1
 
@@ -150,11 +157,12 @@ def fetch_aggregations(params: AggregationQueryParams) -> dict[str, Any]:
         page = 1
         total_pages = 1
     else:
-        total_pages = (int(total or 0) + per_page - 1) // per_page if per_page else 0
+        total_value = int(total) if total is not None else 0
+        total_pages = (total_value + per_page - 1) // per_page if per_page else 0
 
     return {
         "data": data,
-        "total": int(total or 0),
+        "total": int(total) if total is not None else 0,
         "page": page,
         "per_page": per_page,
         "total_pages": total_pages,
@@ -199,10 +207,10 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
         repository.summarize_latest_aggregations(filters)
     )
     return {
-        "total_databases": int(total_databases or 0),
-        "total_instances": int(total_instances or 0),
-        "total_size_mb": int(total_size_mb or 0),
-        "avg_size_mb": float(avg_size_mb or 0),
-        "max_size_mb": int(max_size_mb or 0),
+        "total_databases": int(total_databases) if total_databases is not None else 0,
+        "total_instances": int(total_instances) if total_instances is not None else 0,
+        "total_size_mb": int(total_size_mb) if total_size_mb is not None else 0,
+        "avg_size_mb": float(avg_size_mb) if avg_size_mb is not None else 0.0,
+        "max_size_mb": int(max_size_mb) if max_size_mb is not None else 0,
         "growth_rate": 0,
     }

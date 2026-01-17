@@ -92,4 +92,3 @@ __all__ = [
     "PostgreSQLPermissionSnapshotSchema",
     "PostgreSQLRawAccountSchema",
 ]
-

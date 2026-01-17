@@ -14,4 +14,3 @@ class DashboardActivitiesService:
     def list_activities(self) -> list[dict[str, object]]:
         """返回活动列表(当前占位实现)."""
         return []
-

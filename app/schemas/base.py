@@ -14,4 +14,3 @@ class PayloadSchema(BaseModel):
     """
 
     model_config = ConfigDict(extra="ignore")
-

@@ -34,6 +34,15 @@ class PartitionReadService:
         """初始化服务并注入分区仓库."""
         self._repository = repository or PartitionRepository()
 
+    @staticmethod
+    def _coalesce_int(value: Any) -> int:
+        # 仅将 None/空串视为缺省，等价替代 `int(value or 0)`，避免 truthy 兜底链扩散。
+        if value is None:
+            return 0
+        if isinstance(value, str) and value.strip() == "":
+            return 0
+        return int(value)
+
     def get_partition_info_snapshot(self) -> PartitionInfoSnapshot:
         """获取分区信息快照."""
         try:
@@ -44,14 +53,16 @@ class PartitionReadService:
 
         partitions = self._coerce_partitions(info.get("partitions"))
         missing_partitions, status = self._resolve_missing_partitions(partitions)
+        tables_value = info.get("tables")
+        tables = tables_value if isinstance(tables_value, list) else []
 
         return PartitionInfoSnapshot(
             partitions=partitions,
-            total_partitions=int(info.get("total_partitions", 0) or 0),
-            total_size_bytes=int(info.get("total_size_bytes", 0) or 0),
+            total_partitions=self._coalesce_int(info.get("total_partitions", 0)),
+            total_size_bytes=self._coalesce_int(info.get("total_size_bytes", 0)),
             total_size=str(info.get("total_size", "0 B")),
-            total_records=int(info.get("total_records", 0) or 0),
-            tables=[str(item) for item in cast(list[object], info.get("tables") or [])],
+            total_records=self._coalesce_int(info.get("total_records", 0)),
+            tables=[str(item) for item in cast(list[object], tables)],
             status=status,
             missing_partitions=missing_partitions,
         )
@@ -68,9 +79,9 @@ class PartitionReadService:
         missing_partitions, status = self._resolve_missing_partitions(partitions)
         return PartitionStatusSnapshot(
             status=status,
-            total_partitions=int(info.get("total_partitions", 0) or 0),
+            total_partitions=self._coalesce_int(info.get("total_partitions", 0)),
             total_size=str(info.get("total_size", "0 B")),
-            total_records=int(info.get("total_records", 0) or 0),
+            total_records=self._coalesce_int(info.get("total_records", 0)),
             missing_partitions=missing_partitions,
             partitions=partitions,
         )
@@ -174,8 +185,8 @@ class PartitionReadService:
                     table_type=str(item.get("table_type", "")),
                     display_name=str(item.get("display_name", "")),
                     size=str(item.get("size", "")),
-                    size_bytes=int(item.get("size_bytes", 0) or 0),
-                    record_count=int(item.get("record_count", 0) or 0),
+                    size_bytes=PartitionReadService._coalesce_int(item.get("size_bytes", 0)),
+                    record_count=PartitionReadService._coalesce_int(item.get("record_count", 0)),
                     date=str(item.get("date", "")),
                     status=str(item.get("status", "")),
                 ),
@@ -198,7 +209,7 @@ class PartitionReadService:
     @staticmethod
     def _normalize_period_type(requested: str) -> str:
         valid = {"daily", "weekly", "monthly", "quarterly"}
-        normalized = (requested or "").strip().lower()
+        normalized = requested.strip().lower()
         if normalized not in valid:
             raise ValidationError("不支持的周期类型")
         return normalized

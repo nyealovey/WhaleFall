@@ -207,7 +207,12 @@ class SQLServerConnection(DatabaseConnection):
         cursor = cast(DBAPICursor, conn.cursor())
         try:
             bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
-            bound_params = params if isinstance(params, Mapping) else tuple(params or [])
+            if isinstance(params, Mapping):
+                bound_params = params
+            elif params is None:
+                bound_params = ()
+            else:
+                bound_params = tuple(params)
             cursor.execute(query, bound_params)
             rows = cast("Sequence[Sequence[JsonValue]]", cursor.fetchall())
             return list(rows)

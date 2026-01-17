@@ -6,8 +6,8 @@ from typing import cast
 import pytest
 from flask_caching import Cache
 
-import app.services.cache_service as cache_service_module
 import app.services.cache.cache_actions_service as cache_actions_service_module
+import app.services.cache_service as cache_service_module
 import app.utils.rate_limiter as rate_limiter_module
 from app.repositories.instances_repository import InstancesRepository
 from app.services.cache.cache_actions_service import CacheActionsService
@@ -166,7 +166,9 @@ def test_cache_actions_clear_all_cache_logs_fallback_and_counts(monkeypatch) -> 
 
     info_calls: list[dict[str, object]] = []
     monkeypatch.setattr(cache_actions_service_module, "log_fallback", _fake_log_fallback)
-    monkeypatch.setattr(cache_actions_service_module, "log_info", lambda _msg, *, module="app", **kw: info_calls.append(kw))
+    monkeypatch.setattr(
+        cache_actions_service_module, "log_info", lambda _msg, *, module="app", **kw: info_calls.append(kw)
+    )
 
     result = CacheActionsService().clear_all_cache(operator_id=10)
     assert result.cleared_count == 1

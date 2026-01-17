@@ -38,7 +38,7 @@ class CredentialsRepository:
 
     def exists_by_name(self, name: str, *, exclude_credential_id: int | None = None) -> bool:
         """判断凭据名称是否存在(可排除指定 ID)."""
-        normalized = (name or "").strip()
+        normalized = name.strip()
         if not normalized:
             return False
         query = Credential.query.filter(Credential.name == normalized)
@@ -69,7 +69,7 @@ class CredentialsRepository:
             Credential.id == Instance.credential_id,
         )
 
-        normalized_search = (filters.search or "").strip()
+        normalized_search = filters.search.strip()
         if normalized_search:
             query = query.filter(
                 or_(
@@ -98,7 +98,7 @@ class CredentialsRepository:
 
         pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
         items = [
-            CredentialListRowProjection(credential=credential, instance_count=int(instance_count or 0))
+            CredentialListRowProjection(credential=credential, instance_count=int(instance_count))
             for credential, instance_count in pagination.items
         ]
         return PaginatedResult(

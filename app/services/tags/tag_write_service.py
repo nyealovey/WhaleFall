@@ -178,7 +178,9 @@ class TagWriteService:
 
         return TagBatchDeleteOutcome(results=results, has_failure=has_failure)
 
-    def batch_delete_from_payload(self, payload: object | None, *, operator_id: int | None = None) -> TagBatchDeleteOutcome:
+    def batch_delete_from_payload(
+        self, payload: object | None, *, operator_id: int | None = None
+    ) -> TagBatchDeleteOutcome:
         """从原始 payload 解析并批量删除标签."""
         sanitized = parse_payload(payload, list_fields=["tag_ids"])
         parsed = validate_or_raise(TagBatchDeletePayload, sanitized)

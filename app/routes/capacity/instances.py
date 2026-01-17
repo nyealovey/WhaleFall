@@ -20,6 +20,7 @@ _filter_options_service = FilterOptionsService()
 @view_required
 def list_instances() -> str:
     """实例统计聚合页面."""
+
     def _execute() -> str:
         selected_db_type = request.args.get("db_type", "")
         selected_instance = request.args.get("instance", "")

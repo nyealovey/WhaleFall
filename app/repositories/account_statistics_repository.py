@@ -26,7 +26,10 @@ class AccountStatisticsRepository:
     def fetch_classification_overview() -> dict[str, Any]:
         """获取账户分类概览统计."""
         rows = AccountStatisticsRepository._query_classification_rows()
-        total_classified_accounts = sum(int(row.get("count", 0) or 0) for row in rows)
+        total_classified_accounts = 0
+        for row in rows:
+            count_value = row.get("count", 0)
+            total_classified_accounts += int(count_value) if count_value is not None else 0
         auto_classified_accounts = AccountStatisticsRepository._query_auto_classified_count()
         return {
             "total": total_classified_accounts,
@@ -72,9 +75,14 @@ class AccountStatisticsRepository:
             counts_query = counts_query.filter(AccountPermission.db_type == db_type)
 
         counts_row = counts_query.one()
-        total_accounts = int(getattr(counts_row, "total_accounts", 0) or 0)
-        active_accounts = int(getattr(counts_row, "active_accounts", 0) or 0)
-        locked_accounts = int(getattr(counts_row, "locked_accounts", 0) or 0)
+        total_value = getattr(counts_row, "total_accounts", None)
+        total_accounts = int(total_value) if total_value is not None else 0
+
+        active_value = getattr(counts_row, "active_accounts", None)
+        active_accounts = int(active_value) if active_value is not None else 0
+
+        locked_value = getattr(counts_row, "locked_accounts", None)
+        locked_accounts = int(locked_value) if locked_value is not None else 0
 
         deleted_accounts = max(total_accounts - active_accounts, 0)
         normal_accounts = max(active_accounts - locked_accounts, 0)
@@ -181,7 +189,7 @@ class AccountStatisticsRepository:
 
         assignment_rows = assignment_query.group_by(AccountClassificationAssignment.rule_id).all()
         assignment_map = {row.rule_id: row.count for row in assignment_rows if row.rule_id is not None}
-        return {rule.id: int(assignment_map.get(rule.id, 0) or 0) for rule in rules}
+        return {rule.id: int(assignment_map.get(rule.id, 0)) for rule in rules}
 
     @staticmethod
     def _is_account_locked(account: AccountPermission) -> bool:
@@ -236,34 +244,32 @@ class AccountStatisticsRepository:
             {
                 "name": name,
                 "color": color,
-                "display_name": display_name or name,
+                "display_name": name if display_name in (None, "") else display_name,
                 "priority": priority,
-                "count": count or 0,
+                "count": int(count),
             }
             for name, color, display_name, priority, count in rows
         ]
 
     @staticmethod
     def _query_auto_classified_count() -> int:
-        return int(
-            (
-                db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
-                .join(AccountPermission, AccountPermission.id == AccountClassificationAssignment.account_id)
-                .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
-                .join(
-                    Instance,
-                    and_(
-                        Instance.id == AccountPermission.instance_id,
-                        Instance.is_active.is_(True),
-                        Instance.deleted_at.is_(None),
-                    ),
-                )
-                .filter(
-                    AccountClassificationAssignment.is_active.is_(True),
-                    AccountClassificationAssignment.assignment_type == "auto",
-                )
-                .filter(InstanceAccount.is_active.is_(True))
-                .scalar()
-                or 0
-            ),
+        scalar_value = (
+            db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
+            .join(AccountPermission, AccountPermission.id == AccountClassificationAssignment.account_id)
+            .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
+            .join(
+                Instance,
+                and_(
+                    Instance.id == AccountPermission.instance_id,
+                    Instance.is_active.is_(True),
+                    Instance.deleted_at.is_(None),
+                ),
+            )
+            .filter(
+                AccountClassificationAssignment.is_active.is_(True),
+                AccountClassificationAssignment.assignment_type == "auto",
+            )
+            .filter(InstanceAccount.is_active.is_(True))
+            .scalar()
         )
+        return int(scalar_value) if scalar_value is not None else 0

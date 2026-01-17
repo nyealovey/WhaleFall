@@ -28,7 +28,7 @@ class TagsOptionsRepository:
     @staticmethod
     def list_active_tags(*, category: str | None = None) -> list[Tag]:
         """列出可用标签(可按分类过滤)."""
-        normalized = (category or "").strip()
+        normalized = category.strip() if category is not None else ""
         if normalized:
             return Tag.get_tags_by_category(normalized)
         return Tag.get_active_tags()
