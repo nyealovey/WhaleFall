@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
 from flask import has_request_context, request
@@ -15,8 +15,18 @@ from app.core.constants.system_constants import ErrorCategory, ErrorMessages, Er
 from app.core.exceptions import AppError
 from app.utils.logging.context_vars import request_id_var, user_id_var
 
-if TYPE_CHECKING:
-    from datetime import datetime
+_DEFAULT_SUGGESTIONS = ("联系管理员", "查看错误日志")
+_SUGGESTIONS_BY_CATEGORY: dict[ErrorCategory, tuple[str, ...]] = {
+    ErrorCategory.VALIDATION: ("检查输入数据", "根据提示修正请求参数"),
+    ErrorCategory.BUSINESS: ("确认业务规则", "联系管理员核对数据"),
+    ErrorCategory.AUTHENTICATION: ("重新登录", "验证凭据有效性"),
+    ErrorCategory.AUTHORIZATION: ("检查权限配置", "联系管理员"),
+    ErrorCategory.SECURITY: ("稍后重试", "联系管理员"),
+    ErrorCategory.DATABASE: ("检查数据库连接", "联系数据库管理员"),
+    ErrorCategory.EXTERNAL: ("确认第三方服务状态", "稍后重试"),
+    ErrorCategory.NETWORK: ("检查网络连接", "稍后重试"),
+    ErrorCategory.SYSTEM: ("联系管理员", "查看错误日志"),
+}
 
 
 @dataclass(slots=True)
@@ -116,9 +126,10 @@ def derive_error_metadata(error: Exception) -> ErrorMetadata:
     if isinstance(error, HTTPException):
         status_code = int(getattr(error, "code", HttpStatus.INTERNAL_SERVER_ERROR) or HttpStatus.INTERNAL_SERVER_ERROR)
         message = getattr(error, "description", ErrorMessages.INTERNAL_ERROR)
-        message_key = "INTERNAL_ERROR" if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else "INVALID_REQUEST"
-        severity = ErrorSeverity.HIGH if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else ErrorSeverity.MEDIUM
-        category = ErrorCategory.SYSTEM if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else ErrorCategory.BUSINESS
+        is_server_error = status_code >= HttpStatus.INTERNAL_SERVER_ERROR
+        message_key = "INTERNAL_ERROR" if is_server_error else "INVALID_REQUEST"
+        severity = ErrorSeverity.HIGH if is_server_error else ErrorSeverity.MEDIUM
+        category = ErrorCategory.SYSTEM if is_server_error else ErrorCategory.BUSINESS
         return ErrorMetadata(
             status_code=status_code,
             category=category,
@@ -212,18 +223,7 @@ def get_error_suggestions(category: ErrorCategory) -> list[str]:
         建议解决方案的字符串列表.
 
     """
-    suggestions_map = {
-        ErrorCategory.VALIDATION: ["检查输入数据", "根据提示修正请求参数"],
-        ErrorCategory.BUSINESS: ["确认业务规则", "联系管理员核对数据"],
-        ErrorCategory.AUTHENTICATION: ["重新登录", "验证凭据有效性"],
-        ErrorCategory.AUTHORIZATION: ["检查权限配置", "联系管理员"],
-        ErrorCategory.SECURITY: ["稍后重试", "联系管理员"],
-        ErrorCategory.DATABASE: ["检查数据库连接", "联系数据库管理员"],
-        ErrorCategory.EXTERNAL: ["确认第三方服务状态", "稍后重试"],
-        ErrorCategory.NETWORK: ["检查网络连接", "稍后重试"],
-        ErrorCategory.SYSTEM: ["联系管理员", "查看错误日志"],
-    }
-    return suggestions_map.get(category, ["联系管理员", "查看错误日志"])
+    return list(_SUGGESTIONS_BY_CATEGORY.get(category, _DEFAULT_SUGGESTIONS))
 
 
 __all__ = [

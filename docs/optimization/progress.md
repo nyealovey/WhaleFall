@@ -11,7 +11,7 @@
 
 ## Latest Verification（最近一次验证）
 
-- Date: 2026-01-17T10:54:41+0800
+- Date: 2026-01-17T12:23:25+0800
 - Result: PASS (`make format && make typecheck && uv run pytest -m unit`)
 
 ## Modules（按依赖→耦合排序；同层级 CRUD→同步/自动化）
@@ -21,14 +21,14 @@
 - [x] app/core/constants（系统常量）
 - [x] app/core/types（类型定义）
 - [x] app/core/exceptions（统一异常）
-- [ ] app/utils/logging + app/utils/structlog_config.py（结构化日志）
-- [ ] app/utils/http（decorators/request_payload/response_utils/proxy_fix_middleware/pagination）
-- [ ] app/utils/db（safe_query_builder/sqlserver_connection_utils/database_type_utils/query_filter_utils/cache_utils）
-- [ ] app/utils/security（rate_limiter/redirect_safety/password_crypto_utils/sensitive_data/spreadsheet_formula_safety）
-- [ ] app/utils/misc（time_utils/version_parser/payload_converters/status_type_utils/user_role_utils/theme_color_utils）
+- [x] app/utils/logging + app/utils/structlog_config.py（结构化日志）
+- [x] app/utils/http（decorators/request_payload/response_utils/proxy_fix_middleware/pagination）
+- [x] app/utils/db（safe_query_builder/sqlserver_connection_utils/database_type_utils/query_filter_utils/cache_utils）
+- [x] app/utils/security（rate_limiter/redirect_safety/password_crypto_utils/sensitive_data/spreadsheet_formula_safety）
+- [x] app/utils/misc（time_utils/version_parser/payload_converters/status_type_utils/user_role_utils/theme_color_utils）
 - [x] app/settings.py（配置读取/默认值/校验）
-- [ ] app/config/*.yaml（过滤器/调度任务配置）
-- [ ] app/infra（logging/route_safety/error_mapping/...）
+- [x] app/config/*.yaml（过滤器/调度任务配置）
+- [x] app/infra（logging/route_safety/error_mapping/...）
 - [ ] app/schemas（base/validation/contracts）
 - [ ] app/models（ORM）
 - [ ] app/repositories（数据访问）
@@ -75,3 +75,10 @@
 - 2026-01-17 app/settings.py: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 app/core/types: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 app/core/exceptions: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/utils/logging: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/utils/http: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/utils/db: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/utils/security: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/utils/misc: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/config/*.yaml: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/infra: PASS (make format/typecheck/pytest -m unit)

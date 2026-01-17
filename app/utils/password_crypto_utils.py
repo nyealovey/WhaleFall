@@ -13,6 +13,8 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from app.utils.structlog_config import get_system_logger
 
+logger = get_system_logger()
+
 
 class PasswordManager:
     """密码管理器.
@@ -40,8 +42,7 @@ class PasswordManager:
             key: Fernet key(bytes).
 
         """
-        self.key = key
-        self.cipher = Fernet(self.key)
+        self.cipher = Fernet(key)
 
     def encrypt_password(self, password: str) -> str:
         """加密密码.
@@ -77,8 +78,7 @@ class PasswordManager:
             decrypted = self.cipher.decrypt(encrypted)
             return decrypted.decode()
         except (InvalidToken, binascii.Error, ValueError) as decryption_error:
-            system_logger = get_system_logger()
-            system_logger.exception(
+            logger.exception(
                 "密码解密失败",
                 module="password_manager",
                 exception=decryption_error,

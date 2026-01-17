@@ -105,7 +105,7 @@ def example_view() -> Response:
 #### 3. API 响应封套
 所有 API 响应使用 `app/utils/response_utils.py` 的统一封套格式：
 - 成功：`jsonify_unified_success(data=..., message=...)`
-- 错误：`jsonify_unified_error(error=..., message=...)`
+- 错误：`jsonify_unified_error_message(message=..., status_code=...)`
 
 参见：`docs/Obsidian/standards/backend/layer/api-layer-standards.md#响应封套(JSON Envelope)`
 

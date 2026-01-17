@@ -45,13 +45,12 @@ def scrub_sensitive_fields(
     if not isinstance(payload, Mapping):
         return {}
 
-    normalized_keys = {key.lower() for key in DEFAULT_SENSITIVE_KEYS}
+    normalized_keys = set(DEFAULT_SENSITIVE_KEYS)
     if extra_keys:
         normalized_keys.update(str(key).lower() for key in extra_keys)
 
     def _scrub(value: JsonValue, *, field_name: str | None = None) -> JsonValue:
-        key_lower = field_name.lower() if field_name else None
-        if key_lower and key_lower in normalized_keys:
+        if field_name and field_name.lower() in normalized_keys:
             return mask
         if isinstance(value, Mapping):
             return {k: _scrub(v, field_name=str(k)) for k, v in value.items()}

@@ -35,7 +35,6 @@ if TYPE_CHECKING:
 P = ParamSpec("P")
 LogField = JsonValue | ContextDict | LoggerExtra
 ErrorPayload = dict[str, LogField]
-ERROR_HANDLER_EXCEPTIONS: tuple[type[Exception], ...] = (Exception,)
 
 
 class StructlogConfig:
@@ -436,16 +435,6 @@ def get_system_logger() -> structlog.BoundLogger:
     return get_logger("system")
 
 
-def get_api_logger() -> structlog.BoundLogger:
-    """返回 API 级 logger.
-
-    Returns:
-        structlog.BoundLogger: 针对 API 模块的 logger.
-
-    """
-    return get_logger("api")
-
-
 def get_auth_logger() -> structlog.BoundLogger:
     """返回认证模块 logger.
 
@@ -524,9 +513,7 @@ def enhanced_error_handler(
     metadata = derive_error_metadata(error)
     public_context = build_public_context(context)
 
-    extra_payload: dict[str, JsonValue] = {}
-    if extra:
-        extra_payload.update(extra)
+    extra_payload = dict(extra or {})
 
     payload: ErrorPayload = {
         "error": True,
@@ -595,7 +582,7 @@ def error_handler(func: Callable[P, ResponseReturnValue]) -> Callable[P, Respons
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         try:
             return func(*args, **kwargs)
-        except ERROR_HANDLER_EXCEPTIONS as error:
+        except Exception as error:
             context = ErrorContext(error)
             payload = enhanced_error_handler(error, context)
             status_code = derive_error_metadata(error).status_code
@@ -610,7 +597,6 @@ __all__ = [
     "configure_structlog",
     "enhanced_error_handler",
     "error_handler",
-    "get_api_logger",
     "get_auth_logger",
     "get_db_logger",
     "get_logger",

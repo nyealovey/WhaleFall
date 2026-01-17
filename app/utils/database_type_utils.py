@@ -41,21 +41,10 @@ def get_database_type_color(db_type: str) -> str:
     return DatabaseType.COLORS.get(normalized, "primary")
 
 
-def get_database_type_default_port(db_type: str) -> int | None:
-    """获取数据库类型默认端口(若无则返回 None)."""
-    normalized = normalize_database_type(db_type)
-    return DatabaseType.DEFAULT_PORTS.get(normalized)
-
-
 def get_database_type_default_schema(db_type: str) -> str:
     """获取数据库类型默认 schema(未知时返回空字符串)."""
     normalized = normalize_database_type(db_type)
     return DatabaseType.DEFAULT_SCHEMAS.get(normalized, "")
-
-
-def database_type_requires_port(db_type: str) -> bool:
-    """判断该数据库类型是否需要端口."""
-    return get_database_type_default_port(db_type) is not None
 
 
 def build_database_type_select_option(db_type: str) -> dict[str, str]:

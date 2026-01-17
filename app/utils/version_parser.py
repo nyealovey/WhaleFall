@@ -6,8 +6,6 @@
 import re
 from typing import ClassVar
 
-from app.core.constants import DatabaseType
-
 MAX_VERSION_PREVIEW_LENGTH = 50
 MIN_PARTS_FOR_MAIN_VERSION = 2
 
@@ -82,7 +80,7 @@ class DatabaseVersionParser:
             match = re.search(pattern, version_string, re.IGNORECASE)
             if match:
                 version = match.group(1)
-                main_version = cls._extract_main_version(version, db_type)
+                main_version = cls._extract_main_version(version)
                 return {"main_version": main_version, "detailed_version": version, "original": version_string}
 
         # 如果没有匹配到,返回原始字符串
@@ -97,20 +95,18 @@ class DatabaseVersionParser:
         }
 
     @classmethod
-    def _extract_main_version(cls, version: str, db_type: str) -> str:
+    def _extract_main_version(cls, version: str) -> str:
         """提取主版本号.
 
         根据数据库类型从详细版本号中提取主版本号(通常是前两位).
 
         Args:
             version: 详细版本号,例如 '8.0.32' 或 '11.2.0.1.0'.
-            db_type: 数据库类型.
-
         Returns:
             主版本号,例如 '8.0' 或 '11.2'.
 
         Example:
-            >>> DatabaseVersionParser._extract_main_version('8.0.32', 'mysql')
+            >>> DatabaseVersionParser._extract_main_version('8.0.32')
             '8.0'
 
         """
@@ -121,12 +117,7 @@ class DatabaseVersionParser:
         if len(parts) < MIN_PARTS_FOR_MAIN_VERSION:
             return version
 
-        main_version = f"{parts[0]}.{parts[1]}"
-        mysql_like = {DatabaseType.MYSQL, DatabaseType.POSTGRESQL, DatabaseType.SQLSERVER, DatabaseType.ORACLE}
-        if db_type in mysql_like:
-            return main_version
-
-        return main_version
+        return f"{parts[0]}.{parts[1]}"
 
     @classmethod
     def format_version_display(cls, db_type: str, version_string: str) -> str:
