@@ -15,6 +15,7 @@ from pydantic import Field, field_validator, model_validator
 from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.core.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
 from app.schemas.base import PayloadSchema
+from app.schemas.query_parsers import parse_int, parse_optional_int, parse_text
 from app.utils.payload_converters import as_bool
 from app.utils.time_utils import time_utils
 
@@ -23,59 +24,9 @@ _DEFAULT_LIMIT = 20
 _MAX_LIMIT = 200
 
 
-def _parse_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value.strip()
-    return str(value).strip()
-
-
 def _parse_optional_str(value: Any) -> str | None:
-    cleaned = _parse_text(value)
+    cleaned = parse_text(value)
     return cleaned or None
-
-
-def _parse_int(value: Any, *, default: int) -> int:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        raise TypeError("参数必须为整数")
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return default
-        try:
-            return int(stripped, 10)
-        except ValueError as exc:
-            raise ValueError("参数必须为整数") from exc
-    try:
-        return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("参数必须为整数") from exc
-
-
-def _parse_optional_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise TypeError("参数必须为整数")
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return None
-        try:
-            return int(stripped, 10)
-        except ValueError as exc:
-            raise ValueError("参数必须为整数") from exc
-    try:
-        return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("参数必须为整数") from exc
 
 
 def _parse_optional_date(value: Any, *, field: str) -> date | None:
@@ -128,7 +79,7 @@ class CapacityDatabasesAggregationsQuery(PayloadSchema):
     @field_validator("instance_id", "database_id", mode="before")
     @classmethod
     def _parse_ids(cls, value: Any) -> int | None:
-        return _parse_optional_int(value)
+        return parse_optional_int(value)
 
     @field_validator("db_type", "database_name", "period_type", mode="before")
     @classmethod
@@ -138,13 +89,13 @@ class CapacityDatabasesAggregationsQuery(PayloadSchema):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_LIMIT)
+        parsed = parse_int(value, default=_DEFAULT_LIMIT)
         if parsed < 1:
             return 1
         if parsed > _MAX_LIMIT:
@@ -196,7 +147,7 @@ class CapacityDatabasesSummaryQuery(PayloadSchema):
     @field_validator("instance_id", "database_id", mode="before")
     @classmethod
     def _parse_ids(cls, value: Any) -> int | None:
-        return _parse_optional_int(value)
+        return parse_optional_int(value)
 
     @field_validator("db_type", "database_name", "period_type", mode="before")
     @classmethod
@@ -262,7 +213,7 @@ class CapacityInstancesAggregationsQuery(_CapacityInstancesDateRangeMixin):
     @field_validator("instance_id", mode="before")
     @classmethod
     def _parse_instance_id(cls, value: Any) -> int | None:
-        return _parse_optional_int(value)
+        return parse_optional_int(value)
 
     @field_validator("db_type", "period_type", mode="before")
     @classmethod
@@ -272,13 +223,13 @@ class CapacityInstancesAggregationsQuery(_CapacityInstancesDateRangeMixin):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_LIMIT)
+        parsed = parse_int(value, default=_DEFAULT_LIMIT)
         if parsed < 1:
             return 1
         if parsed > _MAX_LIMIT:
@@ -314,7 +265,7 @@ class CapacityInstancesSummaryQuery(_CapacityInstancesDateRangeMixin):
     @field_validator("instance_id", mode="before")
     @classmethod
     def _parse_instance_id(cls, value: Any) -> int | None:
-        return _parse_optional_int(value)
+        return parse_optional_int(value)
 
     @field_validator("db_type", "period_type", mode="before")
     @classmethod

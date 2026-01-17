@@ -13,39 +13,11 @@ from pydantic import field_validator
 
 from app.core.types.tags import TagListFilters
 from app.schemas.base import PayloadSchema
+from app.schemas.query_parsers import parse_int, parse_text
 
 _DEFAULT_PAGE = 1
 _DEFAULT_LIMIT = 20
 _MAX_LIMIT = 200
-
-
-def _parse_int(value: Any, *, default: int) -> int:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        raise TypeError("参数必须为整数")
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return default
-        try:
-            return int(stripped, 10)
-        except ValueError as exc:
-            raise ValueError("参数必须为整数") from exc
-    try:
-        return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("参数必须为整数") from exc
-
-
-def _parse_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value.strip()
-    return str(value).strip()
 
 
 class TagsListQuery(PayloadSchema):
@@ -60,24 +32,24 @@ class TagsListQuery(PayloadSchema):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_LIMIT)
+        parsed = parse_int(value, default=_DEFAULT_LIMIT)
         return max(min(parsed, _MAX_LIMIT), 1)
 
     @field_validator("search", "category", mode="before")
     @classmethod
     def _parse_strings(cls, value: Any) -> str:
-        return _parse_text(value)
+        return parse_text(value)
 
     @field_validator("status", mode="before")
     @classmethod
     def _parse_status(cls, value: Any) -> str:
-        cleaned = _parse_text(value).lower()
+        cleaned = parse_text(value).lower()
         return cleaned or "all"
 
     def to_filters(self) -> TagListFilters:
@@ -100,4 +72,4 @@ class TagOptionsQuery(PayloadSchema):
     @field_validator("category", mode="before")
     @classmethod
     def _parse_category(cls, value: Any) -> str:
-        return _parse_text(value)
+        return parse_text(value)

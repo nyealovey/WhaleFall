@@ -320,37 +320,11 @@ class InstancesRepository:
         )
         last_sync_times = dict(last_sync_rows)
 
-        tags_map: dict[int, list[TagSummary]] = defaultdict(list)
-        tag_instance_id_column = cast(ColumnElement[int], instance_tags.c.instance_id)
-        tag_name_column = cast(ColumnElement[str], Tag.name)
-        tag_display_name_column = cast(ColumnElement[str], Tag.display_name)
-        tag_color_column = cast(ColumnElement[str], Tag.color)
-        tag_rows_query: Query[Any] = cast(
-            Query[Any],
-            db.session.query(
-                tag_instance_id_column,
-                tag_name_column,
-                tag_display_name_column,
-                tag_color_column,
-            ),
-        )
-        tag_rows = (
-            tag_rows_query.join(Tag, Tag.id == instance_tags.c.tag_id)
-            .filter(tag_instance_id_column.in_(instance_ids))
-            .all()
-        )
-        for instance_id, tag_name, display_name, color in tag_rows:
-            tags_map[instance_id].append(
-                TagSummary(
-                    name=tag_name,
-                    display_name=display_name,
-                    color=color,
-                ),
-            )
+        tags_map = InstancesRepository.fetch_tags_map(instance_ids)
 
         return InstanceListMetrics(
             database_counts=database_counts,
             account_counts=account_counts,
             last_sync_times=last_sync_times,
-            tags_map=dict(tags_map),
+            tags_map=tags_map,
         )

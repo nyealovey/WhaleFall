@@ -35,6 +35,28 @@ class DatabaseLedgerRepository:
         """初始化仓库并注入 SQLAlchemy session."""
         self._session = session or db.session
 
+    @staticmethod
+    def _to_row_projection(
+        record: InstanceDatabase,
+        instance: Instance | None,
+        collected_at: datetime | None,
+        size_mb: Any,
+        *,
+        tags_map: dict[int, list[TagSummary]],
+    ) -> DatabaseLedgerRowProjection:
+        instance_id = instance.id if instance else 0
+        return DatabaseLedgerRowProjection(
+            id=record.id,
+            database_name=record.database_name,
+            instance_id=instance_id,
+            instance_name=instance.name if instance else "",
+            instance_host=instance.host if instance else "",
+            db_type=instance.db_type if instance else "",
+            collected_at=collected_at,
+            size_mb=int(size_mb) if size_mb is not None else None,
+            tags=tags_map.get(instance_id, []),
+        )
+
     def list_ledger(self, filters: DatabaseLedgerFilters) -> PaginatedResult[DatabaseLedgerRowProjection]:
         """分页查询数据库台账."""
         per_page = max(filters.per_page, 1)
@@ -53,21 +75,10 @@ class DatabaseLedgerRepository:
         instance_ids = [instance.id for _, instance, _, _ in items if instance]
         tags_map = self._fetch_instance_tags(instance_ids)
 
-        rows: list[DatabaseLedgerRowProjection] = []
-        for record, instance, collected_at, size_mb in items:
-            rows.append(
-                DatabaseLedgerRowProjection(
-                    id=record.id,
-                    database_name=record.database_name,
-                    instance_id=instance.id if instance else 0,
-                    instance_name=instance.name if instance else "",
-                    instance_host=instance.host if instance else "",
-                    db_type=instance.db_type if instance else "",
-                    collected_at=cast("datetime | None", collected_at),
-                    size_mb=int(size_mb) if size_mb is not None else None,
-                    tags=tags_map.get(instance.id, []) if instance else [],
-                ),
-            )
+        rows = [
+            self._to_row_projection(record, instance, collected_at, size_mb, tags_map=tags_map)
+            for record, instance, collected_at, size_mb in items
+        ]
 
         return PaginatedResult(items=rows, total=total, page=page, pages=pages, limit=per_page)
 
@@ -82,22 +93,10 @@ class DatabaseLedgerRepository:
         instance_ids = [instance.id for _, instance, _, _ in results if instance]
         tags_map = self._fetch_instance_tags(instance_ids)
 
-        rows: list[DatabaseLedgerRowProjection] = []
-        for record, instance, collected_at, size_mb in results:
-            rows.append(
-                DatabaseLedgerRowProjection(
-                    id=record.id,
-                    database_name=record.database_name,
-                    instance_id=instance.id if instance else 0,
-                    instance_name=instance.name if instance else "",
-                    instance_host=instance.host if instance else "",
-                    db_type=instance.db_type if instance else "",
-                    collected_at=cast("datetime | None", collected_at),
-                    size_mb=int(size_mb) if size_mb is not None else None,
-                    tags=tags_map.get(instance.id, []) if instance else [],
-                ),
-            )
-        return rows
+        return [
+            self._to_row_projection(record, instance, collected_at, size_mb, tags_map=tags_map)
+            for record, instance, collected_at, size_mb in results
+        ]
 
     def _base_query(self) -> Query[Any]:
         """构造基础查询."""
