@@ -63,8 +63,9 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
         """
 
         result = connection.execute_query(query)
+        rows = result if result is not None else []
         metadata: list[dict] = []
-        for row in result or []:
+        for row in rows:
             name = str(row[0]).strip() if row and row[0] is not None else ""
             if not name:
                 continue
@@ -160,8 +161,11 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
             if normalized_target is not None and database_name not in normalized_target:
                 continue
 
-            size_mb = self._to_int(row[1]) or 0
-            data_size_mb = self._to_int(row[2]) or 0
+            size_mb_value = self._to_int(row[1])
+            size_mb = 0 if size_mb_value is None else size_mb_value
+
+            data_size_mb_value = self._to_int(row[2])
+            data_size_mb = 0 if data_size_mb_value is None else data_size_mb_value
             data.append(
                 {
                     "database_name": database_name,

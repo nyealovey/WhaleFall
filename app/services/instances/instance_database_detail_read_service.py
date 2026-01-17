@@ -29,4 +29,3 @@ class InstanceDatabaseDetailReadService:
         if record is None:
             raise NotFoundError("数据库不存在", extra={"database_id": database_id})
         return record
-

@@ -2,7 +2,6 @@ import pytest
 
 import app.api.v1.namespaces.accounts as accounts_api
 import app.api.v1.namespaces.instances as instances_api
-
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 
 

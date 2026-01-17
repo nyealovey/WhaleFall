@@ -73,4 +73,3 @@ def test_normalize_account_coerces_invalid_permission_shapes() -> None:
 
     role_attributes = permissions.get("role_attributes")
     assert isinstance(role_attributes, dict)
-

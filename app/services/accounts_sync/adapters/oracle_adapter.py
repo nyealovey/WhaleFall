@@ -90,7 +90,12 @@ class OracleAccountAdapter(BaseAccountAdapter):
             accounts: list[RawAccount] = []
             for user in users:
                 username_raw = user.get("username")
-                username = username_raw.upper() if isinstance(username_raw, str) else str(username_raw or "")
+                if isinstance(username_raw, str):
+                    username = username_raw.upper()
+                elif username_raw is None:
+                    username = ""
+                else:
+                    username = str(username_raw)
                 account_status_raw = user.get("account_status")
                 account_status = account_status_raw.upper() if isinstance(account_status_raw, str) else ""
                 permissions = cast(
@@ -231,15 +236,24 @@ class OracleAccountAdapter(BaseAccountAdapter):
             丰富后的账户信息列表.
 
         """
-        target_usernames = (
-            {str(account.get("username") or "") for account in accounts} if usernames is None else set(usernames)
-        )
+        if usernames is None:
+            target_usernames: set[str] = set()
+            for account in accounts:
+                username_value = account.get("username")
+                if username_value is None:
+                    continue
+                username_str = str(username_value)
+                if username_str != "":
+                    target_usernames.add(username_str)
+        else:
+            target_usernames = set(usernames)
         if not target_usernames:
             return accounts
 
         processed = 0
         for account in accounts:
-            username = str(account.get("username") or "")
+            username_value = account.get("username")
+            username = "" if username_value is None else str(username_value)
             if not username or username not in target_usernames:
                 continue
             processed += 1

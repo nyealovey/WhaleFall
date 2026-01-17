@@ -97,4 +97,3 @@ def test_web_auth_login_with_remember_sets_remember_cookie_expire_in_7_days(app,
 
         expires_at = parsedate_to_datetime(expires_raw).astimezone(timezone.utc)
         assert expires_at == fixed_now + timedelta(days=7)
-

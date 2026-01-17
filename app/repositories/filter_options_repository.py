@@ -28,7 +28,7 @@ class FilterOptionsRepository:
         active_filter = cast(Any, Instance.is_active).is_(True)
         query = cast("Query", Instance.query).filter(active_filter)
 
-        normalized_type = (db_type or "").strip()
+        normalized_type = db_type.strip() if db_type is not None else ""
         if normalized_type:
             query = cast("Query", query).filter(func.lower(Instance.db_type) == normalized_type.lower())
 

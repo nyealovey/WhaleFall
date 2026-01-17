@@ -32,4 +32,3 @@ def test_repositories_do_not_import_infra_route_safety() -> None:
         matches.extend(_scan_file(path, display_path=path.relative_to(repo_root)))
 
     assert not matches, "Repository 层发现对 app.infra.route_safety 的依赖:\n" + "\n".join(matches[:50])
-

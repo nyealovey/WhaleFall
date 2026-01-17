@@ -354,7 +354,9 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
         seed_type_specific_value = seed_permissions.get("type_specific")
-        seed_type_specific = cast("JsonDict", seed_type_specific_value) if isinstance(seed_type_specific_value, dict) else {}
+        seed_type_specific = (
+            cast("JsonDict", seed_type_specific_value) if isinstance(seed_type_specific_value, dict) else {}
+        )
         seed_role_attributes_value = seed_permissions.get("role_attributes")
         seed_role_attributes = (
             cast("JsonDict", seed_role_attributes_value) if isinstance(seed_role_attributes_value, dict) else {}

@@ -77,8 +77,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
             trend_data.append(
                 {
                     "date": time_utils.format_china_time(day, "%Y-%m-%d"),
-                    "error_count": int(result_mapping.get(error_label, 0) or 0),
-                    "warning_count": int(result_mapping.get(warning_label, 0) or 0),
+                    "error_count": int(result_mapping.get(error_label, 0)),
+                    "warning_count": int(result_mapping.get(warning_label, 0)),
                 },
             )
 

@@ -34,7 +34,7 @@ class AccountsLedgerPermissionsService:
         snapshot = build_permission_snapshot_view(account)
 
         permissions = AccountLedgerPermissions(
-            db_type=(cast(str, getattr(instance, "db_type", "")) or "").upper(),
+            db_type=cast(str, getattr(instance, "db_type", "")).upper(),
             username=cast(str, getattr(account, "username", "")),
             is_superuser=bool(getattr(account, "is_superuser", False)),
             last_sync_time=(
@@ -49,7 +49,7 @@ class AccountsLedgerPermissionsService:
             id=cast(int, getattr(account, "instance_account_id", 0)),
             username=cast(str, getattr(account, "username", "")),
             instance_name=cast(str, getattr(instance, "name", None) or "未知实例"),
-            db_type=cast(str, getattr(instance, "db_type", None) or ""),
+            db_type=cast(str, getattr(instance, "db_type", "")),
         )
         return AccountLedgerPermissionsResult(
             permissions=permissions,

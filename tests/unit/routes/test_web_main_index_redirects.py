@@ -24,4 +24,3 @@ def test_main_index_redirects_to_dashboard_when_authenticated(auth_client) -> No
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/dashboard/")
-

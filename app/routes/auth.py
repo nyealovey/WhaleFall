@@ -50,6 +50,7 @@ def login() -> RouteReturn:
         next: 登录成功后的重定向地址,可选.
 
     """
+
     def _execute() -> RouteReturn:
         if request.method == HttpMethod.POST:
             auth_logger.info(
@@ -137,6 +138,7 @@ def logout() -> RouteReturn:
         重定向到登录页面.
 
     """
+
     def _execute() -> RouteReturn:
         auth_logger.info(
             "用户登出",

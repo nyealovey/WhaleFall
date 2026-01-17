@@ -177,10 +177,12 @@ class HealthCheckResource(BaseResource):
             start_time = time.time()
 
             db_result = check_database_health()
-            db_status = str(db_result.get("status") or "error")
+            raw_db_status = db_result.get("status")
+            db_status = str(raw_db_status) if raw_db_status is not None else "error"
 
             cache_result = check_cache_health()
-            redis_status = str(cache_result.get("status") or "error")
+            raw_redis_status = cache_result.get("status")
+            redis_status = str(raw_redis_status) if raw_redis_status is not None else "error"
 
             overall_status = "healthy" if db_status == "connected" and redis_status == "connected" else "unhealthy"
             result = {

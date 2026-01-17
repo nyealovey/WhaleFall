@@ -29,4 +29,3 @@ class InstancesImportTemplateService:
             filename="instances_import_template.csv",
             content=output.getvalue(),
         )
-

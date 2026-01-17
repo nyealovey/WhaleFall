@@ -198,7 +198,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """
         del instance
         parsed = SQLServerRawAccountSchema.model_validate(account)
-        username = self._normalize_str(parsed.username) or ""
+        username_value = self._normalize_str(parsed.username)
+        username = "" if username_value is None else username_value
         type_specific = parsed.permissions.type_specific
         is_disabled_value = type_specific.get("is_disabled")
         is_disabled = is_disabled_value if isinstance(is_disabled_value, bool) else parsed.is_disabled
@@ -288,7 +289,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     permissions_value.get("type_specific") if isinstance(permissions_value, dict) else None
                 )
                 existing_type_specific = (
-                    cast("JsonDict", existing_type_specific_value) if isinstance(existing_type_specific_value, dict) else {}
+                    cast("JsonDict", existing_type_specific_value)
+                    if isinstance(existing_type_specific_value, dict)
+                    else {}
                 )
                 for key, value in existing_type_specific.items():
                     type_specific.setdefault(key, value)
@@ -454,7 +457,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             PermissionSnapshot: server/database 角色与权限的聚合结果.
 
         """
-        server_roles_map: dict[str, list[str]] = precomputed_server_roles if precomputed_server_roles is not None else {}
+        server_roles_map: dict[str, list[str]] = (
+            precomputed_server_roles if precomputed_server_roles is not None else {}
+        )
         server_roles = self._deduplicate_preserve_order(
             server_roles_map.get(login_name, []),
         )

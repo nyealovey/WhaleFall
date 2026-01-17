@@ -91,8 +91,8 @@ class HistoryLogsRepository:
             UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
         ).count()
 
-        level_counts = {level.value: int(count or 0) for level, count in level_stats}
-        top_modules = [(module, int(count or 0)) for module, count in module_stats]
+        level_counts = {level.value: int(count) for level, count in level_stats}
+        top_modules = [(module, int(count)) for module, count in module_stats]
         return total_logs, error_count, level_counts, top_modules
 
     @staticmethod

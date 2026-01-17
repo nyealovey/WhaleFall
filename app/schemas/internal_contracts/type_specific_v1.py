@@ -44,4 +44,3 @@ __all__ = [
     "TYPE_SPECIFIC_VERSION_V1",
     "normalize_type_specific_v1",
 ]
-

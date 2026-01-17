@@ -67,8 +67,9 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
         """
 
         result = connection.execute_query(query)
+        rows = result if result is not None else []
         metadata: list[dict] = []
-        for row in result or []:
+        for row in rows:
             name = str(row[0]).strip() if row and row[0] is not None else ""
             if not name:
                 continue

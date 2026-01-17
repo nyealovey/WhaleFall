@@ -24,6 +24,8 @@ from app.api.v1.restx_models.instances import (
 )
 from app.core.exceptions import ValidationError
 from app.core.types.accounts_ledgers import AccountFilters
+from app.schemas.accounts_query import AccountsFiltersQuery, AccountsLedgersListQuery
+from app.schemas.validation import validate_or_raise
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
 from app.services.files.account_export_service import AccountExportService
@@ -204,7 +206,9 @@ _accounts_filters_query_parser.add_argument("page", type=int, default=1, locatio
 _accounts_filters_query_parser.add_argument("limit", type=int, default=20, location="args")
 _accounts_filters_query_parser.add_argument("search", type=str, default="", location="args")
 _accounts_filters_query_parser.add_argument("instance_id", type=int, location="args")
-_accounts_filters_query_parser.add_argument("include_deleted", type=bool_with_default(False), default=False, location="args")
+_accounts_filters_query_parser.add_argument(
+    "include_deleted", type=bool_with_default(False), default=False, location="args"
+)
 _accounts_filters_query_parser.add_argument("is_locked", type=str, location="args")
 _accounts_filters_query_parser.add_argument("is_superuser", type=str, location="args")
 _accounts_filters_query_parser.add_argument("plugin", type=str, default="", location="args")
@@ -226,52 +230,6 @@ _accounts_statistics_rules_query_parser = new_parser()
 _accounts_statistics_rules_query_parser.add_argument("rule_ids", type=str, location="args")
 
 
-def _parse_account_filters(parsed: dict[str, object], *, allow_query_db_type: bool = True) -> AccountFilters:
-    raw_page = parsed.get("page")
-    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-    raw_limit = parsed.get("limit")
-    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
-    limit = max(min(limit, 200), 1)
-    search = str(parsed.get("search") or "").strip()
-    raw_instance_id = parsed.get("instance_id")
-    instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
-    include_deleted = bool(parsed.get("include_deleted") or False)
-    raw_is_locked = parsed.get("is_locked")
-    is_locked = raw_is_locked if isinstance(raw_is_locked, str) else None
-    raw_is_superuser = parsed.get("is_superuser")
-    is_superuser = raw_is_superuser if isinstance(raw_is_superuser, str) else None
-    plugin = str(parsed.get("plugin") or "").strip()
-
-    raw_tags = parsed.get("tags")
-    tags: list[str] = []
-    if isinstance(raw_tags, list):
-        tags = [item.strip() for item in raw_tags if isinstance(item, str) and item.strip()]
-    elif isinstance(raw_tags, str) and raw_tags.strip():
-        tags = [raw_tags.strip()]
-
-    classification_param = str(parsed.get("classification") or "").strip()
-    classification_filter = classification_param if classification_param not in {"", "all"} else ""
-    raw_db_type = parsed.get("db_type") if allow_query_db_type else None
-    raw_db_type = raw_db_type if isinstance(raw_db_type, str) else None
-    normalized_db_type = raw_db_type if raw_db_type not in {None, "", "all"} else None
-
-    return AccountFilters(
-        page=page,
-        limit=limit,
-        search=search,
-        instance_id=instance_id,
-        include_deleted=include_deleted,
-        is_locked=is_locked,
-        is_superuser=is_superuser,
-        plugin=plugin,
-        tags=tags,
-        classification=classification_param,
-        classification_filter=classification_filter,
-        db_type=normalized_db_type,
-    )
-
-
 def _parse_rule_ids_param(raw_value: str | None) -> list[int] | None:
     if not raw_value:
         return None
@@ -284,7 +242,7 @@ def _parse_rule_ids_param(raw_value: str | None) -> list[int] | None:
             rule_ids.append(int(stripped))
         except ValueError as exc:
             raise ValidationError("rule_ids 参数必须为整数ID,使用逗号分隔") from exc
-    return rule_ids or None
+    return rule_ids if rule_ids else None
 
 
 @ns.route("/ledgers")
@@ -300,10 +258,11 @@ class AccountsLedgersResource(BaseResource):
     @ns.expect(_accounts_ledgers_list_query_parser)
     def get(self):
         """获取账户台账列表."""
-        parsed = _accounts_ledgers_list_query_parser.parse_args()
-        filters = _parse_account_filters(dict(parsed), allow_query_db_type=True)
-        sort_field = str(parsed.get("sort") or "username")
-        sort_order = str(parsed.get("order") or "asc").lower()
+        parsed = dict(_accounts_ledgers_list_query_parser.parse_args())
+        query = validate_or_raise(AccountsLedgersListQuery, parsed)
+        filters: AccountFilters = query.to_filters()
+        sort_field = query.sort_field
+        sort_order = query.sort_order
 
         def _execute():
             result = AccountsLedgerListService().list_accounts(filters, sort_field=sort_field, sort_order=sort_order)
@@ -415,8 +374,9 @@ class AccountsLedgersExportResource(BaseResource):
     @api_permission_required("view")
     def get(self):
         """导出账户台账."""
-        parsed = _accounts_filters_query_parser.parse_args()
-        filters = _parse_account_filters(dict(parsed), allow_query_db_type=True)
+        parsed = dict(_accounts_filters_query_parser.parse_args())
+        query = validate_or_raise(AccountsFiltersQuery, parsed)
+        filters: AccountFilters = query.to_filters()
 
         def _execute() -> Response:
             result = _account_export_service.export_accounts_csv(filters)

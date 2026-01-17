@@ -43,4 +43,3 @@ def test_login_service_login_from_payload_rejects_missing_username_or_password()
 
     with pytest.raises(ValidationError, match="用户名和密码不能为空"):
         service.login_from_payload({"username": "alice", "password": ""})
-

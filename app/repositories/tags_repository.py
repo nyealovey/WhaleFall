@@ -39,7 +39,8 @@ class TagsRepository:
     @staticmethod
     def list_tags_by_ids(tag_ids: Sequence[int]) -> list[Tag]:
         """按 ID 列表获取标签."""
-        normalized_ids = [int(tag_id) for tag_id in (tag_ids or []) if tag_id]
+        resolved_ids = tag_ids if tag_ids is not None else []
+        normalized_ids = [int(tag_id) for tag_id in resolved_ids if tag_id]
         if not normalized_ids:
             return []
         return Tag.query.filter(Tag.id.in_(normalized_ids)).all()
@@ -85,7 +86,7 @@ class TagsRepository:
         display_name_column = cast(ColumnElement[str], Tag.display_name)
         category_column = cast(ColumnElement[str], Tag.category)
 
-        normalized_search = (filters.search or "").strip()
+        normalized_search = filters.search.strip()
         if normalized_search:
             like_pattern = f"%{normalized_search}%"
             query = query.filter(
@@ -96,7 +97,7 @@ class TagsRepository:
                 ),
             )
 
-        normalized_category = (filters.category or "").strip()
+        normalized_category = filters.category.strip()
         if normalized_category:
             query = query.filter(category_column == normalized_category)
 
@@ -116,7 +117,7 @@ class TagsRepository:
 
         pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
         rows = [
-            TagListRowProjection(tag=tag, instance_count=int(instance_count or 0))
+            TagListRowProjection(tag=tag, instance_count=int(instance_count))
             for tag, instance_count in pagination.items
         ]
         page_result = PaginatedResult(
@@ -135,14 +136,17 @@ class TagsRepository:
         is_active_column = cast(ColumnElement[bool], Tag.is_active)
         category_column = cast(ColumnElement[str], Tag.category)
 
-        total_tags = int(db.session.query(db.func.count(tag_id_column)).scalar() or 0)
-        active_tags = int(
-            db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(True)).scalar() or 0,
-        )
-        inactive_tags = int(
-            db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(False)).scalar() or 0,
-        )
-        category_count = int(db.session.query(db.func.count(db.func.distinct(category_column))).scalar() or 0)
+        total_value = db.session.query(db.func.count(tag_id_column)).scalar()
+        total_tags = int(total_value) if total_value is not None else 0
+
+        active_value = db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(True)).scalar()
+        active_tags = int(active_value) if active_value is not None else 0
+
+        inactive_value = db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(False)).scalar()
+        inactive_tags = int(inactive_value) if inactive_value is not None else 0
+
+        category_value = db.session.query(db.func.count(db.func.distinct(category_column))).scalar()
+        category_count = int(category_value) if category_value is not None else 0
         return TagStats(
             total=total_tags,
             active=active_tags,

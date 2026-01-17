@@ -35,4 +35,3 @@ DATABASE_TABLE_SIZES_LIMIT_MAX: Final[int] = 2000
 BCRYPT_LOG_ROUNDS_MIN: Final[int] = 4
 HOUR_OF_DAY_MIN: Final[int] = 0
 HOUR_OF_DAY_MAX: Final[int] = 23
-

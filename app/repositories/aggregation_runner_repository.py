@@ -71,27 +71,21 @@ class AggregationRunnerRepository:
         period_start: date,
     ) -> list[DatabaseSizeAggregation]:
         """查询已存在的数据库级聚合记录(同实例 + 同周期类型 + 同 period_start)."""
-        return (
-            DatabaseSizeAggregation.query.filter(
-                DatabaseSizeAggregation.instance_id == instance_id,
-                DatabaseSizeAggregation.period_type == period_type,
-                DatabaseSizeAggregation.period_start == period_start,
-            )
-            .all()
-        )
+        return DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.instance_id == instance_id,
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start == period_start,
+        ).all()
 
     @staticmethod
     def list_instance_size_stats(*, instance_id: int, start_date: date, end_date: date) -> list[InstanceSizeStat]:
         """查询实例在指定时间段的统计记录."""
-        return (
-            InstanceSizeStat.query.filter(
-                InstanceSizeStat.instance_id == instance_id,
-                InstanceSizeStat.collected_date >= start_date,
-                InstanceSizeStat.collected_date <= end_date,
-                InstanceSizeStat.is_deleted.is_(False),
-            )
-            .all()
-        )
+        return InstanceSizeStat.query.filter(
+            InstanceSizeStat.instance_id == instance_id,
+            InstanceSizeStat.collected_date >= start_date,
+            InstanceSizeStat.collected_date <= end_date,
+            InstanceSizeStat.is_deleted.is_(False),
+        ).all()
 
     @staticmethod
     def get_existing_instance_aggregation(
@@ -101,12 +95,8 @@ class AggregationRunnerRepository:
         period_start: date,
     ) -> InstanceSizeAggregation | None:
         """查询已存在的实例级聚合记录(可为空)."""
-        return (
-            InstanceSizeAggregation.query.filter(
-                InstanceSizeAggregation.instance_id == instance_id,
-                InstanceSizeAggregation.period_type == period_type,
-                InstanceSizeAggregation.period_start == period_start,
-            )
-            .first()
-        )
-
+        return InstanceSizeAggregation.query.filter(
+            InstanceSizeAggregation.instance_id == instance_id,
+            InstanceSizeAggregation.period_type == period_type,
+            InstanceSizeAggregation.period_start == period_start,
+        ).first()

@@ -35,14 +35,14 @@ class InstanceStatisticsReadService:
         db_type_stats = [
             InstanceDbTypeStat(
                 db_type=cast(str, getattr(row, "db_type", "")),
-                count=int(getattr(row, "count", 0) or 0),
+                count=int(getattr(row, "count", 0)),
             )
             for row in db_type_rows
         ]
         port_stats = [
             InstancePortStat(
                 port=cast("int | None", getattr(row, "port", None)),
-                count=int(getattr(row, "count", 0) or 0),
+                count=int(getattr(row, "count", 0)),
             )
             for row in port_rows
         ]
@@ -50,7 +50,7 @@ class InstanceStatisticsReadService:
             InstanceVersionStat(
                 db_type=cast(str, getattr(row, "db_type", "")),
                 version=cast(str, getattr(row, "main_version", None) or "未知版本"),
-                count=int(getattr(row, "count", 0) or 0),
+                count=int(getattr(row, "count", 0)),
             )
             for row in version_rows
         ]

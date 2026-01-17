@@ -200,7 +200,7 @@ class PeriodCalculator:
             ValueError: 当周期类型不在支持列表中时抛出.
 
         """
-        normalized = (period_type or "").lower()
+        normalized = period_type.lower()
         if normalized not in VALID_PERIODS:
             msg = f"不支持的周期类型: {period_type!r}"
             raise ValueError(msg)

@@ -116,7 +116,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             accounts: list[RawAccount] = []
             for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
                 unique_username = f"{username}@{host}"
-                is_locked = (is_locked_flag or "").upper() == "Y"
+                is_locked_flag_text = "" if is_locked_flag is None else str(is_locked_flag)
+                is_locked = is_locked_flag_text.upper() == "Y"
                 accounts.append(
                     {
                         "username": unique_username,
@@ -128,7 +129,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                                 "original_username": username,
                                 "super_priv": is_superuser == "Y",
                                 "account_locked": is_locked,
-                                "grant_priv": (can_grant_flag or "").upper() == "Y",
+                                "grant_priv": ("" if can_grant_flag is None else str(can_grant_flag)).upper() == "Y",
                                 "plugin": plugin,
                                 "password_last_changed": (
                                     password_last_changed.isoformat() if password_last_changed else None
@@ -406,7 +407,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             try:
                 permissions = self._get_user_permissions(connection, original_username, host)
                 permissions_type_specific = permissions.get("type_specific")
-                type_specific = cast(JsonDict, permissions_type_specific) if isinstance(permissions_type_specific, dict) else {}
+                type_specific = (
+                    cast(JsonDict, permissions_type_specific) if isinstance(permissions_type_specific, dict) else {}
+                )
                 permissions["type_specific"] = type_specific
                 for key, value in existing_type_specific.items():
                     if value is not None:

@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
 from app.core.constants import DatabaseType
 from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
@@ -42,6 +42,14 @@ class FilterOptionsService:
         """初始化筛选器选项服务."""
         self._repository = repository or FilterOptionsRepository()
 
+    @staticmethod
+    def _coalesce_int(value: Any) -> int:
+        return int(value) if value is not None else 0
+
+    @staticmethod
+    def _coalesce_str(value: Any) -> str:
+        return str(value) if value is not None else ""
+
     def list_active_tag_options(self) -> list[dict[str, str]]:
         """获取启用的标签选项."""
         tags = self._repository.list_active_tags()
@@ -73,11 +81,12 @@ class FilterOptionsService:
         instances = self._repository.list_active_instances(db_type=db_type)
         items: list[CommonInstanceOptionItem] = []
         for instance in instances:
-            name = cast(str, getattr(instance, "name", "") or "")
-            instance_db_type = cast(str, getattr(instance, "db_type", "") or "")
+            resolved = cast("object", instance)
+            name = self._coalesce_str(getattr(resolved, "name", None))
+            instance_db_type = self._coalesce_str(getattr(resolved, "db_type", None))
             items.append(
                 CommonInstanceOptionItem(
-                    id=int(getattr(instance, "id", 0) or 0),
+                    id=self._coalesce_int(getattr(resolved, "id", None)),
                     name=name,
                     db_type=instance_db_type,
                     display_name=f"{name} ({instance_db_type.upper()})",
@@ -94,18 +103,19 @@ class FilterOptionsService:
         )
         items: list[CommonDatabaseOptionItem] = []
         for database in databases:
+            resolved = cast("object", database)
             items.append(
                 CommonDatabaseOptionItem(
-                    id=int(getattr(database, "id", 0) or 0),
-                    database_name=cast(str, getattr(database, "database_name", "") or ""),
-                    is_active=bool(getattr(database, "is_active", False)),
+                    id=self._coalesce_int(getattr(resolved, "id", None)),
+                    database_name=self._coalesce_str(getattr(resolved, "database_name", None)),
+                    is_active=bool(getattr(resolved, "is_active", False)),
                     first_seen_date=(
-                        database.first_seen_date.isoformat() if getattr(database, "first_seen_date", None) else None
+                        database.first_seen_date.isoformat() if getattr(resolved, "first_seen_date", None) else None
                     ),
                     last_seen_date=(
-                        database.last_seen_date.isoformat() if getattr(database, "last_seen_date", None) else None
+                        database.last_seen_date.isoformat() if getattr(resolved, "last_seen_date", None) else None
                     ),
-                    deleted_at=(database.deleted_at.isoformat() if getattr(database, "deleted_at", None) else None),
+                    deleted_at=(database.deleted_at.isoformat() if getattr(resolved, "deleted_at", None) else None),
                 ),
             )
         return CommonDatabasesOptionsResult(

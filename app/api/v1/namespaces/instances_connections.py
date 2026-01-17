@@ -167,7 +167,9 @@ def _test_existing_instance(connection_test_service: ConnectionTestService, inst
     return response
 
 
-def _test_new_connection(connection_test_service: ConnectionTestService, connection_params: InstanceConnectionTestPayload):
+def _test_new_connection(
+    connection_test_service: ConnectionTestService, connection_params: InstanceConnectionTestPayload
+):
     name = connection_params.name
     db_type = cast("str", connection_params.db_type)
     host = cast("str", connection_params.host)

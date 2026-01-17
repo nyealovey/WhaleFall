@@ -35,7 +35,7 @@ class CapacityPersistence:
             int: 成功保存的记录数
 
         """
-        rows = list(data or [])
+        rows = list(data) if data is not None else []
         if not rows:
             return 0
 
@@ -104,7 +104,7 @@ class CapacityPersistence:
             bool: 是否成功保存
 
         """
-        rows = list(data or [])
+        rows = list(data) if data is not None else []
         if not rows:
             self.logger.warning(
                 "skip_instance_stats_save_no_data",

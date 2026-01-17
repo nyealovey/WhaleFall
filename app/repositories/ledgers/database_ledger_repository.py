@@ -115,11 +115,11 @@ class DatabaseLedgerRepository:
         if filters.instance_id is not None:
             query = query.filter(Instance.id == filters.instance_id)
 
-        normalized_type = (filters.db_type or "").strip().lower()
+        normalized_type = filters.db_type.strip().lower()
         if normalized_type and normalized_type != "all":
             query = query.filter(Instance.db_type == normalized_type)
 
-        normalized_search = (filters.search or "").strip()
+        normalized_search = filters.search.strip()
         if normalized_search:
             like_pattern = f"%{normalized_search}%"
             query = query.filter(
@@ -130,7 +130,7 @@ class DatabaseLedgerRepository:
                 ),
             )
 
-        normalized_tags = [tag.strip() for tag in (filters.tags or []) if tag.strip()]
+        normalized_tags = [tag.strip() for tag in filters.tags if tag.strip()]
         if normalized_tags:
             tag_name_column = cast("Any", Tag.name)
             tag_is_active_column = cast("Any", Tag.is_active)

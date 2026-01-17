@@ -34,4 +34,3 @@ class CredentialDetailPageService:
         if credential is None:
             raise NotFoundError("凭据不存在", extra={"credential_id": credential_id})
         return CredentialDetailPageContext(credential=credential)
-

@@ -58,7 +58,9 @@ DatabasesOptionsData = ns.model(
         "limit": fields.Integer(),
     },
 )
-DatabasesOptionsSuccessEnvelope = make_success_envelope_model(ns, "DatabasesOptionsSuccessEnvelope", DatabasesOptionsData)
+DatabasesOptionsSuccessEnvelope = make_success_envelope_model(
+    ns, "DatabasesOptionsSuccessEnvelope", DatabasesOptionsData
+)
 
 DatabaseLedgerTagModel = ns.model(
     "DatabaseLedgerTag",
@@ -245,7 +247,8 @@ class DatabasesOptionsResource(BaseResource):
             result = FilterOptionsService().get_common_databases_options(
                 options,
             )
-            total_count = int(getattr(result, "total_count", 0) or 0)
+            raw_total_count = getattr(result, "total_count", 0)
+            total_count = int(raw_total_count) if raw_total_count is not None else 0
             pages = (total_count + query.limit - 1) // query.limit if total_count else 0
             payload = marshal(
                 {
@@ -388,8 +391,8 @@ class DatabasesSizesResource(BaseResource):
             result = InstanceDatabaseSizesService().fetch_sizes(options, latest_only=query.latest_only)
             databases = marshal(result.databases, INSTANCE_DATABASE_SIZE_ENTRY_FIELDS)
 
-            total = int(result.total or 0)
-            resolved_limit = int(result.limit or query.limit)
+            total = int(result.total) if result.total is not None else 0
+            resolved_limit = int(result.limit) if isinstance(result.limit, int) and result.limit > 0 else query.limit
             pages = (total + resolved_limit - 1) // resolved_limit if total else 0
 
             payload: dict[str, object] = {
@@ -452,8 +455,8 @@ class DatabaseTableSizesSnapshotResource(BaseResource):
             result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
             tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
 
-            total = int(result.total or 0)
-            resolved_limit = int(result.limit or query.limit)
+            total = int(result.total) if result.total is not None else 0
+            resolved_limit = int(result.limit) if isinstance(result.limit, int) and result.limit > 0 else query.limit
             pages = (total + resolved_limit - 1) // resolved_limit if total else 0
 
             payload: dict[str, object] = {
@@ -521,8 +524,11 @@ class DatabaseTableSizesRefreshResource(BaseResource):
                 try:
                     outcome = coordinator.refresh_snapshot(record.database_name)
                 except (ValueError, RuntimeError, ConnectionError, TimeoutError, OSError) as exc:
+                    error_message = str(exc).strip()
+                    if not error_message:
+                        error_message = "表容量采集失败"
                     return self.error_message(
-                        str(exc) or "表容量采集失败",
+                        error_message,
                         status=HttpStatus.CONFLICT,
                         message_key="SYNC_DATA_ERROR",
                         extra={"instance_id": instance.id, "database_name": record.database_name},
@@ -532,8 +538,10 @@ class DatabaseTableSizesRefreshResource(BaseResource):
                 result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
                 tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
 
-                total = int(result.total or 0)
-                resolved_limit = int(result.limit or query.limit)
+                total = int(result.total) if result.total is not None else 0
+                resolved_limit = (
+                    int(result.limit) if isinstance(result.limit, int) and result.limit > 0 else query.limit
+                )
                 pages = (total + resolved_limit - 1) // resolved_limit if total else 0
 
                 payload: dict[str, object] = {

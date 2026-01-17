@@ -69,12 +69,12 @@ class InstanceAggregationsReadService:
                     period_type=period_type,
                     period_start=period_start.isoformat() if period_start else None,
                     period_end=period_end.isoformat() if period_end else None,
-                    total_size_mb=int(total_size_mb or 0),
-                    avg_size_mb=int(avg_size_mb or 0),
-                    max_size_mb=int(max_size_mb or 0),
-                    min_size_mb=int(min_size_mb or 0),
-                    data_count=int(data_count or 0),
-                    database_count=int(database_count or 0),
+                    total_size_mb=int(total_size_mb) if total_size_mb is not None else 0,
+                    avg_size_mb=int(avg_size_mb) if avg_size_mb is not None else 0,
+                    max_size_mb=int(max_size_mb) if max_size_mb is not None else 0,
+                    min_size_mb=int(min_size_mb) if min_size_mb is not None else 0,
+                    data_count=int(data_count) if data_count is not None else 0,
+                    database_count=int(database_count) if database_count is not None else 0,
                     avg_database_count=(float(avg_database_count) if avg_database_count is not None else None),
                     max_database_count=(int(max_database_count) if max_database_count is not None else None),
                     min_database_count=(int(min_database_count) if min_database_count is not None else None),
@@ -112,11 +112,12 @@ class InstanceAggregationsReadService:
     def build_summary(self, filters: InstanceAggregationsSummaryFilters) -> InstanceAggregationsSummary:
         """汇总实例容量概览数据."""
         total_instances, total_size_mb, avg_size_mb, max_size_mb = self._repository.summarize_latest_stats(filters)
+        period_type = "all" if filters.period_type in (None, "") else filters.period_type
         return InstanceAggregationsSummary(
             total_instances=total_instances,
             total_size_mb=total_size_mb,
             avg_size_mb=avg_size_mb,
             max_size_mb=max_size_mb,
-            period_type=filters.period_type or "all",
+            period_type=period_type,
             source="instance_size_stats",
         )

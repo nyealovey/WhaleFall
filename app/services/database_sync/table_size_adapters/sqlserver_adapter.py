@@ -55,9 +55,10 @@ class SQLServerTableSizeAdapter(BaseTableSizeAdapter):
         """
 
         result = connection.execute_query(query)
+        rows = result if result is not None else []
         tables: list[dict[str, object]] = []
 
-        for row in result or []:
+        for row in rows:
             if not row:
                 continue
             schema_name = str(row[0]).strip() if row[0] is not None else ""
@@ -65,11 +66,14 @@ class SQLServerTableSizeAdapter(BaseTableSizeAdapter):
             if not schema_name or not table_name:
                 continue
 
+            size_mb_value = self._safe_to_int(row[2])
+            size_mb = 0 if size_mb_value is None else size_mb_value
+
             tables.append(
                 {
                     "schema_name": schema_name,
                     "table_name": table_name,
-                    "size_mb": self._safe_to_int(row[2]) or 0,
+                    "size_mb": size_mb,
                     "data_size_mb": self._safe_to_int(row[3]),
                     "index_size_mb": self._safe_to_int(row[4]),
                     "row_count": self._safe_to_int(

@@ -213,9 +213,16 @@ class CapacityCurrentAggregationResource(BaseResource):
         payload = request.get_json(silent=True) if request.is_json else None
         payload_dict = payload if isinstance(payload, dict) else {}
 
+        raw_period_type = payload_dict.get("period_type")
+        requested_period_type = (
+            raw_period_type.strip().lower() if isinstance(raw_period_type, str) and raw_period_type.strip() else "daily"
+        )
+        raw_scope = payload_dict.get("scope")
+        scope = raw_scope.strip().lower() if isinstance(raw_scope, str) and raw_scope.strip() else "all"
+
         aggregation_request = CurrentAggregationRequest(
-            requested_period_type=(payload_dict.get("period_type") or "daily").lower(),
-            scope=(payload_dict.get("scope") or "all").lower(),
+            requested_period_type=requested_period_type,
+            scope=scope,
         )
         context_snapshot = {
             "requested_period_type": aggregation_request.requested_period_type,

@@ -137,6 +137,9 @@ class AutoClassifyService:
             )
             raise AutoClassifyError(error_message)
 
+        raw_db_type_results = raw_result.get("db_type_results")
+        db_type_results = raw_db_type_results if isinstance(raw_db_type_results, dict) else {}
+
         result = AutoClassifyResult(
             message=raw_result.get("message") or "自动分类成功",
             classified_accounts=self._as_int(raw_result.get("classified_accounts")),
@@ -147,7 +150,7 @@ class AutoClassifyService:
                 "total_accounts": self._as_int(raw_result.get("total_accounts")),
                 "total_rules": self._as_int(raw_result.get("total_rules")),
                 "total_matches": self._as_int(raw_result.get("total_matches")),
-                "db_type_results": raw_result.get("db_type_results") or {},
+                "db_type_results": db_type_results,
             },
         )
 
@@ -195,7 +198,8 @@ class AutoClassifyService:
 
         """
         try:
-            return int(value or 0)
+            resolved = 0 if value in (None, "") else value
+            return int(resolved)
         except (TypeError, ValueError):
             return 0
 

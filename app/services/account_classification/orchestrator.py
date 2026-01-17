@@ -225,7 +225,8 @@ class AccountClassificationService:
         """
         grouped: dict[str, list[ClassificationRule]] = {}
         for rule in rules:
-            db_type = (rule.db_type or "").lower()
+            db_type_value = getattr(rule, "db_type", None)
+            db_type = "" if db_type_value is None else str(db_type_value).lower()
             grouped.setdefault(db_type, []).append(rule)
 
         for db_type, db_rules in grouped.items():

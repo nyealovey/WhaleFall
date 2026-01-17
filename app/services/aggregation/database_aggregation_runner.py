@@ -365,7 +365,7 @@ class DatabaseAggregationRunner:
                     avg_size_mb=self._to_int_value(row.avg_size_mb),
                     max_size_mb=self._to_int_value(row.max_size_mb),
                     min_size_mb=self._to_int_value(row.min_size_mb),
-                    data_count=int(row.data_count or 0),
+                    data_count=int(row.data_count) if row.data_count is not None else 0,
                     avg_data_size_mb=self._to_optional_int(row.avg_data_size_mb),
                     max_data_size_mb=self._to_optional_int(row.max_data_size_mb),
                     min_data_size_mb=self._to_optional_int(row.min_data_size_mb),

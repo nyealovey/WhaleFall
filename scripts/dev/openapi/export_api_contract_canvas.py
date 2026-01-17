@@ -82,9 +82,7 @@ def _iter_contract_canvases(*, canvas_root: Path, index_filename: str) -> list[P
     )
 
 
-def _extract_operations_from_markdown(
-    text: str, *, base_path: str
-) -> tuple[set[tuple[str, str]], list[list[str]]]:
+def _extract_operations_from_markdown(text: str, *, base_path: str) -> tuple[set[tuple[str, str]], list[list[str]]]:
     operations: set[tuple[str, str]] = set()
     table_headers: list[list[str]] = []
     lines = text.splitlines()
@@ -135,9 +133,7 @@ def _extract_operations_from_markdown(
     return operations, table_headers
 
 
-def _extract_operations_from_canvas(
-    path: Path, *, base_path: str
-) -> tuple[set[tuple[str, str]], list[list[str]]]:
+def _extract_operations_from_canvas(path: Path, *, base_path: str) -> tuple[set[tuple[str, str]], list[list[str]]]:
     obj = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(obj, dict):
         raise ValueError(f"canvas 文件不是 JSON object: {path}")
@@ -164,7 +160,12 @@ def _extract_group_label(path: Path) -> str:
     if not isinstance(obj, dict):
         return path.stem
     for node in obj.get("nodes", []):
-        if isinstance(node, dict) and node.get("type") == "group" and isinstance(node.get("label"), str) and node["label"]:
+        if (
+            isinstance(node, dict)
+            and node.get("type") == "group"
+            and isinstance(node.get("label"), str)
+            and node["label"]
+        ):
             return node["label"]
     return path.stem
 
@@ -398,9 +399,7 @@ def main() -> int:
                 print(f"  expected: {REQUIRED_ENDPOINTS_TABLE_HEADER}")
             return 1
 
-        extra_items = [
-            (path, extra_ops) for path, extra_ops in per_file_extra_ops.items() if extra_ops
-        ]
+        extra_items = [(path, extra_ops) for path, extra_ops in per_file_extra_ops.items() if extra_ops]
         if extra_items:
             print("API contract 校验失败: 发现 OpenAPI 中不存在的 endpoints(可能已过期或拼写不一致)")
             for canvas_path, extra_ops in sorted(extra_items, key=lambda x: x[0].as_posix()):
@@ -426,7 +425,9 @@ def main() -> int:
             return 1
 
         # Index freshness check (compare canonical JSON).
-        expected_index = _generate_index_canvas(spec=spec, contract_paths=contract_paths, per_file_valid_ops=per_file_valid_ops)
+        expected_index = _generate_index_canvas(
+            spec=spec, contract_paths=contract_paths, per_file_valid_ops=per_file_valid_ops
+        )
         output_path: Path = args.output
         if not output_path.exists():
             print(f"索引 canvas 不存在: {output_path}")
@@ -457,7 +458,9 @@ def main() -> int:
         return 0
 
     # Generate index.
-    index_canvas = _generate_index_canvas(spec=spec, contract_paths=contract_paths, per_file_valid_ops=per_file_valid_ops)
+    index_canvas = _generate_index_canvas(
+        spec=spec, contract_paths=contract_paths, per_file_valid_ops=per_file_valid_ops
+    )
     output_path = args.output
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(index_canvas, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

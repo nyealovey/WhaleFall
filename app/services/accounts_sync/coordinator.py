@@ -437,7 +437,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 summary.get("created", 0) + summary.get("updated", 0),
             ),
             "errors": summary.get("errors", []),
-            "message": summary.get("message", "") or "",
+            "message": ("" if summary.get("message") is None else str(summary.get("message"))),
         }
         self.logger.info(
             "accounts_sync_collection_completed",

@@ -61,4 +61,3 @@ def test_normalize_account_coerces_invalid_permission_shapes() -> None:
     assert permissions.get("system_privileges") == ["GRANT ANY PRIVILEGE"]
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
-

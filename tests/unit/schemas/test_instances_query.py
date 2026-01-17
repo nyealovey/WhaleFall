@@ -71,4 +71,3 @@ def test_instances_export_query_strips_params() -> None:
     query = validate_or_raise(InstancesExportQuery, {"search": " foo ", "db_type": " mysql "})
     assert query.search == "foo"
     assert query.db_type == "mysql"
-

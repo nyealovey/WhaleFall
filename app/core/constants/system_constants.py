@@ -100,7 +100,9 @@ class SuccessMessages:
     # 认证成功
     LOGIN_SUCCESS = "登录成功"
     LOGOUT_SUCCESS = "登出成功"
-    PASSWORD_CHANGED = "密码修改成功"  # noqa: S105 RUF100 - 用户安全提示, 来源: docs/Obsidian/standards/coding-standards.md
+    PASSWORD_CHANGED = (
+        "密码修改成功"  # noqa: S105 RUF100 - 用户安全提示, 来源: docs/Obsidian/standards/coding-standards.md
+    )
     PROFILE_UPDATED = "资料更新成功"
 
     # 业务成功

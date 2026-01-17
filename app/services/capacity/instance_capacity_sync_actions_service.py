@@ -104,7 +104,11 @@ class InstanceCapacitySyncActionsService:
                 )
 
             database_count = len(databases_data)
-            total_size_mb = sum(int(db.get("size_mb", 0) or 0) for db in databases_data)
+
+            def _coalesce_int(value: Any) -> int:
+                return int(value) if value is not None else 0
+
+            total_size_mb = sum(_coalesce_int(db.get("size_mb")) for db in databases_data)
             saved_count = coordinator.save_database_stats(databases_data)
             instance_stat_updated = coordinator.update_instance_total_size()
 

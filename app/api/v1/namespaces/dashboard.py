@@ -261,7 +261,10 @@ class DashboardChartsResource(BaseResource):
 
         def _execute():
             args = _dashboard_charts_query_parser.parse_args()
-            chart_type = (args.get("type") or "all").strip() or "all"
+            raw_type = args.get("type")
+            chart_type = raw_type.strip() if isinstance(raw_type, str) else ""
+            if not chart_type:
+                chart_type = "all"
             charts = get_chart_data(chart_type)
             response_fields = {key: DASHBOARD_CHART_FIELDS[key] for key in charts if key in DASHBOARD_CHART_FIELDS}
             payload = marshal(charts, response_fields)

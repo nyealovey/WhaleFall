@@ -40,4 +40,3 @@ def test_infra_db_session_rollback_is_limited_to_entrypoints() -> None:
         matches.extend(_scan_file(path, display_path=rel))
 
     assert not matches, "Infra 层发现 db.session.rollback 漂移:\n" + "\n".join(matches[:50])
-

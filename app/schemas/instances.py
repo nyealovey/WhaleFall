@@ -338,7 +338,5 @@ def _is_valid_host(host: str) -> bool:
         parts = host.split(".")
         return all(0 <= int(part) <= IPV4_OCTET_MAX for part in parts)
 
-    domain_pattern = (
-        r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
-    )
+    domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
     return bool(re.match(domain_pattern, host))

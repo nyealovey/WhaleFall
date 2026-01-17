@@ -62,7 +62,9 @@ InstancesOptionsData = ns.model(
         "instances": fields.List(fields.Nested(InstanceOptionItemModel)),
     },
 )
-InstancesOptionsSuccessEnvelope = make_success_envelope_model(ns, "InstancesOptionsSuccessEnvelope", InstancesOptionsData)
+InstancesOptionsSuccessEnvelope = make_success_envelope_model(
+    ns, "InstancesOptionsSuccessEnvelope", InstancesOptionsData
+)
 
 InstanceWritePayload = ns.model(
     "InstanceWritePayload",
@@ -371,7 +373,8 @@ def _normalize_import_header(value: str | None) -> str:
 
 
 def _validate_import_csv_headers(fieldnames: list[str] | None) -> None:
-    normalized_headers = {_normalize_import_header(name) for name in (fieldnames or []) if name is not None}
+    resolved_fieldnames = fieldnames if fieldnames is not None else []
+    normalized_headers = {_normalize_import_header(name) for name in resolved_fieldnames if name is not None}
     missing = INSTANCE_IMPORT_REQUIRED_FIELDS - normalized_headers
     if missing:
         missing_label = ", ".join(sorted(missing))
@@ -380,7 +383,8 @@ def _validate_import_csv_headers(fieldnames: list[str] | None) -> None:
 
 def _normalize_import_csv_row(row: Mapping[str, object] | None) -> dict[str, object]:
     normalized: dict[str, object] = {}
-    for raw_key, raw_value in (row or {}).items():
+    resolved_row = row if row is not None else {}
+    for raw_key, raw_value in resolved_row.items():
         field_name = _normalize_import_header(str(raw_key) if raw_key is not None else None)
         if field_name not in EXPECTED_INSTANCE_IMPORT_FIELDS:
             continue
@@ -741,6 +745,7 @@ class InstanceSyncCapacityActionResource(BaseResource):
             context={"instance_id": instance_id},
         )
 
+
 @ns.route("/<int:instance_id>/actions/restore")
 class InstanceRestoreActionResource(BaseResource):
     """实例恢复动作资源."""
@@ -850,7 +855,8 @@ class InstancesBatchDeleteResource(BaseResource):
                 raw,
                 operator_id=operator_id,
             )
-            deleted_count = int(result.get("deleted_count", 0) or 0)
+            raw_deleted_count = result.get("deleted_count", 0)
+            deleted_count = int(raw_deleted_count) if type(raw_deleted_count) is int else 0
             message = (
                 f"成功移入回收站 {deleted_count} 个实例"
                 if result.get("deletion_mode") == "soft"

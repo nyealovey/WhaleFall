@@ -68,7 +68,7 @@ def _parse_iso_datetime(value: str) -> datetime | None:
     `permission_facts` 是派生结构；此处不希望因为单个字段格式异常而中断整条 facts 构建。
     解析失败返回 None，上层通常会把它视作“无法判定”（例如 `_is_expired` -> False）。
     """
-    raw = (value or "").strip()
+    raw = value.strip()
     if not raw:
         return None
     try:
@@ -92,9 +92,8 @@ def _is_expired(valid_until: object) -> bool:
 def _extract_snapshot_errors(snapshot: Mapping[str, object] | None) -> list[str]:
     if not isinstance(snapshot, dict):
         return []
-    raw_errors = snapshot.get("errors") or []
-    if not isinstance(raw_errors, list):
-        return []
+    raw_errors_value = snapshot.get("errors")
+    raw_errors = raw_errors_value if isinstance(raw_errors_value, list) else []
     return [item for item in raw_errors if isinstance(item, str) and item]
 
 
@@ -302,7 +301,8 @@ def build_permission_facts(
     - Prefer snapshot categories when available (v4).
 
     """
-    db_type = str(getattr(record, "db_type", "") or "").lower()
+    db_type_value = getattr(record, "db_type", None)
+    db_type = "" if db_type_value is None else str(db_type_value).lower()
 
     errors = _extract_snapshot_errors(snapshot)
     parsed_categories = parse_permission_snapshot_categories_v4(snapshot)

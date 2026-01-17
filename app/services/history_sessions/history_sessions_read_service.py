@@ -85,19 +85,39 @@ class HistorySessionsReadService:
         )
 
     @staticmethod
+    def _as_int(value: Any) -> int:
+        # Keep legacy behavior of `int(value or 0)` without using `or`:
+        # - None / "" / [] / {} / False -> 0
+        # - "123" -> 123
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _as_str(value: Any) -> str:
+        # Keep legacy behavior of `str(value or "")` without using `or`:
+        # - None / 0 / False / "" / [] / {} -> ""
+        if not value:
+            return ""
+        return str(value)
+
+    @staticmethod
     def _to_session_item(session: object) -> SyncSessionItem:
         resolved = cast("Any", session)
         return SyncSessionItem(
-            id=int(getattr(resolved, "id", 0) or 0),
-            session_id=str(getattr(resolved, "session_id", "") or ""),
-            sync_type=str(getattr(resolved, "sync_type", "") or ""),
-            sync_category=str(getattr(resolved, "sync_category", "") or ""),
-            status=str(getattr(resolved, "status", "") or ""),
+            id=HistorySessionsReadService._as_int(getattr(resolved, "id", None)),
+            session_id=HistorySessionsReadService._as_str(getattr(resolved, "session_id", None)),
+            sync_type=HistorySessionsReadService._as_str(getattr(resolved, "sync_type", None)),
+            sync_category=HistorySessionsReadService._as_str(getattr(resolved, "sync_category", None)),
+            status=HistorySessionsReadService._as_str(getattr(resolved, "status", None)),
             started_at=(resolved.started_at.isoformat() if getattr(resolved, "started_at", None) else None),
             completed_at=(resolved.completed_at.isoformat() if getattr(resolved, "completed_at", None) else None),
-            total_instances=int(getattr(resolved, "total_instances", 0) or 0),
-            successful_instances=int(getattr(resolved, "successful_instances", 0) or 0),
-            failed_instances=int(getattr(resolved, "failed_instances", 0) or 0),
+            total_instances=HistorySessionsReadService._as_int(getattr(resolved, "total_instances", None)),
+            successful_instances=HistorySessionsReadService._as_int(getattr(resolved, "successful_instances", None)),
+            failed_instances=HistorySessionsReadService._as_int(getattr(resolved, "failed_instances", None)),
             created_by=cast("int | None", getattr(resolved, "created_by", None)),
             created_at=(resolved.created_at.isoformat() if getattr(resolved, "created_at", None) else None),
             updated_at=(resolved.updated_at.isoformat() if getattr(resolved, "updated_at", None) else None),
@@ -117,8 +137,8 @@ class HistorySessionsReadService:
                     module="history_sessions",
                     fallback=True,
                     fallback_reason="SYNC_DETAILS_LEGACY_MISSING_VERSION",
-                    session_id=str(getattr(resolved, "session_id", "") or ""),
-                    record_id=int(getattr(resolved, "id", 0) or 0),
+                    session_id=self._as_str(getattr(resolved, "session_id", None)),
+                    record_id=self._as_int(getattr(resolved, "id", None)),
                     raw_version=raw_version,
                 )
 
@@ -129,25 +149,25 @@ class HistorySessionsReadService:
             self._logger.exception(
                 "sync_details payload invalid",
                 module="history_sessions",
-                session_id=str(getattr(resolved, "session_id", "") or ""),
-                record_id=int(getattr(resolved, "id", 0) or 0),
+                session_id=self._as_str(getattr(resolved, "session_id", None)),
+                record_id=self._as_int(getattr(resolved, "id", None)),
                 error=str(exc),
             )
             raise
 
         return SyncInstanceRecordItem(
-            id=int(getattr(resolved, "id", 0) or 0),
-            session_id=str(getattr(resolved, "session_id", "") or ""),
-            instance_id=int(getattr(resolved, "instance_id", 0) or 0),
+            id=self._as_int(getattr(resolved, "id", None)),
+            session_id=self._as_str(getattr(resolved, "session_id", None)),
+            instance_id=self._as_int(getattr(resolved, "instance_id", None)),
             instance_name=cast("str | None", getattr(resolved, "instance_name", None)),
-            sync_category=str(getattr(resolved, "sync_category", "") or ""),
-            status=str(getattr(resolved, "status", "") or ""),
+            sync_category=self._as_str(getattr(resolved, "sync_category", None)),
+            status=self._as_str(getattr(resolved, "status", None)),
             started_at=(resolved.started_at.isoformat() if getattr(resolved, "started_at", None) else None),
             completed_at=(resolved.completed_at.isoformat() if getattr(resolved, "completed_at", None) else None),
-            items_synced=int(getattr(resolved, "items_synced", 0) or 0),
-            items_created=int(getattr(resolved, "items_created", 0) or 0),
-            items_updated=int(getattr(resolved, "items_updated", 0) or 0),
-            items_deleted=int(getattr(resolved, "items_deleted", 0) or 0),
+            items_synced=self._as_int(getattr(resolved, "items_synced", None)),
+            items_created=self._as_int(getattr(resolved, "items_created", None)),
+            items_updated=self._as_int(getattr(resolved, "items_updated", None)),
+            items_deleted=self._as_int(getattr(resolved, "items_deleted", None)),
             error_message=cast("str | None", getattr(resolved, "error_message", None)),
             sync_details=sync_details,
             created_at=(resolved.created_at.isoformat() if getattr(resolved, "created_at", None) else None),
