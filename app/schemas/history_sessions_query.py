@@ -103,6 +103,7 @@ class HistorySessionsListFiltersQuery(PayloadSchema):
         return _parse_sort_order(value, default="desc")
 
     def to_filters(self) -> HistorySessionsListFilters:
+        """转换为历史会话查询 filters 对象."""
         return HistorySessionsListFilters(
             sync_type=self.sync_type,
             sync_category=self.sync_category,

@@ -157,6 +157,7 @@ class CapacityDatabasesAggregationsQuery(PayloadSchema):
         return as_bool(value, default=False)
 
     def to_filters(self) -> DatabaseAggregationsFilters:
+        """转换为数据库容量聚合 filters 对象."""
         return DatabaseAggregationsFilters(
             instance_id=self.instance_id,
             db_type=self.db_type,
@@ -203,6 +204,7 @@ class CapacityDatabasesSummaryQuery(PayloadSchema):
         return _parse_optional_str(value)
 
     def to_filters(self) -> DatabaseAggregationsSummaryFilters:
+        """转换为数据库容量聚合汇总 filters 对象."""
         return DatabaseAggregationsSummaryFilters(
             instance_id=self.instance_id,
             db_type=self.db_type,
@@ -289,6 +291,7 @@ class CapacityInstancesAggregationsQuery(_CapacityInstancesDateRangeMixin):
         return as_bool(value, default=False)
 
     def to_filters(self) -> InstanceAggregationsFilters:
+        """转换为实例容量聚合 filters 对象."""
         return InstanceAggregationsFilters(
             instance_id=self.instance_id,
             db_type=self.db_type,
@@ -319,6 +322,7 @@ class CapacityInstancesSummaryQuery(_CapacityInstancesDateRangeMixin):
         return _parse_optional_str(value)
 
     def to_filters(self) -> InstanceAggregationsSummaryFilters:
+        """转换为实例容量聚合汇总 filters 对象."""
         return InstanceAggregationsSummaryFilters(
             instance_id=self.instance_id,
             db_type=self.db_type,

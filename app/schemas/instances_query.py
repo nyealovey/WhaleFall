@@ -144,6 +144,7 @@ class InstanceListFiltersQuery(PayloadSchema):
         return as_bool(value, default=False)
 
     def to_filters(self) -> InstanceListFilters:
+        """转换为实例列表 filters 对象."""
         return InstanceListFilters(
             page=self.page,
             limit=self.limit,

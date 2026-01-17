@@ -152,6 +152,7 @@ class HistoryLogsListQuery(PayloadSchema):
         return _resolve_hours(value)
 
     def to_filters(self) -> LogSearchFilters:
+        """转换为历史日志查询 filters 对象."""
         return LogSearchFilters(
             page=self.page,
             limit=self.limit,

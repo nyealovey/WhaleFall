@@ -132,6 +132,7 @@ class AccountsFiltersQuery(PayloadSchema):
         return cleaned
 
     def to_filters(self) -> AccountFilters:
+        """转换为账户筛选 filters 对象."""
         classification_filter = self.classification if self.classification not in {"", "all"} else ""
         return AccountFilters(
             page=self.page,

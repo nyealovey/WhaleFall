@@ -74,7 +74,7 @@ def _parse_stripped_text(value: Any) -> str:
 
 
 def _parse_raw_optional_str(value: Any) -> str | None:
-    """Optional string parser that does NOT strip, to preserve legacy behavior."""
+    """Parse optional string without stripping to preserve legacy behavior."""
     return value if isinstance(value, str) else None
 
 
@@ -144,6 +144,7 @@ class DatabasesOptionsQuery(PayloadSchema):
         return max(min(parsed, 1000), 1)
 
     def to_filters(self, *, resolved_instance_id: int | None = None) -> CommonDatabasesOptionsFilters:
+        """转换为通用 databases options filters 对象."""
         instance_id = resolved_instance_id if resolved_instance_id is not None else self.instance_id
         offset = (self.page - 1) * self.limit
         return CommonDatabasesOptionsFilters(instance_id=instance_id, limit=self.limit, offset=offset)
@@ -289,6 +290,7 @@ class DatabasesSizesQuery(PayloadSchema):
         return 100 if parsed < 1 else parsed
 
     def to_options(self, *, resolved_instance_id: int | None = None) -> InstanceDatabaseSizesQuery:
+        """转换为实例数据库容量 options 对象."""
         instance_id = resolved_instance_id if resolved_instance_id is not None else self.instance_id
         offset = (self.page - 1) * self.limit
         return InstanceDatabaseSizesQuery(
@@ -343,6 +345,7 @@ class DatabaseTableSizesQuery(PayloadSchema):
         instance_id: int,
         database_name: str,
     ) -> InstanceDatabaseTableSizesQuery:
+        """转换为实例表大小 options 对象."""
         offset = (self.page - 1) * self.limit
         return InstanceDatabaseTableSizesQuery(
             instance_id=instance_id,

@@ -102,6 +102,7 @@ class DatabaseVersionParser:
 
         Args:
             version: 详细版本号,例如 '8.0.32' 或 '11.2.0.1.0'.
+
         Returns:
             主版本号,例如 '8.0' 或 '11.2'.
 

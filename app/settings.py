@@ -102,7 +102,6 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         # 允许使用 env.example 里的 CSV（如 "a,b,c"），由 field_validator 做解析。
         # 同时兼容 JSON 数组格式（如 '["a","b"]'）。
-        enable_decoding=False,
         extra="ignore",
         frozen=True,
         str_strip_whitespace=True,
