@@ -51,29 +51,29 @@ class _SchedulerLockState:
 
 _LOCK_STATE = _SchedulerLockState()
 
-LOCK_IO_EXCEPTIONS: tuple[type[BaseException], ...] = (OSError,)
-JOB_REMOVAL_EXCEPTIONS: tuple[type[BaseException], ...] = (JobLookupError, LookupError)
-JOBSTORE_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+LOCK_IO_EXCEPTIONS: tuple[type[Exception], ...] = (OSError,)
+JOB_REMOVAL_EXCEPTIONS: tuple[type[Exception], ...] = (JobLookupError, LookupError)
+JOBSTORE_OPERATION_EXCEPTIONS: tuple[type[Exception], ...] = (
     SQLAlchemyError,
     JobLookupError,
     LookupError,
     RuntimeError,
 )
-SCHEDULER_INIT_EXCEPTIONS: tuple[type[BaseException], ...] = (
+SCHEDULER_INIT_EXCEPTIONS: tuple[type[Exception], ...] = (
     OSError,
     SQLAlchemyError,
     RuntimeError,
     LookupError,
     ValueError,
 )
-DEFAULT_TASK_CREATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+DEFAULT_TASK_CREATION_EXCEPTIONS: tuple[type[Exception], ...] = (
     ValueError,
     LookupError,
     RuntimeError,
     SQLAlchemyError,
     TypeError,
 )
-CONFIG_IO_EXCEPTIONS: tuple[type[BaseException], ...] = (OSError, YAMLError)
+CONFIG_IO_EXCEPTIONS: tuple[type[Exception], ...] = (OSError, YAMLError)
 CRON_FIELDS = ("second", "minute", "hour", "day", "month", "day_of_week", "year")
 TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
 TASK_FUNCTIONS: dict[str, JobFunc | str] = {
@@ -118,7 +118,7 @@ class TaskScheduler:
         绑定成功/失败事件,确保所有调度器行为集中在同一处完成.
 
         Returns:
-            None: 初始化完成后立即返回.
+            BackgroundScheduler: APScheduler 后台调度器实例.
 
         """
         # 任务存储配置 - 使用本地SQLite
@@ -323,7 +323,7 @@ def get_scheduler() -> BackgroundScheduler | None:
     """获取底层 APScheduler 实例.
 
     Returns:
-        BackgroundScheduler | None: 正在运行的调度器对象.
+        BackgroundScheduler | None: APScheduler 调度器实例.
 
     """
     return scheduler.scheduler
@@ -338,9 +338,9 @@ def _acquire_scheduler_lock() -> bool:
     """
     current_pid = os.getpid()
 
+    if _LOCK_STATE.handle and _LOCK_STATE.pid == current_pid:
+        return True
     if _LOCK_STATE.handle:
-        if _LOCK_STATE.pid == current_pid:
-            return True
         # 子进程继承了锁句柄,但并未真正持有锁,需要重新获取
         try:  # pragma: no cover - 防御性释放
             _LOCK_STATE.handle.close()
@@ -348,9 +348,6 @@ def _acquire_scheduler_lock() -> bool:
             logger.warning("继承的调度器锁句柄关闭失败", error=str(close_error))
         _LOCK_STATE.handle = None
         _LOCK_STATE.pid = None
-
-    if _LOCK_STATE.handle:
-        return True
 
     lock_path = Path("userdata") / "scheduler.lock"
     lock_path.parent.mkdir(exist_ok=True)
@@ -366,7 +363,7 @@ def _acquire_scheduler_lock() -> bool:
         logger.exception("获取调度器锁失败", error=str(lock_error))
         return False
     else:
-        handle.write(str(os.getpid()))
+        handle.write(str(current_pid))
         handle.flush()
         _LOCK_STATE.handle = handle
         _LOCK_STATE.pid = current_pid
@@ -461,7 +458,7 @@ def init_scheduler(app: Flask, settings: Settings) -> TaskScheduler | None:
         scheduler.start()
         time.sleep(2)
         _load_existing_jobs()
-        _add_default_jobs()
+        _load_tasks_from_config(force=False)
     except SCHEDULER_INIT_EXCEPTIONS as init_error:
         logger.exception("调度器初始化失败", error=str(init_error))
         return None
@@ -521,22 +518,10 @@ def _load_existing_jobs() -> None:
         # 不抛出异常,让应用继续启动
 
 
-def _add_default_jobs() -> None:
-    """在 jobstore 为空时添加默认任务.
-
-    Returns:
-        None: 调用 `_load_tasks_from_config` 后返回.
-
-    """
-    _load_tasks_from_config(force=False)
-
-
 def _reload_all_jobs() -> None:
     """强制重新加载全部任务配置.
 
-    Returns:
-        None: 触发 `_load_tasks_from_config` 后返回.
-
+    兼容历史调用点(包括测试 monkeypatch)。
     """
     _load_tasks_from_config(force=True)
 
@@ -665,7 +650,7 @@ def _build_cron_trigger(trigger_params: dict[str, Any]) -> CronTrigger:
 
 
 def _log_task_creation_failure(
-    error: BaseException,
+    error: Exception,
     *,
     force: bool,
     task_id: str,

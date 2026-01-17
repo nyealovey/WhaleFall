@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Final
 
 from app.services.database_sync.table_size_adapters.base_adapter import BaseTableSizeAdapter
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
-else:
-    Instance = Any
-    DatabaseConnection = Any
 
 _ROW_COUNT_COLUMN_INDEX: Final[int] = 5
 

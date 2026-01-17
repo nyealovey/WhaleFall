@@ -51,10 +51,8 @@ class HistoryLogsExtrasService:
     def get_log_detail(self, log_id: int) -> HistoryLogListItem:
         """获取日志详情."""
         log_entry = self._repository.get_log(log_id)
-        china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
-        timestamp_display = (
-            time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S") if china_timestamp else "-"
-        )
+        china_timestamp = time_utils.to_china(log_entry.timestamp)
+        timestamp_display = time_utils.format_china_time(log_entry.timestamp, "%Y-%m-%d %H:%M:%S")
 
         return HistoryLogListItem(
             id=log_entry.id,

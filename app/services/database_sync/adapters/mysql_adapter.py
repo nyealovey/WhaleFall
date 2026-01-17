@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
@@ -15,9 +15,6 @@ if TYPE_CHECKING:
 
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
-else:
-    Instance = Any
-    DatabaseConnection = Any
 
 
 class MySQLCapacityAdapter(BaseCapacityAdapter):
@@ -37,7 +34,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
     """
 
     _SYSTEM_DATABASES: ClassVar[set[str]] = {"information_schema", "performance_schema", "mysql", "sys"}
-    MYSQL_CAPACITY_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    MYSQL_CAPACITY_EXCEPTIONS: tuple[type[Exception], ...] = (
         ConnectionAdapterError,
         RuntimeError,
         ValueError,

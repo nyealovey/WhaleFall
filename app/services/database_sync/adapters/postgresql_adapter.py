@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
@@ -12,10 +12,6 @@ if TYPE_CHECKING:
 
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
-else:
-    Sequence = Any
-    Instance = Any
-    DatabaseConnection = Any
 
 
 class PostgreSQLCapacityAdapter(BaseCapacityAdapter):

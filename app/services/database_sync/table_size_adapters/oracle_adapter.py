@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Final
 
 import oracledb  # type: ignore[import-not-found]
 
@@ -12,10 +12,6 @@ from app.services.database_sync.table_size_adapters.base_adapter import BaseTabl
 if TYPE_CHECKING:
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection, QueryResult
-else:
-    Instance = Any
-    DatabaseConnection = Any
-    QueryResult = Any
 
 _SIZE_VALUE_COLUMN_INDEX: Final[int] = 2
 

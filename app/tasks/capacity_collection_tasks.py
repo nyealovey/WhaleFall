@@ -14,6 +14,33 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 
+def _finalize_task_failed(
+    *,
+    sync_logger: Any,
+    session_obj: Any | None,
+    active_instances: list[Any],
+    message: str,
+    exc: Exception,
+) -> dict[str, Any]:
+    sync_logger.exception(
+        message,
+        module="capacity_sync",
+        error=str(exc),
+    )
+
+    if session_obj is not None:
+        session_obj.status = "failed"
+        session_obj.completed_at = time_utils.now()
+        session_obj.failed_instances = len(active_instances)
+        db.session.commit()
+
+    return {
+        "success": False,
+        "message": f"容量同步任务执行失败: {exc!s}",
+        "error": str(exc),
+    }
+
+
 def _process_instance_with_fallback(
     *,
     runner: CapacityCollectionTaskRunner,
@@ -132,40 +159,20 @@ def collect_database_sizes() -> dict[str, Any]:
             )
 
         except CAPACITY_TASK_EXCEPTIONS as exc:
-            sync_logger.exception(
-                "容量同步任务执行失败",
-                module="capacity_sync",
-                error=str(exc),
+            return _finalize_task_failed(
+                sync_logger=sync_logger,
+                session_obj=session_obj,
+                active_instances=active_instances,
+                message="容量同步任务执行失败",
+                exc=exc,
             )
-
-            if session_obj is not None:
-                session_obj.status = "failed"
-                session_obj.completed_at = time_utils.now()
-                session_obj.failed_instances = len(active_instances)
-                db.session.commit()
-
-            return {
-                "success": False,
-                "message": f"容量同步任务执行失败: {exc!s}",
-                "error": str(exc),
-            }
         except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
-            sync_logger.exception(
-                "容量同步任务执行失败(未分类)",
-                module="capacity_sync",
-                error=str(exc),
+            return _finalize_task_failed(
+                sync_logger=sync_logger,
+                session_obj=session_obj,
+                active_instances=active_instances,
+                message="容量同步任务执行失败(未分类)",
+                exc=exc,
             )
-
-            if session_obj is not None:
-                session_obj.status = "failed"
-                session_obj.completed_at = time_utils.now()
-                session_obj.failed_instances = len(active_instances)
-                db.session.commit()
-
-            return {
-                "success": False,
-                "message": f"容量同步任务执行失败: {exc!s}",
-                "error": str(exc),
-            }
         else:
             return result

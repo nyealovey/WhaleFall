@@ -11,12 +11,6 @@ from app.repositories.log_statistics_repository import LogStatisticsRepository, 
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import CHINA_TZ, time_utils
 
-LOG_STATISTICS_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    SQLAlchemyError,
-    ValueError,
-    TypeError,
-)
-
 
 def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
     """获取最近 N 天的错误/告警日志趋势.
@@ -82,9 +76,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                 },
             )
 
-    except LOG_STATISTICS_EXCEPTIONS as exc:
-        safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
-        log_error("获取日志趋势数据失败", module="log_statistics", exception=safe_exc)
+    except (SQLAlchemyError, ValueError, TypeError) as exc:
+        log_error("获取日志趋势数据失败", module="log_statistics", exception=exc)
         return []
 
     return trend_data
@@ -109,7 +102,6 @@ def fetch_log_level_distribution() -> list[dict[str, int | str]]:
         with db.session.begin_nested():
             level_stats = LogStatisticsRepository.fetch_level_distribution()
         return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
-    except LOG_STATISTICS_EXCEPTIONS as exc:
-        safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
-        log_error("获取日志级别分布失败", module="log_statistics", exception=safe_exc)
+    except (SQLAlchemyError, ValueError, TypeError) as exc:
+        log_error("获取日志级别分布失败", module="log_statistics", exception=exc)
         return []

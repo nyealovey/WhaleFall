@@ -16,8 +16,6 @@ from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
-else:
-    Instance = Any
 
 logger = get_system_logger()
 

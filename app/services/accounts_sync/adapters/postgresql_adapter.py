@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from app.core.constants import DatabaseType
 from app.schemas.external_contracts.postgresql_account import PostgreSQLRawAccountSchema
@@ -18,13 +18,6 @@ if TYPE_CHECKING:
     from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
     from app.core.types.sync import SyncConnection
     from app.models.instance import Instance
-else:
-    Instance = Any
-    JsonDict = dict[str, Any]
-    JsonValue = Any
-    PermissionSnapshot = dict[str, Any]
-    RawAccount = dict[str, Any]
-    RemoteAccount = dict[str, Any]
 
 
 class PostgreSQLAccountAdapter(BaseAccountAdapter):
@@ -48,7 +41,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         """初始化 PostgreSQL 适配器,挂载日志与过滤器."""
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
-        self.POSTGRES_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+        self.POSTGRES_ADAPTER_EXCEPTIONS: tuple[type[Exception], ...] = (
             RuntimeError,
             ValueError,
             TypeError,
@@ -329,8 +322,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 permissions_value = account.get("permissions")
                 if not isinstance(permissions_value, dict):
                     permissions_value = {}
-                    account["permissions"] = cast(PermissionSnapshot, permissions_value)
-                permissions = cast(PermissionSnapshot, permissions_value)
+                    account["permissions"] = cast("PermissionSnapshot", permissions_value)
+                permissions = cast("PermissionSnapshot", permissions_value)
                 errors_list = permissions.get("errors")
                 if not isinstance(errors_list, list):
                     errors_list = []

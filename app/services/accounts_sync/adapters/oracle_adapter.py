@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from app.core.constants import DatabaseType
 from app.schemas.external_contracts.oracle_account import OracleRawAccountSchema
@@ -16,18 +16,12 @@ if TYPE_CHECKING:
 
     from app.core.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
     from app.models.instance import Instance
-else:
-    Instance = Any
-    JsonDict = dict[str, Any]
-    PermissionSnapshot = dict[str, Any]
-    RawAccount = dict[str, Any]
-    RemoteAccount = dict[str, Any]
 
 import oracledb  # type: ignore[import-not-found]
 
-ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
+ORACLE_DRIVER_EXCEPTIONS: tuple[type[Exception], ...] = (oracledb.Error,)
 
-ORACLE_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+ORACLE_ADAPTER_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionAdapterError,
     RuntimeError,
     LookupError,
@@ -271,8 +265,8 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 permissions_value = account.get("permissions")
                 if not isinstance(permissions_value, dict):
                     permissions_value = {}
-                    account["permissions"] = cast(PermissionSnapshot, permissions_value)
-                permissions = cast(PermissionSnapshot, permissions_value)
+                    account["permissions"] = cast("PermissionSnapshot", permissions_value)
+                permissions = cast("PermissionSnapshot", permissions_value)
                 errors_list = permissions.get("errors")
                 if not isinstance(errors_list, list):
                     errors_list = []
