@@ -8,9 +8,13 @@ from __future__ import annotations
 from flask import Blueprint, render_template
 from flask_login import login_required
 
+from app.core.constants import DatabaseType
 from app.infra.flask_typing import RouteReturn
 from app.infra.route_safety import safe_route_call
-from app.services.instances.instance_detail_page_service import InstanceDetailPageService
+from app.repositories.credentials_repository import CredentialsRepository
+from app.repositories.instance_accounts_repository import InstanceAccountsRepository
+from app.repositories.instances_repository import InstancesRepository
+from app.utils.database_type_utils import get_database_type_display_name
 from app.utils.decorators import view_required
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
@@ -37,15 +41,24 @@ def detail(instance_id: int) -> RouteReturn:
     """
 
     def _render() -> str:
-        context = InstanceDetailPageService().build_context(instance_id)
+        instances_repository = InstancesRepository()
+        instance_accounts_repository = InstanceAccountsRepository()
+
+        instance = instances_repository.get_active_instance(instance_id)
+        tags_map = instances_repository.fetch_tags_map([instance_id])
+        account_summary = instance_accounts_repository.fetch_summary(instance_id)
+        credentials = CredentialsRepository.list_active_credentials()
+        database_type_options = [
+            {"value": db_type, "label": get_database_type_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
+        ]
 
         return render_template(
             "instances/detail.html",
-            instance=context.instance,
-            tags=context.tags,
-            account_summary=context.account_summary,
-            credentials=context.credentials,
-            database_type_options=context.database_type_options,
+            instance=instance,
+            tags=tags_map.get(instance_id, []),
+            account_summary=account_summary,
+            credentials=credentials,
+            database_type_options=database_type_options,
         )
 
     return safe_route_call(
