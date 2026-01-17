@@ -9,7 +9,7 @@ from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
-from app.api.v1.resources.base import BaseResource
+from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import new_parser
 from app.api.v1.restx_models.credentials import CREDENTIAL_LIST_ITEM_FIELDS
@@ -103,13 +103,6 @@ _credentials_list_query_parser.add_argument("sort", type=str, default="created_a
 _credentials_list_query_parser.add_argument("order", type=str, default="desc", location="args")
 
 
-def _get_raw_payload() -> object:
-    if request.is_json:
-        payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
-    return request.form
-
-
 @ns.route("")
 class CredentialsResource(BaseResource):
     """凭据列表资源."""
@@ -170,7 +163,7 @@ class CredentialsResource(BaseResource):
     @require_csrf
     def post(self):
         """创建凭据."""
-        payload = cast(Any, _get_raw_payload())
+        payload = cast(Any, get_raw_payload())
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -232,7 +225,7 @@ class CredentialDetailResource(BaseResource):
     @require_csrf
     def put(self, credential_id: int):
         """更新凭据."""
-        payload = cast(Any, _get_raw_payload())
+        payload = cast(Any, get_raw_payload())
         operator_id = getattr(current_user, "id", None)
 
         def _execute():

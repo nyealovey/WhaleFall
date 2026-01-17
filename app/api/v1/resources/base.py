@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, Unpack, cast
 
-from flask import Response
+from flask import Response, request
 from flask_restx import Resource
 
 from app.core.constants import HttpStatus
@@ -17,6 +17,18 @@ if TYPE_CHECKING:
     from app.core.types import JsonDict, JsonValue, RouteSafetyOptions
 
 R = TypeVar("R")
+
+
+def get_raw_payload() -> object:
+    """读取请求体（JSON dict 或 form）.
+
+    - 当 request 为 JSON：只接受 dict，其他类型视为 {}
+    - 否则回退到 `request.form`
+    """
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        return payload if isinstance(payload, dict) else {}
+    return request.form
 
 
 class BaseResource(Resource):

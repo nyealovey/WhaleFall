@@ -15,6 +15,7 @@ from pydantic import AliasChoices, Field, field_validator
 from app.core.constants.system_constants import LogLevel
 from app.core.types.history_logs import LogSearchFilters
 from app.schemas.base import PayloadSchema
+from app.schemas.query_parsers import parse_int, parse_text
 
 _ALLOWED_SORT_ORDERS = {"asc", "desc"}
 _DEFAULT_PAGE = 1
@@ -23,37 +24,8 @@ _MAX_LIMIT = 200
 _MAX_HOURS = 24 * 90
 
 
-def _parse_int(value: Any, *, default: int) -> int:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        raise TypeError("参数必须为整数")
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return default
-        try:
-            return int(stripped, 10)
-        except ValueError as exc:
-            raise ValueError("参数必须为整数") from exc
-    try:
-        return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("参数必须为整数") from exc
-
-
-def _parse_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value.strip()
-    return str(value).strip()
-
-
 def _parse_optional_iso_datetime(value: Any, *, param_name: str) -> datetime | None:
-    cleaned = _parse_text(value)
+    cleaned = parse_text(value)
     if not cleaned:
         return None
     try:
@@ -65,7 +37,7 @@ def _parse_optional_iso_datetime(value: Any, *, param_name: str) -> datetime | N
 def _resolve_hours(value: Any) -> int | None:
     if value is None:
         return None
-    hours = _parse_int(value, default=0)
+    hours = parse_int(value, default=0)
     if hours < 1:
         raise ValueError("hours 参数必须为正整数")
     return min(hours, _MAX_HOURS)
@@ -88,25 +60,25 @@ class HistoryLogsListQuery(PayloadSchema):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_LIMIT)
+        parsed = parse_int(value, default=_DEFAULT_LIMIT)
         return max(min(parsed, _MAX_LIMIT), 1)
 
     @field_validator("sort_field", mode="before")
     @classmethod
     def _parse_sort_field(cls, value: Any) -> str:
-        cleaned = _parse_text(value).lower()
+        cleaned = parse_text(value).lower()
         return cleaned or "timestamp"
 
     @field_validator("sort_order", mode="before")
     @classmethod
     def _parse_sort_order(cls, value: Any) -> str:
-        cleaned = _parse_text(value).lower()
+        cleaned = parse_text(value).lower()
         if not cleaned:
             return "desc"
         if cleaned in _ALLOWED_SORT_ORDERS:
@@ -117,7 +89,7 @@ class HistoryLogsListQuery(PayloadSchema):
     @field_validator("level", mode="before")
     @classmethod
     def _parse_level(cls, value: Any) -> LogLevel | None:
-        cleaned = _parse_text(value)
+        cleaned = parse_text(value)
         if not cleaned:
             return None
         try:
@@ -128,13 +100,13 @@ class HistoryLogsListQuery(PayloadSchema):
     @field_validator("module", mode="before")
     @classmethod
     def _parse_module(cls, value: Any) -> str | None:
-        cleaned = _parse_text(value)
+        cleaned = parse_text(value)
         return cleaned if cleaned else None
 
     @field_validator("search", mode="before")
     @classmethod
     def _parse_search(cls, value: Any) -> str:
-        return _parse_text(value)
+        return parse_text(value)
 
     @field_validator("start_time", mode="before")
     @classmethod

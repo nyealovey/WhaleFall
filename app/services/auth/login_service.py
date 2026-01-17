@@ -65,40 +65,6 @@ class LoginService:
             return user
         return None
 
-    @staticmethod
-    def build_login_result(user: User) -> LoginResult:
-        """生成登录结果(写 session + 生成 JWT).
-
-        Args:
-            user: 已认证的用户对象.
-
-        Returns:
-            LoginResult: 登录结果.
-
-        Raises:
-            AuthorizationError: 当用户被禁用.
-
-        """
-        if not user.is_active:
-            raise AuthorizationError(
-                message=ErrorMessages.ACCOUNT_DISABLED,
-                message_key="ACCOUNT_DISABLED",
-            )
-
-        login_user(user, remember=True)
-        access_token = create_access_token(identity=str(user.id))
-        refresh_token = create_refresh_token(identity=str(user.id))
-        return LoginResult(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            user={
-                "id": user.id,
-                "username": user.username,
-                "role": user.role,
-                "is_active": user.is_active,
-            },
-        )
-
     def login(self, *, username: str, password: str) -> LoginResult:
         """登录入口: 认证并构造登录结果.
 
@@ -120,4 +86,23 @@ class LoginService:
                 message=ErrorMessages.INVALID_CREDENTIALS,
                 message_key="INVALID_CREDENTIALS",
             )
-        return self.build_login_result(user)
+
+        if not user.is_active:
+            raise AuthorizationError(
+                message=ErrorMessages.ACCOUNT_DISABLED,
+                message_key="ACCOUNT_DISABLED",
+            )
+
+        login_user(user, remember=True)
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
+        return LoginResult(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user={
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "is_active": user.is_active,
+            },
+        )

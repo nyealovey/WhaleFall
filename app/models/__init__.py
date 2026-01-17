@@ -38,6 +38,25 @@ __all__ = [
     "User",
 ]
 
+_MODEL_MODULE_MAP: dict[str, str] = {
+    "AccountClassification": "app.models.account_classification",
+    "AccountClassificationAssignment": "app.models.account_classification",
+    "ClassificationRule": "app.models.account_classification",
+    "AccountPermission": "app.models.account_permission",
+    "Credential": "app.models.credential",
+    "DatabaseSizeAggregation": "app.models.database_size_aggregation",
+    "DatabaseSizeStat": "app.models.database_size_stat",
+    "Instance": "app.models.instance",
+    "InstanceAccount": "app.models.instance_account",
+    "InstanceDatabase": "app.models.instance_database",
+    "InstanceSizeAggregation": "app.models.instance_size_aggregation",
+    "InstanceSizeStat": "app.models.instance_size_stat",
+    "PermissionConfig": "app.models.permission_config",
+    "SyncInstanceRecord": "app.models.sync_instance_record",
+    "SyncSession": "app.models.sync_session",
+    "User": "app.models.user",
+}
+
 if TYPE_CHECKING:
     from app.models.account_classification import (
         AccountClassification,
@@ -61,51 +80,13 @@ if TYPE_CHECKING:
 
 def __getattr__(name: str) -> object:
     """延迟加载模型, 避免初始化周期引发的循环导入."""
-    if name not in __all__:
+    try:
+        module_path = _MODEL_MODULE_MAP[name]
+    except KeyError:
         msg = f"module 'app.models' has no attribute {name}"
-        raise AttributeError(msg)
+        raise AttributeError(msg) from None
 
-    module_map = {
-        "AccountClassification": "app.models.account_classification",
-        "AccountClassificationAssignment": "app.models.account_classification",
-        "ClassificationRule": "app.models.account_classification",
-        "AccountPermission": "app.models.account_permission",
-        "Credential": "app.models.credential",
-        "DatabaseSizeAggregation": "app.models.database_size_aggregation",
-        "DatabaseSizeStat": "app.models.database_size_stat",
-        "Instance": "app.models.instance",
-        "InstanceAccount": "app.models.instance_account",
-        "InstanceDatabase": "app.models.instance_database",
-        "InstanceSizeAggregation": "app.models.instance_size_aggregation",
-        "InstanceSizeStat": "app.models.instance_size_stat",
-        "PermissionConfig": "app.models.permission_config",
-        "SyncInstanceRecord": "app.models.sync_instance_record",
-        "SyncSession": "app.models.sync_session",
-        "User": "app.models.user",
-    }
-
-    module = import_module(module_map[name])
+    module = import_module(module_path)
     value = getattr(module, name)
     globals()[name] = value
     return value
-
-
-# 导出所有模型
-__all__ = [
-    "AccountClassification",
-    "AccountClassificationAssignment",
-    "AccountPermission",
-    "ClassificationRule",
-    "Credential",
-    "DatabaseSizeAggregation",
-    "DatabaseSizeStat",
-    "Instance",
-    "InstanceAccount",
-    "InstanceDatabase",
-    "InstanceSizeAggregation",
-    "InstanceSizeStat",
-    "PermissionConfig",
-    "SyncInstanceRecord",
-    "SyncSession",
-    "User",
-]

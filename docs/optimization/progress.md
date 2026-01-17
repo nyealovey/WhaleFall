@@ -11,7 +11,7 @@
 
 ## Latest Verification（最近一次验证）
 
-- Date: 2026-01-17T12:23:25+0800
+- Date: 2026-01-17T14:07:13+0800
 - Result: PASS (`make format && make typecheck && uv run pytest -m unit`)
 
 ## Modules（按依赖→耦合排序；同层级 CRUD→同步/自动化）
@@ -29,14 +29,14 @@
 - [x] app/settings.py（配置读取/默认值/校验）
 - [x] app/config/*.yaml（过滤器/调度任务配置）
 - [x] app/infra（logging/route_safety/error_mapping/...）
-- [ ] app/schemas（base/validation/contracts）
-- [ ] app/models（ORM）
-- [ ] app/repositories（数据访问）
-- [ ] app/api/v1（API 封套/错误口径/契约边界）
+- [x] app/schemas（base/validation/contracts）
+- [x] app/models（ORM）
+- [x] app/repositories（数据访问）
+- [x] app/api/v1（API 封套/错误口径/契约边界）
 
 ### 业务层（CRUD 为主）
 
-- [ ] services/auth + routes/auth + templates/auth（认证）
+- [x] services/auth + routes/auth + templates/auth（认证）
 - [ ] services/users + routes/users + templates/users（用户）
 - [ ] services/credentials + routes/credentials + templates/credentials（凭证）
 - [ ] services/tags + routes/tags + templates/tags（标签）
@@ -82,3 +82,8 @@
 - 2026-01-17 app/utils/misc: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 app/config/*.yaml: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 app/infra: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/schemas: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/models: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/repositories: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 app/api/v1: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/auth: PASS (make format/typecheck/pytest -m unit)

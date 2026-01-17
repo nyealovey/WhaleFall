@@ -22,6 +22,7 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import instance_tags
+from app.repositories.instances_repository import InstancesRepository
 
 
 class InstancesBatchRepository:
@@ -30,11 +31,7 @@ class InstancesBatchRepository:
     @staticmethod
     def list_instances_by_ids(instance_ids: list[int]) -> list[Instance]:
         """按 ID 列表获取实例."""
-        resolved_ids = instance_ids if instance_ids is not None else []
-        normalized_ids = [int(instance_id) for instance_id in resolved_ids if instance_id]
-        if not normalized_ids:
-            return []
-        return Instance.query.filter(Instance.id.in_(normalized_ids)).all()
+        return InstancesRepository.list_instances_by_ids(instance_ids)
 
     @staticmethod
     def fetch_existing_instance_names(names: list[str]) -> set[str]:

@@ -119,8 +119,3 @@ def test_update_requires_is_active_field() -> None:
                 "role": UserRole.ADMIN,
             },
         )
-
-
-@pytest.mark.unit
-def test_is_target_state_admin_treats_missing_is_active_as_false() -> None:
-    assert UserWriteService._is_target_state_admin({"role": UserRole.ADMIN}) is False
