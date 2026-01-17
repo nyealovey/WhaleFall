@@ -390,7 +390,7 @@ def build_permission_facts(
     return {
         "version": 2,
         "db_type": db_type,
-        "capabilities": sorted(set(capabilities)),
+        "capabilities": sorted(capabilities),
         "capability_reasons": capability_reasons,
         "roles": sorted(set(roles)),
         "privileges": privileges,

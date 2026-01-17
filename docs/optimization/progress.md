@@ -11,7 +11,7 @@
 
 ## Latest Verification（最近一次验证）
 
-- Date: 2026-01-17T19:57:30+0800
+- Date: 2026-01-17T22:00:27+0800
 - Result: PASS (`make format && make typecheck && uv run pytest -m unit`)
 
 ## Modules（按依赖→耦合排序；同层级 CRUD→同步/自动化）
@@ -38,7 +38,7 @@
 - [x] app/models（ORM）
 - [x] app/repositories（数据访问）
 - [x] app/api/v1（API 封套/错误口径/契约边界）
-- [ ] templates/base.html + templates/components + templates/errors + routes/main.py（UI 基础壳/组件/错误页/首页）
+- [x] templates/base.html + templates/components + templates/errors + routes/main.py（UI 基础壳/组件/错误页/首页）
 
 ### 业务层（CRUD 为主）
 
@@ -58,8 +58,8 @@
 - [x] services/common（通用服务）
 - [x] services/connection_adapters + services/connections（连接/适配器）
 - [x] services/cache + services/cache_service + api/v1/namespaces/cache.py（缓存）
-- [ ] services/accounts_permissions（权限快照/事实构建，供账户同步/分类复用）
-- [ ] services/database_type_service.py（数据库类型配置/表单选项）
+- [x] services/accounts_permissions（权限快照/事实构建，供账户同步/分类复用）
+- [x] services/database_type_service.py（数据库类型配置/表单选项）
 - [x] services/partition（分区）
 - [x] services/files（文件）
 - [x] services/health + api/v1/namespaces/health.py（健康检查）
@@ -72,7 +72,7 @@
 - [x] database_sync（services/database_sync）
 - [x] capacity-sync（services/capacity + tasks/capacity_* + api/v1/namespaces/capacity.py + templates/capacity；含聚合统计）
 - [x] account_classification（services/account_classification + utils/account_classification_dsl_v4.py）
-- [ ] partition-admin（services/partition + api/v1/namespaces/partition.py + routes/partition.py + templates/admin/partitions）
+- [x] partition-admin（services/partition + api/v1/namespaces/partition.py + routes/partition.py + templates/admin/partitions）
 
 ## Verification Log（每模块一条）
 
@@ -117,3 +117,7 @@
 - 2026-01-17 database_sync: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 capacity-sync: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 account_classification: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/accounts_permissions: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/database_type_service.py: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 partition-admin: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 templates/base.html + templates/components + templates/errors + routes/main.py: PASS (make format/typecheck/pytest -m unit)

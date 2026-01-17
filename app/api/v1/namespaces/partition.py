@@ -286,8 +286,9 @@ class PartitionsResource(BaseResource):
     def post(self):
         """创建分区."""
         parsed_json = request.get_json(silent=True)
-        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        partition_date_str = raw.get("date") if isinstance(raw, dict) else None
+        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
+        raw_date = raw.get("date")
+        partition_date_str = raw_date if isinstance(raw_date, str) else None
 
         def _execute():
             result = PartitionManagementService().create_partition_from_payload(raw)
@@ -335,8 +336,9 @@ class PartitionCleanupResource(BaseResource):
     def post(self):
         """清理旧分区."""
         parsed_json = request.get_json(silent=True)
-        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        raw_retention = raw.get("retention_months") if isinstance(raw, dict) else None
+        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
+        raw_retention_value = raw.get("retention_months")
+        raw_retention = raw_retention_value if isinstance(raw_retention_value, int) else None
 
         def _execute():
             result = PartitionManagementService().cleanup_old_partitions_from_payload(raw)
