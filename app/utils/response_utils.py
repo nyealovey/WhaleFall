@@ -113,21 +113,6 @@ def jsonify_unified_success(*args: object, **kwargs: object) -> tuple[Response, 
     return jsonify(payload), status
 
 
-def jsonify_unified_error(*args: object, **kwargs: object) -> tuple[Response, int]:
-    """返回 Flask Response 对象的错误响应便捷函数.
-
-    Args:
-        *args: 传递给 unified_error_response 的位置参数.
-        **kwargs: 传递给 unified_error_response 的关键字参数.
-
-    Returns:
-        Flask Response 对象和 HTTP 状态码的元组.
-
-    """
-    payload, status = unified_error_response(*args, **kwargs)  # type: ignore[arg-type]
-    return jsonify(payload), status
-
-
 def jsonify_unified_error_message(
     message: str,
     *,

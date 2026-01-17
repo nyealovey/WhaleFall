@@ -4,9 +4,9 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import ParamSpec, overload
+from typing import ParamSpec
 
-from flask import Response, current_app, flash, has_app_context, redirect, request, url_for
+from flask import Response, current_app, flash, redirect, request, url_for
 from flask.typing import ResponseReturnValue
 from flask_caching import Cache
 from flask_login import current_user
@@ -225,14 +225,12 @@ class RateLimiter:
 
         """
         key = self._get_memory_key(context.identifier, context.endpoint)
-
-        if key not in self.memory_store:
-            self.memory_store[key] = []
+        requests = self.memory_store.setdefault(key, [])
 
         # 清理过期记录
-        self.memory_store[key] = [timestamp for timestamp in self.memory_store[key] if timestamp > context.window_start]
+        requests[:] = [timestamp for timestamp in requests if timestamp > context.window_start]
 
-        current_count = len(self.memory_store[key])
+        current_count = len(requests)
 
         if current_count >= context.limit:
             return {
@@ -243,7 +241,7 @@ class RateLimiter:
             }
 
         # 添加当前请求
-        self.memory_store[key].append(context.current_time)
+        requests.append(context.current_time)
 
         return {
             "allowed": True,
@@ -270,34 +268,14 @@ class RateLimiterRegistry:
         return cls._limiter
 
 
-@overload
 def login_rate_limit(
-    func: Callable[P, ResponseReturnValue],
-    *,
-    limit: int | None = ...,
-    window: int | None = ...,
-) -> Callable[P, ResponseReturnValue]: ...
-
-
-@overload
-def login_rate_limit(
-    func: None = None,
-    *,
-    limit: int | None = ...,
-    window: int | None = ...,
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]]: ...
-
-
-def login_rate_limit(
-    func: Callable[P, ResponseReturnValue] | None = None,
     *,
     limit: int | None = None,
     window: int | None = None,
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]] | Callable[P, ResponseReturnValue]:
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]]:
     """登录接口速率限制装饰器.
 
     Args:
-        func: 被装饰的函数.
         limit: 可选自定义限制次数.
         window: 可选自定义时间窗口(秒).
 
@@ -309,27 +287,19 @@ def login_rate_limit(
     def decorator(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
         @wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
-            if request.method.upper() in SAFE_METHODS:
+            if request.method in SAFE_METHODS:
                 return f(*args, **kwargs)
 
-            if has_app_context():
-                effective_limit = (
-                    limit
-                    if limit is not None
-                    else int(
-                        current_app.config.get("LOGIN_RATE_LIMIT", DEFAULT_LOGIN_RATE_LIMIT),
-                    )
-                )
-                effective_window = (
-                    window
-                    if window is not None
-                    else int(
-                        current_app.config.get("LOGIN_RATE_WINDOW", DEFAULT_LOGIN_RATE_WINDOW_SECONDS),
-                    )
-                )
-            else:  # pragma: no cover - 防御性: 正常请求下总有 app context
-                effective_limit = limit if limit is not None else DEFAULT_LOGIN_RATE_LIMIT
-                effective_window = window if window is not None else DEFAULT_LOGIN_RATE_WINDOW_SECONDS
+            effective_limit = (
+                limit
+                if limit is not None
+                else int(current_app.config.get("LOGIN_RATE_LIMIT", DEFAULT_LOGIN_RATE_LIMIT))
+            )
+            effective_window = (
+                window
+                if window is not None
+                else int(current_app.config.get("LOGIN_RATE_WINDOW", DEFAULT_LOGIN_RATE_WINDOW_SECONDS))
+            )
 
             endpoint = "login_attempts"
             identifier = f"{_extract_login_username()}:{_get_client_ip()}"
@@ -387,41 +357,19 @@ def login_rate_limit(
 
         return wrapped
 
-    if func is None:
-        return decorator
-    return decorator(func)
-
-
-@overload
-def password_reset_rate_limit(
-    func: Callable[P, ResponseReturnValue],
-    *,
-    limit: int | None = ...,
-    window: int | None = ...,
-) -> Callable[P, ResponseReturnValue]: ...
-
-
-@overload
-def password_reset_rate_limit(
-    func: None = None,
-    *,
-    limit: int | None = ...,
-    window: int | None = ...,
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]]: ...
+    return decorator
 
 
 def password_reset_rate_limit(
-    func: Callable[P, ResponseReturnValue] | None = None,
     *,
     limit: int | None = None,
     window: int | None = None,
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]] | Callable[P, ResponseReturnValue]:
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]]:
     """密码重置速率限制装饰器.
 
     默认限制:3 次/小时.
 
     Args:
-        func: 被装饰的函数.
         limit: 可选自定义限制次数,默认 3 次.
         window: 可选自定义时间窗口(秒),默认 1 小时.
 
@@ -429,7 +377,7 @@ def password_reset_rate_limit(
         包装后的视图函数.
 
     Example:
-        >>> @password_reset_rate_limit
+        >>> @password_reset_rate_limit()
         ... def reset_password():
         ...     pass
 
@@ -438,21 +386,15 @@ def password_reset_rate_limit(
     def decorator(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
         @wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
-            if request.method.upper() in SAFE_METHODS:
+            if request.method in SAFE_METHODS:
                 return f(*args, **kwargs)
 
-            if has_app_context():
-                effective_limit = limit if limit is not None else DEFAULT_PASSWORD_RESET_LIMIT
-                effective_window = (
-                    window
-                    if window is not None
-                    else int(
-                        current_app.config.get("PERMANENT_SESSION_LIFETIME", DEFAULT_PASSWORD_RESET_WINDOW_SECONDS),
-                    )
-                )
-            else:  # pragma: no cover - 防御性: 正常请求下总有 app context
-                effective_limit = limit if limit is not None else DEFAULT_PASSWORD_RESET_LIMIT
-                effective_window = window if window is not None else DEFAULT_PASSWORD_RESET_WINDOW_SECONDS
+            effective_limit = limit if limit is not None else DEFAULT_PASSWORD_RESET_LIMIT
+            effective_window = (
+                window
+                if window is not None
+                else int(current_app.config.get("PERMANENT_SESSION_LIFETIME", DEFAULT_PASSWORD_RESET_WINDOW_SECONDS))
+            )
 
             endpoint = "password_reset_attempts"
             user_id = getattr(current_user, "id", None)
@@ -512,9 +454,7 @@ def password_reset_rate_limit(
 
         return wrapped
 
-    if func is None:
-        return decorator
-    return decorator(func)
+    return decorator
 
 
 # 初始化速率限制器
