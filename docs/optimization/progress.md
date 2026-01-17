@@ -11,7 +11,7 @@
 
 ## Latest Verification（最近一次验证）
 
-- Date: 2026-01-17T14:07:13+0800
+- Date: 2026-01-17T15:40:13+0800
 - Result: PASS (`make format && make typecheck && uv run pytest -m unit`)
 
 ## Modules（按依赖→耦合排序；同层级 CRUD→同步/自动化）
@@ -37,12 +37,12 @@
 ### 业务层（CRUD 为主）
 
 - [x] services/auth + routes/auth + templates/auth（认证）
-- [ ] services/users + routes/users + templates/users（用户）
-- [ ] services/credentials + routes/credentials + templates/credentials（凭证）
-- [ ] services/tags + routes/tags + templates/tags（标签）
-- [ ] services/instances + routes/instances + templates/instances（实例）
-- [ ] services/accounts + routes/accounts + templates/accounts（账户）
-- [ ] services/ledgers + repositories/ledgers + templates/(TBD)（台账）
+- [x] services/users + routes/users + templates/users（用户）
+- [x] services/credentials + routes/credentials + templates/credentials（凭证）
+- [x] services/tags + routes/tags + templates/tags（标签）
+- [x] services/instances + routes/instances + templates/instances（实例）
+- [x] services/accounts + routes/accounts + templates/accounts（账户）
+- [x] services/ledgers + repositories/ledgers + templates/(TBD)（台账）
 - [ ] services/history_logs + services/history_sessions + routes/history + templates/history（历史）
 - [ ] services/dashboard + services/statistics + services/aggregation + routes/(TBD) + templates/dashboard（仪表盘/统计）
 
@@ -87,3 +87,9 @@
 - 2026-01-17 app/repositories: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 app/api/v1: PASS (make format/typecheck/pytest -m unit)
 - 2026-01-17 services/auth: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/users: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/credentials: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/tags: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/instances: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/accounts: PASS (make format/typecheck/pytest -m unit)
+- 2026-01-17 services/ledgers: PASS (make format/typecheck/pytest -m unit)
