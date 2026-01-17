@@ -106,6 +106,3 @@ def chrome_devtools() -> RouteReturn:
         action="chrome_devtools",
         public_error="加载 DevTools 配置失败",
     )
-
-
-# Admin route removed - admin/management.html deleted
