@@ -16,6 +16,11 @@
 
 ## Modules（按依赖→耦合排序；同层级 CRUD→同步/自动化）
 
+> 入口扫描口径（用于“是否覆盖全部功能模块”的校验）：
+> - 后端业务：`app/services/*`、`app/tasks/*`
+> - API 功能入口：`app/api/v1/namespaces/*.py`
+> - Web 页面入口：`app/routes/*.py` + `app/templates/*`
+
 ### 基础层（被依赖最多）
 
 - [x] app/core/constants（系统常量）
@@ -33,36 +38,41 @@
 - [x] app/models（ORM）
 - [x] app/repositories（数据访问）
 - [x] app/api/v1（API 封套/错误口径/契约边界）
+- [ ] templates/base.html + templates/components + templates/errors + routes/main.py（UI 基础壳/组件/错误页/首页）
 
 ### 业务层（CRUD 为主）
 
-- [x] services/auth + routes/auth + templates/auth（认证）
-- [x] services/users + routes/users + templates/users（用户）
-- [x] services/credentials + routes/credentials + templates/credentials（凭证）
-- [x] services/tags + routes/tags + templates/tags（标签）
-- [x] services/instances + routes/instances + templates/instances（实例）
-- [x] services/accounts + routes/accounts + templates/accounts（账户）
-- [x] services/ledgers + repositories/ledgers + templates/(TBD)（台账）
-- [x] services/history_logs + services/history_sessions + routes/history + templates/history（历史）
-- [x] services/dashboard + services/statistics + services/aggregation + routes/(TBD) + templates/dashboard（仪表盘/统计）
+- [x] services/auth + api/v1/namespaces/auth.py + routes/auth.py + templates/auth（认证）
+- [x] services/users + api/v1/namespaces/users.py + routes/users.py + templates/users（用户）
+- [x] services/credentials + api/v1/namespaces/credentials.py + routes/credentials.py + templates/credentials（凭证）
+- [x] services/tags + api/v1/namespaces/tags.py + templates/tags（标签；含 tags/bulk 批量分配/移除）
+- [x] services/instances + api/v1/namespaces/instances.py + api/v1/namespaces/instances_connections.py + api/v1/namespaces/instances_accounts_sync.py + templates/instances（实例；含连接状态/同步入口）
+- [x] services/accounts + api/v1/namespaces/accounts.py + api/v1/namespaces/accounts_classifications.py + templates/accounts（账户；含分类管理）
+- [x] services/ledgers + api/v1/namespaces/databases.py + templates/databases（数据库台账；含导出）
+- [x] services/history_logs + api/v1/namespaces/logs.py + templates/history/logs（日志中心）
+- [x] services/history_sessions + services/sync_session_service.py + api/v1/namespaces/sessions.py + templates/history/sessions（同步会话）
+- [x] services/dashboard + services/statistics + services/aggregation + api/v1/namespaces/dashboard.py + routes/dashboard.py + templates/dashboard（仪表盘/统计）
 
 ### 基础服务（被多业务复用）
 
 - [x] services/common（通用服务）
 - [x] services/connection_adapters + services/connections（连接/适配器）
-- [x] services/cache + services/cache_service（缓存）
+- [x] services/cache + services/cache_service + api/v1/namespaces/cache.py（缓存）
+- [ ] services/accounts_permissions（权限快照/事实构建，供账户同步/分类复用）
+- [ ] services/database_type_service.py（数据库类型配置/表单选项）
 - [x] services/partition（分区）
 - [x] services/files（文件）
-- [x] services/health（健康检查）
+- [x] services/health + api/v1/namespaces/health.py（健康检查）
 - [x] services/logging（日志）
 
 ### 同步/自动化（高耦合/复杂流程）
 
-- [x] scheduler（app/scheduler.py + services/scheduler + core/constants/scheduler_jobs.py）
+- [x] scheduler（app/scheduler.py + services/scheduler + api/v1/namespaces/scheduler.py + routes/scheduler.py + templates/admin/scheduler）
 - [x] accounts_sync（services/accounts_sync + tasks/accounts_sync_tasks.py）
 - [x] database_sync（services/database_sync）
-- [x] capacity-sync（services/capacity + tasks/capacity_*）
+- [x] capacity-sync（services/capacity + tasks/capacity_* + api/v1/namespaces/capacity.py + templates/capacity；含聚合统计）
 - [x] account_classification（services/account_classification + utils/account_classification_dsl_v4.py）
+- [ ] partition-admin（services/partition + api/v1/namespaces/partition.py + routes/partition.py + templates/admin/partitions）
 
 ## Verification Log（每模块一条）
 
