@@ -398,4 +398,3 @@ class DslV4Evaluator:
             bucket = value.get(database)
             return name in self._ensure_str_list(bucket)
         return any(name in self._ensure_str_list(bucket) for bucket in value.values())
-

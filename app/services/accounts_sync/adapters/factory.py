@@ -43,7 +43,7 @@ def get_account_adapter(db_type: str) -> BaseAccountAdapter:
         'MySQLAccountAdapter'
 
     """
-    normalized = (db_type or "").lower()
+    normalized = db_type.lower()
     adapter_cls = _ADAPTERS.get(normalized)
     if not adapter_cls:
         msg = f"不支持的数据库类型: {db_type}"

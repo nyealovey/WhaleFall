@@ -25,10 +25,8 @@ class HistoryLogsListService:
         page_result = self._repository.list_logs(filters)
         items: list[HistoryLogListItem] = []
         for log_entry in page_result.items:
-            china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
-            timestamp_display = (
-                time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S") if china_timestamp else "-"
-            )
+            china_timestamp = time_utils.to_china(log_entry.timestamp)
+            timestamp_display = time_utils.format_china_time(log_entry.timestamp, "%Y-%m-%d %H:%M:%S")
             items.append(
                 HistoryLogListItem(
                     id=log_entry.id,

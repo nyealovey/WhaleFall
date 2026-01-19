@@ -26,8 +26,8 @@ class DatabaseStatisticsRepository:
         if instance_id is not None:
             query = query.filter(InstanceDatabase.instance_id == instance_id)
 
-        total_databases = int(query.count() or 0)
-        active_databases = int(query.filter(InstanceDatabase.is_active.is_(True)).count() or 0)
+        total_databases = int(query.count())
+        active_databases = int(query.filter(InstanceDatabase.is_active.is_(True)).count())
         inactive_databases = max(total_databases - active_databases, 0)
 
         deleted_query = (
@@ -37,7 +37,8 @@ class DatabaseStatisticsRepository:
         )
         if instance_id is not None:
             deleted_query = deleted_query.filter(InstanceDatabase.instance_id == instance_id)
-        deleted_databases = int(deleted_query.scalar() or 0)
+        deleted_value = deleted_query.scalar()
+        deleted_databases = int(deleted_value) if deleted_value is not None else 0
 
         return {
             "total_databases": total_databases,

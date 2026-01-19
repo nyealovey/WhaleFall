@@ -32,4 +32,3 @@ def test_partition_management_service_cleanup_old_partitions_from_payload_uses_v
 
     with pytest.raises(RuntimeError, match="validate_or_raise_called"):
         service.cleanup_old_partitions_from_payload({"retention_months": 12})
-

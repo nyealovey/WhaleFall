@@ -11,7 +11,7 @@ from flask_restx import Namespace, fields
 from flask_wtf.csrf import generate_csrf
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
-from app.api.v1.resources.base import BaseResource
+from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required
 from app.core.constants import TimeConstants
 from app.core.constants.system_constants import SuccessMessages
@@ -109,13 +109,6 @@ MeData = ns.model(
 MeSuccessEnvelope = make_success_envelope_model(ns, "MeSuccessEnvelope", MeData)
 
 
-def _get_raw_payload() -> object:
-    if request.is_json:
-        payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
-    return request.form
-
-
 @ns.route("/csrf-token")
 class CsrfTokenResource(BaseResource):
     """CSRF Token 资源."""
@@ -157,7 +150,7 @@ class LoginResource(BaseResource):
         """执行登录."""
 
         def _execute():
-            raw_payload: Any = _get_raw_payload()
+            raw_payload: Any = get_raw_payload()
             result = LoginService().login_from_payload(raw_payload)
             return self.success(
                 data=result.to_payload(),
@@ -215,7 +208,7 @@ class ChangePasswordResource(BaseResource):
     @require_csrf
     def post(self):
         """修改密码."""
-        raw_payload: Any = _get_raw_payload()
+        raw_payload: Any = get_raw_payload()
 
         def _execute():
             ChangePasswordService().change_password(raw_payload, user=current_user._get_current_object())

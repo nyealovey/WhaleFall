@@ -46,7 +46,9 @@ class SyncSessionsRepository:
     @staticmethod
     def list_sessions_by_type(sync_type: str, *, limit: int) -> list[SyncSession]:
         """按 sync_type 获取会话列表."""
-        return SyncSession.query.filter_by(sync_type=sync_type).order_by(SyncSession.created_at.desc()).limit(limit).all()
+        return (
+            SyncSession.query.filter_by(sync_type=sync_type).order_by(SyncSession.created_at.desc()).limit(limit).all()
+        )
 
     @staticmethod
     def list_sessions_by_category(sync_category: str, *, limit: int) -> list[SyncSession]:
@@ -66,14 +68,10 @@ class SyncSessionsRepository:
     @staticmethod
     def count_records_by_status(*, session_id: str, status: str) -> int:
         """统计会话中某状态的实例记录数."""
-        return int(
-            (
-                db.session.query(func.count(SyncInstanceRecord.id))
-                .filter_by(session_id=session_id, status=status)
-                .scalar()
-            )
-            or 0,
+        value = (
+            db.session.query(func.count(SyncInstanceRecord.id)).filter_by(session_id=session_id, status=status).scalar()
         )
+        return int(value) if value is not None else 0
 
     @staticmethod
     def add_session(session: SyncSession) -> SyncSession:
@@ -85,7 +83,7 @@ class SyncSessionsRepository:
     @staticmethod
     def add_records(records: list[SyncInstanceRecord]) -> list[SyncInstanceRecord]:
         """批量新增实例记录并 flush."""
-        normalized = list(records or [])
+        normalized = list(records)
         if not normalized:
             return []
         db.session.add_all(normalized)

@@ -569,7 +569,9 @@ class AccountClassificationRulesFilterResource(BaseResource):
     def get(self):
         """筛选分类规则."""
         parsed = _account_classification_rules_filter_query_parser.parse_args()
-        classification_id = parsed.get("classification_id") if isinstance(parsed.get("classification_id"), int) else None
+        classification_id = (
+            parsed.get("classification_id") if isinstance(parsed.get("classification_id"), int) else None
+        )
         db_type = parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None
 
         def _execute():

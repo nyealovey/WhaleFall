@@ -5,4 +5,3 @@
 - 业务字段校验(输出中文错误文案)
 - 兼容字段 alias 与 canonicalization
 """
-

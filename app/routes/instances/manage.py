@@ -9,14 +9,22 @@ from flask import Blueprint, render_template, request
 from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
 
+from app.core.constants import STATUS_ACTIVE_OPTIONS, DatabaseType
 from app.infra.route_safety import safe_route_call
-from app.services.instances.instance_list_page_service import InstanceListPageService
+from app.repositories.credentials_repository import CredentialsRepository
+from app.services.common.filter_options_service import FilterOptionsService
+from app.utils.database_type_utils import (
+    build_database_type_select_option,
+    get_database_type_color,
+    get_database_type_display_name,
+    get_database_type_icon,
+)
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.views.instance_forms import InstanceFormView
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
-_instance_list_page_service = InstanceListPageService()
+_filter_options_service = FilterOptionsService()
 
 
 @instances_bp.route("/")
@@ -40,25 +48,29 @@ def index() -> str:
     tags = [tag.strip() for tag in tags_raw if tag.strip()]
 
     def _render() -> str:
-        context = _instance_list_page_service.build_context(
+        credentials = CredentialsRepository.list_active_credentials()
+        database_type_options = [build_database_type_select_option(item) for item in DatabaseType.RELATIONAL]
+        database_type_map = {
+            item: {
+                "display_name": get_database_type_display_name(item),
+                "icon": get_database_type_icon(item),
+                "color": get_database_type_color(item),
+            }
+            for item in DatabaseType.RELATIONAL
+        }
+        tag_options = _filter_options_service.list_active_tag_options()
+        return render_template(
+            "instances/list.html",
+            credentials=credentials,
+            database_type_options=database_type_options,
+            database_type_map=database_type_map,
+            tag_options=tag_options,
+            status_options=STATUS_ACTIVE_OPTIONS,
             search=search,
             db_type=db_type,
             status=status_param,
             include_deleted=include_deleted,
             selected_tags=tags,
-        )
-        return render_template(
-            "instances/list.html",
-            credentials=context.credentials,
-            database_type_options=context.database_type_options,
-            database_type_map=context.database_type_map,
-            tag_options=context.tag_options,
-            status_options=context.status_options,
-            search=context.search,
-            db_type=context.db_type,
-            status=context.status,
-            include_deleted=context.include_deleted,
-            selected_tags=context.selected_tags,
         )
 
     return safe_route_call(
@@ -110,7 +122,6 @@ instances_bp.add_url_rule(
 def _load_related_blueprints() -> None:
     """确保实例管理相关蓝图被导入注册."""
     from . import (  # noqa: F401, PLC0415
-        detail,
         statistics,
     )
 

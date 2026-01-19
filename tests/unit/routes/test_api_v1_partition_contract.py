@@ -1,8 +1,5 @@
 import pytest
 
-from app.services.partition.partition_read_service import PartitionReadService
-from app.services.partition_management_service import PartitionManagementService
-from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.core.types.listing import PaginatedResult
 from app.core.types.partition import (
     PartitionCoreMetricsResult,
@@ -10,6 +7,9 @@ from app.core.types.partition import (
     PartitionInfoSnapshot,
     PartitionStatusSnapshot,
 )
+from app.services.partition.partition_read_service import PartitionReadService
+from app.services.partition_management_service import PartitionManagementService
+from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 
 
 @pytest.mark.unit

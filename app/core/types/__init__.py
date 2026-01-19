@@ -13,7 +13,6 @@ from app.core.types.internal_contracts import (
     build_internal_contract_error,
     build_internal_contract_ok,
 )
-from app.core.types.query_protocols import QueryProtocol
 from app.core.types.resources import (
     ResourceContext,
     ResourceIdentifier,
@@ -90,7 +89,6 @@ __all__ = [
     "PermissionDiffPayload",
     "PermissionSnapshot",
     "PrivilegeDiffEntry",
-    "QueryProtocol",
     "RawAccount",
     "RemoteAccount",
     "RemoteAccountMap",

@@ -216,6 +216,7 @@ def test_api_v1_tag_detail_contract() -> None:
         assert tag_data.get("id") == tag.id
         assert tag_data.get("name") == tag.name
 
+
 @pytest.mark.unit
 def test_api_v1_tags_requires_auth(client):
     response = client.get("/api/v1/tags")

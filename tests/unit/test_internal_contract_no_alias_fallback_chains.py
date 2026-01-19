@@ -3,7 +3,6 @@ import re
 
 import pytest
 
-
 _GET_OR_GET_PATTERN = re.compile(
     r"""\.get\(\s*['"][^'"]+['"]\s*(?:,[^)]*)?\)\s*or\s*[^#\n]*\.get\(\s*['"][^'"]""",
 )
@@ -25,4 +24,3 @@ def test_no_internal_payload_alias_fallback_chains_in_business_layers() -> None:
                     bad.append(f"{path}:{lineno} {line.strip()}")
 
     assert not bad, "Found internal payload alias fallback chains:\n" + "\n".join(bad)
-

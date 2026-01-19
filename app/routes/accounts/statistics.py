@@ -1,7 +1,5 @@
 """Accounts 域:统计视图与 API."""
 
-from typing import Any
-
 from flask import Blueprint, flash, render_template
 from flask_login import login_required
 from werkzeug.exceptions import HTTPException
@@ -14,17 +12,6 @@ from app.utils.decorators import view_required
 
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 _accounts_statistics_page_service = AccountsStatisticsPageService()
-
-
-def _render_statistics_page(context: dict[str, Any]) -> str:
-    """统一渲染统计模板."""
-    return render_template(
-        "accounts/statistics.html",
-        stats=context["stats"],
-        recent_syncs=context["recent_syncs"],
-        recent_accounts=context["recent_accounts"],
-        instances=context["instances"],
-    )
 
 
 @accounts_statistics_bp.route("/statistics")
@@ -69,13 +56,13 @@ def statistics() -> str:
             )
             page_context = _accounts_statistics_page_service.build_fallback_context()
 
-        context = {
-            "stats": page_context.stats,
-            "recent_syncs": page_context.recent_syncs,
-            "recent_accounts": page_context.recent_accounts,
-            "instances": page_context.instances,
-        }
-        return _render_statistics_page(context)
+        return render_template(
+            "accounts/statistics.html",
+            stats=page_context.stats,
+            recent_syncs=page_context.recent_syncs,
+            recent_accounts=page_context.recent_accounts,
+            instances=page_context.instances,
+        )
 
     return safe_route_call(
         _execute,

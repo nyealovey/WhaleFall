@@ -55,10 +55,10 @@ class InstanceAccountsRepository:
             .one()
         )
         return InstanceAccountSummary(
-            total=int(summary_row.total or 0),
-            active=int(summary_row.active or 0),
-            deleted=int(summary_row.deleted or 0),
-            superuser=int(summary_row.superuser or 0),
+            total=int(summary_row.total),
+            active=int(summary_row.active),
+            deleted=int(summary_row.deleted),
+            superuser=int(summary_row.superuser),
         )
 
     @staticmethod
@@ -102,7 +102,7 @@ class InstanceAccountsRepository:
                 ),
             )
 
-        normalized_search = (filters.search or "").strip()
+        normalized_search = filters.search.strip()
         if normalized_search:
             query = query.filter(AccountPermission.username.ilike(f"%{normalized_search}%"))
 

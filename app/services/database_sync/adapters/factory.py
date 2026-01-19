@@ -43,7 +43,7 @@ def get_capacity_adapter(db_type: str) -> BaseCapacityAdapter:
         'MySQLCapacityAdapter'
 
     """
-    normalized = normalize_database_type(db_type or "")
+    normalized = normalize_database_type(db_type)
     adapter_cls = _ADAPTERS.get(normalized)
     if not adapter_cls:
         msg = f"不支持的数据库类型: {db_type}"

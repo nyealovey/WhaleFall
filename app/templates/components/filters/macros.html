@@ -64,7 +64,7 @@
 {%- endmacro %}
 
 {% macro status_sync_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False) }}
+    {{ status_active_filter(options, current_value, col_class) }}
 {%- endmacro %}
 
 {% macro credential_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}

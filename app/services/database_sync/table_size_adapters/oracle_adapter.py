@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Final
 
 import oracledb  # type: ignore[import-not-found]
 
@@ -12,10 +12,6 @@ from app.services.database_sync.table_size_adapters.base_adapter import BaseTabl
 if TYPE_CHECKING:
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection, QueryResult
-else:
-    Instance = Any
-    DatabaseConnection = Any
-    QueryResult = Any
 
 _SIZE_VALUE_COLUMN_INDEX: Final[int] = 2
 
@@ -97,7 +93,9 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
         if schema_name:
             return schema_name
 
-        username = getattr(getattr(instance, "credential", None), "username", "") or ""
+        credential = getattr(instance, "credential", None)
+        username_value = getattr(credential, "username", None)
+        username = "" if username_value is None else str(username_value)
         if isinstance(username, str):
             return username.split("/", 1)[0].strip()
         return ""
@@ -113,7 +111,7 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
             return None
 
         if view_used == "user_segments":
-            schema_name = (current_schema or "").strip()
+            schema_name = "" if current_schema is None else current_schema.strip()
             table_name = str(row[0]).strip() if row[0] is not None else ""
             size_value = row[1] if len(row) > 1 else None
         else:
@@ -203,17 +201,20 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
 
         tables: list[dict[str, object]] = []
 
-        for row in result or []:
+        rows = result if result is not None else []
+        for row in rows:
+            view_used_value = "" if view_used is None else view_used
             parsed_row = self._extract_table_size_row(
                 row=row,
-                view_used=view_used or "",
+                view_used=view_used_value,
                 current_schema=current_schema,
             )
             if parsed_row is None:
                 continue
             schema_name, table_name, size_value = parsed_row
 
-            size_mb = self._safe_to_int(size_value) or 0
+            size_mb_value = self._safe_to_int(size_value)
+            size_mb = 0 if size_mb_value is None else size_mb_value
             tables.append(
                 {
                     "schema_name": schema_name,

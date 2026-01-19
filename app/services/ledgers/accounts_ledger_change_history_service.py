@@ -8,8 +8,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from app.core.types.instance_accounts import (
     InstanceAccountChangeHistoryAccount,
     InstanceAccountChangeHistoryResult,
@@ -32,16 +30,16 @@ class AccountsLedgerChangeHistoryService:
     def get_change_history(self, account_id: int) -> InstanceAccountChangeHistoryResult:
         """获取账户变更历史."""
         account = self._repository.get_account_by_instance_account_id(account_id)
-        username = cast(str, getattr(account, "username", ""))
-        db_type = cast("str | None", getattr(account, "db_type", None))
-        instance_id = cast(int, getattr(account, "instance_id", 0))
+        username = account.username
+        db_type = account.db_type
+        instance_id = account.instance_id
 
         change_logs = self._repository.list_change_logs(instance_id=instance_id, username=username, db_type=db_type)
         history_items: list[InstanceAccountChangeLogItem] = []
         for log_entry in change_logs:
-            change_time = getattr(log_entry, "change_time", None)
-            raw_privilege_diff = getattr(log_entry, "privilege_diff", None)
-            raw_other_diff = getattr(log_entry, "other_diff", None)
+            change_time = log_entry.change_time
+            raw_privilege_diff = log_entry.privilege_diff
+            raw_other_diff = log_entry.other_diff
 
             # COMPAT: 历史数据为 legacy list 形状；读入口统一收敛为 list 并记录命中。
             # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
@@ -70,14 +68,14 @@ class AccountsLedgerChangeHistoryService:
 
             history_items.append(
                 InstanceAccountChangeLogItem(
-                    id=cast(int, getattr(log_entry, "id", 0)),
-                    change_type=cast("str | None", getattr(log_entry, "change_type", None)),
+                    id=log_entry.id,
+                    change_type=log_entry.change_type,
                     change_time=(time_utils.format_china_time(change_time) if change_time else "未知"),
-                    status=cast("str | None", getattr(log_entry, "status", None)),
-                    message=cast("str | None", getattr(log_entry, "message", None)),
+                    status=log_entry.status,
+                    message=log_entry.message,
                     privilege_diff=privilege_diff,
                     other_diff=other_diff,
-                    session_id=cast("str | None", getattr(log_entry, "session_id", None)),
+                    session_id=log_entry.session_id,
                 ),
             )
 

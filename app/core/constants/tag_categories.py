@@ -18,4 +18,3 @@ TAG_CATEGORY_CHOICES: list[tuple[str, str]] = [
 ]
 
 __all__ = ["TAG_CATEGORY_CHOICES"]
-

@@ -11,22 +11,7 @@ from app.core.constants import TimeConstants
 # 时区配置
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
 UTC_TZ = ZoneInfo("UTC")
-MINUTES_PER_HOUR = TimeConstants.ONE_HOUR // TimeConstants.ONE_MINUTE
-HOURS_PER_DAY = TimeConstants.ONE_DAY // TimeConstants.ONE_HOUR
 DAYS_PER_WEEK = TimeConstants.ONE_WEEK // TimeConstants.ONE_DAY
-
-
-# 时间格式常量类
-class TimeFormats:
-    """时间格式常量."""
-
-    DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-    DATE_FORMAT = "%Y-%m-%d"
-    TIME_FORMAT = "%H:%M:%S"
-    DATETIME_MS_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-    ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-    CHINESE_DATETIME_FORMAT = "%Y年%m月%d日 %H:%M:%S"
-    CHINESE_DATE_FORMAT = "%Y年%m月%d日"
 
 
 class TimeUtils:
@@ -120,7 +105,7 @@ class TimeUtils:
     @staticmethod
     def format_china_time(
         dt: str | date | datetime | None,
-        format_str: str = TimeFormats.DATETIME_FORMAT,
+        format_str: str = "%Y-%m-%d %H:%M:%S",
     ) -> str:
         """格式化中国时间显示.
 
@@ -138,27 +123,6 @@ class TimeUtils:
 
         try:
             return china_dt.strftime(format_str)
-        except (ValueError, TypeError):
-            return "-"
-
-    @staticmethod
-    def format_utc_time(dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
-        """格式化 UTC 时间显示.
-
-        Args:
-            dt: 待格式化的日期时间对象或 ISO 字符串.
-            format_str: strftime 兼容格式,默认为 `%Y-%m-%d %H:%M:%S`.
-
-        Returns:
-            成功时返回格式化后的 UTC 字符串;转换失败时返回 `-`.
-
-        """
-        utc_dt = TimeUtils.to_utc(dt)
-        if not utc_dt:
-            return "-"
-
-        try:
-            return utc_dt.strftime(format_str)
         except (ValueError, TypeError):
             return "-"
 
@@ -217,54 +181,6 @@ class TimeUtils:
             return china_dt.date() == now.date()
         except (ValueError, TypeError):
             return False
-
-    @staticmethod
-    def get_time_range(hours: int = 24) -> dict[str, str]:
-        """获取指定小时跨度的起止时间.
-
-        Args:
-            hours: 向前追溯的小时数,默认 24 小时.
-
-        Returns:
-            包含本地/UTC 起止时间的字典.
-
-        """
-        now = TimeUtils.now_china()
-        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        if hours < HOURS_PER_DAY:
-            start = now.replace(hour=now.hour - hours, minute=0, second=0, microsecond=0)
-
-        return {
-            "start": start.isoformat(),
-            "end": now.isoformat(),
-            "start_utc": start.astimezone(UTC_TZ).isoformat(),
-            "end_utc": now.astimezone(UTC_TZ).isoformat(),
-        }
-
-    @staticmethod
-    def to_json_serializable(dt: str | date | datetime | None) -> str | None:
-        """转换时间对象为 JSON 可序列化的 ISO 字符串.
-
-        Args:
-            dt: 字符串、date 或 datetime 实例.
-
-        Returns:
-            ISO 格式字符串;若无法转换则返回 None.
-
-        """
-        if not dt:
-            return None
-
-        try:
-            if isinstance(dt, str):
-                return dt
-            if isinstance(dt, datetime):
-                return dt.isoformat()
-            if isinstance(dt, date):
-                return dt.isoformat()
-        except (ValueError, TypeError):
-            return None
-        return None
 
 
 time_utils = TimeUtils()

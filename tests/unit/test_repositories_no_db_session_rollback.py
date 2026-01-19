@@ -32,4 +32,3 @@ def test_repositories_do_not_call_db_session_rollback() -> None:
         matches.extend(_scan_file(path, display_path=path.relative_to(repo_root)))
 
     assert not matches, "Repositories 层发现 db.session.rollback 漂移:\n" + "\n".join(matches[:50])
-

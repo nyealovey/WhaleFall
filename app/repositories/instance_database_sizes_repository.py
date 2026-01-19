@@ -185,16 +185,22 @@ class InstanceDatabaseSizesRepository:
                 )
                 seen.add(key)
 
+        def _coalesce_num(value: Any) -> float:
+            return 0.0 if value is None else float(value)
+
+        def _coalesce_text(value: Any) -> str:
+            return "" if value is None else str(value)
+
         latest.sort(
             key=lambda item: (
-                -(float(getattr(item[0], "size_mb", 0) or 0)),
-                str(getattr(item[0], "database_name", "") or "").lower(),
+                -_coalesce_num(getattr(item[0], "size_mb", None)),
+                _coalesce_text(getattr(item[0], "database_name", None)).lower(),
             ),
         )
 
         total = len(latest)
         filtered_count = sum(1 for _, _, active, _, _ in latest if not active)
-        total_size_mb = sum((cast(Any, stat).size_mb or 0) for stat, _, active, _, _ in latest if active)
+        total_size_mb = sum(_coalesce_num(getattr(stat, "size_mb", None)) for stat, _, active, _, _ in latest if active)
 
         paged = latest[options.offset : options.offset + options.limit]
         databases = [

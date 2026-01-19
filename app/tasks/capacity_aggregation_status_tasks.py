@@ -83,4 +83,3 @@ def validate_aggregation_config() -> dict[str, Any]:
                     "hour": aggregation_hour,
                 },
             }
-

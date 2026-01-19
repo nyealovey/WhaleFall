@@ -9,8 +9,6 @@ from .base import FieldComponent, FieldOption, ResourceFormDefinition, ResourceF
 
 _LAZY_ATTRS: dict[str, str] = {
     "INSTANCE_FORM_DEFINITION": "app.forms.definitions.instance",
-    "CREDENTIAL_FORM_DEFINITION": "app.forms.definitions.credential",
-    "TAG_FORM_DEFINITION": "app.forms.definitions.tag",
     "CLASSIFICATION_FORM_DEFINITION": "app.forms.definitions.account_classification",
     "CLASSIFICATION_RULE_FORM_DEFINITION": "app.forms.definitions.account_classification_rule",
     "USER_FORM_DEFINITION": "app.forms.definitions.user",
@@ -22,10 +20,8 @@ __all__ = [
     "CHANGE_PASSWORD_FORM_DEFINITION",
     "CLASSIFICATION_FORM_DEFINITION",
     "CLASSIFICATION_RULE_FORM_DEFINITION",
-    "CREDENTIAL_FORM_DEFINITION",
     "INSTANCE_FORM_DEFINITION",
     "SCHEDULER_JOB_FORM_DEFINITION",
-    "TAG_FORM_DEFINITION",
     "USER_FORM_DEFINITION",
     "FieldComponent",
     "FieldOption",
@@ -50,8 +46,6 @@ if TYPE_CHECKING:
     from app.forms.definitions.account_classification import CLASSIFICATION_FORM_DEFINITION
     from app.forms.definitions.account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
     from app.forms.definitions.change_password import CHANGE_PASSWORD_FORM_DEFINITION
-    from app.forms.definitions.credential import CREDENTIAL_FORM_DEFINITION
     from app.forms.definitions.instance import INSTANCE_FORM_DEFINITION
     from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
-    from app.forms.definitions.tag import TAG_FORM_DEFINITION
     from app.forms.definitions.user import USER_FORM_DEFINITION

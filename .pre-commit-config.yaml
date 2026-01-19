@@ -76,3 +76,10 @@ repos:
         language: system
         pass_filenames: false
         files: ^app/services/.*\.py$
+
+      - id: or-fallback-pattern-guard
+        name: guard (or fallback patterns)
+        entry: ./scripts/ci/or-fallback-pattern-guard.sh
+        language: system
+        pass_filenames: false
+        files: ^app/.*\.py$|^scripts/ci/or-fallback-pattern-guard\.sh$

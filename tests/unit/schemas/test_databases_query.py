@@ -97,4 +97,3 @@ def test_database_table_sizes_query_validates_limit_max_and_rejects_offset() -> 
     with pytest.raises(ValidationError) as excinfo:
         validate_or_raise(DatabaseTableSizesQuery, {"offset": "10"})
     assert "不支持 offset" in str(excinfo.value)
-

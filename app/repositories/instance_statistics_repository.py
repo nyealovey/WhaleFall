@@ -99,6 +99,6 @@ class InstanceStatisticsRepository:
             db.session.query(db.func.coalesce(db.func.sum(ranked_stats_subquery.c.total_size_mb), 0))
             .filter(ranked_stats_subquery.c.rn == 1)
             .scalar()
-            or 0
         )
-        return float(total_size_mb or 0)
+        total_value = total_size_mb if total_size_mb is not None else 0
+        return float(total_value)

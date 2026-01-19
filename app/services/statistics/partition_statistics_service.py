@@ -58,12 +58,4 @@ class PartitionStatisticsService(PartitionManagementService):
             包含分区统计信息的字典,格式与 get_partition_info 返回值相同.
 
         """
-        info = self.get_partition_info()
-        return {
-            "total_records": info["total_records"],
-            "total_partitions": info["total_partitions"],
-            "total_size": info["total_size"],
-            "total_size_bytes": info["total_size_bytes"],
-            "partitions": info["partitions"],
-            "tables": info["tables"],
-        }
+        return self.get_partition_info()

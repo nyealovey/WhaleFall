@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from app.services.connection_adapters.adapters.base import DatabaseConnection
 
 
-CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+CONNECTION_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionAdapterError,
     RuntimeError,
     LookupError,

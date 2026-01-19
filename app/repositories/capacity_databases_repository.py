@@ -87,7 +87,7 @@ class CapacityDatabasesRepository:
         ordered = query.order_by(desc(DatabaseSizeAggregation.period_start))
         total = ordered.count()
         rows = ordered.offset(max(filters.page - 1, 0) * filters.limit).limit(filters.limit).all()
-        return cast("list[tuple[DatabaseSizeAggregation, Instance]]", rows), int(total or 0)
+        return cast("list[tuple[DatabaseSizeAggregation, Instance]]", rows), int(total)
 
     def summarize_latest_aggregations(
         self,
@@ -132,11 +132,14 @@ class CapacityDatabasesRepository:
             .all()
         )
 
+        def _coalesce_int(value: Any) -> int:
+            return int(value) if value is not None else 0
+
         total_databases = len({(entry.instance_id, entry.database_name) for entry in latest_entries})
         total_instances = len({entry.instance_id for entry in latest_entries})
-        total_size_mb = sum(int(getattr(agg, "avg_size_mb", 0) or 0) for agg in aggregations)
+        total_size_mb = sum(_coalesce_int(getattr(agg, "avg_size_mb", None)) for agg in aggregations)
         avg_size_mb = total_size_mb / total_databases if total_databases else 0.0
-        max_size_mb = max((int(getattr(agg, "max_size_mb", 0) or 0) for agg in aggregations), default=0)
+        max_size_mb = max((_coalesce_int(getattr(agg, "max_size_mb", None)) for agg in aggregations), default=0)
         return total_databases, total_instances, total_size_mb, float(avg_size_mb), max_size_mb
 
     def _base_query(self) -> Query[Any]:

@@ -44,4 +44,3 @@ __all__ = [
     "SYNC_DETAILS_VERSION_V1",
     "normalize_sync_details_v1",
 ]
-

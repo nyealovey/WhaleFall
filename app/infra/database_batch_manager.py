@@ -262,27 +262,14 @@ class DatabaseBatchManager:
             ...     manager.rollback()
 
         """
-        try:
-            if self.pending_operations:
-                self.logger.warning(
-                    "回滚未提交的操作",
-                    module="database_batch_manager",
-                    instance_name=self.instance_name,
-                    pending_operations=len(self.pending_operations),
-                )
-
-            self.pending_operations.clear()
-
-        except Exception as e:
-            self.logger.exception(
-                "回滚操作失败",
+        if self.pending_operations:
+            self.logger.warning(
+                "回滚未提交的操作",
                 module="database_batch_manager",
                 instance_name=self.instance_name,
-                error=str(e),
-                fallback=True,
-                fallback_reason="database_batch_manager_rollback_failed",
-                exception_type=e.__class__.__name__,
+                pending_operations=len(self.pending_operations),
             )
+        self.pending_operations.clear()
 
     def get_statistics(self) -> dict[str, int]:
         """获取批量操作统计信息.

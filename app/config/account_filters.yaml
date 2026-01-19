@@ -1,34 +1,16 @@
-# 鲸落 - 账户过滤规则配置文件
-# 用于控制数据库账户同步时的过滤规则
-
-version: "1.0"
-description: "鲸落账户过滤规则配置"
-
 account_filters:
   mysql:
-    description: "MySQL数据库过滤规则"
-    exclude_users: []
     exclude_patterns:
       - "mysql%"
-    exclude_roles: []
-    include_only: false
-    custom_rules: []
 
   postgresql:
-    description: "PostgreSQL数据库过滤规则"
     exclude_users:
       - rdsadmin
       - rds_superuser
     exclude_patterns:
       - pg_%
-    exclude_roles: []
-    include_only: false
-    custom_rules: []
-    # 特殊处理：postgres用户虽然以pg开头，但应该被包含
-    # 在代码中会特殊处理postgres用户
 
   sqlserver:
-    description: "SQL Server数据库过滤规则"
     exclude_users:
       - public
       - guest
@@ -39,12 +21,8 @@ account_filters:
       - "NT AUTHORITY\\%"
       - "BUILTIN\\%"
       - "NT %"
-    exclude_roles: []
-    include_only: false
-    custom_rules: []
 
   oracle:
-    description: "Oracle数据库过滤规则"
     exclude_users:
       - SCOTT
       - CTXSYS
@@ -83,7 +61,6 @@ account_filters:
       - OJVMSYS
       - ORACLE_OCM
       - ORDDATA
-      - ORDPLUGINS
       - ORDS_METADATA
       - ORDS_PUBLIC_USER
       - PDBADMIN
@@ -104,13 +81,3 @@ account_filters:
       - APEX%
       - ORD%
       - SPATIAL_%
-    exclude_roles: []
-    include_only: false
-    custom_rules: []
-
-# 配置说明：
-# exclude_users: 要排除的特定用户名列表
-# exclude_patterns: 要排除的用户名模式列表（支持SQL LIKE语法）
-# exclude_roles: 要排除的角色名列表（暂未使用）
-# include_only: 是否只包含指定用户（暂未实现）
-# custom_rules: 自定义规则（暂未实现）

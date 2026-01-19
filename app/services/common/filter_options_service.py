@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from app.core.constants import DatabaseType
 from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.core.types.common_filter_options import (
@@ -71,18 +69,15 @@ class FilterOptionsService:
     def get_common_instances_options(self, db_type: str | None = None) -> CommonInstancesOptionsResult:
         """构建 Common API 的实例选项."""
         instances = self._repository.list_active_instances(db_type=db_type)
-        items: list[CommonInstanceOptionItem] = []
-        for instance in instances:
-            name = cast(str, getattr(instance, "name", "") or "")
-            instance_db_type = cast(str, getattr(instance, "db_type", "") or "")
-            items.append(
-                CommonInstanceOptionItem(
-                    id=int(getattr(instance, "id", 0) or 0),
-                    name=name,
-                    db_type=instance_db_type,
-                    display_name=f"{name} ({instance_db_type.upper()})",
-                ),
+        items = [
+            CommonInstanceOptionItem(
+                id=int(instance.id),
+                name=instance.name,
+                db_type=instance.db_type,
+                display_name=f"{instance.name} ({instance.db_type.upper()})",
             )
+            for instance in instances
+        ]
         return CommonInstancesOptionsResult(instances=items)
 
     def get_common_databases_options(self, filters: CommonDatabasesOptionsFilters) -> CommonDatabasesOptionsResult:
@@ -96,23 +91,19 @@ class FilterOptionsService:
         for database in databases:
             items.append(
                 CommonDatabaseOptionItem(
-                    id=int(getattr(database, "id", 0) or 0),
-                    database_name=cast(str, getattr(database, "database_name", "") or ""),
-                    is_active=bool(getattr(database, "is_active", False)),
-                    first_seen_date=(
-                        database.first_seen_date.isoformat() if getattr(database, "first_seen_date", None) else None
-                    ),
-                    last_seen_date=(
-                        database.last_seen_date.isoformat() if getattr(database, "last_seen_date", None) else None
-                    ),
-                    deleted_at=(database.deleted_at.isoformat() if getattr(database, "deleted_at", None) else None),
+                    id=int(database.id),
+                    database_name=database.database_name,
+                    is_active=database.is_active,
+                    first_seen_date=(database.first_seen_date.isoformat() if database.first_seen_date else None),
+                    last_seen_date=(database.last_seen_date.isoformat() if database.last_seen_date else None),
+                    deleted_at=(database.deleted_at.isoformat() if database.deleted_at else None),
                 ),
             )
         return CommonDatabasesOptionsResult(
             databases=items,
-            total_count=int(total_count),
-            limit=int(filters.limit),
-            offset=int(filters.offset),
+            total_count=total_count,
+            limit=filters.limit,
+            offset=filters.offset,
         )
 
     def get_common_database_types_options(self) -> CommonDatabaseTypesOptionsResult:

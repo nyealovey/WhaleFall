@@ -29,7 +29,7 @@ class UsersRepository:
 
     def get_by_username(self, username: str) -> User | None:
         """按用户名获取用户."""
-        normalized = (username or "").strip()
+        normalized = username.strip()
         if not normalized:
             return None
         return cast("User | None", User.query.filter_by(username=normalized).first())
@@ -47,23 +47,23 @@ class UsersRepository:
     @staticmethod
     def count_users() -> int:
         """统计用户数量."""
-        return int(User.query.count() or 0)
+        return int(User.query.count())
 
     @staticmethod
     def count_by_role(role: str) -> int:
         """按角色统计用户数量."""
-        normalized = (role or "").strip()
+        normalized = role.strip()
         if not normalized:
             return 0
-        return int(User.query.filter_by(role=normalized).count() or 0)
+        return int(User.query.filter_by(role=normalized).count())
 
     @staticmethod
     def fetch_stats() -> dict[str, int]:
         """获取用户统计."""
-        total_users = int(User.query.count() or 0)
-        active_users = int(User.query.filter_by(is_active=True).count() or 0)
-        admin_users = int(User.query.filter_by(role=UserRole.ADMIN).count() or 0)
-        user_users = int(User.query.filter_by(role=UserRole.USER).count() or 0)
+        total_users = int(User.query.count())
+        active_users = int(User.query.filter_by(is_active=True).count())
+        admin_users = int(User.query.filter_by(role=UserRole.ADMIN).count())
+        user_users = int(User.query.filter_by(role=UserRole.USER).count())
         inactive_users = max(total_users - active_users, 0)
         return {
             "total": total_users,
@@ -80,7 +80,7 @@ class UsersRepository:
         role_column = cast(ColumnElement[str], User.role)
         is_active_column = cast(ColumnElement[bool], User.is_active)
 
-        normalized_search = (filters.search or "").strip()
+        normalized_search = filters.search.strip()
         if normalized_search:
             query = query.filter(username_column.contains(normalized_search))
 

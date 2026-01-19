@@ -60,4 +60,3 @@ def test_read_default_task_configs_raises_value_error_when_schema_invalid(tmp_pa
 
     with pytest.raises(ValueError):
         scheduler._read_default_task_configs()
-

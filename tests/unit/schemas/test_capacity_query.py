@@ -93,4 +93,3 @@ def test_capacity_instances_aggregations_query_rejects_invalid_time_range() -> N
         validate_or_raise(CapacityInstancesAggregationsQuery, {"time_range": "abc"})
 
     assert "time_range 必须为整数(天)" in str(excinfo.value)
-

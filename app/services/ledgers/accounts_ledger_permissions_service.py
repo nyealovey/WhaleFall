@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from app.core.types.accounts_permissions import (
     AccountLedgerPermissionAccount,
     AccountLedgerPermissions,
@@ -29,27 +27,23 @@ class AccountsLedgerPermissionsService:
     def get_permissions(self, account_id: int) -> AccountLedgerPermissionsResult:
         """获取账户权限详情."""
         account = self._repository.get_account_by_instance_account_id(account_id)
-        instance = getattr(account, "instance", None)
+        instance = account.instance
 
         snapshot = build_permission_snapshot_view(account)
 
         permissions = AccountLedgerPermissions(
-            db_type=(cast(str, getattr(instance, "db_type", "")) or "").upper(),
-            username=cast(str, getattr(account, "username", "")),
-            is_superuser=bool(getattr(account, "is_superuser", False)),
-            last_sync_time=(
-                time_utils.format_china_time(getattr(account, "last_sync_time", None))
-                if getattr(account, "last_sync_time", None)
-                else "未知"
-            ),
+            db_type=instance.db_type.upper(),
+            username=account.username,
+            is_superuser=account.is_superuser,
+            last_sync_time=(time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"),
             snapshot=snapshot,
         )
 
         account_payload = AccountLedgerPermissionAccount(
-            id=cast(int, getattr(account, "instance_account_id", 0)),
-            username=cast(str, getattr(account, "username", "")),
-            instance_name=cast(str, getattr(instance, "name", None) or "未知实例"),
-            db_type=cast(str, getattr(instance, "db_type", None) or ""),
+            id=account.instance_account_id,
+            username=account.username,
+            instance_name=instance.name or "未知实例",
+            db_type=instance.db_type,
         )
         return AccountLedgerPermissionsResult(
             permissions=permissions,

@@ -4,15 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, cast
-
-if TYPE_CHECKING:
-    from app.core.types import ClassificationEngineResult, JsonDict
-else:
-    from app.core.types import JsonDict
-    from app.core.types.classification import ClassificationEngineResult
+from typing import cast
 
 from app.core.exceptions import AppError
+from app.core.types import JsonDict
+from app.core.types.classification import ClassificationEngineResult
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.utils.structlog_config import log_error, log_info
 
@@ -137,6 +133,9 @@ class AutoClassifyService:
             )
             raise AutoClassifyError(error_message)
 
+        raw_db_type_results = raw_result.get("db_type_results")
+        db_type_results = raw_db_type_results if isinstance(raw_db_type_results, dict) else {}
+
         result = AutoClassifyResult(
             message=raw_result.get("message") or "自动分类成功",
             classified_accounts=self._as_int(raw_result.get("classified_accounts")),
@@ -147,7 +146,7 @@ class AutoClassifyService:
                 "total_accounts": self._as_int(raw_result.get("total_accounts")),
                 "total_rules": self._as_int(raw_result.get("total_rules")),
                 "total_matches": self._as_int(raw_result.get("total_matches")),
-                "db_type_results": raw_result.get("db_type_results") or {},
+                "db_type_results": db_type_results,
             },
         )
 
@@ -195,7 +194,8 @@ class AutoClassifyService:
 
         """
         try:
-            return int(value or 0)
+            resolved = 0 if value in (None, "") else value
+            return int(resolved)
         except (TypeError, ValueError):
             return 0
 

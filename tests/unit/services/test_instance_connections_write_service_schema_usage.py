@@ -51,4 +51,3 @@ def test_instance_connections_write_service_parse_batch_test_payload_rejects_too
 
     with pytest.raises(ValidationError, match="批量测试数量不能超过50个"):
         service.parse_batch_test_payload({"instance_ids": list(range(1, 52))})
-

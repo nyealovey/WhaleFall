@@ -19,6 +19,8 @@ from app.api.v1.restx_models.partition import (
     PARTITION_STATUS_RESPONSE_FIELDS,
 )
 from app.core.exceptions import ValidationError
+from app.schemas.partition_query import PartitionCoreMetricsQuery, PartitionsListQuery
+from app.schemas.validation import validate_or_raise
 from app.services.partition import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
@@ -219,14 +221,14 @@ class PartitionsResource(BaseResource):
     def get(self):
         """获取分区列表."""
         parsed = _partitions_list_query_parser.parse_args()
-        search_term = str(parsed.get("search") or "").strip()
-        table_type = str(parsed.get("table_type") or "").strip()
-        status_filter = str(parsed.get("status") or "").strip()
-        sort_field = str(parsed.get("sort") or "name").strip() or "name"
-        sort_order = str(parsed.get("order") or "asc").strip() or "asc"
-        page = max(int(parsed.get("page") or 1), 1)
-        limit = int(parsed.get("limit") or 20)
-        limit = max(min(limit, 200), 1)
+        query = validate_or_raise(PartitionsListQuery, parsed)
+        search_term = query.search
+        table_type = query.table_type
+        status_filter = query.status
+        sort_field = query.sort_field
+        sort_order = query.sort_order
+        page = query.page
+        limit = query.limit
 
         def _execute():
             result = _partition_read_service.list_partitions(
@@ -284,8 +286,9 @@ class PartitionsResource(BaseResource):
     def post(self):
         """创建分区."""
         parsed_json = request.get_json(silent=True)
-        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        partition_date_str = raw.get("date") if isinstance(raw, dict) else None
+        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
+        raw_date = raw.get("date")
+        partition_date_str = raw_date if isinstance(raw_date, str) else None
 
         def _execute():
             result = PartitionManagementService().create_partition_from_payload(raw)
@@ -333,8 +336,9 @@ class PartitionCleanupResource(BaseResource):
     def post(self):
         """清理旧分区."""
         parsed_json = request.get_json(silent=True)
-        raw: object = parsed_json if isinstance(parsed_json, dict) else {}
-        raw_retention = raw.get("retention_months") if isinstance(raw, dict) else None
+        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
+        raw_retention_value = raw.get("retention_months")
+        raw_retention = raw_retention_value if isinstance(raw_retention_value, int) else None
 
         def _execute():
             result = PartitionManagementService().cleanup_old_partitions_from_payload(raw)
@@ -400,8 +404,9 @@ class PartitionCoreMetricsResource(BaseResource):
     def get(self):
         """获取核心聚合指标."""
         parsed = _partition_core_metrics_query_parser.parse_args()
-        requested_period_type = str(parsed.get("period_type") or "daily").lower()
-        requested_days = int(parsed.get("days") or 7)
+        query = validate_or_raise(PartitionCoreMetricsQuery, parsed)
+        requested_period_type = query.period_type
+        requested_days = query.days
 
         def _execute():
             result = _partition_read_service.build_core_metrics(period_type=requested_period_type, days=requested_days)

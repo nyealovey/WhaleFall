@@ -168,7 +168,7 @@ class AggregationService:
 
     def _default_use_current_period(self, period_type: str) -> bool:
         """根据周期类型返回默认是否使用当前周期."""
-        return (period_type or "").lower() == "daily"
+        return period_type.lower() == "daily"
 
     def _resolve_use_current_period(self, period_type: str, *, override: bool | None = None) -> bool:
         """结合覆盖配置判断是否使用当前周期."""
@@ -182,7 +182,7 @@ class AggregationService:
         overrides: dict[str, bool] | None = None,
     ) -> bool:
         """从覆盖映射读取周期策略."""
-        normalized = (period_type or "").lower()
+        normalized = period_type.lower()
         if overrides and normalized in overrides:
             return bool(overrides[normalized])
         return self._default_use_current_period(period_type)
@@ -448,7 +448,7 @@ class AggregationService:
         seen: set[str] = set()
         normalized: list[str] = []
         for item in periods:
-            key = (item or "").strip().lower()
+            key = item.strip().lower()
             if key in self.period_types and key not in seen:
                 normalized.append(key)
                 seen.add(key)
@@ -470,7 +470,7 @@ class AggregationService:
             dict[str, Dict[str, Any]]: key 为周期名称,value 为聚合结果字典.
 
         """
-        overrides = use_current_periods or {}
+        overrides = use_current_periods if use_current_periods is not None else {}
         normalized = self._normalize_periods(periods)
         results: dict[str, dict[str, Any]] = {}
 
@@ -628,7 +628,7 @@ class AggregationService:
             end_date=end_date.isoformat(),
             scope=normalized_scope,
         )
-        callbacks = progress_callbacks or {}
+        callbacks = progress_callbacks if progress_callbacks is not None else {}
         database_callbacks = self._build_runner_callbacks(callbacks.get("database"))
         instance_callbacks = self._build_runner_callbacks(callbacks.get("instance"))
 
@@ -836,7 +836,7 @@ class AggregationService:
         }
         normalized_periods = [period for period in self._normalize_periods(periods) if period in period_funcs]
         requested = normalized_periods or list(period_funcs.keys())
-        overrides = use_current_periods or {}
+        overrides = use_current_periods if use_current_periods is not None else {}
 
         period_results: dict[str, dict[str, Any]] = {}
         failed_periods: set[str] = set()
@@ -949,7 +949,7 @@ class AggregationService:
             dict[str, Any]: 聚合执行结果.
 
         """
-        normalized = (period_type or "").lower()
+        normalized = period_type.lower()
         if normalized not in self.period_types:
             raise ValidationError(
                 message="不支持的聚合周期",

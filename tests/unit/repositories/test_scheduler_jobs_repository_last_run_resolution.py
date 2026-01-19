@@ -67,6 +67,4 @@ def test_resolve_session_last_run_prefers_scheduled_completed_at(monkeypatch: py
         _get_sessions_by_category,
     )
 
-    assert (
-        SchedulerJobsRepository.resolve_session_last_run(category="account", limit=10) == scheduled_ts.isoformat()
-    )
+    assert SchedulerJobsRepository.resolve_session_last_run(category="account", limit=10) == scheduled_ts.isoformat()

@@ -67,4 +67,3 @@ def validate_collection_config() -> dict[str, Any]:
                 "service_available": True,
                 "message": "配置验证通过",
             }
-

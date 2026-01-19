@@ -17,64 +17,15 @@ from app.core.types.common_filter_options import CommonDatabasesOptionsFilters
 from app.core.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.core.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
 from app.schemas.base import PayloadSchema
+from app.schemas.query_parsers import parse_int, parse_optional_int, parse_text
 from app.utils.payload_converters import as_bool
 from app.utils.time_utils import time_utils
 
 _DEFAULT_PAGE = 1
 
 
-def _parse_int(value: Any, *, default: int) -> int:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        raise TypeError("参数必须为整数")
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return default
-        try:
-            return int(stripped, 10)
-        except ValueError as exc:
-            raise ValueError("参数必须为整数") from exc
-    try:
-        return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("参数必须为整数") from exc
-
-
-def _parse_optional_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise TypeError("参数必须为整数")
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return None
-        try:
-            return int(stripped, 10)
-        except ValueError as exc:
-            raise ValueError("参数必须为整数") from exc
-    try:
-        return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("参数必须为整数") from exc
-
-
-def _parse_stripped_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value.strip()
-    return str(value).strip()
-
-
 def _parse_raw_optional_str(value: Any) -> str | None:
-    """Optional string parser that does NOT strip, to preserve legacy behavior."""
+    """Parse optional string without stripping to preserve legacy behavior."""
     return value if isinstance(value, str) else None
 
 
@@ -126,7 +77,7 @@ class DatabasesOptionsQuery(PayloadSchema):
     @field_validator("instance_id", mode="before")
     @classmethod
     def _parse_instance_id(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=0)
+        parsed = parse_int(value, default=0)
         if parsed <= 0:
             raise ValueError("instance_id 为必填参数")
         return parsed
@@ -134,16 +85,17 @@ class DatabasesOptionsQuery(PayloadSchema):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=100)
+        parsed = parse_int(value, default=100)
         return max(min(parsed, 1000), 1)
 
     def to_filters(self, *, resolved_instance_id: int | None = None) -> CommonDatabasesOptionsFilters:
+        """转换为通用 databases options filters 对象."""
         instance_id = resolved_instance_id if resolved_instance_id is not None else self.instance_id
         offset = (self.page - 1) * self.limit
         return CommonDatabasesOptionsFilters(instance_id=instance_id, limit=self.limit, offset=offset)
@@ -162,18 +114,18 @@ class DatabaseLedgersQuery(PayloadSchema):
     @field_validator("search", mode="before")
     @classmethod
     def _parse_search(cls, value: Any) -> str:
-        return _parse_stripped_text(value)
+        return parse_text(value)
 
     @field_validator("db_type", mode="before")
     @classmethod
     def _parse_db_type(cls, value: Any) -> str:
-        cleaned = _parse_stripped_text(value)
+        cleaned = parse_text(value)
         return cleaned or "all"
 
     @field_validator("instance_id", mode="before")
     @classmethod
     def _parse_instance_id(cls, value: Any) -> int | None:
-        return _parse_optional_int(value)
+        return parse_optional_int(value)
 
     @field_validator("tags", mode="before")
     @classmethod
@@ -183,13 +135,13 @@ class DatabaseLedgersQuery(PayloadSchema):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=20)
+        parsed = parse_int(value, default=20)
         return max(min(parsed, 200), 1)
 
 
@@ -204,18 +156,18 @@ class DatabaseLedgersExportQuery(PayloadSchema):
     @field_validator("search", mode="before")
     @classmethod
     def _parse_search(cls, value: Any) -> str:
-        return _parse_stripped_text(value)
+        return parse_text(value)
 
     @field_validator("db_type", mode="before")
     @classmethod
     def _parse_db_type(cls, value: Any) -> str:
-        cleaned = _parse_stripped_text(value)
+        cleaned = parse_text(value)
         return cleaned or "all"
 
     @field_validator("instance_id", mode="before")
     @classmethod
     def _parse_instance_id(cls, value: Any) -> int | None:
-        return _parse_optional_int(value)
+        return parse_optional_int(value)
 
     @field_validator("tags", mode="before")
     @classmethod
@@ -245,7 +197,7 @@ class DatabasesSizesQuery(PayloadSchema):
     @field_validator("instance_id", mode="before")
     @classmethod
     def _parse_instance_id(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=0)
+        parsed = parse_int(value, default=0)
         if parsed <= 0:
             raise ValueError("缺少 instance_id")
         return parsed
@@ -278,17 +230,18 @@ class DatabasesSizesQuery(PayloadSchema):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=100)
+        parsed = parse_int(value, default=100)
         # COMPAT: 旧行为 - 非法/过小 limit 重置为 100,不做最大值限制。
         return 100 if parsed < 1 else parsed
 
     def to_options(self, *, resolved_instance_id: int | None = None) -> InstanceDatabaseSizesQuery:
+        """转换为实例数据库容量 options 对象."""
         instance_id = resolved_instance_id if resolved_instance_id is not None else self.instance_id
         offset = (self.page - 1) * self.limit
         return InstanceDatabaseSizesQuery(
@@ -325,13 +278,13 @@ class DatabaseTableSizesQuery(PayloadSchema):
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=_DEFAULT_PAGE)
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
         return max(parsed, 1)
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        parsed = _parse_int(value, default=200)
+        parsed = parse_int(value, default=200)
         if parsed > DATABASE_TABLE_SIZES_LIMIT_MAX:
             raise ValueError(f"limit 最大为 {DATABASE_TABLE_SIZES_LIMIT_MAX}")
         # COMPAT: limit 小于 1 时回退为默认值(200)
@@ -343,6 +296,7 @@ class DatabaseTableSizesQuery(PayloadSchema):
         instance_id: int,
         database_name: str,
     ) -> InstanceDatabaseTableSizesQuery:
+        """转换为实例表大小 options 对象."""
         offset = (self.page - 1) * self.limit
         return InstanceDatabaseTableSizesQuery(
             instance_id=instance_id,

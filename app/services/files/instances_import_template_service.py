@@ -11,7 +11,7 @@ import csv
 import io
 
 from app.core.constants.import_templates import INSTANCE_IMPORT_TEMPLATE_HEADERS, INSTANCE_IMPORT_TEMPLATE_SAMPLE
-from app.services.files.instances_export_service import CsvExportResult
+from app.services.files.csv_export_result import CsvExportResult
 
 
 class InstancesImportTemplateService:
@@ -29,4 +29,3 @@ class InstancesImportTemplateService:
             filename="instances_import_template.csv",
             content=output.getvalue(),
         )
-

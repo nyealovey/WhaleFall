@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.services.partition.partition_read_service import PartitionReadService
 from app.core.types.partition import PartitionEntry
+from app.services.partition.partition_read_service import PartitionReadService
 
 
 @pytest.mark.unit

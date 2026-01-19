@@ -22,7 +22,7 @@ from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
 MODULE = "partition_service"
-PARTITION_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+PARTITION_SERVICE_EXCEPTIONS: tuple[type[Exception], ...] = (
     DatabaseError,
     SQLAlchemyError,
     RuntimeError,
@@ -199,13 +199,12 @@ class PartitionManagementService:
                             "error": str(exc),
                         },
                     )
-                    safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
                     log_error(
                         "创建分区发生未知错误",
                         module=MODULE,
                         partition_name=partition_name,
                         table=table_key,
-                        exception=safe_exc,
+                        exception=exc,
                     )
                     continue
                 else:
@@ -332,13 +331,12 @@ class PartitionManagementService:
                                 "error": str(exc),
                             },
                         )
-                        safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
                         log_error(
                             "删除旧分区遇到未捕获异常",
                             module=MODULE,
                             partition_name=partition_name,
                             table=table_key,
-                            exception=safe_exc,
+                            exception=exc,
                         )
                         continue
                     else:

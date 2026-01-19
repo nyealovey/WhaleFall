@@ -15,6 +15,36 @@ from pydantic import Field, field_validator, model_validator
 from app.schemas.base import PayloadSchema
 
 
+def _require_root_mapping(data: Any) -> Any:
+    if not isinstance(data, Mapping):
+        raise ValueError("配置文件格式错误，必须为 YAML mapping")  # noqa: TRY004
+    return data
+
+
+def _coerce_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        items: list[str] = []
+        for item in value:
+            if not isinstance(item, str):
+                continue
+            stripped = item.strip()
+            if stripped:
+                items.append(stripped)
+        return items
+    raise ValueError("必须为字符串列表")
+
+
+def _normalize_db_type_mapping_keys(value: Mapping[Any, Any]) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    for key, rule in value.items():
+        if not isinstance(key, str) or not key.strip():
+            continue
+        normalized[key.strip().lower()] = rule
+    return normalized
+
+
 class SchedulerTaskConfig(PayloadSchema):
     """单条 scheduler task 配置."""
 
@@ -51,9 +81,7 @@ class SchedulerTasksConfigFile(PayloadSchema):
     @model_validator(mode="before")
     @classmethod
     def _validate_root(cls, data: Any) -> Any:
-        if not isinstance(data, Mapping):
-            raise ValueError("配置文件格式错误，必须为 YAML mapping")  # noqa: TRY004
-        return data
+        return _require_root_mapping(data)
 
 
 class AccountFilterRuleConfig(PayloadSchema):
@@ -65,18 +93,7 @@ class AccountFilterRuleConfig(PayloadSchema):
     @field_validator("exclude_users", "exclude_patterns", mode="before")
     @classmethod
     def _coerce_string_list(cls, value: Any) -> Any:
-        if value is None:
-            return []
-        if isinstance(value, (list, tuple)):
-            items: list[str] = []
-            for item in value:
-                if not isinstance(item, str):
-                    continue
-                stripped = item.strip()
-                if stripped:
-                    items.append(stripped)
-            return items
-        raise ValueError("必须为字符串列表")
+        return _coerce_string_list(value)
 
 
 class AccountFiltersConfigFile(PayloadSchema):
@@ -87,21 +104,14 @@ class AccountFiltersConfigFile(PayloadSchema):
     @model_validator(mode="before")
     @classmethod
     def _validate_root(cls, data: Any) -> Any:
-        if not isinstance(data, Mapping):
-            raise ValueError("配置文件格式错误，必须为 YAML mapping")  # noqa: TRY004
-        return data
+        return _require_root_mapping(data)
 
     @field_validator("account_filters", mode="before")
     @classmethod
     def _normalize_db_type_keys(cls, value: Any) -> Any:
         if not isinstance(value, Mapping):
             raise ValueError("account_filters 必须为对象")  # noqa: TRY004
-        normalized: dict[str, Any] = {}
-        for key, rule in value.items():
-            if not isinstance(key, str) or not key.strip():
-                continue
-            normalized[key.strip().lower()] = rule
-        return normalized
+        return _normalize_db_type_mapping_keys(value)
 
 
 class DatabaseFilterRuleConfig(PayloadSchema):
@@ -113,18 +123,7 @@ class DatabaseFilterRuleConfig(PayloadSchema):
     @field_validator("exclude_databases", "exclude_patterns", mode="before")
     @classmethod
     def _coerce_string_list(cls, value: Any) -> Any:
-        if value is None:
-            return []
-        if isinstance(value, (list, tuple)):
-            items: list[str] = []
-            for item in value:
-                if not isinstance(item, str):
-                    continue
-                stripped = item.strip()
-                if stripped:
-                    items.append(stripped)
-            return items
-        raise ValueError("必须为字符串列表")
+        return _coerce_string_list(value)
 
 
 class DatabaseFiltersConfigFile(PayloadSchema):
@@ -135,21 +134,14 @@ class DatabaseFiltersConfigFile(PayloadSchema):
     @model_validator(mode="before")
     @classmethod
     def _validate_root(cls, data: Any) -> Any:
-        if not isinstance(data, Mapping):
-            raise ValueError("配置文件格式错误，必须为 YAML mapping")  # noqa: TRY004
-        return data
+        return _require_root_mapping(data)
 
     @field_validator("database_filters", mode="before")
     @classmethod
     def _normalize_db_type_keys(cls, value: Any) -> Any:
         if not isinstance(value, Mapping):
             raise ValueError("database_filters 必须为对象")  # noqa: TRY004
-        normalized: dict[str, Any] = {}
-        for key, rule in value.items():
-            if not isinstance(key, str) or not key.strip():
-                continue
-            normalized[key.strip().lower()] = rule
-        return normalized
+        return _normalize_db_type_mapping_keys(value)
 
 
 __all__ = [

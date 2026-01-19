@@ -25,14 +25,8 @@ if TYPE_CHECKING:
         SyncStagesSummary,
     )
     from app.models import Instance
-else:
-    CollectionSummary = dict[str, Any]
-    InventorySummary = dict[str, Any]
-    SyncStagesSummary = dict[str, Any]
-    StructlogEventDict = dict[str, Any]
-    SyncOperationResult = dict[str, Any]
 
-ACCOUNT_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
+ACCOUNT_SYNC_EXCEPTIONS: tuple[type[Exception], ...] = (
     AppError,
     PermissionSyncError,
     ConnectionAdapterError,
@@ -46,6 +40,18 @@ ACCOUNT_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TimeoutError,
     OSError,
 )
+
+
+def _build_failure_result(message: str) -> "SyncOperationResult":
+    return {
+        "success": False,
+        "message": message,
+        "error": message,
+        "synced_count": 0,
+        "added_count": 0,
+        "modified_count": 0,
+        "removed_count": 0,
+    }
 
 
 class AccountSyncService:
@@ -162,16 +168,7 @@ class AccountSyncService:
                 error_type=error_type,
                 error=str(exc),
             )
-            failure_result: SyncOperationResult = {
-                "success": False,
-                "message": error_msg,
-                "error": error_msg,
-                "synced_count": 0,
-                "added_count": 0,
-                "modified_count": 0,
-                "removed_count": 0,
-            }
-            return failure_result
+            return _build_failure_result(error_msg)
 
     def _sync_single_instance(self, instance: Instance) -> SyncOperationResult:
         """单实例同步 - 无会话管理.
@@ -207,15 +204,7 @@ class AccountSyncService:
                 session_id=temp_session_id,
                 error=str(exc),
             )
-            failure_result: SyncOperationResult = {
-                "success": False,
-                "message": f"同步失败: {exc!s}",
-                "error": f"同步失败: {exc!s}",
-                "synced_count": 0,
-                "added_count": 0,
-                "modified_count": 0,
-                "removed_count": 0,
-            }
+            failure_result = _build_failure_result(f"同步失败: {exc!s}")
             self._emit_completion_log(
                 instance=instance,
                 session_id=temp_session_id,
@@ -351,15 +340,7 @@ class AccountSyncService:
                 sync_type=sync_type,
                 error=str(exc),
             )
-            failure_result: SyncOperationResult = {
-                "success": False,
-                "message": f"会话同步失败: {exc!s}",
-                "error": f"会话同步失败: {exc!s}",
-                "synced_count": 0,
-                "added_count": 0,
-                "modified_count": 0,
-                "removed_count": 0,
-            }
+            failure_result = _build_failure_result(f"会话同步失败: {exc!s}")
             session_id_value = session.session_id if session else None
             self._emit_completion_log(
                 instance=instance,
@@ -411,15 +392,7 @@ class AccountSyncService:
                 session_id=session_id,
                 error=str(exc),
             )
-            failure_result: SyncOperationResult = {
-                "success": False,
-                "message": f"同步失败: {exc!s}",
-                "error": f"同步失败: {exc!s}",
-                "synced_count": 0,
-                "added_count": 0,
-                "modified_count": 0,
-                "removed_count": 0,
-            }
+            failure_result = _build_failure_result(f"同步失败: {exc!s}")
             self._emit_completion_log(
                 instance=instance,
                 session_id=session_id,

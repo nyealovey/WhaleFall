@@ -78,7 +78,7 @@ class SafeQueryBuilder:
             oracle_condition = condition
             param_dict = cast(dict[str, JsonValue], self.parameters)
 
-            for _, param in enumerate(params):
+            for param in params:
                 param_name = f"param_{self._param_counter}"
                 self._param_counter += 1
 
@@ -93,30 +93,6 @@ class SafeQueryBuilder:
             cast(list[JsonValue], self.parameters).extend(params)
 
         return self
-
-    def _generate_placeholder(self, count: int = 1) -> str:
-        """生成数据库特定的占位符.
-
-        根据数据库类型生成相应格式的占位符字符串.
-
-        Args:
-            count: 占位符数量,默认为 1.
-
-        Returns:
-            占位符字符串,多个占位符用逗号分隔.
-            例如:'%s, %s, %s' 或 ':param_0, :param_1, :param_2'.
-
-        """
-        if self.db_type == DatabaseType.ORACLE:
-            placeholders = []
-            for _ in range(count):
-                param_name = f"param_{self._param_counter}"
-                self._param_counter += 1
-                placeholders.append(f":{param_name}")
-            return ", ".join(placeholders)
-        if self.db_type == DatabaseType.SQLSERVER:
-            return ", ".join(["%s"] * count)
-        return ", ".join(["%s"] * count)
 
     def add_in_condition(self, field: str, values: Sequence[str]) -> "SafeQueryBuilder":
         """添加 IN 条件.
@@ -136,23 +112,26 @@ class SafeQueryBuilder:
             # 生成: status IN (%s, %s)
 
         """
-        if values:
-            if self.db_type == DatabaseType.ORACLE:
-                placeholders = []
-                param_dict = cast(dict[str, JsonValue], self.parameters)
-                for value in values:
-                    param_name = f"param_{self._param_counter}"
-                    self._param_counter += 1
-                    placeholders.append(f":{param_name}")
-                    param_dict[param_name] = value
+        if not values:
+            return self
 
-                condition = f"{field} IN ({', '.join(placeholders)})"
-                self.conditions.append(condition)
-            else:
-                placeholders = ", ".join(["%s"] * len(values))
-                condition = f"{field} IN ({placeholders})"
-                self.conditions.append(condition)
-                cast(list[JsonValue], self.parameters).extend(values)
+        if self.db_type == DatabaseType.ORACLE:
+            placeholders = []
+            param_dict = cast(dict[str, JsonValue], self.parameters)
+            for value in values:
+                param_name = f"param_{self._param_counter}"
+                self._param_counter += 1
+                placeholders.append(f":{param_name}")
+                param_dict[param_name] = value
+
+            condition = f"{field} IN ({', '.join(placeholders)})"
+            self.conditions.append(condition)
+            return self
+
+        placeholders = ", ".join(["%s"] * len(values))
+        condition = f"{field} IN ({placeholders})"
+        self.conditions.append(condition)
+        cast(list[JsonValue], self.parameters).extend(values)
         return self
 
     def add_not_in_condition(self, field: str, values: Sequence[str]) -> "SafeQueryBuilder":
@@ -173,23 +152,26 @@ class SafeQueryBuilder:
             # 生成: username NOT IN (%s, %s)
 
         """
-        if values:
-            if self.db_type == DatabaseType.ORACLE:
-                placeholders = []
-                param_dict = cast(dict[str, JsonValue], self.parameters)
-                for value in values:
-                    param_name = f"param_{self._param_counter}"
-                    self._param_counter += 1
-                    placeholders.append(f":{param_name}")
-                    param_dict[param_name] = value
+        if not values:
+            return self
 
-                condition = f"{field} NOT IN ({', '.join(placeholders)})"
-                self.conditions.append(condition)
-            else:
-                placeholders = ", ".join(["%s"] * len(values))
-                condition = f"{field} NOT IN ({placeholders})"
-                self.conditions.append(condition)
-                cast(list[JsonValue], self.parameters).extend(values)
+        if self.db_type == DatabaseType.ORACLE:
+            placeholders = []
+            param_dict = cast(dict[str, JsonValue], self.parameters)
+            for value in values:
+                param_name = f"param_{self._param_counter}"
+                self._param_counter += 1
+                placeholders.append(f":{param_name}")
+                param_dict[param_name] = value
+
+            condition = f"{field} NOT IN ({', '.join(placeholders)})"
+            self.conditions.append(condition)
+            return self
+
+        placeholders = ", ".join(["%s"] * len(values))
+        condition = f"{field} NOT IN ({placeholders})"
+        self.conditions.append(condition)
+        cast(list[JsonValue], self.parameters).extend(values)
         return self
 
     def add_like_condition(self, field: str, pattern: str) -> "SafeQueryBuilder":
@@ -286,7 +268,6 @@ class SafeQueryBuilder:
         field: str,
         values: Sequence[str],
         patterns: Sequence[str],
-        db_specific_rules: Mapping[str, Sequence[str]] | None = None,
     ) -> "SafeQueryBuilder":
         """添加数据库特定的过滤条件.
 
@@ -296,7 +277,6 @@ class SafeQueryBuilder:
             field: 字段名,例如 'username'.
             values: 排除的值列表,例如 ['admin', 'root'].
             patterns: 排除的模式列表,例如 ['test_%', '%_backup'].
-            db_specific_rules: 数据库特定规则字典,默认为 None.
 
         Returns:
             返回自身以支持链式调用.
@@ -309,8 +289,6 @@ class SafeQueryBuilder:
             ... )
 
         """
-        db_specific_rules = db_specific_rules or {}
-
         if values:
             if self.db_type == DatabaseType.POSTGRESQL and "postgres" in values:
                 filtered_values = [v for v in values if v != "postgres"]

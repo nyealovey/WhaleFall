@@ -84,7 +84,11 @@ class LogStatisticsRepository:
         )
         if result is None:
             return {}
-        return {label: int(getattr(result, label, 0) or 0) for label in label_names}
+        output: dict[str, int] = {}
+        for label in label_names:
+            value = getattr(result, label, None)
+            output[label] = int(value) if value is not None else 0
+        return output
 
     @staticmethod
     def fetch_level_distribution() -> list[Any]:

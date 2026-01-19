@@ -18,6 +18,8 @@ from app.api.v1.restx_models.history import (
 )
 from app.core.exceptions import NotFoundError
 from app.core.types.history_sessions import HistorySessionsListFilters
+from app.schemas.history_sessions_query import HistorySessionsListFiltersQuery
+from app.schemas.validation import validate_or_raise
 from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf
@@ -70,26 +72,8 @@ class HistorySessionsListResource(BaseResource):
     def get(self):
         """获取同步会话列表."""
         parsed = _history_sessions_list_query_parser.parse_args()
-        sync_type = str(parsed.get("sync_type") or "").strip()
-        sync_category = str(parsed.get("sync_category") or "").strip()
-        status = str(parsed.get("status") or "").strip()
-        page = max(int(parsed.get("page") or 1), 1)
-        limit = int(parsed.get("limit") or 20)
-        limit = max(min(limit, 100), 1)
-        sort_field = str(parsed.get("sort") or "started_at").strip() or "started_at"
-        sort_order = str(parsed.get("order") or "desc").lower()
-        if sort_order not in {"asc", "desc"}:
-            sort_order = "desc"
-
-        filters = HistorySessionsListFilters(
-            sync_type=sync_type,
-            sync_category=sync_category,
-            status=status,
-            page=page,
-            limit=limit,
-            sort_field=sort_field,
-            sort_order=sort_order,
-        )
+        query = validate_or_raise(HistorySessionsListFiltersQuery, parsed)
+        filters: HistorySessionsListFilters = query.to_filters()
 
         def _execute():
             result = HistorySessionsReadService().list_sessions(filters)

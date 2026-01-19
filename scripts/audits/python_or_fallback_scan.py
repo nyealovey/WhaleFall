@@ -143,12 +143,19 @@ class _OrFallbackVisitor(ast.NodeVisitor):
                 patterns.add("... or {}")
             if any(isinstance(value, ast.List) and not value.elts for value in node.values):
                 patterns.add("... or []")
-            if any(isinstance(value, ast.Constant) and type(value.value) is str and value.value == "" for value in node.values):
+            if any(
+                isinstance(value, ast.Constant) and type(value.value) is str and value.value == ""
+                for value in node.values
+            ):
                 patterns.add('... or ""')
-            if any(isinstance(value, ast.Constant) and type(value.value) is bool and value.value is False for value in node.values):
+            if any(
+                isinstance(value, ast.Constant) and type(value.value) is bool and value.value is False
+                for value in node.values
+            ):
                 patterns.add("... or False")
             if any(
-                isinstance(value, ast.Constant) and type(value.value) in (int, float) and value.value == 0 for value in node.values
+                isinstance(value, ast.Constant) and type(value.value) in (int, float) and value.value == 0
+                for value in node.values
             ):
                 patterns.add("... or 0")
 

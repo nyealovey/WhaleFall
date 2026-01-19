@@ -48,6 +48,7 @@ def _parse_tag_filters() -> list[str]:
 @view_required
 def list_databases() -> str:
     """渲染数据库台账页面."""
+
     def _execute() -> str:
         current_db_type = request.args.get("db_type", "all")
         search = request.args.get("search", "").strip()

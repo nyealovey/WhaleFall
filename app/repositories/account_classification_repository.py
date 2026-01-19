@@ -235,4 +235,3 @@ class ClassificationRepository:
             except RULE_HYDRATION_EXCEPTIONS as exc:
                 log_error("反序列化规则缓存失败", module="account_classification", error=str(exc))
         return hydrated
-

@@ -38,6 +38,7 @@ RouteHandler: TypeAlias = Callable[P, RouteReturn | RouteAwaitable]
 # Flask app/extension typing
 # ---------------------------------------------------------------------------
 
+
 class EnhancedErrorHandler(Protocol):
     """增强错误处理器调用协议."""
 

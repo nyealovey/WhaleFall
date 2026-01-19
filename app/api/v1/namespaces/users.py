@@ -10,12 +10,14 @@ from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
-from app.api.v1.resources.base import BaseResource
+from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import new_parser
 from app.core.exceptions import NotFoundError
 from app.core.types import JsonValue
 from app.core.types.users import UserListFilters
+from app.schemas.users_query import UserListFiltersQuery
+from app.schemas.validation import validate_or_raise
 from app.services.users import UserDetailReadService, UsersListService, UsersStatsService, UserWriteService
 from app.utils.decorators import require_csrf
 from app.utils.sensitive_data import scrub_sensitive_fields
@@ -117,39 +119,6 @@ _users_list_query_parser.add_argument("role", type=str, default="", location="ar
 _users_list_query_parser.add_argument("status", type=str, default="", location="args")
 
 
-def _parse_user_list_filters(parsed: Mapping[str, object]) -> UserListFilters:
-    raw_page = parsed.get("page")
-    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-    raw_limit = parsed.get("limit")
-    limit = int(raw_limit) if isinstance(raw_limit, int) else 10
-    limit = max(min(limit, 200), 1)
-    sort_field = str(parsed.get("sort") or "created_at").lower()
-    sort_order = str(parsed.get("order") or "desc").lower()
-    if sort_order not in {"asc", "desc"}:
-        sort_order = "desc"
-    search = str(parsed.get("search") or "")
-    role_filter = str(parsed.get("role") or "")
-    status_filter = str(parsed.get("status") or "")
-
-    return UserListFilters(
-        page=page,
-        limit=limit,
-        search=search,
-        role=role_filter if role_filter else None,
-        status=status_filter if status_filter else None,
-        sort_field=sort_field,
-        sort_order=sort_order,
-    )
-
-
-def _get_raw_payload() -> object:
-    if request.is_json:
-        payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
-    return request.form
-
-
 def _get_user_or_error(user_id: int) -> dict[str, object]:
     user = UserDetailReadService().get_user_or_error(user_id)
     return user.to_dict()
@@ -177,7 +146,8 @@ class UsersResource(BaseResource):
 
         def _execute():
             parsed = cast("dict[str, object]", _users_list_query_parser.parse_args())
-            filters = _parse_user_list_filters(parsed)
+            query = validate_or_raise(UserListFiltersQuery, parsed)
+            filters: UserListFilters = query.to_filters()
             result = UsersListService().list_users(filters)
             items = marshal(result.items, USER_ITEM_FIELDS)
             return self.success(
@@ -212,7 +182,7 @@ class UsersResource(BaseResource):
     @require_csrf
     def post(self):
         """创建用户."""
-        payload = cast("Mapping[str, JsonValue]", _get_raw_payload())
+        payload = cast("Mapping[str, JsonValue]", get_raw_payload())
         sanitized = scrub_sensitive_fields(payload)
 
         log_info(
@@ -279,7 +249,7 @@ class UserDetailResource(BaseResource):
     @require_csrf
     def put(self, user_id: int):
         """更新用户."""
-        payload = cast("Mapping[str, JsonValue]", _get_raw_payload())
+        payload = cast("Mapping[str, JsonValue]", get_raw_payload())
         sanitized = scrub_sensitive_fields(payload)
 
         log_info(

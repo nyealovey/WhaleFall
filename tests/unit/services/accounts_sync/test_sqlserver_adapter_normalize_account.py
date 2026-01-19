@@ -33,4 +33,3 @@ def test_normalize_account_defaults_permissions_when_missing() -> None:
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
     assert type_specific.get("is_disabled") is False
-
