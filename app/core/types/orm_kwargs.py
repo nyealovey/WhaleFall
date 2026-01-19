@@ -141,6 +141,35 @@ class AccountClassificationAssignmentOrmFields(TypedDict, total=False):
     updated_at: datetime
 
 
+class AccountClassificationDailyRuleMatchStatOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating AccountClassificationDailyRuleMatchStat ORM rows."""
+
+    id: int
+    stat_date: date
+    rule_id: int
+    classification_id: int
+    db_type: str
+    instance_id: int
+    matched_accounts_count: int
+    computed_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class AccountClassificationDailyClassificationMatchStatOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating AccountClassificationDailyClassificationMatchStat ORM rows."""
+
+    id: int
+    stat_date: date
+    classification_id: int
+    db_type: str
+    instance_id: int
+    matched_accounts_distinct_count: int
+    computed_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
 class DatabaseSizeAggregationOrmFields(TypedDict, total=False):
     """Keyword arguments for creating/updating DatabaseSizeAggregation ORM rows."""
 

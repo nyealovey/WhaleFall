@@ -1,6 +1,10 @@
 import pytest
 
 from app import db
+from app.models.account_classification_daily_stats import (  # noqa: F401
+    AccountClassificationDailyClassificationMatchStat,
+    AccountClassificationDailyRuleMatchStat,
+)
 
 
 def _ensure_account_statistics_tables(app) -> None:
@@ -14,6 +18,8 @@ def _ensure_account_statistics_tables(app) -> None:
                 db.metadata.tables["account_classifications"],
                 db.metadata.tables["classification_rules"],
                 db.metadata.tables["account_classification_assignments"],
+                db.metadata.tables["account_classification_daily_rule_match_stats"],
+                db.metadata.tables["account_classification_daily_classification_match_stats"],
             ],
         )
 
