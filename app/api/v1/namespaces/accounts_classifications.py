@@ -42,7 +42,10 @@ ErrorEnvelope = get_error_envelope_model(ns)
 AccountClassificationWritePayload = ns.model(
     "AccountClassificationWritePayload",
     {
-        "name": fields.String(required=True, description="分类名称"),
+        # 兼容旧前端：name 视为展示名；若未提供 code，则默认 code=name
+        "name": fields.String(required=False, description="分类展示名(兼容字段)"),
+        "code": fields.String(required=False, description="分类标识(code)，创建后不可修改"),
+        "display_name": fields.String(required=False, description="分类展示名"),
         "description": fields.String(required=False, description="分类描述"),
         "risk_level": fields.String(required=False, description="风险等级"),
         "color": fields.String(required=False, description="颜色 key"),
@@ -193,6 +196,18 @@ AccountClassificationRuleCreateSuccessEnvelope = make_success_envelope_model(
     AccountClassificationRuleCreateData,
 )
 
+AccountClassificationRuleUpdateData = ns.model(
+    "AccountClassificationRuleUpdateData",
+    {
+        "new_rule_id": fields.Integer(required=True, description="新版本规则 ID"),
+    },
+)
+AccountClassificationRuleUpdateSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountClassificationRuleUpdateSuccessEnvelope",
+    AccountClassificationRuleUpdateData,
+)
+
 AccountClassificationRuleExpressionValidateData = ns.model(
     "AccountClassificationRuleExpressionValidateData",
     {"rule_expression": fields.Raw(required=True)},
@@ -237,9 +252,13 @@ def _parse_json_payload() -> dict[str, object]:
 
 
 def _serialize_classification(classification: Any) -> dict[str, object]:
+    display_name = getattr(classification, "display_name", None) or classification.name
     return {
         "id": classification.id,
-        "name": classification.name,
+        # 兼容旧前端：name 继续作为展示名输出
+        "name": display_name,
+        "code": classification.name,
+        "display_name": display_name,
         "description": classification.description,
         "risk_level": classification.risk_level,
         "color": classification.color_value,
@@ -277,13 +296,21 @@ def _serialize_rule(
 ) -> dict[str, object]:
     expression_value = rule.get_rule_expression() if parse_expression else rule.rule_expression
 
+    classification = rule.classification if rule else None
+    classification_name = None
+    if classification is not None:
+        classification_name = getattr(classification, "display_name", None) or classification.name
+
     return {
         "id": rule.id,
         "rule_name": rule.rule_name,
         "classification_id": rule.classification_id,
-        "classification_name": rule.classification.name if rule.classification else None,
+        "classification_name": classification_name,
         "db_type": rule.db_type,
         "rule_expression": expression_value,
+        "rule_group_id": getattr(rule, "rule_group_id", None),
+        "rule_version": getattr(rule, "rule_version", None),
+        "superseded_at": (rule.superseded_at.isoformat() if getattr(rule, "superseded_at", None) else None),
         "is_active": rule.is_active,
         "created_at": rule.created_at.isoformat() if rule.created_at else None,
         "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
@@ -653,7 +680,7 @@ class AccountClassificationRuleDetailResource(BaseResource):
         )
 
     @ns.expect(AccountClassificationRuleWritePayload, validate=False)
-    @ns.response(200, "OK", make_success_envelope_model(ns, "AccountClassificationRuleUpdateSuccessEnvelope"))
+    @ns.response(200, "OK", AccountClassificationRuleUpdateSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
@@ -668,8 +695,8 @@ class AccountClassificationRuleDetailResource(BaseResource):
 
         def _execute():
             rule = _write_service.get_rule_or_error(rule_id)
-            _write_service.update_rule(rule, payload, operator_id=operator_id)
-            return self.success(message="分类规则更新成功")
+            updated = _write_service.update_rule(rule, payload, operator_id=operator_id)
+            return self.success(data={"new_rule_id": updated.id}, message="分类规则更新成功")
 
         return self.safe_call(
             _execute,

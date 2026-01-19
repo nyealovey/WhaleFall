@@ -67,7 +67,11 @@ function mountLoginPage(global) {
             icon.toggleClass('fa-eye-slash');
         }
 
-        toggleButton.attr('title', currentType === 'password' ? '显示密码' : '隐藏密码');
+        const isVisible = currentType === 'text';
+        const label = isVisible ? '隐藏密码' : '显示密码';
+        toggleButton.attr('title', label);
+        toggleButton.attr('aria-label', label);
+        toggleButton.attr('aria-pressed', isVisible ? 'true' : 'false');
     }
 
     /**

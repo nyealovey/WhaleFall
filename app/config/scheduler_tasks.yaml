@@ -9,6 +9,16 @@ default_tasks:
       hour: 1
     description: 每日同步所有数据库实例的账户信息
 
+  - id: calculate_account_classification_daily_stats
+    name: 账户分类统计
+    function: calculate_account_classification_daily_stats
+    trigger_type: cron
+    trigger_params:
+      second: 0
+      minute: 0
+      hour: 2
+    description: 每日计算账户分类命中数（规则命中 + 分类去重）
+
   - id: collect_database_sizes
     name: 容量同步
     function: collect_database_sizes

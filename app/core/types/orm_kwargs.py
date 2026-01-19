@@ -95,6 +95,7 @@ class AccountClassificationOrmFields(TypedDict, total=False):
 
     id: int
     name: str
+    display_name: str
     description: str | None
     risk_level: str
     color: str | None
@@ -114,6 +115,9 @@ class ClassificationRuleOrmFields(TypedDict, total=False):
     db_type: str
     rule_name: str
     rule_expression: str
+    rule_group_id: str
+    rule_version: int
+    superseded_at: datetime | None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -133,6 +137,35 @@ class AccountClassificationAssignmentOrmFields(TypedDict, total=False):
     batch_id: str | None
     is_active: bool
     assigned_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class AccountClassificationDailyRuleMatchStatOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating AccountClassificationDailyRuleMatchStat ORM rows."""
+
+    id: int
+    stat_date: date
+    rule_id: int
+    classification_id: int
+    db_type: str
+    instance_id: int
+    matched_accounts_count: int
+    computed_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class AccountClassificationDailyClassificationMatchStatOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating AccountClassificationDailyClassificationMatchStat ORM rows."""
+
+    id: int
+    stat_date: date
+    classification_id: int
+    db_type: str
+    instance_id: int
+    matched_accounts_distinct_count: int
+    computed_at: datetime
     created_at: datetime
     updated_at: datetime
 

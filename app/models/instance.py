@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, Unpack
 
 from app import db
+from app.models.instance_account import InstanceAccount  # noqa: F401
+from app.models.instance_database import InstanceDatabase  # noqa: F401
 from app.models.tag import instance_tags  # noqa: F401
 from app.utils.time_utils import time_utils
 

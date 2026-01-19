@@ -8,57 +8,110 @@
 {% endblock %}
 
 {% block content %}
-<div class="login-container d-flex align-items-center justify-content-center p-4">
-    <div class="col-4">
-        <div class="card login-card">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="80" class="mb-3 login-logo">
-                    <h3 class="card-title text-dark fw-bold">欢迎回来</h3>
-                    <p class="text-muted">登录到鲸落管理平台</p>
-                </div>
-
-                <form method="POST" id="loginForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <div class="mb-3">
-                        <label for="username" class="form-label">
-                            <i class="fas fa-user me-2"></i>用户名
-                        </label>
-                        <input type="text" class="form-control" id="username" name="username"
-                               placeholder="请输入用户名" required autofocus>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="password" class="form-label">
-                            <i class="fas fa-lock me-2"></i>密码
-                        </label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="password" name="password"
-                                   placeholder="请输入密码" required>
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                <i class="fas fa-eye"></i>
-                            </button>
+<main class="auth-main" aria-labelledby="auth-title">
+    <div class="layout-shell layout-shell--wide login-shell">
+        <div class="layout-shell-inner">
+            <div class="login-grid">
+                <section class="card login-hero" aria-label="平台亮点">
+                    <div class="card-body">
+                        <div class="login-hero__eyebrow chip-outline chip-outline--brand">
+                            <i class="fas fa-database me-2" aria-hidden="true"></i>鲸落 WhaleFall
                         </div>
+                        <h1 class="login-hero__title" id="auth-title">统一的数据库运维控制台</h1>
+                        <p class="login-hero__subtitle">
+                            针对 DBA 和数据治理团队，提供实例、账户、容量与任务的一站式总览。
+                        </p>
+                        <ul class="login-hero__list" aria-label="优势列表">
+                            <li>
+                                <span class="status-pill status-pill--info">
+                                    <i class="fas fa-chart-line" aria-hidden="true"></i>可观察
+                                </span>
+                                全域任务与日志追踪，异常立刻预警。
+                            </li>
+                            <li>
+                                <span class="status-pill status-pill--success">
+                                    <i class="fas fa-shield-alt" aria-hidden="true"></i>安全
+                                </span>
+                                凭据与权限治理遵循统一标准。
+                            </li>
+                            <li>
+                                <span class="status-pill status-pill--warning">
+                                    <i class="fas fa-bolt" aria-hidden="true"></i>高效
+                                </span>
+                                Grid 列表与过滤卡片保持操作一致。
+                            </li>
+                        </ul>
                     </div>
+                </section>
 
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="remember" name="remember" checked>
-                        <label class="form-check-label" for="remember">
-                            记住我
-                        </label>
+                <section class="card login-panel" aria-label="登录表单">
+                    <div class="card-body">
+                        <div class="login-panel__header">
+                            <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="64"
+                                 class="login-logo">
+                            <div>
+                                <p class="login-panel__title">欢迎回来</p>
+                                <p class="login-panel__subtitle text-muted mb-0">继续管理数据库资源与任务。</p>
+                            </div>
+                        </div>
+
+                        <form method="POST" id="loginForm" class="login-panel__form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <div class="form-group">
+                                <label for="username" class="form-label">
+                                    用户名
+                                </label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-user" aria-hidden="true"></i>
+                                    <input type="text" class="form-control" id="username" name="username"
+                                           placeholder="请输入用户名" autocomplete="username" required autofocus>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password" class="form-label">
+                                    密码
+                                </label>
+                                <div class="input-group password-field">
+                                    <span class="input-group-text password-field__icon">
+                                        <i class="fas fa-lock" aria-hidden="true"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="password" name="password"
+                                           placeholder="请输入密码" autocomplete="current-password" required
+                                           aria-describedby="passwordStrengthText">
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword"
+                                            aria-label="显示密码" aria-pressed="false">
+                                        <i class="fas fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <div class="password-strength" aria-live="polite">
+                                    <div class="password-strength-bar" role="presentation"></div>
+                                    <p class="password-strength-text" id="passwordStrengthText">密码强度：弱</p>
+                                </div>
+                            </div>
+
+                            <div class="form-footer">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="remember" name="remember" checked>
+                                    <label class="form-check-label" for="remember">
+                                        记住我
+                                    </label>
+                                </div>
+                                <small class="text-muted">使用企业账号登录即表示同意平台安全策略。</small>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-sign-in-alt me-2" aria-hidden="true"></i>登录
+                                </button>
+                            </div>
+                        </form>
                     </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-sign-in-alt me-2"></i>登录
-                        </button>
-                    </div>
-                </form>
-
+                </section>
             </div>
         </div>
     </div>
-</div>
+</main>
 {% endblock %}
 
 {% block extra_js %}

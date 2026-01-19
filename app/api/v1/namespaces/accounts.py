@@ -26,6 +26,9 @@ from app.core.exceptions import ValidationError
 from app.core.types.accounts_ledgers import AccountFilters
 from app.schemas.accounts_query import AccountsFiltersQuery, AccountsLedgersListQuery
 from app.schemas.validation import validate_or_raise
+from app.services.accounts.account_classification_daily_stats_read_service import (
+    AccountClassificationDailyStatsReadService,
+)
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
 from app.services.files.account_export_service import AccountExportService
@@ -228,6 +231,112 @@ _accounts_statistics_summary_query_parser.add_argument("db_type", type=str, loca
 
 _accounts_statistics_rules_query_parser = new_parser()
 _accounts_statistics_rules_query_parser.add_argument("rule_ids", type=str, location="args")
+
+_account_classification_trend_query_parser = new_parser()
+_account_classification_trend_query_parser.add_argument("classification_id", type=int, location="args")
+_account_classification_trend_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_account_classification_trend_query_parser.add_argument("periods", type=int, default=7, location="args")
+_account_classification_trend_query_parser.add_argument("db_type", type=str, location="args")
+_account_classification_trend_query_parser.add_argument("instance_id", type=int, location="args")
+
+_account_classification_rule_trend_query_parser = new_parser()
+_account_classification_rule_trend_query_parser.add_argument("rule_id", type=int, location="args")
+_account_classification_rule_trend_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_account_classification_rule_trend_query_parser.add_argument("periods", type=int, default=7, location="args")
+_account_classification_rule_trend_query_parser.add_argument("db_type", type=str, location="args")
+_account_classification_rule_trend_query_parser.add_argument("instance_id", type=int, location="args")
+
+_account_classification_rule_contributions_query_parser = new_parser()
+_account_classification_rule_contributions_query_parser.add_argument("classification_id", type=int, location="args")
+_account_classification_rule_contributions_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_account_classification_rule_contributions_query_parser.add_argument("db_type", type=str, location="args")
+_account_classification_rule_contributions_query_parser.add_argument("instance_id", type=int, location="args")
+_account_classification_rule_contributions_query_parser.add_argument("limit", type=int, default=10, location="args")
+
+_account_classification_rules_overview_query_parser = new_parser()
+_account_classification_rules_overview_query_parser.add_argument("classification_id", type=int, location="args")
+_account_classification_rules_overview_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_account_classification_rules_overview_query_parser.add_argument("periods", type=int, default=7, location="args")
+_account_classification_rules_overview_query_parser.add_argument("db_type", type=str, location="args")
+_account_classification_rules_overview_query_parser.add_argument("instance_id", type=int, location="args")
+_account_classification_rules_overview_query_parser.add_argument("status", type=str, default="active", location="args")
+
+
+AccountClassificationTrendPointModel = ns.model(
+    "AccountClassificationTrendPoint",
+    {
+        "period_start": fields.String(required=True),
+        "period_end": fields.String(required=True),
+        "value_avg": fields.Float(required=True),
+        "value_sum": fields.Integer(required=True),
+        "coverage_days": fields.Integer(required=True),
+        "expected_days": fields.Integer(required=True),
+    },
+)
+AccountClassificationTrendData = ns.model(
+    "AccountClassificationTrendData",
+    {"trend": fields.List(fields.Nested(AccountClassificationTrendPointModel), required=True)},
+)
+AccountClassificationTrendSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountClassificationTrendSuccessEnvelope",
+    AccountClassificationTrendData,
+)
+
+AccountClassificationRuleContributionsItemModel = ns.model(
+    "AccountClassificationRuleContributionsItem",
+    {
+        "rule_id": fields.Integer(required=True),
+        "rule_name": fields.String(required=True),
+        "db_type": fields.String(required=False),
+        "rule_version": fields.Integer(required=False),
+        "is_active": fields.Boolean(required=False),
+        "value_avg": fields.Float(required=True),
+        "value_sum": fields.Integer(required=True),
+        "coverage_days": fields.Integer(required=True),
+        "expected_days": fields.Integer(required=True),
+    },
+)
+AccountClassificationRuleContributionsData = ns.model(
+    "AccountClassificationRuleContributionsData",
+    {
+        "period_start": fields.String(required=True),
+        "period_end": fields.String(required=True),
+        "coverage_days": fields.Integer(required=True),
+        "expected_days": fields.Integer(required=True),
+        "contributions": fields.List(fields.Nested(AccountClassificationRuleContributionsItemModel), required=True),
+    },
+)
+AccountClassificationRuleContributionsSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountClassificationRuleContributionsSuccessEnvelope",
+    AccountClassificationRuleContributionsData,
+)
+
+AccountClassificationRuleOverviewItemModel = ns.model(
+    "AccountClassificationRuleOverviewItem",
+    {
+        "rule_id": fields.Integer(required=True),
+        "rule_name": fields.String(required=True),
+        "db_type": fields.String(required=True),
+        "rule_version": fields.Integer(required=True),
+        "is_active": fields.Boolean(required=True),
+        "window_value_sum": fields.Integer(required=True),
+    },
+)
+AccountClassificationRulesOverviewData = ns.model(
+    "AccountClassificationRulesOverviewData",
+    {
+        "window_start": fields.String(required=True),
+        "window_end": fields.String(required=True),
+        "rules": fields.List(fields.Nested(AccountClassificationRuleOverviewItemModel), required=True),
+    },
+)
+AccountClassificationRulesOverviewSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountClassificationRulesOverviewSuccessEnvelope",
+    AccountClassificationRulesOverviewData,
+)
 
 
 def _parse_rule_ids_param(raw_value: str | None) -> list[int] | None:
@@ -535,4 +644,224 @@ class AccountsStatisticsRulesResource(BaseResource):
             action="get_rule_stats",
             public_error="获取规则命中统计失败",
             context={"rule_ids": rule_ids},
+        )
+
+
+@ns.route("/statistics/classifications/trend")
+class AccountClassificationTrendResource(BaseResource):
+    """账户分类趋势统计资源(每日留痕)."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountClassificationTrendSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_account_classification_trend_query_parser)
+    def get(self):
+        """获取分类趋势(分类去重账号数)."""
+        parsed = _account_classification_trend_query_parser.parse_args()
+        raw_classification_id = parsed.get("classification_id")
+        classification_id = raw_classification_id if isinstance(raw_classification_id, int) else None
+        raw_period_type = parsed.get("period_type")
+        period_type = raw_period_type if isinstance(raw_period_type, str) else "daily"
+        raw_periods = parsed.get("periods")
+        periods = raw_periods if isinstance(raw_periods, int) else 7
+        raw_db_type = parsed.get("db_type")
+        db_type = raw_db_type if isinstance(raw_db_type, str) else None
+        raw_instance_id = parsed.get("instance_id")
+        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+
+        if not classification_id:
+            raise ValidationError("classification_id 必填")
+
+        def _execute():
+            trend = AccountClassificationDailyStatsReadService().get_classification_trend(
+                classification_id=classification_id,
+                period_type=period_type,
+                periods=periods,
+                db_type=db_type,
+                instance_id=instance_id,
+            )
+            return self.success(data={"trend": trend}, message="分类趋势获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_classification_trend",
+            public_error="获取分类趋势失败",
+            context={
+                "classification_id": classification_id,
+                "period_type": period_type,
+                "periods": periods,
+                "db_type": db_type,
+                "instance_id": instance_id,
+            },
+        )
+
+
+@ns.route("/statistics/rules/trend")
+class AccountClassificationRuleTrendResource(BaseResource):
+    """分类规则趋势统计资源(每日留痕)."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountClassificationTrendSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_account_classification_rule_trend_query_parser)
+    def get(self):
+        """获取规则趋势(规则命中账号数)."""
+        parsed = _account_classification_rule_trend_query_parser.parse_args()
+        raw_rule_id = parsed.get("rule_id")
+        rule_id = raw_rule_id if isinstance(raw_rule_id, int) else None
+        raw_period_type = parsed.get("period_type")
+        period_type = raw_period_type if isinstance(raw_period_type, str) else "daily"
+        raw_periods = parsed.get("periods")
+        periods = raw_periods if isinstance(raw_periods, int) else 7
+        raw_db_type = parsed.get("db_type")
+        db_type = raw_db_type if isinstance(raw_db_type, str) else None
+        raw_instance_id = parsed.get("instance_id")
+        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+
+        if not rule_id:
+            raise ValidationError("rule_id 必填")
+
+        def _execute():
+            trend = AccountClassificationDailyStatsReadService().get_rule_trend(
+                rule_id=rule_id,
+                period_type=period_type,
+                periods=periods,
+                db_type=db_type,
+                instance_id=instance_id,
+            )
+            return self.success(data={"trend": trend}, message="规则趋势获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_rule_trend",
+            public_error="获取规则趋势失败",
+            context={
+                "rule_id": rule_id,
+                "period_type": period_type,
+                "periods": periods,
+                "db_type": db_type,
+                "instance_id": instance_id,
+            },
+        )
+
+
+@ns.route("/statistics/rules/contributions")
+class AccountClassificationRuleContributionsResource(BaseResource):
+    """分类规则贡献统计资源(当前周期 Top 规则)."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountClassificationRuleContributionsSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_account_classification_rule_contributions_query_parser)
+    def get(self):
+        """获取规则贡献(未选规则时用于柱状图)."""
+        parsed = _account_classification_rule_contributions_query_parser.parse_args()
+        raw_classification_id = parsed.get("classification_id")
+        classification_id = raw_classification_id if isinstance(raw_classification_id, int) else None
+        raw_period_type = parsed.get("period_type")
+        period_type = raw_period_type if isinstance(raw_period_type, str) else "daily"
+        raw_db_type = parsed.get("db_type")
+        db_type = raw_db_type if isinstance(raw_db_type, str) else None
+        raw_instance_id = parsed.get("instance_id")
+        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+        raw_limit = parsed.get("limit")
+        limit = raw_limit if isinstance(raw_limit, int) else 10
+
+        if not classification_id:
+            raise ValidationError("classification_id 必填")
+
+        def _execute():
+            result = AccountClassificationDailyStatsReadService().get_rule_contributions(
+                classification_id=classification_id,
+                period_type=period_type,
+                db_type=db_type,
+                instance_id=instance_id,
+                limit=limit,
+            )
+            return self.success(data=result, message="规则贡献获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_rule_contributions",
+            public_error="获取规则贡献失败",
+            context={
+                "classification_id": classification_id,
+                "period_type": period_type,
+                "db_type": db_type,
+                "instance_id": instance_id,
+                "limit": limit,
+            },
+        )
+
+
+@ns.route("/statistics/rules/overview")
+class AccountClassificationRulesOverviewResource(BaseResource):
+    """分类规则列表统计资源(窗口累计)."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountClassificationRulesOverviewSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_account_classification_rules_overview_query_parser)
+    def get(self):
+        """获取规则列表(用于左侧排序/展示)."""
+        parsed = _account_classification_rules_overview_query_parser.parse_args()
+        raw_classification_id = parsed.get("classification_id")
+        classification_id = raw_classification_id if isinstance(raw_classification_id, int) else None
+        raw_period_type = parsed.get("period_type")
+        period_type = raw_period_type if isinstance(raw_period_type, str) else "daily"
+        raw_periods = parsed.get("periods")
+        periods = raw_periods if isinstance(raw_periods, int) else 7
+        raw_db_type = parsed.get("db_type")
+        db_type = raw_db_type if isinstance(raw_db_type, str) else None
+        raw_instance_id = parsed.get("instance_id")
+        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+        raw_status = parsed.get("status")
+        status = raw_status if isinstance(raw_status, str) else "active"
+
+        if not classification_id:
+            raise ValidationError("classification_id 必填")
+
+        def _execute():
+            result = AccountClassificationDailyStatsReadService().list_rules_overview(
+                classification_id=classification_id,
+                period_type=period_type,
+                periods=periods,
+                db_type=db_type,
+                instance_id=instance_id,
+                status=status,
+            )
+            return self.success(data=result, message="规则列表获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_rules_overview",
+            public_error="获取规则列表失败",
+            context={
+                "classification_id": classification_id,
+                "period_type": period_type,
+                "periods": periods,
+                "db_type": db_type,
+                "instance_id": instance_id,
+                "status": status,
+            },
         )
