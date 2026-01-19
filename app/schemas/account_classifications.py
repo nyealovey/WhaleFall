@@ -114,7 +114,8 @@ def _normalize_rule_expression(value: Any) -> tuple[str, dict[str, object]]:
 class AccountClassificationCreatePayload(PayloadSchema):
     """创建账户分类 payload."""
 
-    name: StrictStr
+    code: StrictStr
+    display_name: StrictStr
     description: StrictStr = ""
     risk_level: StrictStr = "medium"
     color: StrictStr = "info"
@@ -123,19 +124,49 @@ class AccountClassificationCreatePayload(PayloadSchema):
 
     @model_validator(mode="before")
     @classmethod
-    def _require_name(cls, data: Any) -> Any:
+    def _normalize_aliases(cls, data: Any) -> Any:
         mapping = _ensure_mapping(data)
-        raw_name = mapping.get("name")
-        if raw_name is None or (isinstance(raw_name, str) and not raw_name.strip()):
-            raise ValueError("分类名称不能为空")
-        return data
+        mutable = dict(mapping)
 
-    @field_validator("name")
+        raw_code = mutable.get("code")
+        raw_display_name = mutable.get("display_name")
+        raw_name = mutable.get("name")  # legacy
+
+        def _as_non_empty(value: Any) -> str | None:
+            if value is None:
+                return None
+            if isinstance(value, str):
+                cleaned = value.strip()
+                return cleaned or None
+            cleaned = str(value).strip()
+            return cleaned or None
+
+        code_value = _as_non_empty(raw_code) or _as_non_empty(raw_name) or _as_non_empty(raw_display_name)
+        display_value = _as_non_empty(raw_display_name) or _as_non_empty(raw_name) or (code_value or None)
+
+        if not code_value:
+            raise ValueError("分类标识(code)不能为空")
+        if not display_value:
+            raise ValueError("分类展示名不能为空")
+
+        mutable["code"] = code_value
+        mutable["display_name"] = display_value
+        return mutable
+
+    @field_validator("code")
     @classmethod
-    def _validate_name(cls, value: str) -> str:
+    def _validate_code(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("分类名称不能为空")
+            raise ValueError("分类标识(code)不能为空")
+        return cleaned
+
+    @field_validator("display_name")
+    @classmethod
+    def _validate_display_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("分类展示名不能为空")
         return cleaned
 
     @field_validator("description", mode="before")
@@ -203,26 +234,42 @@ class AccountClassificationCreatePayload(PayloadSchema):
 class AccountClassificationUpdatePayload(PayloadSchema):
     """更新账户分类 payload(支持按字段更新)."""
 
-    name: StrictStr | None = None
+    display_name: StrictStr | None = None
     description: StrictStr | None = None
     risk_level: StrictStr | None = None
     color: StrictStr | None = None
     icon_name: StrictStr | None = None
     priority: int | None = None
 
-    @field_validator("name", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def _parse_name(cls, value: Any) -> str | None:
+    def _normalize_aliases_and_reject_code_change(cls, data: Any) -> Any:
+        mapping = _ensure_mapping(data)
+        # code 创建后不可改（拒绝写入端尝试修改）
+        if "code" in mapping:
+            raise SchemaMessageKeyError("分类标识(code)创建后不可修改", message_key="FORBIDDEN")
+
+        # legacy: name -> display_name
+        if "name" in mapping and "display_name" not in mapping:
+            mutable = dict(mapping)
+            mutable["display_name"] = mutable.get("name")
+            return mutable
+
+        return data
+
+    @field_validator("display_name", mode="before")
+    @classmethod
+    def _parse_display_name(cls, value: Any) -> str | None:
         return _parse_optional_string(value)
 
-    @field_validator("name")
+    @field_validator("display_name")
     @classmethod
-    def _validate_name(cls, value: str | None) -> str | None:
+    def _validate_display_name(cls, value: str | None) -> str | None:
         if value is None:
             return None
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("分类名称不能为空")
+            raise ValueError("分类展示名不能为空")
         return cleaned
 
     @field_validator("description", mode="before")

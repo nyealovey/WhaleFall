@@ -80,6 +80,9 @@ TASK_FUNCTIONS: dict[str, JobFunc | str] = {
     "sync_accounts": "app.tasks.accounts_sync_tasks:sync_accounts",
     "collect_database_sizes": "app.tasks.capacity_collection_tasks:collect_database_sizes",
     "calculate_database_size_aggregations": "app.tasks.capacity_aggregation_tasks:calculate_database_size_aggregations",
+    "calculate_account_classification_daily_stats": (
+        "app.tasks.account_classification_daily_tasks:calculate_account_classification_daily_stats"
+    ),
 }
 
 

@@ -131,8 +131,11 @@ def test_update_rule_does_not_overwrite_is_active_when_missing(monkeypatch) -> N
         rule_expression='{"version":4,"expr":{"fn":"is_superuser","args":{}}}',
         is_active=False,
     )
+    existing.id = 1
+    existing.rule_group_id = "group-1"
+    existing.rule_version = 1
 
-    service.update_rule(
+    created = service.update_rule(
         existing,
         {
             "rule_name": "new_rule",
@@ -143,3 +146,9 @@ def test_update_rule_does_not_overwrite_is_active_when_missing(monkeypatch) -> N
     )
 
     assert existing.is_active is False
+    assert existing.superseded_at is not None
+    assert created is not existing
+    assert created.rule_group_id == "group-1"
+    assert created.rule_version == 2
+    # 未显式传 is_active 时，新版本继承旧状态
+    assert created.is_active is False

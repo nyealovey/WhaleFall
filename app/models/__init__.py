@@ -22,6 +22,8 @@ from typing import TYPE_CHECKING
 __all__ = [
     "AccountClassification",
     "AccountClassificationAssignment",
+    "AccountClassificationDailyClassificationMatchStat",
+    "AccountClassificationDailyRuleMatchStat",
     "AccountPermission",
     "ClassificationRule",
     "Credential",
@@ -41,6 +43,8 @@ __all__ = [
 _MODEL_MODULE_MAP: dict[str, str] = {
     "AccountClassification": "app.models.account_classification",
     "AccountClassificationAssignment": "app.models.account_classification",
+    "AccountClassificationDailyRuleMatchStat": "app.models.account_classification_daily_stats",
+    "AccountClassificationDailyClassificationMatchStat": "app.models.account_classification_daily_stats",
     "ClassificationRule": "app.models.account_classification",
     "AccountPermission": "app.models.account_permission",
     "Credential": "app.models.credential",
@@ -62,6 +66,10 @@ if TYPE_CHECKING:
         AccountClassification,
         AccountClassificationAssignment,
         ClassificationRule,
+    )
+    from app.models.account_classification_daily_stats import (
+        AccountClassificationDailyClassificationMatchStat,
+        AccountClassificationDailyRuleMatchStat,
     )
     from app.models.account_permission import AccountPermission
     from app.models.credential import Credential
