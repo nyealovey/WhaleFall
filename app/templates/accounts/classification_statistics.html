@@ -22,7 +22,7 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='account-classification-statistics-filter', action='', method='GET', submit_label='应用', clear_label='重置', auto_register=False, extra_classes='acs-filter-card') %}
-                <div class="col-md-3 col-12">
+                <div class="col-md-4 col-12">
                     <label for="classification_id" class="form-label">账户分类</label>
                     <select id="classification_id" name="classification_id" class="form-select" required>
                         <option value="">请选择分类</option>
@@ -50,7 +50,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-2 col-12">
+                <div class="col-md-3 col-12">
                     <label for="db_type" class="form-label">数据库类型</label>
                     <select id="db_type" name="db_type" class="form-select">
                         <option value="">全部类型</option>
@@ -62,7 +62,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-2 col-12">
+                <div class="col-md-3 col-12">
                     <label for="instance_id" class="form-label">实例</label>
                     <select id="instance_id"
                             name="instance_id"
@@ -76,25 +76,6 @@
                         {% endfor %}
                     </select>
                     <div class="form-text">未选数据库类型时不可选实例</div>
-                </div>
-
-                <div class="col-md-3 col-12">
-                    <label class="form-label d-flex align-items-center justify-content-between">
-                        <span>最近周期</span>
-                        <small class="text-muted" id="acs-periods-hint">最近 {{ selected_periods or '7' }} 个周期</small>
-                    </label>
-                    <input type="hidden" name="periods" id="periods" value="{{ selected_periods or '7' }}">
-                    <div class="btn-group chip-toggle-group w-100 acs-periods-group" role="group" aria-label="最近周期">
-                        {% set selected_periods_value = (selected_periods or '7') %}
-                        <input type="radio" class="btn-check" name="acs-periods-radio" id="periods7" value="7" {% if selected_periods_value == '7' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary chip-toggle-btn" for="periods7">7</label>
-
-                        <input type="radio" class="btn-check" name="acs-periods-radio" id="periods14" value="14" {% if selected_periods_value == '14' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary chip-toggle-btn" for="periods14">14</label>
-
-                        <input type="radio" class="btn-check" name="acs-periods-radio" id="periods30" value="30" {% if selected_periods_value == '30' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary chip-toggle-btn" for="periods30">30</label>
-                    </div>
                 </div>
 
                 <input type="hidden" name="rule_id" id="rule_id" value="{{ selected_rule_id or '' }}">
