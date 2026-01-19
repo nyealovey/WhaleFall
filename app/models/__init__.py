@@ -67,6 +67,10 @@ if TYPE_CHECKING:
         AccountClassificationAssignment,
         ClassificationRule,
     )
+    from app.models.account_classification_daily_stats import (
+        AccountClassificationDailyClassificationMatchStat,
+        AccountClassificationDailyRuleMatchStat,
+    )
     from app.models.account_permission import AccountPermission
     from app.models.credential import Credential
     from app.models.database_size_aggregation import DatabaseSizeAggregation
