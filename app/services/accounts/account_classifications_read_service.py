@@ -82,10 +82,13 @@ class AccountClassificationsReadService:
 
         items: list[AccountClassificationListItem] = []
         for classification in classifications:
+            display_name = getattr(classification, "display_name", None) or classification.name
             items.append(
                 AccountClassificationListItem(
                     id=classification.id,
-                    name=classification.name,
+                    name=display_name,
+                    code=classification.name,
+                    display_name=display_name,
                     description=classification.description,
                     risk_level=classification.risk_level,
                     color=classification.color_value,
@@ -108,9 +111,12 @@ class AccountClassificationsReadService:
             self._raise_system_error("获取账户分类详情失败", exc)
 
         rules_count = rules_count_map.get(classification.id, 0)
+        display_name = getattr(classification, "display_name", None) or classification.name
         return AccountClassificationListItem(
             id=classification.id,
-            name=classification.name,
+            name=display_name,
+            code=classification.name,
+            display_name=display_name,
             description=classification.description,
             risk_level=classification.risk_level,
             color=classification.color_value,
@@ -133,12 +139,17 @@ class AccountClassificationsReadService:
         items: list[AccountClassificationRuleListItem] = []
         for rule in rules:
             classification = rule.classification
+            classification_name = (
+                (getattr(classification, "display_name", None) or classification.name) if classification else None
+            )
             items.append(
                 AccountClassificationRuleListItem(
                     id=rule.id,
                     rule_name=rule.rule_name,
+                    rule_group_id=rule.rule_group_id,
+                    rule_version=rule.rule_version,
                     classification_id=rule.classification_id,
-                    classification_name=(classification.name if classification else None),
+                    classification_name=classification_name,
                     db_type=rule.db_type,
                     rule_expression=rule.get_rule_expression(),
                     is_active=bool(rule.is_active),
@@ -164,12 +175,17 @@ class AccountClassificationsReadService:
         items: list[AccountClassificationRuleFilterItem] = []
         for rule in rules:
             classification = rule.classification
+            classification_name = (
+                (getattr(classification, "display_name", None) or classification.name) if classification else None
+            )
             items.append(
                 AccountClassificationRuleFilterItem(
                     id=rule.id,
                     rule_name=rule.rule_name,
+                    rule_group_id=rule.rule_group_id,
+                    rule_version=rule.rule_version,
                     classification_id=rule.classification_id,
-                    classification_name=(classification.name if classification else None),
+                    classification_name=classification_name,
                     db_type=rule.db_type,
                     rule_expression=rule.rule_expression,
                     is_active=bool(rule.is_active),
@@ -188,13 +204,14 @@ class AccountClassificationsReadService:
 
         items: list[AccountClassificationAssignmentItem] = []
         for assignment, classification in assignments:
+            display_name = getattr(classification, "display_name", None) or classification.name
             items.append(
                 AccountClassificationAssignmentItem(
                     id=assignment.id,
                     account_id=assignment.account_id,
                     assigned_by=assignment.assigned_by,
                     classification_id=assignment.classification_id,
-                    classification_name=classification.name,
+                    classification_name=display_name,
                     assigned_at=(assignment.assigned_at.isoformat() if assignment.assigned_at else None),
                 ),
             )
