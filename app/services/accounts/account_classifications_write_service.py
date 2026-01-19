@@ -99,11 +99,12 @@ class AccountClassificationsWriteService:
         sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationCreatePayload, sanitized)
 
-        if self._name_exists(parsed.name, None):
-            raise ValidationError("分类名称已存在", message_key="NAME_EXISTS")
+        if self._name_exists(parsed.code, None):
+            raise ValidationError("分类标识已存在", message_key="NAME_EXISTS")
 
         classification = AccountClassification(
-            name=parsed.name,
+            name=parsed.code,
+            display_name=parsed.display_name,
             description=parsed.description,
             risk_level=parsed.risk_level,
             color=parsed.color,
@@ -138,10 +139,8 @@ class AccountClassificationsWriteService:
         sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationUpdatePayload, sanitized)
 
-        if "name" in parsed.model_fields_set and parsed.name is not None:
-            if self._name_exists(parsed.name, classification):
-                raise ValidationError("分类名称已存在", message_key="NAME_EXISTS")
-            classification.name = parsed.name
+        if "display_name" in parsed.model_fields_set and parsed.display_name is not None:
+            classification.display_name = parsed.display_name
 
         if "description" in parsed.model_fields_set and parsed.description is not None:
             classification.description = parsed.description

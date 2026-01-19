@@ -12,7 +12,12 @@ class AccountClassificationListItem:
     """账户分类列表项."""
 
     id: int
+    # 兼容旧前端：name 作为展示名使用
     name: str
+    # 稳定口径：不可变 code
+    code: str
+    # 明确字段：展示名
+    display_name: str
     description: str | None
     risk_level: str
     color: str

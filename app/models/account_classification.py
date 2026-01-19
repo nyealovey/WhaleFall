@@ -28,7 +28,8 @@ class AccountClassification(db.Model):
 
     Attributes:
         id: 主键 ID.
-        name: 分类名称,唯一.
+        name: 分类标识(code),唯一且不可变.
+        display_name: 分类展示名(可改,仅用于 UI 展示).
         description: 分类描述.
         risk_level: 风险等级(low/medium/high/critical).
         color: 显示颜色.
@@ -46,7 +47,10 @@ class AccountClassification(db.Model):
     __tablename__ = "account_classifications"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)  # 特权账户、高风险账户等
+    # 稳定口径: code 创建后不可改,用于统计/规则引用的语义锚点
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    # 展示口径: 允许 UI 改名但不影响统计语义
+    display_name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)  # 分类描述
     risk_level = db.Column(
         db.String(20),
@@ -127,9 +131,13 @@ class AccountClassification(db.Model):
             dict: 包含分类元数据和统计字段.
 
         """
+        display_name = getattr(self, "display_name", None) or self.name
         return {
             "id": self.id,
-            "name": self.name,
+            # 兼容旧前端：name 继续返回展示名
+            "name": display_name,
+            "code": self.name,
+            "display_name": display_name,
             "description": self.description,
             "risk_level": self.risk_level,
             "color": self.color,
@@ -273,7 +281,11 @@ class AccountClassificationAssignment(db.Model):
             str: `<AccountClassificationAssignment account -> classification>`.
 
         """
-        return f"<AccountClassificationAssignment {self.account_id} -> {self.classification.name}>"
+        classification = getattr(self, "classification", None)
+        label = None
+        if classification is not None:
+            label = getattr(classification, "display_name", None) or classification.name
+        return f"<AccountClassificationAssignment {self.account_id} -> {label}>"
 
     def to_dict(self) -> dict:
         """转换为字典.
@@ -295,7 +307,11 @@ class AccountClassificationAssignment(db.Model):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "account_username": self.account_id,  # 直接使用ID,避免关联查询
-            "classification_name": (self.classification.name if self.classification else None),
+            "classification_name": (
+                (getattr(self.classification, "display_name", None) or self.classification.name)
+                if self.classification
+                else None
+            ),
         }
 
     if TYPE_CHECKING:

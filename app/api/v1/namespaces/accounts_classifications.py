@@ -42,7 +42,10 @@ ErrorEnvelope = get_error_envelope_model(ns)
 AccountClassificationWritePayload = ns.model(
     "AccountClassificationWritePayload",
     {
-        "name": fields.String(required=True, description="分类名称"),
+        # 兼容旧前端：name 视为展示名；若未提供 code，则默认 code=name
+        "name": fields.String(required=False, description="分类展示名(兼容字段)"),
+        "code": fields.String(required=False, description="分类标识(code)，创建后不可修改"),
+        "display_name": fields.String(required=False, description="分类展示名"),
         "description": fields.String(required=False, description="分类描述"),
         "risk_level": fields.String(required=False, description="风险等级"),
         "color": fields.String(required=False, description="颜色 key"),
@@ -237,9 +240,13 @@ def _parse_json_payload() -> dict[str, object]:
 
 
 def _serialize_classification(classification: Any) -> dict[str, object]:
+    display_name = getattr(classification, "display_name", None) or classification.name
     return {
         "id": classification.id,
-        "name": classification.name,
+        # 兼容旧前端：name 继续作为展示名输出
+        "name": display_name,
+        "code": classification.name,
+        "display_name": display_name,
         "description": classification.description,
         "risk_level": classification.risk_level,
         "color": classification.color_value,
@@ -277,11 +284,16 @@ def _serialize_rule(
 ) -> dict[str, object]:
     expression_value = rule.get_rule_expression() if parse_expression else rule.rule_expression
 
+    classification = rule.classification if rule else None
+    classification_name = None
+    if classification is not None:
+        classification_name = getattr(classification, "display_name", None) or classification.name
+
     return {
         "id": rule.id,
         "rule_name": rule.rule_name,
         "classification_id": rule.classification_id,
-        "classification_name": rule.classification.name if rule.classification else None,
+        "classification_name": classification_name,
         "db_type": rule.db_type,
         "rule_expression": expression_value,
         "is_active": rule.is_active,
