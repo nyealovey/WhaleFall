@@ -273,6 +273,9 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     update_rule_payload = update_rule_response.get_json()
     assert isinstance(update_rule_payload, dict)
     assert update_rule_payload.get("success") is True
+    old_rule_id = rule_id
+    rule_id = update_rule_payload.get("data", {}).get("new_rule_id")
+    assert isinstance(rule_id, int)
 
     validate_expression_response = auth_client.post(
         "/api/v1/accounts/classifications/rules/actions/validate-expression",
@@ -373,6 +376,11 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
         headers=headers,
     )
     assert delete_rule_response.status_code == 200
+    delete_old_rule_response = auth_client.delete(
+        f"/api/v1/accounts/classifications/rules/{old_rule_id}",
+        headers=headers,
+    )
+    assert delete_old_rule_response.status_code == 200
 
     delete_classification_response = auth_client.delete(
         f"/api/v1/accounts/classifications/{classification_id}",

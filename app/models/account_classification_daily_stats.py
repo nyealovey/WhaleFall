@@ -9,12 +9,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Unpack
 
+from sqlalchemy import BigInteger, Integer
+
 from app import db
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from app.core.types.orm_kwargs import AccountClassificationDailyClassificationMatchStatOrmFields
-    from app.core.types.orm_kwargs import AccountClassificationDailyRuleMatchStatOrmFields
+    from app.core.types.orm_kwargs import (
+        AccountClassificationDailyClassificationMatchStatOrmFields,
+        AccountClassificationDailyRuleMatchStatOrmFields,
+    )
 
 
 class AccountClassificationDailyRuleMatchStat(db.Model):
@@ -22,7 +26,11 @@ class AccountClassificationDailyRuleMatchStat(db.Model):
 
     __tablename__ = "account_classification_daily_rule_match_stats"
 
-    id = db.Column(db.BigInteger, primary_key=True, nullable=False)
+    id = db.Column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        nullable=False,
+    )
     stat_date = db.Column(db.Date, nullable=False, index=True)
 
     rule_id = db.Column(db.Integer, db.ForeignKey("classification_rules.id"), nullable=False, index=True)
@@ -67,7 +75,11 @@ class AccountClassificationDailyClassificationMatchStat(db.Model):
 
     __tablename__ = "account_classification_daily_classification_match_stats"
 
-    id = db.Column(db.BigInteger, primary_key=True, nullable=False)
+    id = db.Column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        nullable=False,
+    )
     stat_date = db.Column(db.Date, nullable=False, index=True)
 
     classification_id = db.Column(db.Integer, db.ForeignKey("account_classifications.id"), nullable=False, index=True)

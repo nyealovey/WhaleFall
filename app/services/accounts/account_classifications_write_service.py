@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from sqlalchemy.exc import SQLAlchemyError
-from uuid import uuid4
 
 from app import db
 from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
@@ -30,9 +30,9 @@ from app.schemas.account_classifications import (
 )
 from app.schemas.validation import validate_or_raise
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
-from app.utils.time_utils import time_utils
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
+from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

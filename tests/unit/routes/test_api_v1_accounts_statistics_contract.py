@@ -95,3 +95,44 @@ def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None
     rules_data = rules_payload.get("data")
     assert isinstance(rules_data, dict)
     assert isinstance(rules_data.get("rule_stats"), list)
+
+    # 新增：账户分类每日统计趋势/贡献接口（需要 query 参数）
+    classification_trend = auth_client.get(
+        "/api/v1/accounts/statistics/classifications/trend?classification_id=1&period_type=daily&periods=7",
+    )
+    assert classification_trend.status_code == 200
+    trend_payload = classification_trend.get_json()
+    assert isinstance(trend_payload, dict)
+    assert trend_payload.get("success") is True
+    assert isinstance(trend_payload.get("data"), dict)
+    assert isinstance(trend_payload["data"].get("trend"), list)
+
+    rule_trend = auth_client.get(
+        "/api/v1/accounts/statistics/rules/trend?rule_id=1&period_type=daily&periods=7",
+    )
+    assert rule_trend.status_code == 200
+    rule_trend_payload = rule_trend.get_json()
+    assert isinstance(rule_trend_payload, dict)
+    assert rule_trend_payload.get("success") is True
+    assert isinstance(rule_trend_payload.get("data"), dict)
+    assert isinstance(rule_trend_payload["data"].get("trend"), list)
+
+    contributions = auth_client.get(
+        "/api/v1/accounts/statistics/rules/contributions?classification_id=1&period_type=daily",
+    )
+    assert contributions.status_code == 200
+    contrib_payload = contributions.get_json()
+    assert isinstance(contrib_payload, dict)
+    assert contrib_payload.get("success") is True
+    assert isinstance(contrib_payload.get("data"), dict)
+    assert isinstance(contrib_payload["data"].get("contributions"), list)
+
+    overview = auth_client.get(
+        "/api/v1/accounts/statistics/rules/overview?classification_id=1&period_type=daily&periods=7",
+    )
+    assert overview.status_code == 200
+    overview_payload = overview.get_json()
+    assert isinstance(overview_payload, dict)
+    assert overview_payload.get("success") is True
+    assert isinstance(overview_payload.get("data"), dict)
+    assert isinstance(overview_payload["data"].get("rules"), list)

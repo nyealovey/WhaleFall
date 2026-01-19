@@ -1,7 +1,5 @@
 # Account Classification Daily Stats + Rule Versioning Refactor Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task.
-
 **Goal:** 新增“按规则评估命中(B口径)”的每日统计能力，并引入“分类 code/display_name”与“规则不可变版本化”，保证历史统计口径稳定；支持按「分类/规则/db_type/instance」组合查询；同一天多次执行仅保留最后一次结果。
 
 **Related UI Design:** `docs/plans/2026-01-19-account-classification-daily-stats-ui-design.md`（账户分类统计页面：双栏 + 分类趋势 + 规则贡献/趋势，年周期置灰）
@@ -212,13 +210,13 @@
 
 | 里程碑 | 内容 | 关键产出 | 依赖 | 预计 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| M1 | 分类 code/display_name + code 不可改 | migration + schema/service + unit tests | 无 | 0.5-1d | TODO |
-| M2 | 规则不可变版本化 | migration + update_rule 改造 + API 返回 new_rule_id + unit tests | M1 | 1-2d | TODO |
-| M3 | 日统计表落地 | 2 张日表 migration + model | M2 | 0.5-1d | TODO |
-| M4 | 规则命中统计计算引擎 | service + repository(upsert) + unit tests | M3 | 1-2d | TODO |
-| M5 | 定时任务接入调度器 | task + scheduler 注册 + 可手动 run | M4 | 0.5d | TODO |
-| M6 | 查询接口 + 统计页面 | read service + routes + templates/js/css + contract tests | M4 | 1-2d | TODO |
-| M7 | 文档/验收/回滚说明 | docs + runbook | 全部 | 0.5d | TODO |
+| M1 | 分类 code/display_name + code 不可改 | migration + schema/service + unit tests | 无 | 0.5-1d | DONE |
+| M2 | 规则不可变版本化 | migration + update_rule 改造 + API 返回 new_rule_id + unit tests | M1 | 1-2d | DONE |
+| M3 | 日统计表落地 | 2 张日表 migration + model | M2 | 0.5-1d | DONE |
+| M4 | 规则命中统计计算引擎 | service + repository(upsert) + unit tests | M3 | 1-2d | DONE |
+| M5 | 定时任务接入调度器 | task + scheduler 注册 + 可手动 run | M4 | 0.5d | DONE |
+| M6 | 查询接口 + 统计页面 | read service + routes + templates/js/css + contract tests | M4 | 1-2d | DONE |
+| M7 | 文档/验收/回滚说明 | docs + runbook | 全部 | 0.5d | DONE |
 
 ---
 

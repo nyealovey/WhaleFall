@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% set page_id = 'AccountClassificationStatisticsPage' %}
+{% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/filters/macros.html' import filter_card %}
+
+{% block title %}账户分类统计 - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/classification_statistics.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+{% call page_header('fas fa-tags', '账户分类统计', '按日留痕，支持日/周/月/季聚合（周/月/季=均值；年统计即将支持）') %}
+<div class="page-header-actions d-flex gap-2 flex-wrap">
+    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+</div>
+{% endcall %}
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            {% call filter_card(form_id='account-classification-statistics-filter', action='', method='GET', submit_label='应用', clear_label='重置', auto_register=False, extra_classes='acs-filter-card') %}
+                <div class="col-md-3 col-12">
+                    <label for="classification_id" class="form-label">账户分类</label>
+                    <select id="classification_id" name="classification_id" class="form-select" required>
+                        <option value="">请选择分类</option>
+                        {% for option in classification_options or [] %}
+                            <option value="{{ option['value'] }}"
+                                    {% if option['value'] == selected_classification_id %}selected{% endif %}
+                                    data-code="{{ option.get('code', '') }}">
+                                {{ option['label'] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if not classification_options %}
+                        <p class="filter-empty-hint mt-1 mb-0">暂无可用分类，请先在「账户分类管理」中创建。</p>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-2 col-12">
+                    <label for="period_type" class="form-label">统计周期</label>
+                    <select id="period_type" name="period_type" class="form-select">
+                        <option value="daily" {% if selected_period_type == 'daily' %}selected{% endif %}>日统计</option>
+                        <option value="weekly" {% if selected_period_type == 'weekly' %}selected{% endif %}>周统计</option>
+                        <option value="monthly" {% if selected_period_type == 'monthly' %}selected{% endif %}>月统计</option>
+                        <option value="quarterly" {% if selected_period_type == 'quarterly' %}selected{% endif %}>季统计</option>
+                        <option value="yearly" disabled>年统计（即将支持）</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 col-12">
+                    <label for="db_type" class="form-label">数据库类型</label>
+                    <select id="db_type" name="db_type" class="form-select">
+                        <option value="">全部类型</option>
+                        {% for option in database_type_options or [] %}
+                            <option value="{{ option['value'] }}" {% if option['value'] == selected_db_type %}selected{% endif %}>
+                                {{ option['label'] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2 col-12">
+                    <label for="instance_id" class="form-label">实例</label>
+                    <select id="instance_id"
+                            name="instance_id"
+                            class="form-select"
+                            {% if not selected_db_type %}disabled{% endif %}>
+                        <option value="">所有实例</option>
+                        {% for option in instance_options or [] %}
+                            <option value="{{ option['value'] }}" {% if option['value'] == selected_instance_id %}selected{% endif %}>
+                                {{ option['label'] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">未选数据库类型时不可选实例</div>
+                </div>
+
+                <div class="col-md-3 col-12">
+                    <label class="form-label d-flex align-items-center justify-content-between">
+                        <span>最近周期</span>
+                        <small class="text-muted" id="acs-periods-hint">最近 {{ selected_periods or '7' }} 个周期</small>
+                    </label>
+                    <input type="hidden" name="periods" id="periods" value="{{ selected_periods or '7' }}">
+                    <div class="btn-group chip-toggle-group w-100 acs-periods-group" role="group" aria-label="最近周期">
+                        {% set selected_periods_value = (selected_periods or '7') %}
+                        <input type="radio" class="btn-check" name="acs-periods-radio" id="periods7" value="7" {% if selected_periods_value == '7' %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary chip-toggle-btn" for="periods7">7</label>
+
+                        <input type="radio" class="btn-check" name="acs-periods-radio" id="periods14" value="14" {% if selected_periods_value == '14' %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary chip-toggle-btn" for="periods14">14</label>
+
+                        <input type="radio" class="btn-check" name="acs-periods-radio" id="periods30" value="30" {% if selected_periods_value == '30' %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary chip-toggle-btn" for="periods30">30</label>
+                    </div>
+                </div>
+
+                <input type="hidden" name="rule_id" id="rule_id" value="{{ selected_rule_id or '' }}">
+            {% endcall %}
+        </div>
+    </div>
+</section>
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-3 acs-grid">
+                <div class="col-12 col-lg-4">
+                    <article class="acs-panel acs-panel--rules">
+                        <div class="acs-panel__header">
+                            <div class="acs-panel__title">
+                                <i class="fas fa-list"></i>
+                                <span>规则列表</span>
+                            </div>
+                            <div class="acs-panel__meta">
+                                <span class="chip-outline chip-outline--muted" id="acs-rules-window-label">窗口累计</span>
+                            </div>
+                        </div>
+                        <div class="acs-panel__body">
+                            <div class="acs-rules-toolbar">
+                                <div class="acs-rules-search">
+                                    <input type="search" class="form-control" id="acs-rule-search" placeholder="搜索规则名/备注">
+                                </div>
+                                <div class="acs-rules-status">
+                                    <select class="form-select" id="acs-rule-status">
+                                        {% set selected_status = (selected_rule_status or 'active') %}
+                                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>启用</option>
+                                        <option value="archived" {% if selected_status == 'archived' %}selected{% endif %}>已归档</option>
+                                        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>全部</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="acs-rules-list" data-role="rules-list">
+                                <div class="acs-empty-state" data-role="rules-empty">
+                                    <i class="fas fa-filter"></i>
+                                    <p class="mb-0">请选择分类后加载规则与趋势</p>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-lg-8">
+                    <div class="d-flex flex-column gap-3">
+                        <article class="acs-panel">
+                            <div class="acs-panel__header">
+                                <div class="acs-panel__title">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>分类趋势（去重账号数）</span>
+                                </div>
+                                <div class="acs-panel__meta">
+                                    <span class="chip-outline chip-outline--muted" id="acs-classification-coverage">覆盖 0/0 天</span>
+                                </div>
+                            </div>
+                            <div class="acs-panel__body acs-panel__body--chart">
+                                <div class="acs-chart-stage">
+                                    <canvas id="acs-classification-trend"></canvas>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="acs-panel">
+                            <div class="acs-panel__header">
+                                <div class="acs-panel__title">
+                                    <i class="fas fa-layer-group"></i>
+                                    <span id="acs-secondary-title">规则贡献（当前周期）</span>
+                                </div>
+                                <div class="acs-panel__meta">
+                                    <span class="chip-outline chip-outline--muted" id="acs-secondary-coverage">覆盖 0/0 天</span>
+                                </div>
+                            </div>
+                            <div class="acs-panel__body acs-panel__body--chart">
+                                <div class="acs-chart-stage">
+                                    <canvas id="acs-rule-secondary"></canvas>
+                                </div>
+                                <p class="acs-hint mb-0">
+                                    说明：规则之间允许重叠，“各规则之和”不等于分类去重总数。
+                                </p>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/account_classification_statistics_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/accounts/classification_statistics.js') }}"></script>
+{% endblock %}
