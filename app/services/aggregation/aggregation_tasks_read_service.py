@@ -57,17 +57,20 @@ class AggregationTasksReadService:
         if expected_instances <= 0:
             return False
 
-        database_aggregated_instances = self._aggregation_repository.count_active_instances_with_database_size_aggregation(
-            period_type=period_type,
-            period_start=period_start,
+        database_aggregated_instances = (
+            self._aggregation_repository.count_active_instances_with_database_size_aggregation(
+                period_type=period_type,
+                period_start=period_start,
+            )
         )
-        instance_aggregated_instances = self._aggregation_repository.count_active_instances_with_instance_size_aggregation(
-            period_type=period_type,
-            period_start=period_start,
+        instance_aggregated_instances = (
+            self._aggregation_repository.count_active_instances_with_instance_size_aggregation(
+                period_type=period_type,
+                period_start=period_start,
+            )
         )
         return (
-            database_aggregated_instances >= expected_instances
-            and instance_aggregated_instances >= expected_instances
+            database_aggregated_instances >= expected_instances and instance_aggregated_instances >= expected_instances
         )
 
     def get_status(self) -> AggregationStatus:

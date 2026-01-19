@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
@@ -15,9 +15,6 @@ if TYPE_CHECKING:
 
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
-else:
-    Instance = Any
-    DatabaseConnection = Any
 
 
 class MySQLCapacityAdapter(BaseCapacityAdapter):
@@ -37,7 +34,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
     """
 
     _SYSTEM_DATABASES: ClassVar[set[str]] = {"information_schema", "performance_schema", "mysql", "sys"}
-    MYSQL_CAPACITY_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    MYSQL_CAPACITY_EXCEPTIONS: tuple[type[Exception], ...] = (
         ConnectionAdapterError,
         RuntimeError,
         ValueError,
@@ -70,9 +67,10 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         """
         result = connection.execute_query("SHOW DATABASES")
+        rows = result if result is not None else []
         metadata: list[dict] = []
 
-        for row in result or []:
+        for row in rows:
             if not row:
                 continue
             name = str(row[0]).strip()
@@ -318,7 +316,8 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         data: list[dict] = []
 
         for db_name, total_bytes in stats.items():
-            total_bytes_int = self._to_int(total_bytes) or 0
+            total_bytes_value = self._to_int(total_bytes)
+            total_bytes_int = 0 if total_bytes_value is None else total_bytes_value
 
             size_mb = 0 if total_bytes_int <= 0 else max(math.ceil(total_bytes_int / (1024 * 1024)), 1)
             is_system_db = db_name in self._SYSTEM_DATABASES
@@ -404,7 +403,8 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             按优先级排序,会依次尝试直到成功.
 
         """
-        normalized_version = (instance.main_version or "").strip().lower()
+        main_version_value = getattr(instance, "main_version", None)
+        normalized_version = "" if main_version_value is None else str(main_version_value).strip().lower()
         query_innodb_tablespaces = """
             SELECT
                 ts.NAME,

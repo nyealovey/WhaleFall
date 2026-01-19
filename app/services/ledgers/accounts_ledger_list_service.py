@@ -30,18 +30,16 @@ class AccountsLedgerListService:
         page_result, metrics = self._repository.list_accounts(filters, sort_field=sort_field, sort_order=sort_order)
         items: list[AccountLedgerItem] = []
         for account in page_result.items:
-            instance = account.instance
-            instance_account = account.instance_account
-            is_active = bool(instance_account.is_active) if instance_account else True
+            is_active = bool(account.instance_account.is_active)
             items.append(
                 AccountLedgerItem(
                     id=account.instance_account_id,
                     username=account.username,
-                    instance_name=instance.name if instance else "未知实例",
-                    instance_host=instance.host if instance else "未知主机",
+                    instance_name=account.instance.name,
+                    instance_host=account.instance.host,
                     db_type=account.db_type,
-                    is_locked=bool(account.is_locked),
-                    is_superuser=bool(account.is_superuser),
+                    is_locked=account.is_locked,
+                    is_superuser=account.is_superuser,
                     is_active=is_active,
                     is_deleted=not is_active,
                     tags=metrics.tags_map.get(account.instance_id, []),

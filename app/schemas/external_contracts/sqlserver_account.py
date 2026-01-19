@@ -104,4 +104,3 @@ __all__ = [
     "SQLServerPermissionSnapshotSchema",
     "SQLServerRawAccountSchema",
 ]
-

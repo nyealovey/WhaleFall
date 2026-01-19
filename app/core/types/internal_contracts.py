@@ -86,4 +86,3 @@ __all__ = [
     "build_internal_contract_error",
     "build_internal_contract_ok",
 ]
-

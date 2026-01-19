@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -36,19 +36,8 @@ if TYPE_CHECKING:
     )
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
-else:
-    Instance = Any
-    InstanceAccount = Any
-    JsonDict = dict[str, Any]
-    JsonValue = Any
-    OtherDiffEntry = dict[str, Any]
-    PermissionDiffPayload = dict[str, Any]
-    PrivilegeDiffEntry = dict[str, Any]
-    RemoteAccount = dict[str, Any]
-    RemoteAccountMap = dict[str, Any]
-    SyncSummary = dict[str, Any]
 
-PERMISSION_LOG_EXCEPTIONS: tuple[type[BaseException], ...] = (
+PERMISSION_LOG_EXCEPTIONS: tuple[type[Exception], ...] = (
     SQLAlchemyError,
     RuntimeError,
     ValueError,
@@ -481,14 +470,17 @@ class AccountPermissionManager:
                 self.logger.warning(
                     "account_permission_type_specific_forbidden_keys_removed",
                     module="accounts_sync",
-                    db_type=str(getattr(record, "db_type", "") or "").lower(),
+                    db_type=(
+                        "" if getattr(record, "db_type", None) is None else str(getattr(record, "db_type")).lower()
+                    ),
                     removed_keys=removed_keys,
                 )
             if sanitized_type_specific is not None:
                 record.type_specific = normalize_type_specific_v1(sanitized_type_specific)
                 permissions = {**permissions, "type_specific": dict(sanitized_type_specific)}
 
-        db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
+        db_type_label_value = getattr(record, "db_type", None)
+        db_type_label = "unknown" if db_type_label_value in (None, "") else str(db_type_label_value).lower()
         started = time.perf_counter()
         try:
             record.permission_snapshot = self._build_permission_snapshot(
@@ -519,7 +511,9 @@ class AccountPermissionManager:
             )
             record.permission_facts = {
                 "version": 2,
-                "db_type": str(getattr(record, "db_type", "") or "").lower(),
+                "db_type": (
+                    "" if getattr(record, "db_type", None) is None else str(getattr(record, "db_type")).lower()
+                ),
                 "capabilities": [],
                 "capability_reasons": {},
                 "roles": [],
@@ -550,7 +544,8 @@ class AccountPermissionManager:
         record: AccountPermission,
         permissions: JsonDict,
     ) -> JsonDict:
-        db_type = str(getattr(record, "db_type", "") or "").lower()
+        db_type_value = getattr(record, "db_type", None)
+        db_type = "" if db_type_value is None else str(db_type_value).lower()
 
         categories: JsonDict = {}
         extra: JsonDict = {}
@@ -676,7 +671,8 @@ class AccountPermissionManager:
             entry = self._build_other_diff_entry(field, old_value, new_value)
             if entry:
                 changes.append(entry)
-        db_type = str(getattr(record, "db_type", "") or "").lower()
+        db_type_value = getattr(record, "db_type", None)
+        db_type = "" if db_type_value is None else str(db_type_value).lower()
         old_type_specific_value = old_snapshot.get("type_specific")
         new_type_specific_value = new_snapshot.get("type_specific")
         old_type_specific: Mapping[str, JsonValue] = (
@@ -804,7 +800,8 @@ class AccountPermissionManager:
             if locked_entry:
                 other_diff.append(locked_entry)
 
-        db_type = str(getattr(record, "db_type", "") or "").lower()
+        db_type_value = getattr(record, "db_type", None)
+        db_type = "" if db_type_value is None else str(db_type_value).lower()
         type_specific_value = snapshot.get("type_specific")
         type_specific: Mapping[str, JsonValue] = (
             cast("Mapping[str, JsonValue]", type_specific_value) if isinstance(type_specific_value, Mapping) else {}

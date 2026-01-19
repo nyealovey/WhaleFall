@@ -48,6 +48,10 @@ class InstanceAccountsService:
             instance_account = getattr(account, "instance_account", None)
             is_active = bool(instance_account and getattr(instance_account, "is_active", False))
             raw_type_specific = getattr(account, "type_specific", None)
+            account_instance_id_value = getattr(account, "instance_id", None)
+            account_id_value = getattr(account, "id", None)
+            log_instance_id = int(account_instance_id_value) if account_instance_id_value is not None else 0
+            log_account_id = int(account_id_value) if account_id_value is not None else 0
 
             # COMPAT: 历史数据可能缺失 `account_permission.type_specific.version`；统一在读入口补齐并记录命中。
             # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
@@ -57,8 +61,8 @@ class InstanceAccountsService:
                     module="instance_accounts_service",
                     fallback=True,
                     fallback_reason="TYPE_SPECIFIC_LEGACY_MISSING_VERSION",
-                    instance_id=int(getattr(account, "instance_id", 0) or 0),
-                    account_id=int(getattr(account, "id", 0) or 0),
+                    instance_id=log_instance_id,
+                    account_id=log_account_id,
                     raw_version=raw_type_specific.get("version"),
                 )
 
@@ -68,13 +72,15 @@ class InstanceAccountsService:
                 self._logger.exception(
                     "account_permission.type_specific payload invalid",
                     module="instance_accounts_service",
-                    instance_id=int(getattr(account, "instance_id", 0) or 0),
-                    account_id=int(getattr(account, "id", 0) or 0),
+                    instance_id=log_instance_id,
+                    account_id=log_account_id,
                     error=str(exc),
                 )
                 raise
 
-            type_specific = cast("dict[str, Any]", normalized_type_specific if normalized_type_specific is not None else {})
+            type_specific = cast(
+                "dict[str, Any]", normalized_type_specific if normalized_type_specific is not None else {}
+            )
 
             item = InstanceAccountListItem(
                 id=cast(int, getattr(account, "id", 0)),

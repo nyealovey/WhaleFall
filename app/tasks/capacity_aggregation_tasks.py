@@ -202,15 +202,17 @@ def calculate_database_size_aggregations(
             )
             db.session.commit()
 
-            instance_details, successful_instances, failed_instances, total_instance_aggregations = _aggregate_instances(
-                runner=runner,
-                service=service,
-                active_instances=active_instances,
-                selected_periods=selected_periods,
-                records_by_instance=records_by_instance,
-                sync_logger=sync_logger,
-                started_record_ids=started_record_ids,
-                finalized_record_ids=finalized_record_ids,
+            instance_details, successful_instances, failed_instances, total_instance_aggregations = (
+                _aggregate_instances(
+                    runner=runner,
+                    service=service,
+                    active_instances=active_instances,
+                    selected_periods=selected_periods,
+                    records_by_instance=records_by_instance,
+                    sync_logger=sync_logger,
+                    started_record_ids=started_record_ids,
+                    finalized_record_ids=finalized_record_ids,
+                )
             )
 
             period_summaries, total_database_aggregations = runner.summarize_database_periods(

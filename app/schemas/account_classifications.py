@@ -294,7 +294,9 @@ class AccountClassificationRuleCreatePayload(PayloadSchema):
     @model_validator(mode="before")
     @classmethod
     def _require_fields(cls, data: Any) -> Any:
-        return _require_fields(data, required=("rule_name", "classification_id", "db_type", "operator", "rule_expression"))
+        return _require_fields(
+            data, required=("rule_name", "classification_id", "db_type", "operator", "rule_expression")
+        )
 
     @field_validator("rule_name")
     @classmethod

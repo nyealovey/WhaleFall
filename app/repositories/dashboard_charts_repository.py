@@ -84,10 +84,11 @@ class DashboardChartsRepository:
             result_mapping = {label: getattr(result, label, 0) for label in label_keys}
 
         for start_dt, label in labels:
+            value = result_mapping.get(label)
             trend_data.append(
                 {
                     "date": time_utils.format_china_time(start_dt, "%Y-%m-%d"),
-                    "count": int(result_mapping.get(label) or 0),
+                    "count": int(value) if value is not None else 0,
                 },
             )
 

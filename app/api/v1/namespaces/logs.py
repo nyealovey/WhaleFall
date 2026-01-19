@@ -21,6 +21,8 @@ from app.api.v1.restx_models.history import (
 from app.core.constants.system_constants import LogLevel
 from app.core.exceptions import ValidationError
 from app.core.types.history_logs import LogSearchFilters
+from app.schemas.history_logs_query import HistoryLogsListQuery, HistoryLogStatisticsQuery
+from app.schemas.validation import validate_or_raise
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
 from app.utils.structlog_config import log_info
@@ -141,7 +143,9 @@ def _extract_log_search_filters(parsed: Mapping[str, object]) -> LogSearchFilter
 
     start_time_raw = parsed.get("start_time")
     end_time_raw = parsed.get("end_time")
-    start_time = _parse_iso_datetime(start_time_raw if isinstance(start_time_raw, str) else None, param_name="start_time")
+    start_time = _parse_iso_datetime(
+        start_time_raw if isinstance(start_time_raw, str) else None, param_name="start_time"
+    )
     end_time = _parse_iso_datetime(end_time_raw if isinstance(end_time_raw, str) else None, param_name="end_time")
     raw_hours = parsed.get("hours")
     hours = _resolve_hours_param(raw_hours if isinstance(raw_hours, int) else None)
@@ -177,7 +181,8 @@ class HistoryLogsResource(BaseResource):
 
         def _execute():
             parsed = cast("dict[str, object]", _history_logs_list_query_parser.parse_args())
-            filters = _extract_log_search_filters(parsed)
+            query = validate_or_raise(HistoryLogsListQuery, parsed)
+            filters: LogSearchFilters = query.to_filters()
             result = HistoryLogsListService().list_logs(filters)
             items = marshal(result.items, HISTORY_LOG_ITEM_FIELDS)
             return self.success(
@@ -217,7 +222,8 @@ class HistoryLogStatisticsResource(BaseResource):
 
         def _execute():
             parsed = _history_log_statistics_query_parser.parse_args()
-            hours = _resolve_hours_param(parsed.get("hours") if isinstance(parsed.get("hours"), int) else None) or 24
+            query = validate_or_raise(HistoryLogStatisticsQuery, dict(parsed))
+            hours = query.hours
             result = HistoryLogsExtrasService().get_statistics(hours=hours)
             stats = cast("dict[str, object]", marshal(result, HISTORY_LOG_STATISTICS_FIELDS))
             total_logs_value = stats.get("total_logs")

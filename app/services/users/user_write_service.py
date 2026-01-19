@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import Any, ClassVar, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -22,9 +22,6 @@ from app.schemas.users import UserCreatePayload, UserUpdatePayload
 from app.schemas.validation import validate_or_raise
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
-
-if TYPE_CHECKING:
-    from app.core.types import PayloadMapping
 
 
 @dataclass(slots=True)
@@ -55,13 +52,8 @@ class UserWriteService:
         parsed = validate_or_raise(UserCreatePayload, sanitized)
         self._ensure_username_unique(parsed.username, resource=None)
 
-        username = parsed.username
-        role = parsed.role
-        password = parsed.password
-
-        user = User(username=username, role=role)
+        user = User(username=parsed.username, password=parsed.password, role=parsed.role)
         cast(Any, user).is_active = parsed.is_active
-        user.set_password(password)
 
         try:
             self._repository.add(user)
@@ -82,7 +74,7 @@ class UserWriteService:
         parsed = validate_or_raise(UserUpdatePayload, sanitized)
 
         self._ensure_username_unique(parsed.username, resource=user)
-        self._ensure_last_admin(user, {"role": parsed.role, "is_active": parsed.is_active})
+        self._ensure_last_admin(user, role=parsed.role, is_active=parsed.is_active)
 
         user.username = parsed.username
         user.role = parsed.role
@@ -119,13 +111,9 @@ class UserWriteService:
         if existing and (resource is None or existing.id != resource.id):
             raise ConflictError("用户名已存在", message_key=self.MESSAGE_USERNAME_EXISTS)
 
-    @staticmethod
-    def _is_target_state_admin(data: PayloadMapping) -> bool:
-        return data.get("role") == UserRole.ADMIN and data.get("is_active") is True
-
-    def _ensure_last_admin(self, resource: User | None, normalized: PayloadMapping) -> None:
-        if resource and resource.is_admin() and not self._is_target_state_admin(normalized):
-            has_backup_admin = User.active_admin_count(exclude_user_id=resource.id)
+    def _ensure_last_admin(self, user: User, *, role: str, is_active: bool) -> None:
+        if user.is_admin() and not (role == UserRole.ADMIN and is_active is True):
+            has_backup_admin = User.active_admin_count(exclude_user_id=user.id)
             if has_backup_admin <= 0:
                 raise ValidationError("系统至少需要一位活跃管理员", message_key="LAST_ADMIN_REQUIRED")
 

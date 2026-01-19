@@ -2,7 +2,9 @@ import pytest
 
 from app.schemas.internal_contracts.permission_snapshot_v4 import (
     normalize_permission_snapshot_categories_v4,
+    normalize_permission_snapshot_type_specific_v4,
     parse_permission_snapshot_categories_v4,
+    parse_permission_snapshot_type_specific_v4,
 )
 
 
@@ -99,3 +101,50 @@ def test_parse_permission_snapshot_categories_v4_returns_ok_for_v4() -> None:
     assert result["version"] == 4
     assert result["supported_versions"] == [4]
     assert result["data"] == {"roles": ["a"]}
+
+
+@pytest.mark.unit
+def test_parse_permission_snapshot_type_specific_v4_returns_error_for_invalid_payload() -> None:
+    result = parse_permission_snapshot_type_specific_v4(None)
+    assert result["ok"] is False
+    assert result["contract"] == "permission_snapshot.type_specific"
+    assert result["version"] is None
+    assert result["supported_versions"] == [4]
+    assert result["error_code"] == "INTERNAL_CONTRACT_INVALID_PAYLOAD"
+    assert "INTERNAL_CONTRACT_INVALID_PAYLOAD" in result["errors"]
+
+
+@pytest.mark.unit
+def test_parse_permission_snapshot_type_specific_v4_returns_error_for_unknown_version() -> None:
+    result = parse_permission_snapshot_type_specific_v4({"version": 3, "type_specific": {}})
+    assert result["ok"] is False
+    assert result["contract"] == "permission_snapshot.type_specific"
+    assert result["version"] == 3
+    assert result["supported_versions"] == [4]
+    assert result["error_code"] == "INTERNAL_CONTRACT_UNKNOWN_VERSION"
+    assert "INTERNAL_CONTRACT_UNKNOWN_VERSION" in result["errors"]
+
+
+@pytest.mark.unit
+def test_parse_permission_snapshot_type_specific_v4_returns_ok_for_v4() -> None:
+    result = parse_permission_snapshot_type_specific_v4({"version": 4, "type_specific": {"sqlserver": {"a": 1}}})
+    assert result["ok"] is True
+    assert result["contract"] == "permission_snapshot.type_specific"
+    assert result["version"] == 4
+    assert result["supported_versions"] == [4]
+    assert result["data"] == {"sqlserver": {"a": 1}}
+
+
+@pytest.mark.unit
+def test_normalize_permission_snapshot_type_specific_v4_returns_bucket_for_db_type() -> None:
+    normalized = normalize_permission_snapshot_type_specific_v4(
+        "sqlserver",
+        {"sqlserver": {"connect_to_engine": "DENY"}},
+    )
+    assert normalized == {"connect_to_engine": "DENY"}
+
+
+@pytest.mark.unit
+def test_normalize_permission_snapshot_type_specific_v4_returns_empty_dict_for_invalid_shapes() -> None:
+    assert normalize_permission_snapshot_type_specific_v4("sqlserver", {}) == {}
+    assert normalize_permission_snapshot_type_specific_v4("sqlserver", {"sqlserver": []}) == {}

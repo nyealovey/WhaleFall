@@ -90,4 +90,4 @@ class PartitionManagementRepository:
         partition_table = table(partition_name)
         stmt = select(func.count()).select_from(partition_table)
         result = db.session.execute(stmt).scalar()
-        return int(result or 0)
+        return int(result) if result is not None else 0

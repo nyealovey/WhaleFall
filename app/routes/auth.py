@@ -24,7 +24,7 @@ _change_password_view = cast(
     Callable[..., ResponseReturnValue],
     ChangePasswordFormView.as_view("auth_change_password_form"),
 )
-_change_password_view = login_required(password_reset_rate_limit(require_csrf(_change_password_view)))
+_change_password_view = login_required(password_reset_rate_limit()(require_csrf(_change_password_view)))
 _change_password_view = cast(RouteCallable, _change_password_view)
 auth_bp.add_url_rule(
     "/change-password",
@@ -50,6 +50,7 @@ def login() -> RouteReturn:
         next: 登录成功后的重定向地址,可选.
 
     """
+
     def _execute() -> RouteReturn:
         if request.method == HttpMethod.POST:
             auth_logger.info(
@@ -137,6 +138,7 @@ def logout() -> RouteReturn:
         重定向到登录页面.
 
     """
+
     def _execute() -> RouteReturn:
         auth_logger.info(
             "用户登出",

@@ -1,11 +1,12 @@
 {%- from 'components/ui/macros.html' import btn_close -%}
+{%- set app_name = config.APP_NAME or '鲸落' -%}
 <!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title id="page-title">{% block title %}{{ config.APP_NAME or '鲸落' }} - 数据同步管理平台{% endblock %}</title>
+    <title id="page-title">{% block title %}{{ app_name }} - 数据同步管理平台{% endblock %}</title>
 
     <!-- 站点图标 -->
     <link rel="icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
@@ -34,20 +35,20 @@
     <link href="{{ url_for('static', filename='css/components/buttons.css') }}" rel="stylesheet">
     <!-- 表单控件尺寸样式 -->
     <link href="{{ url_for('static', filename='css/components/forms.css') }}" rel="stylesheet">
-	    <!-- 表格组件样式 -->
-	    <link href="{{ url_for('static', filename='css/components/table.css') }}" rel="stylesheet">
-	    <!-- 图表组件样式 -->
-	    <link href="{{ url_for('static', filename='css/components/charts.css') }}" rel="stylesheet">
-	    <!-- 模态框尺寸样式 -->
-	    <link href="{{ url_for('static', filename='css/components/modals.css') }}" rel="stylesheet">
-	    <!-- 统计卡片通用样式 -->
-	    <link href="{{ url_for('static', filename='css/components/stats-card.css') }}" rel="stylesheet">
-	    <!-- 状态标签组件样式 -->
-	    <link href="{{ url_for('static', filename='css/components/status-pill.css') }}" rel="stylesheet">
-	    <!-- 进度条组件样式 -->
-	    <link href="{{ url_for('static', filename='css/components/progress.css') }}" rel="stylesheet">
-		    <!-- 筛选组件通用样式 -->
-		    <link href="{{ url_for('static', filename='css/components/filters/filter-common.css') }}" rel="stylesheet">
+    <!-- 表格组件样式 -->
+    <link href="{{ url_for('static', filename='css/components/table.css') }}" rel="stylesheet">
+    <!-- 图表组件样式 -->
+    <link href="{{ url_for('static', filename='css/components/charts.css') }}" rel="stylesheet">
+    <!-- 模态框尺寸样式 -->
+    <link href="{{ url_for('static', filename='css/components/modals.css') }}" rel="stylesheet">
+    <!-- 统计卡片通用样式 -->
+    <link href="{{ url_for('static', filename='css/components/stats-card.css') }}" rel="stylesheet">
+    <!-- 状态标签组件样式 -->
+    <link href="{{ url_for('static', filename='css/components/status-pill.css') }}" rel="stylesheet">
+    <!-- 进度条组件样式 -->
+    <link href="{{ url_for('static', filename='css/components/progress.css') }}" rel="stylesheet">
+    <!-- 筛选组件通用样式 -->
+    <link href="{{ url_for('static', filename='css/components/filters/filter-common.css') }}" rel="stylesheet">
     <!-- 权限弹窗样式 -->
     <link href="{{ url_for('static', filename='css/pages/accounts/privileges.css') }}" rel="stylesheet">
 
@@ -59,11 +60,11 @@
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="layout-shell layout-shell--wide">
             <div class="layout-shell-inner">
-	            <div class="navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
-	            <a class="navbar-brand" href="{{ url_for('main.index') }}">
-	                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2">
-		                <span id="app-name">{{ config.APP_NAME or '鲸落' }}</span>
-	            </a>
+                <div class="navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
+                    <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                        <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2">
+                        <span id="app-name">{{ app_name }}</span>
+                    </a>
 
             <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
                 <ul class="navbar-nav">
@@ -135,13 +136,11 @@
                                 </a></li>
                         </ul>
                     </li>
-                    {% if current_user.is_authenticated %}
-	                    <li class="nav-item dropdown">
-	                        <a class="nav-link dropdown-toggle nav-link--admin-center" href="#" id="adminDropdown" role="button"
-	                            data-bs-toggle="dropdown" aria-expanded="false">
-	                            <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{%
-	                            endif %}
-	                        </a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle nav-link--admin-center" href="#" id="adminDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{% endif %}
+                        </a>
                         <ul class="dropdown-menu" aria-labelledby="adminDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('users.index') }}">
                                     <i class="fas fa-users me-2"></i>用户管理{% if current_user.role != 'admin' %}（只读）{%
@@ -158,7 +157,6 @@
                                 </a></li>
                         </ul>
                     </li>
-                    {% endif %}
                     {% endif %}
                 </ul>
 
@@ -235,7 +233,7 @@
         <div class="layout-shell">
             <div class="layout-shell-inner">
             <p class="mb-0">
-                &copy; 2025 <span id="footer-app-name">{{ config.APP_NAME or '鲸落' }}</span>
+                &copy; 2025 <span id="footer-app-name">{{ app_name }}</span>
                 {{ config.APP_VERSION or 'unknown' }} - 数据同步管理平台 |
                 <a href="{{ url_for('main.about') }}" class="footer-link text-decoration-none">关于</a> |
             </p>
@@ -277,24 +275,24 @@
     <script src="{{ url_for('static', filename='vendor/dayjs/plugin/customParseFormat.min.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/dayjs/plugin/localizedFormat.min.js') }}"></script>
 
-	    <script src="{{ url_for('static', filename='js/common/toast.js') }}"></script>
-	    <script src="{{ url_for('static', filename='vendor/just-validate/just-validate.production.min.js') }}"></script>
-	    <script src="{{ url_for('static', filename='js/common/form-validator.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/common/validation-rules.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/common/table-query-params.js') }}"></script>
-			<!-- 筛选组件通用脚本 -->
-			<script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/modules/ui/terms.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/modules/ui/async-action-feedback.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/modules/ui/button-loading.js') }}"></script>
-		<script src="{{ url_for('static', filename='js/modules/ui/danger-confirm.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/just-validate/just-validate.production.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/form-validator.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/validation-rules.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/table-query-params.js') }}"></script>
+    <!-- 筛选组件通用脚本 -->
+    <script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/terms.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/async-action-feedback.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/button-loading.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/danger-confirm.js') }}"></script>
 
-	<!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
+    <!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
 
-	    <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>
-	    {% block extra_js %}{% endblock %}
-	</body>
+    <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
 
-	</html>
+</html>

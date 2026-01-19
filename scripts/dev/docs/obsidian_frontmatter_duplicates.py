@@ -26,7 +26,6 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
 
 
@@ -69,9 +68,7 @@ def _parse_frontmatter(text: str) -> dict[str, object]:
                 if not re.match(r"^\s+-\s+", nxt):
                     break
                 item = re.sub(r"^\s+-\s+", "", nxt).strip()
-                if (item.startswith('"') and item.endswith('"')) or (
-                    item.startswith("'") and item.endswith("'")
-                ):
+                if (item.startswith('"') and item.endswith('"')) or (item.startswith("'") and item.endswith("'")):
                     item = item[1:-1]
                 items.append(item)
                 j += 1
@@ -80,9 +77,7 @@ def _parse_frontmatter(text: str) -> dict[str, object]:
             continue
 
         value = raw
-        if (value.startswith('"') and value.endswith('"')) or (
-            value.startswith("'") and value.endswith("'")
-        ):
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
             value = value[1:-1]
         data[key] = value
         i += 1
@@ -156,4 +151,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

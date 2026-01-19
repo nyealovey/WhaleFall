@@ -62,7 +62,7 @@ class ConnectionFactory:
             True
 
         """
-        db_type = normalize_database_type(instance.db_type or "")
+        db_type = normalize_database_type(instance.db_type)
         connection_class = ConnectionFactory.CONNECTION_CLASSES.get(db_type)
         if not connection_class:
             log_error(

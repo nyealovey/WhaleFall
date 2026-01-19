@@ -76,7 +76,7 @@ class InventoryManager:
             dict: 同步统计
 
         """
-        metadata_list = list(metadata or [])
+        metadata_list = list(metadata) if metadata is not None else []
         today = time_utils.now_china().date()
         now_ts = time_utils.now()
 
@@ -144,7 +144,9 @@ class InventoryManager:
         if not is_system:
             return False
         # 非 MySQL 保持跳过系统库;MySQL 根据需求纳入同步
-        return (instance.db_type or "").lower() != "mysql"
+        db_type_value = getattr(instance, "db_type", None)
+        normalized = "" if db_type_value is None else str(db_type_value).lower()
+        return normalized != "mysql"
 
     def _is_filtered_database(self, instance: Instance, name: str, excluded_names: list[str]) -> bool:
         should_exclude, reason = self.filter_manager.should_exclude_database(instance, name)

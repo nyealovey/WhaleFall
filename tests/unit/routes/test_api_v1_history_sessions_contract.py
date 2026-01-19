@@ -1,7 +1,5 @@
 import pytest
 
-from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
-from app.services.sync_session_service import sync_session_service
 from app.core.types.history_sessions import (
     SyncInstanceRecordItem,
     SyncSessionDetailItem,
@@ -10,6 +8,8 @@ from app.core.types.history_sessions import (
     SyncSessionItem,
 )
 from app.core.types.listing import PaginatedResult
+from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
+from app.services.sync_session_service import sync_session_service
 
 
 @pytest.mark.unit

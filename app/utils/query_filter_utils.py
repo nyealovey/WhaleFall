@@ -7,10 +7,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 
 def build_tag_options(tags: Iterable[Any]) -> list[dict[str, str]]:
@@ -19,10 +17,10 @@ def build_tag_options(tags: Iterable[Any]) -> list[dict[str, str]]:
     for tag in tags:
         options.append(
             {
-                "value": cast(str, getattr(tag, "name", "") or ""),
-                "label": cast(str, getattr(tag, "display_name", "") or ""),
-                "color": cast(str, getattr(tag, "color", "") or ""),
-                "category": cast(str, getattr(tag, "category", "") or ""),
+                "value": getattr(tag, "name", "") or "",
+                "label": getattr(tag, "display_name", "") or "",
+                "color": getattr(tag, "color", "") or "",
+                "category": getattr(tag, "category", "") or "",
             },
         )
     return options
@@ -38,7 +36,7 @@ def build_category_options(categories: Iterable[str], label_mapping: Mapping[str
         options.append(
             {
                 "value": normalized,
-                "label": cast(str, label_mapping.get(normalized, normalized)),
+                "label": label_mapping.get(normalized, normalized),
             },
         )
     return options
@@ -51,8 +49,8 @@ def build_classification_options(classifications: Iterable[Any]) -> list[dict[st
         options.append(
             {
                 "value": str(getattr(classification, "id", "") or ""),
-                "label": cast(str, getattr(classification, "name", "") or ""),
-                "color": cast(str, getattr(classification, "color", "") or ""),
+                "label": getattr(classification, "name", "") or "",
+                "color": getattr(classification, "color", "") or "",
             },
         )
     return options
@@ -63,8 +61,8 @@ def build_instance_select_options(instances: Iterable[Any]) -> list[dict[str, st
     options: list[dict[str, str]] = []
     for instance in instances:
         instance_id = getattr(instance, "id", None)
-        name = cast(str, getattr(instance, "name", "") or "")
-        db_type = cast(str, getattr(instance, "db_type", "") or "")
+        name = getattr(instance, "name", "") or ""
+        db_type = getattr(instance, "db_type", "") or ""
         options.append(
             {
                 "value": str(instance_id or ""),
@@ -80,7 +78,7 @@ def build_database_select_options(databases: Iterable[Any]) -> list[dict[str, st
     options: list[dict[str, str]] = []
     for database in databases:
         database_id = getattr(database, "id", None)
-        name = cast(str, getattr(database, "database_name", "") or "")
+        name = getattr(database, "database_name", "") or ""
         options.append(
             {
                 "value": str(database_id or ""),

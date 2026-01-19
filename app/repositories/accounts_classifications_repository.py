@@ -41,7 +41,7 @@ class AccountsClassificationsRepository:
     @staticmethod
     def exists_classification_name(name: str, *, exclude_classification_id: int | None = None) -> bool:
         """判断分类名称是否已存在(可排除指定分类 ID)."""
-        normalized = (name or "").strip()
+        normalized = name.strip()
         if not normalized:
             return False
         query = AccountClassification.query.filter(AccountClassification.name == normalized)
@@ -85,13 +85,12 @@ class AccountsClassificationsRepository:
 
     def fetch_classification_usage(self, classification_id: int) -> tuple[int, int]:
         """统计分类的规则数量与启用分配数量."""
-        rule_count = int(ClassificationRule.query.filter_by(classification_id=classification_id).count() or 0)
+        rule_count = int(ClassificationRule.query.filter_by(classification_id=classification_id).count())
         assignment_count = int(
             AccountClassificationAssignment.query.filter_by(
                 classification_id=classification_id,
                 is_active=True,
-            ).count()
-            or 0
+            ).count(),
         )
         return rule_count, assignment_count
 
@@ -178,7 +177,7 @@ class AccountsClassificationsRepository:
         assignment_rows = assignment_query.group_by(AccountClassificationAssignment.rule_id).all()
         assignment_map = {row.rule_id: row.count for row in assignment_rows if row.rule_id is not None}
 
-        return {rule.id: int(assignment_map.get(rule.id, 0) or 0) for rule in rules}
+        return {rule.id: int(assignment_map.get(rule.id, 0)) for rule in rules}
 
     def fetch_permissions_by_db_type(self, db_type: str) -> dict[str, list[dict[str, str | None]]]:
         """获取指定数据库类型的权限配置."""

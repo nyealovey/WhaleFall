@@ -32,4 +32,3 @@ def test_tag_write_service_batch_delete_from_payload_uses_validate_or_raise(monk
 
     with pytest.raises(RuntimeError, match="validate_or_raise_called"):
         service.batch_delete_from_payload({"tag_ids": [1]})
-

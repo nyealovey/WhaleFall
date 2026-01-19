@@ -75,4 +75,4 @@ class DatabaseTableSizeStatsRepository:
             deleted_count = query.delete(synchronize_session=False)
             db.session.flush()
 
-        return int(deleted_count or 0)
+        return int(deleted_count)

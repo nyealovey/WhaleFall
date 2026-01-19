@@ -64,4 +64,3 @@ def test_build_log_entry_defaults_invalid_level_to_info() -> None:
 
     assert isinstance(payload, dict)
     assert payload["level"] == LogLevel.INFO
-

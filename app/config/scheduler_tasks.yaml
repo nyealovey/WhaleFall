@@ -1,7 +1,3 @@
-# 定时任务配置
-# 这个文件定义了默认的定时任务，用户可以通过界面修改触发器参数
-# 修改后会自动保存到数据库，重启应用时会从数据库加载，不会重置
-
 default_tasks:
   - id: sync_accounts
     name: 账户同步
@@ -11,10 +7,6 @@ default_tasks:
       second: 0
       minute: 0
       hour: 1
-      day: '*'
-      month: '*'
-      day_of_week: '*'
-    enabled: true
     description: 每日同步所有数据库实例的账户信息
 
   - id: collect_database_sizes
@@ -25,10 +17,6 @@ default_tasks:
       second: 0
       minute: 0
       hour: 3
-      day: '*'
-      month: '*'
-      day_of_week: '*'
-    enabled: true
     description: 每日同步所有数据库实例的容量信息
 
   - id: calculate_database_size_aggregations
@@ -39,8 +27,4 @@ default_tasks:
       second: 0
       minute: 0
       hour: 4
-      day: '*'
-      month: '*'
-      day_of_week: '*'
-    enabled: true
     description: 每日计算数据库大小的日、周、月、季度统计聚合

@@ -26,13 +26,27 @@ if TYPE_CHECKING:
     from app.models.sync_session import SyncSession
 
 
+ACCOUNT_TASK_EXCEPTIONS: tuple[type[Exception], ...] = (
+    AppError,
+    PermissionSyncError,
+    ConnectionAdapterError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
+
+
 def _sync_single_instance(
     *,
     session: SyncSession,
     record: SyncInstanceRecord,
     instance: Instance,
     sync_logger: structlog.BoundLogger,
-    account_task_exceptions: tuple[type[BaseException], ...],
 ) -> tuple[int, int]:
     """同步单个实例账户,返回(成功数,失败数)."""
     instance_session_id = f"{session.session_id}_{instance.id}"
@@ -128,7 +142,7 @@ def _sync_single_instance(
             collection=cast("JsonDict", collection_summary),
         )
         result = (1, 0)
-    except account_task_exceptions as exc:
+    except ACCOUNT_TASK_EXCEPTIONS as exc:
         sync_session_service.fail_instance_sync(record.id, str(exc))
         sync_logger.exception(
             "实例账户同步异常",
@@ -175,20 +189,6 @@ def sync_accounts(
     with app.app_context():
 
         sync_logger = get_sync_logger()
-
-        account_task_exceptions: tuple[type[BaseException], ...] = (
-            AppError,
-            PermissionSyncError,
-            ConnectionAdapterError,
-            SQLAlchemyError,
-            RuntimeError,
-            LookupError,
-            ValueError,
-            TypeError,
-            ConnectionError,
-            TimeoutError,
-            OSError,
-        )
 
         session: SyncSession | None = None
         instances: list[Instance] = []
@@ -252,7 +252,6 @@ def sync_accounts(
                         record=record,
                         instance=instance,
                         sync_logger=sync_logger,
-                        account_task_exceptions=account_task_exceptions,
                     )
                     db.session.commit()
                     total_synced += synced
@@ -275,8 +274,8 @@ def sync_accounts(
                     total_failed=total_failed,
                 )
 
-        except account_task_exceptions as exc:
-            if "session" in locals() and session:
+        except ACCOUNT_TASK_EXCEPTIONS as exc:
+            if session is not None:
                 session.status = "failed"
                 session.completed_at = time_utils.now()
                 session.failed_instances = len(instances)

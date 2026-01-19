@@ -62,7 +62,7 @@ class AggregationRepository:
             )
             .scalar()
         )
-        return int(value or 0)
+        return int(value) if value is not None else 0
 
     @staticmethod
     def count_active_instances_with_instance_size_aggregation(*, period_type: str, period_start: date) -> int:
@@ -78,7 +78,7 @@ class AggregationRepository:
             )
             .scalar()
         )
-        return int(value or 0)
+        return int(value) if value is not None else 0
 
     @staticmethod
     def fetch_latest_aggregation_time() -> datetime | None:

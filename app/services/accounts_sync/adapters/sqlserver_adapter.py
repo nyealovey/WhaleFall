@@ -23,20 +23,12 @@ if TYPE_CHECKING:
     from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
     from app.core.types.sync import SyncConnection
     from app.models.instance import Instance
-else:
-    Instance = Any
-    JsonDict = dict[str, Any]
-    JsonValue = Any
-    PermissionSnapshot = dict[str, Any]
-    RawAccount = dict[str, Any]
-    RemoteAccount = dict[str, Any]
-    SyncConnection = Any
 
 import pymssql  # type: ignore[import-not-found]
 
-SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
+SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[Exception], ...] = (pymssql.Error,)
 
-SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionAdapterError,
     RuntimeError,
     LookupError,
@@ -198,7 +190,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """
         del instance
         parsed = SQLServerRawAccountSchema.model_validate(account)
-        username = self._normalize_str(parsed.username) or ""
+        username_value = self._normalize_str(parsed.username)
+        username = "" if username_value is None else username_value
         type_specific = parsed.permissions.type_specific
         is_disabled_value = type_specific.get("is_disabled")
         is_disabled = is_disabled_value if isinstance(is_disabled_value, bool) else parsed.is_disabled
@@ -288,7 +281,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     permissions_value.get("type_specific") if isinstance(permissions_value, dict) else None
                 )
                 existing_type_specific = (
-                    cast("JsonDict", existing_type_specific_value) if isinstance(existing_type_specific_value, dict) else {}
+                    cast("JsonDict", existing_type_specific_value)
+                    if isinstance(existing_type_specific_value, dict)
+                    else {}
                 )
                 for key, value in existing_type_specific.items():
                     type_specific.setdefault(key, value)
@@ -304,8 +299,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 permissions_value = account.get("permissions")
                 if not isinstance(permissions_value, dict):
                     permissions_value = {}
-                    account["permissions"] = cast(PermissionSnapshot, permissions_value)
-                permissions = cast(PermissionSnapshot, permissions_value)
+                    account["permissions"] = cast("PermissionSnapshot", permissions_value)
+                permissions = cast("PermissionSnapshot", permissions_value)
                 errors_list = permissions.get("errors")
                 if not isinstance(errors_list, list):
                     errors_list = []
@@ -454,7 +449,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             PermissionSnapshot: server/database 角色与权限的聚合结果.
 
         """
-        server_roles_map: dict[str, list[str]] = precomputed_server_roles if precomputed_server_roles is not None else {}
+        server_roles_map: dict[str, list[str]] = (
+            precomputed_server_roles if precomputed_server_roles is not None else {}
+        )
         server_roles = self._deduplicate_preserve_order(
             server_roles_map.get(login_name, []),
         )
@@ -699,7 +696,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     self._apply_role_rows(merged, role_rows, principal_lookup)
                     self._apply_permission_rows(merged, permission_rows, principal_lookup)
 
-                result: dict[str, JsonDict] = {login: cast(JsonDict, payload) for login, payload in merged.items()}
+                result: dict[str, JsonDict] = {login: cast("JsonDict", payload) for login, payload in merged.items()}
 
                 # 若 SID 路径未返回任何角色/权限,尝试按用户名回退
                 if self._is_permissions_empty(result):
@@ -1023,7 +1020,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         result: dict[str, dict[str, Any]] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
         self._apply_role_rows(result, role_rows, principal_lookup)
         self._apply_permission_rows(result, permission_rows, principal_lookup)
-        return {login: cast(JsonDict, payload) for login, payload in result.items()}
+        return {login: cast("JsonDict", payload) for login, payload in result.items()}
 
     @staticmethod
     def _ensure_dict(container: dict[str, Any], key: str) -> dict[str, Any]:
@@ -1141,7 +1138,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             self._apply_role_rows(merged, role_rows, principal_lookup)
             self._apply_permission_rows(merged, permission_rows, principal_lookup)
 
-        return {login: cast(JsonDict, payload) for login, payload in merged.items()}
+        return {login: cast("JsonDict", payload) for login, payload in merged.items()}
 
     def _build_db_permission_queries_by_name(self, database_list: list[str]) -> tuple[str, str, str]:
         """构建基于用户名匹配的数据库权限查询 SQL."""

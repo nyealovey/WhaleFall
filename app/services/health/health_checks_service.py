@@ -22,10 +22,10 @@ from app.utils.time_utils import time_utils
 
 RESOURCE_USAGE_THRESHOLD = 90
 
-DATABASE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (SQLAlchemyError,)
-CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (*CACHE_EXCEPTIONS, ConnectionError)
-SYSTEM_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (psutil.Error, OSError, ValueError)
-UPTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, TypeError, ValueError)
+DATABASE_HEALTH_EXCEPTIONS: tuple[type[Exception], ...] = (SQLAlchemyError,)
+CACHE_HEALTH_EXCEPTIONS: tuple[type[Exception], ...] = (*CACHE_EXCEPTIONS, ConnectionError)
+SYSTEM_HEALTH_EXCEPTIONS: tuple[type[Exception], ...] = (psutil.Error, OSError, ValueError)
+UPTIME_EXCEPTIONS: tuple[type[Exception], ...] = (AttributeError, TypeError, ValueError)
 
 
 def check_ping() -> dict[str, str]:

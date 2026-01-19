@@ -214,7 +214,8 @@ class CurrentAggregationService:
         state: AggregationRunState,
     ) -> None:
         status = (payload.get("status") or AggregationStatus.FAILED.value).lower()
-        processed = int(payload.get("processed_records") or 0)
+        processed_value = payload.get("processed_records")
+        processed = int(processed_value) if processed_value is not None else 0
         details = {
             "period_type": state.period_type,
             "period_start": state.start_date.isoformat(),

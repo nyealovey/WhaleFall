@@ -14,17 +14,12 @@ from typing import TypedDict
 from app.core.types.structures import NumericLike
 
 
-class BaseSyncDataOrmFields(TypedDict, total=False):
-    """Common keyword arguments shared by sync-data models."""
+class AccountPermissionOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating AccountPermission ORM rows."""
 
     id: int
     instance_id: int
     db_type: str
-
-
-class AccountPermissionOrmFields(BaseSyncDataOrmFields, total=False):
-    """Keyword arguments for creating/updating AccountPermission ORM rows."""
-
     instance_account_id: int
     username: str
     type_specific: object | None

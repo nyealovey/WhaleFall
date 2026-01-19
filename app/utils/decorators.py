@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from functools import wraps
-from typing import ParamSpec, Protocol, cast, overload
+from typing import ParamSpec, Protocol, cast
 
 from flask import flash, redirect, request, url_for
 from flask.typing import ResponseReturnValue
@@ -27,6 +27,11 @@ class PermissionUser(Protocol):
 
 CSRF_HEADER = HttpHeaders.X_CSRF_TOKEN
 SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+_ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
+    "user": frozenset({"view", "update", "instance_management.instance_list.view"}),
+    "guest": frozenset({"view"}),
+}
+_EMPTY_PERMISSIONS: frozenset[str] = frozenset()
 
 
 def admin_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
@@ -369,166 +374,28 @@ def has_permission(user: PermissionUser | None, permission: str) -> bool:
     if user.role == UserRole.ADMIN:
         return True
 
-    # 模拟从数据库或配置中加载的用户权限
-    # 在真实应用中,这里应该查询数据库
-    user_permissions = {
-        "user": {
-            "view",
-            "update",
-            "instance_management.instance_list.view",
-        },
-        "guest": {"view"},
-    }
-
-    required_permissions = user_permissions.get(user.role, set())
-
-    # 检查是否有所需的权限
+    required_permissions = _ROLE_PERMISSIONS.get(user.role, _EMPTY_PERMISSIONS)
     return permission in required_permissions
 
 
-@overload
-def view_required(func: Callable[P, ResponseReturnValue], *, permission: str = "view") -> Callable[P, ReturnType]: ...
+def view_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
+    """校验查看权限的装饰器."""
+    return permission_required("view")(func)
 
 
-@overload
-def view_required(
-    func: None = None, *, permission: str = "view"
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
+def create_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
+    """校验创建权限的装饰器."""
+    return permission_required("create")(func)
 
 
-def view_required(
-    func: Callable[P, ResponseReturnValue] | None = None,
-    *,
-    permission: str = "view",
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]] | Callable[P, ReturnType]:
-    """校验查看权限的装饰器,可直接使用或指定自定义权限.
-
-    Args:
-        func: 待装饰函数,支持无参直接使用.
-        permission: 自定义权限名称,默认 `view`.
-
-    Returns:
-        满足 Flask 惰性装饰器模式的函数或装饰器.
-
-    """
-    if func is not None and not callable(func):
-        permission = str(func)
-        func = None
-
-    def decorator(target: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-        return permission_required(permission)(target)
-
-    if func is not None:
-        return decorator(func)
-    return decorator
+def update_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
+    """校验更新权限的装饰器."""
+    return permission_required("update")(func)
 
 
-@overload
-def create_required(
-    func: Callable[P, ResponseReturnValue], *, permission: str = "create"
-) -> Callable[P, ReturnType]: ...
-
-
-@overload
-def create_required(
-    func: None = None, *, permission: str = "create"
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
-
-
-def create_required(
-    func: Callable[P, ResponseReturnValue] | None = None,
-    *,
-    permission: str = "create",
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]] | Callable[P, ReturnType]:
-    """校验创建权限的装饰器.
-
-    Args:
-        func: 待装饰函数.
-        permission: 自定义权限名称,默认为 `create`.
-
-    Returns:
-        装饰器或已装饰函数.
-
-    """
-
-    def decorator(target: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-        return permission_required(permission)(target)
-
-    if func is not None:
-        return decorator(func)
-    return decorator
-
-
-@overload
-def update_required(
-    func: Callable[P, ResponseReturnValue], *, permission: str = "update"
-) -> Callable[P, ReturnType]: ...
-
-
-@overload
-def update_required(
-    func: None = None, *, permission: str = "update"
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
-
-
-def update_required(
-    func: Callable[P, ResponseReturnValue] | None = None,
-    *,
-    permission: str = "update",
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]] | Callable[P, ReturnType]:
-    """校验更新权限的装饰器.
-
-    Args:
-        func: 待装饰函数.
-        permission: 自定义权限名称,默认为 `update`.
-
-    Returns:
-        装饰器或已装饰函数.
-
-    """
-
-    def decorator(target: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-        return permission_required(permission)(target)
-
-    if func is not None:
-        return decorator(func)
-    return decorator
-
-
-@overload
-def delete_required(
-    func: Callable[P, ResponseReturnValue], *, permission: str = "delete"
-) -> Callable[P, ReturnType]: ...
-
-
-@overload
-def delete_required(
-    func: None = None, *, permission: str = "delete"
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
-
-
-def delete_required(
-    func: Callable[P, ResponseReturnValue] | None = None,
-    *,
-    permission: str = "delete",
-) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]] | Callable[P, ReturnType]:
-    """校验删除权限的装饰器.
-
-    Args:
-        func: 待装饰函数.
-        permission: 自定义权限名称,默认为 `delete`.
-
-    Returns:
-        装饰器或已装饰函数.
-
-    """
-
-    def decorator(target: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-        return permission_required(permission)(target)
-
-    if func is not None:
-        return decorator(func)
-    return decorator
+def delete_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
+    """校验删除权限的装饰器."""
+    return permission_required("delete")(func)
 
 
 def scheduler_view_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
@@ -542,16 +409,3 @@ def scheduler_view_required(func: Callable[P, ResponseReturnValue]) -> Callable[
 
     """
     return view_required(func)
-
-
-def scheduler_manage_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-    """定时任务管理权限装饰器.
-
-    Args:
-        func: 原始视图函数.
-
-    Returns:
-        添加 admin 权限校验后的函数.
-
-    """
-    return admin_required(func)

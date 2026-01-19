@@ -4,15 +4,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.core.types import RawAccount, RemoteAccount
     from app.models.instance import Instance
-else:
-    Instance = Any
-    RawAccount = dict[str, Any]
-    RemoteAccount = dict[str, Any]
 
 
 class BaseAccountAdapter(ABC):

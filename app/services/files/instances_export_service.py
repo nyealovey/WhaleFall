@@ -9,20 +9,11 @@ from __future__ import annotations
 
 import csv
 import io
-from dataclasses import dataclass
 
 from app.repositories.instances_repository import InstancesRepository
+from app.services.files.csv_export_result import CsvExportResult
 from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.time_utils import time_utils
-
-
-@dataclass(frozen=True, slots=True)
-class CsvExportResult:
-    """CSV 导出结果."""
-
-    filename: str
-    content: str
-    mimetype: str = "text/csv; charset=utf-8"
 
 
 class InstancesExportService:
@@ -75,12 +66,12 @@ class InstancesExportService:
                         instance.db_type,
                         instance.host,
                         instance.port,
-                        instance.database_name or "",
+                        "" if instance.database_name is None else instance.database_name,
                         tags_display,
                         "启用" if instance.is_active else "停用",
-                        instance.description or "",
-                        instance.credential_id or "",
-                        instance.sync_count or 0,
+                        "" if instance.description is None else instance.description,
+                        "" if instance.credential_id is None else instance.credential_id,
+                        0 if instance.sync_count is None else instance.sync_count,
                         (time_utils.format_china_time(instance.last_connected) if instance.last_connected else ""),
                         (time_utils.format_china_time(instance.created_at) if instance.created_at else ""),
                         (time_utils.format_china_time(instance.updated_at) if instance.updated_at else ""),

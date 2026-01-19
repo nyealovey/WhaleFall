@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from app.models.instance import Instance
 
 
-CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+CONNECTION_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionAdapterError,
     RuntimeError,
     LookupError,
@@ -76,7 +76,7 @@ class TableSizeCoordinator:
 
     @staticmethod
     def _resolve_adapter(db_type: str) -> BaseTableSizeAdapter:
-        normalized = normalize_database_type(db_type or "")
+        normalized = normalize_database_type(db_type)
         mapping: dict[str, type[BaseTableSizeAdapter]] = {
             DatabaseType.MYSQL: MySQLTableSizeAdapter,
             DatabaseType.POSTGRESQL: PostgreSQLTableSizeAdapter,
@@ -97,7 +97,7 @@ class TableSizeCoordinator:
         if self._connection and getattr(self._connection, "is_connected", False):
             return True
 
-        db_type = normalize_database_type(self.instance.db_type or "")
+        db_type = normalize_database_type(self.instance.db_type)
         connection = self._create_scoped_connection(db_type, database_name)
         if connection is None:
             return False
@@ -183,10 +183,16 @@ class TableSizeCoordinator:
         records: list[dict[str, object]] = []
 
         for item in rows:
-            schema_name = str(item.get("schema_name") or "").strip()
-            table_name = str(item.get("table_name") or "").strip()
+            schema_value = item.get("schema_name")
+            schema_name = "" if schema_value is None else str(schema_value).strip()
+
+            table_value = item.get("table_name")
+            table_name = "" if table_value is None else str(table_value).strip()
             if not schema_name or not table_name:
                 continue
+
+            size_mb_value = self._adapter._safe_to_int(item.get("size_mb"))
+            size_mb = 0 if size_mb_value is None else size_mb_value
 
             records.append(
                 {
@@ -194,7 +200,7 @@ class TableSizeCoordinator:
                     "database_name": database_name,
                     "schema_name": schema_name,
                     "table_name": table_name,
-                    "size_mb": self._adapter._safe_to_int(item.get("size_mb")) or 0,
+                    "size_mb": size_mb,
                     "data_size_mb": self._adapter._safe_to_int(item.get("data_size_mb")),
                     "index_size_mb": self._adapter._safe_to_int(item.get("index_size_mb")),
                     "row_count": self._adapter._safe_to_int(item.get("row_count")),
@@ -238,4 +244,4 @@ class TableSizeCoordinator:
             )
             raise
 
-        return int(deleted_count or 0)
+        return int(deleted_count) if deleted_count is not None else 0

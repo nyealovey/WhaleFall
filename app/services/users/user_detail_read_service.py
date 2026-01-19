@@ -29,4 +29,3 @@ class UserDetailReadService:
         if user is None:
             raise NotFoundError("用户不存在", extra={"user_id": user_id})
         return user
-

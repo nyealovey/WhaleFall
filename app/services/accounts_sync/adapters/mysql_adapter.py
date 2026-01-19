@@ -16,13 +16,6 @@ from app.utils.structlog_config import get_sync_logger
 if TYPE_CHECKING:
     from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
     from app.models.instance import Instance
-else:
-    Instance = Any
-    JsonDict = dict[str, Any]
-    JsonValue = Any
-    PermissionSnapshot = dict[str, Any]
-    RawAccount = dict[str, Any]
-    RemoteAccount = dict[str, Any]
 
 
 class _MySQLConnectionProtocol(Protocol):
@@ -57,7 +50,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    MYSQL_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    MYSQL_ADAPTER_EXCEPTIONS: tuple[type[Exception], ...] = (
         RuntimeError,
         ValueError,
         TypeError,
@@ -116,7 +109,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             accounts: list[RawAccount] = []
             for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
                 unique_username = f"{username}@{host}"
-                is_locked = (is_locked_flag or "").upper() == "Y"
+                is_locked_flag_text = "" if is_locked_flag is None else str(is_locked_flag)
+                is_locked = is_locked_flag_text.upper() == "Y"
                 accounts.append(
                     {
                         "username": unique_username,
@@ -128,7 +122,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                                 "original_username": username,
                                 "super_priv": is_superuser == "Y",
                                 "account_locked": is_locked,
-                                "grant_priv": (can_grant_flag or "").upper() == "Y",
+                                "grant_priv": ("" if can_grant_flag is None else str(can_grant_flag)).upper() == "Y",
                                 "plugin": plugin,
                                 "password_last_changed": (
                                     password_last_changed.isoformat() if password_last_changed else None
@@ -188,7 +182,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             "is_locked": parsed.is_locked,
             "is_active": True,
             "permissions": cast(
-                PermissionSnapshot,
+                "PermissionSnapshot",
                 {
                     "global_privileges": permissions.global_privileges,
                     "database_privileges": permissions.database_privileges,
@@ -222,7 +216,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             return None
 
         type_specific_value = permissions_value.get("type_specific")
-        existing_type_specific = cast(JsonDict, type_specific_value) if isinstance(type_specific_value, dict) else {}
+        existing_type_specific = cast("JsonDict", type_specific_value) if isinstance(type_specific_value, dict) else {}
 
         original_username_val = existing_type_specific.get("original_username")
         original_username = (
@@ -250,8 +244,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         permissions_value = account.get("permissions")
         if not isinstance(permissions_value, dict):
             permissions_value = {}
-            account["permissions"] = cast(PermissionSnapshot, permissions_value)
-        permissions = cast(PermissionSnapshot, permissions_value)
+            account["permissions"] = cast("PermissionSnapshot", permissions_value)
+        permissions = cast("PermissionSnapshot", permissions_value)
 
         errors_list = permissions.get("errors")
         if not isinstance(errors_list, list):
@@ -406,7 +400,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             try:
                 permissions = self._get_user_permissions(connection, original_username, host)
                 permissions_type_specific = permissions.get("type_specific")
-                type_specific = cast(JsonDict, permissions_type_specific) if isinstance(permissions_type_specific, dict) else {}
+                type_specific = (
+                    cast("JsonDict", permissions_type_specific) if isinstance(permissions_type_specific, dict) else {}
+                )
                 permissions["type_specific"] = type_specific
                 for key, value in existing_type_specific.items():
                     if value is not None:

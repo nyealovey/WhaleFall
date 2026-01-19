@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from app import db
 from app.core.constants import SyncStatus
@@ -16,6 +16,7 @@ from app.core.types.ledgers import (
     DatabaseLedgerFilters,
     DatabaseLedgerInstanceSummary,
     DatabaseLedgerItem,
+    DatabaseLedgerRowProjection,
     DatabaseLedgerSyncStatusSummary,
 )
 from app.core.types.listing import PaginatedResult
@@ -74,10 +75,11 @@ class DatabaseLedgerService:
         """
         try:
             per_page = per_page or self.DEFAULT_PAGINATION
+            resolved_tags = tags if tags is not None else []
             filters = DatabaseLedgerFilters(
                 search=search.strip(),
                 db_type=(db_type or "all"),
-                tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                tags=[tag.strip() for tag in resolved_tags if tag.strip()],
                 instance_id=instance_id,
                 page=page,
                 per_page=per_page,
@@ -123,10 +125,11 @@ class DatabaseLedgerService:
 
         """
         try:
+            resolved_tags = tags if tags is not None else []
             filters = DatabaseLedgerFilters(
                 search=search.strip(),
                 db_type=(db_type or "all"),
-                tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                tags=[tag.strip() for tag in resolved_tags if tag.strip()],
                 instance_id=instance_id,
                 page=1,
                 per_page=self.DEFAULT_PAGINATION,
@@ -145,10 +148,9 @@ class DatabaseLedgerService:
             msg = "导出数据库台账失败"
             raise SystemError(msg) from exc
 
-    def _build_item(self, projection: object) -> DatabaseLedgerItem:
-        resolved = cast("Any", projection)
-        collected_at = cast("datetime | None", getattr(resolved, "collected_at", None))
-        size_mb = cast("int | None", getattr(resolved, "size_mb", None))
+    def _build_item(self, projection: DatabaseLedgerRowProjection) -> DatabaseLedgerItem:
+        collected_at = projection.collected_at
+        size_mb = projection.size_mb
         status_payload = self._resolve_sync_status(collected_at)
 
         capacity_payload = DatabaseLedgerCapacitySummary(
@@ -158,24 +160,20 @@ class DatabaseLedgerService:
             collected_at=collected_at.isoformat() if collected_at else None,
         )
         instance_payload = DatabaseLedgerInstanceSummary(
-            id=cast(int, getattr(resolved, "instance_id", 0)),
-            name=cast(str, getattr(resolved, "instance_name", "")),
-            host=cast(str, getattr(resolved, "instance_host", "")),
-            db_type=cast(str, getattr(resolved, "db_type", "")),
+            id=projection.instance_id,
+            name=projection.instance_name,
+            host=projection.instance_host,
+            db_type=projection.db_type,
         )
-        sync_status_payload = DatabaseLedgerSyncStatusSummary(
-            value=status_payload["value"],
-            label=status_payload["label"],
-            variant=status_payload["variant"],
-        )
+        sync_status_payload = DatabaseLedgerSyncStatusSummary(**status_payload)
         return DatabaseLedgerItem(
-            id=cast(int, getattr(resolved, "id", 0)),
-            database_name=cast(str, getattr(resolved, "database_name", "")),
+            id=projection.id,
+            database_name=projection.database_name,
             instance=instance_payload,
             db_type=instance_payload.db_type,
             capacity=capacity_payload,
             sync_status=sync_status_payload,
-            tags=cast("Any", getattr(resolved, "tags", [])),
+            tags=projection.tags,
         )
 
     def _resolve_sync_status(self, collected_at: datetime | None) -> dict[str, str]:

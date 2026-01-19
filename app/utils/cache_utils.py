@@ -9,7 +9,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from functools import wraps
-from typing import TYPE_CHECKING, Any, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from app.utils.structlog_config import get_system_logger
 
@@ -19,7 +19,6 @@ else:
     Cache = Any
 
 R = TypeVar("R")
-TypingCallable: TypeAlias = Callable[..., Any]
 
 try:
     from redis.exceptions import RedisError
@@ -53,29 +52,6 @@ class CacheManager:
         self.default_timeout = 300  # 5分钟默认超时
         self.system_logger = get_system_logger()
 
-    def _generate_key(self, prefix: str, *args: object, **kwargs: object) -> str:
-        """生成缓存键.
-
-        使用 SHA256 哈希算法生成唯一的缓存键.
-
-        Args:
-            prefix: 缓存键前缀.
-            *args: 位置参数.
-            **kwargs: 关键字参数.
-
-        Returns:
-            格式为 "prefix:hash" 的缓存键.
-
-        """
-        # 将参数序列化为字符串
-        key_data = {"args": args, "kwargs": sorted(kwargs.items())}
-        key_string = json.dumps(key_data, sort_keys=True, default=str)
-
-        # 使用 SHA256 生成哈希值
-        key_hash = hashlib.sha256(key_string.encode()).hexdigest()
-
-        return f"{prefix}:{key_hash}"
-
     def build_key(self, prefix: str, *args: object, **kwargs: object) -> str:
         """对外暴露的缓存键生成方法.
 
@@ -88,7 +64,10 @@ class CacheManager:
             str: 前缀+哈希的缓存键.
 
         """
-        return self._generate_key(prefix, *args, **kwargs)
+        key_data = {"args": args, "kwargs": sorted(kwargs.items())}
+        key_string = json.dumps(key_data, sort_keys=True, default=str)
+        key_hash = hashlib.sha256(key_string.encode()).hexdigest()
+        return f"{prefix}:{key_hash}"
 
     def get(self, key: str) -> object | None:
         """获取缓存值.
@@ -127,99 +106,6 @@ class CacheManager:
             return False
         return True
 
-    def delete(self, key: str) -> bool:
-        """删除缓存值.
-
-        Args:
-            key: 缓存键.
-
-        Returns:
-            删除成功返回 True,失败返回 False.
-
-        """
-        try:
-            self.cache.delete(key)
-        except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning("删除缓存失败", module="cache", key=key, error=str(cache_error))
-            return False
-        return True
-
-    def clear(self) -> bool:
-        """清空所有缓存.
-
-        Returns:
-            成功返回 True,失败返回 False.
-
-        """
-        try:
-            self.cache.clear()
-        except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning("清空缓存失败", module="cache", error=str(cache_error))
-            return False
-        return True
-
-    def get_or_set(
-        self,
-        key: str,
-        func: Callable[..., R],
-        timeout: int | None = None,
-        *args: Any,
-        **kwargs: Any,
-    ) -> R:
-        """获取缓存值,如果不存在则调用函数生成并写入.
-
-        Args:
-            key: 缓存键.
-            func: 当缓存缺失时执行的回调.
-            timeout: 缓存超时时间,None 表示使用默认值.
-            *args: 传递给回调的可变位置参数.
-            **kwargs: 传递给回调的关键字参数.
-
-        Returns:
-            缓存中已有的值或刚计算出的函数返回值.
-
-        """
-        value = self.get(key)
-        if value is None:
-            result = func(*args, **kwargs)
-            self.set(key, result, timeout)
-            return result
-        return cast("R", value)
-
-
-def invalidate_pattern(self, pattern: str) -> int:
-    """根据模式批量删除缓存项.
-
-    Args:
-        self: CacheManager 实例.
-        pattern: Redis 等后端支持的通配模式.
-
-    Returns:
-        实际删除的键数量,不支持模式删除时返回 0.
-
-    """
-    try:
-        cache_backend = self.cache.cache
-        delete_pattern_func = getattr(cache_backend, "delete_pattern", None)
-        if callable(delete_pattern_func):
-            deleted = delete_pattern_func(pattern)
-            if isinstance(deleted, (int, float, str)):
-                try:
-                    return int(deleted)
-                except (TypeError, ValueError):
-                    return 0
-            return 0
-        self.system_logger.warning("当前缓存后端不支持模式删除", module="cache", pattern=pattern)
-    except CACHE_OPERATION_EXCEPTIONS as cache_error:
-        self.system_logger.warning(
-            "模式删除缓存失败",
-            module="cache",
-            pattern=pattern,
-            error=str(cache_error),
-        )
-        return 0
-    return 0
-
 
 class CacheManagerRegistry:
     """缓存管理器注册表,避免直接修改全局变量."""
@@ -230,8 +116,7 @@ class CacheManagerRegistry:
     def init(cls, cache: Cache) -> CacheManager:
         """初始化缓存管理器并写入注册表."""
         cls._manager = CacheManager(cache)
-        system_logger = get_system_logger()
-        system_logger.info("缓存管理器初始化完成", module="cache")
+        cls._manager.system_logger.info("缓存管理器初始化完成", module="cache")
         return cls._manager
 
     @classmethod
@@ -271,14 +156,12 @@ def cached(
 
             cached_value = manager.get(cache_key)
             if cached_value is not None:
-                system_logger = get_system_logger()
-                system_logger.debug("缓存命中", module="cache", cache_key=cache_key)
+                manager.system_logger.debug("缓存命中", module="cache", cache_key=cache_key)
                 return cast("R", cached_value)
 
             result = f(*args, **kwargs)
             manager.set(cache_key, result, timeout)
-            system_logger = get_system_logger()
-            system_logger.debug("缓存设置", module="cache", cache_key=cache_key)
+            manager.system_logger.debug("缓存设置", module="cache", cache_key=cache_key)
 
             return result
 

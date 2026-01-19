@@ -51,10 +51,10 @@ class CapacityDatabasesPageService:
         """构造页面渲染上下文."""
         database_type_options = self._build_database_type_options()
 
-        normalized_db_type = (db_type or "").strip()
-        normalized_instance = (instance or "").strip()
-        normalized_database_id = (database_id or "").strip()
-        normalized_database_name = (database or "").strip()
+        normalized_db_type = db_type.strip()
+        normalized_instance = instance.strip()
+        normalized_database_id = database_id.strip()
+        normalized_database_name = database.strip()
 
         if not normalized_database_id and normalized_database_name:
             instance_id_int = self._coerce_int(normalized_instance)
@@ -68,10 +68,9 @@ class CapacityDatabasesPageService:
         if normalized_database_id:
             normalized_database_name = ""
 
+        db_type_filter: str | None = normalized_db_type if normalized_db_type != "" else None
         instance_options = (
-            self._filter_options_service.list_instance_select_options(normalized_db_type or None)
-            if normalized_db_type
-            else []
+            self._filter_options_service.list_instance_select_options(db_type_filter) if normalized_db_type else []
         )
 
         instance_id_int = self._coerce_int(normalized_instance)

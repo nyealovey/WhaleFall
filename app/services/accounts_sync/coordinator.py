@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Self
 
 from app.services.accounts_sync.adapters.factory import get_account_adapter
 from app.services.accounts_sync.inventory_manager import AccountInventoryManager
@@ -25,18 +25,9 @@ if TYPE_CHECKING:
     )
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
-else:
-    Instance = Any
-    InstanceAccount = Any
-    CollectionSummary = dict[str, Any]
-    InventorySummary = dict[str, Any]
-    RemoteAccount = dict[str, Any]
-    RemoteAccountMap = dict[str, Any]
-    SyncConnection = Any
-    SyncStagesSummary = dict[str, Any]
 
 MODULE = "accounts_sync"
-CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+CONNECTION_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionAdapterError,
     RuntimeError,
     ValueError,
@@ -437,7 +428,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 summary.get("created", 0) + summary.get("updated", 0),
             ),
             "errors": summary.get("errors", []),
-            "message": summary.get("message", "") or "",
+            "message": ("" if summary.get("message") is None else str(summary.get("message"))),
         }
         self.logger.info(
             "accounts_sync_collection_completed",

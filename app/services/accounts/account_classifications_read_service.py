@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from typing import NoReturn
+
 from app.core.exceptions import NotFoundError, SystemError
 from app.core.types.accounts_classifications import (
     AccountClassificationAssignmentItem,
@@ -19,6 +21,8 @@ from app.models.account_classification import AccountClassification, Classificat
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.utils.structlog_config import log_error
 
+_MODULE = "accounts_classifications_read_service"
+
 
 class AccountClassificationsReadService:
     """账户分类管理读取服务."""
@@ -27,29 +31,27 @@ class AccountClassificationsReadService:
         """初始化读取服务."""
         self._repository = repository or AccountsClassificationsRepository()
 
+    def _raise_system_error(self, message: str, exc: Exception) -> NoReturn:
+        log_error(message, module=_MODULE, exception=exc)
+        raise SystemError(message) from exc
+
     def get_classification_by_id(self, classification_id: int) -> AccountClassification | None:
         """按 ID 获取账户分类(可为空)."""
         try:
             return self._repository.get_classification_by_id(classification_id)
         except Exception as exc:
-            log_error("获取账户分类失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取账户分类失败") from exc
+            self._raise_system_error("获取账户分类失败", exc)
 
     def get_rule_by_id(self, rule_id: int) -> ClassificationRule | None:
         """按 ID 获取分类规则(可为空)."""
         try:
             return self._repository.get_rule_by_id(rule_id)
         except Exception as exc:
-            log_error("获取分类规则失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取分类规则失败") from exc
+            self._raise_system_error("获取分类规则失败", exc)
 
     def get_classification_or_error(self, classification_id: int) -> AccountClassification:
         """获取账户分类(不存在则抛错)."""
-        try:
-            classification = self._repository.get_classification_by_id(classification_id)
-        except Exception as exc:
-            log_error("获取账户分类失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取账户分类失败") from exc
+        classification = self.get_classification_by_id(classification_id)
 
         if classification is None:
             raise NotFoundError("账户分类不存在", extra={"classification_id": classification_id})
@@ -57,11 +59,7 @@ class AccountClassificationsReadService:
 
     def get_rule_or_error(self, rule_id: int) -> ClassificationRule:
         """获取分类规则(不存在则抛错)."""
-        try:
-            rule = self._repository.get_rule_by_id(rule_id)
-        except Exception as exc:
-            log_error("获取分类规则失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取分类规则失败") from exc
+        rule = self.get_rule_by_id(rule_id)
 
         if rule is None:
             raise NotFoundError("分类规则不存在", extra={"rule_id": rule_id})
@@ -72,8 +70,7 @@ class AccountClassificationsReadService:
         try:
             return self._repository.fetch_classification_usage(classification_id)
         except Exception as exc:
-            log_error("获取分类使用情况失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取分类使用情况失败") from exc
+            self._raise_system_error("获取分类使用情况失败", exc)
 
     def list_classifications(self) -> list[AccountClassificationListItem]:
         """获取账户分类列表."""
@@ -81,8 +78,7 @@ class AccountClassificationsReadService:
             classifications = self._repository.fetch_active_classifications()
             rules_count_map = self._repository.fetch_rule_counts([item.id for item in classifications])
         except Exception as exc:
-            log_error("获取账户分类失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取账户分类失败") from exc
+            self._raise_system_error("获取账户分类失败", exc)
 
         items: list[AccountClassificationListItem] = []
         for classification in classifications:
@@ -109,8 +105,7 @@ class AccountClassificationsReadService:
         try:
             rules_count_map = self._repository.fetch_rule_counts([classification.id])
         except Exception as exc:
-            log_error("获取账户分类详情失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取账户分类详情失败") from exc
+            self._raise_system_error("获取账户分类详情失败", exc)
 
         rules_count = rules_count_map.get(classification.id, 0)
         return AccountClassificationListItem(
@@ -133,8 +128,7 @@ class AccountClassificationsReadService:
         try:
             rules = self._repository.fetch_active_rules()
         except Exception as exc:
-            log_error("获取规则列表失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取规则列表失败") from exc
+            self._raise_system_error("获取规则列表失败", exc)
 
         items: list[AccountClassificationRuleListItem] = []
         for rule in rules:
@@ -165,8 +159,7 @@ class AccountClassificationsReadService:
         try:
             rules = self._repository.fetch_active_rules(classification_id=classification_id, db_type=db_type)
         except Exception as exc:
-            log_error("获取分类规则失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取分类规则失败") from exc
+            self._raise_system_error("获取分类规则失败", exc)
 
         items: list[AccountClassificationRuleFilterItem] = []
         for rule in rules:
@@ -191,8 +184,7 @@ class AccountClassificationsReadService:
         try:
             assignments = self._repository.fetch_active_assignments()
         except Exception as exc:
-            log_error("获取账户分类分配失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取账户分类分配失败") from exc
+            self._raise_system_error("获取账户分类分配失败", exc)
 
         items: list[AccountClassificationAssignmentItem] = []
         for assignment, classification in assignments:
@@ -213,8 +205,7 @@ class AccountClassificationsReadService:
         try:
             stats_map = self._repository.fetch_rule_match_stats(rule_ids)
         except Exception as exc:
-            log_error("获取规则命中统计失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取规则命中统计失败") from exc
+            self._raise_system_error("获取规则命中统计失败", exc)
 
         return [
             AccountClassificationRuleStatItem(rule_id=rule_id, matched_accounts_count=count)
@@ -226,5 +217,4 @@ class AccountClassificationsReadService:
         try:
             return self._repository.fetch_permissions_by_db_type(db_type)
         except Exception as exc:
-            log_error("获取数据库权限失败", module="accounts_classifications_read_service", exception=exc)
-            raise SystemError("获取数据库权限失败") from exc
+            self._raise_system_error("获取数据库权限失败", exc)

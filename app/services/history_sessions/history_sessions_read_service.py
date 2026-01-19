@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
-
 from app.core.constants import SyncStatus
 from app.core.types.history_sessions import (
     HistorySessionsListFilters,
@@ -19,6 +17,8 @@ from app.core.types.history_sessions import (
     SyncSessionItem,
 )
 from app.core.types.listing import PaginatedResult
+from app.models.sync_instance_record import SyncInstanceRecord
+from app.models.sync_session import SyncSession
 from app.repositories.history_sessions_repository import HistorySessionsRepository
 from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
 from app.utils.structlog_config import get_system_logger
@@ -35,9 +35,7 @@ class HistorySessionsReadService:
     def list_sessions(self, filters: HistorySessionsListFilters) -> PaginatedResult[SyncSessionItem]:
         """分页列出同步会话."""
         page_result = self._repository.list_sessions(filters)
-        items: list[SyncSessionItem] = []
-        for session in page_result.items:
-            items.append(self._to_session_item(session))
+        items = [self._to_session_item(session) for session in page_result.items]
         return PaginatedResult(
             items=items,
             total=page_result.total,
@@ -68,7 +66,7 @@ class HistorySessionsReadService:
             created_at=base.created_at,
             updated_at=base.updated_at,
             instance_records=record_items,
-            progress_percentage=float(session.get_progress_percentage()),
+            progress_percentage=session.get_progress_percentage(),
         )
         return SyncSessionDetailResult(session=session_item)
 
@@ -76,7 +74,7 @@ class HistorySessionsReadService:
         """获取同步会话错误日志列表."""
         session = self._repository.get_session(session_id)
         records = self._repository.list_session_records(session_id)
-        error_records = [record for record in records if getattr(record, "status", None) == SyncStatus.FAILED]
+        error_records = [record for record in records if record.status == SyncStatus.FAILED]
         error_items = [self._to_record_item(record) for record in error_records]
         return SyncSessionErrorLogsResult(
             session=self._to_session_item(session),
@@ -85,27 +83,26 @@ class HistorySessionsReadService:
         )
 
     @staticmethod
-    def _to_session_item(session: object) -> SyncSessionItem:
-        resolved = cast("Any", session)
+    def _to_session_item(session: SyncSession) -> SyncSessionItem:
         return SyncSessionItem(
-            id=int(getattr(resolved, "id", 0) or 0),
-            session_id=str(getattr(resolved, "session_id", "") or ""),
-            sync_type=str(getattr(resolved, "sync_type", "") or ""),
-            sync_category=str(getattr(resolved, "sync_category", "") or ""),
-            status=str(getattr(resolved, "status", "") or ""),
-            started_at=(resolved.started_at.isoformat() if getattr(resolved, "started_at", None) else None),
-            completed_at=(resolved.completed_at.isoformat() if getattr(resolved, "completed_at", None) else None),
-            total_instances=int(getattr(resolved, "total_instances", 0) or 0),
-            successful_instances=int(getattr(resolved, "successful_instances", 0) or 0),
-            failed_instances=int(getattr(resolved, "failed_instances", 0) or 0),
-            created_by=cast("int | None", getattr(resolved, "created_by", None)),
-            created_at=(resolved.created_at.isoformat() if getattr(resolved, "created_at", None) else None),
-            updated_at=(resolved.updated_at.isoformat() if getattr(resolved, "updated_at", None) else None),
+            id=(0 if session.id is None else session.id),
+            session_id=session.session_id,
+            sync_type=session.sync_type,
+            sync_category=session.sync_category,
+            status=session.status,
+            started_at=(session.started_at.isoformat() if session.started_at else None),
+            completed_at=(session.completed_at.isoformat() if session.completed_at else None),
+            total_instances=(0 if session.total_instances is None else session.total_instances),
+            successful_instances=(0 if session.successful_instances is None else session.successful_instances),
+            failed_instances=(0 if session.failed_instances is None else session.failed_instances),
+            created_by=session.created_by,
+            created_at=(session.created_at.isoformat() if session.created_at else None),
+            updated_at=(session.updated_at.isoformat() if session.updated_at else None),
         )
 
-    def _to_record_item(self, record: object) -> SyncInstanceRecordItem:
-        resolved = cast("Any", record)
-        raw_sync_details = getattr(resolved, "sync_details", None)
+    def _to_record_item(self, record: SyncInstanceRecord) -> SyncInstanceRecordItem:
+        raw_sync_details = record.sync_details
+        record_id = 0 if record.id is None else record.id
 
         # COMPAT: 历史数据可能缺失 `sync_details.version`；统一在读入口补齐并记录命中。
         # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
@@ -117,8 +114,8 @@ class HistorySessionsReadService:
                     module="history_sessions",
                     fallback=True,
                     fallback_reason="SYNC_DETAILS_LEGACY_MISSING_VERSION",
-                    session_id=str(getattr(resolved, "session_id", "") or ""),
-                    record_id=int(getattr(resolved, "id", 0) or 0),
+                    session_id=record.session_id,
+                    record_id=record_id,
                     raw_version=raw_version,
                 )
 
@@ -129,26 +126,26 @@ class HistorySessionsReadService:
             self._logger.exception(
                 "sync_details payload invalid",
                 module="history_sessions",
-                session_id=str(getattr(resolved, "session_id", "") or ""),
-                record_id=int(getattr(resolved, "id", 0) or 0),
+                session_id=record.session_id,
+                record_id=record_id,
                 error=str(exc),
             )
             raise
 
         return SyncInstanceRecordItem(
-            id=int(getattr(resolved, "id", 0) or 0),
-            session_id=str(getattr(resolved, "session_id", "") or ""),
-            instance_id=int(getattr(resolved, "instance_id", 0) or 0),
-            instance_name=cast("str | None", getattr(resolved, "instance_name", None)),
-            sync_category=str(getattr(resolved, "sync_category", "") or ""),
-            status=str(getattr(resolved, "status", "") or ""),
-            started_at=(resolved.started_at.isoformat() if getattr(resolved, "started_at", None) else None),
-            completed_at=(resolved.completed_at.isoformat() if getattr(resolved, "completed_at", None) else None),
-            items_synced=int(getattr(resolved, "items_synced", 0) or 0),
-            items_created=int(getattr(resolved, "items_created", 0) or 0),
-            items_updated=int(getattr(resolved, "items_updated", 0) or 0),
-            items_deleted=int(getattr(resolved, "items_deleted", 0) or 0),
-            error_message=cast("str | None", getattr(resolved, "error_message", None)),
+            id=record_id,
+            session_id=record.session_id,
+            instance_id=record.instance_id,
+            instance_name=record.instance_name,
+            sync_category=record.sync_category,
+            status=record.status,
+            started_at=(record.started_at.isoformat() if record.started_at else None),
+            completed_at=(record.completed_at.isoformat() if record.completed_at else None),
+            items_synced=(0 if record.items_synced is None else record.items_synced),
+            items_created=(0 if record.items_created is None else record.items_created),
+            items_updated=(0 if record.items_updated is None else record.items_updated),
+            items_deleted=(0 if record.items_deleted is None else record.items_deleted),
+            error_message=record.error_message,
             sync_details=sync_details,
-            created_at=(resolved.created_at.isoformat() if getattr(resolved, "created_at", None) else None),
+            created_at=(record.created_at.isoformat() if record.created_at else None),
         )

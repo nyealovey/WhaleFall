@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from app.utils.structlog_config import get_system_logger
 
@@ -12,10 +12,6 @@ if TYPE_CHECKING:
 
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
-else:
-    Iterable = Sequence = Any
-    Instance = Any
-    DatabaseConnection = Any
 
 
 class BaseCapacityAdapter:

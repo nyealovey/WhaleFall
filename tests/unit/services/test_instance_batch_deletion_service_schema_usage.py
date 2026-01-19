@@ -32,4 +32,3 @@ def test_instance_batch_deletion_service_uses_validate_or_raise(monkeypatch) -> 
 
     with pytest.raises(RuntimeError, match="validate_or_raise_called"):
         service.delete_instances_from_payload({"instance_ids": [1]})
-

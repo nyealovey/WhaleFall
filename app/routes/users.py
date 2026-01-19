@@ -5,14 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import cast
 
-from flask import Blueprint, flash, render_template, request
+from flask import Blueprint, render_template, request
 from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
-from werkzeug.exceptions import HTTPException
 
-from app.core.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, UserRole
-from app.core.exceptions import AppError, SystemError
-from app.infra.route_safety import log_fallback, safe_route_call
+from app.core.constants import STATUS_ACTIVE_OPTIONS, UserRole
+from app.infra.route_safety import safe_route_call
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.utils.user_role_utils import get_user_role_display_name
 from app.views.user_forms import UserFormView
@@ -26,51 +24,26 @@ users_bp = Blueprint("users", __name__)
 @view_required
 def index() -> str:
     """用户管理首页."""
-    public_error = "加载用户管理页面失败"
+    search = request.args.get("search", "", type=str)
+    role_param = request.args.get("role", "", type=str)
+    status_param = request.args.get("status", "all", type=str)
 
     def _execute() -> str:
-        try:
-            role_options = [{"value": role, "label": get_user_role_display_name(role)} for role in UserRole.ALL]
-            return render_template(
-                "auth/list.html",
-                role_options=role_options,
-                status_options=STATUS_ACTIVE_OPTIONS,
-                search=request.args.get("search", "", type=str),
-                role=request.args.get("role", "", type=str),
-                status=request.args.get("status", "all", type=str),
-            )
-        except SystemError as exc:
-            flash(f"获取用户列表失败: {exc!s}", FlashCategory.ERROR)
-            log_fallback(
-                "warning",
-                "用户列表页面降级",
-                module="users",
-                action="index",
-                fallback_reason=exc.__class__.__name__,
-                context={"endpoint": "users_index"},
-                extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
-            )
-            return render_template("auth/list.html", role_options=[], status_options=STATUS_ACTIVE_OPTIONS)
-        except (AppError, HTTPException):
-            raise
-        except Exception as exc:
-            flash(f"获取用户列表失败: {public_error}", FlashCategory.ERROR)
-            log_fallback(
-                "error",
-                "用户列表页面降级",
-                module="users",
-                action="index",
-                fallback_reason=exc.__class__.__name__,
-                context={"endpoint": "users_index"},
-                extra={"error_type": exc.__class__.__name__, "error_message": str(exc), "unexpected": True},
-            )
-            return render_template("auth/list.html", role_options=[], status_options=STATUS_ACTIVE_OPTIONS)
+        role_options = [{"value": role, "label": get_user_role_display_name(role)} for role in UserRole.ALL]
+        return render_template(
+            "auth/list.html",
+            role_options=role_options,
+            status_options=STATUS_ACTIVE_OPTIONS,
+            search=search,
+            role=role_param,
+            status=status_param,
+        )
 
     return safe_route_call(
         _execute,
         module="users",
         action="index",
-        public_error=public_error,
+        public_error="加载用户管理页面失败",
         context={"endpoint": "users_index"},
     )
 

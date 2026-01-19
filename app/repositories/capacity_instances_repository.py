@@ -65,7 +65,7 @@ class CapacityInstancesRepository:
         )
         total = ordered.count()
         rows = ordered.offset(max(filters.page - 1, 0) * filters.limit).limit(filters.limit).all()
-        return cast("list[tuple[InstanceSizeAggregation, Instance]]", rows), int(total or 0)
+        return cast("list[tuple[InstanceSizeAggregation, Instance]]", rows), int(total)
 
     def summarize_latest_stats(
         self,
@@ -111,10 +111,10 @@ class CapacityInstancesRepository:
             .one()
         )
 
-        total_instances = int(getattr(totals, "total_instances", 0) or 0)
-        total_size_mb = int(getattr(totals, "total_size_mb", 0) or 0)
-        avg_size_mb = float(getattr(totals, "avg_size_mb", 0) or 0)
-        max_size_mb = int(getattr(totals, "max_size_mb", 0) or 0)
+        total_instances = int(getattr(totals, "total_instances", 0))
+        total_size_mb = int(getattr(totals, "total_size_mb", 0))
+        avg_size_mb = float(getattr(totals, "avg_size_mb", 0))
+        max_size_mb = int(getattr(totals, "max_size_mb", 0))
         return total_instances, total_size_mb, avg_size_mb, max_size_mb
 
     def _base_query(self) -> Query[Any]:

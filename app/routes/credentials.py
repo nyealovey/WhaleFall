@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, render_template, request
 from flask_login import login_required
 
 from app.core.constants import (
@@ -12,89 +12,16 @@ from app.core.constants import (
     DATABASE_TYPES,
     STATUS_ACTIVE_OPTIONS,
 )
-from app.core.types.credentials import CredentialListFilters
 from app.infra.route_safety import safe_route_call
 from app.services.common.filter_options_service import FilterOptionsService
-from app.services.credentials.credential_detail_page_service import CredentialDetailPageService
+from app.services.credentials.credential_detail_read_service import CredentialDetailReadService
 from app.utils.decorators import (
     view_required,
 )
-from app.utils.pagination_utils import resolve_page, resolve_page_size
-
-if TYPE_CHECKING:
-    from werkzeug.datastructures import MultiDict
 
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)
 _filter_options_service = FilterOptionsService()
-
-
-def _build_credential_filters(
-    *,
-    default_page: int,
-    default_limit: int,
-    allow_sort: bool,
-) -> CredentialListFilters:
-    """从请求参数构建筛选对象."""
-    args = request.args
-    page = resolve_page(args, default=default_page, minimum=1)
-    limit = resolve_page_size(
-        args,
-        default=default_limit,
-        minimum=1,
-        maximum=200,
-    )
-
-    search = (args.get("search") or "").strip()
-    credential_type = _normalize_filter_choice(args.get("credential_type", "", type=str))
-    db_type = _normalize_filter_choice(args.get("db_type", "", type=str))
-    status = _normalize_status_choice(args.get("status", "", type=str))
-    tags = _extract_tags(args)
-
-    sort_field = "created_at"
-    sort_order = "desc"
-    if allow_sort:
-        raw_sort = args.get("sort", "created_at", type=str)
-        sort_field_value = raw_sort.strip() if isinstance(raw_sort, str) else ""
-        sort_field = sort_field_value.lower() if sort_field_value else "created_at"
-
-        raw_order = args.get("order", "desc", type=str)
-        sort_order_value = raw_order.strip() if isinstance(raw_order, str) else ""
-        sort_order_candidate = sort_order_value.lower() if sort_order_value else "desc"
-        sort_order = sort_order_candidate if sort_order_candidate in {"asc", "desc"} else "desc"
-
-    return CredentialListFilters(
-        page=page,
-        limit=limit,
-        search=search,
-        credential_type=credential_type,
-        db_type=db_type,
-        status=status,
-        tags=tags,
-        sort_field=sort_field,
-        sort_order=sort_order,
-    )
-
-
-def _normalize_filter_choice(raw_value: str) -> str | None:
-    """过滤值若为 all/空则返回 None."""
-    value = (raw_value or "").strip()
-    if not value or value.lower() == "all":
-        return None
-    return value
-
-
-def _normalize_status_choice(raw_value: str) -> str | None:
-    """规范化状态参数."""
-    value = (raw_value or "").strip().lower()
-    if value in {"active", "inactive"}:
-        return value
-    return None
-
-
-def _extract_tags(args: MultiDict[str, str]) -> list[str]:
-    """解析标签筛选."""
-    return [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
 
 
 def _build_filter_options() -> dict[str, Any]:
@@ -122,7 +49,7 @@ def _build_filter_options() -> dict[str, Any]:
 @credentials_bp.route("/")
 @login_required
 @view_required
-def index() -> str | tuple[Response, int]:
+def index() -> str:
     """凭据管理首页.
 
     渲染凭据管理页面,支持搜索、类型、数据库类型、状态和标签筛选.
@@ -140,24 +67,22 @@ def index() -> str | tuple[Response, int]:
         tags: 标签筛选(多值),可选.
 
     """
-    filters = _build_credential_filters(
-        default_page=1,
-        default_limit=10,
-        allow_sort=False,
-    )
+
+    search_param = request.args.get("search", "", type=str)
     credential_type_param = request.args.get("credential_type", "", type=str)
     db_type_param = request.args.get("db_type", "", type=str)
     status_param = request.args.get("status", "", type=str)
+    selected_tags = [tag.strip() for tag in request.args.getlist("tags") if tag and tag.strip()]
 
     def _execute() -> str:
         filter_options = _build_filter_options()
         return render_template(
             "credentials/list.html",
-            search=request.args.get("search", "", type=str),
+            search=search_param,
             credential_type=credential_type_param,
             db_type=db_type_param,
             status=status_param,
-            selected_tags=filters.tags,
+            selected_tags=selected_tags,
             credential_type_options=filter_options["credential_types"],
             db_type_options=filter_options["db_types"],
             status_options=filter_options["status"],
@@ -170,11 +95,11 @@ def index() -> str | tuple[Response, int]:
         action="index",
         public_error="加载凭据管理页面失败",
         context={
-            "search": filters.search,
-            "credential_type": filters.credential_type,
-            "db_type": filters.db_type,
-            "status": filters.status,
-            "tags_count": len(filters.tags),
+            "search": search_param,
+            "credential_type": credential_type_param,
+            "db_type": db_type_param,
+            "status": status_param,
+            "tags_count": len(selected_tags),
         },
     )
 
@@ -194,8 +119,8 @@ def detail(credential_id: int) -> str:
     """
 
     def _render() -> str:
-        context = CredentialDetailPageService().build_context(credential_id)
-        return render_template("credentials/detail.html", credential=context.credential)
+        credential = CredentialDetailReadService().get_credential_or_error(credential_id)
+        return render_template("credentials/detail.html", credential=credential)
 
     return safe_route_call(
         _render,

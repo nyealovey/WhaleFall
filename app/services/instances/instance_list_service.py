@@ -33,7 +33,7 @@ class InstanceListService:
                     db_type=instance.db_type,
                     host=instance.host,
                     port=instance.port,
-                    description=instance.description or "",
+                    description="" if instance.description is None else instance.description,
                     is_active=instance.is_active,
                     deleted_at=instance.deleted_at.isoformat() if instance.deleted_at else None,
                     status=status_value,
