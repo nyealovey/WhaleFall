@@ -146,6 +146,8 @@ class AccountClassificationsReadService:
                 AccountClassificationRuleListItem(
                     id=rule.id,
                     rule_name=rule.rule_name,
+                    rule_group_id=rule.rule_group_id,
+                    rule_version=rule.rule_version,
                     classification_id=rule.classification_id,
                     classification_name=classification_name,
                     db_type=rule.db_type,
@@ -180,6 +182,8 @@ class AccountClassificationsReadService:
                 AccountClassificationRuleFilterItem(
                     id=rule.id,
                     rule_name=rule.rule_name,
+                    rule_group_id=rule.rule_group_id,
+                    rule_version=rule.rule_version,
                     classification_id=rule.classification_id,
                     classification_name=classification_name,
                     db_type=rule.db_type,

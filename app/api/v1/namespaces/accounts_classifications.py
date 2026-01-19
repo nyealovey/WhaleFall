@@ -196,6 +196,18 @@ AccountClassificationRuleCreateSuccessEnvelope = make_success_envelope_model(
     AccountClassificationRuleCreateData,
 )
 
+AccountClassificationRuleUpdateData = ns.model(
+    "AccountClassificationRuleUpdateData",
+    {
+        "new_rule_id": fields.Integer(required=True, description="新版本规则 ID"),
+    },
+)
+AccountClassificationRuleUpdateSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountClassificationRuleUpdateSuccessEnvelope",
+    AccountClassificationRuleUpdateData,
+)
+
 AccountClassificationRuleExpressionValidateData = ns.model(
     "AccountClassificationRuleExpressionValidateData",
     {"rule_expression": fields.Raw(required=True)},
@@ -296,6 +308,9 @@ def _serialize_rule(
         "classification_name": classification_name,
         "db_type": rule.db_type,
         "rule_expression": expression_value,
+        "rule_group_id": getattr(rule, "rule_group_id", None),
+        "rule_version": getattr(rule, "rule_version", None),
+        "superseded_at": (rule.superseded_at.isoformat() if getattr(rule, "superseded_at", None) else None),
         "is_active": rule.is_active,
         "created_at": rule.created_at.isoformat() if rule.created_at else None,
         "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
@@ -665,7 +680,7 @@ class AccountClassificationRuleDetailResource(BaseResource):
         )
 
     @ns.expect(AccountClassificationRuleWritePayload, validate=False)
-    @ns.response(200, "OK", make_success_envelope_model(ns, "AccountClassificationRuleUpdateSuccessEnvelope"))
+    @ns.response(200, "OK", AccountClassificationRuleUpdateSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
@@ -680,8 +695,8 @@ class AccountClassificationRuleDetailResource(BaseResource):
 
         def _execute():
             rule = _write_service.get_rule_or_error(rule_id)
-            _write_service.update_rule(rule, payload, operator_id=operator_id)
-            return self.success(message="分类规则更新成功")
+            updated = _write_service.update_rule(rule, payload, operator_id=operator_id)
+            return self.success(data={"new_rule_id": updated.id}, message="分类规则更新成功")
 
         return self.safe_call(
             _execute,

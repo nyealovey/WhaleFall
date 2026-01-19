@@ -169,6 +169,10 @@ class ClassificationRule(db.Model):
     )  # 数据库类型:mysql、postgresql、sqlserver、oracle
     rule_name = db.Column(db.String(100), nullable=False)  # 规则名称
     rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式(JSON格式)
+    # 规则不可变版本化：同一 rule_group_id 下按 rule_version 递增生成新 rule_id
+    rule_group_id = db.Column(db.String(36), nullable=False, index=True)
+    rule_version = db.Column(db.Integer, nullable=False, default=1)
+    superseded_at = db.Column(db.DateTime(timezone=True), nullable=True)
     classification = db.relationship("AccountClassification", back_populates="rules")
     operator: str | None = None
     """规则逻辑运算符,当前由服务层写入内存用于表达式解析."""
@@ -204,6 +208,9 @@ class ClassificationRule(db.Model):
             "db_type": self.db_type,
             "rule_name": self.rule_name,
             "rule_expression": self.rule_expression,
+            "rule_group_id": self.rule_group_id,
+            "rule_version": self.rule_version,
+            "superseded_at": (self.superseded_at.isoformat() if self.superseded_at else None),
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),

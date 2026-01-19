@@ -58,10 +58,13 @@ class AccountsClassificationsRepository:
         exclude_rule_id: int | None = None,
     ) -> bool:
         """判断规则名称是否已存在(同分类 + 同 db_type, 可排除指定 rule ID)."""
-        query = ClassificationRule.query.filter_by(
-            classification_id=classification_id,
-            db_type=db_type,
-            rule_name=rule_name,
+        query = (
+            ClassificationRule.query.filter_by(
+                classification_id=classification_id,
+                db_type=db_type,
+                rule_name=rule_name,
+            )
+            .filter(ClassificationRule.is_active.is_(True))
         )
         if exclude_rule_id is not None:
             query = query.filter(ClassificationRule.id != exclude_rule_id)
@@ -75,9 +78,12 @@ class AccountsClassificationsRepository:
         exclude_rule_id: int | None = None,
     ) -> bool:
         """判断规则表达式是否已存在(同分类, 可排除指定 rule ID)."""
-        query = ClassificationRule.query.filter_by(
-            classification_id=classification_id,
-            rule_expression=rule_expression,
+        query = (
+            ClassificationRule.query.filter_by(
+                classification_id=classification_id,
+                rule_expression=rule_expression,
+            )
+            .filter(ClassificationRule.is_active.is_(True))
         )
         if exclude_rule_id is not None:
             query = query.filter(ClassificationRule.id != exclude_rule_id)

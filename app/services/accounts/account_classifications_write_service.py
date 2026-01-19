@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
+from uuid import uuid4
 
 from app import db
 from app.core.exceptions import DatabaseError, NotFoundError, ValidationError
@@ -29,6 +30,7 @@ from app.schemas.account_classifications import (
 )
 from app.schemas.validation import validate_or_raise
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
+from app.utils.time_utils import time_utils
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
@@ -206,6 +208,8 @@ class AccountClassificationsWriteService:
             db_type=parsed.db_type,
             rule_name=parsed.rule_name,
             rule_expression=parsed.rule_expression,
+            rule_group_id=str(uuid4()),
+            rule_version=1,
             is_active=parsed.is_active,
         )
         rule.operator = parsed.operator
@@ -266,33 +270,50 @@ class AccountClassificationsWriteService:
         ):
             raise ValidationError("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
 
-        rule.rule_name = parsed.rule_name
-        rule.classification_id = classification.id
-        rule.db_type = parsed.db_type
-        rule.operator = parsed.operator
+        # 规则不可变：更新等价于创建新版本，并归档旧版本
+        current_group_id = getattr(rule, "rule_group_id", None) or str(uuid4())
+        current_version = int(getattr(rule, "rule_version", 1) or 1)
 
-        if "rule_expression" in parsed.model_fields_set and parsed.rule_expression is not None:
-            rule.rule_expression = parsed.rule_expression
+        new_is_active = (
+            parsed.is_active
+            if "is_active" in parsed.model_fields_set and parsed.is_active is not None
+            else bool(rule.is_active)
+        )
 
-        if "is_active" in parsed.model_fields_set and parsed.is_active is not None:
-            rule.is_active = parsed.is_active
+        new_rule = ClassificationRule(
+            classification_id=classification.id,
+            db_type=parsed.db_type,
+            rule_name=parsed.rule_name,
+            rule_expression=effective_expression,
+            rule_group_id=current_group_id,
+            rule_version=current_version + 1,
+            is_active=new_is_active,
+        )
+        new_rule.operator = parsed.operator
+
+        # 旧版本归档
+        rule.is_active = False
+        rule.superseded_at = time_utils.now()
 
         try:
             self._repository.add_rule(rule)
+            self._repository.add_rule(new_rule)
         except SQLAlchemyError as exc:
             raise DatabaseError(
                 "更新分类规则失败",
-                extra={"exception": str(exc), "rule_id": rule.id},
+                extra={"exception": str(exc), "rule_id": getattr(rule, "id", None)},
             ) from exc
 
-        self._invalidate_cache(rule_id=rule.id)
+        self._invalidate_cache(rule_id=new_rule.id)
         log_info(
-            "分类规则保存成功",
+            "分类规则版本创建成功",
             module="account_classification",
-            rule_id=rule.id,
+            rule_id=new_rule.id,
             operator_id=operator_id,
+            rule_group_id=current_group_id,
+            rule_version=new_rule.rule_version,
         )
-        return rule
+        return new_rule
 
     def delete_classification(
         self,
