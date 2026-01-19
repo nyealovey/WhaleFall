@@ -4,6 +4,8 @@
 
 **Goal:** 新增“按规则评估命中(B口径)”的每日统计能力，并引入“分类 code/display_name”与“规则不可变版本化”，保证历史统计口径稳定；支持按「分类/规则/db_type/instance」组合查询；同一天多次执行仅保留最后一次结果。
 
+**Related UI Design:** `docs/plans/2026-01-19-account-classification-daily-stats-ui-design.md`（账户分类统计页面：双栏 + 分类趋势 + 规则贡献/趋势，年周期置灰）
+
 **Architecture:**
 - **统计与分配解耦**：每日统计按“规则表达式评估为 True 的账户数”计算，不依赖最终 `assignments` 写入形态。
 - **规则不可变**：更新规则不再 UPDATE 原记录；改为新增新版本(新 `rule_id`)，旧版本自动归档(`is_active=false`)。
@@ -51,6 +53,9 @@
 - **时区与日期切分**：`stat_date` 以 `Asia/Shanghai` 的“当天日期”为准(与调度器一致)。
 
 - **一天只记录最后一次**：同一天同一维度键的统计被后一次执行覆盖(覆盖策略必须单测)。
+
+- **周期聚合(周/月/季)**：页面展示需要按“均值”聚合（缺失天不计入分母），并返回 `coverage_days/expected_days` 用于 UI 展示。
+  - 年周期先在 UI 置灰，待容量统计年周期支持后一并放开。
 
 ---
 
@@ -144,19 +149,33 @@
 
 ---
 
-## API/查询接口(建议)
+## API/查询接口(建议，已升级为页面必需)
 
-为满足“临时任务按条件查询”与“趋势展示”，建议新增只读接口：
+为满足“临时任务按条件查询”与“趋势展示 + 规则贡献柱状图”，建议新增只读接口：
 
-- `GET /api/v1/accounts/statistics/classifications/daily`
-  - query: `classification_id`(required), `date_from`, `date_to`, `db_type`, `instance_id`
-  - 返回：按日数组(含可选维度)
+- `GET /api/v1/accounts/statistics/classifications/trend`
+  - query: `classification_id`(required), `period_type`(daily/weekly/monthly/quarterly), `periods`(e.g. 7/14/30), `db_type`, `instance_id`
+  - 返回：按周期数组，元素包含：
+    - `period_start`, `period_end`
+    - `value_avg`（非日周期使用，日周期可等于当日值）
+    - `value_sum`（用于 tooltip 展示累计）
+    - `coverage_days`, `expected_days`
 
-- `GET /api/v1/accounts/statistics/rules/daily`
-  - query: `rule_id`(required), `classification_id`(optional but recommended), `date_from`, `date_to`, `db_type`, `instance_id`
-  - 返回：按日数组
+- `GET /api/v1/accounts/statistics/rules/trend`
+  - query: `rule_id`(required), `period_type`, `periods`, `db_type`, `instance_id`
+  - 返回：同上（value 对应“规则命中账号数”）
 
-> 如果你更希望先不加 API，只落表 + 用 SQL/报表工具读，也可把本节延后。
+- `GET /api/v1/accounts/statistics/rules/contributions`
+  - query: `classification_id`(required), `period_type`, `db_type`, `instance_id`
+  - 返回：当前周期 TopN 规则贡献（用于“未选规则”的柱状图），元素建议包含：
+    - `rule_id`, `rule_name`
+    - `value_avg`, `value_sum`
+    - `coverage_days`, `expected_days`
+  - 说明：
+    - `daily`：`value_avg` 可等于当日值
+    - `weekly/monthly/quarterly`：`value_avg` 为周期内每日值均值（缺失天不计入分母）
+
+> 年周期：本阶段 API 不开放 `yearly`，UI 置灰（见 UI Design）。
 
 ---
 
@@ -198,7 +217,7 @@
 | M3 | 日统计表落地 | 2 张日表 migration + model | M2 | 0.5-1d | TODO |
 | M4 | 规则命中统计计算引擎 | service + repository(upsert) + unit tests | M3 | 1-2d | TODO |
 | M5 | 定时任务接入调度器 | task + scheduler 注册 + 可手动 run | M4 | 0.5d | TODO |
-| M6 | 查询接口(API 可选) | read service + routes + contract tests | M4 | 1d | OPTIONAL |
+| M6 | 查询接口 + 统计页面 | read service + routes + templates/js/css + contract tests | M4 | 1-2d | TODO |
 | M7 | 文档/验收/回滚说明 | docs + runbook | 全部 | 0.5d | TODO |
 
 ---
@@ -353,17 +372,22 @@ git commit -m "feat: version classification rules as immutable records"
 
 ---
 
-### Task 6 (Optional): 提供统计查询 API
+### Task 6: 提供统计查询 API + 统计页面(UI)
 
 **Files:**
-- Modify: `app/api/v1/namespaces/accounts.py`
+- Modify: `app/api/v1/namespaces/accounts.py`（或新增 namespace，视现有结构而定）
 - Create: `app/services/accounts/account_classification_daily_stats_read_service.py`
 - Create: `app/repositories/account_classification_daily_stats_read_repository.py`
-- Test: `tests/unit/routes/test_api_v1_accounts_statistics_contract.py`
+- Create: `app/routes/accounts/classification_statistics.py`（页面路由）
+- Create: `app/templates/accounts/classification_statistics.html`
+- Create: `app/static/js/modules/views/accounts/classification_statistics.js`
+- Create: `app/static/js/modules/services/account_classification_statistics_service.js`
+- Create: `app/static/css/pages/accounts/classification_statistics.css`
+- Test: `tests/unit/routes/test_api_v1_accounts_statistics_contract.py`（接口 contract + 关键 query 校验）
+- Doc: `docs/plans/2026-01-19-account-classification-daily-stats-ui-design.md`（已完成）
 
 ---
 
 ### Task 7: 文档与运维
 
 - 更新标准/说明：新增本能力的“口径说明 + 查询示例 SQL + 回滚策略”。
-
