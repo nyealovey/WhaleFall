@@ -67,7 +67,6 @@ def index() -> str:
         tags: 标签筛选(多值),可选.
 
     """
-
     search_param = request.args.get("search", "", type=str)
     credential_type_param = request.args.get("credential_type", "", type=str)
     db_type_param = request.args.get("db_type", "", type=str)
