@@ -36,6 +36,8 @@ class AccountClassificationRuleListItem:
 
     id: int
     rule_name: str
+    rule_group_id: str
+    rule_version: int
     classification_id: int
     classification_name: str | None
     db_type: str
@@ -52,6 +54,8 @@ class AccountClassificationRuleFilterItem:
 
     id: int
     rule_name: str
+    rule_group_id: str
+    rule_version: int
     classification_id: int
     classification_name: str | None
     db_type: str

@@ -115,6 +115,9 @@ class ClassificationRuleOrmFields(TypedDict, total=False):
     db_type: str
     rule_name: str
     rule_expression: str
+    rule_group_id: str
+    rule_version: int
+    superseded_at: datetime | None
     is_active: bool
     created_at: datetime
     updated_at: datetime
