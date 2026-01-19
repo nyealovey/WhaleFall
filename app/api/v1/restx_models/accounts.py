@@ -67,7 +67,10 @@ ACCOUNT_STATISTICS_FIELDS = {
 
 ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS = {
     "id": fields.Integer(description="分类 ID", example=1),
-    "name": fields.String(description="分类名称", example="高风险"),
+    # 兼容旧前端：name 继续作为展示名输出
+    "name": fields.String(description="分类展示名", example="高风险"),
+    "code": fields.String(description="分类标识(code)", example="HIGH_RISK"),
+    "display_name": fields.String(description="分类展示名", example="高风险"),
     "description": fields.String(description="分类描述", example="高风险账户"),
     "risk_level": fields.String(description="风险等级", example="high"),
     "color": fields.String(description="颜色", example="#FF0000"),

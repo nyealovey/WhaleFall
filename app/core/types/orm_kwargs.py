@@ -95,6 +95,7 @@ class AccountClassificationOrmFields(TypedDict, total=False):
 
     id: int
     name: str
+    display_name: str
     description: str | None
     risk_level: str
     color: str | None
