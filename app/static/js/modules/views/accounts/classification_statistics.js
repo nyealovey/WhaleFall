@@ -8,6 +8,8 @@
 function mountAccountClassificationStatisticsPage(global) {
   "use strict";
 
+  const DEFAULT_PERIODS = 7;
+
   const document = global.document;
   if (!document) {
     return;
@@ -40,8 +42,6 @@ function mountAccountClassificationStatisticsPage(global) {
     periodType: document.getElementById("period_type"),
     dbType: document.getElementById("db_type"),
     instanceId: document.getElementById("instance_id"),
-    periods: document.getElementById("periods"),
-    periodsHint: document.getElementById("acs-periods-hint"),
     ruleId: document.getElementById("rule_id"),
     ruleSearch: document.getElementById("acs-rule-search"),
     ruleStatus: document.getElementById("acs-rule-status"),
@@ -62,7 +62,6 @@ function mountAccountClassificationStatisticsPage(global) {
   let secondaryChart = null;
 
   bindEvents();
-  syncPeriodsHint();
   refreshAll({ silent: true });
 
   function bindEvents() {
@@ -99,7 +98,6 @@ function mountAccountClassificationStatisticsPage(global) {
 
     elements.periodType?.addEventListener("change", () => {
       state.periodType = normalizePeriodType(elements.periodType.value);
-      syncPeriodsHint();
       syncUrl();
       refreshAll({ silent: true });
     });
@@ -120,19 +118,6 @@ function mountAccountClassificationStatisticsPage(global) {
       refreshAll({ silent: true });
     });
 
-    const radios = document.querySelectorAll('input[name="acs-periods-radio"]');
-    radios.forEach((radio) => {
-      radio.addEventListener("change", () => {
-        state.periods = normalizePeriods(radio.value);
-        if (elements.periods) {
-          elements.periods.value = String(state.periods);
-        }
-        syncPeriodsHint();
-        syncUrl();
-        refreshAll({ silent: true });
-      });
-    });
-
     elements.ruleStatus?.addEventListener("change", () => {
       state.ruleStatus = normalizeRuleStatus(elements.ruleStatus.value);
       syncUrl();
@@ -148,13 +133,11 @@ function mountAccountClassificationStatisticsPage(global) {
     const next = readStateFromForm(elements);
     state.classificationId = next.classificationId;
     state.periodType = next.periodType;
-    state.periods = next.periods;
     state.dbType = next.dbType;
     state.instanceId = next.instanceId;
     state.ruleId = next.ruleId;
     state.ruleStatus = next.ruleStatus;
 
-    syncPeriodsHint();
     syncUrl();
     refreshAll({ silent: false });
   }
@@ -163,15 +146,11 @@ function mountAccountClassificationStatisticsPage(global) {
     form.reset();
     state.classificationId = null;
     state.periodType = "daily";
-    state.periods = 7;
     state.dbType = null;
     state.instanceId = null;
     state.ruleId = null;
     state.ruleStatus = "active";
 
-    if (elements.periods) {
-      elements.periods.value = "7";
-    }
     if (elements.ruleId) {
       elements.ruleId.value = "";
     }
@@ -183,7 +162,6 @@ function mountAccountClassificationStatisticsPage(global) {
       elements.ruleSearch.value = "";
     }
 
-    syncPeriodsHint();
     syncUrl();
     refreshAll({ silent: true });
   }
@@ -192,7 +170,6 @@ function mountAccountClassificationStatisticsPage(global) {
     return {
       classificationId: normalizeInt(refs.classificationId?.value),
       periodType: normalizePeriodType(refs.periodType?.value),
-      periods: normalizePeriods(refs.periods?.value),
       dbType: normalizeString(refs.dbType?.value),
       instanceId: normalizeInt(refs.instanceId?.value),
       ruleId: normalizeInt(refs.ruleId?.value),
@@ -225,7 +202,7 @@ function mountAccountClassificationStatisticsPage(global) {
       .fetchRulesOverview({
         classificationId: state.classificationId,
         periodType: state.periodType,
-        periods: state.periods,
+        periods: DEFAULT_PERIODS,
         dbType: state.dbType,
         instanceId: state.instanceId,
         status: state.ruleStatus,
@@ -255,7 +232,7 @@ function mountAccountClassificationStatisticsPage(global) {
       .fetchClassificationTrend({
         classificationId: state.classificationId,
         periodType: state.periodType,
-        periods: state.periods,
+        periods: DEFAULT_PERIODS,
         dbType: state.dbType,
         instanceId: state.instanceId,
       })
@@ -269,7 +246,7 @@ function mountAccountClassificationStatisticsPage(global) {
             .fetchRuleTrend({
               ruleId: state.ruleId,
               periodType: state.periodType,
-              periods: state.periods,
+              periods: DEFAULT_PERIODS,
               dbType: state.dbType,
               instanceId: state.instanceId,
             })
@@ -727,27 +704,12 @@ function mountAccountClassificationStatisticsPage(global) {
     node.textContent = `覆盖 ${formatInteger(cov)}/${formatInteger(exp)} 天`;
   }
 
-  function syncPeriodsHint() {
-    if (!elements.periodsHint) {
-      return;
-    }
-    const unit = state.periodType === "daily"
-      ? "天"
-      : state.periodType === "weekly"
-        ? "周"
-        : state.periodType === "monthly"
-          ? "月"
-          : "季";
-    elements.periodsHint.textContent = `最近 ${formatInteger(state.periods)} ${unit}`;
-  }
-
   function syncUrl() {
     const params = new URLSearchParams();
     if (state.classificationId) {
       params.set("classification_id", String(state.classificationId));
     }
     params.set("period_type", state.periodType);
-    params.set("periods", String(state.periods));
     if (state.dbType) {
       params.set("db_type", state.dbType);
     }
@@ -784,11 +746,6 @@ function mountAccountClassificationStatisticsPage(global) {
       return null;
     }
     return Math.trunc(parsed);
-  }
-
-  function normalizePeriods(value) {
-    const parsed = normalizeInt(value);
-    return parsed || 7;
   }
 
   function normalizePeriodType(value) {
@@ -914,4 +871,3 @@ window.AccountClassificationStatisticsPage = {
     mountAccountClassificationStatisticsPage(window);
   },
 };
-
