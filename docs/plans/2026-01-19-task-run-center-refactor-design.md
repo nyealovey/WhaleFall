@@ -14,6 +14,7 @@
 - 以 `TaskRun/TaskRunItem` 统一承载异步/定时/批量任务的可观测性：列表、详情、进度、错误、取消。
 - `run_id` 作为统一标识（对外接口统一返回/使用 `run_id`，不再使用 `session_id`）。
 - 账户分类每日统计：以“规则”为粒度生成 `TaskRunItem`，能在运行中心看到每条规则的执行结果。
+- 所有页面按钮/动作入口统一改为**异步模式**：action endpoint 立即返回 `run_id`，不阻塞等待任务完成；UI 不做轮询（模式 1），统一 toast + 提供运行中心入口。
 - 不迁移历史 `sync_sessions/sync_instance_records` 数据（新系统上线后历史不可见/不需要）。
 
 ## 非目标(Non-goals)
@@ -125,6 +126,17 @@
 - 所有触发异步任务的 action endpoint：统一返回 `data.run_id`。
 - 前端 async outcome helper：支持读取 `run_id` 并携带到 meta/埋点。
 
+## 异步动作统一契约（UI 按钮/Action Endpoint）
+
+统一要求：
+- action endpoint **不得阻塞**等待任务完成；必须“创建 run -> 返回 run_id -> 后台执行”。
+- UI（模式 1）：不轮询 `run_id`；只提示“已启动”并提供 `/history/sessions` 入口；需要查看结果/错误统一去运行中心。
+
+推荐返回结构（封套以现有 API 标准为准）：
+- success: `True`
+- data: `{ "run_id": "<uuid>" }`
+- message: “任务已在后台启动，请稍后在运行中心查看”
+
 ## Web UI（/history/sessions 复用路径）
 
 保持入口路径不变（`/history/sessions`），但语义/文案升级为“运行中心”。
@@ -140,6 +152,41 @@
 - Items：按 `item_type` 分组/列表展示（规则/实例/步骤）
 - 错误堆栈：聚合 failed items 的 `error_message/details_json`（与现有样式一致）
 - CTA：若 `result_url` 存在，展示“前往结果页”链接
+
+## 任务接入清单（Scheduler + 页面按钮）
+
+> 约定：页面按钮触发的均归类为 `trigger_source=manual`（由 `created_by` 记录操作者）；scheduler cron 触发为 `trigger_source=scheduled`。
+
+### A) Scheduler jobs（内置任务）
+
+这些任务来自 `app/config/scheduler_tasks.yaml`，需统一写入 `TaskRun`：
+- `sync_accounts`：账户同步（items=instance）
+- `collect_database_sizes`：容量同步（items=instance；包含 inventory + 容量采集）
+- `calculate_database_size_aggregations`：统计聚合（items=instance）
+- `calculate_account_classification_daily_stats`：账户分类统计（items=rule，见下节）
+
+### B) 页面按钮（本次重构必须覆盖）
+
+1) 账户台账「同步所有账户」
+- task_key：`sync_accounts`
+- items：instance（每实例一个 item）
+- result_url：`/accounts/ledgers`
+
+2) 数据库台账「同步所有数据库」（新增按钮，清单 + 容量）
+- task_key：`collect_database_sizes`
+- items：instance
+- result_url：`/databases/ledgers`
+
+3) 账户分类管理「自动分类」
+- task_key：`auto_classify_accounts`
+- items：rule（每条 active rule 一个 item；几十条规则可完整展示）
+- result_url：`/accounts/classifications`
+
+4) 容量统计（实例/数据库两个页面）「统计当前周期」
+- task_key：`capacity_aggregate_current`
+- items：instance（聚合回调按实例推进）
+- result_url：按入口页面：`/capacity/instances` 或 `/capacity/databases`
+- UI 交互（模式 1）：点击后仅提示“已启动”，不阻塞等待聚合完成；用户可在运行中心查看进度/失败项，完成后手动刷新页面数据。
 
 ## 任务接入：账户分类每日统计（规则粒度）
 
