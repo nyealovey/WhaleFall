@@ -57,7 +57,6 @@
                 {{ select_filter('实例', 'instance_id', 'instance_id', instance_options, selected_instance_id, '所有实例', 'col-md-2 col-12') }}
                 {{ db_type_filter(db_type_options, selected_db_type, col_class='col-md-2 col-12') }}
                 {{ select_filter('变更类型', 'change_type', 'change_type', change_type_options, selected_change_type, '全部类型', 'col-md-2 col-12') }}
-                {{ select_filter('状态', 'status', 'status', status_options, selected_status, '全部状态', 'col-md-2 col-12') }}
                 {{ time_range_filter(time_range_options, selected_time_range, col_class='col-md-2 col-12') }}
             {% endcall %}
         </div>
