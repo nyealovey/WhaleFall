@@ -84,4 +84,31 @@ STATUS_SYNC_OPTIONS: Final[list[dict[str, str]]] = [
     {"value": "cancelled", "label": "已取消"},
 ]
 
+# TaskRun(运行中心)状态筛选
+STATUS_TASK_RUN_OPTIONS: Final[list[dict[str, str]]] = [
+    {"value": "", "label": "全部状态"},
+    {"value": "running", "label": "运行中"},
+    {"value": "completed", "label": "已完成"},
+    {"value": "failed", "label": "失败"},
+    {"value": "cancelled", "label": "已取消"},
+]
+
+# TaskRun(运行中心)触发来源筛选
+TASK_RUN_TRIGGER_SOURCES: Final[list[dict[str, str]]] = [
+    {"value": "", "label": "全部来源"},
+    {"value": "scheduled", "label": "定时任务"},
+    {"value": "manual", "label": "手动触发"},
+    {"value": "api", "label": "API"},
+]
+
+# TaskRun(运行中心)任务分类筛选
+TASK_RUN_CATEGORIES: Final[list[dict[str, str]]] = [
+    {"value": "", "label": "全部分类"},
+    {"value": "account", "label": "账户"},
+    {"value": "capacity", "label": "容量"},
+    {"value": "aggregation", "label": "聚合"},
+    {"value": "classification", "label": "分类"},
+    {"value": "other", "label": "其他"},
+]
+
 PAGINATION_SIZES: Final[list[int]] = [10, 20, 50, 100]

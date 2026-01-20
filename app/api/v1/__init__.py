@@ -26,6 +26,7 @@ from app.api.v1.namespaces.partition import ns as partition_ns
 from app.api.v1.namespaces.scheduler import ns as scheduler_ns
 from app.api.v1.namespaces.sessions import ns as sessions_ns
 from app.api.v1.namespaces.tags import ns as tags_ns
+from app.api.v1.namespaces.task_runs import ns as task_runs_ns
 from app.api.v1.namespaces.users import ns as users_ns
 from app.settings import Settings
 
@@ -57,6 +58,7 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     api.add_namespace(credentials_ns, path="/credentials")
     api.add_namespace(logs_ns, path="/logs")
     api.add_namespace(sessions_ns, path="/sync-sessions")
+    api.add_namespace(task_runs_ns, path="/task-runs")
     api.add_namespace(partition_ns, path="/partitions")
     api.add_namespace(scheduler_ns, path="/scheduler")
     api.add_namespace(users_ns, path="/users")

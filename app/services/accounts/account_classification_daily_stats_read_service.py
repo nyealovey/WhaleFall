@@ -166,7 +166,11 @@ class AccountClassificationDailyStatsReadService:
             rule_version = rule.rule_version if rule else None
             is_active = bool(rule.is_active) if rule else None
 
-            value_avg = float(value_sum) if normalized_period_type == "daily" else (float(value_sum) / coverage_days if coverage_days else 0.0)
+            value_avg = (
+                float(value_sum)
+                if normalized_period_type == "daily"
+                else (float(value_sum) / coverage_days if coverage_days else 0.0)
+            )
             items.append(
                 {
                     "rule_id": rule_id,
@@ -311,7 +315,9 @@ class AccountClassificationDailyStatsReadService:
                 current += timedelta(days=1)
 
             expected_days = bucket.expected_days
-            value_avg = float(value_sum) if expected_days == 1 else (float(value_sum) / coverage_days if coverage_days else 0.0)
+            value_avg = (
+                float(value_sum) if expected_days == 1 else (float(value_sum) / coverage_days if coverage_days else 0.0)
+            )
             points.append(
                 {
                     "period_start": bucket.period_start.isoformat(),

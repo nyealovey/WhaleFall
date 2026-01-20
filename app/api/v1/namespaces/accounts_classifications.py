@@ -23,10 +23,7 @@ from app.api.v1.restx_models.accounts import (
 from app.core.constants import HttpStatus
 from app.core.constants.colors import ThemeColors
 from app.core.exceptions import ConflictError, ValidationError
-from app.services.account_classification.auto_classify_service import (
-    AutoClassifyError,
-    AutoClassifyService,
-)
+from app.services.account_classification.auto_classify_actions_service import AutoClassifyActionsService
 from app.services.accounts.account_classification_expression_validation_service import (
     AccountClassificationExpressionValidationService,
 )
@@ -227,10 +224,11 @@ AccountClassificationPermissionsSuccessEnvelope = make_success_envelope_model(
 AccountClassificationAutoClassifyData = ns.model(
     "AccountClassificationAutoClassifyData",
     {
-        "classified_accounts": fields.Integer(required=True),
-        "total_classifications_added": fields.Integer(required=True),
-        "failed_count": fields.Integer(required=True),
-        "message": fields.String(required=True),
+        "run_id": fields.String(
+            required=True,
+            description="任务运行 ID",
+            example="a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        ),
     },
 )
 AccountClassificationAutoClassifySuccessEnvelope = make_success_envelope_model(
@@ -241,7 +239,7 @@ AccountClassificationAutoClassifySuccessEnvelope = make_success_envelope_model(
 
 _read_service = AccountClassificationsReadService()
 _write_service = AccountClassificationsWriteService()
-_auto_classify_service = AutoClassifyService()
+_auto_classify_service = AutoClassifyActionsService()
 
 
 def _parse_json_payload() -> dict[str, object]:
@@ -840,21 +838,45 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
         payload_snapshot = _parse_json_payload()
         created_by = current_user.id if current_user.is_authenticated else None
         instance_id_raw = payload_snapshot.get("instance_id")
-        instance_id = instance_id_raw if isinstance(instance_id_raw, (int, float, str, bool)) else None
+        instance_id: int | None = None
+        if instance_id_raw not in (None, ""):
+            if isinstance(instance_id_raw, bool):
+                raise ValidationError("instance_id 参数无效", extra={"instance_id": instance_id_raw})
+            if isinstance(instance_id_raw, int):
+                instance_id = instance_id_raw
+            elif isinstance(instance_id_raw, str):
+                try:
+                    instance_id = int(instance_id_raw)
+                except ValueError as exc:
+                    raise ValidationError(
+                        "instance_id 必须为整数",
+                        extra={"instance_id": instance_id_raw},
+                    ) from exc
+            else:
+                raise ValidationError(
+                    "instance_id 必须为整数",
+                    extra={"instance_id": str(instance_id_raw)},
+                )
+
+        actions_service = _auto_classify_service
+        prepared = None
 
         def _execute():
-            result = _auto_classify_service.auto_classify(
-                instance_id=instance_id,
-                created_by=created_by,
+            nonlocal prepared
+            prepared = actions_service.prepare_background_auto_classify(created_by=created_by, instance_id=instance_id)
+            return self.success(
+                data={"run_id": prepared.run_id},
+                message="自动分类任务已在后台启动,请稍后在运行中心查看进度.",
             )
-            payload = result.to_payload()
-            return self.success(data=payload, message=payload["message"])
 
-        return self.safe_call(
+        response = self.safe_call(
             _execute,
             module="accounts_classifications",
             action="auto_classify",
             public_error="自动分类失败",
             context={"instance_id": instance_id},
-            expected_exceptions=(AutoClassifyError,),
         )
+
+        if prepared is not None:
+            actions_service.launch_background_auto_classify(created_by=created_by, prepared=prepared)
+        return response

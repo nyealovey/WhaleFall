@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import ClassVar
 
 from flask import Response, request
+from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 
 import app.services.database_sync as database_sync_module
@@ -30,6 +31,7 @@ from app.schemas.databases_query import (
     DatabaseTableSizesQuery,
 )
 from app.schemas.validation import validate_or_raise
+from app.services.capacity.capacity_collection_actions_service import CapacityCollectionActionsService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.database_ledger_export_service import DatabaseLedgerExportService
 from app.services.instances.instance_database_detail_read_service import (
@@ -42,6 +44,7 @@ from app.services.instances.instance_database_table_sizes_service import (
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.utils.decorators import require_csrf
+from app.utils.structlog_config import log_info
 
 ns = Namespace("databases", description="数据库管理")
 
@@ -127,6 +130,22 @@ DatabaseLedgersListSuccessEnvelope = make_success_envelope_model(
     ns,
     "DatabaseLedgersListSuccessEnvelope",
     DatabaseLedgersListData,
+)
+
+DatabaseLedgersSyncAllData = ns.model(
+    "DatabaseLedgersSyncAllData",
+    {
+        "run_id": fields.String(
+            required=True,
+            description="任务运行 ID",
+            example="a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        ),
+    },
+)
+DatabaseLedgersSyncAllSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "DatabaseLedgersSyncAllSuccessEnvelope",
+    DatabaseLedgersSyncAllData,
 )
 
 DatabaseSizeEntryModel = ns.model("DatabaseSizeEntry", INSTANCE_DATABASE_SIZE_ENTRY_FIELDS)
@@ -361,6 +380,52 @@ class DatabaseLedgersExportResource(BaseResource):
                 "query_params": query_snapshot,
             },
         )
+
+
+@ns.route("/ledgers/actions/sync-all")
+class DatabaseLedgersSyncAllActionResource(BaseResource):
+    """数据库台账同步动作资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("update")]
+
+    @ns.response(200, "OK", DatabaseLedgersSyncAllSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def post(self):
+        """触发数据库台账同步(容量同步)."""
+        created_by = getattr(current_user, "id", None)
+        actions_service = CapacityCollectionActionsService()
+        prepared = None
+
+        def _execute():
+            nonlocal prepared
+            prepared = actions_service.prepare_background_collection(created_by=created_by)
+            return self.success(
+                data={"run_id": prepared.run_id},
+                message="数据库台账同步任务已在后台启动,请稍后在运行中心查看进度.",
+            )
+
+        response = self.safe_call(
+            _execute,
+            module="databases_ledgers",
+            action="sync_all_databases",
+            public_error="触发数据库台账同步失败,请稍后重试",
+            context={"scope": "all_instances"},
+        )
+
+        if prepared is not None:
+            launch_result = actions_service.launch_background_collection(created_by=created_by, prepared=prepared)
+            log_info(
+                "数据库台账同步任务已在后台启动",
+                module="databases_ledgers",
+                run_id=launch_result.run_id,
+                thread_name=launch_result.thread_name,
+                active_instance_count=launch_result.active_instance_count,
+            )
+        return response
 
 
 @ns.route("/sizes")

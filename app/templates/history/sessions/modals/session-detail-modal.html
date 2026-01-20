@@ -1,7 +1,7 @@
 {% set session_detail_modal_body %}
     <div id="session-detail-content" class="session-detail-modal__content">
         <div class="session-detail__placeholder text-muted text-center py-4" data-session-placeholder>
-            正在加载会话详情…
+            正在加载任务详情…
         </div>
     </div>
     {% include 'history/sessions/detail.html' %}
@@ -12,7 +12,7 @@
 {% with
     modal_id='sessionDetailModal',
     modal_label_id='sessionDetailModalLabel',
-    title='会话详情',
+    title='任务详情',
     body=session_detail_modal_body,
     footer=session_detail_modal_footer,
     size='xl'

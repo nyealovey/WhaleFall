@@ -11,10 +11,10 @@ from datetime import datetime
 from typing import cast
 
 from sqlalchemy import Table
-from sqlalchemy.dialects.postgresql.dml import Insert as PostgresInsert
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.dialects.sqlite.dml import Insert as SqliteInsert
+from sqlalchemy.dialects.postgresql.dml import Insert as PostgresInsert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.dialects.sqlite.dml import Insert as SqliteInsert
 
 from app import db
 from app.models.account_classification_daily_stats import (

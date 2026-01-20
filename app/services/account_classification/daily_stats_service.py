@@ -156,9 +156,12 @@ class AccountClassificationDailyStatsService:
                 if not instance_ids:
                     continue
                 for instance_id in instance_ids:
-                    matched = matched_accounts_by_classification_instance.get(
-                        (classification_id, db_type, instance_id),
-                    ) or set()
+                    matched = (
+                        matched_accounts_by_classification_instance.get(
+                            (classification_id, db_type, instance_id),
+                        )
+                        or set()
+                    )
                     classification_records.append(
                         {
                             "stat_date": stat_date,

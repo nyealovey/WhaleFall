@@ -2,10 +2,10 @@
   "use strict";
 
   const DEFAULT_RESULT_URL = "/history/sessions";
-  const DEFAULT_RESULT_TEXT = "前往会话中心查看结果";
+  const DEFAULT_RESULT_TEXT = "前往运行中心查看结果";
   const DEFAULT_STARTED_MESSAGE = "任务已启动";
   const DEFAULT_FAILED_MESSAGE = "操作失败";
-  const DEFAULT_UNKNOWN_MESSAGE = "操作未完成，请稍后在会话中心确认";
+  const DEFAULT_UNKNOWN_MESSAGE = "操作未完成，请稍后在运行中心确认";
 
   const unknownReported = new Set();
 
@@ -65,6 +65,7 @@
     const unknownMessage = isNonEmptyString(options?.unknownMessage) ? options.unknownMessage.trim() : DEFAULT_UNKNOWN_MESSAGE;
 
     const meta = {
+      run_id: response?.data?.run_id ?? null,
       session_id: response?.data?.session_id ?? null,
     };
 
