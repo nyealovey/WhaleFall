@@ -321,7 +321,13 @@
     function fillEditForm(classification) {
       document.getElementById("editClassificationId").value = classification.id;
       document.getElementById("editClassificationIsSystem").value = classification.is_system ? "true" : "false";
-      document.getElementById("editClassificationCode").value = classification.code || "";
+      const codeInput = document.getElementById("editClassificationCode");
+      if (codeInput) {
+        codeInput.value = classification.code || "";
+        // code 为不可变语义锚点：编辑态永远不可修改
+        codeInput.disabled = true;
+        codeInput.readOnly = true;
+      }
       document.getElementById("editClassificationName").value = classification.display_name || classification.name || "";
       document.getElementById("editClassificationDescription").value = classification.description || "";
       document.getElementById("editClassificationRiskLevel").value = String(classification.risk_level || 4);
