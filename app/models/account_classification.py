@@ -124,7 +124,7 @@ class ClassificationRule(db.Model):
     )  # 数据库类型:mysql、postgresql、sqlserver、oracle
     rule_name = db.Column(db.String(100), nullable=False)  # 规则名称
     rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式(JSON格式)
-    # 规则不可变版本化：同一 rule_group_id 下按 rule_version 递增生成新 rule_id
+    # 匹配相关字段(rule_expression)不可变版本化：同一 rule_group_id 下按 rule_version 递增生成新 rule_id
     rule_group_id = db.Column(db.String(36), nullable=False, index=True)
     rule_version = db.Column(db.Integer, nullable=False, default=1)
     superseded_at = db.Column(db.DateTime(timezone=True), nullable=True)

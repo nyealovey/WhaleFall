@@ -57,11 +57,17 @@
     color: var(--text-primary);
 }
 
+.classification-card__name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .classification-card__badges {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
-    margin-top: 0.15rem;
 }
 
 .classification-card__actions {

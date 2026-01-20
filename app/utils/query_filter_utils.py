@@ -46,10 +46,16 @@ def build_classification_options(classifications: Iterable[Any]) -> list[dict[st
     """将账户分类列表转换为下拉 options 结构."""
     options: list[dict[str, str]] = []
     for classification in classifications:
+        label = (
+            getattr(classification, "display_name", None)
+            or getattr(classification, "name", None)  # legacy
+            or getattr(classification, "code", None)
+            or ""
+        )
         options.append(
             {
                 "value": str(getattr(classification, "id", "") or ""),
-                "label": getattr(classification, "name", "") or "",
+                "label": str(label),
                 "color": getattr(classification, "color", "") or "",
             },
         )
