@@ -1154,17 +1154,19 @@ function resolvePrivilegeActionVariant(action) {
 }
 
 function resolveChangeTypeVariant(rawType) {
-    switch (rawType) {
+    const normalized = (rawType || '').toString().trim().toLowerCase();
+    switch (normalized) {
         case 'add':
-            return { label: '新增变更', variant: 'status-pill--success' };
-        case 'remove':
+            return { label: '新增', variant: 'status-pill--success' };
+        case 'modify_privilege':
+            return { label: '权限变更', variant: 'status-pill--info' };
+        case 'modify_other':
+            return { label: '属性变更', variant: 'status-pill--info' };
         case 'delete':
-            return { label: '移除变更', variant: 'status-pill--danger' };
-        case 'update':
-        case 'alter':
-            return { label: '更新变更', variant: 'status-pill--info' };
+        case 'remove':
+            return { label: '删除', variant: 'status-pill--danger' };
         default:
-            return { label: '变更', variant: 'status-pill--muted' };
+            return { label: rawType || '变更', variant: 'status-pill--muted' };
     }
 }
 
@@ -1324,7 +1326,8 @@ function viewAccountChangeHistory(accountId) {
     }
     const historyContentWrapper = selectOne('#historyContent');
     if (historyContentWrapper.length) {
-        historyContentWrapper.html(renderHistoryLoading());
+        const loading = window.ChangeHistoryRenderer?.renderHistoryLoading;
+        historyContentWrapper.html(typeof loading === 'function' ? loading() : renderHistoryLoading());
     }
     const modalMeta = selectOne('#historyModalMeta');
     if (modalMeta.length) {
@@ -1346,8 +1349,32 @@ function viewAccountChangeHistory(accountId) {
                 if (modalMeta.length) {
                     modalMeta.text(formatHistoryMeta(payload?.account, `账户 #${accountId}`));
                 }
+                const openAllLink = document.getElementById('historyModalOpenAll');
+                if (openAllLink && payload?.account && typeof payload.account === 'object') {
+                    const baseHref = openAllLink.getAttribute('href') || '/history/account-change-logs/';
+                    const params = new URLSearchParams();
+                    const instanceId = getInstanceId();
+                    if (instanceId) {
+                        params.set('instance_id', String(instanceId));
+                    }
+                    if (payload.account.username) {
+                        params.set('search', payload.account.username);
+                    }
+                    if (payload.account.db_type) {
+                        params.set('db_type', payload.account.db_type);
+                    }
+                    const query = params.toString();
+                    openAllLink.setAttribute('href', query ? `${baseHref}?${query}` : baseHref);
+                }
                 if (history && history.length > 0) {
-                    const cards = history.map((change) => renderChangeHistoryCard(change)).join('');
+                    const renderer = window.ChangeHistoryRenderer?.renderChangeHistoryCard;
+                    const cards = history
+                        .map((change, index) =>
+                            typeof renderer === 'function'
+                                ? renderer(change, { collapsible: true, open: index === 0 })
+                                : renderChangeHistoryCard(change),
+                        )
+                        .join('');
                     historyContentWrapper.html(cards);
                 } else {
                     historyContentWrapper.html(`

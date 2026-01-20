@@ -161,8 +161,9 @@ function ensurePermissionModal(scope) {
     const cache = window.PermissionModalInstances && typeof window.PermissionModalInstances === 'object'
         ? window.PermissionModalInstances
         : (window.PermissionModalInstances = {});
-    if (cache[resolvedScope]) {
-        return cache[resolvedScope];
+    const cached = Reflect.get(cache, resolvedScope);
+    if (cached) {
+        return cached;
     }
     const factory = window.UI?.createModal;
     if (!factory) {
@@ -187,7 +188,7 @@ function ensurePermissionModal(scope) {
         console.error('ensurePermissionModal 初始化失败', { scope: resolvedScope, modalSelector });
         return null;
     }
-    cache[resolvedScope] = instance;
+    Reflect.set(cache, resolvedScope, instance);
     return instance;
 }
 
@@ -575,4 +576,5 @@ window.showPermissionsModal = showPermissionsModal;
 window.createPermissionsModal = function (scope) {
     return getOrCreateModal(scope);
 };
+window.openPermissionModal = openPermissionModal;
 window.renderPermissionsByType = renderPermissionsByType;
