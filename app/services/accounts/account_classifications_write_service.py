@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -251,7 +252,13 @@ class AccountClassificationsWriteService:
             sanitized_payload["rule_expression"] = raw_expression
         parsed = validate_or_raise(AccountClassificationRuleUpdatePayload, sanitized_payload)
 
-        classification = self._get_classification_by_id(parsed.classification_id)
+        # 编辑规则时不允许调整“分类 / 数据库类型”（需要重新创建规则）
+        if parsed.classification_id != rule.classification_id:
+            raise ValidationError("编辑分类规则时不允许修改分类", message_key="FORBIDDEN")
+        if parsed.db_type != rule.db_type:
+            raise ValidationError("编辑分类规则时不允许修改数据库类型", message_key="FORBIDDEN")
+
+        classification = self._get_classification_by_id(rule.classification_id)
 
         effective_expression = (
             parsed.rule_expression
@@ -261,7 +268,7 @@ class AccountClassificationsWriteService:
 
         if self._rule_name_exists(
             classification_id=classification.id,
-            db_type=parsed.db_type,
+            db_type=rule.db_type,
             rule_name=parsed.rule_name,
             resource=rule,
         ):
@@ -274,7 +281,45 @@ class AccountClassificationsWriteService:
         ):
             raise ValidationError("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
 
-        # 规则不可变：更新等价于创建新版本，并归档旧版本
+        def _normalize_expression(raw: str) -> str:
+            # 用于对比权限配置是否真实变化：忽略 key 顺序与空白差异
+            parsed_json = json.loads(raw)
+            if not isinstance(parsed_json, dict):
+                return raw
+            return json.dumps(parsed_json, ensure_ascii=False, sort_keys=True)
+
+        permission_config_changed = False
+        try:
+            permission_config_changed = _normalize_expression(effective_expression) != _normalize_expression(rule.rule_expression)
+        except (TypeError, ValueError):
+            # DB 中 rule_expression 理论上应当是合法 JSON；若异常，保守处理为“有变化”以避免误判。
+            permission_config_changed = True
+
+        # 仅当“匹配逻辑 / 权限配置”发生变化时才创建新版本；规则名称允许原地更新
+        if not permission_config_changed:
+            rule.rule_name = parsed.rule_name
+            rule.operator = parsed.operator
+            if "is_active" in parsed.model_fields_set and parsed.is_active is not None:
+                rule.is_active = parsed.is_active
+
+            try:
+                self._repository.add_rule(rule)
+            except SQLAlchemyError as exc:
+                raise DatabaseError(
+                    "更新分类规则失败",
+                    extra={"exception": str(exc), "rule_id": getattr(rule, "id", None)},
+                ) from exc
+
+            self._invalidate_cache(rule_id=rule.id)
+            log_info(
+                "分类规则更新成功",
+                module="account_classification",
+                rule_id=rule.id,
+                operator_id=operator_id,
+            )
+            return rule
+
+        # 权限配置发生变化：创建新版本，并归档旧版本
         current_group_id = getattr(rule, "rule_group_id", None) or str(uuid4())
         current_version = int(getattr(rule, "rule_version", 1) or 1)
 
@@ -286,7 +331,7 @@ class AccountClassificationsWriteService:
 
         new_rule = ClassificationRule(
             classification_id=classification.id,
-            db_type=parsed.db_type,
+            db_type=rule.db_type,
             rule_name=parsed.rule_name,
             rule_expression=effective_expression,
             rule_group_id=current_group_id,
