@@ -19,9 +19,7 @@ class AccountClassificationListItem:
     # 明确字段：展示名
     display_name: str
     description: str | None
-    risk_level: str
-    color: str
-    color_key: str | None
+    risk_level: int
     icon_name: str | None
     priority: int
     is_system: bool

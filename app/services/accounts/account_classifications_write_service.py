@@ -101,15 +101,14 @@ class AccountClassificationsWriteService:
         sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationCreatePayload, sanitized)
 
-        if self._name_exists(parsed.code, None):
+        if self._code_exists(parsed.code, None):
             raise ValidationError("分类标识已存在", message_key="NAME_EXISTS")
 
         classification = AccountClassification(
-            name=parsed.code,
+            code=parsed.code,
             display_name=parsed.display_name,
             description=parsed.description,
             risk_level=parsed.risk_level,
-            color=parsed.color,
             icon_name=parsed.icon_name,
             priority=parsed.priority,
         )
@@ -141,17 +140,22 @@ class AccountClassificationsWriteService:
         sanitized = parse_payload(payload)
         parsed = validate_or_raise(AccountClassificationUpdatePayload, sanitized)
 
+        if classification.is_system:
+            forbidden_fields = {"risk_level", "icon_name"}
+            illegal = forbidden_fields.intersection(parsed.model_fields_set)
+            if illegal:
+                raise ValidationError("系统内置分类不允许修改风险等级或图标", message_key="FORBIDDEN")
+
         if "display_name" in parsed.model_fields_set and parsed.display_name is not None:
             classification.display_name = parsed.display_name
 
         if "description" in parsed.model_fields_set and parsed.description is not None:
             classification.description = parsed.description
-        if "risk_level" in parsed.model_fields_set and parsed.risk_level is not None:
-            classification.risk_level = parsed.risk_level
-        if "color" in parsed.model_fields_set and parsed.color is not None:
-            classification.color = parsed.color
-        if "icon_name" in parsed.model_fields_set and parsed.icon_name is not None:
-            classification.icon_name = parsed.icon_name
+        if not classification.is_system:
+            if "risk_level" in parsed.model_fields_set and parsed.risk_level is not None:
+                classification.risk_level = parsed.risk_level
+            if "icon_name" in parsed.model_fields_set and parsed.icon_name is not None:
+                classification.icon_name = parsed.icon_name
         if "priority" in parsed.model_fields_set and parsed.priority is not None:
             classification.priority = parsed.priority
 
@@ -324,7 +328,7 @@ class AccountClassificationsWriteService:
         """删除账户分类."""
         outcome = AccountClassificationDeleteOutcome(
             classification_id=classification.id,
-            classification_name=classification.name,
+            classification_name=(getattr(classification, "display_name", None) or classification.code),
         )
 
         try:
@@ -409,9 +413,9 @@ class AccountClassificationsWriteService:
         )
         return outcome
 
-    def _name_exists(self, name: str, resource: AccountClassification | None) -> bool:
+    def _code_exists(self, code: str, resource: AccountClassification | None) -> bool:
         exclude_id = resource.id if resource else None
-        return self._repository.exists_classification_name(name, exclude_classification_id=exclude_id)
+        return self._repository.exists_classification_code(code, exclude_classification_id=exclude_id)
 
     def _get_classification_by_id(self, classification_id: int) -> AccountClassification:
         classification = self._repository.get_classification_by_id(classification_id)

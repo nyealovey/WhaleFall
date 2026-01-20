@@ -30,7 +30,6 @@ class AccountClassificationSummary:
     """账户分类展示结构."""
 
     name: str
-    color: str
 
 
 @dataclass(slots=True)

@@ -24,7 +24,6 @@ from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag, instance_tags
 from app.utils.structlog_config import log_warning
-from app.utils.theme_color_utils import get_theme_color_value
 
 
 class AccountsLedgerRepository:
@@ -256,18 +255,16 @@ class AccountsLedgerRepository:
             )
             .with_entities(
                 AccountClassificationAssignment.account_id,
-                AccountClassification.name,
-                AccountClassification.color,
+                AccountClassification.display_name,
             )
             .all()
         )
 
         classifications: dict[int, list[AccountClassificationSummary]] = defaultdict(list)
-        for account_id, name, color in rows:
+        for account_id, display_name in rows:
             classifications[account_id].append(
                 AccountClassificationSummary(
-                    name=name,
-                    color=get_theme_color_value(color or "info"),
+                    name=display_name,
                 ),
             )
         return dict(classifications)

@@ -142,15 +142,6 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    colors_response = auth_client.get("/api/v1/accounts/classifications/colors")
-    assert colors_response.status_code == 200
-    colors_payload = colors_response.get_json()
-    assert isinstance(colors_payload, dict)
-    assert colors_payload.get("success") is True
-    colors_data = colors_payload.get("data")
-    assert isinstance(colors_data, dict)
-    assert {"colors", "choices"}.issubset(colors_data.keys())
-
     classifications_response = auth_client.get("/api/v1/accounts/classifications")
     assert classifications_response.status_code == 200
     classifications_payload = classifications_response.get_json()
@@ -163,10 +154,10 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     create_classification_response = auth_client.post(
         "/api/v1/accounts/classifications",
         json={
-            "name": "demo-classification",
+            "code": "demo",
+            "display_name": "demo",
             "description": "demo",
-            "risk_level": "medium",
-            "color": "info",
+            "risk_level": 4,
             "icon_name": "fa-tag",
             "priority": 0,
         },
@@ -178,6 +169,9 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert create_classification_payload.get("success") is True
     classification_data = create_classification_payload.get("data", {}).get("classification")
     assert isinstance(classification_data, dict)
+    assert {"code", "display_name", "risk_level", "icon_name", "priority", "is_system"}.issubset(
+        classification_data.keys()
+    )
     classification_id = classification_data.get("id")
     assert isinstance(classification_id, int)
 
@@ -188,7 +182,9 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert detail_payload.get("success") is True
     detail_data = detail_payload.get("data", {}).get("classification")
     assert isinstance(detail_data, dict)
-    assert {"id", "name", "rules_count"}.issubset(detail_data.keys())
+    assert {"id", "code", "display_name", "risk_level", "icon_name", "priority", "is_system", "rules_count"}.issubset(
+        detail_data.keys()
+    )
 
     update_response = auth_client.put(
         f"/api/v1/accounts/classifications/{classification_id}",
@@ -402,10 +398,10 @@ def test_api_v1_accounts_classifications_create_rule_requires_dsl_v4(app, auth_c
     create_classification_response = auth_client.post(
         "/api/v1/accounts/classifications",
         json={
-            "name": "demo-classification",
+            "code": "demo",
+            "display_name": "demo",
             "description": "demo",
-            "risk_level": "medium",
-            "color": "info",
+            "risk_level": 4,
             "icon_name": "fa-tag",
             "priority": 0,
         },

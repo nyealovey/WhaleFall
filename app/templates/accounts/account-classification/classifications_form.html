@@ -5,11 +5,12 @@
 
 {% set is_edit = form_mode == 'edit' %}
 {% set form_values = form_data if form_data else {} %}
+{% set is_system = resource.is_system if resource else False %}
 
 {% block title %}{{ '编辑账户分类' if is_edit else '创建账户分类' }} - 鲸落{% endblock %}
 
 {% block content_outer %}
-{{ page_header('fas fa-tags', '编辑账户分类' if is_edit else '创建账户分类', '配置分类名称、风险等级与展示样式') }}
+{{ page_header('fas fa-tags', '编辑账户分类' if is_edit else '创建账户分类', '配置分类标识、风险等级与展示信息') }}
 
 <section class="page-section">
     <div class="layout-shell">
@@ -28,15 +29,28 @@
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
                                 <div class="mb-3">
-                                    <label for="name" class="form-label">分类名称 <span class="text-danger">*</span></label>
+                                    <label for="code" class="form-label">分类标识(code) <span class="text-danger">*</span></label>
                                     <input
                                         type="text"
                                         class="form-control"
-                                        id="name"
-                                        name="name"
+                                        id="code"
+                                        name="code"
                                         required
-                                        placeholder="例如: 高风险"
-                                        value="{{ form_values.get('name') if form_values.get('name') is not none else (resource.name if resource else '') }}"
+                                        placeholder="例如: super (全小写,创建后不可修改)"
+                                        value="{{ form_values.get('code') if form_values.get('code') is not none else (resource.code if resource else '') }}"
+                                        {% if is_edit %}disabled{% endif %}
+                                    />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="display_name" class="form-label">分类名称</label>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="display_name"
+                                        name="display_name"
+                                        placeholder="例如: 超高风险"
+                                        value="{{ form_values.get('display_name') if form_values.get('display_name') is not none else (resource.display_name if resource else '') }}"
                                     />
                                 </div>
 
@@ -45,22 +59,12 @@
                                     <textarea class="form-control" id="description" name="description" rows="3" placeholder="可选, 用于补充说明">{{ form_values.get('description') if form_values.get('description') is not none else (resource.description if resource else '') }}</textarea>
                                 </div>
 
-                                {% set selected_risk = form_values.get('risk_level') if form_values.get('risk_level') is not none else (resource.risk_level if resource else 'medium') %}
+                                {% set selected_risk = form_values.get('risk_level') if form_values.get('risk_level') is not none else (resource.risk_level if resource else 4) %}
                                 <div class="mb-3">
                                     <label for="risk_level" class="form-label">风险等级</label>
-                                    <select class="form-select" id="risk_level" name="risk_level">
+                                    <select class="form-select" id="risk_level" name="risk_level" {% if is_system %}disabled{% endif %}>
                                         {% for option in risk_level_options or [] %}
-                                        <option value="{{ option.value }}" {% if option.value == selected_risk %}selected{% endif %}>{{ option.label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-
-                                {% set selected_color = form_values.get('color') if form_values.get('color') is not none else (resource.color if resource else 'info') %}
-                                <div class="mb-3">
-                                    <label for="color" class="form-label">显示颜色 <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="color" name="color" required>
-                                        {% for option in color_options or [] %}
-                                        <option value="{{ option.value }}" {% if option.value == selected_color %}selected{% endif %}>{{ option.name }}</option>
+                                        <option value="{{ option.value }}" {% if option.value|string == selected_risk|string %}selected{% endif %}>{{ option.label }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -68,7 +72,7 @@
                                 {% set selected_icon = form_values.get('icon_name') if form_values.get('icon_name') is not none else (resource.icon_name if resource else 'fa-tag') %}
                                 <div class="mb-3">
                                     <label for="icon_name" class="form-label">图标</label>
-                                    <select class="form-select" id="icon_name" name="icon_name">
+                                    <select class="form-select" id="icon_name" name="icon_name" {% if is_system %}disabled{% endif %}>
                                         {% for option in icon_options or [] %}
                                         <option value="{{ option.value }}" {% if option.value == selected_icon %}selected{% endif %}>{{ option.label }}</option>
                                         {% endfor %}
@@ -87,7 +91,7 @@
                                         max="100"
                                         value="{{ priority_value }}"
                                     />
-                                    <div class="form-text">数字越大优先级越高, 用于控制显示顺序和规则匹配顺序</div>
+                                    <div class="form-text">数字越大优先级越高,仅影响排序</div>
                                 </div>
 
                                 <div class="d-flex flex-wrap gap-2">

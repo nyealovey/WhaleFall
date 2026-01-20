@@ -12,7 +12,6 @@ TAG_FIELDS = {
 
 CLASSIFICATION_FIELDS = {
     "name": fields.String(description="分类名称", example="高风险"),
-    "color": fields.String(description="颜色", example="#FF0000"),
 }
 
 ACCOUNT_LEDGER_ITEM_FIELDS = {
@@ -69,12 +68,10 @@ ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS = {
     "id": fields.Integer(description="分类 ID", example=1),
     # 兼容旧前端：name 继续作为展示名输出
     "name": fields.String(description="分类展示名", example="高风险"),
-    "code": fields.String(description="分类标识(code)", example="HIGH_RISK"),
+    "code": fields.String(description="分类标识(code)", example="high_risk"),
     "display_name": fields.String(description="分类展示名", example="高风险"),
     "description": fields.String(description="分类描述", example="高风险账户"),
-    "risk_level": fields.String(description="风险等级", example="high"),
-    "color": fields.String(description="颜色", example="#FF0000"),
-    "color_key": fields.String(description="颜色 key", example="red"),
+    "risk_level": fields.Integer(description="风险等级(1-6,1 最高)", example=4),
     "icon_name": fields.String(description="图标名称", example="alert-triangle"),
     "priority": fields.Integer(description="优先级", example=10),
     "is_system": fields.Boolean(description="是否系统内置", example=False),
