@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
-from datetime import UTC as datetime_utc
+from datetime import UTC as datetime_utc, date, datetime
 
 import pytest
 

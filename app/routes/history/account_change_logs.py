@@ -23,8 +23,7 @@ def index() -> str:
         search = request.args.get("search", "").strip()
         db_type = request.args.get("db_type", "").strip()
         change_type = request.args.get("change_type", "").strip()
-        status = request.args.get("status", "").strip()
-        time_range = request.args.get("time_range", "1d").strip() or "1d"
+        time_range = request.args.get("time_range", "all").strip() or "all"
 
         # 支持 `instance_id`(API 风格) 与 `instance`(旧筛选宏) 两种入参
         instance_id = (request.args.get("instance_id") or request.args.get("instance") or "").strip()
@@ -37,22 +36,17 @@ def index() -> str:
             {"value": "modify_other", "label": "属性变更"},
             {"value": "delete", "label": "删除"},
         ]
-        status_options = [
-            {"value": "success", "label": "成功"},
-            {"value": "failed", "label": "失败"},
-        ]
+        time_range_options = [{"value": "all", "label": "全部"}, *TIME_RANGES]
         return render_template(
             "history/account_change_logs/account-change-logs.html",
             db_type_options=db_type_options,
             instance_options=instance_options,
             change_type_options=change_type_options,
-            status_options=status_options,
-            time_range_options=TIME_RANGES,
+            time_range_options=time_range_options,
             selected_search=search,
             selected_db_type=db_type,
             selected_instance_id=instance_id,
             selected_change_type=change_type,
-            selected_status=status,
             selected_time_range=time_range,
         )
 
