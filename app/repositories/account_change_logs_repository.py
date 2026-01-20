@@ -25,7 +25,9 @@ from app.utils.time_utils import time_utils
 class AccountChangeLogsRepository:
     """账户变更日志查询 Repository."""
 
-    def list_logs(self, filters: AccountChangeLogsListFilters) -> PaginatedResult[tuple[AccountChangeLog, str | None, int | None]]:
+    def list_logs(
+        self, filters: AccountChangeLogsListFilters
+    ) -> PaginatedResult[tuple[AccountChangeLog, str | None, int | None]]:
         """分页查询账户变更日志."""
         change_time_column = cast("ColumnElement[Any]", AccountChangeLog.change_time)
         username_column = cast(ColumnElement[str], AccountChangeLog.username)
@@ -99,7 +101,7 @@ class AccountChangeLogsRepository:
             raise NotFoundError("变更日志不存在")
         return cast(AccountChangeLog, log_entry)
 
-    def get_statistics(self, *, hours: int) -> dict[str, int]:
+    def get_statistics(self, *, hours: int | None) -> dict[str, int]:
         """获取统计汇总."""
         change_time_column = cast("ColumnElement[Any]", AccountChangeLog.change_time)
         status_column = cast(ColumnElement[str], AccountChangeLog.status)
@@ -107,18 +109,17 @@ class AccountChangeLogsRepository:
         db_type_column = cast(ColumnElement[str], AccountChangeLog.db_type)
         username_column = cast(ColumnElement[str], AccountChangeLog.username)
 
-        cutoff = time_utils.now() - timedelta(hours=int(hours))
-        base_query = AccountChangeLog.query.filter(change_time_column >= cutoff)
+        base_query = AccountChangeLog.query
+        if hours is not None:
+            cutoff = time_utils.now() - timedelta(hours=int(hours))
+            base_query = base_query.filter(change_time_column >= cutoff)
 
         total_changes = cast(int, base_query.count())
         success_count = cast(int, base_query.filter(status_column == "success").count())
         failed_count = cast(int, base_query.filter(status_column != "success").count())
 
         affected_accounts = (
-            AccountChangeLog.query.with_entities(instance_id_column, db_type_column, username_column)
-            .filter(change_time_column >= cutoff)
-            .distinct()
-            .count()
+            base_query.with_entities(instance_id_column, db_type_column, username_column).distinct().count()
         )
 
         return {

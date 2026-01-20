@@ -94,7 +94,7 @@
         },
       },
       filters: {
-        allowedKeys: ["search", "instance_id", "db_type", "change_type", "status", "hours"],
+        allowedKeys: ["search", "instance_id", "db_type", "change_type", "hours"],
         resolve: (values) => resolveFilters(values),
         normalize: (filters) => normalizeGridFilters(filters),
       },
@@ -130,10 +130,10 @@
       cache.set(String(normalized.id), normalized);
       return [
         normalized.change_time || "-",
+        normalized.db_type || "",
         normalized.instance_name || "-",
         normalized.username || "-",
         normalized.change_type || "-",
-        normalized.status || "-",
         normalized.message || "",
         "",
         normalized,
@@ -173,6 +173,12 @@
         },
       },
       {
+        name: "数据库类型",
+        id: "db_type",
+        width: "120px",
+        formatter: (_cell, row) => renderDbTypeCell(getRowMeta(row), gridHtml),
+      },
+      {
         name: "实例",
         id: "instance",
         formatter: (_cell, row) => renderInstanceCell(getRowMeta(row), gridHtml),
@@ -188,12 +194,6 @@
         id: "change_type",
         width: "130px",
         formatter: (_cell, row) => renderChangeTypeCell(getRowMeta(row), gridHtml),
-      },
-      {
-        name: "状态",
-        id: "status",
-        width: "110px",
-        formatter: (_cell, row) => renderStatusCell(getRowMeta(row), gridHtml),
       },
       {
         name: "摘要",
@@ -225,32 +225,34 @@
     ];
   }
 
+  function renderDbTypeCell(meta, gridHtml) {
+    const dbType = meta.db_type ? String(meta.db_type).toUpperCase() : "-";
+    if (!gridHtml) {
+      return dbType;
+    }
+    return gridHtml(`<span class="status-pill status-pill--muted">${escapeHtml(dbType)}</span>`);
+  }
+
   function renderInstanceCell(meta, gridHtml) {
     const name = meta.instance_name ? String(meta.instance_name) : "-";
-    const dbType = meta.db_type ? String(meta.db_type).toUpperCase() : "";
     if (!gridHtml) {
-      return dbType ? `${name} (${dbType})` : name;
+      return name;
     }
-    const dbChip = dbType ? `<span class="status-pill status-pill--muted">${escapeHtml(dbType)}</span>` : "";
     return gridHtml(
       `<div class="d-flex flex-wrap align-items-center gap-2">
         <span class="fw-semibold">${escapeHtml(name)}</span>
-        ${dbChip}
       </div>`,
     );
   }
 
   function renderAccountCell(meta, gridHtml) {
     const username = meta.username ? String(meta.username) : "-";
-    const accountId = meta.account_id ? `#${meta.account_id}` : "";
     if (!gridHtml) {
-      return accountId ? `${username} ${accountId}` : username;
+      return username;
     }
-    const idChip = accountId ? `<span class="status-pill status-pill--muted">${escapeHtml(accountId)}</span>` : "";
     return gridHtml(
       `<div class="d-flex flex-wrap align-items-center gap-2">
         <span class="fw-semibold">${escapeHtml(username)}</span>
-        ${idChip}
       </div>`,
     );
   }
@@ -264,37 +266,31 @@
     return gridHtml(`<span class="status-pill ${escapeHtml(info.pill)}">${escapeHtml(info.label)}</span>`);
   }
 
-  function renderStatusCell(meta, gridHtml) {
-    const resolver = global.ChangeHistoryRenderer?.resolveStatusInfo;
-    const info = typeof resolver === "function" ? resolver(meta.status) : { label: meta.status || "-", pill: "status-pill--muted" };
-    if (!gridHtml) {
-      return info.label;
-    }
-    return gridHtml(`<span class="status-pill ${escapeHtml(info.pill)}">${escapeHtml(info.label)}</span>`);
-  }
-
   function renderActionButton(id) {
-    return `
+    if (!global.gridjs?.html) {
+      return "详情";
+    }
+    return global.gridjs.html(`
       <button type="button" class="btn btn-outline-primary btn-sm" data-action="open-change-log-detail" data-log-id="${escapeHtml(String(id))}">
         <i class="fas fa-eye me-1"></i>详情
       </button>
-    `;
+    `);
   }
 
   function resolveFilters(rawValues) {
     const source = rawValues && Object.keys(rawValues || {}).length ? rawValues : collectFormValues();
     const timeRangeValue = source?.time_range || "";
-    const hoursValue = source?.hours || getHoursFromTimeRange(timeRangeValue);
+    const derivedHours = getHoursFromTimeRange(timeRangeValue);
+    const hoursValue = source?.hours || derivedHours;
 
     const filters = {
       search: sanitizeText(source?.search || source?.q),
       instance_id: sanitizeText(source?.instance_id || source?.instance),
       db_type: sanitizeText(source?.db_type),
       change_type: sanitizeText(source?.change_type),
-      status: sanitizeText(source?.status),
-      hours: Number.isFinite(Number(hoursValue)) ? Number(hoursValue) : 24,
+      hours: derivedHours === null ? null : Number.isFinite(Number(hoursValue)) ? Number(hoursValue) : 24,
     };
-    if (!filters.hours || filters.hours <= 0) {
+    if (filters.hours !== null && (!filters.hours || filters.hours <= 0)) {
       filters.hours = 24;
     }
     return filters;
@@ -324,11 +320,9 @@
       normalized.change_type = changeType;
     }
 
-    const status = sanitizeText(source.status);
-    if (status && status !== "all") {
-      normalized.status = status;
+    if (source.hours === null || source.hours === undefined || source.hours === "") {
+      return normalized;
     }
-
     const hoursRaw = Number(source.hours);
     normalized.hours = Number.isFinite(hoursRaw) && hoursRaw > 0 ? Math.floor(hoursRaw) : 24;
     return normalized;
@@ -369,10 +363,6 @@
     if (changeType !== null && changeType !== undefined) {
       result.change_type = changeType;
     }
-    const status = formData.get("status");
-    if (status !== null && status !== undefined) {
-      result.status = status;
-    }
     const timeRange = formData.get("time_range");
     if (timeRange !== null && timeRange !== undefined) {
       result.time_range = timeRange;
@@ -387,7 +377,7 @@
     }
     const el = selectWrapper.first();
     if (el && !el.value) {
-      el.value = "1d";
+      el.value = "all";
     }
   }
 
@@ -395,6 +385,9 @@
     const value = (timeRange || "").toString().trim();
     if (!value) {
       return 24;
+    }
+    if (value === "all") {
+      return null;
     }
     if (value === "1h") {
       return 1;
@@ -490,7 +483,6 @@
       const pieces = [];
       if (cached?.username) pieces.push(cached.username);
       if (cached?.db_type) pieces.push(String(cached.db_type).toUpperCase());
-      if (cached?.account_id) pieces.push(`#${cached.account_id}`);
       metaEl.textContent = pieces.length ? pieces.join(" · ") : `变更 #${id}`;
     }
 

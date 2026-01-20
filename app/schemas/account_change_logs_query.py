@@ -128,12 +128,9 @@ class AccountChangeLogsListQuery(PayloadSchema):
 class AccountChangeLogStatisticsQuery(PayloadSchema):
     """账户变更日志统计 query 参数 schema."""
 
-    hours: int = 24
+    hours: int | None = None
 
     @field_validator("hours", mode="before")
     @classmethod
-    def _parse_hours(cls, value: Any) -> int:
-        resolved = _resolve_hours(value)
-        if resolved is None:
-            return 24
-        return resolved
+    def _parse_hours(cls, value: Any) -> int | None:
+        return _resolve_hours(value)
