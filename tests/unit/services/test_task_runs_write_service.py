@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import date, datetime
+from datetime import UTC as datetime_utc
+
 import pytest
 
 from app import create_app, db
@@ -226,3 +229,55 @@ def test_task_runs_write_service_cancel_run_marks_pending_running_items_cancelle
 
         items = TaskRunItem.query.filter_by(run_id=run_id).order_by(TaskRunItem.item_key.asc()).all()
         assert [item.status for item in items] == ["completed", "cancelled"]
+
+
+@pytest.mark.unit
+def test_task_runs_write_service_serializes_date_values_in_json_columns(app) -> None:
+    try:
+        from app.models.task_run_item import TaskRunItem
+        from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
+    except ModuleNotFoundError as exc:
+        pytest.fail(f"TaskRun 功能未实现: {exc}")
+
+    _ensure_task_run_tables(app)
+
+    with app.app_context():
+        service = TaskRunsWriteService()
+        run_id = service.start_run(
+            task_key="collect_database_sizes",
+            task_name="容量同步",
+            task_category="capacity",
+            trigger_source="manual",
+            created_by=1,
+            summary_json={"stat_date": date(2025, 1, 1)},
+            result_url="/databases/ledgers",
+        )
+        service.init_items(
+            run_id,
+            items=[
+                TaskRunItemInit(item_type="instance", item_key="1", item_name="inst-1", instance_id=1),
+            ],
+        )
+
+        details = {
+            "stat_date": date(2025, 1, 1),
+            "window": {
+                "started_at": datetime(2025, 1, 1, 12, 0, tzinfo=datetime_utc),
+            },
+            "days": [date(2025, 1, 1), date(2025, 1, 2)],
+        }
+        service.complete_item(
+            run_id,
+            item_type="instance",
+            item_key="1",
+            details_json=details,
+        )
+
+        # If JSON columns keep raw date objects, SQLAlchemy/psycopg JSON serialization will raise.
+        db.session.commit()
+
+        item = TaskRunItem.query.filter_by(run_id=run_id, item_type="instance", item_key="1").first()
+        assert item is not None
+        assert item.details_json["stat_date"] == "2025-01-01"
+        assert item.details_json["window"]["started_at"].startswith("2025-01-01T12:00:00")
+        assert item.details_json["days"] == ["2025-01-01", "2025-01-02"]
