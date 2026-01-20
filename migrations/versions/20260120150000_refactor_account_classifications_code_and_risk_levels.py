@@ -31,6 +31,9 @@ def upgrade() -> None:
     op.drop_column("account_classifications", "color")
 
     # risk_level: legacy low/medium/high/critical -> 1-6 (1 highest, 6 lowest)
+    # Postgres will try to cast the existing DEFAULT along with the column type.
+    # The legacy default is typically `'medium'::varchar`, which can't cast to SMALLINT.
+    op.execute("ALTER TABLE account_classifications ALTER COLUMN risk_level DROP DEFAULT")
     op.execute(
         """
         UPDATE account_classifications
@@ -49,8 +52,13 @@ def upgrade() -> None:
         existing_type=sa.String(length=20),
         type_=sa.SmallInteger(),
         nullable=False,
-        server_default=sa.text("4"),
         postgresql_using="risk_level::smallint",
+    )
+    op.alter_column(
+        "account_classifications",
+        "risk_level",
+        existing_type=sa.SmallInteger(),
+        server_default=sa.text("4"),
     )
     op.create_check_constraint(
         "account_classifications_risk_level_check",
@@ -86,13 +94,13 @@ def downgrade() -> None:
         "account_classifications",
         type_="check",
     )
+    op.execute("ALTER TABLE account_classifications ALTER COLUMN risk_level DROP DEFAULT")
     op.alter_column(
         "account_classifications",
         "risk_level",
         existing_type=sa.SmallInteger(),
         type_=sa.String(length=20),
         nullable=False,
-        server_default=sa.text("'medium'"),
         postgresql_using="""
         CASE risk_level
             WHEN 1 THEN 'critical'
@@ -104,6 +112,12 @@ def downgrade() -> None:
             ELSE 'medium'
         END
         """,
+    )
+    op.alter_column(
+        "account_classifications",
+        "risk_level",
+        existing_type=sa.String(length=20),
+        server_default=sa.text("'medium'"),
     )
 
     op.add_column(
@@ -117,4 +131,3 @@ def downgrade() -> None:
         new_column_name="name",
         existing_type=sa.String(length=100),
     )
-
