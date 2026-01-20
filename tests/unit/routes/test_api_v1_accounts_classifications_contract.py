@@ -39,20 +39,18 @@ def test_api_v1_accounts_classifications_requires_auth(client) -> None:
 
 @pytest.mark.unit
 def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, monkeypatch) -> None:
-    class _DummyAutoClassifyResult:
-        @staticmethod
-        def to_payload() -> dict[str, object]:
-            return {
-                "classified_accounts": 0,
-                "total_classifications_added": 0,
-                "failed_count": 0,
-                "message": "自动分类成功",
-            }
-
     class _DummyAutoClassifyService:
-        @staticmethod
-        def auto_classify(*, instance_id, created_by):  # noqa: ANN001
-            return _DummyAutoClassifyResult()
+        def prepare_background_auto_classify(self, *, instance_id, created_by):  # noqa: ANN001
+            del instance_id, created_by
+            from types import SimpleNamespace
+
+            return SimpleNamespace(run_id="test-run-id")
+
+        def launch_background_auto_classify(self, *, created_by, prepared):  # noqa: ANN001
+            del created_by, prepared
+            from types import SimpleNamespace
+
+            return SimpleNamespace(run_id="test-run-id", instance_id=None, thread_name="dummy-thread")
 
     import app.api.v1.namespaces.accounts_classifications as api_module
 
@@ -77,7 +75,7 @@ def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, mon
     assert payload.get("success") is True
     data = payload.get("data")
     assert isinstance(data, dict)
-    assert {"classified_accounts", "total_classifications_added", "failed_count", "message"}.issubset(data.keys())
+    assert isinstance(data.get("run_id"), str)
 
 
 @pytest.mark.unit

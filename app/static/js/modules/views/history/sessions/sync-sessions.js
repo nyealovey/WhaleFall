@@ -40,23 +40,23 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return;
   }
 
-  const SyncSessionsService = global.SyncSessionsService;
-  if (!SyncSessionsService) {
-    console.error('SyncSessionsService 未加载，会话中心无法初始化');
+  const TaskRunsService = global.TaskRunsService;
+  if (!TaskRunsService) {
+    console.error('TaskRunsService 未加载，运行中心无法初始化');
     return;
   }
 
-  const pageRoot = documentRef.getElementById('sync-sessions-page-root');
+  const pageRoot = documentRef.getElementById('task-runs-page-root');
   if (!pageRoot) {
-    console.warn('未找到会话中心页面根元素');
+    console.warn('未找到运行中心页面根元素');
     return;
   }
 
   const gridHtml = gridjs.html;
   const { ready } = helpers;
 
-  const FILTER_FORM_ID = 'sync-sessions-filter-form';
-  const GRID_CONTAINER_ID = 'sessions-grid';
+  const FILTER_FORM_ID = 'task-runs-filter-form';
+  const GRID_CONTAINER_ID = 'task-runs-grid';
   const AUTO_REFRESH_INTERVAL = 30000;
   const SESSION_STATS_IDS = {
     total: 'totalSessions',
@@ -69,7 +69,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   let gridPage = null;
   let sessionsGrid = null;
-  let syncSessionsService = null;
+  let taskRunsService = null;
   let sessionDetailModalController = null;
   let autoRefreshTimer = null;
 
@@ -85,17 +85,17 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   /**
    * 初始化同步会话服务。
    *
-   * 创建 SyncSessionsService 实例，用于后续的数据查询操作。
+   * 创建 TaskRunsService 实例，用于后续的数据查询操作。
    *
    * @param {void} 无参数。直接使用全局依赖。
    * @return {boolean} 初始化是否成功
    */
 	  function initializeService() {
 	    try {
-	      syncSessionsService = new SyncSessionsService();
+	      taskRunsService = new TaskRunsService();
 	      return true;
 	    } catch (error) {
-	      console.error('初始化 SyncSessionsService 失败:', error);
+	      console.error('初始化 TaskRunsService 失败:', error);
 	      return false;
 	    }
 	  }
@@ -103,16 +103,16 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   /**
    * 初始化同步会话详情模态。
    *
-   * @param {void} 无参数。依赖全局 SyncSessionDetailModal。
+   * @param {void} 无参数。依赖全局 TaskRunDetailModal。
    * @returns {void}
    */
   function initializeModals() {
-    if (!global.SyncSessionDetailModal?.createController) {
-      console.warn('SyncSessionDetailModal 未加载，将无法查看详情');
+    if (!global.TaskRunDetailModal?.createController) {
+      console.warn('TaskRunDetailModal 未加载，将无法查看详情');
       return;
     }
     try {
-      sessionDetailModalController = global.SyncSessionDetailModal.createController({
+      sessionDetailModalController = global.TaskRunDetailModal.createController({
         ui: global.UI,
         timeUtils: global.timeUtils,
         modalSelector: '#sessionDetailModal',
@@ -145,7 +145,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: syncSessionsService.getGridUrl(),
+          url: taskRunsService.getGridUrl(),
           headers: { 'X-Requested-With': 'XMLHttpRequest' },
           then: handleServerResponse,
           total: (response) => {
@@ -158,7 +158,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         },
       },
       filters: {
-        allowedKeys: ['status', 'sync_type', 'sync_category'],
+        allowedKeys: ['status', 'trigger_source', 'task_category', 'task_key'],
         normalize: (filters) => normalizeGridFilters(filters),
       },
       plugins: [
@@ -192,14 +192,19 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       normalized.status = status;
     }
 
-    const syncType = typeof source.sync_type === 'string' ? source.sync_type.trim() : '';
-    if (syncType && syncType !== 'all') {
-      normalized.sync_type = syncType;
+    const triggerSource = typeof source.trigger_source === 'string' ? source.trigger_source.trim() : '';
+    if (triggerSource && triggerSource !== 'all') {
+      normalized.trigger_source = triggerSource;
     }
 
-    const syncCategory = typeof source.sync_category === 'string' ? source.sync_category.trim() : '';
-    if (syncCategory && syncCategory !== 'all') {
-      normalized.sync_category = syncCategory;
+    const taskCategory = typeof source.task_category === 'string' ? source.task_category.trim() : '';
+    if (taskCategory && taskCategory !== 'all') {
+      normalized.task_category = taskCategory;
+    }
+
+    const taskKey = typeof source.task_key === 'string' ? source.task_key.trim() : '';
+    if (taskKey) {
+      normalized.task_key = taskKey;
     }
 
     return normalized;
@@ -214,10 +219,10 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   function buildColumns() {
     return [
       {
-        id: 'session_id',
-        name: '会话ID',
-        width: '130px',
-        formatter: (cell, row) => renderSessionId(getRowMeta(row)),
+        id: 'run_id',
+        name: '运行ID',
+        width: '140px',
+        formatter: (cell, row) => renderRunId(getRowMeta(row)),
       },
       {
         id: 'status',
@@ -233,16 +238,22 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         formatter: (cell, row) => renderProgress(getRowMeta(row)),
       },
       {
-        id: 'sync_type',
-        name: '操作方式',
-        width: '110px',
-        formatter: (cell, row) => renderSyncType(getRowMeta(row)),
+        id: 'task',
+        name: '任务',
+        width: '260px',
+        formatter: (cell, row) => renderTask(getRowMeta(row)),
       },
       {
-        id: 'sync_category',
+        id: 'trigger_source',
+        name: '来源',
+        width: '110px',
+        formatter: (cell, row) => renderTriggerSource(getRowMeta(row)),
+      },
+      {
+        id: 'task_category',
         name: '分类',
         width: '110px',
-        formatter: (cell, row) => renderSyncCategory(getRowMeta(row)),
+        formatter: (cell, row) => renderTaskCategory(getRowMeta(row)),
       },
       {
         id: 'started_at',
@@ -279,11 +290,12 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     const items = payload.items || [];
     updateSessionStats(payload);
     return items.map((item) => [
-      item.session_id || '-',
+      item.run_id || '-',
       item.status || '-',
       null,
-      item.sync_type || '-',
-      item.sync_category || '-',
+      null,
+      item.trigger_source || '-',
+      item.task_category || '-',
       item.started_at || '',
       null,
       null,
@@ -292,43 +304,64 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   }
 
   /**
-   * 渲染会话 ID 单元格。
+   * 渲染运行 ID 单元格。
    *
    * @param {Object} meta 元数据对象。
    * @returns {string|Object} gridjs formatter 结果。
    */
-  function renderSessionId(meta) {
+  function renderRunId(meta) {
     if (!gridHtml) {
-      return meta.session_id || '-';
+      return meta.run_id || '-';
     }
-    const rawId = meta.session_id || '-';
+    const rawId = meta.run_id || '-';
     const truncated = rawId.length > 12 ? `${rawId.substring(0, 12)}…` : rawId;
-    const sessionId = escapeHtml(truncated);
-    return gridHtml(`<span class="font-monospace small" title="${escapeHtml(rawId)}">${sessionId}</span>`);
+    const displayId = escapeHtml(truncated);
+    return gridHtml(`<span class="font-monospace small" title="${escapeHtml(rawId)}">${displayId}</span>`);
   }
 
   /**
-   * 渲染同步类型徽章。
+   * 渲染任务信息（task_name/task_key）。
    *
    * @param {Object} meta 元数据对象。
    * @returns {string|Object} 渲染后的 HTML。
    */
-  function renderSyncType(meta) {
-    const text = getSyncTypeText(meta.sync_type);
+  function renderTask(meta) {
+    const name = meta.task_name || meta.task_key || '-';
+    const key = meta.task_key || '';
+    if (!gridHtml) {
+      return name;
+    }
+    const keyHtml = key ? `<span class="text-muted small font-monospace">${escapeHtml(key)}</span>` : '';
+    return gridHtml(`
+      <div class="d-flex flex-column">
+        <span class="fw-semibold">${escapeHtml(name)}</span>
+        ${keyHtml}
+      </div>
+    `);
+  }
+
+  /**
+   * 渲染触发来源徽章。
+   *
+   * @param {Object} meta 元数据对象。
+   * @returns {string|Object} 渲染后的 HTML。
+   */
+  function renderTriggerSource(meta) {
+    const text = getTriggerSourceText(meta.trigger_source);
     if (!gridHtml) {
       return text;
     }
-    return gridHtml(buildChipOutlineHtml(text, 'brand', 'fas fa-random'));
+    return gridHtml(buildChipOutlineHtml(text, 'brand', 'fas fa-bolt'));
   }
 
   /**
-   * 渲染同步分类徽章。
+   * 渲染任务分类徽章。
    *
    * @param {Object} meta 元数据对象。
    * @returns {string|Object} 渲染后的 HTML。
    */
-  function renderSyncCategory(meta) {
-    const text = getSyncCategoryText(meta.sync_category);
+  function renderTaskCategory(meta) {
+    const text = getTaskCategoryText(meta.task_category);
     if (!gridHtml) {
       return text;
     }
@@ -358,9 +391,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {string|Object} 包含进度信息的 HTML。
    */
   function renderProgress(meta) {
-    const total = meta.total_instances || 0;
-    const success = meta.successful_instances || 0;
-    const failed = meta.failed_instances || 0;
+    const total = meta.progress_total || 0;
+    const success = meta.progress_completed || 0;
+    const failed = meta.progress_failed || 0;
     const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
     const info = getProgressInfo(successRate, total, success, failed);
     if (!gridHtml) {
@@ -424,12 +457,12 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       return '查看';
     }
     const viewBtn = `
-      <button class="btn btn-outline-secondary btn-icon" data-action="view" data-id="${escapeHtml(meta.session_id)}" title="查看详情">
+      <button class="btn btn-outline-secondary btn-icon" data-action="view" data-id="${escapeHtml(meta.run_id)}" title="查看详情">
         <i class="fas fa-eye"></i>
       </button>`;
     const cancelBtn = meta.status === 'running'
       ? `
-        <button class="btn btn-outline-danger btn-icon" data-action="cancel" data-id="${escapeHtml(meta.session_id)}" title="取消会话">
+        <button class="btn btn-outline-danger btn-icon" data-action="cancel" data-id="${escapeHtml(meta.run_id)}" title="取消任务">
           <i class="fas fa-stop"></i>
         </button>`
       : '';
@@ -525,20 +558,22 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @param {string|number} sessionId 会话唯一标识。
    * @returns {void}
    */
-  function viewSessionDetail(sessionId) {
-    if (!sessionId) {
+  function viewSessionDetail(runId) {
+    if (!runId) {
       return;
     }
-    syncSessionsService
-      .detail(sessionId)
+    taskRunsService
+      .detail(runId)
       .then((response) => {
         const payload = response?.data || response || {};
-        const session = payload.session || payload;
-        showSessionDetail(session);
+        showSessionDetail({
+          run: payload.run || {},
+          items: Array.isArray(payload.items) ? payload.items : [],
+        });
       })
       .catch((error) => {
-        console.error('获取会话详情失败:', error);
-        notifyError(error?.message || '获取会话详情失败');
+        console.error('获取任务详情失败:', error);
+        notifyError(error?.message || '获取任务详情失败');
       });
   }
 
@@ -553,7 +588,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       sessionDetailModalController.open(session);
       return;
     }
-    console.warn('会话详情模态未初始化');
+    console.warn('详情模态未初始化');
   }
 
   /**
@@ -562,24 +597,42 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @param {string|number} sessionId 会话 ID。
    * @returns {void}
    */
-  function cancelSession(sessionId) {
-    if (!sessionId) {
+  function cancelSession(runId) {
+    if (!runId) {
       return;
     }
-    if (!global.confirm?.('确定要取消这个同步会话吗？')) {
-      return;
-    }
-    syncSessionsService
-      .cancel(sessionId, {})
-      .then((response) => {
-        const payload = response?.data || response || {};
-        notifySuccess(payload?.message || '会话已取消');
-        sessionsGrid?.refresh?.();
-      })
-      .catch((error) => {
-        console.error('取消会话失败:', error);
-        notifyError(error?.message || '取消会话失败');
-      });
+
+    const confirmDanger = global.UI?.confirmDanger;
+    const confirmPromise = typeof confirmDanger === 'function'
+      ? confirmDanger({
+          title: '确认取消任务',
+          message: '该操作仅标记取消（不会强制终止线程/进程），任务会在循环边界尽力提前退出。',
+          details: [
+            { label: '结果入口', value: '可在运行中心查看取消后的状态与错误信息', tone: 'warning' },
+          ],
+          confirmText: '取消任务',
+          confirmButtonClass: 'btn-danger',
+          resultUrl: '/history/sessions',
+          resultText: '前往运行中心',
+        })
+      : Promise.resolve(global.confirm?.('确定要取消这个任务吗？') === true);
+
+    confirmPromise.then((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      return taskRunsService.cancel(runId, {});
+    }).then((response) => {
+      if (!response) {
+        return;
+      }
+      const payload = response?.data || response || {};
+      notifySuccess(payload?.message || '任务已取消');
+      sessionsGrid?.refresh?.();
+    }).catch((error) => {
+      console.error('取消任务失败:', error);
+      notifyError(error?.message || '取消任务失败');
+    });
   }
 
   /**
@@ -616,6 +669,8 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   global.getProgressInfo = getProgressInfo;
   global.getStatusText = getStatusText;
   global.getStatusColor = getStatusColor;
+  global.getTriggerSourceText = getTriggerSourceText;
+  global.getTaskCategoryText = getTaskCategoryText;
   global.getSyncTypeText = getSyncTypeText;
   global.getSyncCategoryText = getSyncCategoryText;
   global.getDurationBadge = getDurationBadge;
@@ -780,6 +835,50 @@ function getSyncCategoryText(category) {
       return '配置同步';
     case 'aggregation':
       return '统计聚合';
+    case 'classification':
+      return '账户分类';
+    case 'other':
+      return '其他';
+    default:
+      return category || '-';
+  }
+}
+
+/**
+ * 触发来源文本。
+ *
+ * @param {string} source 来源标识。
+ * @returns {string} 中文描述。
+ */
+function getTriggerSourceText(source) {
+  switch (source) {
+    case 'scheduled':
+      return '定时任务';
+    case 'manual':
+      return '手动触发';
+    case 'api':
+      return 'API';
+    default:
+      return source || '-';
+  }
+}
+
+/**
+ * 任务分类文本。
+ *
+ * @param {string} category 分类标识。
+ * @returns {string} 中文描述。
+ */
+function getTaskCategoryText(category) {
+  switch (category) {
+    case 'account':
+      return '账户';
+    case 'capacity':
+      return '容量';
+    case 'aggregation':
+      return '聚合';
+    case 'classification':
+      return '分类';
     case 'other':
       return '其他';
     default:

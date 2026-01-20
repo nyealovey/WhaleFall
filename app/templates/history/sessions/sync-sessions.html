@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% set page_id = 'SyncSessionsPage' %}
 {% set page_density = 'compact' %}
-{% from 'components/filters/macros.html' import filter_card, sync_type_filter, sync_category_filter, status_sync_filter %}
+{% from 'components/filters/macros.html' import filter_card, task_run_trigger_source_filter, task_run_category_filter, status_active_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
 
-{% block title %}会话中心 - 鲸落{% endblock %}
+{% block title %}运行中心 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
@@ -13,8 +13,8 @@
 {% endblock %}
 
 {% block content_outer %}
-<div id="sync-sessions-page-root">
-{{ page_header('fas fa-sync-alt', '会话中心', '查看和管理数据同步会话记录') }}
+<div id="task-runs-page-root">
+{{ page_header('fas fa-tasks', '运行中心', '查看和管理后台任务运行记录') }}
 
 <section class="page-section">
     <div class="layout-shell">
@@ -52,10 +52,10 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            {% call filter_card(form_id='sync-sessions-filter-form', action=url_for('history_sessions.index'), auto_register=False) %}
-                {{ sync_type_filter(sync_type_options, '', col_class='col-md-2 col-12') }}
-                {{ sync_category_filter(sync_category_options, '', col_class='col-md-2 col-12') }}
-                {{ status_sync_filter(status_options, '', col_class='col-md-2 col-12') }}
+            {% call filter_card(form_id='task-runs-filter-form', action=url_for('history_sessions.index'), auto_register=False) %}
+                {{ task_run_trigger_source_filter(trigger_source_options, '', col_class='col-md-2 col-12') }}
+                {{ task_run_category_filter(task_category_options, '', col_class='col-md-2 col-12') }}
+                {{ status_active_filter(status_options, '', col_class='col-md-2 col-12') }}
             {% endcall %}
         </div>
     </div>
@@ -66,10 +66,10 @@
         <div class="layout-shell-inner">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list"></i> 同步会话列表</h5>
+                    <h5 class="mb-0"><i class="fas fa-list"></i> 任务运行列表</h5>
                 </div>
                 <div class="card-body">
-                    <div id="sessions-grid"></div>
+                    <div id="task-runs-grid"></div>
                 </div>
             </div>
         </div>
@@ -88,7 +88,7 @@
 <script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/services/sync_sessions_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/task_runs_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/session-detail.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/modals/session-detail-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/sync-sessions.js') }}"></script>

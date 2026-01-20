@@ -1,7 +1,7 @@
 """Accounts sync actions service.
 
 将路由层的“动作编排”逻辑下沉到 service 层:
-- 全量同步: 校验活跃实例 + 启动后台线程 + 返回 session_id
+- 全量同步: 校验活跃实例 + 创建 TaskRun + 启动后台线程 + 返回 run_id
 - 单实例同步: 获取实例 + 执行同步 + 标准化 result 结构
 """
 
@@ -20,7 +20,7 @@ from app.core.exceptions import NotFoundError, SystemError, ValidationError
 from app.infra.route_safety import log_with_context
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
-from app.services.sync_session_service import sync_session_service
+from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
 
 
 class SupportsAccountSync(Protocol):
@@ -60,7 +60,7 @@ BACKGROUND_SYNC_EXCEPTIONS: tuple[type[Exception], ...] = (
 class AccountsSyncBackgroundLaunchResult:
     """后台全量同步启动结果."""
 
-    session_id: str
+    run_id: str
     active_instance_count: int
     thread_name: str
 
@@ -69,7 +69,7 @@ class AccountsSyncBackgroundLaunchResult:
 class AccountsSyncBackgroundPreparedSession:
     """后台全量同步准备结果(已创建会话,尚未启动线程)."""
 
-    session_id: str
+    run_id: str
     active_instance_count: int
 
 
@@ -85,12 +85,12 @@ class AccountsSyncActionResult:
 def _launch_background_sync(
     *,
     created_by: int | None,
-    session_id: str,
+    run_id: str,
     sync_task: Callable[..., None],
 ) -> threading.Thread:
-    def _run_sync_task(captured_created_by: int | None, captured_session_id: str) -> None:
+    def _run_sync_task(captured_created_by: int | None, captured_run_id: str) -> None:
         try:
-            sync_task(manual_run=True, created_by=captured_created_by, session_id=captured_session_id)
+            sync_task(manual_run=True, created_by=captured_created_by, run_id=captured_run_id)
         except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover
             log_with_context(
                 "error",
@@ -99,7 +99,7 @@ def _launch_background_sync(
                 action="sync_all_accounts_background",
                 context={
                     "created_by": captured_created_by,
-                    "session_id": captured_session_id,
+                    "run_id": captured_run_id,
                 },
                 extra={
                     "error_type": exc.__class__.__name__,
@@ -110,7 +110,7 @@ def _launch_background_sync(
 
     thread = threading.Thread(
         target=_run_sync_task,
-        args=(created_by, session_id),
+        args=(created_by, run_id),
         name="sync_accounts_manual_batch",
         daemon=True,
     )
@@ -174,9 +174,9 @@ class AccountsSyncActionsService:
         return is_success, normalized
 
     def prepare_background_full_sync(self, *, created_by: int | None) -> AccountsSyncBackgroundPreparedSession:
-        """创建同步会话并返回 session_id(不启动线程).
+        """创建 TaskRun 并返回 run_id(不启动线程).
 
-        该方法只做会话创建,由调用方决定何时启动后台线程(通常需在事务提交后).
+        该方法只做 run 创建,由调用方决定何时启动后台线程(通常需在事务提交后).
 
         Args:
             created_by: 可选的操作者用户 ID.
@@ -186,13 +186,17 @@ class AccountsSyncActionsService:
 
         """
         active_instance_count = self._ensure_active_instances()
-        session = sync_session_service.create_session(
-            sync_type=SyncOperationType.MANUAL_TASK.value,
-            sync_category="account",
+        run_id = TaskRunsWriteService().start_run(
+            task_key="sync_accounts",
+            task_name="账户同步",
+            task_category="account",
+            trigger_source="manual",
             created_by=created_by,
+            summary_json=None,
+            result_url="/accounts/ledgers",
         )
         return AccountsSyncBackgroundPreparedSession(
-            session_id=session.session_id,
+            run_id=run_id,
             active_instance_count=active_instance_count,
         )
 
@@ -206,7 +210,7 @@ class AccountsSyncActionsService:
 
         Args:
             created_by: 可选的操作者用户 ID.
-            prepared: 已准备的会话信息(包含 session_id).
+            prepared: 已准备的 run 信息(包含 run_id).
 
         Returns:
             AccountsSyncBackgroundLaunchResult: 后台同步启动结果.
@@ -214,11 +218,11 @@ class AccountsSyncActionsService:
         """
         thread = _launch_background_sync(
             created_by=created_by,
-            session_id=prepared.session_id,
+            run_id=prepared.run_id,
             sync_task=self._sync_task,
         )
         return AccountsSyncBackgroundLaunchResult(
-            session_id=prepared.session_id,
+            run_id=prepared.run_id,
             active_instance_count=prepared.active_instance_count,
             thread_name=thread.name,
         )

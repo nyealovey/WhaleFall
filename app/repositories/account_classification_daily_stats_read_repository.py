@@ -34,7 +34,9 @@ class AccountClassificationDailyStatsReadRepository:
         query = (
             db.session.query(
                 AccountClassificationDailyClassificationMatchStat.stat_date,
-                func.sum(AccountClassificationDailyClassificationMatchStat.matched_accounts_distinct_count).label("total"),
+                func.sum(AccountClassificationDailyClassificationMatchStat.matched_accounts_distinct_count).label(
+                    "total"
+                ),
             )
             .filter(
                 AccountClassificationDailyClassificationMatchStat.classification_id == classification_id,
@@ -140,4 +142,3 @@ class AccountClassificationDailyStatsReadRepository:
         if instance_id is not None:
             query = query.filter(AccountClassificationDailyRuleMatchStat.instance_id == instance_id)
         return {row.stat_date for row in query.all() if row.stat_date is not None}
-

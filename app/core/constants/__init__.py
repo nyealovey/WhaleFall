@@ -24,8 +24,11 @@ from .filter_options import (
     PERIOD_TYPES,
     STATUS_ACTIVE_OPTIONS,
     STATUS_SYNC_OPTIONS,
+    STATUS_TASK_RUN_OPTIONS,
     SYNC_CATEGORIES,
     SYNC_TYPES,
+    TASK_RUN_CATEGORIES,
+    TASK_RUN_TRIGGER_SOURCES,
     TIME_RANGES,
 )
 from .flash_categories import FlashCategory
@@ -52,8 +55,11 @@ __all__ = [
     "PERIOD_TYPES",
     "STATUS_ACTIVE_OPTIONS",
     "STATUS_SYNC_OPTIONS",
+    "STATUS_TASK_RUN_OPTIONS",
     "SYNC_CATEGORIES",
     "SYNC_TYPES",
+    "TASK_RUN_CATEGORIES",
+    "TASK_RUN_TRIGGER_SOURCES",
     "TIME_RANGES",
     # 数据库类型
     "DatabaseType",
