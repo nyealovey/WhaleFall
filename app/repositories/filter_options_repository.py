@@ -82,6 +82,6 @@ class FilterOptionsRepository:
         """获取启用的账户分类列表."""
         return (
             AccountClassification.query.filter(AccountClassification.is_active.is_(True))
-            .order_by(AccountClassification.priority.desc(), AccountClassification.name.asc())
+            .order_by(AccountClassification.priority.desc(), AccountClassification.code.asc())
             .all()
         )

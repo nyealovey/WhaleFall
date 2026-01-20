@@ -21,7 +21,6 @@ from app.api.v1.restx_models.accounts import (
     ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS,
 )
 from app.core.constants import HttpStatus
-from app.core.constants.colors import ThemeColors
 from app.core.exceptions import ConflictError, ValidationError
 from app.services.account_classification.auto_classify_actions_service import AutoClassifyActionsService
 from app.services.accounts.account_classification_expression_validation_service import (
@@ -30,7 +29,6 @@ from app.services.accounts.account_classification_expression_validation_service 
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.utils.decorators import require_csrf
-from app.utils.theme_color_utils import get_theme_color_choices
 
 ns = Namespace("accounts_classifications", description="账户分类管理")
 
@@ -44,8 +42,7 @@ AccountClassificationWritePayload = ns.model(
         "code": fields.String(required=False, description="分类标识(code)，创建后不可修改"),
         "display_name": fields.String(required=False, description="分类展示名"),
         "description": fields.String(required=False, description="分类描述"),
-        "risk_level": fields.String(required=False, description="风险等级"),
-        "color": fields.String(required=False, description="颜色 key"),
+        "risk_level": fields.Integer(required=False, description="风险等级(1-6,1 最高)"),
         "icon_name": fields.String(required=False, description="图标名称"),
         "priority": fields.Integer(required=False, description="优先级(0-100)"),
     },
@@ -90,19 +87,6 @@ AccountClassificationAssignmentItemModel = ns.model(
 AccountClassificationPermissionsData = ns.model(
     "AccountClassificationPermissionsData",
     ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS,
-)
-
-AccountClassificationColorsData = ns.model(
-    "AccountClassificationColorsData",
-    {
-        "colors": fields.Raw(required=True),
-        "choices": fields.List(fields.Raw, required=True),
-    },
-)
-AccountClassificationColorsSuccessEnvelope = make_success_envelope_model(
-    ns,
-    "AccountClassificationColorsSuccessEnvelope",
-    AccountClassificationColorsData,
 )
 
 AccountClassificationsListData = ns.model(
@@ -250,17 +234,15 @@ def _parse_json_payload() -> dict[str, object]:
 
 
 def _serialize_classification(classification: Any) -> dict[str, object]:
-    display_name = getattr(classification, "display_name", None) or classification.name
+    display_name = getattr(classification, "display_name", None) or classification.code
     return {
         "id": classification.id,
         # 兼容旧前端：name 继续作为展示名输出
         "name": display_name,
-        "code": classification.name,
+        "code": classification.code,
         "display_name": display_name,
         "description": classification.description,
         "risk_level": classification.risk_level,
-        "color": classification.color_value,
-        "color_key": classification.color,
         "icon_name": classification.icon_name,
         "priority": classification.priority,
         "is_system": classification.is_system,
@@ -297,7 +279,7 @@ def _serialize_rule(
     classification = rule.classification if rule else None
     classification_name = None
     if classification is not None:
-        classification_name = getattr(classification, "display_name", None) or classification.name
+        classification_name = getattr(classification, "display_name", None) or classification.code
 
     return {
         "id": rule.id,
@@ -313,35 +295,6 @@ def _serialize_rule(
         "created_at": rule.created_at.isoformat() if rule.created_at else None,
         "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
     }
-
-
-@ns.route("/colors")
-class AccountClassificationColorsResource(BaseResource):
-    """账户分类颜色选项资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
-
-    @ns.response(200, "OK", AccountClassificationColorsSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    def get(self):
-        """获取颜色选项."""
-
-        def _execute():
-            data = {
-                "colors": ThemeColors.COLOR_MAP,
-                "choices": get_theme_color_choices(),
-            }
-            return self.success(data=data, message="颜色选项获取成功")
-
-        return self.safe_call(
-            _execute,
-            module="accounts_classifications",
-            action="get_color_options",
-            public_error="获取颜色选项失败",
-            context={"color_count": len(ThemeColors.COLOR_MAP)},
-        )
 
 
 @ns.route("")

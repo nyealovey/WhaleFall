@@ -18,16 +18,20 @@
                         <i class="fas fa-layer-group" aria-hidden="true"></i>
                         <span>基础信息</span>
                     </span>
-                    <span class="crud-modal__muted-text">输入分类名称与业务说明</span>
+                    <span class="crud-modal__muted-text">输入分类标识与展示信息</span>
                 </div>
                 <div class="row g-3 align-items-start">
                     <div class="col-md-6 col-12">
-                        <label for="classificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="classificationName" required>
+                        <label for="classificationCode" class="form-label">分类标识(code) <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="classificationCode" required placeholder="例如: super (全小写)">
                     </div>
                     <div class="col-md-6 col-12">
+                        <label for="classificationDisplayName" class="form-label">分类名称</label>
+                        <input type="text" class="form-control" id="classificationDisplayName" placeholder="例如: 超高风险(可选)">
+                    </div>
+                    <div class="col-12">
                         <label for="classificationDescription" class="form-label">描述</label>
-                        <textarea class="form-control" id="classificationDescription" rows="3" placeholder="简要说明分类适用场景"></textarea>
+                        <textarea class="form-control" id="classificationDescription" rows="3" placeholder="简要说明分类适用场景(可选)"></textarea>
                     </div>
                 </div>
             </section>
@@ -36,37 +40,21 @@
                 <div class="crud-modal__section-title">
                     <span class="chip-outline chip-outline--muted">
                         <i class="fas fa-signal" aria-hidden="true"></i>
-                        <span>风险与色彩</span>
+                        <span>风险等级</span>
                     </span>
-                    <span class="crud-modal__muted-text">确定警戒级别与展示色</span>
+                    <span class="crud-modal__muted-text">选择 1-6 级风险等级</span>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6 col-12">
                         <label for="riskLevel" class="form-label">风险等级</label>
                         <select class="form-select" id="riskLevel">
-                            <option value="low">低风险</option>
-                            <option value="medium" selected>中风险</option>
-                            <option value="high">高风险</option>
-                            <option value="critical">极高风险</option>
+                            <option value="1">1级(最高)</option>
+                            <option value="2">2级</option>
+                            <option value="3">3级</option>
+                            <option value="4" selected>4级(默认)</option>
+                            <option value="5">5级</option>
+                            <option value="6">6级(最低)</option>
                         </select>
-                    </div>
-                    <div class="col-md-6 col-12">
-                        <label for="classificationColor" class="form-label">显示颜色 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="classificationColor" required>
-                            <option value="">请选择颜色</option>
-                            {% for key, info in color_options.items() %}
-                            <option value="{{ key }}" data-color="{{ info.value }}">
-                                {{ info.name }} - {{ info.description }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <div class="crud-modal__hint mt-2">
-                            <div id="colorPreview" class="color-preview-container" style="display: none;">
-                                <span class="color-preview-dot"></span>
-                                <span class="color-preview-text"></span>
-                            </div>
-                            <span class="crud-modal__muted-text">用于列表 chip 与统计卡片</span>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -136,7 +124,7 @@
                     <div class="col-md-4 col-12">
                         <label for="priority" class="form-label">优先级</label>
                         <input type="number" class="form-control" id="priority" value="0" min="0" max="100">
-                        <div class="crud-modal__muted-text mt-2">数值越大越靠前</div>
+                        <div class="crud-modal__muted-text mt-2">0-100，越高越优先（仅影响排序）</div>
                     </div>
                 </div>
             </section>
@@ -174,6 +162,7 @@
 {% set edit_classification_modal_body %}
     <form id="editClassificationForm" class="crud-modal">
         <input type="hidden" id="editClassificationId">
+        <input type="hidden" id="editClassificationIsSystem">
         <div class="crud-modal__header">
             <span class="chip-outline chip-outline--brand">
                 <i class="fas fa-tags" aria-hidden="true"></i>
@@ -195,10 +184,14 @@
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6 col-12">
+                        <label for="editClassificationCode" class="form-label">分类标识(code)</label>
+                        <input type="text" class="form-control" id="editClassificationCode" disabled>
+                    </div>
+                    <div class="col-md-6 col-12">
                         <label for="editClassificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="editClassificationName" required>
                     </div>
-                    <div class="col-md-6 col-12">
+                    <div class="col-12">
                         <label for="editClassificationDescription" class="form-label">描述</label>
                         <textarea class="form-control" id="editClassificationDescription" rows="3"></textarea>
                     </div>
@@ -209,37 +202,21 @@
                 <div class="crud-modal__section-title">
                     <span class="chip-outline chip-outline--muted">
                         <i class="fas fa-signal" aria-hidden="true"></i>
-                        <span>风险与色彩</span>
+                        <span>风险等级</span>
                     </span>
-                    <span class="crud-modal__muted-text">匹配既有策略的风险色彩</span>
+                    <span class="crud-modal__muted-text">系统内置分类不可修改风险等级</span>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6 col-12">
                         <label for="editClassificationRiskLevel" class="form-label">风险等级</label>
                         <select class="form-select" id="editClassificationRiskLevel">
-                            <option value="low">低风险</option>
-                            <option value="medium">中风险</option>
-                            <option value="high">高风险</option>
-                            <option value="critical">极高风险</option>
+                            <option value="1">1级(最高)</option>
+                            <option value="2">2级</option>
+                            <option value="3">3级</option>
+                            <option value="4">4级(默认)</option>
+                            <option value="5">5级</option>
+                            <option value="6">6级(最低)</option>
                         </select>
-                    </div>
-                    <div class="col-md-6 col-12">
-                        <label for="editClassificationColor" class="form-label">显示颜色 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="editClassificationColor" required>
-                            <option value="">请选择颜色</option>
-                            {% for key, info in color_options.items() %}
-                            <option value="{{ key }}" data-color="{{ info.value }}">
-                                {{ info.name }} - {{ info.description }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <div class="crud-modal__hint mt-2">
-                            <div id="editColorPreview" class="color-preview-container" style="display: none;">
-                                <span class="color-preview-dot"></span>
-                                <span class="color-preview-text"></span>
-                            </div>
-                            <span class="crud-modal__muted-text">同步到账户列表与统计图例</span>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -279,7 +256,7 @@
                     <div class="col-md-4 col-12">
                         <label for="editClassificationPriority" class="form-label">优先级</label>
                         <input type="number" class="form-control" id="editClassificationPriority" value="0" min="0" max="100">
-                        <div class="crud-modal__muted-text mt-2">0-100，越高越优先</div>
+                        <div class="crud-modal__muted-text mt-2">0-100，越高越优先（仅影响排序）</div>
                     </div>
                 </div>
             </section>

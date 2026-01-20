@@ -19,15 +19,18 @@ from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
 
-def _strip_username_prefix(message: object, *, username: str) -> object:
+def _strip_username_prefix(message: object, *, username: str) -> str | None:
     """移除摘要中冗余的 `账户 <username>` 前缀(仅用于展示层)."""
-    if not message or not isinstance(message, str):
-        return message
+    if message is None:
+        return None
+    text = message if isinstance(message, str) else str(message)
+    if not text:
+        return None
     prefix = f"账户 {username}"
-    if not message.startswith(prefix):
-        return message
-    trimmed = message[len(prefix) :].lstrip()
-    return trimmed or message
+    if not text.startswith(prefix):
+        return text
+    trimmed = text[len(prefix) :].lstrip()
+    return trimmed or text
 
 
 class HistoryAccountChangeLogsReadService:

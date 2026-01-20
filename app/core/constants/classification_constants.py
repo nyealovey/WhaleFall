@@ -6,10 +6,12 @@
 """
 
 RISK_LEVEL_OPTIONS = [
-    {"value": "low", "label": "低风险"},
-    {"value": "medium", "label": "中风险"},
-    {"value": "high", "label": "高风险"},
-    {"value": "critical", "label": "极高风险"},
+    {"value": 1, "label": "1级(最高)"},
+    {"value": 2, "label": "2级"},
+    {"value": 3, "label": "3级"},
+    {"value": 4, "label": "4级(默认)"},
+    {"value": 5, "label": "5级"},
+    {"value": 6, "label": "6级(最低)"},
 ]
 
 ICON_OPTIONS = [

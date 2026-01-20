@@ -82,17 +82,15 @@ class AccountClassificationsReadService:
 
         items: list[AccountClassificationListItem] = []
         for classification in classifications:
-            display_name = getattr(classification, "display_name", None) or classification.name
+            display_name = getattr(classification, "display_name", None) or classification.code
             items.append(
                 AccountClassificationListItem(
                     id=classification.id,
                     name=display_name,
-                    code=classification.name,
+                    code=classification.code,
                     display_name=display_name,
                     description=classification.description,
                     risk_level=classification.risk_level,
-                    color=classification.color_value,
-                    color_key=classification.color,
                     icon_name=classification.icon_name,
                     priority=classification.priority,
                     is_system=bool(classification.is_system),
@@ -111,16 +109,14 @@ class AccountClassificationsReadService:
             self._raise_system_error("获取账户分类详情失败", exc)
 
         rules_count = rules_count_map.get(classification.id, 0)
-        display_name = getattr(classification, "display_name", None) or classification.name
+        display_name = getattr(classification, "display_name", None) or classification.code
         return AccountClassificationListItem(
             id=classification.id,
             name=display_name,
-            code=classification.name,
+            code=classification.code,
             display_name=display_name,
             description=classification.description,
             risk_level=classification.risk_level,
-            color=classification.color_value,
-            color_key=classification.color,
             icon_name=classification.icon_name,
             priority=classification.priority,
             is_system=bool(classification.is_system),
@@ -140,7 +136,7 @@ class AccountClassificationsReadService:
         for rule in rules:
             classification = rule.classification
             classification_name = (
-                (getattr(classification, "display_name", None) or classification.name) if classification else None
+                (getattr(classification, "display_name", None) or classification.code) if classification else None
             )
             items.append(
                 AccountClassificationRuleListItem(
@@ -176,7 +172,7 @@ class AccountClassificationsReadService:
         for rule in rules:
             classification = rule.classification
             classification_name = (
-                (getattr(classification, "display_name", None) or classification.name) if classification else None
+                (getattr(classification, "display_name", None) or classification.code) if classification else None
             )
             items.append(
                 AccountClassificationRuleFilterItem(
@@ -204,7 +200,7 @@ class AccountClassificationsReadService:
 
         items: list[AccountClassificationAssignmentItem] = []
         for assignment, classification in assignments:
-            display_name = getattr(classification, "display_name", None) or classification.name
+            display_name = getattr(classification, "display_name", None) or classification.code
             items.append(
                 AccountClassificationAssignmentItem(
                     id=assignment.id,
