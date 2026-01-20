@@ -33,8 +33,8 @@ CRON_SECOND_INDEX = 7
 
 JOB_CATEGORY_MAP: dict[str, str] = {
     "sync_accounts": SyncCategory.ACCOUNT.value,
-    "collect_database_sizes": SyncCategory.CAPACITY.value,
-    "calculate_database_size_aggregations": SyncCategory.AGGREGATION.value,
+    "sync_databases": SyncCategory.CAPACITY.value,
+    "calculate_database_aggregations": SyncCategory.AGGREGATION.value,
 }
 
 

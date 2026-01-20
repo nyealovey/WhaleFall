@@ -1,6 +1,6 @@
 {
 	"nodes":[
-		{"id":"c103000000000001","type":"group","x":-80,"y":-80,"width":2660,"height":1460,"color":"2","label":"Capacity - Sequence (scheduled collect_database_sizes)"},
+		{"id":"c103000000000001","type":"group","x":-80,"y":-80,"width":2660,"height":1460,"color":"2","label":"Capacity - Sequence (scheduled sync_databases)"},
 		{"id":"c103000000000002","type":"group","x":0,"y":0,"width":260,"height":1180,"color":"2","label":"Scheduler"},
 		{"id":"c103000000000003","type":"group","x":280,"y":0,"width":320,"height":1180,"color":"2","label":"Task"},
 		{"id":"c103000000000004","type":"group","x":620,"y":0,"width":360,"height":1180,"color":"5","label":"SyncSessionService"},
@@ -10,7 +10,7 @@
 		{"id":"c103000000000008","type":"group","x":2100,"y":0,"width":320,"height":1180,"color":"6","label":"AggregationService"},
 		{"id":"c103000000000009","type":"group","x":2440,"y":0,"width":320,"height":1180,"color":"4","label":"Redis (not used)"},
 
-		{"id":"c103000000000010","type":"text","text":"1) tick -> run job\\n`collect_database_sizes`\\n","x":20,"y":80,"width":220,"height":110,"color":"2"},
+		{"id":"c103000000000010","type":"text","text":"1) tick -> run job\\n`sync_databases`\\n","x":20,"y":80,"width":220,"height":110,"color":"2"},
 		{"id":"c103000000000011","type":"text","text":"2) create_app() + app_context()\\n","x":300,"y":80,"width":280,"height":110,"color":"2"},
 		{"id":"c103000000000012","type":"text","text":"3) SELECT active instances\\n","x":1740,"y":80,"width":320,"height":80,"color":"4"},
 		{"id":"c103000000000013","type":"text","text":"4) create_session + add_instance_records\\n","x":640,"y":200,"width":320,"height":120,"color":"5"},

@@ -243,8 +243,8 @@ def test_task_runs_write_service_serializes_date_values_in_json_columns(app) -> 
     with app.app_context():
         service = TaskRunsWriteService()
         run_id = service.start_run(
-            task_key="collect_database_sizes",
-            task_name="容量同步",
+            task_key="sync_databases",
+            task_name="数据库同步",
             task_category="capacity",
             trigger_source="manual",
             created_by=1,

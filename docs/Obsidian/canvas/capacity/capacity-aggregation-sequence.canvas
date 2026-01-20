@@ -1,6 +1,6 @@
 {
 	"nodes":[
-		{"id":"c105000000000001","type":"group","x":-80,"y":-80,"width":1760,"height":1460,"color":"2","label":"Capacity - Aggregation Sequence (calculate_database_size_aggregations)"},
+		{"id":"c105000000000001","type":"group","x":-80,"y":-80,"width":1760,"height":1460,"color":"2","label":"Capacity - Aggregation Sequence (calculate_database_aggregations)"},
 		{"id":"c105000000000002","type":"group","x":0,"y":0,"width":320,"height":1080,"color":"2","label":"Scheduler"},
 		{"id":"c105000000000003","type":"group","x":340,"y":0,"width":520,"height":1080,"color":"2","label":"Task"},
 		{"id":"c105000000000004","type":"group","x":880,"y":0,"width":520,"height":1080,"color":"6","label":"AggregationService"},
