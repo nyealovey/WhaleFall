@@ -12,6 +12,8 @@ def _ensure_accounts_sync_tables(app) -> None:
             tables=[
                 db.metadata.tables["instances"],
                 db.metadata.tables["sync_sessions"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
             ],
         )
 
@@ -92,7 +94,7 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
     assert sync_all_payload.get("success") is True
     sync_all_data = sync_all_payload.get("data")
     assert isinstance(sync_all_data, dict)
-    assert isinstance(sync_all_data.get("session_id"), str)
+    assert isinstance(sync_all_data.get("run_id"), str)
 
     sync_response = auth_client.post(f"/api/v1/instances/{instance_id}/actions/sync-accounts", headers=headers)
     assert sync_response.status_code == 200

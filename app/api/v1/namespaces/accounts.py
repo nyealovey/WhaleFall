@@ -248,14 +248,18 @@ _account_classification_rule_trend_query_parser.add_argument("instance_id", type
 
 _account_classification_rule_contributions_query_parser = new_parser()
 _account_classification_rule_contributions_query_parser.add_argument("classification_id", type=int, location="args")
-_account_classification_rule_contributions_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_account_classification_rule_contributions_query_parser.add_argument(
+    "period_type", type=str, default="daily", location="args"
+)
 _account_classification_rule_contributions_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_rule_contributions_query_parser.add_argument("instance_id", type=int, location="args")
 _account_classification_rule_contributions_query_parser.add_argument("limit", type=int, default=10, location="args")
 
 _account_classification_rules_overview_query_parser = new_parser()
 _account_classification_rules_overview_query_parser.add_argument("classification_id", type=int, location="args")
-_account_classification_rules_overview_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_account_classification_rules_overview_query_parser.add_argument(
+    "period_type", type=str, default="daily", location="args"
+)
 _account_classification_rules_overview_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_rules_overview_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_rules_overview_query_parser.add_argument("instance_id", type=int, location="args")

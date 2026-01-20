@@ -11,11 +11,14 @@ from app import create_app, db
 from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import AppError, ValidationError
 from app.models.instance import Instance
+from app.models.task_run import TaskRun
+from app.models.task_run_item import TaskRunItem
 from app.services.accounts_sync.accounts_sync_task_service import AccountsSyncTaskService
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import SyncItemStats, sync_session_service
+from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -163,6 +166,7 @@ def sync_accounts(
     *,
     manual_run: bool = False,
     created_by: int | None = None,
+    run_id: str | None = None,
     session_id: str | None = None,
     **_: object,
 ) -> None:
@@ -189,10 +193,43 @@ def sync_accounts(
     with app.app_context():
 
         sync_logger = get_sync_logger()
+        task_runs_service = TaskRunsWriteService()
+
+        trigger_source = "manual" if manual_run else "scheduled"
+        resolved_run_id = run_id
+        if resolved_run_id:
+            existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            if existing_run is None:
+                raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
+        else:
+            resolved_run_id = task_runs_service.start_run(
+                task_key="sync_accounts",
+                task_name="账户同步",
+                task_category="account",
+                trigger_source=trigger_source,
+                created_by=created_by,
+                summary_json=None,
+                result_url="/accounts/ledgers",
+            )
+            db.session.commit()
+
+        def _is_cancelled() -> bool:
+            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            return bool(current and current.status == "cancelled")
 
         session: SyncSession | None = None
         instances: list[Instance] = []
         try:
+            if _is_cancelled():
+                sync_logger.info(
+                    "任务已取消,跳过执行",
+                    module="accounts_sync",
+                    phase="start",
+                    operation="sync_accounts",
+                    run_id=resolved_run_id,
+                )
+                return
+
             instances = AccountsSyncTaskService().list_active_instances()
 
             if not instances:
@@ -201,7 +238,11 @@ def sync_accounts(
                     module="accounts_sync",
                     phase="start",
                     operation="sync_accounts",
+                    run_id=resolved_run_id,
                 )
+                task_runs_service.finalize_run(resolved_run_id)
+                db.session.commit()
+                return
             else:
                 sync_logger.info(
                     "开始同步账户信息",
@@ -211,7 +252,22 @@ def sync_accounts(
                     instance_count=len(instances),
                     manual_run=manual_run,
                     created_by=created_by,
+                    run_id=resolved_run_id,
                 )
+
+                task_runs_service.init_items(
+                    resolved_run_id,
+                    items=[
+                        TaskRunItemInit(
+                            item_type="instance",
+                            item_key=str(instance.id),
+                            item_name=instance.name,
+                            instance_id=instance.id,
+                        )
+                        for instance in instances
+                    ],
+                )
+                db.session.commit()
 
                 sync_type_value = (
                     SyncOperationType.MANUAL_TASK.value if manual_run else SyncOperationType.SCHEDULED_TASK.value
@@ -240,9 +296,26 @@ def sync_accounts(
                 total_failed = 0
 
                 for i, instance in enumerate(instances):
+                    if _is_cancelled():
+                        sync_logger.info(
+                            "任务已取消,提前退出实例循环",
+                            module="accounts_sync",
+                            phase="running",
+                            operation="sync_accounts",
+                            run_id=resolved_run_id,
+                        )
+                        break
+
                     record = records[i] if i < len(records) else None
                     if not record:
                         continue
+
+                    task_runs_service.start_item(
+                        resolved_run_id,
+                        item_type="instance",
+                        item_key=str(instance.id),
+                    )
+                    db.session.commit()
 
                     sync_session_service.start_instance_sync(record.id)
                     db.session.commit()
@@ -257,10 +330,38 @@ def sync_accounts(
                     total_synced += synced
                     total_failed += failed
 
+                    metrics = {
+                        "items_synced": record.items_synced or 0,
+                        "items_created": record.items_created or 0,
+                        "items_updated": record.items_updated or 0,
+                        "items_deleted": record.items_deleted or 0,
+                    }
+                    details = record.sync_details if isinstance(record.sync_details, dict) else {}
+                    if record.status == "completed":
+                        task_runs_service.complete_item(
+                            resolved_run_id,
+                            item_type="instance",
+                            item_key=str(instance.id),
+                            metrics_json=metrics,
+                            details_json=details,
+                        )
+                    else:
+                        task_runs_service.fail_item(
+                            resolved_run_id,
+                            item_type="instance",
+                            item_key=str(instance.id),
+                            error_message=record.error_message or "实例同步失败",
+                            details_json=details,
+                        )
+                    db.session.commit()
+
                 session.successful_instances = total_synced
                 session.failed_instances = total_failed
                 session.status = "completed" if total_failed == 0 else "failed"
                 session.completed_at = time_utils.now()
+                db.session.commit()
+
+                task_runs_service.finalize_run(resolved_run_id)
                 db.session.commit()
 
                 sync_logger.info(
@@ -269,6 +370,7 @@ def sync_accounts(
                     phase="completed",
                     operation="sync_accounts",
                     session_id=session.session_id,
+                    run_id=resolved_run_id,
                     total_instances=len(instances),
                     total_synced=total_synced,
                     total_failed=total_failed,
@@ -281,14 +383,26 @@ def sync_accounts(
                 session.failed_instances = len(instances)
                 db.session.commit()
 
+            now = time_utils.now()
+            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            if current_run and current_run.status != "cancelled":
+                current_run.error_message = str(exc)
+                current_run.completed_at = now
+                for item in TaskRunItem.query.filter_by(run_id=resolved_run_id).all():
+                    if item.status in {"pending", "running"}:
+                        item.status = "failed"
+                        item.error_message = str(exc)
+                        item.completed_at = now
+                task_runs_service.finalize_run(resolved_run_id)
+                db.session.commit()
+
             sync_logger.exception(
                 "账户同步任务失败",
                 module="accounts_sync",
                 phase="error",
                 operation="sync_accounts",
+                run_id=resolved_run_id,
                 error=str(exc),
             )
             raise
-
-        if not instances:
-            return
+        return

@@ -34,20 +34,18 @@
      * @return {void}
      */
     function render(session) {
-      const safeSession = normalizeSession(session);
+      const detail = normalizeSession(session);
       const fragment = template.content.cloneNode(true);
       const root = fragment.querySelector('[data-session-detail-root]');
       if (!root) {
         throw new Error('SessionDetailView: 模板缺少 data-session-detail-root');
       }
 
-      fillHeader(root, safeSession);
-      fillMeta(root, safeSession);
-      fillStats(root, safeSession);
-      fillTimeline(root, safeSession, timeUtils);
-      fillInstances(root, safeSession, timeUtils);
+      fillHeader(root, detail.run);
+      fillTimeline(root, detail.run, timeUtils);
+      fillInstances(root, detail.items, detail.run, timeUtils);
 
-      const stackText = buildStackText(safeSession);
+      const stackText = buildStackText(detail.items);
       fillStack(root, stackText);
 
       container.innerHTML = '';
@@ -55,7 +53,7 @@
 
       bindActions(container, {
         stackText,
-        sessionId: safeSession.session_id || '',
+        runId: detail.run.run_id || '',
         toast,
       });
     }
@@ -74,8 +72,8 @@
     scope.querySelector('[data-action="copy-stack"]')?.addEventListener('click', () => {
       copyText(payloads.stackText || '无错误堆栈', '堆栈已复制', payloads.toast);
     });
-    scope.querySelector('[data-action="copy-session-id"]')?.addEventListener('click', () => {
-      copyText(payloads.sessionId || '', '会话 ID 已复制', payloads.toast);
+    scope.querySelector('[data-action="copy-run-id"]')?.addEventListener('click', () => {
+      copyText(payloads.runId || '', '运行 ID 已复制', payloads.toast);
     });
   }
 
@@ -149,11 +147,18 @@
   function fillHeader(root, session) {
     const titleEl = root.querySelector('[data-field="title"]');
     if (titleEl) {
-      titleEl.textContent = session.session_id ? `会话 ${session.session_id}` : '会话详情';
+      titleEl.textContent = session.task_name
+        ? session.task_name
+        : (session.run_id ? `任务 ${session.run_id}` : '任务详情');
     }
     const subtitleEl = root.querySelector('[data-field="subtitle"]');
     if (subtitleEl) {
-      subtitleEl.textContent = `${getSyncTypeText(session.sync_type)} · ${getSyncCategoryText(session.sync_category)}`;
+      const parts = [
+        getTaskCategoryText(session.task_category),
+        getTriggerSourceText(session.trigger_source),
+        session.task_key || '-',
+      ].filter((item) => Boolean(item && item !== '-'));
+      subtitleEl.textContent = parts.join(' · ') || '-';
     }
     const statusEl = root.querySelector('[data-field="status-pill"]');
     if (statusEl) {
@@ -256,25 +261,26 @@
   }
 
   /**
-   * 渲染实例列表。
+   * 渲染执行项列表。
    *
    * @param {HTMLElement} root - 根节点
-   * @param {Object} session - 数据
+   * @param {Array<Object>} items - items
+   * @param {Object} run - run
    * @param {Object} timeUtils - 时间工具
    * @return {void}
    */
-  function fillInstances(root, session, timeUtils) {
+  function fillInstances(root, items, run, timeUtils) {
     const container = root.querySelector('[data-field="instance-list"]');
     const summaryEl = root.querySelector('[data-field="instance-summary"]');
-    const records = Array.isArray(session.instance_records) ? session.instance_records : [];
+    const records = Array.isArray(items) ? items : [];
     if (summaryEl) {
-      summaryEl.textContent = `${records.length} 个实例 · 成功 ${session.successful_instances || 0} · 失败 ${session.failed_instances || 0}`;
+      summaryEl.textContent = `${records.length} 个执行项 · 已完成 ${run?.progress_completed || 0} · 失败/取消 ${run?.progress_failed || 0}`;
     }
     if (!container) {
       return;
     }
     if (!records.length) {
-      container.innerHTML = '<div class="session-detail__empty">暂无实例记录</div>';
+      container.innerHTML = '<div class="session-detail__empty">暂无执行项</div>';
       return;
     }
     container.innerHTML = records.map((record) => renderInstanceRow(record, timeUtils)).join('');
@@ -315,8 +321,13 @@
   function renderInstanceRow(record, timeUtils) {
     const statusMeta = getInstanceStatusMeta(record.status);
     const chips = [];
-    if (record.items_synced) {
-      chips.push(renderLedgerChip(`${record.items_synced} 项`, 'muted', 'fas fa-database'));
+    chips.push(renderLedgerChip(getItemTypeText(record.item_type), 'muted', 'fas fa-tag'));
+    if (record.item_key) {
+      chips.push(renderLedgerChip(`#${record.item_key}`, 'muted', 'fas fa-hashtag'));
+    }
+    const durationMs = record?.metrics_json?.duration_ms;
+    if (typeof durationMs === 'number' && durationMs >= 0) {
+      chips.push(renderLedgerChip(`${Math.round(durationMs)} ms`, 'muted', 'far fa-clock'));
     }
     const duration = formatDuration(record.started_at, record.completed_at, timeUtils);
     const durationDisplay = duration || '0 秒';
@@ -328,7 +339,7 @@
     return `
       <div class="ledger-row session-instance-row">
         <div class="session-instance-col session-instance-col--name">
-          <div class="session-instance-row__title">${escapeHtml(record.instance_name || `实例 #${record.instance_id || '-'}`)}</div>
+          <div class="session-instance-row__title">${escapeHtml(record.item_name || `执行项 #${record.item_key || '-'}`)}</div>
         </div>
         <div class="session-instance-col session-instance-col--chips">
           <div class="session-instance-row__chips ledger-chip-stack">${chips.join('')}</div>
@@ -356,7 +367,7 @@
   /**
    * 构造时间线条目。
    *
-   * @param {Object} session - 会话
+   * @param {Object} session - run
    * @param {Object} timeUtils - 时间工具
    * @return {Array<Object>} 条目
    */
@@ -369,7 +380,7 @@
     const statusMeta = getStatusMeta(session.status);
 
     items.push({
-      title: '创建会话',
+      title: '创建任务',
       desc: `触发者：${describeActor(session.created_by)}`,
       time: createdTime || '-',
       tone: 'info',
@@ -379,7 +390,7 @@
 
     items.push({
       title: '开始执行',
-      desc: `共 ${session.total_instances || 0} 个实例待同步`,
+      desc: `共 ${session.progress_total || 0} 个执行项`,
       time: startedTime || '-',
       tone: startedTime ? 'success' : 'muted',
       icon: 'fas fa-play',
@@ -388,7 +399,7 @@
 
     items.push({
       title: session.status === 'failed' ? '异常终止' : '执行进度',
-      desc: `已完成 ${session.successful_instances || 0} · 失败 ${session.failed_instances || 0}`,
+      desc: `已完成 ${session.progress_completed || 0} · 失败/取消 ${session.progress_failed || 0}`,
       time: `${progress.percent}%`,
       tone: progress.variant,
       icon: 'fas fa-tachometer-alt',
@@ -409,23 +420,23 @@
   /**
    * 计算进度。
    *
-   * @param {Object} session - 会话
+   * @param {Object} session - run
    * @return {Object} 进度信息
    */
   function resolveProgress(session) {
-    const total = Number(session.total_instances) || 0;
-    const completed = Number(session.successful_instances || 0) + Number(session.failed_instances || 0);
-    const percent = total > 0 ? Math.round((completed / total) * 100) : Number(session.progress_percentage) || 0;
+    const total = Number(session.progress_total) || 0;
+    const completed = Number(session.progress_completed || 0) + Number(session.progress_failed || 0);
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
     const clamped = Math.max(0, Math.min(percent, 100));
     let variant = 'info';
     if (session.status === 'completed') {
       variant = 'success';
     } else if (session.status === 'failed') {
       variant = 'danger';
-    } else if (session.status === 'pending') {
-      variant = 'warning';
+    } else if (session.status === 'cancelled') {
+      variant = 'muted';
     }
-    const detail = total > 0 ? `已处理 ${completed}/${total}` : '等待实例调度';
+    const detail = total > 0 ? `已处理 ${completed}/${total}` : '等待执行项初始化';
     return { percent: clamped, variant, detail };
   }
 
@@ -497,17 +508,16 @@
   }
 
   /**
-   * 归一化 session。
+   * 归一化详情 payload。
    *
-   * @param {Object} session - 输入
-   * @return {Object} 输出
+   * @param {Object} session - 输入（{ run, items }）
+   * @return {{run: Object, items: Array<Object>}} 输出
    */
   function normalizeSession(session) {
     const fallback = session && typeof session === 'object' ? session : {};
-    if (!Array.isArray(fallback.instance_records)) {
-      fallback.instance_records = [];
-    }
-    return fallback;
+    const run = fallback.run && typeof fallback.run === 'object' ? fallback.run : {};
+    const items = Array.isArray(fallback.items) ? fallback.items : [];
+    return { run, items };
   }
 
   /**
@@ -597,10 +607,55 @@
         return '配置同步';
       case 'aggregation':
         return '统计聚合';
+      case 'classification':
+        return '账户分类';
       case 'other':
         return '其他';
       default:
         return category || '-';
+    }
+  }
+
+  function getTriggerSourceText(source) {
+    switch (source) {
+      case 'scheduled':
+        return '定时任务';
+      case 'manual':
+        return '手动触发';
+      case 'api':
+        return 'API';
+      default:
+        return source || '-';
+    }
+  }
+
+  function getTaskCategoryText(category) {
+    switch (category) {
+      case 'account':
+        return '账户';
+      case 'capacity':
+        return '容量';
+      case 'aggregation':
+        return '聚合';
+      case 'classification':
+        return '分类';
+      case 'other':
+        return '其他';
+      default:
+        return category || '-';
+    }
+  }
+
+  function getItemTypeText(itemType) {
+    switch (itemType) {
+      case 'instance':
+        return '实例';
+      case 'rule':
+        return '规则';
+      case 'step':
+        return '步骤';
+      default:
+        return itemType || '-';
     }
   }
 
@@ -692,12 +747,22 @@
    * @param {Object} session - 会话
    * @return {string} 文本
    */
-  function buildStackText(session) {
-    const failed = (session.instance_records || []).filter((record) => Boolean(record?.error_message));
+  function buildStackText(items) {
+    const failed = (Array.isArray(items) ? items : []).filter((record) => Boolean(record?.error_message));
     return failed
       .map((record) => {
-        const header = `[${record.instance_name || '实例'} #${record.instance_id || '-'}]`;
-        const details = record.error_message || safeStringify(record.sync_details || {});
+        const header = `[${getItemTypeText(record.item_type)} #${record.item_key || '-'}] ${record.item_name || ''}`.trim();
+        const detailsParts = [];
+        if (record.error_message) {
+          detailsParts.push(String(record.error_message));
+        }
+        if (record.details_json && typeof record.details_json === 'object') {
+          detailsParts.push(safeStringify(record.details_json));
+        }
+        if (!detailsParts.length && record.metrics_json && typeof record.metrics_json === 'object') {
+          detailsParts.push(safeStringify(record.metrics_json));
+        }
+        const details = detailsParts.length ? detailsParts.join('\n') : safeStringify(record);
         return `${header}\n${details}`;
       })
       .join('\n\n');

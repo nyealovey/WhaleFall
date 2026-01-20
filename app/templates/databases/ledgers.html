@@ -18,6 +18,7 @@
 <div id="database-ledger-root"
      data-api-url="/api/v1/databases/ledgers"
      data-export-url="/api/v1/databases/ledgers/exports"
+     data-sync-url="/api/v1/databases/ledgers/actions/sync-all"
      data-capacity-stats-url="{{ capacity_stats_url }}"
      data-current-db-type="{{ current_db_type or 'all' }}">
 
@@ -62,6 +63,11 @@
                                         class="btn btn-outline-primary btn-sm ms-3"
                                         data-export-ledger>
                                     <i class="fas fa-download me-1"></i>导出CSV
+                                </button>
+                                <button type="button"
+                                        class="btn btn-primary btn-sm ms-2"
+                                        data-action="sync-all-databases">
+                                    <i class="fas fa-sync me-1"></i>同步所有数据库
                                 </button>
                             </div>
                             <div class="text-muted" id="database-ledger-total">加载中...</div>

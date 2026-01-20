@@ -2,7 +2,7 @@
   'use strict';
 
   /**
-   * 创建同步会话详情模态控制器。
+   * 创建任务运行详情模态控制器。
    *
    * @param {Object} [options] - 配置
    * @param {Object} [options.ui] - UI 工具
@@ -22,12 +22,12 @@
     } = options;
 
     if (!ui?.createModal) {
-      throw new Error('SyncSessionDetailModal: UI.createModal 未加载');
+      throw new Error('TaskRunDetailModal: UI.createModal 未加载');
     }
 
     const contentElement = document.querySelector(contentSelector);
     if (!contentElement) {
-      throw new Error('SyncSessionDetailModal: 未找到内容容器');
+      throw new Error('TaskRunDetailModal: 未找到内容容器');
     }
 
     const modal = ui.createModal({
@@ -46,7 +46,7 @@
         toast: global.toast,
       });
     } catch (error) {
-      console.error('SyncSessionDetailModal: 初始化渲染器失败', error);
+      console.error('TaskRunDetailModal: 初始化渲染器失败', error);
     }
 
     /**
@@ -63,11 +63,11 @@
       try {
         renderer.render(session);
       } catch (error) {
-        console.error('渲染会话详情失败:', error);
+        console.error('渲染任务详情失败:', error);
         notify('渲染详情失败，请稍后再试', 'error');
         return;
       }
-      modal.open({ sessionId: session?.session_id });
+      modal.open({ runId: session?.run?.run_id });
     }
 
     /**
@@ -78,7 +78,7 @@
     function clearContent() {
       contentElement.innerHTML = `
         <div class="session-detail__placeholder text-muted text-center py-4" data-session-placeholder>
-          尚未加载会话详情
+          尚未加载任务详情
         </div>
       `;
     }
@@ -128,7 +128,7 @@
     };
   }
 
-  global.SyncSessionDetailModal = {
+  global.TaskRunDetailModal = {
     createController,
   };
 })(window, document);

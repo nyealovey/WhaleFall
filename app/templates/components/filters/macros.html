@@ -99,6 +99,14 @@
     {{ select_filter('分类', 'sync_category', 'sync_category', options, current_value, '全部分类', col_class) }}
 {%- endmacro %}
 
+{% macro task_run_trigger_source_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('触发来源', 'trigger_source', 'trigger_source', options, current_value, '全部来源', col_class) }}
+{%- endmacro %}
+
+{% macro task_run_category_filter(options, current_value='', col_class='col-md-2 col-12') -%}
+    {{ select_filter('任务分类', 'task_category', 'task_category', options, current_value, '全部分类', col_class) }}
+{%- endmacro %}
+
 {% macro period_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
     {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', col_class, allow_empty=False) }}
 {%- endmacro %}

@@ -7,6 +7,9 @@ from contextlib import suppress
 from typing import Any
 
 from app import create_app, db
+from app.core.exceptions import ValidationError
+from app.models.task_run import TaskRun
+from app.models.task_run_item import TaskRunItem
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.capacity_aggregation_task_runner import (
     AGGREGATION_TASK_EXCEPTIONS,
@@ -14,6 +17,7 @@ from app.services.aggregation.capacity_aggregation_task_runner import (
     STATUS_FAILED,
     CapacityAggregationTaskRunner,
 )
+from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -65,6 +69,9 @@ def _aggregate_instances(
     active_instances: list[Any],
     selected_periods: list[str],
     records_by_instance: dict[int, Any],
+    task_run_id: str,
+    task_runs_service: TaskRunsWriteService,
+    is_cancelled: Any,
     sync_logger: Any,
     started_record_ids: set[int],
     finalized_record_ids: set[int],
@@ -75,6 +82,17 @@ def _aggregate_instances(
     total_instance_aggregations = 0
 
     for instance in active_instances:
+        if bool(is_cancelled and is_cancelled()):
+            sync_logger.info(
+                "任务已取消,提前退出实例循环",
+                module="aggregation_sync",
+                run_id=task_run_id,
+            )
+            break
+
+        task_runs_service.start_item(task_run_id, item_type="instance", item_key=str(instance.id))
+        db.session.commit()
+
         record = records_by_instance.get(instance.id)
 
         if record:
@@ -101,6 +119,30 @@ def _aggregate_instances(
             )
             finalized_record_ids.add(record.id)
             db.session.commit()
+
+        if success:
+            task_runs_service.complete_item(
+                task_run_id,
+                item_type="instance",
+                item_key=str(instance.id),
+                metrics_json={"aggregated_count": aggregated_count},
+                details_json=details,
+            )
+        else:
+            error_list = details.get("errors")
+            error_message = (
+                "; ".join(str(err) for err in error_list)
+                if isinstance(error_list, list) and error_list
+                else "实例聚合失败"
+            )
+            task_runs_service.fail_item(
+                task_run_id,
+                item_type="instance",
+                item_key=str(instance.id),
+                error_message=error_message,
+                details_json=details,
+            )
+        db.session.commit()
 
         instance_details[instance.id] = {
             "aggregations_created": aggregated_count,
@@ -159,20 +201,59 @@ def calculate_database_size_aggregations(
     manual_run: bool = False,
     periods: list[str] | None = None,
     created_by: int | None = None,
+    run_id: str | None = None,
+    **_: object,
 ) -> dict[str, Any]:
     """计算数据库大小统计聚合(按日/周/月/季依次执行)."""
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
         runner = CapacityAggregationTaskRunner()
+        task_runs_service = TaskRunsWriteService()
         task_started_at = time.perf_counter()
         session = None
         started_record_ids: set[int] = set()
         finalized_record_ids: set[int] = set()
         selected_periods: list[str] | None = None
 
+        trigger_source = "manual" if manual_run else "scheduled"
+        resolved_run_id = run_id
+        if resolved_run_id:
+            existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            if existing_run is None:
+                raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
+        else:
+            resolved_run_id = task_runs_service.start_run(
+                task_key="calculate_database_size_aggregations",
+                task_name="统计聚合",
+                task_category="aggregation",
+                trigger_source=trigger_source,
+                created_by=created_by,
+                summary_json={"requested_periods": periods},
+                result_url="/capacity/instances",
+            )
+            db.session.commit()
+
+        def _is_cancelled() -> bool:
+            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            return bool(current and current.status == "cancelled")
+
         try:
-            sync_logger.info("开始执行数据库大小统计聚合任务", module="aggregation_sync")
+            if _is_cancelled():
+                sync_logger.info(
+                    "任务已取消,跳过执行",
+                    module="aggregation_sync",
+                    task="calculate_database_size_aggregations",
+                    run_id=resolved_run_id,
+                )
+                return {"status": "cancelled", "message": "任务已取消", "run_id": resolved_run_id}
+
+            sync_logger.info(
+                "开始执行数据库大小统计聚合任务",
+                module="aggregation_sync",
+                task="calculate_database_size_aggregations",
+                run_id=resolved_run_id,
+            )
 
             prepared = _prepare_aggregation_run(
                 app=app,
@@ -182,7 +263,16 @@ def calculate_database_size_aggregations(
                 periods=periods,
             )
             if isinstance(prepared, dict):
-                return prepared
+                current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+                if current_run is not None and current_run.status != "cancelled":
+                    current_run.summary_json = {
+                        "skipped": True,
+                        "skip_reason": prepared.get("message"),
+                        "requested_periods": periods,
+                    }
+                task_runs_service.finalize_run(resolved_run_id)
+                db.session.commit()
+                return {"run_id": resolved_run_id, **prepared}
             service, active_instances, selected_periods = prepared
 
             sync_logger.info(
@@ -191,7 +281,22 @@ def calculate_database_size_aggregations(
                 instance_count=len(active_instances),
                 manual_run=manual_run,
                 periods=selected_periods,
+                run_id=resolved_run_id,
             )
+
+            task_runs_service.init_items(
+                resolved_run_id,
+                items=[
+                    TaskRunItemInit(
+                        item_type="instance",
+                        item_key=str(instance.id),
+                        item_name=instance.name,
+                        instance_id=instance.id,
+                    )
+                    for instance in active_instances
+                ],
+            )
+            db.session.commit()
 
             session, records_by_instance = runner.init_aggregation_session(
                 manual_run=manual_run,
@@ -209,11 +314,25 @@ def calculate_database_size_aggregations(
                     active_instances=active_instances,
                     selected_periods=selected_periods,
                     records_by_instance=records_by_instance,
+                    task_run_id=resolved_run_id,
+                    task_runs_service=task_runs_service,
+                    is_cancelled=_is_cancelled,
                     sync_logger=sync_logger,
                     started_record_ids=started_record_ids,
                     finalized_record_ids=finalized_record_ids,
                 )
             )
+
+            if _is_cancelled():
+                sync_logger.info(
+                    "任务已取消,跳过剩余聚合汇总",
+                    module="aggregation_sync",
+                    task="calculate_database_size_aggregations",
+                    run_id=resolved_run_id,
+                )
+                task_runs_service.finalize_run(resolved_run_id)
+                db.session.commit()
+                return {"status": "cancelled", "message": "任务已取消", "run_id": resolved_run_id}
 
             period_summaries, total_database_aggregations = runner.summarize_database_periods(
                 service=service,
@@ -225,6 +344,23 @@ def calculate_database_size_aggregations(
             session.failed_instances = failed_instances
             session.status = "completed" if failed_instances == 0 else "failed"
             session.completed_at = time_utils.now()
+            db.session.commit()
+
+            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            if current_run is not None and current_run.status != "cancelled":
+                current_run.summary_json = {
+                    "periods_executed": selected_periods,
+                    "instances_total": len(active_instances),
+                    "instances_successful": successful_instances,
+                    "instances_failed": failed_instances,
+                    "records": {
+                        "instance": total_instance_aggregations,
+                        "database": total_database_aggregations,
+                        "total": total_instance_aggregations + total_database_aggregations,
+                    },
+                }
+
+            task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
 
             overall_status = STATUS_COMPLETED if failed_instances == 0 else STATUS_FAILED
@@ -239,6 +375,7 @@ def calculate_database_size_aggregations(
                 "统计聚合任务完成",
                 module="aggregation_sync",
                 session_id=session.session_id,
+                run_id=resolved_run_id,
                 successful_instances=successful_instances,
                 failed_instances=failed_instances,
                 total_instance_aggregations=total_instance_aggregations,
@@ -250,6 +387,7 @@ def calculate_database_size_aggregations(
             return {
                 "status": overall_status,
                 "message": message,
+                "run_id": resolved_run_id,
                 "session_id": session.session_id,
                 "periods_executed": selected_periods,
                 "details": {
@@ -270,7 +408,23 @@ def calculate_database_size_aggregations(
                 },
             }
         except AGGREGATION_TASK_EXCEPTIONS as exc:
-            return _handle_aggregation_task_exception(
+            db.session.rollback()
+
+            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            if current_run is not None and current_run.status != "cancelled":
+                now = time_utils.now()
+                current_run.status = "failed"
+                current_run.error_message = str(exc)
+                current_run.completed_at = now
+                for item in TaskRunItem.query.filter_by(run_id=resolved_run_id).all():
+                    if item.status in {"pending", "running"}:
+                        item.status = "failed"
+                        item.error_message = str(exc)
+                        item.completed_at = now
+                task_runs_service.finalize_run(resolved_run_id)
+                db.session.commit()
+
+            result = _handle_aggregation_task_exception(
                 exc=exc,
                 runner=runner,
                 sync_logger=sync_logger,
@@ -280,3 +434,5 @@ def calculate_database_size_aggregations(
                 finalized_record_ids=finalized_record_ids,
                 selected_periods=selected_periods,
             )
+            result["run_id"] = resolved_run_id
+            return result

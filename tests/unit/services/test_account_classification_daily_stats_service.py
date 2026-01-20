@@ -245,4 +245,3 @@ def test_daily_stats_repository_upsert_overwrites_same_key(app) -> None:
         class_rows = AccountClassificationDailyClassificationMatchStat.query.all()
         assert len(class_rows) == 1
         assert class_rows[0].matched_accounts_distinct_count == 4
-
