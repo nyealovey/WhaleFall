@@ -20,7 +20,7 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 
-def calculate_account_classification_daily_stats(
+def calculate_account_classification(
     *,
     manual_run: bool = False,
     created_by: int | None = None,
@@ -43,8 +43,8 @@ def calculate_account_classification_daily_stats(
                 raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
         else:
             resolved_run_id = task_runs_service.start_run(
-                task_key="calculate_account_classification_daily_stats",
-                task_name="账户分类统计",
+                task_key="calculate_account_classification",
+                task_name="统计账户分类",
                 task_category="classification",
                 trigger_source=trigger_source,
                 created_by=created_by,

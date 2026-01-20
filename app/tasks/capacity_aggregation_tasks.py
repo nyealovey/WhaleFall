@@ -196,7 +196,7 @@ def _handle_aggregation_task_exception(
     }
 
 
-def calculate_database_size_aggregations(
+def calculate_database_aggregations(
     *,
     manual_run: bool = False,
     periods: list[str] | None = None,
@@ -224,8 +224,8 @@ def calculate_database_size_aggregations(
                 raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
         else:
             resolved_run_id = task_runs_service.start_run(
-                task_key="calculate_database_size_aggregations",
-                task_name="统计聚合",
+                task_key="calculate_database_aggregations",
+                task_name="统计数据库聚合",
                 task_category="aggregation",
                 trigger_source=trigger_source,
                 created_by=created_by,
@@ -243,7 +243,7 @@ def calculate_database_size_aggregations(
                 sync_logger.info(
                     "任务已取消,跳过执行",
                     module="aggregation_sync",
-                    task="calculate_database_size_aggregations",
+                    task="calculate_database_aggregations",
                     run_id=resolved_run_id,
                 )
                 return {"status": "cancelled", "message": "任务已取消", "run_id": resolved_run_id}
@@ -251,7 +251,7 @@ def calculate_database_size_aggregations(
             sync_logger.info(
                 "开始执行数据库大小统计聚合任务",
                 module="aggregation_sync",
-                task="calculate_database_size_aggregations",
+                task="calculate_database_aggregations",
                 run_id=resolved_run_id,
             )
 
@@ -327,7 +327,7 @@ def calculate_database_size_aggregations(
                 sync_logger.info(
                     "任务已取消,跳过剩余聚合汇总",
                     module="aggregation_sync",
-                    task="calculate_database_size_aggregations",
+                    task="calculate_database_aggregations",
                     run_id=resolved_run_id,
                 )
                 task_runs_service.finalize_run(resolved_run_id)

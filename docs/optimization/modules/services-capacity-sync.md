@@ -10,7 +10,7 @@
 ## Unnecessary Complexity Found
 
 - （已落地）`app/tasks/capacity_collection_tasks.py:1`：
-  - `collect_database_sizes` 中 `except CAPACITY_TASK_EXCEPTIONS` 与 `except Exception` 两段逻辑完全重复（仅日志 message 不同），包含：
+  - `sync_databases` 中 `except CAPACITY_TASK_EXCEPTIONS` 与 `except Exception` 两段逻辑完全重复 (仅日志 message 不同), 包含:
     - 标记 session failed
     - 统一返回失败结构
   - 重复样板增加了修改点与出错概率。
@@ -34,4 +34,3 @@
 - 可删/可减复杂度估算：~20-40（已落地，以去重样板为主）
 - Complexity: Medium -> Lower
 - Recommended action: Proceed（本轮仅做等价去重，不改采集/聚合业务行为）
-

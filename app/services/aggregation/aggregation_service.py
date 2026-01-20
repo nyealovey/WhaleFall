@@ -695,7 +695,7 @@ class AggregationService:
             log_message="开始计算每季度统计聚合",
         )
 
-    def calculate_database_size_aggregations(
+    def calculate_database_aggregations(
         self,
         period_type: str,
         *,

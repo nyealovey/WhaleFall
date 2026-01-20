@@ -412,7 +412,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant Sch as Scheduler
-    participant Task as collect_database_sizes
+    participant Task as sync_databases
     participant Sync as CapacitySyncCoordinator
     participant Ext as External DB (adapter)
     participant DB as PostgreSQL
@@ -442,7 +442,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Sch as Scheduler
-    participant Task as calculate_database_size_aggregations
+    participant Task as calculate_database_aggregations
     participant Agg as AggregationService
     participant DB as PostgreSQL
 

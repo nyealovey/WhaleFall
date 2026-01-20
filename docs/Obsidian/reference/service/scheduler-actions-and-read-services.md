@@ -85,7 +85,9 @@ flowchart TB
 | job_id | 注入 manual_run/created_by |
 | --- | --- |
 | sync_accounts | yes |
-| calculate_database_size_aggregations | yes |
+| sync_databases | yes |
+| calculate_database_aggregations | yes |
+| calculate_account_classification | yes |
 | 其他 builtin | no |
 | 非 builtin | no |
 
