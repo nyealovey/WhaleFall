@@ -40,4 +40,3 @@ ACCOUNT_CHANGE_LOG_STATISTICS_FIELDS = {
     "failed_count": fields.Integer(description="失败数量", example=5),
     "affected_accounts": fields.Integer(description="影响账号数(去重)", example=42),
 }
-

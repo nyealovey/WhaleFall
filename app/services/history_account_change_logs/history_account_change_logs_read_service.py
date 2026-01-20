@@ -19,6 +19,17 @@ from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
 
+def _strip_username_prefix(message: object, *, username: str) -> object:
+    """移除摘要中冗余的 `账户 <username>` 前缀(仅用于展示层)."""
+    if not message or not isinstance(message, str):
+        return message
+    prefix = f"账户 {username}"
+    if not message.startswith(prefix):
+        return message
+    trimmed = message[len(prefix) :].lstrip()
+    return trimmed or message
+
+
 class HistoryAccountChangeLogsReadService:
     """账户变更历史读取服务."""
 
@@ -62,7 +73,10 @@ class HistoryAccountChangeLogsReadService:
                     username=str(getattr(log_entry, "username", "") or ""),
                     change_type=str(getattr(log_entry, "change_type", "") or ""),
                     status=str(getattr(log_entry, "status", "") or ""),
-                    message=getattr(log_entry, "message", None),
+                    message=_strip_username_prefix(
+                        getattr(log_entry, "message", None),
+                        username=str(getattr(log_entry, "username", "") or ""),
+                    ),
                     change_time=change_time_display,
                     session_id=getattr(log_entry, "session_id", None),
                     privilege_diff_count=len(privilege_entries),
@@ -108,14 +122,17 @@ class HistoryAccountChangeLogsReadService:
             "change_type": str(getattr(log_entry, "change_type", "") or ""),
             "change_time": change_time_display,
             "status": str(getattr(log_entry, "status", "") or ""),
-            "message": getattr(log_entry, "message", None),
+            "message": _strip_username_prefix(
+                getattr(log_entry, "message", None),
+                username=str(getattr(log_entry, "username", "") or ""),
+            ),
             "privilege_diff": privilege_entries,
             "other_diff": other_entries,
             "session_id": getattr(log_entry, "session_id", None),
         }
         return {"log": payload}
 
-    def get_statistics(self, *, hours: int) -> AccountChangeLogStatistics:
+    def get_statistics(self, *, hours: int | None) -> AccountChangeLogStatistics:
         """获取统计汇总."""
         stats = self._repository.get_statistics(hours=hours)
         return AccountChangeLogStatistics(

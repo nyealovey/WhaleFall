@@ -78,7 +78,7 @@ _account_change_logs_list_query_parser.add_argument("status", type=str, location
 _account_change_logs_list_query_parser.add_argument("hours", type=int, location="args")
 
 _account_change_logs_statistics_query_parser = new_parser()
-_account_change_logs_statistics_query_parser.add_argument("hours", type=int, default=24, location="args")
+_account_change_logs_statistics_query_parser.add_argument("hours", type=int, location="args")
 
 
 @ns.route("")
