@@ -29,7 +29,9 @@
 - `display_name`：展示名（允许调整，不影响统计语义锚点）。
 
 ### 2.2 规则：`classification_rules`（不可变版本化）
-- 更新规则不再 UPDATE 原记录；改为**创建新版本**（新 `rule_id`）。
+- **匹配相关变更**（匹配逻辑 / 权限配置，即 `rule_expression`）不再 UPDATE 原记录；改为**创建新版本**（新 `rule_id`）。
+- **仅修改规则名称**（`rule_name`）允许原地更新（不新建版本）。
+- 编辑规则时不允许修改 `classification_id` / `db_type`；如需调整请重新创建规则。
 - 字段：
   - `rule_group_id`：同一规则的版本组标识
   - `rule_version`：版本号递增
@@ -143,4 +145,3 @@ order by stat_date;
   - `20260119130000_add_account_classification_display_name.py`
 ）
 - 注意：规则版本化属于写路径语义变更，回滚前需评估前端/调用方是否仍依赖 `new_rule_id` 返回与旧规则归档逻辑。
-

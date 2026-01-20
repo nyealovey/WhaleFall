@@ -249,7 +249,11 @@ source_code:
 ### `GET/PUT/DELETE /api/v1/accounts/classifications/rules/{rule_id}`
 
 - `GET`：返回 `data.rule`（`rule_expression` 会解析为对象）
-- `PUT`：更新规则（需要完整字段，同创建）
+- `PUT`：更新规则（需要完整字段，同创建；但不允许修改 `classification_id` / `db_type`）
+  - 允许调整：`rule_name` / `operator` / `rule_expression`
+  - 仅修改 `rule_name`：不会创建新版本（`rule_id` 不变）
+  - `operator` / `rule_expression` 发生变化：会创建新版本（返回的 `new_rule_id` 为新规则 ID）
+  - 若提交的 `rule_expression` 与原权限配置一致：不会创建新版本
 - `DELETE`：删除规则
 
 ### `GET /api/v1/accounts/classifications/assignments`

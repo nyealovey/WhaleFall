@@ -388,11 +388,14 @@ function mountAccountClassificationPage(window, document) {
                     <div class="classification-card__title">
                         ${iconHtml}
                         <div>
-                            <div class="classification-card__name">${classification.name || '未命名分类'}</div>
-                            <div class="small text-muted"><code>${classification.code || '-'}</code></div>
-                            <div class="classification-card__badges">
-                                ${renderRiskLevelPill(classification.risk_level)}
+                            <div class="classification-card__name-row">
+                                <div class="classification-card__name">${classification.name || '未命名分类'}</div>
+                                <div class="classification-card__badges">
+                                    ${renderSystemClassificationPill(classification.is_system)}
+                                    ${renderRiskLevelPill(classification.risk_level)}
+                                </div>
                             </div>
+                            <div class="small text-muted"><code>${classification.code || '-'}</code></div>
                         </div>
                     </div>
                     <div class="classification-card__actions">
@@ -492,6 +495,10 @@ function mountAccountClassificationPage(window, document) {
                 break;
         }
         return renderStatusPill(preset.text, preset.tone, preset.icon);
+    }
+
+    function renderSystemClassificationPill(isSystem) {
+        return isSystem ? renderStatusPill('系统', 'muted', 'fa-lock') : '';
     }
 
     function renderLedgerChip(label, modifier) {
