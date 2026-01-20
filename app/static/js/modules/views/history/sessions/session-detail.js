@@ -168,67 +168,6 @@
   }
 
   /**
-   * 渲染基础信息 chip 集。
-   *
-   * @param {HTMLElement} root - 根节点
-   * @param {Object} session - 数据
-   * @return {void}
-   */
-  function fillMeta(root, session) {
-    const container = root.querySelector('[data-field="meta-chips"]');
-    if (!container) {
-      return;
-    }
-    const chips = [
-      renderMetaChip('触发时间', formatTime(session.started_at), { tone: 'muted', icon: 'fas fa-play' }),
-      renderMetaChip('完成时间', formatTime(session.completed_at) || '未完成', { tone: 'muted', icon: 'fas fa-flag-checkered' }),
-      renderMetaChip('发起人', describeActor(session.created_by), { tone: 'muted', icon: 'fas fa-user' }),
-    ];
-    container.innerHTML = chips.join('');
-  }
-
-  /**
-   * 渲染统计与进度。
-   *
-   * @param {HTMLElement} root - 根节点
-   * @param {Object} session - 会话
-   * @return {void}
-   */
-  function fillStats(root, session) {
-    const statsContainer = root.querySelector('[data-field="stats"]');
-    const progressContainer = root.querySelector('[data-field="progress"]');
-    const stats = [
-      { label: '总实例', value: Number(session.total_instances) || 0 },
-      { label: '成功实例', value: Number(session.successful_instances) || 0 },
-      { label: '失败/取消', value: Number(session.failed_instances) || 0 },
-    ];
-    if (statsContainer) {
-      statsContainer.innerHTML = stats
-        .map((item) => `
-          <div class="session-detail-stat">
-            <div class="session-detail-stat__label">${escapeHtml(item.label)}</div>
-            <div class="session-detail-stat__value">${escapeHtml(String(item.value))}</div>
-          </div>
-        `)
-        .join('');
-    }
-
-    if (!progressContainer) {
-      return;
-    }
-    const progress = resolveProgress(session);
-    progressContainer.innerHTML = `
-      <div class="session-detail-progress__bar">
-        <div class="session-detail-progress__bar-inner session-detail-progress__bar-inner--${progress.variant}" style="width:${progress.percent}%"></div>
-      </div>
-      <div class="d-flex align-items-center justify-content-between">
-        ${renderStatusPill(`${progress.percent}%`, progress.variant, 'fas fa-tachometer-alt')}
-        <small class="text-muted">${escapeHtml(progress.detail)}</small>
-      </div>
-    `;
-  }
-
-  /**
    * 渲染时间线。
    *
    * @param {HTMLElement} root - 根节点
@@ -320,15 +259,8 @@
    */
   function renderInstanceRow(record, timeUtils) {
     const statusMeta = getInstanceStatusMeta(record.status);
-    const chips = [];
-    chips.push(renderLedgerChip(getItemTypeText(record.item_type), 'muted', 'fas fa-tag'));
-    if (record.item_key) {
-      chips.push(renderLedgerChip(`#${record.item_key}`, 'muted', 'fas fa-hashtag'));
-    }
-    const durationMs = record?.metrics_json?.duration_ms;
-    if (typeof durationMs === 'number' && durationMs >= 0) {
-      chips.push(renderLedgerChip(`${Math.round(durationMs)} ms`, 'muted', 'far fa-clock'));
-    }
+    // Keep the "type" chip only: do not show item_key or per-item duration here.
+    const chips = [renderLedgerChip(getItemTypeText(record.item_type), 'muted', 'fas fa-tag')];
     const duration = formatDuration(record.started_at, record.completed_at, timeUtils);
     const durationDisplay = duration || '0 秒';
     const started = formatTime(record.started_at, timeUtils);
@@ -441,33 +373,6 @@
   }
 
   /**
-   * 元信息 chip 渲染。
-   *
-   * @param {string} label - 标签
-   * @param {string} value - 值
-   * @param {Object} options - 选项
-   * @return {string} HTML
-   */
-  function renderMetaChip(label, value, options = {}) {
-    const classes = ['chip-outline'];
-    if (options.tone === 'brand') {
-      classes.push('chip-outline--brand');
-    } else if (options.tone === 'muted') {
-      classes.push('chip-outline--muted');
-    }
-    const valueClasses = [options.monospace ? 'font-monospace' : '', 'fw-semibold'].filter(Boolean).join(' ');
-    const iconHtml = options.icon ? `<i class="${options.icon}" aria-hidden="true"></i>` : '';
-    const resolvedValue = value === undefined || value === null || value === '' ? '-' : value;
-    return `
-      <span class="${classes.join(' ')}">
-        ${iconHtml}
-        <strong>${escapeHtml(label)}：</strong>
-        <span class="${valueClasses}">${escapeHtml(resolvedValue)}</span>
-      </span>
-    `;
-  }
-
-  /**
    * ledger chip 渲染。
    *
    * @param {string} text - 文本
@@ -567,52 +472,6 @@
         return { text: typeof resolver === 'function' ? resolver('cancelled') : '已取消', tone: 'muted', icon: 'fas fa-ban' };
       default:
         return { text: status || '未知', tone: 'muted', icon: 'fas fa-info-circle' };
-    }
-  }
-
-  /**
-   * 同步类型中文。
-   *
-   * @param {string} type - 类型
-   * @return {string} 文案
-   */
-  function getSyncTypeText(type) {
-    switch (type) {
-      case 'manual_single':
-        return '手动单台';
-      case 'manual_batch':
-        return '手动批量';
-      case 'manual_task':
-        return '手动任务';
-      case 'scheduled_task':
-        return '定时任务';
-      default:
-        return type || '-';
-    }
-  }
-
-  /**
-   * 同步分类中文。
-   *
-   * @param {string} category - 分类
-   * @return {string} 文案
-   */
-  function getSyncCategoryText(category) {
-    switch (category) {
-      case 'account':
-        return '账户同步';
-      case 'capacity':
-        return '容量同步';
-      case 'config':
-        return '配置同步';
-      case 'aggregation':
-        return '统计聚合';
-      case 'classification':
-        return '账户分类';
-      case 'other':
-        return '其他';
-      default:
-        return category || '-';
     }
   }
 
