@@ -78,6 +78,9 @@ def test_api_v1_accounts_ledgers_contract() -> None:
         assert AccountClassification.__tablename__ == "account_classifications"
         assert ClassificationRule.__tablename__ == "classification_rules"
         assert AccountClassificationAssignment.__tablename__ == "account_classification_assignments"
+        classification_table = db.metadata.tables["account_classifications"]
+        assert "code" in classification_table.columns
+        assert "color" not in classification_table.columns
 
         db.session.commit()
 

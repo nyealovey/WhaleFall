@@ -9,9 +9,13 @@ CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
     redirect_endpoint="accounts_classifications.index",
     fields=[
         ResourceFormField(
-            name="name",
-            label="分类名称",
+            name="code",
+            label="分类标识(code)",
             required=True,
+        ),
+        ResourceFormField(
+            name="display_name",
+            label="分类名称",
         ),
         ResourceFormField(
             name="description",
@@ -23,13 +27,7 @@ CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
             name="risk_level",
             label="风险等级",
             component=FieldComponent.SELECT,
-            default="medium",
-        ),
-        ResourceFormField(
-            name="color",
-            label="显示颜色",
-            component=FieldComponent.SELECT,
-            required=True,
+            default=4,
         ),
         ResourceFormField(
             name="icon_name",
@@ -42,7 +40,7 @@ CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
             label="优先级",
             component=FieldComponent.NUMBER,
             default=0,
-            help_text="数字越大优先级越高,用于控制显示顺序和规则匹配顺序",
+            help_text="数字越大优先级越高,仅影响排序",
         ),
     ],
 )

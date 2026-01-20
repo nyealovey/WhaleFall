@@ -161,7 +161,6 @@ class AccountStatisticsRepository:
         for row in rows:
             classification_stats[row["name"]] = {
                 "account_count": row["count"],
-                "color": row.get("color"),
                 "display_name": row.get("display_name", row["name"]),
             }
         return classification_stats
@@ -200,13 +199,12 @@ class AccountStatisticsRepository:
         display_name_column: Any = getattr(
             AccountClassification,
             "display_name",
-            AccountClassification.name.label("display_name"),
+            AccountClassification.code.label("display_name"),
         )
 
         rows = (
             db.session.query(
-                AccountClassification.name,
-                AccountClassification.color,
+                AccountClassification.code,
                 display_name_column,
                 AccountClassification.priority,
                 func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
@@ -242,13 +240,12 @@ class AccountStatisticsRepository:
         )
         return [
             {
-                "name": name,
-                "color": color,
-                "display_name": name if display_name in (None, "") else display_name,
+                "name": code,
+                "display_name": code if display_name in (None, "") else display_name,
                 "priority": priority,
                 "count": int(count),
             }
-            for name, color, display_name, priority, count in rows
+            for code, display_name, priority, count in rows
         ]
 
     @staticmethod

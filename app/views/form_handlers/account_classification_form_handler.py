@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.core.constants.classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
-from app.core.constants.colors import ThemeColors
 from app.core.types import ResourceContext, ResourceIdentifier, ResourcePayload
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
@@ -47,17 +46,7 @@ class AccountClassificationFormHandler:
     def build_context(self, *, resource: AccountClassification | None) -> ResourceContext:
         """构造表单渲染上下文."""
         del resource
-        color_options = [
-            {
-                "value": key,
-                "name": info["name"],
-                "description": info["description"],
-                "css_class": info["css_class"],
-            }
-            for key, info in ThemeColors.COLOR_MAP.items()
-        ]
         return {
-            "color_options": color_options,
             "risk_level_options": RISK_LEVEL_OPTIONS,
             "icon_options": ICON_OPTIONS,
         }

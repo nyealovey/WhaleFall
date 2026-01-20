@@ -15,7 +15,6 @@ from app.schemas.validation import SchemaMessageKeyError
 from app.utils.account_classification_dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
 from app.utils.database_type_utils import normalize_database_type
 from app.utils.payload_converters import as_bool
-from app.utils.theme_color_utils import is_valid_theme_color
 
 _RISK_LEVEL_VALUES = {item["value"] for item in RISK_LEVEL_OPTIONS}
 _ICON_VALUES = {item["value"] for item in ICON_OPTIONS}
@@ -117,8 +116,7 @@ class AccountClassificationCreatePayload(PayloadSchema):
     code: StrictStr
     display_name: StrictStr
     description: StrictStr = ""
-    risk_level: StrictStr = "medium"
-    color: StrictStr = "info"
+    risk_level: int = 4
     icon_name: StrictStr = "fa-tag"
     priority: int = 0
 
@@ -156,7 +154,7 @@ class AccountClassificationCreatePayload(PayloadSchema):
     @field_validator("code")
     @classmethod
     def _validate_code(cls, value: str) -> str:
-        cleaned = value.strip()
+        cleaned = value.strip().lower()
         if not cleaned:
             raise ValueError("分类标识(code)不能为空")
         return cleaned
@@ -176,34 +174,21 @@ class AccountClassificationCreatePayload(PayloadSchema):
 
     @field_validator("risk_level", mode="before")
     @classmethod
-    def _parse_risk_level(cls, value: Any) -> str:
+    def _parse_risk_level(cls, value: Any) -> int:
         if value is None:
-            return "medium"
-        if isinstance(value, str):
-            return value.strip().lower()
-        return str(value).strip().lower()
+            return 4
+        if isinstance(value, bool):
+            raise ValueError("风险等级取值无效")  # noqa: TRY004
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("风险等级取值无效") from exc
 
     @field_validator("risk_level")
     @classmethod
-    def _validate_risk_level(cls, value: str) -> str:
+    def _validate_risk_level(cls, value: int) -> int:
         if value not in _RISK_LEVEL_VALUES:
             raise ValueError("风险等级取值无效")
-        return value
-
-    @field_validator("color", mode="before")
-    @classmethod
-    def _parse_color(cls, value: Any) -> str:
-        if value is None:
-            return "info"
-        if isinstance(value, str):
-            return value.strip()
-        return str(value).strip()
-
-    @field_validator("color")
-    @classmethod
-    def _validate_color(cls, value: str) -> str:
-        if not is_valid_theme_color(value):
-            raise ValueError("无效的颜色选择")
         return value
 
     @field_validator("icon_name", mode="before")
@@ -236,8 +221,7 @@ class AccountClassificationUpdatePayload(PayloadSchema):
 
     display_name: StrictStr | None = None
     description: StrictStr | None = None
-    risk_level: StrictStr | None = None
-    color: StrictStr | None = None
+    risk_level: int | None = None
     icon_name: StrictStr | None = None
     priority: int | None = None
 
@@ -281,31 +265,23 @@ class AccountClassificationUpdatePayload(PayloadSchema):
 
     @field_validator("risk_level", mode="before")
     @classmethod
-    def _parse_risk_level(cls, value: Any) -> str | None:
-        parsed = _parse_optional_string(value)
-        return parsed.lower() if parsed else None
+    def _parse_risk_level(cls, value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        if isinstance(value, bool):
+            raise ValueError("风险等级取值无效")  # noqa: TRY004
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("风险等级取值无效") from exc
 
     @field_validator("risk_level")
     @classmethod
-    def _validate_risk_level(cls, value: str | None) -> str | None:
+    def _validate_risk_level(cls, value: int | None) -> int | None:
         if value is None:
             return None
         if value not in _RISK_LEVEL_VALUES:
             raise ValueError("风险等级取值无效")
-        return value
-
-    @field_validator("color", mode="before")
-    @classmethod
-    def _parse_color(cls, value: Any) -> str | None:
-        return _parse_optional_string(value)
-
-    @field_validator("color")
-    @classmethod
-    def _validate_color(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        if not is_valid_theme_color(value):
-            raise ValueError("无效的颜色选择")
         return value
 
     @field_validator("icon_name", mode="before")

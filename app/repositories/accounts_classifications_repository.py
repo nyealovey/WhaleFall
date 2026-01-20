@@ -39,12 +39,12 @@ class AccountsClassificationsRepository:
         return cast("AccountClassificationAssignment | None", AccountClassificationAssignment.query.get(assignment_id))
 
     @staticmethod
-    def exists_classification_name(name: str, *, exclude_classification_id: int | None = None) -> bool:
-        """判断分类名称是否已存在(可排除指定分类 ID)."""
-        normalized = name.strip()
+    def exists_classification_code(code: str, *, exclude_classification_id: int | None = None) -> bool:
+        """判断分类 code 是否已存在(可排除指定分类 ID)."""
+        normalized = code.strip()
         if not normalized:
             return False
-        query = AccountClassification.query.filter(AccountClassification.name == normalized)
+        query = AccountClassification.query.filter(AccountClassification.code == normalized)
         if exclude_classification_id is not None:
             query = query.filter(AccountClassification.id != exclude_classification_id)
         return bool(db.session.query(query.exists()).scalar())

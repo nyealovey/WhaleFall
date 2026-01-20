@@ -94,11 +94,10 @@ class AccountClassificationOrmFields(TypedDict, total=False):
     """Keyword arguments for creating/updating AccountClassification ORM rows."""
 
     id: int
-    name: str
+    code: str
     display_name: str
     description: str | None
-    risk_level: str
-    color: str | None
+    risk_level: int
     icon_name: str | None
     priority: int
     is_system: bool

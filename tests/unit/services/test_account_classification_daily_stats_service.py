@@ -146,11 +146,10 @@ def test_daily_stats_repository_upsert_overwrites_same_key(app) -> None:
         db.session.add(instance)
 
         classification = AccountClassification(
-            name="PRIVILEGED",
+            code="privileged",
             display_name="特权账户",
             description="",
-            risk_level="high",
-            color="danger",
+            risk_level=2,
             icon_name="fa-tag",
             priority=10,
         )
