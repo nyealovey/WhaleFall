@@ -274,7 +274,7 @@ def test_update_rule_does_not_create_new_version_when_expression_is_same(monkeyp
         classification_id=1,
         db_type="postgresql",
         rule_name="old_rule",
-        rule_expression='{\"expr\":{\"args\":[{\"args\":{},\"fn\":\"is_superuser\"}],\"op\":\"OR\"},\"version\":4}',
+        rule_expression='{"expr":{"args":[{"args":{},"fn":"is_superuser"}],"op":"OR"},"version":4}',
         is_active=True,
     )
     existing.id = 1
@@ -324,7 +324,7 @@ def test_update_rule_creates_new_version_when_expression_changes(monkeypatch) ->
         classification_id=1,
         db_type="postgresql",
         rule_name="old_rule",
-        rule_expression='{\"expr\":{\"args\":[{\"args\":{},\"fn\":\"is_superuser\"}],\"op\":\"OR\"},\"version\":4}',
+        rule_expression='{"expr":{"args":[{"args":{},"fn":"is_superuser"}],"op":"OR"},"version":4}',
         is_active=True,
     )
     existing.id = 1

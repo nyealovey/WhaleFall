@@ -290,7 +290,9 @@ class AccountClassificationsWriteService:
 
         permission_config_changed = False
         try:
-            permission_config_changed = _normalize_expression(effective_expression) != _normalize_expression(rule.rule_expression)
+            permission_config_changed = _normalize_expression(effective_expression) != _normalize_expression(
+                rule.rule_expression
+            )
         except (TypeError, ValueError):
             # DB 中 rule_expression 理论上应当是合法 JSON；若异常，保守处理为“有变化”以避免误判。
             permission_config_changed = True

@@ -180,7 +180,9 @@ AccountClassificationRuleCreateSuccessEnvelope = make_success_envelope_model(
 AccountClassificationRuleUpdateData = ns.model(
     "AccountClassificationRuleUpdateData",
     {
-        "new_rule_id": fields.Integer(required=True, description="更新后规则 ID（创建新版本时为新 ID，否则为原 rule_id）"),
+        "new_rule_id": fields.Integer(
+            required=True, description="更新后规则 ID（创建新版本时为新 ID，否则为原 rule_id）"
+        ),
     },
 )
 AccountClassificationRuleUpdateSuccessEnvelope = make_success_envelope_model(

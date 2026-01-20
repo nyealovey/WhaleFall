@@ -51,7 +51,7 @@
 ## 3. 调度任务
 
 ### 3.1 任务 ID 与默认时间
-- 任务 ID：`calculate_account_classification_daily_stats`
+- 任务 ID: `calculate_account_classification`
 - 默认 cron：每日 `02:00`（`Asia/Shanghai`）
 - 配置文件：`app/config/scheduler_tasks.yaml`
 
@@ -136,7 +136,7 @@ order by stat_date;
 ## 6. 回滚/降级策略
 
 ### 6.1 快速降级（推荐）
-- 仅禁用任务：在调度器配置/管理页禁用 `calculate_account_classification_daily_stats`，保留数据表不影响线上运行。
+- 仅禁用任务: 在调度器配置/管理页禁用 `calculate_account_classification`, 保留数据表不影响线上运行.
 
 ### 6.2 数据库回滚（高风险）
 - 若必须回退表结构，可通过 Alembic downgrade 回退到对应 revision（涉及：

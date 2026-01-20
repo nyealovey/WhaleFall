@@ -160,10 +160,10 @@
 ### A) Scheduler jobs（内置任务）
 
 这些任务来自 `app/config/scheduler_tasks.yaml`，需统一写入 `TaskRun`：
-- `sync_accounts`：账户同步（items=instance）
-- `collect_database_sizes`：容量同步（items=instance；包含 inventory + 容量采集）
-- `calculate_database_size_aggregations`：统计聚合（items=instance）
-- `calculate_account_classification_daily_stats`：账户分类统计（items=rule，见下节）
+- `sync_accounts`: 账户同步 (items=instance)
+- `sync_databases`: 数据库同步 (items=instance; 包含 inventory + 容量采集)
+- `calculate_database_aggregations`: 统计数据库聚合 (items=instance)
+- `calculate_account_classification`: 统计账户分类 (items=rule, 见下节)
 
 ### B) 页面按钮（本次重构必须覆盖）
 
@@ -172,10 +172,10 @@
 - items：instance（每实例一个 item）
 - result_url：`/accounts/ledgers`
 
-2) 数据库台账「同步所有数据库」（新增按钮，清单 + 容量）
-- task_key：`collect_database_sizes`
-- items：instance
-- result_url：`/databases/ledgers`
+2) 数据库台账「同步所有数据库」(新增按钮, 清单 + 容量)
+- task_key: `sync_databases`
+- items: instance
+- result_url: `/databases/ledgers`
 
 3) 账户分类管理「自动分类」
 - task_key：`auto_classify_accounts`
@@ -190,8 +190,8 @@
 
 ## 任务接入：账户分类每日统计（规则粒度）
 
-将 `calculate_account_classification_daily_stats` 接入 TaskRun：
-- `TaskRun.task_key = "calculate_account_classification_daily_stats"`
+将 `calculate_account_classification` 接入 TaskRun:
+- `TaskRun.task_key = "calculate_account_classification"`
 - `TaskRun.task_category = "classification"`
 - `TaskRun.trigger_source = scheduled/manual`
 - `TaskRun.summary_json`：`stat_date/rules_count/accounts_count/rule_match_rows/classification_match_rows`
@@ -212,7 +212,7 @@
 
 ## 验收标准(DoD)
 
-- 会话中心（运行中心）能展示：账户同步/容量同步/聚合/账户分类统计（至少覆盖现有 builtin jobs）。
+- 会话中心(运行中心)能展示: 账户同步/数据库同步/聚合/统计账户分类(至少覆盖现有 builtin jobs).
 - 任意任务触发成功返回 `run_id`，前端提示与结果入口指向 `/history/sessions`。
 - 账户分类统计 run 里能看到按规则的 item 列表，失败时能定位到具体 rule。
 - cancel action 能把 run 标记 cancelled，并在任务循环边界尽力提前退出。

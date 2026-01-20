@@ -57,7 +57,7 @@ def _finalize_task_failed(
 
     return {
         "success": False,
-        "message": f"容量同步任务执行失败: {exc!s}",
+        "message": f"数据库同步任务执行失败: {exc!s}",
         "error": str(exc),
     }
 
@@ -85,7 +85,7 @@ def _process_instance_with_fallback(
         sync_logger.exception(
             "实例同步异常(未分类)",
             module="capacity_sync",
-            task="collect_database_sizes",
+            task="sync_databases",
             action="process_capacity_instance",
             session_id=session_obj.session_id,
             instance_id=instance.id,
@@ -110,14 +110,14 @@ def _process_instance_with_fallback(
     return payload, delta
 
 
-def collect_database_sizes(
+def sync_databases(
     *,
     manual_run: bool = False,
     created_by: int | None = None,
     run_id: str | None = None,
     **_: object,
 ) -> dict[str, Any]:
-    """容量同步任务(采集所有活跃实例的数据库容量)."""
+    """数据库同步任务(采集所有活跃实例的数据库容量)."""
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
@@ -132,8 +132,8 @@ def collect_database_sizes(
                 raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
         else:
             resolved_run_id = task_runs_service.start_run(
-                task_key="collect_database_sizes",
-                task_name="容量同步",
+                task_key="sync_databases",
+                task_name="数据库同步",
                 task_category="capacity",
                 trigger_source=trigger_source,
                 created_by=created_by,
@@ -155,15 +155,15 @@ def collect_database_sizes(
                 sync_logger.info(
                     "任务已取消,跳过执行",
                     module="capacity_sync",
-                    task="collect_database_sizes",
+                    task="sync_databases",
                     run_id=resolved_run_id,
                 )
                 return {"success": True, "message": "任务已取消"}
 
             sync_logger.info(
-                "开始容量同步任务",
+                "开始数据库同步任务",
                 module="capacity_sync",
-                task="collect_database_sizes",
+                task="sync_databases",
                 run_id=resolved_run_id,
             )
 
@@ -172,7 +172,7 @@ def collect_database_sizes(
                 sync_logger.warning(
                     "没有找到活跃的数据库实例",
                     module="capacity_sync",
-                    task="collect_database_sizes",
+                    task="sync_databases",
                     run_id=resolved_run_id,
                 )
                 task_runs_service.finalize_run(resolved_run_id)
@@ -180,9 +180,9 @@ def collect_database_sizes(
                 return {"run_id": resolved_run_id, **runner.no_active_instances_result()}
 
             sync_logger.info(
-                "找到活跃实例,开始容量同步",
+                "找到活跃实例,开始数据库同步",
                 module="capacity_sync",
-                task="collect_database_sizes",
+                task="sync_databases",
                 instance_count=len(active_instances),
                 manual_run=manual_run,
                 created_by=created_by,
@@ -214,7 +214,7 @@ def collect_database_sizes(
                     sync_logger.info(
                         "任务已取消,提前退出实例循环",
                         module="capacity_sync",
-                        task="collect_database_sizes",
+                        task="sync_databases",
                         run_id=resolved_run_id,
                     )
                     break
@@ -284,7 +284,7 @@ def collect_database_sizes(
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
 
-            message = f"容量同步完成: 成功 {totals.total_synced} 个,失败 {totals.total_failed} 个"
+            message = f"数据库同步完成: 成功 {totals.total_synced} 个,失败 {totals.total_failed} 个"
             result = {
                 "success": totals.total_failed == 0,
                 "message": message,
@@ -296,9 +296,9 @@ def collect_database_sizes(
             }
 
             sync_logger.info(
-                "容量同步任务完成",
+                "数据库同步任务完成",
                 module="capacity_sync",
-                task="collect_database_sizes",
+                task="sync_databases",
                 run_id=resolved_run_id,
                 session_id=getattr(session_obj, "session_id", None),
                 total_instances=len(active_instances),
@@ -317,7 +317,7 @@ def collect_database_sizes(
                 active_instances=active_instances,
                 run_id=resolved_run_id,
                 task_runs_service=task_runs_service,
-                message="容量同步任务执行失败",
+                message="数据库同步任务执行失败",
                 exc=exc,
             )
         except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
@@ -328,6 +328,6 @@ def collect_database_sizes(
                 active_instances=active_instances,
                 run_id=resolved_run_id,
                 task_runs_service=task_runs_service,
-                message="容量同步任务执行失败(未分类)",
+                message="数据库同步任务执行失败(未分类)",
                 exc=exc,
             )

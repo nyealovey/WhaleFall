@@ -37,7 +37,7 @@ related:
 ## 触发入口
 
 - 定时任务(scheduler, 会话模式):
-  - `app/tasks/capacity_collection_tasks.py:collect_database_sizes`
+  - `app/tasks/capacity_collection_tasks.py:sync_databases`
   - 会创建 `SyncSession(sync_category=capacity)` + `SyncInstanceRecord`.
 - 手动触发(API action, 单实例同步返回):
   - `POST /api/v1/instances/{instance_id}/actions/sync-capacity`
@@ -51,7 +51,7 @@ related:
 ```mermaid
 sequenceDiagram
     participant Sch as Scheduler
-    participant Task as collect_database_sizes
+    participant Task as sync_databases
     participant Sync as CapacitySyncCoordinator
     participant Ext as External DB (adapter)
     participant DB as PostgreSQL
@@ -81,7 +81,7 @@ sequenceDiagram
 - 手动单实例 `sync-capacity`:
   - 同步执行并返回 `result`(不创建 SyncSession).
   - 适合: 你只想验证某个实例的连接/采集是否正常.
-- 定时任务 `collect_database_sizes`:
+- 定时任务 `sync_databases`:
   - 批量执行, 可观测面在会话中心.
   - 适合: 日常全量采集与长期统计.
 
@@ -136,7 +136,7 @@ sequenceDiagram
 rg -n \"actions/sync-capacity\" app/api/v1/namespaces/instances.py
 
 # 定时任务入口
-rg -n \"def collect_database_sizes\\b\" app/tasks/capacity_collection_tasks.py
+rg -n \"def sync_databases\\b\" app/tasks/capacity_collection_tasks.py
 
 # adapters 与归一化
 rg -n \"table_size_adapters|CapacitySyncCoordinator|database_size_stats|instance_size_stats\" app/services

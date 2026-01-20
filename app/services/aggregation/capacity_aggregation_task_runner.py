@@ -359,7 +359,7 @@ class CapacityAggregationTaskRunner:
         total_database_aggregations = 0
 
         for period_name in selected_periods:
-            db_result = service.calculate_database_size_aggregations(
+            db_result = service.calculate_database_aggregations(
                 period_name,
                 use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
             )

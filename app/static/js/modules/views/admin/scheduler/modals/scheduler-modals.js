@@ -225,8 +225,9 @@
         function buildPayload(formElement, formData, originalJob) {
             const isBuiltInJob = [
                 'sync_accounts',
-                'collect_database_sizes',
-                'calculate_database_size_aggregations',
+                'sync_databases',
+                'calculate_database_aggregations',
+                'calculate_account_classification',
             ].includes(originalJob.id);
 
             const payload = {
