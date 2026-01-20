@@ -13,4 +13,3 @@ def test_build_classification_options_prefers_display_name() -> None:
 
     assert options[0]["value"] == "1"
     assert options[0]["label"] == "生产库"
-

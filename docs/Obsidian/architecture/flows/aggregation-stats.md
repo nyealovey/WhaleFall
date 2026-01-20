@@ -34,7 +34,7 @@ related:
 ## 触发入口
 
 - 定时任务(scheduler, 会话模式):
-  - `app/tasks/capacity_aggregation_tasks.py:calculate_database_size_aggregations`
+  - `app/tasks/capacity_aggregation_tasks.py:calculate_database_aggregations`
 - 手动触发(action, 写操作):
   - `POST /api/v1/capacity/aggregations/current` (admin + CSRF)
 - 查询(read):
@@ -47,7 +47,7 @@ related:
 
 ```mermaid
 flowchart TD
-  Stats["Source stats\\n(database_size_stats, instance_size_stats)"] --> Sched["Scheduler job\\ncalculate_database_size_aggregations"]
+  Stats["Source stats\\n(database_size_stats, instance_size_stats)"] --> Sched["Scheduler job\\ncalculate_database_aggregations"]
   Sched --> AggSvc["AggregationService\\nselect periods + write"]
   Manual["Manual action\\nPOST /capacity/aggregations/current"] --> CurAgg["CurrentAggregationService\\naggregate today"]
   AggSvc --> Tables["Aggregation tables\\n*_size_aggregations"]
@@ -64,7 +64,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant Sch as Scheduler
-    participant Task as calculate_database_size_aggregations
+    participant Task as calculate_database_aggregations
     participant Agg as AggregationService
     participant DB as PostgreSQL
 

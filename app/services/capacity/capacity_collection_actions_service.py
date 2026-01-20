@@ -3,7 +3,7 @@
 将“数据库台账 - 同步所有数据库”动作的编排逻辑下沉到 service 层：
 - 校验活跃实例
 - 创建 TaskRun 并返回 run_id
-- 启动后台线程执行 `collect_database_sizes`
+- 启动后台线程执行 `sync_databases`
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ class CapacityCollectionBackgroundLaunchResult:
 def _resolve_default_task() -> Callable[..., Any]:
     """惰性加载默认任务函数,避免导入期循环依赖."""
     module = importlib.import_module("app.tasks.capacity_collection_tasks")
-    return cast("Callable[..., Any]", module.collect_database_sizes)
+    return cast("Callable[..., Any]", module.sync_databases)
 
 
 def _launch_background_collection(
@@ -64,9 +64,9 @@ def _launch_background_collection(
         except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover
             log_with_context(
                 "error",
-                "后台容量同步失败",
+                "后台数据库同步失败",
                 module="capacity_sync",
-                action="collect_database_sizes_background",
+                action="sync_databases_background",
                 context={
                     "created_by": captured_created_by,
                     "run_id": captured_run_id,
@@ -81,7 +81,7 @@ def _launch_background_collection(
     thread = threading.Thread(
         target=_run_task,
         args=(created_by, run_id),
-        name="collect_database_sizes_manual",
+        name="sync_databases_manual",
         daemon=True,
     )
     thread.start()
@@ -109,8 +109,8 @@ class CapacityCollectionActionsService:
         """创建 TaskRun 并返回 run_id(不启动线程)."""
         active_instance_count = self._ensure_active_instances()
         run_id = TaskRunsWriteService().start_run(
-            task_key="collect_database_sizes",
-            task_name="容量同步",
+            task_key="sync_databases",
+            task_name="数据库同步",
             task_category="capacity",
             trigger_source="manual",
             created_by=created_by,

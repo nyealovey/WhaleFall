@@ -4,7 +4,7 @@
 
 		{"id":"c106000000000010","type":"text","text":"## Source stats\\n\\n- `database_size_stats`\\n- `instance_size_stats`\\n","x":0,"y":0,"width":520,"height":160,"color":"4"},
 
-		{"id":"c106000000000020","type":"text","text":"## Scheduled job\\n\\n- `calculate_database_size_aggregations`\\n","x":0,"y":220,"width":520,"height":140,"color":"2"},
+		{"id":"c106000000000020","type":"text","text":"## Scheduled job\\n\\n- `calculate_database_aggregations`\\n","x":0,"y":220,"width":520,"height":140,"color":"2"},
 		{"id":"c106000000000021","type":"text","text":"## AggregationService\\n\\n- select periods\\n- write aggregations\\n","x":560,"y":220,"width":520,"height":160,"color":"6"},
 
 		{"id":"c106000000000030","type":"text","text":"## Manual action\\n\\n- `POST /api/v1/capacity/aggregations/current`\\n","x":0,"y":400,"width":520,"height":160,"color":"3"},
