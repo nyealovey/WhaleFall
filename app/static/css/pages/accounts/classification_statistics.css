@@ -157,10 +157,6 @@
   font-size: 0.9rem;
 }
 
-.acs-periods-group .chip-toggle-btn {
-  width: 33.333%;
-}
-
 @media (max-width: 991px) {
   .acs-rules-list {
     max-height: 420px;
@@ -169,4 +165,3 @@
     height: 300px;
   }
 }
-

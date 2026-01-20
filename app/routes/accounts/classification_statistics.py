@@ -25,7 +25,6 @@ def classification_statistics() -> str:
     def _execute() -> str:
         classification_id = request.args.get("classification_id", "").strip()
         period_type = request.args.get("period_type", "daily").strip()
-        periods = request.args.get("periods", "7").strip()
         db_type = request.args.get("db_type", "").strip()
         instance_id = request.args.get("instance_id", "").strip()
         rule_id = request.args.get("rule_id", "").strip()
@@ -51,7 +50,6 @@ def classification_statistics() -> str:
             instance_options=instance_options,
             selected_classification_id=classification_id,
             selected_period_type=period_type,
-            selected_periods=periods,
             selected_db_type=db_type,
             selected_instance_id=instance_id,
             selected_rule_id=rule_id,

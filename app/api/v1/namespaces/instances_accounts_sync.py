@@ -40,9 +40,9 @@ InstancesAccountsSyncResultSuccessEnvelope = make_success_envelope_model(
 InstancesAccountsSyncAllData = ns.model(
     "InstancesAccountsSyncAllData",
     {
-        "session_id": fields.String(
+        "run_id": fields.String(
             required=True,
-            description="同步会话 ID",
+            description="任务运行 ID",
             example="a1b2c3d4-e5f6-7890-1234-567890abcdef",
         ),
     },
@@ -80,8 +80,8 @@ class InstancesSyncAccountsActionResource(BaseResource):
             nonlocal prepared
             prepared = actions_service.prepare_background_full_sync(created_by=created_by)
             return self.success(
-                data={"session_id": prepared.session_id},
-                message="批量账户同步任务已在后台启动,请稍后在会话中心查看进度.",
+                data={"run_id": prepared.run_id},
+                message="批量账户同步任务已在后台启动,请稍后在运行中心查看进度.",
             )
 
         response = self.safe_call(
@@ -100,7 +100,7 @@ class InstancesSyncAccountsActionResource(BaseResource):
                 user_id=current_user.id,
                 active_instance_count=launch_result.active_instance_count,
                 thread_name=launch_result.thread_name,
-                session_id=launch_result.session_id,
+                run_id=launch_result.run_id,
             )
         return response
 

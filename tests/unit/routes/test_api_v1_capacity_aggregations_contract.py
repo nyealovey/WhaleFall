@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.capacity.current_aggregation_service import CurrentAggregationService
+from app import db
 
 
 @pytest.mark.unit
@@ -24,24 +24,22 @@ def test_api_v1_capacity_current_aggregation_requires_auth(client) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_capacity_current_aggregation_contract(auth_client, monkeypatch) -> None:
-    def _dummy_aggregate_current(self, request):  # noqa: ANN001
-        del self, request
-        return {
-            "status": "completed",
-            "message": "ok",
-            "period_type": "daily",
-            "period_start": "2025-01-01",
-            "period_end": "2025-01-01",
-            "scope": "all",
-            "requested_period_type": "daily",
-            "effective_period_type": "daily",
-            "database_summary": {},
-            "instance_summary": {},
-            "session": {},
-        }
+def test_api_v1_capacity_current_aggregation_contract(app, auth_client, monkeypatch) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
+            ],
+        )
 
-    monkeypatch.setattr(CurrentAggregationService, "aggregate_current", _dummy_aggregate_current)
+    class _DummyThread:
+        name = "dummy_capacity_aggregate_current_manual"
+
+    import app.services.capacity.capacity_current_aggregation_actions_service as actions_module
+
+    monkeypatch.setattr(actions_module, "_launch_background_aggregation", lambda **_kwargs: _DummyThread())
 
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
@@ -61,18 +59,4 @@ def test_api_v1_capacity_current_aggregation_contract(auth_client, monkeypatch) 
     assert payload.get("success") is True
     data = payload.get("data")
     assert isinstance(data, dict)
-    result = data.get("result")
-    assert isinstance(result, dict)
-    assert {
-        "status",
-        "message",
-        "period_type",
-        "period_start",
-        "period_end",
-        "scope",
-        "requested_period_type",
-        "effective_period_type",
-        "database_summary",
-        "instance_summary",
-        "session",
-    }.issubset(result.keys())
+    assert isinstance(data.get("run_id"), str)

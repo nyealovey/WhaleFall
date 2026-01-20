@@ -109,7 +109,9 @@ class SchedulerActionsService:
 
                     if job_id in BUILTIN_TASK_IDS and job_id in {
                         "sync_accounts",
+                        "collect_database_sizes",
                         "calculate_database_size_aggregations",
+                        "calculate_account_classification_daily_stats",
                     }:
                         job_kwargs = dict(job_kwargs)
                         job_kwargs["manual_run"] = True
