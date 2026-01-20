@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% set page_id = 'AccountChangeLogsPage' %}
+{% set page_density = 'compact' %}
+{% from 'components/filters/macros.html' import filter_card, search_input, db_type_filter, time_range_filter, select_filter %}
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block title %}账户变更历史 - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/account-change-logs.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/change-history.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+<div id="account-change-logs-page-root">
+{{ page_header('fas fa-history', '账户变更历史', '集中查看账号新增、权限变更与属性变更记录') }}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 change-log-stats-row">
+                <div class="col">
+                    <div class="change-log-stats-card">
+                        <p class="change-log-stats-card__label">变更总数</p>
+                        <div class="change-log-stats-card__value" id="totalChanges">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="change-log-stats-card">
+                        <p class="change-log-stats-card__label">成功变更</p>
+                        <div class="change-log-stats-card__value change-log-stats-card__value--success" id="successChanges">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="change-log-stats-card">
+                        <p class="change-log-stats-card__label">失败变更</p>
+                        <div class="change-log-stats-card__value change-log-stats-card__value--danger" id="failedChanges">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="change-log-stats-card">
+                        <p class="change-log-stats-card__label">影响账号数</p>
+                        <div class="change-log-stats-card__value" id="affectedAccounts">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            {% call filter_card(form_id='account-change-logs-filter-form', action=url_for('history_account_change_logs.index'), auto_register=False) %}
+                {{ search_input(placeholder='搜索账号 / 实例', value=selected_search, col_class='col-md-2 col-12') }}
+                {{ select_filter('实例', 'instance_id', 'instance_id', instance_options, selected_instance_id, '所有实例', 'col-md-2 col-12') }}
+                {{ db_type_filter(db_type_options, selected_db_type, col_class='col-md-2 col-12') }}
+                {{ select_filter('变更类型', 'change_type', 'change_type', change_type_options, selected_change_type, '全部类型', 'col-md-2 col-12') }}
+                {{ select_filter('状态', 'status', 'status', status_options, selected_status, '全部状态', 'col-md-2 col-12') }}
+                {{ time_range_filter(time_range_options, selected_time_range, col_class='col-md-2 col-12') }}
+            {% endcall %}
+        </div>
+    </div>
+</section>
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> 变更记录列表</h5>
+                </div>
+                <div class="card-body">
+                    <div id="account-change-logs-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% include 'history/account_change_logs/modals/change-log-detail-modal.html' %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/account_change_logs_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/change-history/change-history-renderer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/history/account-change-logs/account-change-logs.js') }}"></script>
+{% endblock %}

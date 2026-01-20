@@ -1,0 +1,27 @@
+{% set change_log_modal_body %}
+    <div id="accountChangeLogDetailContent" class="change-history-modal">
+        <div class="change-history-modal__loading text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2 text-muted">正在加载变更详情...</p>
+        </div>
+    </div>
+{% endset %}
+{% set change_log_modal_footer %}
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>
+        <i class="fas fa-times me-1"></i>关闭
+    </button>
+{% endset %}
+{% with
+    modal_id='accountChangeLogDetailModal',
+    modal_label_id='accountChangeLogDetailModalLabel',
+    title='<div class="change-history-modal__title"><span class="chip-outline chip-outline--brand"><i class="fas fa-history me-2"></i>变更详情</span><span class="status-pill status-pill--muted" id="accountChangeLogDetailMeta">加载中...</span></div>',
+    body=change_log_modal_body,
+    footer=change_log_modal_footer,
+    size='lg',
+    scrollable=True
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+

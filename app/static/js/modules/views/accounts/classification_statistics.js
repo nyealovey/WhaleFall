@@ -500,7 +500,7 @@ function mountAccountClassificationStatisticsPage(global) {
     }));
   }
 
-  function buildLineChartConfig({ title, label, labels, values, points, periodType }) {
+  function buildLineChartConfig({ label, labels, values, points, periodType }) {
     const contrast = resolveCssVar("--surface-contrast") || "#2c3e50";
     const line = resolveCssVar("--status-info") || "#3498db";
     const fill = withAlpha(line, 0.18);
@@ -533,7 +533,7 @@ function mountAccountClassificationStatisticsPage(global) {
             callbacks: {
               label(context) {
                 const idx = context.dataIndex;
-                const meta = points?.[idx] || {};
+                const meta = (Array.isArray(points) ? points.at(idx) : null) || {};
                 const avg = meta?.value_avg;
                 const sum = meta?.value_sum;
                 const cov = meta?.coverage_days;
@@ -596,7 +596,7 @@ function mountAccountClassificationStatisticsPage(global) {
             callbacks: {
               label(context) {
                 const idx = context.dataIndex;
-                const meta = items?.[idx] || {};
+                const meta = (Array.isArray(items) ? items.at(idx) : null) || {};
                 const avg = meta?.value_avg;
                 const sum = meta?.value_sum;
                 const cov = meta?.coverage_days;
@@ -839,7 +839,7 @@ function mountAccountClassificationStatisticsPage(global) {
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
+      .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
 

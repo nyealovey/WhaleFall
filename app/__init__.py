@@ -340,6 +340,7 @@ def configure_blueprints(app: Flask) -> None:
         ("app.routes.tags.bulk", "tags_bulk_bp", "/tags/bulk"),
         ("app.routes.history.logs", "history_logs_bp", "/history/logs"),
         ("app.routes.history.sessions", "history_sessions_bp", "/history/sessions"),
+        ("app.routes.history.account_change_logs", "history_account_change_logs_bp", "/history/account-change-logs"),
         ("app.routes.capacity.databases", "capacity_databases_bp", "/capacity"),
         ("app.routes.capacity.instances", "capacity_instances_bp", "/capacity"),
         ("app.routes.databases.ledgers", "databases_ledgers_bp", "/databases"),
