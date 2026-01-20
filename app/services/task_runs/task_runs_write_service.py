@@ -8,7 +8,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -29,6 +31,17 @@ class TaskRunItemInit:
 
 class TaskRunsWriteService:
     """TaskRun 写入服务."""
+
+    @staticmethod
+    def _ensure_json_serializable(value: object) -> object:
+        """将常见对象转换为可 JSON 序列化的结构(用于写入 JSON/JSONB 字段)."""
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        if isinstance(value, Mapping):
+            return {str(key): TaskRunsWriteService._ensure_json_serializable(val) for key, val in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [TaskRunsWriteService._ensure_json_serializable(item) for item in value]
+        return value
 
     @staticmethod
     def _get_run_or_error(run_id: str) -> TaskRun:
@@ -59,7 +72,7 @@ class TaskRunsWriteService:
         run.status = "running"
         run.started_at = time_utils.now()
         run.created_by = created_by
-        run.summary_json = summary_json
+        run.summary_json = None if summary_json is None else self._ensure_json_serializable(summary_json)
         run.result_url = result_url
         run.progress_total = 0
         run.progress_completed = 0
@@ -118,9 +131,9 @@ class TaskRunsWriteService:
         item.status = "completed"
         item.completed_at = time_utils.now()
         if metrics_json is not None:
-            item.metrics_json = metrics_json
+            item.metrics_json = self._ensure_json_serializable(metrics_json)
         if details_json is not None:
-            item.details_json = details_json
+            item.details_json = self._ensure_json_serializable(details_json)
 
     def fail_item(
         self,
@@ -139,7 +152,7 @@ class TaskRunsWriteService:
         item.completed_at = time_utils.now()
         item.error_message = error_message
         if details_json is not None:
-            item.details_json = details_json
+            item.details_json = self._ensure_json_serializable(details_json)
 
     def finalize_run(self, run_id: str) -> None:
         run = self._get_run_or_error(run_id)
