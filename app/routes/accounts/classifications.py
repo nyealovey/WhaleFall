@@ -9,7 +9,6 @@ from flask import Blueprint, render_template
 from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
 
-from app.core.constants.colors import ThemeColors
 from app.infra.route_safety import safe_route_call
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.views.classification_forms import AccountClassificationFormView, ClassificationRuleFormView
@@ -29,8 +28,7 @@ def index() -> str:
     """账户分类管理首页."""
 
     def _execute() -> str:
-        color_options = ThemeColors.COLOR_MAP
-        return render_template("accounts/account-classification/index.html", color_options=color_options)
+        return render_template("accounts/account-classification/index.html")
 
     return safe_route_call(
         _execute,

@@ -50,7 +50,6 @@
      * 初始化模态与表单验证。
      *
      * @param {Object} [config={}] 自定义初始化参数。
-     * @param {Object} [config.colorPreviewSelectors] 颜色预览配置。
      * @param {Object} [config.validatorOptions] 表单校验配置。
      * @returns {void}
      * @throws {Error} 当 UI.createModal 未加载时抛出
@@ -70,7 +69,6 @@
         onConfirm: event => triggerUpdate(event),
         onClose: resetEditForm,
       });
-      setupColorPreviewListeners(config.colorPreviewSelectors);
       initFormValidators(config.validatorOptions);
     }
 
@@ -167,14 +165,7 @@
      * @return {Promise<void>}
      */
     async function submitCreate(form) {
-      const payload = collectPayload(form, {
-        name: "#classificationName",
-        description: "#classificationDescription",
-        riskLevel: "#riskLevel",
-        color: "#classificationColor",
-        priority: "#priority",
-        iconSelector: 'input[name="classificationIcon"]:checked',
-      });
+      const payload = collectCreatePayload(form);
 
       if (!payload) {
         toast?.error?.("请填写完整的分类信息");
@@ -186,7 +177,6 @@
         toast?.success?.(response?.message || "分类创建成功");
         modals.create?.close();
         form.reset();
-        resetColorPreview("colorPreview");
         refreshValidator(validators.create);
         await onMutated?.("created");
       } catch (error) {
@@ -201,14 +191,7 @@
      * @return {Promise<void>}
      */
     async function submitUpdate(form) {
-      const payload = collectPayload(form, {
-        name: "#editClassificationName",
-        description: "#editClassificationDescription",
-        riskLevel: "#editClassificationRiskLevel",
-        color: "#editClassificationColor",
-        priority: "#editClassificationPriority",
-        iconSelector: 'input[name="editClassificationIcon"]:checked',
-      });
+      const payload = collectUpdatePayload(form);
       const id = form.querySelector("#editClassificationId")?.value;
 
       if (!payload || !id) {
@@ -220,7 +203,6 @@
         const response = await api.update(id, payload);
         toast?.success?.(response?.message || "分类更新成功");
         modals.edit?.close();
-        resetColorPreview("editColorPreview");
         refreshValidator(validators.edit);
         await onMutated?.("updated");
       } catch (error) {
@@ -229,35 +211,86 @@
     }
 
     /**
-     * 收集表单数据。
+     * 获取输入值并去除首尾空格。
      *
-     * @param {HTMLFormElement} form - 表单元素
-     * @param {Object} selectors - 选择器对象
-     * @return {Object|null} 表单数据对象或 null
+     * @param {HTMLFormElement} form 表单元素
+     * @param {string} selector 元素选择器
+     * @return {string} 处理后的字符串
      */
-    function collectPayload(form, selectors) {
-      const nameInput = form.querySelector(selectors.name);
-      const colorSelect = form.querySelector(selectors.color);
-      const priorityInput = form.querySelector(selectors.priority);
-      const descriptionInput = form.querySelector(selectors.description);
-      const riskLevelSelect = form.querySelector(selectors.riskLevel);
-      const iconRadio = form.querySelector(selectors.iconSelector);
+    function getTrimmedValue(form, selector) {
+      const element = form.querySelector(selector);
+      if (!element) {
+        return "";
+      }
+      return String(element.value || "").trim();
+    }
 
-      const colorKey = colorSelect ? colorSelect.value : "";
-      const payload = {
-        name: nameInput ? nameInput.value.trim() : "",
-        description: descriptionInput ? descriptionInput.value.trim() : "",
-        risk_level: riskLevelSelect ? riskLevelSelect.value : "medium",
-        color: colorKey,
-        color_key: colorKey,
-        priority: parsePriority(priorityInput?.value),
-        icon_name: iconRadio ? iconRadio.value : "fa-tag",
-      };
+    function parseRiskLevel(value, fallback) {
+      const resolvedFallback = Number.isInteger(fallback) ? fallback : 4;
+      const raw = Number(value);
+      if (!Number.isInteger(raw)) {
+        return resolvedFallback;
+      }
+      if (raw < 1) {
+        return 1;
+      }
+      if (raw > 6) {
+        return 6;
+      }
+      return raw;
+    }
 
-      if (!payload.name || !payload.color_key) {
-        toast?.error?.("请填写完整的分类信息");
+    function collectCreatePayload(form) {
+      const code = getTrimmedValue(form, "#classificationCode").toLowerCase();
+      const displayName = getTrimmedValue(form, "#classificationDisplayName");
+      const description = getTrimmedValue(form, "#classificationDescription");
+      const riskLevel = parseRiskLevel(getTrimmedValue(form, "#riskLevel"), 4);
+      const priority = parsePriority(getTrimmedValue(form, "#priority"));
+      const iconRadio = form.querySelector('input[name="classificationIcon"]:checked');
+
+      if (!code) {
         return null;
       }
+
+      const payload = {
+        code,
+        display_name: displayName,
+        description,
+        risk_level: riskLevel,
+        icon_name: iconRadio ? iconRadio.value : "fa-tag",
+        priority,
+      };
+
+      if (!payload.display_name) {
+        delete payload.display_name;
+      }
+
+      return payload;
+    }
+
+    function collectUpdatePayload(form) {
+      const displayName = getTrimmedValue(form, "#editClassificationName");
+      const description = getTrimmedValue(form, "#editClassificationDescription");
+      const priority = parsePriority(getTrimmedValue(form, "#editClassificationPriority"));
+      const isSystem = getTrimmedValue(form, "#editClassificationIsSystem") === "true";
+
+      if (!displayName) {
+        return null;
+      }
+
+      const payload = {
+        display_name: displayName,
+        description,
+        priority,
+      };
+
+      if (isSystem) {
+        return payload;
+      }
+
+      payload.risk_level = parseRiskLevel(getTrimmedValue(form, "#editClassificationRiskLevel"), 4);
+      const iconRadio = form.querySelector('input[name="editClassificationIcon"]:checked');
+      payload.icon_name = iconRadio ? iconRadio.value : "fa-tag";
 
       return payload;
     }
@@ -287,10 +320,11 @@
      */
     function fillEditForm(classification) {
       document.getElementById("editClassificationId").value = classification.id;
-      document.getElementById("editClassificationName").value = classification.name || "";
+      document.getElementById("editClassificationIsSystem").value = classification.is_system ? "true" : "false";
+      document.getElementById("editClassificationCode").value = classification.code || "";
+      document.getElementById("editClassificationName").value = classification.display_name || classification.name || "";
       document.getElementById("editClassificationDescription").value = classification.description || "";
-      document.getElementById("editClassificationRiskLevel").value = classification.risk_level || "medium";
-      document.getElementById("editClassificationColor").value = classification.color_key || classification.color || "";
+      document.getElementById("editClassificationRiskLevel").value = String(classification.risk_level || 4);
       document.getElementById("editClassificationPriority").value = classification.priority ?? 0;
 
       const iconName = classification.icon_name || "fa-tag";
@@ -303,88 +337,17 @@
           fallback.checked = true;
         }
       }
-
-      updateColorPreview("editColorPreview", document.getElementById("editClassificationColor"));
+      applyEditSystemLock(Boolean(classification.is_system));
     }
 
-    /**
-     * 设置颜色预览监听器。
-     *
-     * @param {Object} [selectors={}] 自定义元素选择器。
-     * @param {string} [selectors.createSelector] 新建表单颜色字段选择器。
-     * @param {string} [selectors.editSelector] 编辑表单颜色字段选择器。
-     * @param {string} [selectors.createPreviewId] 新建预览元素 ID。
-     * @param {string} [selectors.editPreviewId] 编辑预览元素 ID。
-     * @returns {void}
-     */
-    function setupColorPreviewListeners(selectors = {}) {
-      const {
-        createSelector = "#classificationColor",
-        editSelector = "#editClassificationColor",
-        createPreviewId = "colorPreview",
-        editPreviewId = "editColorPreview",
-      } = selectors;
-      bindColorPreview(document.querySelector(createSelector), createPreviewId);
-      bindColorPreview(document.querySelector(editSelector), editPreviewId);
-    }
-
-    /**
-     * 绑定颜色预览。
-     *
-     * @param {HTMLSelectElement} selectElement 选择框元素。
-     * @param {string} previewId 预览元素 ID。
-     * @returns {void}
-     */
-    function bindColorPreview(selectElement, previewId) {
-      if (!selectElement || !previewId) {
-        return;
+    function applyEditSystemLock(isSystem) {
+      const riskLevelSelect = document.getElementById("editClassificationRiskLevel");
+      if (riskLevelSelect) {
+        riskLevelSelect.disabled = Boolean(isSystem);
       }
-      selectElement.addEventListener("change", function () {
-        updateColorPreview(previewId, selectElement);
+      document.querySelectorAll('input[name="editClassificationIcon"]').forEach(function (input) {
+        input.disabled = Boolean(isSystem);
       });
-      updateColorPreview(previewId, selectElement);
-    }
-
-    /**
-     * 更新颜色预览。
-     *
-     * @param {string} previewId 预览元素 ID。
-     * @param {HTMLSelectElement} selectElement 选择框元素。
-     * @returns {void}
-     */
-    function updateColorPreview(previewId, selectElement) {
-      const preview = document.getElementById(previewId);
-      if (!preview || !selectElement) {
-        return;
-      }
-      const selectedOption = selectElement.options[selectElement.selectedIndex];
-      const colorValue = selectedOption?.dataset?.color;
-      const colorText = selectedOption?.text;
-
-      if (colorValue && selectElement.value) {
-        const dot = preview.querySelector(".color-preview-dot");
-        const text = preview.querySelector(".color-preview-text");
-        if (dot && text) {
-          dot.style.backgroundColor = colorValue;
-          text.textContent = colorText;
-          preview.style.display = "flex";
-        }
-      } else {
-        preview.style.display = "none";
-      }
-    }
-
-    /**
-     * 重置颜色预览。
-     *
-     * @param {string} previewId 预览元素 ID。
-     * @returns {void}
-     */
-    function resetColorPreview(previewId) {
-      const preview = document.getElementById(previewId);
-      if (preview) {
-        preview.style.display = "none";
-      }
     }
 
     /**
@@ -413,14 +376,14 @@
         validators.create = validatorFactory.create(createFormSelector);
         if (validators.create) {
           validators.create
-            .useRules("#classificationName", rules.classification.name)
-            .useRules("#classificationColor", rules.classification.color)
+            .useRules("#classificationCode", rules.classification.code)
+            .useRules("#classificationDisplayName", rules.classification.displayNameOptional)
             .useRules("#priority", rules.classification.priority)
             .onSuccess(event => submitCreate(event.target))
             .onFail(() => toast?.error?.("请检查分类信息填写"));
 
-          bindRevalidate(createForm, "#classificationName", validators.create);
-          bindRevalidate(createForm, "#classificationColor", validators.create, "change");
+          bindRevalidate(createForm, "#classificationCode", validators.create);
+          bindRevalidate(createForm, "#classificationDisplayName", validators.create);
           bindRevalidate(createForm, "#priority", validators.create, "input");
         }
       }
@@ -430,14 +393,12 @@
         validators.edit = validatorFactory.create(editFormSelector);
         if (validators.edit) {
           validators.edit
-            .useRules("#editClassificationName", rules.classification.name)
-            .useRules("#editClassificationColor", rules.classification.color)
+            .useRules("#editClassificationName", rules.classification.displayNameRequired)
             .useRules("#editClassificationPriority", rules.classification.priority)
             .onSuccess(event => submitUpdate(event.target))
             .onFail(() => toast?.error?.("请检查分类信息填写"));
 
           bindRevalidate(editForm, "#editClassificationName", validators.edit);
-          bindRevalidate(editForm, "#editClassificationColor", validators.edit, "change");
           bindRevalidate(editForm, "#editClassificationPriority", validators.edit, "input");
         }
       }
@@ -486,7 +447,6 @@
       if (form) {
         form.reset();
       }
-      resetColorPreview("colorPreview");
       refreshValidator(validators.create);
     }
 
@@ -501,7 +461,11 @@
       if (form) {
         form.reset();
       }
-      resetColorPreview("editColorPreview");
+      const isSystemInput = document.getElementById("editClassificationIsSystem");
+      if (isSystemInput) {
+        isSystemInput.value = "";
+      }
+      applyEditSystemLock(false);
       refreshValidator(validators.edit);
     }
 

@@ -83,9 +83,11 @@
         tagDisplayName: '显示名称不能为空',
         tagDisplayNameLength: '显示名称至少需要 2 个字符',
         tagCategory: '请选择标签分类',
+        classificationCode: '分类标识(code)不能为空',
+        classificationCodeLength: '分类标识(code)至少需要 2 个字符',
+        classificationCodeFormat: '分类标识(code)仅支持小写字母、数字和下划线，且必须以字母开头',
         classificationName: '分类名称不能为空',
         classificationNameLength: '分类名称至少需要 2 个字符',
-        classificationColor: '请选择显示颜色',
         classificationPriority: '优先级必须是 0-100 之间的整数',
         classificationRuleName: '规则名称不能为空',
         classificationRuleNameLength: '规则名称至少需要 2 个字符',
@@ -194,11 +196,36 @@
 
     // 分类基础信息规则
     var classificationRules = {
-        name: [
+        code: [
+            helpers.required(messages.classificationCode),
+            helpers.minLength(2, messages.classificationCodeLength),
+            helpers.custom(function (value) {
+                if (value == null) {
+                    return false;
+                }
+                var trimmed = String(value).trim();
+                if (!trimmed) {
+                    return false;
+                }
+                return /^[a-z][a-z0-9_]+$/.test(trimmed);
+            }, messages.classificationCodeFormat),
+        ],
+        displayNameOptional: [
+            helpers.custom(function (value) {
+                if (value == null) {
+                    return true;
+                }
+                var trimmed = String(value).trim();
+                if (!trimmed) {
+                    return true;
+                }
+                return trimmed.length >= 2;
+            }, messages.classificationNameLength),
+        ],
+        displayNameRequired: [
             helpers.required(messages.classificationName),
             helpers.minLength(2, messages.classificationNameLength),
         ],
-        color: [helpers.required(messages.classificationColor)],
         priority: [
             helpers.custom(function (value) {
                 if (value == null || String(value).trim() === '') {

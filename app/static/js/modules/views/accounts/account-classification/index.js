@@ -389,6 +389,7 @@ function mountAccountClassificationPage(window, document) {
                         ${iconHtml}
                         <div>
                             <div class="classification-card__name">${classification.name || '未命名分类'}</div>
+                            <div class="small text-muted"><code>${classification.code || '-'}</code></div>
                             <div class="classification-card__badges">
                                 ${renderRiskLevelPill(classification.risk_level)}
                             </div>
@@ -465,21 +466,29 @@ function mountAccountClassificationPage(window, document) {
     }
 
     function renderRiskLevelPill(riskLevel) {
-        let preset = { text: '未标记风险', tone: 'muted', icon: 'fa-question-circle' };
-        switch (riskLevel) {
-            case 'low':
-                preset = { text: '低风险', tone: 'muted', icon: 'fa-shield-check' };
+        const level = Number(riskLevel);
+        let preset = { text: '4级(默认)', tone: 'info', icon: 'fa-info-circle' };
+        switch (level) {
+            case 1:
+                preset = { text: '1级(最高)', tone: 'danger', icon: 'fa-skull-crossbones' };
                 break;
-            case 'medium':
-                preset = { text: '中风险', tone: 'warning', icon: 'fa-exclamation-circle' };
+            case 2:
+                preset = { text: '2级', tone: 'danger', icon: 'fa-exclamation-triangle' };
                 break;
-            case 'high':
-                preset = { text: '高风险', tone: 'danger', icon: 'fa-exclamation-triangle' };
+            case 3:
+                preset = { text: '3级', tone: 'warning', icon: 'fa-exclamation-circle' };
                 break;
-            case 'critical':
-                preset = { text: '极高风险', tone: 'danger', icon: 'fa-skull-crossbones' };
+            case 4:
+                preset = { text: '4级(默认)', tone: 'info', icon: 'fa-info-circle' };
+                break;
+            case 5:
+                preset = { text: '5级', tone: 'muted', icon: 'fa-shield-alt' };
+                break;
+            case 6:
+                preset = { text: '6级(最低)', tone: 'muted', icon: 'fa-eye' };
                 break;
             default:
+                preset = { text: '未标记风险', tone: 'muted', icon: 'fa-question-circle' };
                 break;
         }
         return renderStatusPill(preset.text, preset.tone, preset.icon);

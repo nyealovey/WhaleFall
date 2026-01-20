@@ -4,11 +4,6 @@ import json
 from typing import TYPE_CHECKING, Unpack
 
 from app import db
-from app.utils.theme_color_utils import (
-    get_theme_color_css_class,
-    get_theme_color_name,
-    get_theme_color_value,
-)
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
@@ -23,16 +18,15 @@ if TYPE_CHECKING:
 class AccountClassification(db.Model):
     """账户分类模型.
 
-    管理账户的分类信息,支持自定义分类、风险等级、颜色、图标等.
+    管理账户的分类信息,支持自定义分类、风险等级、图标等.
     可以通过规则自动分类或手动分配.
 
     Attributes:
         id: 主键 ID.
-        name: 分类标识(code),唯一且不可变.
+        code: 分类标识(code),唯一且不可变.
         display_name: 分类展示名(可改,仅用于 UI 展示).
         description: 分类描述.
-        risk_level: 风险等级(low/medium/high/critical).
-        color: 显示颜色.
+        risk_level: 风险等级(1-6,1 最高,6 最低).
         icon_name: 图标名称(Font Awesome).
         priority: 优先级,数字越大优先级越高.
         is_system: 是否为系统分类.
@@ -48,16 +42,11 @@ class AccountClassification(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     # 稳定口径: code 创建后不可改,用于统计/规则引用的语义锚点
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    code = db.Column(db.String(100), nullable=False, unique=True)
     # 展示口径: 允许 UI 改名但不影响统计语义
     display_name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)  # 分类描述
-    risk_level = db.Column(
-        db.String(20),
-        nullable=False,
-        default="medium",
-    )  # 风险等级:low(低)、medium(中)、high(高)、critical(严重)
-    color = db.Column(db.String(20), nullable=True)  # 显示颜色
+    risk_level = db.Column(db.SmallInteger, nullable=False, default=4)  # 风险等级: 1(最高) ... 6(最低)
     icon_name = db.Column(db.String(50), nullable=True, default="fa-tag")  # 图标名称
     priority = db.Column(db.Integer, default=0)  # 优先级,数字越大优先级越高
     is_system = db.Column(db.Boolean, default=False, nullable=False)  # 是否为系统分类
@@ -89,40 +78,10 @@ class AccountClassification(db.Model):
         """Return concise label for debugging.
 
         Returns:
-            str: 格式 `<AccountClassification name>`.
+            str: 格式 `<AccountClassification code>`.
 
         """
-        return f"<AccountClassification {self.name}>"
-
-    @property
-    def color_value(self) -> str:
-        """获取实际颜色值.
-
-        Returns:
-            str: 颜色 HEX 值.
-
-        """
-        return get_theme_color_value(self.color)
-
-    @property
-    def color_name(self) -> str:
-        """获取颜色名称.
-
-        Returns:
-            str: 颜色中文名称.
-
-        """
-        return get_theme_color_name(self.color)
-
-    @property
-    def css_class(self) -> str:
-        """获取 CSS 类名.
-
-        Returns:
-            str: 用于前端展示的 class 名称.
-
-        """
-        return get_theme_color_css_class(self.color)
+        return f"<AccountClassification {self.code}>"
 
     def to_dict(self) -> dict:
         """转换为字典.
@@ -131,19 +90,15 @@ class AccountClassification(db.Model):
             dict: 包含分类元数据和统计字段.
 
         """
-        display_name = getattr(self, "display_name", None) or self.name
+        display_name = getattr(self, "display_name", None) or self.code
         return {
             "id": self.id,
             # 兼容旧前端：name 继续返回展示名
             "name": display_name,
-            "code": self.name,
+            "code": self.code,
             "display_name": display_name,
             "description": self.description,
             "risk_level": self.risk_level,
-            "color": self.color,
-            "color_value": self.color_value,
-            "color_name": self.color_name,
-            "css_class": self.css_class,
             "icon_name": self.icon_name,
             "priority": self.priority,
             "is_system": self.is_system,
@@ -291,7 +246,7 @@ class AccountClassificationAssignment(db.Model):
         classification = getattr(self, "classification", None)
         label = None
         if classification is not None:
-            label = getattr(classification, "display_name", None) or classification.name
+            label = getattr(classification, "display_name", None) or classification.code
         return f"<AccountClassificationAssignment {self.account_id} -> {label}>"
 
     def to_dict(self) -> dict:
@@ -315,7 +270,7 @@ class AccountClassificationAssignment(db.Model):
             "updated_at": self.updated_at.isoformat(),
             "account_username": self.account_id,  # 直接使用ID,避免关联查询
             "classification_name": (
-                (getattr(self.classification, "display_name", None) or self.classification.name)
+                (getattr(self.classification, "display_name", None) or self.classification.code)
                 if self.classification
                 else None
             ),
