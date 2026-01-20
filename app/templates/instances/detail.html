@@ -378,6 +378,13 @@
     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>
         <i class="fas fa-times me-1"></i>关闭
     </button>
+    <a href="{{ url_for('history_account_change_logs.index') }}"
+       class="btn btn-primary"
+       id="historyModalOpenAll"
+       target="_blank"
+       rel="noopener">
+        <i class="fas fa-external-link-alt me-1"></i>在历史页查看
+    </a>
 {% endset %}
 {% with
     modal_id='historyModal',
@@ -417,5 +424,6 @@
 {% include 'components/scripts/connection_manager_scripts.html' %}
 <script src="{{ url_for('static', filename='js/modules/views/components/permissions/permission-viewer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/components/permissions/permission-modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/change-history/change-history-renderer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/instances/detail.js') }}"></script>
 {% endblock %}
