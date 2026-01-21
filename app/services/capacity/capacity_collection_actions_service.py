@@ -96,6 +96,7 @@ class CapacityCollectionActionsService:
         *,
         task: Callable[..., Any] | None = None,
     ) -> None:
+        """初始化服务并允许注入 task(便于测试/替换执行入口)."""
         self._task = task or _resolve_default_task()
 
     @staticmethod

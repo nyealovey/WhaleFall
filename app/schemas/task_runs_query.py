@@ -71,6 +71,7 @@ class TaskRunsListFiltersQuery(PayloadSchema):
         return _parse_sort_order(value, default="desc")
 
     def to_filters(self) -> TaskRunsListFilters:
+        """转换为 Service/Repository 可复用的 filters 结构."""
         return TaskRunsListFilters(
             task_key=self.task_key,
             task_category=self.task_category,
