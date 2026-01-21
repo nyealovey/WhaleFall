@@ -24,6 +24,7 @@ ACCOUNT_LEDGER_ITEM_FIELDS = {
     "is_superuser": fields.Boolean(description="是否超管", example=True),
     "is_active": fields.Boolean(description="是否启用", example=True),
     "is_deleted": fields.Boolean(description="是否删除", example=False),
+    "last_change_time": fields.String(description="最后变更时间(ISO8601, 可选)", example="2025-01-02T00:00:00"),
     "type_specific": fields.Raw(description="类型特定字段(type_specific)", example={}),
     "tags": fields.List(fields.Nested(TAG_FIELDS), description="标签列表"),
     "classifications": fields.List(fields.Nested(CLASSIFICATION_FIELDS), description="分类列表"),

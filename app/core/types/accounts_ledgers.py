@@ -46,6 +46,7 @@ class AccountLedgerItem:
     is_superuser: bool
     is_active: bool
     is_deleted: bool
+    last_change_time: str | None
     type_specific: dict[str, object]
     tags: list[TagSummary]
     classifications: list[AccountClassificationSummary]
