@@ -31,6 +31,7 @@ class AccountsLedgerListService:
         items: list[AccountLedgerItem] = []
         for account in page_result.items:
             is_active = bool(account.instance_account.is_active)
+            type_specific = account.type_specific if isinstance(account.type_specific, dict) else {}
             items.append(
                 AccountLedgerItem(
                     id=account.instance_account_id,
@@ -42,6 +43,7 @@ class AccountsLedgerListService:
                     is_superuser=account.is_superuser,
                     is_active=is_active,
                     is_deleted=not is_active,
+                    type_specific=type_specific,
                     tags=metrics.tags_map.get(account.instance_id, []),
                     classifications=metrics.classifications_map.get(account.id, []),
                 ),
