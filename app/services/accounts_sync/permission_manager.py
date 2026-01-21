@@ -48,6 +48,7 @@ PRIVILEGE_FIELD_LABELS: dict[str, str] = {
     "global_privileges": "全局权限",
     "database_privileges": "数据库权限",
     "roles": "角色",
+    "role_members": "角色成员",
     "predefined_roles": "预设角色",
     "role_attributes": "角色属性",
     "tablespace_privileges": "表空间权限",
@@ -115,6 +116,7 @@ _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "global_privileges": "global_privileges",
     "database_privileges": "database_privileges",
     "roles": "roles",
+    "role_members": "role_members",
     "predefined_roles": "predefined_roles",
     "role_attributes": "role_attributes",
     "database_privileges_pg": "database_privileges",
@@ -469,12 +471,12 @@ class AccountPermissionManager:
             raw_type_specific = permissions.get("type_specific")
             sanitized_type_specific, removed_keys = self._sanitize_type_specific(raw_type_specific)
             if removed_keys:
+                db_type_value = record.db_type
+                db_type_label = "" if db_type_value is None else str(db_type_value).lower()
                 self.logger.warning(
                     "account_permission_type_specific_forbidden_keys_removed",
                     module="accounts_sync",
-                    db_type=(
-                        "" if getattr(record, "db_type", None) is None else str(getattr(record, "db_type")).lower()
-                    ),
+                    db_type=db_type_label,
                     removed_keys=removed_keys,
                 )
             if sanitized_type_specific is not None:
@@ -513,9 +515,7 @@ class AccountPermissionManager:
             )
             record.permission_facts = {
                 "version": 2,
-                "db_type": (
-                    "" if getattr(record, "db_type", None) is None else str(getattr(record, "db_type")).lower()
-                ),
+                "db_type": ("" if record.db_type is None else str(record.db_type).lower()),
                 "capabilities": [],
                 "capability_reasons": {},
                 "roles": [],
