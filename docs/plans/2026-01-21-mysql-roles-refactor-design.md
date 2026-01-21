@@ -120,6 +120,33 @@
   - `mysql.default_roles`
 - 权限详情：`SHOW GRANTS FOR user@host`
 
+### SQL 示例（建议）
+
+说明：以下 SQL 用于说明“我们要采什么数据”。具体实现时可根据实例规模选择：
+- 小实例：直接全表读取 `role_edges/default_roles` 并在内存中过滤/映射（实现简单）。
+- 大实例：按目标账号列表做 WHERE 过滤，避免全表扫描。
+
+直授角色（role_edges：account → role）：
+
+```sql
+SELECT
+  CONCAT(FROM_USER, '@', FROM_HOST) AS grantee,
+  CONCAT(TO_USER, '@', TO_HOST) AS role,
+  WITH_ADMIN_OPTION AS with_admin_option
+FROM mysql.role_edges;
+```
+
+默认角色（default_roles：account → default role）：
+
+```sql
+SELECT
+  CONCAT(USER, '@', HOST) AS grantee,
+  CONCAT(DEFAULT_ROLE_USER, '@', DEFAULT_ROLE_HOST) AS role
+FROM mysql.default_roles;
+```
+
+> 备注：如果后续需要展示“一个角色被授予给哪些账号”，可对 role_edges 做反向聚合（按 `role` 作为 key 收集 `grantee`）。
+
 ### Adapter 输出（RemoteAccount.permissions）
 
 在 `app/services/accounts_sync/adapters/mysql_adapter.py` 中，把权限快照扩展为：
@@ -234,4 +261,3 @@
 - 前端回归：
   - 实例详情账户列表：角色行显示“角色”，锁定列不再显示红色“已锁定”。
   - 权限弹窗：能看到“直授角色/默认角色”。
-
