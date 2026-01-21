@@ -466,6 +466,105 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             {key: _dedupe(values) for key, values in default_map.items()},
         )
 
+    def _prepare_roles_enrichment(
+        self,
+        instance: Instance,
+        connection: object,
+        accounts: list[RemoteAccount],
+    ) -> tuple[
+        bool,
+        dict[str, list[str]],
+        dict[str, list[str]],
+        dict[str, list[str]],
+        dict[str, list[str]],
+    ]:
+        """为 MySQL enrich_permissions 预取角色相关映射。
+
+        返回:
+        - supports_roles: 是否支持角色（8.0+）
+        - direct_roles_map: grantee -> [role]
+        - default_roles_map: grantee -> [role]
+        - role_members_direct_map: role -> [user]
+        - role_members_default_map: role -> [user]
+        """
+
+        supports_roles = self._supports_roles(instance)
+        if not supports_roles:
+            return False, {}, {}, {}, {}
+
+        # role_edges/default_roles 的过滤条件与 membership 维度不同（grantee vs role），
+        # 这里统一全量拉取后在内存中做映射，保证角色详情可展示“包含用户”。
+        direct_roles_map, default_roles_map = self._prefetch_roles(connection, target_usernames=set())
+
+        known_usernames, role_usernames = self._collect_mysql_usernames_by_kind(accounts)
+        role_members_direct_map = self._invert_grantee_roles_map(
+            direct_roles_map,
+            known_usernames=known_usernames,
+            role_usernames=role_usernames,
+        )
+        role_members_default_map = self._invert_grantee_roles_map(
+            default_roles_map,
+            known_usernames=known_usernames,
+            role_usernames=role_usernames,
+        )
+
+        return (
+            True,
+            direct_roles_map,
+            default_roles_map,
+            role_members_direct_map,
+            role_members_default_map,
+        )
+
+    @staticmethod
+    def _dedupe_strings(values: list[str]) -> list[str]:
+        seen: set[str] = set()
+        output: list[str] = []
+        for value in values:
+            if value in seen:
+                continue
+            seen.add(value)
+            output.append(value)
+        return output
+
+    @staticmethod
+    def _collect_mysql_usernames_by_kind(accounts: list[RemoteAccount]) -> tuple[set[str], set[str]]:
+        known_usernames: set[str] = set()
+        role_usernames: set[str] = set()
+        for account in accounts:
+            username_value = account.get("username")
+            if not isinstance(username_value, str) or not username_value:
+                continue
+            known_usernames.add(username_value)
+            permissions_value = account.get("permissions")
+            if not isinstance(permissions_value, dict):
+                continue
+            type_specific_value = permissions_value.get("type_specific")
+            if not isinstance(type_specific_value, dict):
+                continue
+            account_kind_value = type_specific_value.get("account_kind")
+            if isinstance(account_kind_value, str) and account_kind_value.lower() == "role":
+                role_usernames.add(username_value)
+        return known_usernames, role_usernames
+
+    def _invert_grantee_roles_map(
+        self,
+        grantee_roles_map: dict[str, list[str]],
+        *,
+        known_usernames: set[str],
+        role_usernames: set[str],
+    ) -> dict[str, list[str]]:
+        role_members_map: dict[str, list[str]] = {}
+        restrict_to_known = bool(known_usernames)
+        for grantee, roles in grantee_roles_map.items():
+            if restrict_to_known and grantee not in known_usernames:
+                continue
+            if grantee in role_usernames:
+                continue
+            for role in roles:
+                role_members_map.setdefault(role, []).append(grantee)
+        return {key: self._dedupe_strings(values) for key, values in role_members_map.items()}
+
     def _get_user_permissions(self, connection: object, username: str, host: str) -> PermissionSnapshot:
         """获取 MySQL 用户权限详情.
 
@@ -581,10 +680,13 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         if not target_usernames:
             return accounts
 
-        direct_roles_map: dict[str, list[str]] = {}
-        default_roles_map: dict[str, list[str]] = {}
-        if self._supports_roles(instance):
-            direct_roles_map, default_roles_map = self._prefetch_roles(connection, target_usernames=target_usernames)
+        (
+            supports_roles,
+            direct_roles_map,
+            default_roles_map,
+            role_members_direct_map,
+            role_members_default_map,
+        ) = self._prepare_roles_enrichment(instance, connection, accounts)
 
         processed = 0
         for account in accounts:
@@ -611,6 +713,12 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     "direct": direct_roles_map.get(username, []),
                     "default": default_roles_map.get(username, []),
                 }
+                account_kind_value = existing_type_specific.get("account_kind")
+                if supports_roles and isinstance(account_kind_value, str) and account_kind_value.lower() == "role":
+                    permissions["role_members"] = {
+                        "direct": role_members_direct_map.get(username, []),
+                        "default": role_members_default_map.get(username, []),
+                    }
                 account["permissions"] = permissions
             except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
