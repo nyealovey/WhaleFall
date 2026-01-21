@@ -21,8 +21,8 @@
 
 ## 目标
 
-- 在账户列表中将角色作为“账户”展示，但明确标注为“角色”。
-- 对角色的“不可登录（account_locked）”用更符合语义的文案/样式展示，避免与“用户被锁定”混淆。
+- 角色账号**需要落库**（可用于审计/权限查看/后续治理），并在数据侧明确标注类型（role vs user）。
+- 账户台账页面（Accounts Ledgers）默认**不展示 MySQL 角色账号**，只展示“真实用户账号”，避免把角色误当成异常账号。
 - 在权限弹窗中展示：
   - 直授角色（GRANT role TO user）
   - 默认角色（SET DEFAULT ROLE / mysql.default_roles）
@@ -31,38 +31,25 @@
 ## 非目标（本次不做）
 
 - 不计算“生效权限（effective privileges）”：不把角色继承带来的权限合并到用户的全局/库级权限中。
-- 不做跨数据库类型的统一“账号类型体系”（仅 MySQL 落地 account_kind）。
+- 不引入跨数据库类型的统一“账号类型体系”（本次只解决 MySQL 角色采集与展示链路）。
 - 不解决 SQL Server 相关展示问题（已明确本次不考虑）。
 
 ## 关键约束与事实
 
 - MySQL 将“用户/角色”都视为 authorization identifier，二者具备一定互换性；
-  因此“角色识别”需要明确口径（见下方“角色识别策略”）。
+  因此需要明确“列表口径/权限口径”的数据来源与边界（避免把角色当账号展示）。
 - 我们当前的“锁定状态”来自 `permission_facts.capabilities` 的 `LOCKED`，对 MySQL 主要由 `type_specific.account_locked` 推导：
   - 推导逻辑: `app/services/accounts_permissions/facts_builder.py`
   - 展示逻辑: `instances/detail.js`、`accounts/ledgers.js`
 
-## 方案对比
+## 方案（确定）
 
-### 方案 A：仅解析 `SHOW GRANTS` 文本
+本次不做方案分叉，直接采用结构化系统表作为单一真源：
 
-- 优点：无需额外访问 `mysql.*` 系统表。
-- 缺点：
-  - 依赖文本格式，解析脆弱；
-  - 对“默认角色”语句的覆盖不稳定；
-  - 难以批量、且不利于后续统计。
-
-### 方案 B：以 `mysql.role_edges` + `mysql.default_roles` 为主（推荐）
-
-- 优点：结构化、可批量、可明确区分“直授角色/默认角色”。
-- 缺点：需要同步账号具备读取 `mysql.*` 系统表权限。
-
-### 方案 C：仅基于 `mysql.user` 特征做启发式判断
-
-- 优点：实现简单。
-- 缺点：误判风险大；且无法获得“用户的直授角色/默认角色”。
-
-**决策：采用方案 B，并用少量启发式作为补充（仅用于识别“未被授予/未配置默认角色但确实是角色”的条目）。**
+- 角色关系：`mysql.role_edges`（直授） + `mysql.default_roles`（默认角色）
+- 类型真源：`mysql.user.is_role` → `account_kind=user|role`（不做启发式补充）
+- 台账口径：默认不展示 MySQL 角色账号（可通过 `include_roles=true` 临时包含）
+- 不解析 `SHOW GRANTS` 中的“GRANT role TO user / SET DEFAULT ROLE”文本，不使用启发式补充
 
 ## 数据口径设计
 
@@ -88,25 +75,20 @@
   - `direct_admin`: [...]
   - `effective`: [...]
 
-### 2) “账号类型”识别（account_kind）
+### 2) 列表口径（不展示角色账号）
 
-我们需要一个能落地展示的类型字段：
+本次明确：角色账号需要落库，但默认不进入“账户台账页面”的展示口径。
 
-- `account_kind = "role" | "user"`
+实现口径建议（不启发式、可解释）：
 
-判定策略（建议）：
-
-- 若该标识符出现在以下集合中，则视为 `role`：
-  - `mysql.role_edges` 的“被授予方”（role）集合
-  - `mysql.default_roles` 的 default role 集合
-- 若两者都不命中，再用补充启发式：
-  - `account_locked = true` 且 “无认证凭据/不可登录特征明显”（例如认证字符串为空、密码过期等）
-
-该字段存放在两处：
-- `account_permission.type_specific`（用于列表页快速展示，不依赖展开 snapshot）
-- `permission_snapshot.type_specific.mysql.account_kind`（用于权限弹窗展示与后续扩展）
-
-> 注意：由于 MySQL 的“用户/角色可互换”，上述策略本质是在做“RBAC 语义识别”。当某个 user 被当作 role 授予他人时，它将被识别为 role —— 这是符合“按用途展示”的口径。
+- 以 `mysql.user.is_role` 为单一真源写入类型字段：
+  - `is_role = 'N'` → `account_kind = "user"`
+  - `is_role = 'Y'` → `account_kind = "role"`
+- 同步落库：`user` 与 `role` 都会写入 `InstanceAccount/AccountPermission`。
+- 台账页面默认过滤规则（仅对 MySQL 生效）：
+  - `account_kind != "role"`（即仅展示 user）
+  - 通过可选 query 参数 `include_roles=true` 可临时包含角色（用于排障/审计；UI 默认不打开）
+> 备注：用户提到“未被使用的角色等于无效角色”。采用“台账默认不展示 role（include_roles 默认 false）”后，这类角色也不会出现在账号台账中；是否需要额外治理（清理/告警）不在本次范围内。
 
 ## 采集链路重构（源头 → adapter 输出）
 
@@ -114,7 +96,7 @@
 
 - 账号基表：`mysql.user`
   - 已采集：`Super_priv`、`Grant_priv`、`account_locked`、`plugin`、`password_last_changed`
-  - 建议补充：用于启发式识别的字段（例如认证字符串/密码过期字段，按实际可用字段选取）
+  - 需要补充/确认：`is_role`（用于标记账号类型并支持台账过滤）
 - 角色关系表：
   - `mysql.role_edges`
   - `mysql.default_roles`
@@ -149,31 +131,31 @@ FROM mysql.default_roles;
 
 ### Adapter 输出（RemoteAccount.permissions）
 
-在 `app/services/accounts_sync/adapters/mysql_adapter.py` 中，把权限快照扩展为：
+在 `app/services/accounts_sync/adapters/mysql_adapter.py` 中，把权限快照扩展为（示例为“用户账号”）：
 
 ```python
 {
   "global_privileges": [...],
   "database_privileges": {"db": ["SELECT", "INSERT"]},
-  "roles": {"direct": [...], "default": [...]},
+  "roles": {"direct": ["report_read_role@%"], "default": ["report_read_role@%"]},
   "type_specific": {
     "host": "%",
-    "original_username": "report_read_role",
-    "account_locked": true,
+    "original_username": "app_user",
+    "account_locked": false,
     "plugin": "caching_sha2_password",
     "password_last_changed": "...",
-    "account_kind": "role"
+    "account_kind": "user",
   }
 }
 ```
 
 建议的采集方式：
+- `_fetch_raw_accounts()` 拉取 `mysql.user` 时补齐 `is_role/account_kind`（`account_kind` 不做启发式，完全由 `is_role` 决定）。
 - 在 `enrich_permissions()` 前做一次批量查询：
   - 取 `role_edges` / `default_roles` → 生成：
     - `direct_roles_map[account] = [roles...]`
     - `default_roles_map[account] = [roles...]`
-    - `role_identifier_set = {...}`
-- 在 enrich 的 per-account 循环内，把 `roles` 与 `account_kind` 合并到 `permissions`。
+- 在 enrich 的 per-account 循环内，把 `roles` 合并到 `permissions`。
 
 ## 快照与派生（permission_snapshot / permission_facts）
 
@@ -181,54 +163,38 @@ FROM mysql.default_roles;
 
 - 需要把 `roles` 作为 categories 的一级字段写入：
   - 修改映射表：`app/services/accounts_sync/permission_manager.py` 中 `_PERMISSION_TO_SNAPSHOT_CATEGORY_KEY` 增加 `"roles": "roles"`。
-- `type_specific` 保持按 db_type 分桶写入：
-  - `type_specific["mysql"]["account_kind"] = "role"|"user"`
+- `type_specific`（v4 snapshot）建议同时写入 `account_kind`，用于权限弹窗/排障：
+  - `snapshot.type_specific.mysql.account_kind = "user"|"role"`
 
 ### permission_facts
 
 - `facts_builder` 已支持从 `categories["roles"]` 提取 roles（目前 categories 缺失导致永远为空）。
-- 建议把 roles facts 口径改为：
-  - `roles = direct + default（去重）`
-  - 并保留结构化信息在 snapshot 里供 UI 展示。
+- 建议把 roles facts 口径改为（更符合“展示默认角色”的认知）：`roles = direct + default（去重）`。
 
-## API 输出调整（列表页必需）
+## API 输出调整
 
-### 账户台账列表 `/api/v1/accounts/ledgers`
+本次不需要为“列表项”新增字段（角色默认不展示），但需要为台账列表接口增加一个**筛选开关**以控制是否包含角色账号。
 
-当前返回项缺少 `type_specific/account_kind`，导致前端无法区分角色。
+权限弹窗所需的角色信息来自权限快照 `snapshot.categories.roles`，权限接口已返回 snapshot 原始结构，无需额外字段。
 
-建议：
-- `AccountLedgerItem` 增加 `account_kind` 字段（仅 MySQL 有意义，其他 db_type 固定输出 `"user"`）。
-- `ACCOUNT_LEDGER_ITEM_FIELDS` 增加：
-  - `account_kind: fields.String`（example: "role"）
+### 账户台账列表 `/api/v1/accounts/ledgers`（新增 query 参数）
 
-数据来源：`AccountPermission.type_specific`（v1 dict）中的 `account_kind`。
+- 新增：`include_roles`（bool，默认 false）
+  - `include_roles=false` 且 `db_type=mysql` 时，过滤掉 `account_kind="role"` 的行
+  - 其他 db_type 不受影响（或忽略该参数）
 
-> 备注：实例详情页当前也复用了 `/api/v1/accounts/ledgers?instance_id=...`，因此该 API 扩展能同时覆盖“实例详情账户列表”。
+影响说明：
+- 实例详情页当前复用该接口（`/api/v1/accounts/ledgers?instance_id=...`），因此默认也会隐藏 role。
+  若实例详情需要展示 role，可在该页面请求中传 `include_roles=true`。
+
+实现位置建议：
+- Query/filters：`app/core/types/accounts_ledgers.py`（AccountFilters 增加 include_roles）
+- API parser：`app/api/v1/namespaces/accounts.py`
+- Repository filter：`app/repositories/ledgers/accounts_ledger_repository.py`
 
 ## UI 展示调整
 
-### 1) 实例详情账户列表（`instances/detail.js`）
-
-现状：锁定列仅看 `is_locked`，角色全部显示“已锁定”。
-
-设计：
-- 增加“类型”列（建议插入到“账户”与“锁定”之间）：
-  - `role` → pill: “角色”（info 样式）
-  - `user` → pill: “用户”（muted 样式）
-- 锁定列展示逻辑调整：
-  - 若 `account_kind == role`：显示“不可登录”（info/muted 样式），避免红色告警感。
-  - 若 `account_kind == user`：沿用“已锁定/正常”。
-
-### 2) 账户台账页面（`accounts/ledgers.js`）
-
-现状：可用性列同样把 role 视作“已锁定”。
-
-设计：
-- 增加“类型”列或在“账户/实例”单元格中加入类型 chip。
-- 可用性列同上：role 显示“角色（不可登录）”或“不可登录”。
-
-### 3) 权限弹窗（`permission-modal.js`）
+### 权限弹窗（`permission-modal.js`）
 
 现状：MySQL 权限只展示全局/库级权限。
 
@@ -240,24 +206,27 @@ FROM mysql.default_roles;
 
 ## 数据回填与上线策略
 
-- 该重构主要影响“同步后写入的快照/事实”。历史数据没有 `account_kind/roles`，展示仍会混乱。
-- 上线后需要对 MySQL 实例执行一次权限同步（现有任务即可），以刷新 `type_specific`、`snapshot.categories.roles`。
+- 该重构主要影响“同步后写入的快照/事实”。历史数据没有 `snapshot.categories.roles`。
+  上线后需要对 MySQL 实例执行一次权限同步（现有任务即可），以刷新 `snapshot.categories.roles`。
+- 台账列表在 `include_roles=false`（默认）时，MySQL 角色账号不会出现在台账页面，但角色记录仍保留在库中用于审计/排障。
 
 建议的灰度/回滚：
-- 先只加字段与 UI 展示（不改锁定推导口径），观察：
-  - 角色是否被正确标注
-  - 列表中“已锁定”红色告警是否显著减少
-- 如出现误判，可临时降级：
-  - UI 仅在 `account_kind == role` 时改变展示；
-  - `account_kind` 识别策略可调整为更保守（仅来源于 role_edges/default_roles）。
+- 先上线“角色关系采集 + 权限弹窗展示”（对列表无破坏性）。
+- 再上线“台账默认过滤 role（include_roles 默认 false）”（角色账号落库但不展示）。
+- 回滚策略：关闭/回退 role_edges/default_roles 采集与 UI 展示，不影响账号台账主流程；或临时把 `include_roles` 默认改为 true（仅用于排障，不建议长期保留）。
 
 ## 测试建议
 
 - Adapter 单测：
   - 给定 role_edges/default_roles 行，断言输出 `roles.direct/default` 正确。
-  - 断言 `account_kind` 判定策略对典型角色（`*_role@%`）生效。
-- Service/API 单测：
-  - `/api/v1/accounts/ledgers` 返回项包含 `account_kind`，并能被前端消费。
+- 断言 `mysql.user.is_role='Y'` 的账号会被采集且 `type_specific.account_kind == "role"`。
+
+- 台账列表（Service/Repository）单测：
+  - `include_roles=false` 时，MySQL `account_kind="role"` 的账号不会出现在列表结果中
+  - `include_roles=true` 时，会包含 role 账号
+
+- facts_builder 单测：
+  - categories.roles 为 `{direct, default}` 时，facts.roles 取 `direct+default`（去重）。
+
 - 前端回归：
-  - 实例详情账户列表：角色行显示“角色”，锁定列不再显示红色“已锁定”。
   - 权限弹窗：能看到“直授角色/默认角色”。
