@@ -29,6 +29,7 @@ class AccountsFiltersQuery(PayloadSchema):
     search: str = ""
     instance_id: int | None = None
     include_deleted: bool = False
+    include_roles: bool = False
     is_locked: str | None = None
     is_superuser: str | None = None
     plugin: str = ""
@@ -61,9 +62,9 @@ class AccountsFiltersQuery(PayloadSchema):
         parsed = parse_int(value, default=0)
         return parsed if parsed > 0 else None
 
-    @field_validator("include_deleted", mode="before")
+    @field_validator("include_deleted", "include_roles", mode="before")
     @classmethod
-    def _parse_include_deleted(cls, value: Any) -> bool:
+    def _parse_boolean_flags(cls, value: Any) -> bool:
         return as_bool(value, default=False)
 
     @field_validator("is_locked", "is_superuser", mode="before")
@@ -94,6 +95,7 @@ class AccountsFiltersQuery(PayloadSchema):
             search=self.search,
             instance_id=self.instance_id,
             include_deleted=self.include_deleted,
+            include_roles=self.include_roles,
             is_locked=self.is_locked,
             is_superuser=self.is_superuser,
             plugin=self.plugin,

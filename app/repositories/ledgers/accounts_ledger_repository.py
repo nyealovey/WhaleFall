@@ -10,10 +10,11 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, cast
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query, contains_eager
 
+from app.core.constants import DatabaseType
 from app.core.types.accounts_ledgers import AccountClassificationSummary, AccountFilters, AccountLedgerMetrics
 from app.core.types.listing import PaginatedResult
 from app.core.types.tags import TagSummary
@@ -122,6 +123,15 @@ class AccountsLedgerRepository:
             query = query.filter(AccountPermission.db_type == filters.db_type)
         if filters.instance_id:
             query = query.filter(AccountPermission.instance_id == filters.instance_id)
+
+        if not filters.include_roles:
+            account_kind = AccountPermission.type_specific["account_kind"].as_string()
+            query = query.filter(
+                or_(
+                    AccountPermission.db_type != DatabaseType.MYSQL,
+                    func.coalesce(account_kind, "") != "role",
+                ),
+            )
 
         query = self._apply_search_filter(query, filters.search)
         query = self._apply_lock_filters(query, filters.is_locked, filters.is_superuser)
