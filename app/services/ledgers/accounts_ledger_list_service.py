@@ -43,6 +43,7 @@ class AccountsLedgerListService:
                     is_superuser=account.is_superuser,
                     is_active=is_active,
                     is_deleted=not is_active,
+                    last_change_time=(account.last_change_time.isoformat() if account.last_change_time else None),
                     type_specific=type_specific,
                     tags=metrics.tags_map.get(account.instance_id, []),
                     classifications=metrics.classifications_map.get(account.id, []),

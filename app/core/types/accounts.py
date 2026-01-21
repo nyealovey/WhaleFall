@@ -19,6 +19,7 @@ class PermissionSnapshot(TypedDict, total=False):
     """标准化的权限快照结构."""
 
     roles: list[str] | MySQLRolesSnapshot
+    role_members: MySQLRolesSnapshot
     global_privileges: list[str]
     database_privileges: Mapping[str, list[str] | JsonValue]
     database_privileges_pg: Mapping[str, JsonValue]
