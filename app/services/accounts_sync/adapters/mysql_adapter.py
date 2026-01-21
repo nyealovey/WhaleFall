@@ -478,7 +478,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         dict[str, list[str]],
         dict[str, list[str]],
     ]:
-        """为 MySQL enrich_permissions 预取角色相关映射。
+        """为 MySQL enrich_permissions 预取角色相关映射.
 
         返回:
         - supports_roles: 是否支持角色（8.0+）
@@ -487,7 +487,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         - role_members_direct_map: role -> [user]
         - role_members_default_map: role -> [user]
         """
-
         supports_roles = self._supports_roles(instance)
         if not supports_roles:
             return False, {}, {}, {}, {}
