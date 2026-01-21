@@ -24,10 +24,10 @@ class PermissionSnapshot(TypedDict, total=False):
     mysql_global_privileges: list[str]
     mysql_database_privileges: Mapping[str, list[str] | JsonValue]
 
-    # PostgreSQL (legacy keys will be removed during refactor)
-    database_privileges_pg: Mapping[str, JsonValue]
-    predefined_roles: list[str]
-    role_attributes: Mapping[str, JsonValue]
+    # PostgreSQL
+    postgresql_database_privileges: Mapping[str, JsonValue]
+    postgresql_predefined_roles: list[str]
+    postgresql_role_attributes: Mapping[str, JsonValue]
 
     # SQL Server (legacy keys will be removed during refactor)
     database_permissions: Mapping[str, JsonValue]

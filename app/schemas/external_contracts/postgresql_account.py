@@ -42,15 +42,15 @@ def _as_dict_of_str_list(value: object) -> dict[str, list[str]]:
 class PostgreSQLPermissionSnapshotSchema(PayloadSchema):
     """PostgreSQL 权限快照 schema（仅解析 + 默认值 + 形状规整）."""
 
-    predefined_roles: list[str] = Field(default_factory=list)
-    role_attributes: JsonDict = Field(default_factory=dict)
-    database_privileges_pg: dict[str, list[str]] = Field(default_factory=dict)
+    postgresql_predefined_roles: list[str] = Field(default_factory=list)
+    postgresql_role_attributes: JsonDict = Field(default_factory=dict)
+    postgresql_database_privileges: dict[str, list[str]] = Field(default_factory=dict)
     system_privileges: list[str] = Field(default_factory=list)
     type_specific: JsonDict = Field(default_factory=dict)
 
-    @field_validator("predefined_roles", mode="before")
+    @field_validator("postgresql_predefined_roles", mode="before")
     @classmethod
-    def _parse_predefined_roles(cls, value: object) -> list[str]:
+    def _parse_postgresql_predefined_roles(cls, value: object) -> list[str]:
         return _as_str_list(value)
 
     @field_validator("system_privileges", mode="before")
@@ -58,14 +58,14 @@ class PostgreSQLPermissionSnapshotSchema(PayloadSchema):
     def _parse_system_privileges(cls, value: object) -> list[str]:
         return _as_str_list(value)
 
-    @field_validator("role_attributes", mode="before")
+    @field_validator("postgresql_role_attributes", mode="before")
     @classmethod
-    def _parse_role_attributes(cls, value: object) -> JsonDict:
+    def _parse_postgresql_role_attributes(cls, value: object) -> JsonDict:
         return _as_dict(value)
 
-    @field_validator("database_privileges_pg", mode="before")
+    @field_validator("postgresql_database_privileges", mode="before")
     @classmethod
-    def _parse_database_privileges_pg(cls, value: object) -> dict[str, list[str]]:
+    def _parse_postgresql_database_privileges(cls, value: object) -> dict[str, list[str]]:
         return _as_dict_of_str_list(value)
 
     @field_validator("type_specific", mode="before")
