@@ -26,14 +26,14 @@ def test_normalize_account_defaults_permissions_when_missing() -> None:
     )
 
     permissions = normalized["permissions"]
-    assert permissions.get("predefined_roles") == []
+    assert permissions.get("postgresql_predefined_roles") == []
     assert permissions.get("system_privileges") == []
-    assert permissions.get("database_privileges_pg") == {}
+    assert permissions.get("postgresql_database_privileges") == {}
 
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
 
-    role_attributes = permissions.get("role_attributes")
+    role_attributes = permissions.get("postgresql_role_attributes")
     assert isinstance(role_attributes, dict)
 
 
@@ -54,22 +54,22 @@ def test_normalize_account_coerces_invalid_permission_shapes() -> None:
         {
             "username": "role1",
             "permissions": {
-                "predefined_roles": None,
+                "postgresql_predefined_roles": None,
                 "system_privileges": ["SUPERUSER", "", 1],
-                "database_privileges_pg": {"db1": ["CONNECT", None]},
+                "postgresql_database_privileges": {"db1": ["CONNECT", None]},
                 "type_specific": [],
-                "role_attributes": [],
+                "postgresql_role_attributes": [],
             },
         },
     )
 
     permissions = normalized["permissions"]
-    assert permissions.get("predefined_roles") == []
+    assert permissions.get("postgresql_predefined_roles") == []
     assert permissions.get("system_privileges") == ["SUPERUSER"]
-    assert permissions.get("database_privileges_pg") == {"db1": ["CONNECT"]}
+    assert permissions.get("postgresql_database_privileges") == {"db1": ["CONNECT"]}
 
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
 
-    role_attributes = permissions.get("role_attributes")
+    role_attributes = permissions.get("postgresql_role_attributes")
     assert isinstance(role_attributes, dict)
