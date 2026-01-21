@@ -21,12 +21,12 @@ def test_permission_snapshot_view_returns_snapshot_when_present() -> None:
         pytest.skip("permission_snapshot columns not implemented yet")
 
     class _StubAccount:
-        permission_snapshot = {"version": 4, "categories": {"global_privileges": {"granted": ["SELECT"]}}}
+        permission_snapshot = {"version": 4, "categories": {"mysql_global_privileges": {"granted": ["SELECT"]}}}
 
     account = _StubAccount()
 
     view = snapshot_view.build_permission_snapshot_view(cast(Any, account))
-    assert view["categories"]["global_privileges"]["granted"] == ["SELECT"]
+    assert view["categories"]["mysql_global_privileges"]["granted"] == ["SELECT"]
 
 
 @pytest.mark.unit

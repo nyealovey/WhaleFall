@@ -12,13 +12,13 @@ from app.services.accounts_sync.permission_manager import AccountPermissionManag
 def test_apply_permissions_writes_snapshot() -> None:
     manager = AccountPermissionManager()
     record: Any = SimpleNamespace(db_type="mysql", permission_snapshot=None)
-    permissions = {"global_privileges": ["SELECT"], "unknown_field": "value"}
+    permissions = {"mysql_global_privileges": ["SELECT"], "unknown_field": "value"}
 
     manager._apply_permissions(record, permissions)
 
     assert isinstance(record.permission_snapshot, dict)
     assert record.permission_snapshot.get("version") == 4
-    assert record.permission_snapshot.get("categories", {}).get("global_privileges") == ["SELECT"]
+    assert record.permission_snapshot.get("categories", {}).get("mysql_global_privileges") == ["SELECT"]
     assert record.permission_snapshot.get("extra", {}).get("unknown_field") == "value"
     assert isinstance(record.permission_facts, dict)
     assert record.permission_facts.get("version") == 2
@@ -30,11 +30,11 @@ def test_apply_permissions_writes_snapshot() -> None:
 def test_apply_permissions_writes_roles_into_categories() -> None:
     manager = AccountPermissionManager()
     record: Any = SimpleNamespace(db_type="mysql", permission_snapshot=None)
-    permissions = cast(Any, {"roles": {"direct": ["r1@%"], "default": []}})
+    permissions = cast(Any, {"mysql_granted_roles": {"direct": ["r1@%"], "default": []}})
 
     manager._apply_permissions(record, permissions)
 
-    assert record.permission_snapshot.get("categories", {}).get("roles") == {"direct": ["r1@%"], "default": []}
+    assert record.permission_snapshot.get("categories", {}).get("mysql_granted_roles") == {"direct": ["r1@%"], "default": []}
 
 
 @pytest.mark.unit
@@ -50,7 +50,10 @@ def test_process_existing_permission_raises_when_snapshot_missing() -> None:
     )
 
     remote = {
-        "permissions": {"global_privileges": ["SELECT"], "database_privileges": {"db1": ["SELECT"]}},
+        "permissions": {
+            "mysql_global_privileges": ["SELECT"],
+            "mysql_database_privileges": {"db1": ["SELECT"]},
+        },
         "is_superuser": False,
         "is_locked": False,
     }
@@ -111,7 +114,7 @@ def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
         permission_snapshot={
             "version": 4,
             "categories": {
-                "global_privileges": ["SELECT"],
+                "mysql_global_privileges": ["SELECT"],
             },
             "type_specific": {"mysql": {"host": "%"}},
             "extra": {},
@@ -124,7 +127,7 @@ def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
 
     diff = manager._calculate_diff(
         record,
-        {"global_privileges": ["SELECT", "INSERT"], "type_specific": {"host": "localhost"}},
+        {"mysql_global_privileges": ["SELECT", "INSERT"], "type_specific": {"host": "localhost"}},
     )
 
     assert diff.get("changed") is True

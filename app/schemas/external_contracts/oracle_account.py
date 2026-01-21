@@ -32,7 +32,7 @@ class OraclePermissionSnapshotSchema(PayloadSchema):
     """Oracle 权限快照 schema（仅解析 + 默认值 + 形状规整）."""
 
     oracle_roles: list[str] = Field(default_factory=list)
-    system_privileges: list[str] = Field(default_factory=list)
+    oracle_system_privileges: list[str] = Field(default_factory=list)
     type_specific: JsonDict = Field(default_factory=dict)
 
     @field_validator("oracle_roles", mode="before")
@@ -40,9 +40,9 @@ class OraclePermissionSnapshotSchema(PayloadSchema):
     def _parse_oracle_roles(cls, value: object) -> list[str]:
         return _as_str_list(value)
 
-    @field_validator("system_privileges", mode="before")
+    @field_validator("oracle_system_privileges", mode="before")
     @classmethod
-    def _parse_system_privileges(cls, value: object) -> list[str]:
+    def _parse_oracle_system_privileges(cls, value: object) -> list[str]:
         return _as_str_list(value)
 
     @field_validator("type_specific", mode="before")

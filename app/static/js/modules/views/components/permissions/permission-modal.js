@@ -330,7 +330,7 @@ function renderMySQLPermissions(permissions) {
         return renderEmptyPill();
     }
 
-    const roles = permissions.roles && typeof permissions.roles === 'object' ? permissions.roles : {};
+    const roles = permissions.mysql_granted_roles && typeof permissions.mysql_granted_roles === 'object' ? permissions.mysql_granted_roles : {};
     const directRoles = Array.isArray(roles.direct) ? roles.direct : [];
     const defaultRoles = Array.isArray(roles.default) ? roles.default : [];
     const directRolesSection = renderPermissionSection(
@@ -344,7 +344,7 @@ function renderMySQLPermissions(permissions) {
         renderLedgerChips(defaultRoles, { emptyLabel: '无默认角色' })
     );
 
-    const roleMembers = permissions.role_members && typeof permissions.role_members === 'object' ? permissions.role_members : null;
+    const roleMembers = permissions.mysql_role_members && typeof permissions.mysql_role_members === 'object' ? permissions.mysql_role_members : null;
     const roleMembersDirect = roleMembers && Array.isArray(roleMembers.direct) ? roleMembers.direct : [];
     const roleMembersDefault = roleMembers && Array.isArray(roleMembers.default) ? roleMembers.default : [];
     const roleMembersSection = roleMembers
@@ -369,7 +369,7 @@ function renderMySQLPermissions(permissions) {
         )
         : '';
 
-    const globalPrivileges = flattenPrivilegeStrings(permissions.global_privileges);
+    const globalPrivileges = flattenPrivilegeStrings(permissions.mysql_global_privileges);
     const globalSection = renderPermissionSection(
         '全局权限',
         'fas fa-globe',
@@ -377,8 +377,8 @@ function renderMySQLPermissions(permissions) {
     );
 
     const dbRows = [];
-    if (permissions.database_privileges && typeof permissions.database_privileges === 'object') {
-        Object.entries(permissions.database_privileges).forEach(([dbName, privs]) => {
+    if (permissions.mysql_database_privileges && typeof permissions.mysql_database_privileges === 'object') {
+        Object.entries(permissions.mysql_database_privileges).forEach(([dbName, privs]) => {
             dbRows.push(
                 renderStackRow(
                     dbName,
@@ -431,14 +431,14 @@ function renderPostgreSQLPermissions(permissions) {
     const predefinedRoles = renderPermissionSection(
         '预定义角色',
         'fas fa-user-tag',
-        renderLedgerChips(permissions.predefined_roles, { emptyLabel: '无预定义角色' })
+        renderLedgerChips(permissions.postgresql_predefined_roles, { emptyLabel: '无预定义角色' })
     );
 
     let roleAttributes = [];
-    if (Array.isArray(permissions.role_attributes)) {
-        roleAttributes = permissions.role_attributes;
-    } else if (typeof permissions.role_attributes === 'object' && permissions.role_attributes !== null) {
-        roleAttributes = Object.entries(permissions.role_attributes)
+    if (Array.isArray(permissions.postgresql_role_attributes)) {
+        roleAttributes = permissions.postgresql_role_attributes;
+    } else if (typeof permissions.postgresql_role_attributes === 'object' && permissions.postgresql_role_attributes !== null) {
+        roleAttributes = Object.entries(permissions.postgresql_role_attributes)
             .filter(([, value]) => value === true)
             .map(([key]) => key);
     }
@@ -449,7 +449,7 @@ function renderPostgreSQLPermissions(permissions) {
     );
 
     const dbRows = [];
-    const dbPrivs = permissions.database_privileges;
+    const dbPrivs = permissions.postgresql_database_privileges;
     if (dbPrivs && typeof dbPrivs === 'object') {
         Object.entries(dbPrivs).forEach(([dbName, privs]) => {
             dbRows.push(
@@ -489,28 +489,9 @@ function renderOraclePermissions(permissions) {
     const systemSection = renderPermissionSection(
         '系统权限',
         'fas fa-shield-alt',
-        renderLedgerChips(permissions.system_privileges, { emptyLabel: '无系统权限' })
+        renderLedgerChips(permissions.oracle_system_privileges, { emptyLabel: '无系统权限' })
     );
-
-    const tablespaceRows = [];
-    if (permissions.tablespace_privileges && typeof permissions.tablespace_privileges === 'object') {
-        Object.entries(permissions.tablespace_privileges).forEach(([name, privs]) => {
-            tablespaceRows.push(
-                renderStackRow(
-                    name,
-                    'fas fa-database',
-                    renderLedgerChips(Array.isArray(privs) ? privs : [], { emptyLabel: '无权限' })
-                )
-            );
-        });
-    }
-    const tablespaceSection = renderPermissionSection(
-        '表空间权限',
-        'fas fa-database',
-        renderStack(tablespaceRows, '无表空间权限')
-    );
-
-    return [roleSection, systemSection, tablespaceSection].join('');
+    return [roleSection, systemSection].join('');
 }
 
 /**
@@ -527,12 +508,12 @@ function renderSQLServerPermissions(permissions) {
     const serverRoles = renderPermissionSection(
         '服务器角色',
         'fas fa-crown',
-        renderLedgerChips(permissions.server_roles, { emptyLabel: '无服务器角色' })
+        renderLedgerChips(permissions.sqlserver_server_roles, { emptyLabel: '无服务器角色' })
     );
 
     const dbRoleRows = [];
-    if (permissions.database_roles && typeof permissions.database_roles === 'object') {
-        Object.entries(permissions.database_roles).forEach(([dbName, roles]) => {
+    if (permissions.sqlserver_database_roles && typeof permissions.sqlserver_database_roles === 'object') {
+        Object.entries(permissions.sqlserver_database_roles).forEach(([dbName, roles]) => {
             dbRoleRows.push(
                 renderStackRow(
                     dbName,
@@ -551,12 +532,12 @@ function renderSQLServerPermissions(permissions) {
     const serverPermissions = renderPermissionSection(
         '服务器权限',
         'fas fa-shield-alt',
-        renderLedgerChips(permissions.server_permissions, { emptyLabel: '无服务器权限' })
+        renderLedgerChips(permissions.sqlserver_server_permissions, { emptyLabel: '无服务器权限' })
     );
 
     const dbPermissionRows = [];
-    if (permissions.database_permissions && typeof permissions.database_permissions === 'object') {
-        Object.entries(permissions.database_permissions).forEach(([dbName, perms]) => {
+    if (permissions.sqlserver_database_permissions && typeof permissions.sqlserver_database_permissions === 'object') {
+        Object.entries(permissions.sqlserver_database_permissions).forEach(([dbName, perms]) => {
             let permissionList = [];
             if (Array.isArray(perms)) {
                 permissionList = perms;

@@ -135,7 +135,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 }
                 permissions: PermissionSnapshot = {
                     "type_specific": type_specific,
-                    "role_attributes": role_attributes,
+                    "postgresql_role_attributes": role_attributes,
                 }
                 accounts.append(
                     {
@@ -170,10 +170,9 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         parsed = PostgreSQLRawAccountSchema.model_validate(account)
         permissions = parsed.permissions
         normalized_permissions: PermissionSnapshot = {
-            "predefined_roles": permissions.predefined_roles,
-            "role_attributes": permissions.role_attributes,
-            "database_privileges_pg": cast("JsonDict", permissions.database_privileges_pg),
-            "system_privileges": permissions.system_privileges,
+            "postgresql_predefined_roles": permissions.postgresql_predefined_roles,
+            "postgresql_role_attributes": permissions.postgresql_role_attributes,
+            "postgresql_database_privileges": cast("JsonDict", permissions.postgresql_database_privileges),
             "type_specific": permissions.type_specific,
         }
         return cast(
@@ -228,14 +227,13 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         """
         permissions: PermissionSnapshot = {
-            "predefined_roles": [],
-            "role_attributes": {},
-            "database_privileges_pg": {},
-            "system_privileges": [],
+            "postgresql_predefined_roles": [],
+            "postgresql_role_attributes": {},
+            "postgresql_database_privileges": {},
             "type_specific": {},
         }
         try:
-            permissions["role_attributes"] = self._get_role_attributes(connection, username)
+            permissions["postgresql_role_attributes"] = self._get_role_attributes(connection, username)
         except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_role_attributes_failed",
@@ -244,7 +242,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 exc_info=True,
             )
         try:
-            permissions["predefined_roles"] = self._get_predefined_roles(connection, username)
+            permissions["postgresql_predefined_roles"] = self._get_predefined_roles(connection, username)
         except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_predefined_roles_failed",
@@ -253,7 +251,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 exc_info=True,
             )
         try:
-            permissions["database_privileges_pg"] = self._get_database_privileges(connection, username)
+            permissions["postgresql_database_privileges"] = self._get_database_privileges(connection, username)
         except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_database_privileges_failed",
@@ -261,8 +259,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 error=str(exc),
                 exc_info=True,
             )
-        if is_superuser:
-            permissions["system_privileges"].append("SUPERUSER")
         return permissions
 
     def enrich_permissions(
@@ -345,12 +341,12 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     ) -> None:
         """将已有权限数据与新查询数据合并."""
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
-        role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
+        role_attributes = cast("JsonDict", permissions.setdefault("postgresql_role_attributes", {}))
         seed_type_specific_value = seed_permissions.get("type_specific")
         seed_type_specific = (
             cast("JsonDict", seed_type_specific_value) if isinstance(seed_type_specific_value, dict) else {}
         )
-        seed_role_attributes_value = seed_permissions.get("role_attributes")
+        seed_role_attributes_value = seed_permissions.get("postgresql_role_attributes")
         seed_role_attributes = (
             cast("JsonDict", seed_role_attributes_value) if isinstance(seed_role_attributes_value, dict) else {}
         )

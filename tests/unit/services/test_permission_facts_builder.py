@@ -16,10 +16,10 @@ def test_build_permission_facts_sqlserver_includes_database_roles_in_roles() -> 
     snapshot = {
         "version": 4,
         "categories": {
-            "server_roles": [{"name": "sysadmin"}],
-            "database_roles": {"db1": [{"name": "db_owner"}]},
-            "server_permissions": ["CONTROL SERVER"],
-            "database_permissions": {"db1": ["ALTER"]},
+            "sqlserver_server_roles": [{"name": "sysadmin"}],
+            "sqlserver_database_roles": {"db1": [{"name": "db_owner"}]},
+            "sqlserver_server_permissions": ["CONTROL SERVER"],
+            "sqlserver_database_permissions": {"db1": ["ALTER"]},
         },
         "type_specific": {},
         "extra": {},
@@ -66,7 +66,7 @@ def test_build_permission_facts_postgresql_maps_role_attributes_to_capabilities(
     snapshot = {
         "version": 4,
         "categories": {
-            "role_attributes": {"can_super": True, "can_create_role": True, "can_create_db": True},
+            "postgresql_role_attributes": {"can_super": True, "can_create_role": True, "can_create_db": True},
         },
         "type_specific": {},
         "extra": {},
@@ -124,7 +124,7 @@ def test_build_permission_facts_mysql_roles_include_direct_and_default() -> None
     record = _StubRecord(db_type="mysql")
     snapshot = {
         "version": 4,
-        "categories": {"roles": {"direct": ["r1@%"], "default": ["r2@%"]}},
+        "categories": {"mysql_granted_roles": {"direct": ["r1@%"], "default": ["r2@%"]}},
         "type_specific": {"mysql": {"account_kind": "user"}},
         "extra": {},
         "errors": [],
