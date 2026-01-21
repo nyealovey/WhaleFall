@@ -27,7 +27,7 @@ def test_normalize_account_defaults_permissions_when_missing() -> None:
 
     permissions = normalized["permissions"]
     assert permissions.get("oracle_roles") == []
-    assert permissions.get("system_privileges") == []
+    assert permissions.get("oracle_system_privileges") == []
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
 
@@ -50,7 +50,7 @@ def test_normalize_account_coerces_invalid_permission_shapes() -> None:
             "username": "USER1",
             "permissions": {
                 "oracle_roles": ["DBA", "", 1],
-                "system_privileges": ["GRANT ANY PRIVILEGE", None],
+                "oracle_system_privileges": ["GRANT ANY PRIVILEGE", None],
                 "type_specific": [],
             },
         },
@@ -58,6 +58,6 @@ def test_normalize_account_coerces_invalid_permission_shapes() -> None:
 
     permissions = normalized["permissions"]
     assert permissions.get("oracle_roles") == ["DBA"]
-    assert permissions.get("system_privileges") == ["GRANT ANY PRIVILEGE"]
+    assert permissions.get("oracle_system_privileges") == ["GRANT ANY PRIVILEGE"]
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)

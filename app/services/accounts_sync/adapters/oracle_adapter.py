@@ -96,7 +96,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                     "PermissionSnapshot",
                     {
                         "oracle_roles": [],
-                        "system_privileges": [],
+                        "oracle_system_privileges": [],
                         "type_specific": {
                             "account_status": account_status,
                             "default_tablespace": user.get("default_tablespace"),
@@ -149,7 +149,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                     "PermissionSnapshot",
                     {
                         "oracle_roles": permissions.oracle_roles,
-                        "system_privileges": permissions.system_privileges,
+                        "oracle_system_privileges": permissions.oracle_system_privileges,
                         "type_specific": permissions.type_specific,
                     },
                 ),
@@ -203,7 +203,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             "PermissionSnapshot",
             {
                 "oracle_roles": self._get_roles(connection, username),
-                "system_privileges": self._get_system_privileges(connection, username),
+                "oracle_system_privileges": self._get_system_privileges(connection, username),
                 "type_specific": {},
             },
         )
