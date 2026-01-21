@@ -52,41 +52,52 @@ class AccountsLedgerChangeHistoryService:
         history_items: list[InstanceAccountChangeLogItem] = []
         for log_entry in change_logs:
             change_time = log_entry.change_time
+            change_type = log_entry.change_type
             raw_privilege_diff = log_entry.privilege_diff
             raw_other_diff = log_entry.other_diff
 
-            # COMPAT: 历史数据为 legacy list 形状；读入口统一收敛为 list 并记录命中。
-            # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
-            if isinstance(raw_privilege_diff, list) or isinstance(raw_other_diff, list):
-                self._logger.info(
-                    "account_change_log diff legacy list normalized",
-                    module="accounts_ledger_change_history_service",
-                    fallback=True,
-                    fallback_reason="ACCOUNT_CHANGE_LOG_DIFF_LEGACY_LIST",
-                    account_id=account_id,
-                    instance_id=instance_id,
-                )
+            if change_type == "add":
+                privilege_diff = []
+                other_diff = []
+            else:
+                # COMPAT: 历史数据为 legacy list 形状；读入口统一收敛为 list 并记录命中。
+                # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
+                if isinstance(raw_privilege_diff, list) or isinstance(raw_other_diff, list):
+                    self._logger.info(
+                        "account_change_log diff legacy list normalized",
+                        module="accounts_ledger_change_history_service",
+                        fallback=True,
+                        fallback_reason="ACCOUNT_CHANGE_LOG_DIFF_LEGACY_LIST",
+                        account_id=account_id,
+                        instance_id=instance_id,
+                    )
 
-            try:
-                privilege_diff = extract_diff_entries(raw_privilege_diff)
-                other_diff = extract_diff_entries(raw_other_diff)
-            except Exception as exc:
-                self._logger.exception(
-                    "account_change_log diff payload invalid",
-                    module="accounts_ledger_change_history_service",
-                    account_id=account_id,
-                    instance_id=instance_id,
-                    error=str(exc),
-                )
-                raise
+                try:
+                    privilege_diff = extract_diff_entries(raw_privilege_diff)
+                    other_diff = extract_diff_entries(raw_other_diff)
+                except Exception as exc:
+                    self._logger.exception(
+                        "account_change_log diff payload invalid",
+                        module="accounts_ledger_change_history_service",
+                        account_id=account_id,
+                        instance_id=instance_id,
+                        error=str(exc),
+                    )
+                    raise
+
+            message = (
+                "新增账户"
+                if change_type == "add"
+                else _strip_username_prefix(log_entry.message, username=username)
+            )
 
             history_items.append(
                 InstanceAccountChangeLogItem(
                     id=log_entry.id,
-                    change_type=log_entry.change_type,
+                    change_type=change_type,
                     change_time=(time_utils.format_china_time(change_time) if change_time else "未知"),
                     status=log_entry.status,
-                    message=_strip_username_prefix(log_entry.message, username=username),
+                    message=message,
                     privilege_diff=privilege_diff,
                     other_diff=other_diff,
                     session_id=log_entry.session_id,
