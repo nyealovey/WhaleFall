@@ -99,18 +99,52 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "    account_locked as is_locked, "
                 "    Grant_priv as can_grant, "
                 "    plugin as plugin, "
-                "    password_last_changed as password_last_changed "
+                "    password_last_changed as password_last_changed, "
+                "    is_role as is_role "
                 "FROM mysql.user "
                 "WHERE " + where_clause + " ORDER BY User, Host"
             )
             conn = cast(_MySQLConnectionProtocol, connection)
-            users = conn.execute_query(user_sql, params)
+
+            has_is_role = True
+            try:
+                users = conn.execute_query(user_sql, params)
+            except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+                has_is_role = False
+                self.logger.warning(
+                    "fetch_mysql_accounts_is_role_unavailable",
+                    module="mysql_account_adapter",
+                    instance=instance.name,
+                    fallback=True,
+                    fallback_reason="mysql.user.is_role unavailable",
+                    error=str(exc),
+                )
+                user_sql = (
+                    "SELECT "
+                    "    User as username, "
+                    "    Host as host, "
+                    "    Super_priv as is_superuser, "
+                    "    account_locked as is_locked, "
+                    "    Grant_priv as can_grant, "
+                    "    plugin as plugin, "
+                    "    password_last_changed as password_last_changed "
+                    "FROM mysql.user "
+                    "WHERE " + where_clause + " ORDER BY User, Host"
+                )
+                users = conn.execute_query(user_sql, params)
 
             accounts: list[RawAccount] = []
-            for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
+            for row in users:
+                if has_is_role:
+                    username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed, is_role = row
+                else:
+                    username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed = row
+                    is_role = "N"
                 unique_username = f"{username}@{host}"
                 is_locked_flag_text = "" if is_locked_flag is None else str(is_locked_flag)
                 is_locked = is_locked_flag_text.upper() == "Y"
+                is_role_flag_text = "" if is_role is None else str(is_role)
+                account_kind = "role" if is_role_flag_text.upper() == "Y" else "user"
                 accounts.append(
                     {
                         "username": unique_username,
@@ -122,6 +156,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                                 "original_username": username,
                                 "super_priv": is_superuser == "Y",
                                 "account_locked": is_locked,
+                                "account_kind": account_kind,
                                 "grant_priv": ("" if can_grant_flag is None else str(can_grant_flag)).upper() == "Y",
                                 "plugin": plugin,
                                 "password_last_changed": (
@@ -186,6 +221,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 {
                     "global_privileges": permissions.global_privileges,
                     "database_privileges": permissions.database_privileges,
+                    "roles": permissions.roles,
                     "type_specific": type_specific,
                 },
             ),
@@ -271,6 +307,93 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         where_clause, params = builder.build_where_clause()
         params_str = [str(param) for param in params]
         return where_clause, params_str
+
+    def _prefetch_roles(
+        self,
+        connection: object,
+        *,
+        target_usernames: set[str],
+    ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+        """批量拉取 MySQL role 关系.
+
+        说明:
+        - 直授角色：mysql.role_edges
+        - 默认角色：mysql.default_roles
+        - 输出 key 统一为 `user@host`，用于与我们的 username 唯一键对齐。
+        """
+
+        def _dedupe(values: list[str]) -> list[str]:
+            seen: set[str] = set()
+            output: list[str] = []
+            for value in values:
+                if value in seen:
+                    continue
+                seen.add(value)
+                output.append(value)
+            return output
+
+        direct_map: dict[str, list[str]] = {}
+        default_map: dict[str, list[str]] = {}
+
+        conn = cast(_MySQLConnectionProtocol, connection)
+
+        direct_sql = (
+            "SELECT "
+            "  CONCAT(FROM_USER, '@', FROM_HOST) AS grantee, "
+            "  CONCAT(TO_USER, '@', TO_HOST) AS role, "
+            "  WITH_ADMIN_OPTION AS with_admin_option "
+            "FROM mysql.role_edges"
+        )
+        try:
+            rows = conn.execute_query(direct_sql)
+        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+            self.logger.warning(
+                "fetch_mysql_role_edges_failed",
+                module="mysql_account_adapter",
+                error=str(exc),
+            )
+        else:
+            for grantee, role, *_rest in rows:
+                if not isinstance(grantee, str) or not isinstance(role, str):
+                    continue
+                grantee_key = grantee.strip()
+                role_value = role.strip()
+                if not grantee_key or not role_value:
+                    continue
+                if target_usernames and grantee_key not in target_usernames:
+                    continue
+                direct_map.setdefault(grantee_key, []).append(role_value)
+
+        default_sql = (
+            "SELECT "
+            "  CONCAT(USER, '@', HOST) AS grantee, "
+            "  CONCAT(DEFAULT_ROLE_USER, '@', DEFAULT_ROLE_HOST) AS role "
+            "FROM mysql.default_roles"
+        )
+        try:
+            rows = conn.execute_query(default_sql)
+        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+            self.logger.warning(
+                "fetch_mysql_default_roles_failed",
+                module="mysql_account_adapter",
+                error=str(exc),
+            )
+        else:
+            for grantee, role, *_rest in rows:
+                if not isinstance(grantee, str) or not isinstance(role, str):
+                    continue
+                grantee_key = grantee.strip()
+                role_value = role.strip()
+                if not grantee_key or not role_value:
+                    continue
+                if target_usernames and grantee_key not in target_usernames:
+                    continue
+                default_map.setdefault(grantee_key, []).append(role_value)
+
+        return (
+            {key: _dedupe(values) for key, values in direct_map.items()},
+            {key: _dedupe(values) for key, values in default_map.items()},
+        )
 
     def _get_user_permissions(self, connection: object, username: str, host: str) -> PermissionSnapshot:
         """获取 MySQL 用户权限详情.
@@ -387,6 +510,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         if not target_usernames:
             return accounts
 
+        direct_roles_map, default_roles_map = self._prefetch_roles(connection, target_usernames=target_usernames)
+
         processed = 0
         for account in accounts:
             resolved = self._resolve_account_identity(account)
@@ -407,6 +532,11 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 for key, value in existing_type_specific.items():
                     if value is not None:
                         type_specific[key] = value
+
+                permissions["roles"] = {
+                    "direct": direct_roles_map.get(username, []),
+                    "default": default_roles_map.get(username, []),
+                }
                 account["permissions"] = permissions
             except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
