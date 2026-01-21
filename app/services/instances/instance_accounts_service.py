@@ -100,10 +100,10 @@ class InstanceAccountsService:
                 snapshot = build_permission_snapshot_view(account)
                 categories = snapshot.get("categories")
                 if instance.db_type == DatabaseType.SQLSERVER and isinstance(categories, dict):
-                    server_roles = categories.get("server_roles")
-                    server_permissions = categories.get("server_permissions")
-                    database_roles = categories.get("database_roles")
-                    database_permissions = categories.get("database_permissions")
+                    server_roles = categories.get("sqlserver_server_roles")
+                    server_permissions = categories.get("sqlserver_server_permissions")
+                    database_roles = categories.get("sqlserver_database_roles")
+                    database_permissions = categories.get("sqlserver_database_permissions")
 
                     item.server_roles = cast("list[str]", server_roles) if isinstance(server_roles, list) else []
                     item.server_permissions = (
