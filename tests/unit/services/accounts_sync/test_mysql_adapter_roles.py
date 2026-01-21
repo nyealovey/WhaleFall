@@ -5,6 +5,7 @@ import pytest
 from app.core.constants import DatabaseType
 from app.core.types import RemoteAccount
 from app.models.instance import Instance
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.accounts_sync.adapters.mysql_adapter import MySQLAccountAdapter
 
 
@@ -17,12 +18,14 @@ class _StubMySQLConnection:
         default_roles_rows: list[tuple] | None = None,
         forbid_information_schema: bool = False,
         forbid_roles_tables: bool = False,
+        forbid_is_role_column: bool = False,
     ) -> None:
         self._user_rows = list(user_rows)
         self._role_edges_rows = list(role_edges_rows or [])
         self._default_roles_rows = list(default_roles_rows or [])
         self._forbid_information_schema = bool(forbid_information_schema)
         self._forbid_roles_tables = bool(forbid_roles_tables)
+        self._forbid_is_role_column = bool(forbid_is_role_column)
         self.queries: list[str] = []
 
     def execute_query(self, sql: str, _params=None):  # type: ignore[no-untyped-def]
@@ -63,6 +66,8 @@ class _StubMySQLConnection:
             result = [("GRANT USAGE ON *.* TO `demo`@`%`",)]
 
         elif "FROM MYSQL.USER" in sql_upper and "ORDER BY USER, HOST" in sql_upper:
+            if self._forbid_is_role_column and "IS_ROLE" in sql_upper:
+                raise ConnectionAdapterError("(1054, \"Unknown column 'is_role' in 'field list'\")")
             result = list(self._user_rows)
 
         elif "FROM MYSQL.USER" in sql_upper and "WHERE USER = %S AND HOST = %S" in sql_upper:
@@ -71,6 +76,11 @@ class _StubMySQLConnection:
         if result is None:
             raise AssertionError(f"unexpected sql: {sql}")
         return result
+
+
+class _FailingConnection:
+    def execute_query(self, _sql: str, _params=None):  # type: ignore[no-untyped-def]
+        raise ConnectionAdapterError("boom")
 
 
 @pytest.mark.unit
@@ -166,6 +176,94 @@ def test_mysql_adapter_enrich_permissions_includes_roles_direct_and_default() ->
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
     assert type_specific.get("account_kind") == "user"
+
+
+@pytest.mark.unit
+def test_mysql_adapter_fetch_raw_accounts_raises_on_query_failure() -> None:
+    adapter = MySQLAccountAdapter()
+    instance = Instance(
+        name="inst",
+        db_type=DatabaseType.MYSQL,
+        host="127.0.0.1",
+        port=3306,
+        main_version="8.0",
+        description=None,
+        is_active=True,
+    )
+
+    with pytest.raises(ConnectionAdapterError):
+        adapter._fetch_raw_accounts(instance, _FailingConnection())
+
+
+@pytest.mark.unit
+def test_mysql_adapter_does_not_assume_is_role_on_mariadb_versions() -> None:
+    adapter = MySQLAccountAdapter()
+    instance = Instance(
+        name="inst",
+        db_type=DatabaseType.MYSQL,
+        host="127.0.0.1",
+        port=3306,
+        database_version="10.4.12-MariaDB",
+        main_version="10.4",
+        description=None,
+        is_active=True,
+    )
+
+    connection = _StubMySQLConnection(
+        forbid_information_schema=True,
+        user_rows=[
+            ("demo", "%", "N", "N", "N", "caching_sha2_password", None),
+        ],
+    )
+
+    accounts = adapter._fetch_raw_accounts(instance, connection)
+    assert len(accounts) == 1
+    permissions = accounts[0]["permissions"]
+    assert isinstance(permissions, dict)
+    type_specific = permissions["type_specific"]
+    assert isinstance(type_specific, dict)
+    assert type_specific.get("account_kind") == "user"
+
+
+@pytest.mark.unit
+def test_mysql_adapter_fetch_raw_accounts_falls_back_when_mysql_user_missing_is_role() -> None:
+    adapter = MySQLAccountAdapter()
+    instance = Instance(
+        name="inst",
+        db_type=DatabaseType.MYSQL,
+        host="127.0.0.1",
+        port=3306,
+        database_version="8.0.32",
+        main_version="8.0",
+        description=None,
+        is_active=True,
+    )
+
+    connection = _StubMySQLConnection(
+        forbid_information_schema=True,
+        forbid_is_role_column=True,
+        user_rows=[
+            ("demo", "%", "N", "N", "N", "caching_sha2_password", None),
+            ("r1", "%", "N", "Y", "N", None, None),
+        ],
+        role_edges_rows=[("r1", "%", "demo", "%", 0)],
+    )
+
+    accounts = adapter._fetch_raw_accounts(instance, connection)
+
+    kind_by_username: dict[str, str] = {}
+    for account in accounts:
+        username = account.get("username")
+        assert isinstance(username, str)
+        permissions = account.get("permissions")
+        assert isinstance(permissions, dict)
+        type_specific = permissions.get("type_specific")
+        assert isinstance(type_specific, dict)
+        account_kind = type_specific.get("account_kind")
+        assert isinstance(account_kind, str)
+        kind_by_username[username] = account_kind
+
+    assert kind_by_username == {"demo@%": "user", "r1@%": "role"}
 
 
 @pytest.mark.unit

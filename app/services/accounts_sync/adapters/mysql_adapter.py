@@ -62,6 +62,51 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
+    def _fetch_mysql_user_rows(
+        self,
+        conn: _MySQLConnectionProtocol,
+        *,
+        where_clause: str,
+        params: Sequence[str],
+        supports_roles: bool,
+    ) -> tuple[Sequence[tuple[Any, ...]], bool]:
+        user_select = (
+            "SELECT "
+            "    User as username, "
+            "    Host as host, "
+            "    Super_priv as is_superuser, "
+            "    account_locked as is_locked, "
+            "    Grant_priv as can_grant, "
+            "    plugin as plugin, "
+            "    password_last_changed as password_last_changed"
+        )
+        user_from_where = " FROM mysql.user " "WHERE " + where_clause + " ORDER BY User, Host"
+
+        user_sql = user_select + (", is_role as is_role" if supports_roles else "") + user_from_where
+
+        has_is_role_column = supports_roles
+        try:
+            users = conn.execute_query(user_sql, params)
+        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+            # 部分 MySQL 兼容实现/托管版会隐藏 mysql.user 的 is_role 列，即使版本号为 8.x。
+            # 这种情况下退回到不选 is_role，并通过 role_edges/default_roles 推断角色集合。
+            error_message = str(exc).lower()
+            if supports_roles and "unknown column" in error_message and "is_role" in error_message:
+                has_is_role_column = False
+                users = conn.execute_query(user_select + user_from_where, params)
+            else:
+                raise
+        return users, has_is_role_column
+
+    def _fetch_assigned_role_usernames(self, connection: object) -> set[str]:
+        direct_map, default_map = self._prefetch_roles(connection, target_usernames=set())
+        role_usernames: set[str] = set()
+        for roles in direct_map.values():
+            role_usernames.update(roles)
+        for roles in default_map.values():
+            role_usernames.update(roles)
+        return role_usernames
+
     def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 MySQL 原始账户信息.
 
@@ -94,27 +139,19 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             conn = cast(_MySQLConnectionProtocol, connection)
             supports_roles = self._supports_roles(instance)
 
-            user_sql = (
-                "SELECT "
-                "    User as username, "
-                "    Host as host, "
-                "    Super_priv as is_superuser, "
-                "    account_locked as is_locked, "
-                "    Grant_priv as can_grant, "
-                "    plugin as plugin, "
-                "    password_last_changed as password_last_changed"
-                + (", is_role as is_role" if supports_roles else "")
-                + " FROM mysql.user "
-                "WHERE "
-                + where_clause
-                + " ORDER BY User, Host"
+            users, has_is_role_column = self._fetch_mysql_user_rows(
+                conn,
+                where_clause=where_clause,
+                params=params,
+                supports_roles=supports_roles,
             )
-
-            users = conn.execute_query(user_sql, params)
+            role_usernames = (
+                self._fetch_assigned_role_usernames(connection) if supports_roles and not has_is_role_column else set()
+            )
 
             accounts: list[RawAccount] = []
             for row in users:
-                if supports_roles:
+                if has_is_role_column:
                     (
                         username,
                         host,
@@ -127,17 +164,22 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     ) = row
                 else:
                     username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed = row
-                    is_role = "N"
+                    is_role = None
+
                 unique_username = f"{username}@{host}"
                 is_locked_flag_text = "" if is_locked_flag is None else str(is_locked_flag)
                 is_locked = is_locked_flag_text.upper() == "Y"
-                is_role_flag_text = "" if is_role is None else str(is_role)
-                account_kind = "role" if is_role_flag_text.upper() == "Y" else "user"
+                account_kind = "user"
+                is_role_flag = isinstance(is_role, str) and is_role.upper() == "Y"
+                if is_role_flag or (supports_roles and unique_username in role_usernames):
+                    account_kind = "role"
+
                 accounts.append(
                     {
                         "username": unique_username,
                         "is_superuser": is_superuser == "Y",
-                        "is_locked": False,
+                        # 角色本身不可登录,不展示为 "锁定".
+                        "is_locked": is_locked if account_kind != "role" else False,
                         "permissions": {
                             "type_specific": {
                                 "host": host,
@@ -156,19 +198,22 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 )
 
         except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+            # 采集失败时必须抛异常,避免上游误判为 "远端 0 账号" 从而清空清单。
             self.logger.exception(
                 "fetch_mysql_accounts_failed",
                 module="mysql_account_adapter",
                 instance=instance.name,
                 error=str(exc),
             )
-            return []
+            raise
+
         else:
             self.logger.info(
                 "fetch_mysql_accounts_success",
                 module="mysql_account_adapter",
                 instance=instance.name,
                 account_count=len(accounts),
+                supports_roles=supports_roles,
             )
             return accounts
 
@@ -180,6 +225,13 @@ class MySQLAccountAdapter(BaseAccountAdapter):
           账号同步阶段只做内部判断，不额外探测系统表/元数据。
         - MySQL 5.7 不支持角色；MySQL 8.0+ 支持角色。
         """
+        database_version_value = getattr(instance, "database_version", None)
+        if isinstance(database_version_value, str) and database_version_value.strip():
+            normalized_database_version = database_version_value.strip().lower()
+            # MariaDB 走 MySQL 类型时,系统表结构与 MySQL 8.0 不同,不可直接读取 is_role / role_edges。
+            if "mariadb" in normalized_database_version:
+                return False
+
         version_value = getattr(instance, "main_version", None) or getattr(instance, "detailed_version", None)
         if not isinstance(version_value, str) or not version_value.strip():
             self.logger.warning(
