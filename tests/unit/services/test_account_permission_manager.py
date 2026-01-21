@@ -30,7 +30,7 @@ def test_apply_permissions_writes_snapshot() -> None:
 def test_apply_permissions_writes_roles_into_categories() -> None:
     manager = AccountPermissionManager()
     record: Any = SimpleNamespace(db_type="mysql", permission_snapshot=None)
-    permissions = {"roles": {"direct": ["r1@%"], "default": []}}
+    permissions = cast(Any, {"roles": {"direct": ["r1@%"], "default": []}})
 
     manager._apply_permissions(record, permissions)
 

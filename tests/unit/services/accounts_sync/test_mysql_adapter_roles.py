@@ -1,6 +1,9 @@
+from typing import cast
+
 import pytest
 
 from app.core.constants import DatabaseType
+from app.core.types import RemoteAccount
 from app.models.instance import Instance
 from app.services.accounts_sync.adapters.mysql_adapter import MySQLAccountAdapter
 
@@ -59,10 +62,23 @@ def test_mysql_adapter_fetch_raw_accounts_sets_account_kind_from_is_role() -> No
 
     accounts = adapter._fetch_raw_accounts(instance, connection)
 
-    assert {account["username"] for account in accounts} == {"demo@%", "demo_role@%"}
-    kind_by_username = {
-        account["username"]: account["permissions"]["type_specific"].get("account_kind") for account in accounts
-    }
+    usernames: set[str] = set()
+    kind_by_username: dict[str, str] = {}
+    for account in accounts:
+        username = account.get("username")
+        assert isinstance(username, str)
+        usernames.add(username)
+
+        permissions = account.get("permissions")
+        assert isinstance(permissions, dict)
+        type_specific = permissions.get("type_specific")
+        assert isinstance(type_specific, dict)
+
+        account_kind = type_specific.get("account_kind")
+        assert isinstance(account_kind, str)
+        kind_by_username[username] = account_kind
+
+    assert usernames == {"demo@%", "demo_role@%"}
     assert kind_by_username == {"demo@%": "user", "demo_role@%": "role"}
 
 
@@ -84,28 +100,33 @@ def test_mysql_adapter_enrich_permissions_includes_roles_direct_and_default() ->
         default_roles_rows=[("demo@%", "r2@%")],
     )
 
-    accounts = [
-        {
-            "username": "demo@%",
-            "display_name": "demo@%",
-            "db_type": DatabaseType.MYSQL,
-            "is_superuser": False,
-            "is_locked": False,
-            "is_active": True,
-            "permissions": {
-                "global_privileges": [],
-                "database_privileges": {},
-                "type_specific": {
-                    "host": "%",
-                    "original_username": "demo",
-                    "account_kind": "user",
+    accounts = cast(
+        list[RemoteAccount],
+        [
+            {
+                "username": "demo@%",
+                "display_name": "demo@%",
+                "db_type": DatabaseType.MYSQL,
+                "is_superuser": False,
+                "is_locked": False,
+                "is_active": True,
+                "permissions": {
+                    "global_privileges": [],
+                    "database_privileges": {},
+                    "type_specific": {
+                        "host": "%",
+                        "original_username": "demo",
+                        "account_kind": "user",
+                    },
                 },
             },
-        },
-    ]
+        ],
+    )
 
     enriched = adapter.enrich_permissions(instance, connection, accounts)
 
     permissions = enriched[0]["permissions"]
     assert permissions.get("roles") == {"direct": ["r1@%"], "default": ["r2@%"]}
-    assert permissions.get("type_specific", {}).get("account_kind") == "user"
+    type_specific = permissions.get("type_specific")
+    assert isinstance(type_specific, dict)
+    assert type_specific.get("account_kind") == "user"
