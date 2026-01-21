@@ -136,7 +136,16 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             accounts: list[RawAccount] = []
             for row in users:
                 if has_is_role:
-                    username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed, is_role = row
+                    (
+                        username,
+                        host,
+                        is_superuser,
+                        is_locked_flag,
+                        can_grant_flag,
+                        plugin,
+                        password_last_changed,
+                        is_role,
+                    ) = row
                 else:
                     username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed = row
                     is_role = "N"
