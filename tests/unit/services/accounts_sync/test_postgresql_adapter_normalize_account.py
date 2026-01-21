@@ -27,7 +27,6 @@ def test_normalize_account_defaults_permissions_when_missing() -> None:
 
     permissions = normalized["permissions"]
     assert permissions.get("postgresql_predefined_roles") == []
-    assert permissions.get("system_privileges") == []
     assert permissions.get("postgresql_database_privileges") == {}
 
     type_specific = permissions.get("type_specific")
@@ -55,7 +54,6 @@ def test_normalize_account_coerces_invalid_permission_shapes() -> None:
             "username": "role1",
             "permissions": {
                 "postgresql_predefined_roles": None,
-                "system_privileges": ["SUPERUSER", "", 1],
                 "postgresql_database_privileges": {"db1": ["CONNECT", None]},
                 "type_specific": [],
                 "postgresql_role_attributes": [],
@@ -65,7 +63,6 @@ def test_normalize_account_coerces_invalid_permission_shapes() -> None:
 
     permissions = normalized["permissions"]
     assert permissions.get("postgresql_predefined_roles") == []
-    assert permissions.get("system_privileges") == ["SUPERUSER"]
     assert permissions.get("postgresql_database_privileges") == {"db1": ["CONNECT"]}
 
     type_specific = permissions.get("type_specific")
