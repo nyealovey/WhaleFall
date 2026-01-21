@@ -14,7 +14,7 @@ from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
-    from app.core.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.core.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
     from app.models.instance import Instance
 
 
@@ -91,6 +91,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         """
         try:
             where_clause, params = self._build_filter_conditions()
+            conn = cast(_MySQLConnectionProtocol, connection)
+            supports_roles = self._supports_roles(instance)
+
             user_sql = (
                 "SELECT "
                 "    User as username, "
@@ -99,43 +102,19 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "    account_locked as is_locked, "
                 "    Grant_priv as can_grant, "
                 "    plugin as plugin, "
-                "    password_last_changed as password_last_changed, "
-                "    is_role as is_role "
-                "FROM mysql.user "
-                "WHERE " + where_clause + " ORDER BY User, Host"
+                "    password_last_changed as password_last_changed"
+                + (", is_role as is_role" if supports_roles else "")
+                + " FROM mysql.user "
+                "WHERE "
+                + where_clause
+                + " ORDER BY User, Host"
             )
-            conn = cast(_MySQLConnectionProtocol, connection)
 
-            has_is_role = True
-            try:
-                users = conn.execute_query(user_sql, params)
-            except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
-                has_is_role = False
-                self.logger.warning(
-                    "fetch_mysql_accounts_is_role_unavailable",
-                    module="mysql_account_adapter",
-                    instance=instance.name,
-                    fallback=True,
-                    fallback_reason="mysql.user.is_role unavailable",
-                    error=str(exc),
-                )
-                user_sql = (
-                    "SELECT "
-                    "    User as username, "
-                    "    Host as host, "
-                    "    Super_priv as is_superuser, "
-                    "    account_locked as is_locked, "
-                    "    Grant_priv as can_grant, "
-                    "    plugin as plugin, "
-                    "    password_last_changed as password_last_changed "
-                    "FROM mysql.user "
-                    "WHERE " + where_clause + " ORDER BY User, Host"
-                )
-                users = conn.execute_query(user_sql, params)
+            users = conn.execute_query(user_sql, params)
 
             accounts: list[RawAccount] = []
             for row in users:
-                if has_is_role:
+                if supports_roles:
                     (
                         username,
                         host,
@@ -192,6 +171,37 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
+
+    def _supports_roles(self, instance: Instance) -> bool:
+        """判断当前 MySQL 实例是否支持内置角色(MySQL 8.0+).
+
+        说明：
+        - 版本信息由连接测试/实例同步阶段写入 `instance.main_version` 等字段；
+          账号同步阶段只做内部判断，不额外探测系统表/元数据。
+        - MySQL 5.7 不支持角色；MySQL 8.0+ 支持角色。
+        """
+        version_value = getattr(instance, "main_version", None) or getattr(instance, "detailed_version", None)
+        if not isinstance(version_value, str) or not version_value.strip():
+            self.logger.warning(
+                "detect_mysql_roles_support_missing_version",
+                module="mysql_account_adapter",
+                instance=instance.name,
+                fallback=True,
+                fallback_reason="instance.main_version/detailed_version missing",
+            )
+            return False
+
+        normalized = version_value.strip().lower()
+        match = re.match(r"(\d+)", normalized)
+        if match is None:
+            return False
+
+        try:
+            major = int(match.group(1))
+        except ValueError:
+            return False
+
+        return major >= 8
 
     def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 MySQL 账户信息.
@@ -348,8 +358,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         direct_sql = (
             "SELECT "
-            "  CONCAT(FROM_USER, '@', FROM_HOST) AS grantee, "
-            "  CONCAT(TO_USER, '@', TO_HOST) AS role, "
+            "  CONCAT(TO_USER, '@', TO_HOST) AS grantee, "
+            "  CONCAT(FROM_USER, '@', FROM_HOST) AS role, "
             "  WITH_ADMIN_OPTION AS with_admin_option "
             "FROM mysql.role_edges"
         )
@@ -519,7 +529,10 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         if not target_usernames:
             return accounts
 
-        direct_roles_map, default_roles_map = self._prefetch_roles(connection, target_usernames=target_usernames)
+        direct_roles_map: dict[str, list[str]] = {}
+        default_roles_map: dict[str, list[str]] = {}
+        if self._supports_roles(instance):
+            direct_roles_map, default_roles_map = self._prefetch_roles(connection, target_usernames=target_usernames)
 
         processed = 0
         for account in accounts:
