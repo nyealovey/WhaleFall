@@ -22,6 +22,7 @@ class TaskRunsRepository:
     """任务运行查询 Repository."""
 
     def list_runs(self, filters: TaskRunsListFilters) -> PaginatedResult[TaskRun]:
+        """分页列出任务运行记录."""
         started_at_column = cast("ColumnElement[Any]", TaskRun.started_at)
         completed_at_column = cast("ColumnElement[Any]", TaskRun.completed_at)
         status_column = cast(ColumnElement[str], TaskRun.status)
@@ -56,6 +57,7 @@ class TaskRunsRepository:
 
     @staticmethod
     def get_run(run_id: str) -> TaskRun:
+        """按 run_id 获取任务运行记录."""
         run = TaskRun.query.filter_by(run_id=run_id).first()
         if not run:
             raise NotFoundError("任务运行不存在")
@@ -63,4 +65,5 @@ class TaskRunsRepository:
 
     @staticmethod
     def list_run_items(run_id: str) -> list[TaskRunItem]:
+        """列出某次任务运行的子项列表."""
         return TaskRunItem.query.filter_by(run_id=run_id).order_by(TaskRunItem.id.asc()).all()

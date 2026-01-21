@@ -33,6 +33,17 @@ def _strip_username_prefix(message: object, *, username: str) -> str | None:
     return trimmed or text
 
 
+def _normalize_display_message(message: object, *, username: str, change_type: str) -> str | None:
+    """输出用于展示的 message(仅展示层).
+
+    - add: 仅保留“新增账户”,避免初始 diff 带来的长摘要噪音。
+    - 其它: 去掉冗余的 `账户 <username>` 前缀.
+    """
+    if change_type == "add":
+        return "新增账户"
+    return _strip_username_prefix(message, username=username)
+
+
 class HistoryAccountChangeLogsReadService:
     """账户变更历史读取服务."""
 
@@ -47,24 +58,30 @@ class HistoryAccountChangeLogsReadService:
         items: list[AccountChangeLogListItem] = []
         for row in page_result.items:
             log_entry, instance_name, account_id = row
+            change_type = str(getattr(log_entry, "change_type", "") or "")
 
             raw_privilege_diff = getattr(log_entry, "privilege_diff", None)
             raw_other_diff = getattr(log_entry, "other_diff", None)
 
-            try:
-                privilege_entries = extract_diff_entries(raw_privilege_diff)
-                other_entries = extract_diff_entries(raw_other_diff)
-            except Exception as exc:
-                self._logger.exception(
-                    "account_change_log diff payload invalid",
-                    module="history_account_change_logs",
-                    log_id=getattr(log_entry, "id", None),
-                    error=str(exc),
-                )
-                raise
+            if change_type == "add":
+                privilege_entries = []
+                other_entries = []
+            else:
+                try:
+                    privilege_entries = extract_diff_entries(raw_privilege_diff)
+                    other_entries = extract_diff_entries(raw_other_diff)
+                except Exception as exc:
+                    self._logger.exception(
+                        "account_change_log diff payload invalid",
+                        module="history_account_change_logs",
+                        log_id=getattr(log_entry, "id", None),
+                        error=str(exc),
+                    )
+                    raise
 
             change_time_value = getattr(log_entry, "change_time", None)
             change_time_display = time_utils.format_china_time(change_time_value) if change_time_value else "未知"
+            username = str(getattr(log_entry, "username", "") or "")
 
             items.append(
                 AccountChangeLogListItem(
@@ -73,13 +90,10 @@ class HistoryAccountChangeLogsReadService:
                     instance_id=int(getattr(log_entry, "instance_id", 0) or 0),
                     instance_name=(str(instance_name) if instance_name else None),
                     db_type=str(getattr(log_entry, "db_type", "") or ""),
-                    username=str(getattr(log_entry, "username", "") or ""),
-                    change_type=str(getattr(log_entry, "change_type", "") or ""),
+                    username=username,
+                    change_type=change_type,
                     status=str(getattr(log_entry, "status", "") or ""),
-                    message=_strip_username_prefix(
-                        getattr(log_entry, "message", None),
-                        username=str(getattr(log_entry, "username", "") or ""),
-                    ),
+                    message=_normalize_display_message(getattr(log_entry, "message", None), username=username, change_type=change_type),
                     change_time=change_time_display,
                     session_id=getattr(log_entry, "session_id", None),
                     privilege_diff_count=len(privilege_entries),
@@ -98,37 +112,40 @@ class HistoryAccountChangeLogsReadService:
     def get_log_detail(self, log_id: int) -> dict[str, object]:
         """获取单条变更日志详情."""
         log_entry = self._repository.get_log(log_id)
+        change_type = str(getattr(log_entry, "change_type", "") or "")
 
         raw_privilege_diff = getattr(log_entry, "privilege_diff", None)
         raw_other_diff = getattr(log_entry, "other_diff", None)
 
-        try:
-            privilege_entries = extract_diff_entries(raw_privilege_diff)
-            other_entries = extract_diff_entries(raw_other_diff)
-        except Exception as exc:
-            self._logger.exception(
-                "account_change_log diff payload invalid",
-                module="history_account_change_logs",
-                log_id=log_id,
-                error=str(exc),
-            )
-            raise
+        if change_type == "add":
+            privilege_entries = []
+            other_entries = []
+        else:
+            try:
+                privilege_entries = extract_diff_entries(raw_privilege_diff)
+                other_entries = extract_diff_entries(raw_other_diff)
+            except Exception as exc:
+                self._logger.exception(
+                    "account_change_log diff payload invalid",
+                    module="history_account_change_logs",
+                    log_id=log_id,
+                    error=str(exc),
+                )
+                raise
 
         change_time_value = getattr(log_entry, "change_time", None)
         change_time_display = time_utils.format_china_time(change_time_value) if change_time_value else "未知"
+        username = str(getattr(log_entry, "username", "") or "")
 
         payload: dict[str, object] = {
             "id": int(getattr(log_entry, "id", 0) or 0),
             "instance_id": int(getattr(log_entry, "instance_id", 0) or 0),
             "db_type": str(getattr(log_entry, "db_type", "") or ""),
-            "username": str(getattr(log_entry, "username", "") or ""),
-            "change_type": str(getattr(log_entry, "change_type", "") or ""),
+            "username": username,
+            "change_type": change_type,
             "change_time": change_time_display,
             "status": str(getattr(log_entry, "status", "") or ""),
-            "message": _strip_username_prefix(
-                getattr(log_entry, "message", None),
-                username=str(getattr(log_entry, "username", "") or ""),
-            ),
+            "message": _normalize_display_message(getattr(log_entry, "message", None), username=username, change_type=change_type),
             "privilege_diff": privilege_entries,
             "other_diff": other_entries,
             "session_id": getattr(log_entry, "session_id", None),

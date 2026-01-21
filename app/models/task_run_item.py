@@ -51,6 +51,7 @@ class TaskRunItem(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
     def to_dict(self) -> dict[str, Any]:
+        """转换为字典(用于序列化展示)."""
         return {
             "id": self.id,
             "run_id": self.run_id,

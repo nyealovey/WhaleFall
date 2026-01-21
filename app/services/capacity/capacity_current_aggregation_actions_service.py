@@ -106,6 +106,7 @@ class CapacityCurrentAggregationActionsService:
     """当前周期聚合动作编排服务."""
 
     def __init__(self, *, task: Callable[..., Any] | None = None) -> None:
+        """初始化服务并允许注入 task(便于测试/替换执行入口)."""
         self._task = task or _resolve_default_task()
 
     def prepare_background_aggregation(

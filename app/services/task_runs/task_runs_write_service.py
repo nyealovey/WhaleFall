@@ -23,6 +23,8 @@ from app.utils.time_utils import time_utils
 
 @dataclass(frozen=True, slots=True)
 class TaskRunItemInit:
+    """初始化 TaskRunItem 的输入结构."""
+
     item_type: str
     item_key: str
     item_name: str | None = None
@@ -61,6 +63,7 @@ class TaskRunsWriteService:
         summary_json: dict[str, Any] | None = None,
         result_url: str | None = None,
     ) -> str:
+        """创建 TaskRun 并返回 run_id(由调用方控制 commit)."""
         run_id = str(uuid4())
         # SQLAlchemy Model __init__ signature isn't type-aware; assign fields explicitly for pyright.
         run = TaskRun()
@@ -81,6 +84,7 @@ class TaskRunsWriteService:
         return run_id
 
     def init_items(self, run_id: str, *, items: list[TaskRunItemInit]) -> None:
+        """批量初始化 TaskRunItem，并更新 run.progress_total."""
         run = self._get_run_or_error(run_id)
 
         to_create: list[TaskRunItem] = []
@@ -107,6 +111,7 @@ class TaskRunsWriteService:
         return item
 
     def start_item(self, run_id: str, *, item_type: str, item_key: str) -> None:
+        """将指定子项标记为 running，并写入 started_at."""
         self._get_run_or_error(run_id)
         item = self._get_item_or_error(run_id=run_id, item_type=item_type, item_key=item_key)
         if item.status in {"completed", "failed", "cancelled"}:
@@ -124,6 +129,7 @@ class TaskRunsWriteService:
         metrics_json: dict[str, Any] | None = None,
         details_json: dict[str, Any] | None = None,
     ) -> None:
+        """将指定子项标记为 completed，并写入完成时间与可选详情."""
         self._get_run_or_error(run_id)
         item = self._get_item_or_error(run_id=run_id, item_type=item_type, item_key=item_key)
         if item.status in {"failed", "cancelled"}:
@@ -144,6 +150,7 @@ class TaskRunsWriteService:
         error_message: str,
         details_json: dict[str, Any] | None = None,
     ) -> None:
+        """将指定子项标记为 failed，并写入错误信息与可选详情."""
         self._get_run_or_error(run_id)
         item = self._get_item_or_error(run_id=run_id, item_type=item_type, item_key=item_key)
         if item.status == "cancelled":
@@ -155,6 +162,7 @@ class TaskRunsWriteService:
             item.details_json = self._ensure_json_serializable(details_json)
 
     def finalize_run(self, run_id: str) -> None:
+        """汇总子项状态并更新 run 的进度与完成状态."""
         run = self._get_run_or_error(run_id)
 
         items = TaskRunItem.query.filter_by(run_id=run_id).all()
@@ -172,6 +180,7 @@ class TaskRunsWriteService:
         run.completed_at = time_utils.now()
 
     def cancel_run(self, run_id: str) -> bool:
+        """取消任务运行(仅 running 可取消)，并将 pending/running 子项标记为 cancelled."""
         run = self._get_run_or_error(run_id)
         if run.status != "running":
             return False
