@@ -112,36 +112,119 @@
     `;
   }
 
+  function parseKeyValuePairs(text) {
+    const source = normalizeText(text);
+    if (!source || !source.includes(":")) {
+      return null;
+    }
+    const result = new Map();
+    source.split(";").forEach((raw) => {
+      const segment = raw.trim();
+      if (!segment) {
+        return;
+      }
+      const idx = segment.indexOf(":");
+      if (idx <= 0) {
+        return;
+      }
+      const key = segment.slice(0, idx).trim();
+      if (!key) {
+        return;
+      }
+      result.set(key, segment.slice(idx + 1).trim());
+    });
+    return result.size ? result : null;
+  }
+
+  function buildTypeSpecificDiffRows(entry) {
+    if (!entry || entry.field !== "type_specific") {
+      return null;
+    }
+    const beforeMap = parseKeyValuePairs(entry.before);
+    const afterMap = parseKeyValuePairs(entry.after);
+    if (!beforeMap && !afterMap) {
+      return null;
+    }
+    const baseLabel = entry?.label || entry?.field || "数据库特性";
+    const keySet = new Set();
+    if (beforeMap) {
+      Array.from(beforeMap.keys()).forEach((key) => keySet.add(key));
+    }
+    if (afterMap) {
+      Array.from(afterMap.keys()).forEach((key) => keySet.add(key));
+    }
+    const keys = Array.from(keySet).sort();
+    const rows = keys.map((key) => {
+      const before = beforeMap?.get(key) || "";
+      const after = afterMap?.get(key) || "";
+      if (before === after) {
+        return null;
+      }
+      return {
+        label: `${baseLabel} · ${key}`,
+        before,
+        after,
+        description: "",
+      };
+    }).filter(Boolean);
+    return rows.length ? rows : null;
+  }
+
+  function computeOtherDisplayCount(diffEntries) {
+    if (!Array.isArray(diffEntries) || diffEntries.length === 0) {
+      return 0;
+    }
+    let count = 0;
+    diffEntries.forEach((entry) => {
+      const rows = buildTypeSpecificDiffRows(entry);
+      count += rows ? rows.length : 1;
+    });
+    return count;
+  }
+
+  function renderOtherDiffRow(entry) {
+    const label = entry?.label || entry?.field || "其他字段";
+    const before = entry?.before ? `<span class="ledger-chip ledger-chip--muted">${escapeHtml(entry.before)}</span>` : '<span class="ledger-chip ledger-chip--muted">未设置</span>';
+    const after = entry?.after ? `<span class="ledger-chip">${escapeHtml(entry.after)}</span>` : '<span class="ledger-chip">未设置</span>';
+    const desc = entry?.description ? `<p class="change-history-stack-desc">${escapeHtml(entry.description)}</p>` : "";
+
+    return `
+      <div class="change-history-stack-row">
+        ${renderChip(label, "chip-outline--muted")}
+        <div class="change-history-stack-value">
+          ${renderPill("原", "status-pill--muted")}
+          ${before}
+          ${renderPill("现", "status-pill--info")}
+          ${after}
+        </div>
+        ${desc}
+      </div>
+    `;
+  }
+
   function renderOtherDiffEntries(diffEntries) {
     if (!Array.isArray(diffEntries) || diffEntries.length === 0) {
       return "";
     }
 
-    const rows = diffEntries.map((entry) => {
-      const label = entry?.label || entry?.field || "其他字段";
-      const before = entry?.before ? `<span class="ledger-chip ledger-chip--muted">${escapeHtml(entry.before)}</span>` : '<span class="ledger-chip ledger-chip--muted">未设置</span>';
-      const after = entry?.after ? `<span class="ledger-chip">${escapeHtml(entry.after)}</span>` : '<span class="ledger-chip">未设置</span>';
-      const desc = entry?.description ? `<p class="change-history-stack-desc">${escapeHtml(entry.description)}</p>` : "";
-
-      return `
-        <div class="change-history-stack-row">
-          ${renderChip(label, "chip-outline--muted")}
-          <div class="change-history-stack-value">
-            ${renderPill("原", "status-pill--muted")}
-            ${before}
-            ${renderPill("现", "status-pill--info")}
-            ${after}
-          </div>
-          ${desc}
-        </div>
-      `;
+    const rows = [];
+    diffEntries.forEach((entry) => {
+      const typeSpecificRows = buildTypeSpecificDiffRows(entry);
+      if (typeSpecificRows) {
+        typeSpecificRows.forEach((row) => {
+          rows.push(renderOtherDiffRow(row));
+        });
+        return;
+      }
+      rows.push(renderOtherDiffRow(entry));
     });
+    const displayCount = computeOtherDisplayCount(diffEntries);
 
     return `
       <section class="change-history-section">
         <div class="change-history-section__title">
           ${renderChip("其他属性", "chip-outline--brand", "fas fa-sliders-h")}
-          ${renderPill(`${diffEntries.length} 项`, "status-pill--muted")}
+          ${renderPill(`${displayCount} 项`, "status-pill--muted")}
         </div>
         <div class="change-history-stack">
           ${rows.join("")}
@@ -162,8 +245,12 @@
   }
 
   function buildSummaryPills(change) {
+    const changeType = normalizeText(change?.change_type).toLowerCase();
+    if (changeType === "add") {
+      return "";
+    }
     const privilegeCount = Array.isArray(change?.privilege_diff) ? change.privilege_diff.length : 0;
-    const otherCount = Array.isArray(change?.other_diff) ? change.other_diff.length : 0;
+    const otherCount = computeOtherDisplayCount(change?.other_diff);
     const pills = [];
     if (privilegeCount) {
       pills.push(renderPill(`权限 ${privilegeCount} 项`, "status-pill--muted", "fas fa-key"));
@@ -179,13 +266,23 @@
     const typeInfo = resolveChangeTypeInfo(change?.change_type);
     const statusInfo = resolveStatusInfo(change?.status);
     const timeText = normalizeText(change?.change_time) || "未知时间";
-    const message = normalizeText(change?.message) || "无摘要";
+    const changeType = normalizeText(change?.change_type).toLowerCase();
+    const isAdd = changeType === "add";
+    const rawStatus = normalizeText(change?.status).toLowerCase();
+    const isSuccess = rawStatus === "success" || rawStatus === "ok";
+    const privilegeCount = Array.isArray(change?.privilege_diff) ? change.privilege_diff.length : 0;
+    const otherCount = computeOtherDisplayCount(change?.other_diff);
+    const hasDiffs = Boolean(privilegeCount || otherCount);
+    const messageText = isAdd ? "新增账户" : normalizeText(change?.message);
+    const shouldShowMessage = isAdd ? true : (!isSuccess || !hasDiffs);
 
-    const privilegeHtml = renderPrivilegeDiffEntries(change?.privilege_diff);
-    const otherHtml = renderOtherDiffEntries(change?.other_diff);
-    const sections = privilegeHtml || otherHtml
-      ? `${privilegeHtml}${otherHtml}`
-      : `<section class="change-history-section">${renderPill("无具体字段变更", "status-pill--muted")}</section>`;
+    const privilegeHtml = isAdd ? "" : renderPrivilegeDiffEntries(change?.privilege_diff);
+    const otherHtml = isAdd ? "" : renderOtherDiffEntries(change?.other_diff);
+    const sections = isAdd
+      ? ""
+      : (privilegeHtml || otherHtml
+        ? `${privilegeHtml}${otherHtml}`
+        : `<section class="change-history-section">${renderPill("无具体字段变更", "status-pill--muted")}</section>`);
 
     const containerTag = collapsible ? "details" : "article";
     const openAttr = collapsible && open ? " open" : "";
@@ -207,7 +304,7 @@
 
     const bodyHtml = `
       <div class="change-history-card__body">
-        <p class="change-history-card__message">${escapeHtml(message)}</p>
+        ${shouldShowMessage ? `<p class="change-history-card__message">${escapeHtml(messageText || "无摘要")}</p>` : ""}
         ${sections}
       </div>
     `;
@@ -227,4 +324,3 @@
     resolveStatusInfo,
   };
 })(window);
-
