@@ -128,10 +128,10 @@ related:
 - `SHOW GRANTS FOR user@host` -> 解析全局权限与库级权限.
 - `mysql.user`(where user/host) -> 补齐 `plugin`, `account_locked`, `password_last_changed` 等属性.
 - 角色信息:
-  - `roles`: `{direct: [...], default: [...]}`
-  - `role_members`(仅 role 才有): `{direct: [...], default: [...]}`
+  - `mysql_granted_roles`: `{direct: [...], default: [...]}`
+  - `mysql_role_members`(仅 role 才有): `{direct: [...], default: [...]}`
 
-`role_members` 的构造:
+`mysql_role_members` 的构造:
 
 - 全量拉取 `role_edges/default_roles` 后在内存中做映射反转.
 - direct: role_edges 中 `role -> [user]`
@@ -141,10 +141,10 @@ related:
 
 - `AccountPermissionManager` 负责把 `permissions` 写入 `permission_snapshot`(version=4).
 - MySQL 相关 categories:
-  - `roles`
-  - `role_members`
-  - `global_privileges`
-  - `database_privileges`
+  - `mysql_granted_roles`
+  - `mysql_role_members`
+  - `mysql_global_privileges`
+  - `mysql_database_privileges`
 
 ## 4. 从落库到展示: 页面与 API
 
@@ -175,7 +175,7 @@ related:
 - 前端基于 v4 snapshot.categories 渲染 MySQL:
   - 直授角色
   - 默认角色
-  - 包含用户(仅当 snapshot.categories.role_members 存在)
+  - 包含用户(仅当 snapshot.categories.mysql_role_members 存在)
   - 全局权限
   - 数据库权限
   - 表权限(若存在)
