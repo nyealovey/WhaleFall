@@ -37,7 +37,7 @@ class PermissionSnapshot(TypedDict, total=False):
 
     # Oracle
     oracle_roles: list[str]
-    system_privileges: list[str]
+    oracle_system_privileges: list[str]
 
     errors: list[str]
     type_specific: JsonDict
