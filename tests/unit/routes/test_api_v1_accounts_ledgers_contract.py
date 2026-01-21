@@ -118,6 +118,7 @@ def test_api_v1_accounts_ledgers_contract() -> None:
             "is_superuser",
             "is_active",
             "is_deleted",
+            "last_change_time",
             "tags",
             "classifications",
         }

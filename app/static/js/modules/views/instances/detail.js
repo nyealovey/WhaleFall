@@ -32,6 +32,7 @@
     let instanceModals = null;
     let instanceStore = null;
     let historyModal = null;
+    let accountsGridController = null;
     let accountsGrid = null;
     let databaseSizesGrid = null;
     let tableSizesModal = null;
@@ -585,6 +586,18 @@ function initializeAccountsGrid() {
         console.warn('gridjs.html 未加载，账户列表将回退为纯文本渲染');
     }
 
+    // 避免重复 mount 导致出现多个 grid。
+    if (accountsGridController?.destroy) {
+        try {
+            accountsGridController.destroy();
+        } catch (error) {
+            console.warn('销毁旧账户列表 grid 失败:', error);
+        }
+    }
+    accountsGridController = null;
+    accountsGrid = null;
+    container.innerHTML = '';
+
     const controller = GridPage.mount({
         root: pageRoot,
         grid: '#instance-accounts-grid',
@@ -635,6 +648,7 @@ function initializeAccountsGrid() {
         ],
     });
 
+    accountsGridController = controller || null;
     accountsGrid = controller?.gridWrapper || null;
 }
 
@@ -648,6 +662,8 @@ function handleAccountsServerResponse(response) {
     return items.map((item) => ([
         item.id || null,
         item.username || '-',
+        item.type_specific?.plugin || '',
+        item.type_specific?.account_kind || '',
         item.is_locked,
         item.is_superuser,
         item.is_deleted,
@@ -682,6 +698,9 @@ function normalizeAccountsFilters(filters) {
 }
 
 function buildAccountsGridColumns() {
+    const dbType = String(getInstanceDbType() || '').toLowerCase();
+    const showMySQLFields = dbType === 'mysql';
+
     const columns = [
         {
             name: 'ID',
@@ -693,6 +712,20 @@ function buildAccountsGridColumns() {
             name: '账户',
             id: 'username',
             formatter: (cell, row) => renderAccountUsernameCell(cell, getRowMeta(row)),
+        },
+        {
+            name: '插件',
+            id: 'plugin',
+            width: '220px',
+            hidden: !showMySQLFields,
+            formatter: (cell, row) => renderAccountPluginCell(cell, getRowMeta(row)),
+        },
+        {
+            name: '类型',
+            id: 'account_kind',
+            width: '90px',
+            hidden: !showMySQLFields,
+            formatter: (cell, row) => renderAccountKindCell(cell, getRowMeta(row)),
         },
         {
             name: '锁定',
@@ -745,17 +778,9 @@ function renderAccountUsernameCell(value, meta) {
     }
     const typeSpecific = meta?.type_specific || {};
     const host = typeSpecific?.host ? String(typeSpecific.host) : null;
-    const plugin = typeSpecific?.plugin ? String(typeSpecific.plugin).toUpperCase() : null;
-    const accountKind = typeSpecific?.account_kind ? String(typeSpecific.account_kind).toLowerCase() : null;
     const subtitleParts = [];
     if (host && !username.includes('@')) {
         subtitleParts.push(`@${host}`);
-    }
-    if (accountKind === 'role') {
-        subtitleParts.push('ROLE');
-    }
-    if (plugin) {
-        subtitleParts.push(plugin);
     }
     const subtitle = subtitleParts.length ? `<div class="text-muted small">${escapeHtml(subtitleParts.join(' · '))}</div>` : '';
     return gridHtml(`
@@ -764,6 +789,27 @@ function renderAccountUsernameCell(value, meta) {
             ${subtitle}
         </div>
     `);
+}
+
+function renderAccountPluginCell(value, meta) {
+    const typeSpecific = meta?.type_specific || {};
+    const rawPlugin = value || typeSpecific?.plugin;
+    const plugin = rawPlugin ? String(rawPlugin).toUpperCase() : '';
+    if (!plugin) {
+        return gridHtml ? gridHtml('<span class="text-muted">-</span>') : '-';
+    }
+    return gridHtml ? gridHtml(`<span class="chip-outline chip-outline--muted">${escapeHtml(plugin)}</span>`) : plugin;
+}
+
+function renderAccountKindCell(value, meta) {
+    const typeSpecific = meta?.type_specific || {};
+    const rawKind = value || typeSpecific?.account_kind;
+    const kind = typeof rawKind === 'string' ? rawKind.toLowerCase() : '';
+    if (kind !== 'user' && kind !== 'role') {
+        return gridHtml ? gridHtml('<span class="text-muted">-</span>') : '-';
+    }
+    const cls = kind === 'role' ? 'status-pill status-pill--info' : 'status-pill status-pill--muted';
+    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(kind)}</span>`) : kind;
 }
 
 function renderAccountLockedCell(isLocked, meta) {
@@ -1497,6 +1543,18 @@ function getInstanceName() {
     return '未知实例';
 }
 
+function getInstanceDbType() {
+    const datasetType = getInstanceDatasetValue('dbType');
+    if (datasetType) {
+        return datasetType;
+    }
+    const badge = selectOne('.chip-outline--brand');
+    if (badge.length) {
+        return (badge.text() || '').trim();
+    }
+    return '';
+}
+
 function getSyncAccountsUrl() {
     return getInstanceDatasetValue('syncAccountsUrl');
 }
@@ -1511,6 +1569,8 @@ function getInstanceDatasetValue(field) {
             return root.dataset?.instanceId || root.getAttribute('data-instance-id') || null;
         case 'instanceName':
             return root.dataset?.instanceName || root.getAttribute('data-instance-name') || null;
+        case 'dbType':
+            return root.dataset?.dbType || root.getAttribute('data-db-type') || null;
         case 'syncAccountsUrl':
             return root.dataset?.syncAccountsUrl || root.getAttribute('data-sync-accounts-url') || null;
         default:
