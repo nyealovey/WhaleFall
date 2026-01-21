@@ -45,19 +45,23 @@ PERMISSION_LOG_EXCEPTIONS: tuple[type[Exception], ...] = (
 )
 
 PRIVILEGE_FIELD_LABELS: dict[str, str] = {
-    "global_privileges": "全局权限",
-    "database_privileges": "数据库权限",
-    "roles": "角色",
-    "role_members": "角色成员",
-    "predefined_roles": "预设角色",
-    "role_attributes": "角色属性",
-    "tablespace_privileges": "表空间权限",
-    "server_roles": "服务器角色",
-    "server_permissions": "服务器权限",
-    "database_roles": "数据库角色",
-    "database_permissions": "数据库权限",
+    # MySQL
+    "mysql_global_privileges": "全局权限",
+    "mysql_database_privileges": "数据库权限",
+    "mysql_granted_roles": "角色",
+    "mysql_role_members": "角色成员",
+    # PostgreSQL
+    "postgresql_predefined_roles": "预设角色",
+    "postgresql_role_attributes": "角色属性",
+    "postgresql_database_privileges": "数据库权限",
+    # SQL Server
+    "sqlserver_server_roles": "服务器角色",
+    "sqlserver_server_permissions": "服务器权限",
+    "sqlserver_database_roles": "数据库角色",
+    "sqlserver_database_permissions": "数据库权限",
+    # Oracle
     "oracle_roles": "Oracle 角色",
-    "system_privileges": "系统权限",
+    "oracle_system_privileges": "系统权限",
 }
 
 OTHER_FIELD_LABELS: dict[str, str] = {
@@ -113,20 +117,19 @@ snapshot_build_duration = _build_histogram(
 )
 
 _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
-    "global_privileges": "global_privileges",
-    "database_privileges": "database_privileges",
-    "roles": "roles",
-    "role_members": "role_members",
-    "predefined_roles": "predefined_roles",
-    "role_attributes": "role_attributes",
-    "database_privileges_pg": "database_privileges",
-    "tablespace_privileges": "tablespace_privileges",
-    "server_roles": "server_roles",
-    "server_permissions": "server_permissions",
-    "database_roles": "database_roles",
-    "database_permissions": "database_permissions",
+    "mysql_global_privileges": "mysql_global_privileges",
+    "mysql_database_privileges": "mysql_database_privileges",
+    "mysql_granted_roles": "mysql_granted_roles",
+    "mysql_role_members": "mysql_role_members",
+    "postgresql_predefined_roles": "postgresql_predefined_roles",
+    "postgresql_role_attributes": "postgresql_role_attributes",
+    "postgresql_database_privileges": "postgresql_database_privileges",
+    "sqlserver_server_roles": "sqlserver_server_roles",
+    "sqlserver_server_permissions": "sqlserver_server_permissions",
+    "sqlserver_database_roles": "sqlserver_database_roles",
+    "sqlserver_database_permissions": "sqlserver_database_permissions",
     "oracle_roles": "oracle_roles",
-    "system_privileges": "system_privileges",
+    "oracle_system_privileges": "oracle_system_privileges",
 }
 
 _TYPE_SPECIFIC_FORBIDDEN_KEYS: set[str] = {

@@ -34,17 +34,17 @@ def _base_snapshot(*, adapter: str, collected_at: str) -> JsonDict:
 MYSQL_SNAPSHOT_V4_BASIC: JsonDict = {
     **_base_snapshot(adapter="mysql", collected_at="2025-12-30T00:00:00Z"),
     "categories": {
-        "roles": {
+        "mysql_granted_roles": {
             "direct": ["'app_role'@'%'"],
             "default": ["'app_role'@'%'"],
             "closure_enabled": False,
         },
-        "global_privileges": {
+        "mysql_global_privileges": {
             "granted": ["SELECT", "INSERT"],
             "grantable": ["SELECT"],
             "denied": [],
         },
-        "database_privileges": {
+        "mysql_database_privileges": {
             "db1": {"granted": ["CREATE"], "grantable": [], "denied": []},
         },
     },
@@ -67,13 +67,13 @@ MYSQL_SNAPSHOT_V4_BASIC: JsonDict = {
 MYSQL_SNAPSHOT_V4_EMPTY_PERMISSIONS: JsonDict = {
     **_base_snapshot(adapter="mysql", collected_at="2025-12-30T00:00:00Z"),
     "categories": {
-        "roles": {
+        "mysql_granted_roles": {
             "direct": [],
             "default": [],
             "closure_enabled": False,
         },
-        "global_privileges": {"granted": [], "grantable": [], "denied": []},
-        "database_privileges": {},
+        "mysql_global_privileges": {"granted": [], "grantable": [], "denied": []},
+        "mysql_database_privileges": {},
     },
     "errors": ["MYSQL_ROLE_CLOSURE_DISABLED"],
 }
@@ -82,9 +82,9 @@ MYSQL_SNAPSHOT_V4_EMPTY_PERMISSIONS: JsonDict = {
 POSTGRESQL_SNAPSHOT_V4_BASIC: JsonDict = {
     **_base_snapshot(adapter="postgresql", collected_at="2025-12-30T00:00:00Z"),
     "categories": {
-        "predefined_roles": ["pg_read_all_data", "pg_write_all_data"],
-        "role_attributes": {"rolsuper": False, "rolcreaterole": True},
-        "database_privileges": {
+        "postgresql_predefined_roles": ["pg_read_all_data", "pg_write_all_data"],
+        "postgresql_role_attributes": {"rolsuper": False, "rolcreaterole": True},
+        "postgresql_database_privileges": {
             "db1": {"granted": ["CONNECT"], "grantable": []},
         },
     },
@@ -95,10 +95,10 @@ POSTGRESQL_SNAPSHOT_V4_BASIC: JsonDict = {
 SQLSERVER_SNAPSHOT_V4_BASIC: JsonDict = {
     **_base_snapshot(adapter="sqlserver", collected_at="2025-12-30T00:00:00Z"),
     "categories": {
-        "server_roles": ["securityadmin"],
-        "server_permissions": ["CONTROL SERVER"],
-        "database_roles": {"db1": ["db_owner"]},
-        "database_permissions": {"db1": ["SELECT", "INSERT"]},
+        "sqlserver_server_roles": ["securityadmin"],
+        "sqlserver_server_permissions": ["CONTROL SERVER"],
+        "sqlserver_database_roles": {"db1": ["db_owner"]},
+        "sqlserver_database_permissions": {"db1": ["SELECT", "INSERT"]},
     },
     "type_specific": {"sqlserver": {"login_type": "SQL_LOGIN"}},
 }
@@ -108,7 +108,7 @@ ORACLE_SNAPSHOT_V4_BASIC: JsonDict = {
     **_base_snapshot(adapter="oracle", collected_at="2025-12-30T00:00:00Z"),
     "categories": {
         "oracle_roles": ["DBA"],
-        "system_privileges": ["GRANT ANY PRIVILEGE", "UNLIMITED TABLESPACE"],
+        "oracle_system_privileges": ["GRANT ANY PRIVILEGE", "UNLIMITED TABLESPACE"],
     },
     "type_specific": {"oracle": {"profile": "DEFAULT"}},
 }

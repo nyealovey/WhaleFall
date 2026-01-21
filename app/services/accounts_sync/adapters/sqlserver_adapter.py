@@ -199,10 +199,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         is_superuser = parsed.is_superuser
         is_locked = parsed.is_locked
         normalized_permissions: PermissionSnapshot = {
-            "server_roles": parsed.permissions.server_roles,
-            "server_permissions": parsed.permissions.server_permissions,
-            "database_roles": parsed.permissions.database_roles,
-            "database_permissions": cast("JsonDict", parsed.permissions.database_permissions),
+            "sqlserver_server_roles": parsed.permissions.sqlserver_server_roles,
+            "sqlserver_server_permissions": parsed.permissions.sqlserver_server_permissions,
+            "sqlserver_database_roles": parsed.permissions.sqlserver_database_roles,
+            "sqlserver_database_permissions": cast("JsonDict", parsed.permissions.sqlserver_database_permissions),
             "type_specific": type_specific,
         }
         return {
@@ -475,10 +475,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         database_permissions = self._copy_database_permissions(db_permissions_map.get(login_name))
 
         permissions: PermissionSnapshot = {
-            "server_roles": server_roles,
-            "server_permissions": server_permissions,
-            "database_roles": database_roles,
-            "database_permissions": database_permissions,
+            "sqlserver_server_roles": server_roles,
+            "sqlserver_server_permissions": server_permissions,
+            "sqlserver_database_roles": database_roles,
+            "sqlserver_database_permissions": database_permissions,
             "type_specific": {},
         }
         return permissions

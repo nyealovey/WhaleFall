@@ -290,9 +290,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             "permissions": cast(
                 "PermissionSnapshot",
                 {
-                    "global_privileges": permissions.global_privileges,
-                    "database_privileges": permissions.database_privileges,
-                    "roles": permissions.roles,
+                    "mysql_global_privileges": permissions.mysql_global_privileges,
+                    "mysql_database_privileges": permissions.mysql_database_privileges,
+                    "mysql_granted_roles": permissions.mysql_granted_roles,
                     "type_specific": type_specific,
                 },
             ),
@@ -478,7 +478,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         dict[str, list[str]],
         dict[str, list[str]],
     ]:
-        """为 MySQL enrich_permissions 预取角色相关映射。
+        """为 MySQL enrich_permissions 预取角色相关映射.
 
         返回:
         - supports_roles: 是否支持角色（8.0+）
@@ -487,7 +487,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         - role_members_direct_map: role -> [user]
         - role_members_default_map: role -> [user]
         """
-
         supports_roles = self._supports_roles(instance)
         if not supports_roles:
             return False, {}, {}, {}, {}
@@ -577,13 +576,13 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             权限信息字典,包含:
-            - global_privileges: 全局权限列表
-            - database_privileges: 数据库级权限字典
+            - mysql_global_privileges: 全局权限列表
+            - mysql_database_privileges: 数据库级权限字典
             - type_specific: 数据库特定信息
 
         Example:
             >>> perms = adapter._get_user_permissions(connection, 'root', 'localhost')
-            >>> print(perms['global_privileges'])
+            >>> print(perms['mysql_global_privileges'])
             ['SELECT', 'INSERT', 'UPDATE', ...]
 
         """
@@ -621,8 +620,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     },
                 )
             permissions_snapshot: PermissionSnapshot = {
-                "global_privileges": global_privileges,
-                "database_privileges": database_privileges,
+                "mysql_global_privileges": global_privileges,
+                "mysql_database_privileges": database_privileges,
                 "type_specific": type_specific,
             }
         except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
@@ -634,8 +633,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 error=str(exc),
             )
             return {
-                "global_privileges": [],
-                "database_privileges": {},
+                "mysql_global_privileges": [],
+                "mysql_database_privileges": {},
                 "type_specific": {},
             }
         else:
@@ -664,7 +663,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         Example:
             >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
-            >>> print(enriched[0]['permissions']['global_privileges'])
+            >>> print(enriched[0]['permissions']['mysql_global_privileges'])
             ['SELECT', 'INSERT', 'UPDATE', ...]
 
         """
@@ -709,13 +708,13 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     if value is not None:
                         type_specific[key] = value
 
-                permissions["roles"] = {
+                permissions["mysql_granted_roles"] = {
                     "direct": direct_roles_map.get(username, []),
                     "default": default_roles_map.get(username, []),
                 }
                 account_kind_value = existing_type_specific.get("account_kind")
                 if supports_roles and isinstance(account_kind_value, str) and account_kind_value.lower() == "role":
-                    permissions["role_members"] = {
+                    permissions["mysql_role_members"] = {
                         "direct": role_members_direct_map.get(username, []),
                         "default": role_members_default_map.get(username, []),
                     }

@@ -16,9 +16,9 @@ def test_normalize_permission_snapshot_categories_v4_postgresql_predefined_roles
         ([{"role": "readonly"}, "writer", {"role": ""}, "", {"role": None}], ["readonly", "writer"]),
     ]
     for raw, expected in cases:
-        categories = {"predefined_roles": raw}
+        categories = {"postgresql_predefined_roles": raw}
         normalized = normalize_permission_snapshot_categories_v4("postgresql", categories)
-        assert normalized["predefined_roles"] == expected
+        assert normalized["postgresql_predefined_roles"] == expected
 
 
 @pytest.mark.unit
@@ -29,15 +29,15 @@ def test_normalize_permission_snapshot_categories_v4_sqlserver_server_roles() ->
         ([{"name": "sysadmin"}, "securityadmin", {"name": ""}, ""], ["sysadmin", "securityadmin"]),
     ]
     for raw, expected in cases:
-        categories = {"server_roles": raw}
+        categories = {"sqlserver_server_roles": raw}
         normalized = normalize_permission_snapshot_categories_v4("sqlserver", categories)
-        assert normalized["server_roles"] == expected
+        assert normalized["sqlserver_server_roles"] == expected
 
 
 @pytest.mark.unit
 def test_normalize_permission_snapshot_categories_v4_sqlserver_database_roles_dict() -> None:
     categories = {
-        "database_roles": {
+        "sqlserver_database_roles": {
             "db1": [{"name": "db_owner"}],
             "db2": ["db_datareader", {"name": "db_datawriter"}],
             "": [{"name": "ignored"}],
@@ -45,7 +45,7 @@ def test_normalize_permission_snapshot_categories_v4_sqlserver_database_roles_di
         },
     }
     normalized = normalize_permission_snapshot_categories_v4("sqlserver", categories)
-    assert normalized["database_roles"] == {
+    assert normalized["sqlserver_database_roles"] == {
         "db1": ["db_owner"],
         "db2": ["db_datareader", "db_datawriter"],
     }
@@ -53,9 +53,9 @@ def test_normalize_permission_snapshot_categories_v4_sqlserver_database_roles_di
 
 @pytest.mark.unit
 def test_normalize_permission_snapshot_categories_v4_sqlserver_database_roles_list_coerces_to_mapping() -> None:
-    categories = {"database_roles": [{"name": "db_owner"}, "db_datareader"]}
+    categories = {"sqlserver_database_roles": [{"name": "db_owner"}, "db_datareader"]}
     normalized = normalize_permission_snapshot_categories_v4("sqlserver", categories)
-    assert normalized["database_roles"] == {"__all__": ["db_owner", "db_datareader"]}
+    assert normalized["sqlserver_database_roles"] == {"__all__": ["db_owner", "db_datareader"]}
 
 
 @pytest.mark.unit
@@ -69,6 +69,13 @@ def test_normalize_permission_snapshot_categories_v4_oracle_roles() -> None:
         categories = {"oracle_roles": raw}
         normalized = normalize_permission_snapshot_categories_v4("oracle", categories)
         assert normalized["oracle_roles"] == expected
+
+
+@pytest.mark.unit
+def test_normalize_permission_snapshot_categories_v4_oracle_system_privileges_passthrough() -> None:
+    categories = {"oracle_system_privileges": ["CREATE SESSION", "ALTER SYSTEM"]}
+    normalized = normalize_permission_snapshot_categories_v4("oracle", categories)
+    assert normalized["oracle_system_privileges"] == ["CREATE SESSION", "ALTER SYSTEM"]
 
 
 @pytest.mark.unit
@@ -95,12 +102,12 @@ def test_parse_permission_snapshot_categories_v4_returns_error_for_unknown_versi
 
 @pytest.mark.unit
 def test_parse_permission_snapshot_categories_v4_returns_ok_for_v4() -> None:
-    result = parse_permission_snapshot_categories_v4({"version": 4, "categories": {"roles": ["a"]}})
+    result = parse_permission_snapshot_categories_v4({"version": 4, "categories": {"mysql_granted_roles": ["a"]}})
     assert result["ok"] is True
     assert result["contract"] == "permission_snapshot.categories"
     assert result["version"] == 4
     assert result["supported_versions"] == [4]
-    assert result["data"] == {"roles": ["a"]}
+    assert result["data"] == {"mysql_granted_roles": ["a"]}
 
 
 @pytest.mark.unit

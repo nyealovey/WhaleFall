@@ -338,8 +338,8 @@
      * @return {string} 渲染的 HTML 字符串
      */
     renderSelector(permissions = {}, prefix = "") {
-      const globals = Array.isArray(permissions.global_privileges) ? permissions.global_privileges : [];
-      const databases = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
+      const globals = Array.isArray(permissions.mysql_global_privileges) ? permissions.mysql_global_privileges : [];
+      const databases = Array.isArray(permissions.mysql_database_privileges) ? permissions.mysql_database_privileges : [];
 
       return `
         <div class="row">
@@ -553,10 +553,14 @@
     }
 
     renderSelector(permissions = {}, prefix = "") {
-      const serverRoles = Array.isArray(permissions.server_roles) ? permissions.server_roles : [];
-      const databaseRoles = Array.isArray(permissions.database_roles) ? permissions.database_roles : [];
-      const serverPermissions = Array.isArray(permissions.server_permissions) ? permissions.server_permissions : [];
-      const databasePermissions = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
+      const serverRoles = Array.isArray(permissions.sqlserver_server_roles) ? permissions.sqlserver_server_roles : [];
+      const databaseRoles = Array.isArray(permissions.sqlserver_database_roles) ? permissions.sqlserver_database_roles : [];
+      const serverPermissions = Array.isArray(permissions.sqlserver_server_permissions)
+        ? permissions.sqlserver_server_permissions
+        : [];
+      const databasePermissions = Array.isArray(permissions.sqlserver_database_permissions)
+        ? permissions.sqlserver_database_permissions
+        : [];
 
       /**
        * 渲染 SQL Server 权限复选组。
@@ -780,9 +784,11 @@
     }
 
     renderSelector(permissions = {}, prefix = "") {
-      const predefinedRoles = Array.isArray(permissions.predefined_roles) ? permissions.predefined_roles : [];
-      const roleAttributes = Array.isArray(permissions.role_attributes) ? permissions.role_attributes : [];
-      const databasePrivileges = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
+      const predefinedRoles = Array.isArray(permissions.postgresql_predefined_roles) ? permissions.postgresql_predefined_roles : [];
+      const roleAttributes = Array.isArray(permissions.postgresql_role_attributes) ? permissions.postgresql_role_attributes : [];
+      const databasePrivileges = Array.isArray(permissions.postgresql_database_privileges)
+        ? permissions.postgresql_database_privileges
+        : [];
 
       /**
        * 渲染 PostgreSQL 权限复选组。
@@ -974,8 +980,8 @@
     }
 
     renderSelector(permissions = {}, prefix = "") {
-      const roles = Array.isArray(permissions.roles) ? permissions.roles : [];
-      const systemPermissions = Array.isArray(permissions.system_privileges) ? permissions.system_privileges : [];
+      const roles = Array.isArray(permissions.oracle_roles) ? permissions.oracle_roles : [];
+      const systemPermissions = Array.isArray(permissions.oracle_system_privileges) ? permissions.oracle_system_privileges : [];
 
       return `
         <div class="row">

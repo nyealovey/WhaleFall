@@ -212,19 +212,20 @@ sequenceDiagram
 
 | 输入 key | 条件 | 写入位置 | 备注 |
 | --- | --- | --- | --- |
-| `global_privileges` | key 命中映射表 | `categories.global_privileges` | `PRIVILEGE_FIELD_LABELS` 显示名: `全局权限` |
-| `database_privileges` | key 命中映射表 | `categories.database_privileges` | 显示名: `数据库权限` |
-| `database_privileges_pg` | key 命中映射表 | `categories.database_privileges` | PostgreSQL 兼容键, 会被归一到 `database_privileges` |
-| `predefined_roles` | key 命中映射表 | `categories.predefined_roles` | 显示名: `预设角色` |
-| `role_attributes` | key 命中映射表 | `categories.role_attributes` | 显示名: `角色属性` |
-| `tablespace_privileges` | key 命中映射表 | `categories.tablespace_privileges` | 显示名: `表空间权限` |
-| `server_roles` | key 命中映射表 | `categories.server_roles` | 显示名: `服务器角色` |
-| `server_permissions` | key 命中映射表 | `categories.server_permissions` | 显示名: `服务器权限` |
-| `database_roles` | key 命中映射表 | `categories.database_roles` | 显示名: `数据库角色` |
-| `database_permissions` | key 命中映射表 | `categories.database_permissions` | 显示名: `数据库权限` |
+| `mysql_global_privileges` | key 命中映射表 | `categories.mysql_global_privileges` | `PRIVILEGE_FIELD_LABELS` 显示名: `全局权限` |
+| `mysql_database_privileges` | key 命中映射表 | `categories.mysql_database_privileges` | 显示名: `数据库权限` |
+| `mysql_granted_roles` | key 命中映射表 | `categories.mysql_granted_roles` | 显示名: `角色` |
+| `mysql_role_members` | key 命中映射表 | `categories.mysql_role_members` | 显示名: `角色成员` |
+| `postgresql_predefined_roles` | key 命中映射表 | `categories.postgresql_predefined_roles` | 显示名: `预设角色` |
+| `postgresql_role_attributes` | key 命中映射表 | `categories.postgresql_role_attributes` | 显示名: `角色属性` |
+| `postgresql_database_privileges` | key 命中映射表 | `categories.postgresql_database_privileges` | 显示名: `数据库权限` |
+| `sqlserver_server_roles` | key 命中映射表 | `categories.sqlserver_server_roles` | 显示名: `服务器角色` |
+| `sqlserver_server_permissions` | key 命中映射表 | `categories.sqlserver_server_permissions` | 显示名: `服务器权限` |
+| `sqlserver_database_roles` | key 命中映射表 | `categories.sqlserver_database_roles` | 显示名: `数据库角色` |
+| `sqlserver_database_permissions` | key 命中映射表 | `categories.sqlserver_database_permissions` | 显示名: `数据库权限` |
 | `oracle_roles` | key 命中映射表 | `categories.oracle_roles` | 显示名: `Oracle 角色` |
-| `system_privileges` | key 命中映射表 | `categories.system_privileges` | 显示名: `系统权限` |
-| 其他 key | 未命中映射表, 且不是 `type_specific` | `extra.<key>` | 用于保持向后兼容与调试 |
+| `oracle_system_privileges` | key 命中映射表 | `categories.oracle_system_privileges` | 显示名: `系统权限` |
+| 其他 key | 未命中映射表, 且不是 `type_specific` | `extra.<key>` | 用于透传未识别字段(便于审计/排障) |
 
 ### 3.3 type_specific 归类与清洗规则
 
@@ -333,7 +334,6 @@ object 命名规则: `object = "<label>:<key>"`(key 非空) 否则 `object = "<l
 | 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
 | --- | --- | --- | --- | --- |
 | `app/services/accounts_sync/permission_manager.py:95` | 兼容/防御 | Prometheus client 缺失时用 `_NoopMetric` 降级(避免 import 失败) | `prometheus_client` 未安装或不可用 | 若线上强依赖指标: 固化依赖并移除 no-op 分支；否则保留 |
-| `app/services/accounts_sync/permission_manager.py:122` | 兼容 | `database_privileges_pg -> database_privileges` 字段别名归一化 | PostgreSQL 侧上报历史 key | 采集/adapter 全量改为 canonical key 后删除别名并加单测 |
 | `app/services/accounts_sync/permission_manager.py:137` | 防御/清洗 | `type_specific` 禁用键清洗(移除 `is_superuser/is_locked/roles/privileges`) | 上游把敏感/重复字段塞进 `type_specific` | 上游不再产出禁用键后删除清洗与对应错误码 |
 | `app/services/accounts_sync/permission_manager.py:187` | 防御 | `message or summary.get("message") or ...` 补齐异常 message | 调用方未传 message/summary 缺字段 | summary schema 稳定后删除兜底 |
 | `app/services/accounts_sync/permission_manager.py:477` | 防御 | `(permissions or {})` 避免 `permissions=None` 触发崩溃 | 上游传入 None(违反约定) | 上游强约束 + 单测覆盖后删除 |

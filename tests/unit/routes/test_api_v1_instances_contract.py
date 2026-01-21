@@ -468,8 +468,8 @@ def test_api_v1_instances_accounts_list_contract() -> None:
             permission_snapshot={
                 "version": 4,
                 "categories": {
-                    "global_privileges": ["SELECT"],
-                    "database_privileges": {},
+                    "mysql_global_privileges": ["SELECT"],
+                    "mysql_database_privileges": {},
                 },
                 "type_specific": {"mysql": {"host": "%", "plugin": ""}},
                 "extra": {},
@@ -559,8 +559,8 @@ def test_api_v1_instances_account_permissions_contract() -> None:
             permission_snapshot={
                 "version": 4,
                 "categories": {
-                    "global_privileges": ["SELECT"],
-                    "database_privileges": {},
+                    "mysql_global_privileges": ["SELECT"],
+                    "mysql_database_privileges": {},
                 },
                 "type_specific": {"mysql": {"host": "%", "plugin": ""}},
                 "extra": {},
