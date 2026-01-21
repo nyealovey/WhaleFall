@@ -209,7 +209,7 @@ FROM mysql.default_roles;
 - 行展示：在“账户”列的副标题/徽标中增加类型提示：
   - `account_kind="role"`：展示 `ROLE`（例如 `@% · ROLE · CACHING_SHA2_PASSWORD`）
   - `account_kind="user"`：保持现状
-- “锁定”列：当 `account_kind="role"` 时不展示红色“已锁定”，建议展示 `-` 或 `角色不可登录`（二选一，统一即可）。
+- “锁定”列：当 `account_kind="role"` 时不展示红色“已锁定”，统一展示 `-`。
   - 推荐把 LOCKED 能力在后端 facts 层就过滤掉（见上文 `permission_facts`），从源头避免“role=locked”的误导。
 
 ### 账户台账页面（`accounts/ledgers.js`）
