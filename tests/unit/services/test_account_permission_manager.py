@@ -136,4 +136,4 @@ def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
     )
     other_diff = diff.get("other_diff")
     assert isinstance(other_diff, list)
-    assert any(entry.get("field") == "type_specific" for entry in other_diff)
+    assert any(entry.get("field") == "type_specific.host" for entry in other_diff)

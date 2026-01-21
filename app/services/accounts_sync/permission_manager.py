@@ -687,14 +687,49 @@ class AccountPermissionManager:
             if isinstance(new_type_specific_value, Mapping)
             else {}
         )
-        entry = self._build_other_diff_entry(
-            "type_specific",
-            old_type_specific.get(db_type),
-            new_type_specific.get(db_type),
+        changes.extend(
+            self._build_type_specific_diff_entries(
+                old_type_specific.get(db_type),
+                new_type_specific.get(db_type),
+            ),
         )
-        if entry:
-            changes.append(entry)
         return changes
+
+    def _build_type_specific_diff_entries(
+        self,
+        old_value: JsonValue | None,
+        new_value: JsonValue | None,
+    ) -> list[OtherDiffEntry]:
+        """构建 type_specific 的差异条目.
+
+        说明:
+        - 当旧/新值均为 dict(或 Mapping) 时,按 key 拆分为多条条目(便于 UI 可读性与摘要收敛)。
+        - 其它情况沿用单条 `type_specific` 的展示。
+        """
+        if isinstance(old_value, Mapping) and isinstance(new_value, Mapping):
+            label_prefix = OTHER_FIELD_LABELS.get("type_specific", "type_specific")
+            entries: list[OtherDiffEntry] = []
+            keys = sorted(set(old_value.keys()) | set(new_value.keys()), key=lambda value: str(value))
+            for key in keys:
+                old_item = old_value.get(key)
+                new_item = new_value.get(key)
+                if old_item == new_item:
+                    continue
+                key_text = str(key)
+                label = f"{label_prefix} · {key_text}"
+                entries.append(
+                    {
+                        "field": f"type_specific.{key_text}",
+                        "label": label,
+                        "before": self._repr_value(old_item),
+                        "after": self._repr_value(new_item),
+                        "description": self._build_other_description(label, old_item, new_item),
+                    },
+                )
+            return entries
+
+        entry = self._build_other_diff_entry("type_specific", old_value, new_value)
+        return [entry] if entry else []
 
     @staticmethod
     def _determine_change_type(
