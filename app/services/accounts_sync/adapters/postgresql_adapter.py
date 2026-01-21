@@ -173,7 +173,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             "postgresql_predefined_roles": permissions.postgresql_predefined_roles,
             "postgresql_role_attributes": permissions.postgresql_role_attributes,
             "postgresql_database_privileges": cast("JsonDict", permissions.postgresql_database_privileges),
-            "system_privileges": permissions.system_privileges,
             "type_specific": permissions.type_specific,
         }
         return cast(
@@ -231,7 +230,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             "postgresql_predefined_roles": [],
             "postgresql_role_attributes": {},
             "postgresql_database_privileges": {},
-            "system_privileges": [],
             "type_specific": {},
         }
         try:
@@ -261,8 +259,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 error=str(exc),
                 exc_info=True,
             )
-        if is_superuser:
-            permissions["system_privileges"].append("SUPERUSER")
         return permissions
 
     def enrich_permissions(

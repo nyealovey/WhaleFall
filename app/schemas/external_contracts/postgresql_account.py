@@ -45,17 +45,11 @@ class PostgreSQLPermissionSnapshotSchema(PayloadSchema):
     postgresql_predefined_roles: list[str] = Field(default_factory=list)
     postgresql_role_attributes: JsonDict = Field(default_factory=dict)
     postgresql_database_privileges: dict[str, list[str]] = Field(default_factory=dict)
-    system_privileges: list[str] = Field(default_factory=list)
     type_specific: JsonDict = Field(default_factory=dict)
 
     @field_validator("postgresql_predefined_roles", mode="before")
     @classmethod
     def _parse_postgresql_predefined_roles(cls, value: object) -> list[str]:
-        return _as_str_list(value)
-
-    @field_validator("system_privileges", mode="before")
-    @classmethod
-    def _parse_system_privileges(cls, value: object) -> list[str]:
         return _as_str_list(value)
 
     @field_validator("postgresql_role_attributes", mode="before")
