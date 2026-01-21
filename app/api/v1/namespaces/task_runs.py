@@ -2,8 +2,9 @@
 
 提供任务运行中心的查询与取消能力。
 
-NOTE:
+Note:
 - 本 namespace 是对外 JSON API 层的路由封装；业务编排与 DB 访问下沉到 services/repositories.
+
 """
 
 from __future__ import annotations

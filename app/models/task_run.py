@@ -56,6 +56,7 @@ class TaskRun(db.Model):
     )
 
     def to_dict(self) -> dict[str, Any]:
+        """转换为字典(用于序列化展示)."""
         return {
             "id": self.id,
             "run_id": self.run_id,
