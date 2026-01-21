@@ -179,6 +179,80 @@ def test_mysql_adapter_enrich_permissions_includes_roles_direct_and_default() ->
 
 
 @pytest.mark.unit
+def test_mysql_adapter_enrich_permissions_includes_role_members_for_role_accounts() -> None:
+    adapter = MySQLAccountAdapter()
+    instance = Instance(
+        name="inst",
+        db_type=DatabaseType.MYSQL,
+        host="127.0.0.1",
+        port=3306,
+        main_version="8.0",
+        description=None,
+        is_active=True,
+    )
+
+    # r1@% 被授予给 demo@%（直授）且也被配置为默认角色（default_roles）。
+    connection = _StubMySQLConnection(
+        forbid_information_schema=True,
+        user_rows=[],
+        role_edges_rows=[("r1", "%", "demo", "%", 0)],
+        default_roles_rows=[("demo", "%", "r1", "%")],
+    )
+
+    accounts = cast(
+        list[RemoteAccount],
+        [
+            {
+                "username": "demo@%",
+                "display_name": "demo@%",
+                "db_type": DatabaseType.MYSQL,
+                "is_superuser": False,
+                "is_locked": False,
+                "is_active": True,
+                "permissions": {
+                    "global_privileges": [],
+                    "database_privileges": {},
+                    "type_specific": {
+                        "host": "%",
+                        "original_username": "demo",
+                        "account_kind": "user",
+                    },
+                },
+            },
+            {
+                "username": "r1@%",
+                "display_name": "r1@%",
+                "db_type": DatabaseType.MYSQL,
+                "is_superuser": False,
+                "is_locked": False,
+                "is_active": True,
+                "permissions": {
+                    "global_privileges": [],
+                    "database_privileges": {},
+                    "type_specific": {
+                        "host": "%",
+                        "original_username": "r1",
+                        "account_kind": "role",
+                    },
+                },
+            },
+        ],
+    )
+
+    enriched = adapter.enrich_permissions(instance, connection, accounts)
+    role_account = next(item for item in enriched if item.get("username") == "r1@%")
+    role_permissions = role_account.get("permissions")
+    assert isinstance(role_permissions, dict)
+
+    assert role_permissions.get("role_members") == {"direct": ["demo@%"], "default": ["demo@%"]}
+
+    user_account = next(item for item in enriched if item.get("username") == "demo@%")
+    user_permissions = user_account.get("permissions")
+    assert isinstance(user_permissions, dict)
+    assert "role_members" not in user_permissions
+
+
+@pytest.mark.unit
 def test_mysql_adapter_fetch_raw_accounts_raises_on_query_failure() -> None:
     adapter = MySQLAccountAdapter()
     instance = Instance(
@@ -220,7 +294,7 @@ def test_mysql_adapter_does_not_assume_is_role_on_mariadb_versions() -> None:
     assert len(accounts) == 1
     permissions = accounts[0]["permissions"]
     assert isinstance(permissions, dict)
-    type_specific = permissions["type_specific"]
+    type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
     assert type_specific.get("account_kind") == "user"
 

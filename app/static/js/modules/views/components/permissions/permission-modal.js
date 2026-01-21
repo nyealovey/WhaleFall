@@ -344,6 +344,31 @@ function renderMySQLPermissions(permissions) {
         renderLedgerChips(defaultRoles, { emptyLabel: '无默认角色' })
     );
 
+    const roleMembers = permissions.role_members && typeof permissions.role_members === 'object' ? permissions.role_members : null;
+    const roleMembersDirect = roleMembers && Array.isArray(roleMembers.direct) ? roleMembers.direct : [];
+    const roleMembersDefault = roleMembers && Array.isArray(roleMembers.default) ? roleMembers.default : [];
+    const roleMembersSection = roleMembers
+        ? renderPermissionSection(
+            '包含用户',
+            'fas fa-users',
+            renderStack(
+                [
+                    renderStackRow(
+                        '直授用户',
+                        'fas fa-user',
+                        renderLedgerChips(roleMembersDirect, { emptyLabel: '无直授用户' })
+                    ),
+                    renderStackRow(
+                        '默认用户',
+                        'fas fa-user-check',
+                        renderLedgerChips(roleMembersDefault, { emptyLabel: '无默认用户' })
+                    ),
+                ],
+                '无包含用户'
+            )
+        )
+        : '';
+
     const globalPrivileges = flattenPrivilegeStrings(permissions.global_privileges);
     const globalSection = renderPermissionSection(
         '全局权限',
@@ -388,7 +413,9 @@ function renderMySQLPermissions(permissions) {
         renderStack(tableRows, '无表权限')
     );
 
-    return [directRolesSection, defaultRolesSection, globalSection, databaseSection, tableSection].join('');
+    return [directRolesSection, defaultRolesSection, roleMembersSection, globalSection, databaseSection, tableSection]
+        .filter(Boolean)
+        .join('');
 }
 
 /**
