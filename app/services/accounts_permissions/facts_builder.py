@@ -99,7 +99,7 @@ def _extract_snapshot_errors(snapshot: Mapping[str, object] | None) -> list[str]
 
 def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
     if db_type == DatabaseType.MYSQL:
-        roles_value = categories.get("roles")
+        roles_value = categories.get("mysql_granted_roles")
         if isinstance(roles_value, dict):
             direct_roles = _ensure_str_list(roles_value.get("direct"))
             default_roles = _ensure_str_list(roles_value.get("default"))
@@ -107,13 +107,13 @@ def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
         return _ensure_str_list(roles_value)
 
     if db_type == DatabaseType.POSTGRESQL:
-        return _ensure_str_list(categories.get("predefined_roles"))
+        return _ensure_str_list(categories.get("postgresql_predefined_roles"))
 
     if db_type == DatabaseType.SQLSERVER:
-        server_roles = _ensure_str_list(categories.get("server_roles"))
+        server_roles = _ensure_str_list(categories.get("sqlserver_server_roles"))
 
         database_roles: list[str] = []
-        database_roles_value = categories.get("database_roles")
+        database_roles_value = categories.get("sqlserver_database_roles")
         if isinstance(database_roles_value, dict):
             for entry in database_roles_value.values():
                 database_roles.extend(_ensure_str_list(entry))
@@ -126,32 +126,46 @@ def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
     return []
 
 
-def _extract_privileges(categories: Mapping[str, object]) -> tuple[JsonDict, list[str], list[str], list[str]]:
+def _extract_privileges(db_type: str, categories: Mapping[str, object]) -> tuple[JsonDict, list[str], list[str], list[str]]:
     privileges: JsonDict = {}
 
-    global_privileges = _extract_privilege_list(categories.get("global_privileges"))
-    if global_privileges:
-        privileges["global"] = global_privileges
+    global_privileges: list[str] = []
+    server_privileges: list[str] = []
+    system_privileges: list[str] = []
 
-    server_privileges = _extract_privilege_list(categories.get("server_permissions"))
-    if server_privileges:
-        privileges["server"] = server_privileges
+    if db_type == DatabaseType.MYSQL:
+        global_privileges = _extract_privilege_list(categories.get("mysql_global_privileges"))
+        if global_privileges:
+            privileges["global"] = global_privileges
 
-    system_privileges = _extract_privilege_list(categories.get("system_privileges"))
-    if system_privileges:
-        privileges["system"] = system_privileges
+        database_privileges = _extract_mapping_of_lists(categories.get("mysql_database_privileges"))
+        if database_privileges:
+            privileges["database"] = database_privileges
 
-    database_privileges = _extract_mapping_of_lists(categories.get("database_privileges"))
-    if database_privileges:
-        privileges["database"] = database_privileges
+        return privileges, global_privileges, server_privileges, system_privileges
 
-    database_permissions = _extract_mapping_of_lists(categories.get("database_permissions"))
-    if database_permissions:
-        privileges["database_permissions"] = database_permissions
+    if db_type == DatabaseType.POSTGRESQL:
+        database_privileges = _extract_mapping_of_lists(categories.get("postgresql_database_privileges"))
+        if database_privileges:
+            privileges["database"] = database_privileges
+        return privileges, global_privileges, server_privileges, system_privileges
 
-    tablespace_privileges = _extract_mapping_of_lists(categories.get("tablespace_privileges"))
-    if tablespace_privileges:
-        privileges["tablespace"] = tablespace_privileges
+    if db_type == DatabaseType.SQLSERVER:
+        server_privileges = _extract_privilege_list(categories.get("sqlserver_server_permissions"))
+        if server_privileges:
+            privileges["server"] = server_privileges
+
+        database_permissions = _extract_mapping_of_lists(categories.get("sqlserver_database_permissions"))
+        if database_permissions:
+            privileges["database_permissions"] = database_permissions
+
+        return privileges, global_privileges, server_privileges, system_privileges
+
+    if db_type == DatabaseType.ORACLE:
+        system_privileges = _extract_privilege_list(categories.get("oracle_system_privileges"))
+        if system_privileges:
+            privileges["system"] = system_privileges
+        return privileges, global_privileges, server_privileges, system_privileges
 
     return privileges, global_privileges, server_privileges, system_privileges
 
@@ -189,7 +203,7 @@ def _collect_mysql_capabilities(
             capabilities,
             capability_reasons,
             name="GRANT_ADMIN",
-            reason="global_privileges contains GRANT OPTION",
+            reason="mysql_global_privileges contains GRANT OPTION",
         )
 
 
@@ -235,20 +249,25 @@ def _collect_sqlserver_capabilities(
     type_specific: Mapping[str, object],
 ) -> None:
     if "sysadmin" in roles:
-        _add_capability(capabilities, capability_reasons, name="SUPERUSER", reason="server_roles contains sysadmin")
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="SUPERUSER",
+            reason="sqlserver_server_roles contains sysadmin",
+        )
     if "securityadmin" in roles:
         _add_capability(
             capabilities,
             capability_reasons,
             name="GRANT_ADMIN",
-            reason="server_roles contains securityadmin",
+            reason="sqlserver_server_roles contains securityadmin",
         )
     if "CONTROL SERVER" in server_privileges:
         _add_capability(
             capabilities,
             capability_reasons,
             name="GRANT_ADMIN",
-            reason="server_permissions contains CONTROL SERVER",
+            reason="sqlserver_server_permissions contains CONTROL SERVER",
         )
 
     connect_to_engine = type_specific.get("connect_to_engine")
@@ -288,7 +307,7 @@ def _collect_oracle_capabilities(
             capabilities,
             capability_reasons,
             name="GRANT_ADMIN",
-            reason="system_privileges contains GRANT ANY PRIVILEGE",
+            reason="oracle_system_privileges contains GRANT ANY PRIVILEGE",
         )
 
     account_status = type_specific.get("account_status")
@@ -356,8 +375,8 @@ def build_permission_facts(
     type_specific = normalize_permission_snapshot_type_specific_v4(db_type, type_specific_bucket)
 
     roles = _extract_roles(db_type, categories)
-    privileges, global_privileges, server_privileges, system_privileges = _extract_privileges(categories)
-    role_attributes = _ensure_dict(categories.get("role_attributes"))
+    privileges, global_privileges, server_privileges, system_privileges = _extract_privileges(db_type, categories)
+    role_attributes = _ensure_dict(categories.get("postgresql_role_attributes"))
 
     capabilities: list[str] = []
     capability_reasons: dict[str, list[str]] = {}
