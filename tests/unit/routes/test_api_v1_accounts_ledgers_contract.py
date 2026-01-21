@@ -304,8 +304,8 @@ def test_api_v1_accounts_ledgers_permissions_contract() -> None:
             permission_snapshot={
                 "version": 4,
                 "categories": {
-                    "global_privileges": ["SELECT"],
-                    "database_privileges": {},
+                    "mysql_global_privileges": ["SELECT"],
+                    "mysql_database_privileges": {},
                 },
                 "type_specific": {},
                 "extra": {},
