@@ -47,6 +47,7 @@ PERMISSION_LOG_EXCEPTIONS: tuple[type[Exception], ...] = (
 PRIVILEGE_FIELD_LABELS: dict[str, str] = {
     "global_privileges": "全局权限",
     "database_privileges": "数据库权限",
+    "roles": "角色",
     "predefined_roles": "预设角色",
     "role_attributes": "角色属性",
     "tablespace_privileges": "表空间权限",
@@ -113,6 +114,7 @@ snapshot_build_duration = _build_histogram(
 _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "global_privileges": "global_privileges",
     "database_privileges": "database_privileges",
+    "roles": "roles",
     "predefined_roles": "predefined_roles",
     "role_attributes": "role_attributes",
     "database_privileges_pg": "database_privileges",

@@ -16,6 +16,7 @@ class AccountFilters:
     search: str
     instance_id: int | None
     include_deleted: bool
+    include_roles: bool
     is_locked: str | None
     is_superuser: str | None
     plugin: str
@@ -45,6 +46,7 @@ class AccountLedgerItem:
     is_superuser: bool
     is_active: bool
     is_deleted: bool
+    type_specific: dict[str, object]
     tags: list[TagSummary]
     classifications: list[AccountClassificationSummary]
 

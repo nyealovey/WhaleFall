@@ -212,6 +212,9 @@ _accounts_filters_query_parser.add_argument("instance_id", type=int, location="a
 _accounts_filters_query_parser.add_argument(
     "include_deleted", type=bool_with_default(False), default=False, location="args"
 )
+_accounts_filters_query_parser.add_argument(
+    "include_roles", type=bool_with_default(False), default=False, location="args"
+)
 _accounts_filters_query_parser.add_argument("is_locked", type=str, location="args")
 _accounts_filters_query_parser.add_argument("is_superuser", type=str, location="args")
 _accounts_filters_query_parser.add_argument("plugin", type=str, default="", location="args")

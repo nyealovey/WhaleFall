@@ -27,6 +27,17 @@ def test_apply_permissions_writes_snapshot() -> None:
 
 
 @pytest.mark.unit
+def test_apply_permissions_writes_roles_into_categories() -> None:
+    manager = AccountPermissionManager()
+    record: Any = SimpleNamespace(db_type="mysql", permission_snapshot=None)
+    permissions = cast(Any, {"roles": {"direct": ["r1@%"], "default": []}})
+
+    manager._apply_permissions(record, permissions)
+
+    assert record.permission_snapshot.get("categories", {}).get("roles") == {"direct": ["r1@%"], "default": []}
+
+
+@pytest.mark.unit
 def test_process_existing_permission_raises_when_snapshot_missing() -> None:
     manager = AccountPermissionManager()
 

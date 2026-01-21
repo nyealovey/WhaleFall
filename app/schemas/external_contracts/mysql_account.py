@@ -39,11 +39,30 @@ def _as_dict_of_str_list(value: object) -> dict[str, list[str]]:
     return output
 
 
+def _default_roles_payload() -> dict[str, list[str]]:
+    return {"direct": [], "default": []}
+
+
+def _as_roles_payload(value: object) -> dict[str, list[str]]:
+    if isinstance(value, dict):
+        return {
+            "direct": _as_str_list(value.get("direct")),
+            "default": _as_str_list(value.get("default")),
+        }
+
+    # 兼容旧形状：list[str] 作为 direct roles。
+    return {
+        "direct": _as_str_list(value),
+        "default": [],
+    }
+
+
 class MySQLPermissionSnapshotSchema(PayloadSchema):
     """MySQL 权限快照 schema（仅解析 + 默认值 + 形状规整）."""
 
     global_privileges: list[str] = Field(default_factory=list)
     database_privileges: dict[str, list[str]] = Field(default_factory=dict)
+    roles: dict[str, list[str]] = Field(default_factory=_default_roles_payload)
     type_specific: JsonDict = Field(default_factory=dict)
 
     @field_validator("global_privileges", mode="before")
@@ -55,6 +74,11 @@ class MySQLPermissionSnapshotSchema(PayloadSchema):
     @classmethod
     def _parse_database_privileges(cls, value: object) -> dict[str, list[str]]:
         return _as_dict_of_str_list(value)
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def _parse_roles(cls, value: object) -> dict[str, list[str]]:
+        return _as_roles_payload(value)
 
     @field_validator("type_specific", mode="before")
     @classmethod

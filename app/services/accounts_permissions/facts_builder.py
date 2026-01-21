@@ -101,7 +101,9 @@ def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
     if db_type == DatabaseType.MYSQL:
         roles_value = categories.get("roles")
         if isinstance(roles_value, dict):
-            return _ensure_str_list(roles_value.get("direct"))
+            direct_roles = _ensure_str_list(roles_value.get("direct"))
+            default_roles = _ensure_str_list(roles_value.get("default"))
+            return [*direct_roles, *default_roles]
         return _ensure_str_list(roles_value)
 
     if db_type == DatabaseType.POSTGRESQL:
@@ -176,8 +178,12 @@ def _collect_mysql_capabilities(
 ) -> None:
     if type_specific.get("super_priv") is True:
         _add_capability(capabilities, capability_reasons, name="SUPERUSER", reason="type_specific.super_priv=True")
-    if type_specific.get("account_locked") is True:
+
+    account_kind = type_specific.get("account_kind")
+    is_role = isinstance(account_kind, str) and account_kind.lower() == "role"
+    if not is_role and type_specific.get("account_locked") is True:
         _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.account_locked=True")
+
     if "GRANT OPTION" in global_privileges:
         _add_capability(
             capabilities,
