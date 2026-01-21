@@ -19,6 +19,20 @@ from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
 
+def _strip_username_prefix(message: object, *, username: str) -> str | None:
+    """移除摘要中冗余的 `账户 <username>` 前缀(仅用于展示层)."""
+    if message is None:
+        return None
+    text = message if isinstance(message, str) else str(message)
+    if not text:
+        return None
+    prefix = f"账户 {username}"
+    if not text.startswith(prefix):
+        return text
+    trimmed = text[len(prefix) :].lstrip()
+    return trimmed or text
+
+
 class AccountsLedgerChangeHistoryService:
     """账户台账-变更历史读取服务."""
 
@@ -72,7 +86,7 @@ class AccountsLedgerChangeHistoryService:
                     change_type=log_entry.change_type,
                     change_time=(time_utils.format_china_time(change_time) if change_time else "未知"),
                     status=log_entry.status,
-                    message=log_entry.message,
+                    message=_strip_username_prefix(log_entry.message, username=username),
                     privilege_diff=privilege_diff,
                     other_diff=other_diff,
                     session_id=log_entry.session_id,
