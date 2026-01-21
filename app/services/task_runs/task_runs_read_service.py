@@ -24,9 +24,11 @@ class TaskRunsReadService:
     """任务运行读取服务."""
 
     def __init__(self, repository: TaskRunsRepository | None = None) -> None:
+        """初始化服务并注入 repository."""
         self._repository = repository or TaskRunsRepository()
 
     def list_runs(self, filters: TaskRunsListFilters) -> PaginatedResult[TaskRunListItem]:
+        """分页列出任务运行记录."""
         page_result = self._repository.list_runs(filters)
         items = [self._to_run_item(run) for run in page_result.items]
         return PaginatedResult(
@@ -38,6 +40,7 @@ class TaskRunsReadService:
         )
 
     def get_run_detail(self, run_id: str) -> TaskRunDetailResult:
+        """获取任务运行详情(含子项列表)."""
         run = self._repository.get_run(run_id)
         items = self._repository.list_run_items(run_id)
         return TaskRunDetailResult(
@@ -46,6 +49,7 @@ class TaskRunsReadService:
         )
 
     def get_run_error_logs(self, run_id: str) -> TaskRunErrorLogsResult:
+        """获取任务运行失败子项(错误日志列表)."""
         run = self._repository.get_run(run_id)
         items = self._repository.list_run_items(run_id)
         failed = [item for item in items if item.status == "failed"]

@@ -178,6 +178,7 @@ def sync_accounts(
     Args:
         manual_run: 是否为手动触发,默认 False(定时任务).
         created_by: 触发用户 ID,手动触发时必填.
+        run_id: 可选的 TaskRun.run_id. 传入时复用既有 TaskRun,否则创建新的 TaskRun.
         session_id: 可选的会话 ID.传入时优先复用该会话.
         **_: 其他可选参数,由调度器传入但不使用.
 
