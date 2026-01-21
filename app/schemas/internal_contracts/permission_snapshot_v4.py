@@ -166,32 +166,35 @@ def normalize_permission_snapshot_categories_v4(db_type: str, categories: Mappin
     """Normalize v4 snapshot categories into canonical shapes (single entry).
 
     当前收敛范围（与审计报告 P0 对齐）：
-    - PostgreSQL: `predefined_roles` 允许 list[str] 或 list[{"role": str}]
-    - SQL Server: `server_roles`/`database_roles` 允许 list[str] 或 list[{"name": str}]（以及 dict 映射到这些 list）
+    - PostgreSQL: `postgresql_predefined_roles` 允许 list[str] 或 list[{"role": str}]
+    - SQL Server: `sqlserver_server_roles`/`sqlserver_database_roles` 允许 list[str] 或 list[{"name": str}]（以及 dict 映射到这些 list）
     - Oracle: `oracle_roles` 允许 list[str] 或 list[{"role": str}]
     """
     normalized: JsonDict = dict(categories)
 
     if db_type == DatabaseType.POSTGRESQL:
-        if "predefined_roles" in categories:
-            normalized["predefined_roles"] = _normalize_str_list(categories.get("predefined_roles"), dict_key="role")
+        if "postgresql_predefined_roles" in categories:
+            normalized["postgresql_predefined_roles"] = _normalize_str_list(
+                categories.get("postgresql_predefined_roles"),
+                dict_key="role",
+            )
         return normalized
 
     if db_type == DatabaseType.SQLSERVER:
-        if "server_roles" in categories:
-            normalized["server_roles"] = _normalize_str_list(categories.get("server_roles"), dict_key="name")
+        if "sqlserver_server_roles" in categories:
+            normalized["sqlserver_server_roles"] = _normalize_str_list(categories.get("sqlserver_server_roles"), dict_key="name")
 
-        if "database_roles" in categories:
-            database_roles_value = categories.get("database_roles")
+        if "sqlserver_database_roles" in categories:
+            database_roles_value = categories.get("sqlserver_database_roles")
             if isinstance(database_roles_value, dict):
                 normalized_database_roles: dict[str, list[str]] = {}
                 for key, entry in database_roles_value.items():
                     if not isinstance(key, str) or not key:
                         continue
                     normalized_database_roles[key] = _normalize_str_list(entry, dict_key="name")
-                normalized["database_roles"] = normalized_database_roles
+                normalized["sqlserver_database_roles"] = normalized_database_roles
             elif isinstance(database_roles_value, list):
-                normalized["database_roles"] = {"__all__": _normalize_str_list(database_roles_value, dict_key="name")}
+                normalized["sqlserver_database_roles"] = {"__all__": _normalize_str_list(database_roles_value, dict_key="name")}
         return normalized
 
     if db_type == DatabaseType.ORACLE:
