@@ -60,24 +60,24 @@ def _as_roles_payload(value: object) -> dict[str, list[str]]:
 class MySQLPermissionSnapshotSchema(PayloadSchema):
     """MySQL 权限快照 schema（仅解析 + 默认值 + 形状规整）."""
 
-    global_privileges: list[str] = Field(default_factory=list)
-    database_privileges: dict[str, list[str]] = Field(default_factory=dict)
-    roles: dict[str, list[str]] = Field(default_factory=_default_roles_payload)
+    mysql_global_privileges: list[str] = Field(default_factory=list)
+    mysql_database_privileges: dict[str, list[str]] = Field(default_factory=dict)
+    mysql_granted_roles: dict[str, list[str]] = Field(default_factory=_default_roles_payload)
     type_specific: JsonDict = Field(default_factory=dict)
 
-    @field_validator("global_privileges", mode="before")
+    @field_validator("mysql_global_privileges", mode="before")
     @classmethod
-    def _parse_global_privileges(cls, value: object) -> list[str]:
+    def _parse_mysql_global_privileges(cls, value: object) -> list[str]:
         return _as_str_list(value)
 
-    @field_validator("database_privileges", mode="before")
+    @field_validator("mysql_database_privileges", mode="before")
     @classmethod
-    def _parse_database_privileges(cls, value: object) -> dict[str, list[str]]:
+    def _parse_mysql_database_privileges(cls, value: object) -> dict[str, list[str]]:
         return _as_dict_of_str_list(value)
 
-    @field_validator("roles", mode="before")
+    @field_validator("mysql_granted_roles", mode="before")
     @classmethod
-    def _parse_roles(cls, value: object) -> dict[str, list[str]]:
+    def _parse_mysql_granted_roles(cls, value: object) -> dict[str, list[str]]:
         return _as_roles_payload(value)
 
     @field_validator("type_specific", mode="before")

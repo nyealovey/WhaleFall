@@ -26,8 +26,8 @@ def test_normalize_account_defaults_permissions_when_missing() -> None:
     )
 
     permissions = normalized["permissions"]
-    assert permissions.get("global_privileges") == []
-    assert permissions.get("database_privileges") == {}
+    assert permissions.get("mysql_global_privileges") == []
+    assert permissions.get("mysql_database_privileges") == {}
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
     assert type_specific.get("original_username") == "user"
@@ -55,8 +55,8 @@ def test_normalize_account_accepts_empty_permissions_dict() -> None:
     )
 
     permissions = normalized["permissions"]
-    assert permissions.get("global_privileges") == []
-    assert permissions.get("database_privileges") == {}
+    assert permissions.get("mysql_global_privileges") == []
+    assert permissions.get("mysql_database_privileges") == {}
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
     assert type_specific.get("original_username") == "user"
