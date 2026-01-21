@@ -29,11 +29,11 @@ class PermissionSnapshot(TypedDict, total=False):
     postgresql_predefined_roles: list[str]
     postgresql_role_attributes: Mapping[str, JsonValue]
 
-    # SQL Server (legacy keys will be removed during refactor)
-    database_permissions: Mapping[str, JsonValue]
-    database_roles: Mapping[str, list[str]]
-    server_roles: list[str]
-    server_permissions: list[str]
+    # SQL Server
+    sqlserver_server_roles: list[str]
+    sqlserver_server_permissions: list[str]
+    sqlserver_database_roles: Mapping[str, list[str]]
+    sqlserver_database_permissions: Mapping[str, JsonValue]
 
     # Oracle
     oracle_roles: list[str]

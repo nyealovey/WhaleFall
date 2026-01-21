@@ -25,10 +25,10 @@ def test_normalize_account_defaults_permissions_when_missing() -> None:
     )
 
     permissions = normalized["permissions"]
-    assert permissions.get("server_roles") == []
-    assert permissions.get("server_permissions") == []
-    assert permissions.get("database_roles") == {}
-    assert permissions.get("database_permissions") == {}
+    assert permissions.get("sqlserver_server_roles") == []
+    assert permissions.get("sqlserver_server_permissions") == []
+    assert permissions.get("sqlserver_database_roles") == {}
+    assert permissions.get("sqlserver_database_permissions") == {}
 
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
