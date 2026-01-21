@@ -23,6 +23,7 @@
 
 - 角色账号**需要落库**（可用于审计/权限查看/后续治理），并在数据侧明确标注类型（role vs user）。
 - 账户台账页面（Accounts Ledgers）默认**不展示 MySQL 角色账号**，只展示“真实用户账号”，避免把角色误当成异常账号。
+- 实例详情页（Instance Detail）账户列表默认**展示 MySQL 角色账号**，并支持查看 role 的权限（权限弹窗可展示 role 自身权限 + role 的角色关系）。
 - 在权限弹窗中展示：
   - 直授角色（GRANT role TO user）
   - 默认角色（SET DEFAULT ROLE / mysql.default_roles）
@@ -48,7 +49,9 @@
 
 - 角色关系：`mysql.role_edges`（直授） + `mysql.default_roles`（默认角色）
 - 类型真源：`mysql.user.is_role` → `account_kind=user|role`（不做启发式补充）
-- 台账口径：默认不展示 MySQL 角色账号（可通过 `include_roles=true` 临时包含）
+- 列表口径：
+  - 账户台账页面：默认不展示 MySQL 角色账号（`include_roles` 默认 false）
+  - 实例详情页：默认展示 MySQL 角色账号（前端请求显式 `include_roles=true`）
 - 不解析 `SHOW GRANTS` 中的“GRANT role TO user / SET DEFAULT ROLE”文本，不使用启发式补充
 
 ## 数据口径设计
@@ -170,6 +173,8 @@ FROM mysql.default_roles;
 
 - `facts_builder` 已支持从 `categories["roles"]` 提取 roles（目前 categories 缺失导致永远为空）。
 - 建议把 roles facts 口径改为（更符合“展示默认角色”的认知）：`roles = direct + default（去重）`。
+- 建议调整 MySQL 的 LOCKED 口径：仅对 `account_kind="user"` 使用 `type_specific.account_locked` 推导 `LOCKED`；
+  `account_kind="role"` 不推导 LOCKED（角色不可登录是语义事实，不应在 UI 上以“已锁定(异常)”表现）。
 
 ## API 输出调整
 
@@ -184,8 +189,9 @@ FROM mysql.default_roles;
   - 其他 db_type 不受影响（或忽略该参数）
 
 影响说明：
-- 实例详情页当前复用该接口（`/api/v1/accounts/ledgers?instance_id=...`），因此默认也会隐藏 role。
-  若实例详情需要展示 role，可在该页面请求中传 `include_roles=true`。
+- 账户台账页面使用默认值（不传 `include_roles`），因此默认隐藏 MySQL role。
+- 实例详情页当前复用该接口（`/api/v1/accounts/ledgers?instance_id=...`），为了满足“默认展示 role”，
+  需要在该页面请求中**显式传 `include_roles=true`**。
 
 实现位置建议：
 - Query/filters：`app/core/types/accounts_ledgers.py`（AccountFilters 增加 include_roles）
@@ -193,6 +199,26 @@ FROM mysql.default_roles;
 - Repository filter：`app/repositories/ledgers/accounts_ledger_repository.py`
 
 ## UI 展示调整
+
+### 实例详情页（账户列表，`instances/detail.js`）
+
+目标：默认能看到 role，且“role 看起来不是异常锁定账号”，并能点开查看 role 权限。
+
+建议改动点：
+- 请求：`buildAccountsBaseUrl()` 默认追加 `include_roles=true`（仅实例详情页这么做）。
+- 行展示：在“账户”列的副标题/徽标中增加类型提示：
+  - `account_kind="role"`：展示 `ROLE`（例如 `@% · ROLE · CACHING_SHA2_PASSWORD`）
+  - `account_kind="user"`：保持现状
+- “锁定”列：当 `account_kind="role"` 时不展示红色“已锁定”，建议展示 `-` 或 `角色不可登录`（二选一，统一即可）。
+  - 推荐把 LOCKED 能力在后端 facts 层就过滤掉（见上文 `permission_facts`），从源头避免“role=locked”的误导。
+
+### 账户台账页面（`accounts/ledgers.js`）
+
+目标：默认只展示真实用户账号，避免 role 污染台账视图；同时 role 仍已落库可用于审计/排障。
+
+建议改动点：
+- 默认不传 `include_roles`（保持后端默认 false）。
+- 可选（不强制）：在筛选区提供一个“包含角色”的高级开关，对应 `include_roles=true`（便于排障，但不影响默认直觉）。
 
 ### 权限弹窗（`permission-modal.js`）
 
