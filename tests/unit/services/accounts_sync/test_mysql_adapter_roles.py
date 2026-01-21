@@ -15,30 +15,62 @@ class _StubMySQLConnection:
         user_rows: list[tuple],
         role_edges_rows: list[tuple] | None = None,
         default_roles_rows: list[tuple] | None = None,
+        forbid_information_schema: bool = False,
+        forbid_roles_tables: bool = False,
     ) -> None:
         self._user_rows = list(user_rows)
         self._role_edges_rows = list(role_edges_rows or [])
         self._default_roles_rows = list(default_roles_rows or [])
+        self._forbid_information_schema = bool(forbid_information_schema)
+        self._forbid_roles_tables = bool(forbid_roles_tables)
+        self.queries: list[str] = []
 
-    def execute_query(self, sql: str, params=None):  # type: ignore[no-untyped-def]
+    def execute_query(self, sql: str, _params=None):  # type: ignore[no-untyped-def]
         sql_upper = sql.upper()
+        self.queries.append(sql_upper)
 
-        if "FROM MYSQL.ROLE_EDGES" in sql_upper:
-            return list(self._role_edges_rows)
+        result = None
 
-        if "FROM MYSQL.DEFAULT_ROLES" in sql_upper:
-            return list(self._default_roles_rows)
+        if "FROM INFORMATION_SCHEMA.COLUMNS" in sql_upper:
+            if self._forbid_information_schema:
+                raise AssertionError(f"information_schema query forbidden: {sql}")
+            result = []
 
-        if sql_upper.startswith("SHOW GRANTS FOR"):
-            return [("GRANT USAGE ON *.* TO `demo`@`%`",)]
+        elif "FROM MYSQL.ROLE_EDGES" in sql_upper:
+            if self._forbid_roles_tables:
+                raise AssertionError(f"roles tables query forbidden: {sql}")
+            # role_edges_rows 按 mysql.role_edges 真实列顺序模拟：
+            # FROM_USER / FROM_HOST / TO_USER / TO_HOST / WITH_ADMIN_OPTION
+            uses_to_as_grantee = "CONCAT(TO_USER" in sql_upper
+            output = []
+            for from_user, from_host, to_user, to_host, with_admin_option in self._role_edges_rows:
+                grantee_user, grantee_host = (to_user, to_host) if uses_to_as_grantee else (from_user, from_host)
+                role_user, role_host = (from_user, from_host) if uses_to_as_grantee else (to_user, to_host)
+                output.append((f"{grantee_user}@{grantee_host}", f"{role_user}@{role_host}", with_admin_option))
+            result = output
 
-        if "FROM MYSQL.USER" in sql_upper and "ORDER BY USER, HOST" in sql_upper:
-            return list(self._user_rows)
+        elif "FROM MYSQL.DEFAULT_ROLES" in sql_upper:
+            if self._forbid_roles_tables:
+                raise AssertionError(f"roles tables query forbidden: {sql}")
+            # default_roles_rows 按 mysql.default_roles 真实列顺序模拟：
+            # USER / HOST / DEFAULT_ROLE_USER / DEFAULT_ROLE_HOST
+            result = [
+                (f"{user}@{host}", f"{role_user}@{role_host}")
+                for user, host, role_user, role_host in self._default_roles_rows
+            ]
 
-        if "FROM MYSQL.USER" in sql_upper and "WHERE USER = %S AND HOST = %S" in sql_upper:
-            return [("N", "N", "N", "caching_sha2_password", None)]
+        elif sql_upper.startswith("SHOW GRANTS FOR"):
+            result = [("GRANT USAGE ON *.* TO `demo`@`%`",)]
 
-        raise AssertionError(f"unexpected sql: {sql}")
+        elif "FROM MYSQL.USER" in sql_upper and "ORDER BY USER, HOST" in sql_upper:
+            result = list(self._user_rows)
+
+        elif "FROM MYSQL.USER" in sql_upper and "WHERE USER = %S AND HOST = %S" in sql_upper:
+            result = [("N", "N", "N", "caching_sha2_password", None)]
+
+        if result is None:
+            raise AssertionError(f"unexpected sql: {sql}")
+        return result
 
 
 @pytest.mark.unit
@@ -49,11 +81,13 @@ def test_mysql_adapter_fetch_raw_accounts_sets_account_kind_from_is_role() -> No
         db_type=DatabaseType.MYSQL,
         host="127.0.0.1",
         port=3306,
+        main_version="8.0",
         description=None,
         is_active=True,
     )
 
     connection = _StubMySQLConnection(
+        forbid_information_schema=True,
         user_rows=[
             ("demo", "%", "N", "N", "N", "caching_sha2_password", None, "N"),
             ("demo_role", "%", "N", "Y", "N", None, None, "Y"),
@@ -90,14 +124,16 @@ def test_mysql_adapter_enrich_permissions_includes_roles_direct_and_default() ->
         db_type=DatabaseType.MYSQL,
         host="127.0.0.1",
         port=3306,
+        main_version="8.0",
         description=None,
         is_active=True,
     )
 
     connection = _StubMySQLConnection(
+        forbid_information_schema=True,
         user_rows=[],
-        role_edges_rows=[("demo@%", "r1@%", 0)],
-        default_roles_rows=[("demo@%", "r2@%")],
+        role_edges_rows=[("r1", "%", "demo", "%", 0)],
+        default_roles_rows=[("demo", "%", "r2", "%")],
     )
 
     accounts = cast(
@@ -130,3 +166,49 @@ def test_mysql_adapter_enrich_permissions_includes_roles_direct_and_default() ->
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
     assert type_specific.get("account_kind") == "user"
+
+
+@pytest.mark.unit
+def test_mysql57_enrich_permissions_skips_roles_tables() -> None:
+    adapter = MySQLAccountAdapter()
+    instance = Instance(
+        name="inst",
+        db_type=DatabaseType.MYSQL,
+        host="127.0.0.1",
+        port=3306,
+        main_version="5.7",
+        description=None,
+        is_active=True,
+    )
+
+    connection = _StubMySQLConnection(
+        forbid_information_schema=True,
+        forbid_roles_tables=True,
+        user_rows=[],
+    )
+
+    accounts = cast(
+        list[RemoteAccount],
+        [
+            {
+                "username": "demo@%",
+                "display_name": "demo@%",
+                "db_type": DatabaseType.MYSQL,
+                "is_superuser": False,
+                "is_locked": False,
+                "is_active": True,
+                "permissions": {
+                    "global_privileges": [],
+                    "database_privileges": {},
+                    "type_specific": {
+                        "host": "%",
+                        "original_username": "demo",
+                        "account_kind": "user",
+                    },
+                },
+            },
+        ],
+    )
+
+    enriched = adapter.enrich_permissions(instance, connection, accounts)
+    assert enriched[0]["permissions"].get("roles") == {"direct": [], "default": []}
