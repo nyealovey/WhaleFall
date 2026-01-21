@@ -68,8 +68,8 @@ def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot() -> None
         permission_snapshot={
             "version": 4,
             "categories": {
-                "global_privileges": ["SELECT"],
-                "database_privileges": {"db1": ["CREATE"]},
+                "mysql_global_privileges": ["SELECT"],
+                "mysql_database_privileges": {"db1": ["CREATE"]},
             },
             "type_specific": {},
             "extra": {},
@@ -83,8 +83,8 @@ def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot() -> None
     )
     result = service.get_permissions(1)
     assert result.permissions.snapshot.get("version") == 4
-    assert result.permissions.snapshot.get("categories", {}).get("global_privileges") == ["SELECT"]
-    assert result.permissions.snapshot.get("categories", {}).get("database_privileges") == {"db1": ["CREATE"]}
+    assert result.permissions.snapshot.get("categories", {}).get("mysql_global_privileges") == ["SELECT"]
+    assert result.permissions.snapshot.get("categories", {}).get("mysql_database_privileges") == {"db1": ["CREATE"]}
 
 
 @pytest.mark.unit
