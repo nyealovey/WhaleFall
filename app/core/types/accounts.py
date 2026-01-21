@@ -8,10 +8,17 @@ from typing import NotRequired, TypedDict
 from app.core.types.structures import JsonDict, JsonValue
 
 
+class MySQLRolesSnapshot(TypedDict, total=False):
+    """MySQL roles snapshot payload."""
+
+    direct: list[str]
+    default: list[str]
+
+
 class PermissionSnapshot(TypedDict, total=False):
     """标准化的权限快照结构."""
 
-    roles: list[str]
+    roles: list[str] | MySQLRolesSnapshot
     global_privileges: list[str]
     database_privileges: Mapping[str, list[str] | JsonValue]
     database_privileges_pg: Mapping[str, JsonValue]

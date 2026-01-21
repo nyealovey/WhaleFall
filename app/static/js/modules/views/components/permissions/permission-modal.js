@@ -330,6 +330,20 @@ function renderMySQLPermissions(permissions) {
         return renderEmptyPill();
     }
 
+    const roles = permissions.roles && typeof permissions.roles === 'object' ? permissions.roles : {};
+    const directRoles = Array.isArray(roles.direct) ? roles.direct : [];
+    const defaultRoles = Array.isArray(roles.default) ? roles.default : [];
+    const directRolesSection = renderPermissionSection(
+        '直授角色',
+        'fas fa-user-tag',
+        renderLedgerChips(directRoles, { emptyLabel: '无直授角色' })
+    );
+    const defaultRolesSection = renderPermissionSection(
+        '默认角色',
+        'fas fa-user-check',
+        renderLedgerChips(defaultRoles, { emptyLabel: '无默认角色' })
+    );
+
     const globalPrivileges = flattenPrivilegeStrings(permissions.global_privileges);
     const globalSection = renderPermissionSection(
         '全局权限',
@@ -374,7 +388,7 @@ function renderMySQLPermissions(permissions) {
         renderStack(tableRows, '无表权限')
     );
 
-    return [globalSection, databaseSection, tableSection].join('');
+    return [directRolesSection, defaultRolesSection, globalSection, databaseSection, tableSection].join('');
 }
 
 /**

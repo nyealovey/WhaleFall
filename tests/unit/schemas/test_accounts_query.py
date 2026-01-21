@@ -21,6 +21,7 @@ def test_accounts_filters_query_defaults() -> None:
     assert filters.classification == ""
     assert filters.classification_filter == ""
     assert filters.db_type is None
+    assert filters.include_roles is False
 
 
 @pytest.mark.unit
@@ -33,6 +34,7 @@ def test_accounts_filters_query_normalizes_and_clamps() -> None:
             "search": "  foo  ",
             "instance_id": 123,
             "include_deleted": True,
+            "include_roles": True,
             "is_locked": " TRUE ",
             "is_superuser": "false",
             "plugin": "  mysql_native_password  ",
@@ -55,6 +57,7 @@ def test_accounts_filters_query_normalizes_and_clamps() -> None:
     assert filters.classification == "all"
     assert filters.classification_filter == ""
     assert filters.db_type == "mysql"
+    assert filters.include_roles is True
 
 
 @pytest.mark.unit

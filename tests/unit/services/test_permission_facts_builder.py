@@ -117,3 +117,37 @@ def test_build_permission_facts_includes_type_specific_contract_error_when_shape
     assert meta.get("type_specific_contract_ok") is False
     assert meta.get("type_specific_error_code") == "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS"
     assert "INTERNAL_CONTRACT_MISSING_REQUIRED_FIELDS" in facts.get("errors", [])
+
+
+@pytest.mark.unit
+def test_build_permission_facts_mysql_roles_include_direct_and_default() -> None:
+    record = _StubRecord(db_type="mysql")
+    snapshot = {
+        "version": 4,
+        "categories": {"roles": {"direct": ["r1@%"], "default": ["r2@%"]}},
+        "type_specific": {"mysql": {"account_kind": "user"}},
+        "extra": {},
+        "errors": [],
+        "meta": {},
+    }
+
+    facts = build_permission_facts(record=record, snapshot=snapshot)
+
+    assert set(facts["roles"]) == {"r1@%", "r2@%"}
+
+
+@pytest.mark.unit
+def test_build_permission_facts_mysql_role_does_not_add_locked() -> None:
+    record = _StubRecord(db_type="mysql")
+    snapshot = {
+        "version": 4,
+        "categories": {},
+        "type_specific": {"mysql": {"account_kind": "role", "account_locked": True}},
+        "extra": {},
+        "errors": [],
+        "meta": {},
+    }
+
+    facts = build_permission_facts(record=record, snapshot=snapshot)
+
+    assert "LOCKED" not in facts["capabilities"]

@@ -639,7 +639,7 @@ function initializeAccountsGrid() {
 }
 
 function buildAccountsBaseUrl() {
-    return `/api/v1/accounts/ledgers?instance_id=${getInstanceId()}&sort=username&order=asc`;
+    return `/api/v1/accounts/ledgers?instance_id=${getInstanceId()}&sort=username&order=asc&include_roles=true`;
 }
 
 function handleAccountsServerResponse(response) {
@@ -698,7 +698,7 @@ function buildAccountsGridColumns() {
             name: '锁定',
             id: 'is_locked',
             width: '70px',
-            formatter: (cell) => renderAccountLockedBadge(Boolean(cell)),
+            formatter: (cell, row) => renderAccountLockedCell(cell, getRowMeta(row)),
         },
         {
             name: '超管',
@@ -746,9 +746,13 @@ function renderAccountUsernameCell(value, meta) {
     const typeSpecific = meta?.type_specific || {};
     const host = typeSpecific?.host ? String(typeSpecific.host) : null;
     const plugin = typeSpecific?.plugin ? String(typeSpecific.plugin).toUpperCase() : null;
+    const accountKind = typeSpecific?.account_kind ? String(typeSpecific.account_kind).toLowerCase() : null;
     const subtitleParts = [];
     if (host && !username.includes('@')) {
         subtitleParts.push(`@${host}`);
+    }
+    if (accountKind === 'role') {
+        subtitleParts.push('ROLE');
     }
     if (plugin) {
         subtitleParts.push(plugin);
@@ -760,6 +764,15 @@ function renderAccountUsernameCell(value, meta) {
             ${subtitle}
         </div>
     `);
+}
+
+function renderAccountLockedCell(isLocked, meta) {
+    const typeSpecific = meta?.type_specific || {};
+    const accountKind = typeSpecific?.account_kind ? String(typeSpecific.account_kind).toLowerCase() : null;
+    if (accountKind === 'role') {
+        return gridHtml ? gridHtml('<span class="text-muted">-</span>') : '-';
+    }
+    return renderAccountLockedBadge(Boolean(isLocked));
 }
 
 function renderAccountLockedBadge(isLocked) {
