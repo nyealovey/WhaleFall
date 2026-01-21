@@ -157,8 +157,8 @@ def test_mysql_adapter_enrich_permissions_includes_roles_direct_and_default() ->
                 "is_locked": False,
                 "is_active": True,
                 "permissions": {
-                    "global_privileges": [],
-                    "database_privileges": {},
+                    "mysql_global_privileges": [],
+                    "mysql_database_privileges": {},
                     "type_specific": {
                         "host": "%",
                         "original_username": "demo",
@@ -172,7 +172,7 @@ def test_mysql_adapter_enrich_permissions_includes_roles_direct_and_default() ->
     enriched = adapter.enrich_permissions(instance, connection, accounts)
 
     permissions = enriched[0]["permissions"]
-    assert permissions.get("roles") == {"direct": ["r1@%"], "default": ["r2@%"]}
+    assert permissions.get("mysql_granted_roles") == {"direct": ["r1@%"], "default": ["r2@%"]}
     type_specific = permissions.get("type_specific")
     assert isinstance(type_specific, dict)
     assert type_specific.get("account_kind") == "user"
@@ -210,8 +210,8 @@ def test_mysql_adapter_enrich_permissions_includes_role_members_for_role_account
                 "is_locked": False,
                 "is_active": True,
                 "permissions": {
-                    "global_privileges": [],
-                    "database_privileges": {},
+                    "mysql_global_privileges": [],
+                    "mysql_database_privileges": {},
                     "type_specific": {
                         "host": "%",
                         "original_username": "demo",
@@ -227,8 +227,8 @@ def test_mysql_adapter_enrich_permissions_includes_role_members_for_role_account
                 "is_locked": False,
                 "is_active": True,
                 "permissions": {
-                    "global_privileges": [],
-                    "database_privileges": {},
+                    "mysql_global_privileges": [],
+                    "mysql_database_privileges": {},
                     "type_specific": {
                         "host": "%",
                         "original_username": "r1",
@@ -244,12 +244,12 @@ def test_mysql_adapter_enrich_permissions_includes_role_members_for_role_account
     role_permissions = role_account.get("permissions")
     assert isinstance(role_permissions, dict)
 
-    assert role_permissions.get("role_members") == {"direct": ["demo@%"], "default": ["demo@%"]}
+    assert role_permissions.get("mysql_role_members") == {"direct": ["demo@%"], "default": ["demo@%"]}
 
     user_account = next(item for item in enriched if item.get("username") == "demo@%")
     user_permissions = user_account.get("permissions")
     assert isinstance(user_permissions, dict)
-    assert "role_members" not in user_permissions
+    assert "mysql_role_members" not in user_permissions
 
 
 @pytest.mark.unit
@@ -370,8 +370,8 @@ def test_mysql57_enrich_permissions_skips_roles_tables() -> None:
                 "is_locked": False,
                 "is_active": True,
                 "permissions": {
-                    "global_privileges": [],
-                    "database_privileges": {},
+                    "mysql_global_privileges": [],
+                    "mysql_database_privileges": {},
                     "type_specific": {
                         "host": "%",
                         "original_username": "demo",
@@ -383,4 +383,4 @@ def test_mysql57_enrich_permissions_skips_roles_tables() -> None:
     )
 
     enriched = adapter.enrich_permissions(instance, connection, accounts)
-    assert enriched[0]["permissions"].get("roles") == {"direct": [], "default": []}
+    assert enriched[0]["permissions"].get("mysql_granted_roles") == {"direct": [], "default": []}

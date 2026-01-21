@@ -18,19 +18,27 @@ class MySQLRolesSnapshot(TypedDict, total=False):
 class PermissionSnapshot(TypedDict, total=False):
     """标准化的权限快照结构."""
 
-    roles: list[str] | MySQLRolesSnapshot
-    role_members: MySQLRolesSnapshot
-    global_privileges: list[str]
-    database_privileges: Mapping[str, list[str] | JsonValue]
+    # MySQL
+    mysql_granted_roles: list[str] | MySQLRolesSnapshot
+    mysql_role_members: MySQLRolesSnapshot
+    mysql_global_privileges: list[str]
+    mysql_database_privileges: Mapping[str, list[str] | JsonValue]
+
+    # PostgreSQL (legacy keys will be removed during refactor)
     database_privileges_pg: Mapping[str, JsonValue]
+    predefined_roles: list[str]
+    role_attributes: Mapping[str, JsonValue]
+
+    # SQL Server (legacy keys will be removed during refactor)
     database_permissions: Mapping[str, JsonValue]
     database_roles: Mapping[str, list[str]]
     server_roles: list[str]
     server_permissions: list[str]
-    predefined_roles: list[str]
-    role_attributes: Mapping[str, JsonValue]
+
+    # Oracle
     oracle_roles: list[str]
     system_privileges: list[str]
+
     errors: list[str]
     type_specific: JsonDict
     extra: JsonDict
