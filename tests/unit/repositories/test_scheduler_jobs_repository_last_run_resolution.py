@@ -44,42 +44,38 @@ def test_lookup_job_last_run_returns_latest_started_at(app) -> None:
     newer = datetime(2026, 1, 22, 3, 0, 0, tzinfo=timezone.utc)
 
     with app.app_context():
-        db.session.add(
-            TaskRun(
-                run_id="run-old",
-                task_key="calculate_account_classification",
-                task_name="统计账户分类",
-                task_category="classification",
-                trigger_source="scheduled",
-                status="completed",
-                started_at=older,
-                completed_at=older,
-            ),
-        )
-        db.session.add(
-            TaskRun(
-                run_id="run-new",
-                task_key="calculate_account_classification",
-                task_name="统计账户分类",
-                task_category="classification",
-                trigger_source="scheduled",
-                status="completed",
-                started_at=newer,
-                completed_at=newer,
-            ),
-        )
-        db.session.add(
-            TaskRun(
-                run_id="run-other",
-                task_key="sync_accounts",
-                task_name="账户同步",
-                task_category="account",
-                trigger_source="scheduled",
-                status="completed",
-                started_at=newer,
-                completed_at=newer,
-            ),
-        )
+        run_old = TaskRun()
+        run_old.run_id = "run-old"
+        run_old.task_key = "calculate_account_classification"
+        run_old.task_name = "统计账户分类"
+        run_old.task_category = "classification"
+        run_old.trigger_source = "scheduled"
+        run_old.status = "completed"
+        run_old.started_at = older
+        run_old.completed_at = older
+        db.session.add(run_old)
+
+        run_new = TaskRun()
+        run_new.run_id = "run-new"
+        run_new.task_key = "calculate_account_classification"
+        run_new.task_name = "统计账户分类"
+        run_new.task_category = "classification"
+        run_new.trigger_source = "scheduled"
+        run_new.status = "completed"
+        run_new.started_at = newer
+        run_new.completed_at = newer
+        db.session.add(run_new)
+
+        run_other = TaskRun()
+        run_other.run_id = "run-other"
+        run_other.task_key = "sync_accounts"
+        run_other.task_name = "账户同步"
+        run_other.task_category = "account"
+        run_other.trigger_source = "scheduled"
+        run_other.status = "completed"
+        run_other.started_at = newer
+        run_other.completed_at = newer
+        db.session.add(run_other)
         db.session.commit()
 
         assert SchedulerJobsRepository.lookup_job_last_run(job_id="calculate_account_classification") == newer.isoformat()

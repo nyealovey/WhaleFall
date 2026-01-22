@@ -14,8 +14,8 @@ from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
-from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.repositories.instances_repository import InstancesRepository
+from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
 from app.services.task_runs.task_run_summary_builders import build_capacity_aggregate_current_summary

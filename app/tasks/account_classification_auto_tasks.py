@@ -15,8 +15,8 @@ from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
-from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.repositories.account_classification_repository import ClassificationRepository
+from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.account_classification.dsl_v4 import (
     DslV4Evaluator,
     collect_dsl_v4_validation_errors,

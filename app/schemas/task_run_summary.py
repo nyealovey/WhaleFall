@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date
 from typing import Any, Literal
 
@@ -101,23 +102,24 @@ class TaskRunSummaryFactory:
         task_key: str,
         inputs: dict[str, Any] | None = None,
         scope: SummaryScopeV1 | dict[str, Any] | None = None,
-        metrics: list[SummaryMetricItemV1 | dict[str, Any]] | None = None,
-        highlights: list[str] | None = None,
+        metrics: Sequence[SummaryMetricItemV1 | dict[str, Any]] | None = None,
+        highlights: Sequence[str] | None = None,
         flags: SummaryFlagsV1 | dict[str, Any] | None = None,
         ext_data: dict[str, Any] | None = None,
         ext_version: int = 1,
     ) -> dict[str, Any]:
         """生成基础 envelope(可选注入 inputs/scope/metrics/highlights/flags/ext.data)."""
-        model = TaskRunSummaryV1(
-            common={
+        payload: dict[str, Any] = {
+            "version": 1,
+            "common": {
                 "inputs": inputs or {},
                 "scope": scope or {},
-                "metrics": metrics or [],
-                "highlights": highlights or [],
+                "metrics": list(metrics or []),
+                "highlights": list(highlights or []),
                 "flags": flags or {},
             },
-            ext={"type": task_key, "version": ext_version, "data": ext_data or {}},
-        )
+            "ext": {"type": task_key, "version": ext_version, "data": ext_data or {}},
+        }
+        model = TaskRunSummaryV1.model_validate(payload)
         # 使用 mode="json" 以确保 date 等类型序列化为 JSON 兼容值
         return model.model_dump(mode="json")
-
