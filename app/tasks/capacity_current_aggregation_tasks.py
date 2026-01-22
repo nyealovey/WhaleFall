@@ -14,9 +14,11 @@ from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.repositories.instances_repository import InstancesRepository
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
+from app.services.task_runs.task_run_summary_builders import build_capacity_aggregate_current_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -61,7 +63,10 @@ def capacity_aggregate_current(
                 task_category="aggregation",
                 trigger_source="manual",
                 created_by=created_by,
-                summary_json={"scope": resolved_scope},
+                summary_json=TaskRunSummaryFactory.base(
+                    task_key="capacity_aggregate_current",
+                    inputs={"scope": resolved_scope},
+                ),
                 result_url=("/capacity/databases" if resolved_scope == "database" else "/capacity/instances"),
             )
             db.session.commit()
@@ -102,13 +107,17 @@ def capacity_aggregate_current(
 
         current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
         if current_run is not None and current_run.status != "cancelled":
-            current_run.summary_json = {
-                "scope": resolved_scope,
-                "requested_period_type": period_type,
-                "effective_period_type": period_type,
-                "period_start": period_start_date.isoformat(),
-                "period_end": period_end_date.isoformat(),
-            }
+            current_run.summary_json = build_capacity_aggregate_current_summary(
+                task_key="capacity_aggregate_current",
+                inputs={"scope": resolved_scope},
+                scope=resolved_scope,
+                requested_period_type=period_type,
+                effective_period_type=period_type,
+                period_start=period_start_date,
+                period_end=period_end_date,
+                status=None,
+                message=None,
+            )
         db.session.commit()
 
         def _ensure_not_cancelled() -> None:
@@ -222,15 +231,19 @@ def capacity_aggregate_current(
 
         current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
         if current_run is not None and current_run.status != "cancelled":
-            current_run.summary_json = {
-                "scope": resolved_scope,
-                "requested_period_type": period_type,
-                "effective_period_type": period_type,
-                "period_start": period_start_date.isoformat(),
-                "period_end": period_end_date.isoformat(),
-                "status": result.get("status"),
-                "message": result.get("message"),
-            }
+            status_value = result.get("status")
+            message_value = result.get("message")
+            current_run.summary_json = build_capacity_aggregate_current_summary(
+                task_key="capacity_aggregate_current",
+                inputs={"scope": resolved_scope},
+                scope=resolved_scope,
+                requested_period_type=period_type,
+                effective_period_type=period_type,
+                period_start=period_start_date,
+                period_end=period_end_date,
+                status=str(status_value) if status_value is not None else None,
+                message=str(message_value) if message_value is not None else None,
+            )
 
         task_runs_service.finalize_run(resolved_run_id)
         db.session.commit()

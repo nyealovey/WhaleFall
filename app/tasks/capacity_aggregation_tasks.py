@@ -10,6 +10,7 @@ from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.capacity_aggregation_task_runner import (
     AGGREGATION_TASK_EXCEPTIONS,
@@ -17,6 +18,7 @@ from app.services.aggregation.capacity_aggregation_task_runner import (
     STATUS_FAILED,
     CapacityAggregationTaskRunner,
 )
+from app.services.task_runs.task_run_summary_builders import build_calculate_database_aggregations_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -229,7 +231,10 @@ def calculate_database_aggregations(
                 task_category="aggregation",
                 trigger_source=trigger_source,
                 created_by=created_by,
-                summary_json={"requested_periods": periods},
+                summary_json=TaskRunSummaryFactory.base(
+                    task_key="calculate_database_aggregations",
+                    inputs={"requested_periods": periods},
+                ),
                 result_url="/capacity/instances",
             )
             db.session.commit()
@@ -265,11 +270,19 @@ def calculate_database_aggregations(
             if isinstance(prepared, dict):
                 current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
                 if current_run is not None and current_run.status != "cancelled":
-                    current_run.summary_json = {
-                        "skipped": True,
-                        "skip_reason": prepared.get("message"),
-                        "requested_periods": periods,
-                    }
+                    current_run.summary_json = build_calculate_database_aggregations_summary(
+                        task_key="calculate_database_aggregations",
+                        inputs={"requested_periods": periods},
+                        periods_executed=[],
+                        instances_total=0,
+                        instances_successful=0,
+                        instances_failed=0,
+                        record_instance=0,
+                        record_database=0,
+                        session_id=None,
+                        skipped=True,
+                        skip_reason=str(prepared.get("message") or ""),
+                    )
                 task_runs_service.finalize_run(resolved_run_id)
                 db.session.commit()
                 return {"run_id": resolved_run_id, **prepared}
@@ -348,17 +361,17 @@ def calculate_database_aggregations(
 
             current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
             if current_run is not None and current_run.status != "cancelled":
-                current_run.summary_json = {
-                    "periods_executed": selected_periods,
-                    "instances_total": len(active_instances),
-                    "instances_successful": successful_instances,
-                    "instances_failed": failed_instances,
-                    "records": {
-                        "instance": total_instance_aggregations,
-                        "database": total_database_aggregations,
-                        "total": total_instance_aggregations + total_database_aggregations,
-                    },
-                }
+                current_run.summary_json = build_calculate_database_aggregations_summary(
+                    task_key="calculate_database_aggregations",
+                    inputs={"requested_periods": periods},
+                    periods_executed=selected_periods,
+                    instances_total=len(active_instances),
+                    instances_successful=successful_instances,
+                    instances_failed=failed_instances,
+                    record_instance=total_instance_aggregations,
+                    record_database=total_database_aggregations,
+                    session_id=session.session_id if session is not None else None,
+                )
 
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()

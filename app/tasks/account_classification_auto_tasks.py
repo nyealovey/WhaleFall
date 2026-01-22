@@ -15,12 +15,14 @@ from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.repositories.account_classification_repository import ClassificationRepository
 from app.services.account_classification.dsl_v4 import (
     DslV4Evaluator,
     collect_dsl_v4_validation_errors,
     is_dsl_v4_expression,
 )
+from app.services.task_runs.task_run_summary_builders import build_auto_classify_accounts_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -51,7 +53,10 @@ def auto_classify_accounts(
                 task_category="classification",
                 trigger_source="manual",
                 created_by=created_by,
-                summary_json={"instance_id": instance_id},
+                summary_json=TaskRunSummaryFactory.base(
+                    task_key="auto_classify_accounts",
+                    inputs={"instance_id": instance_id},
+                ),
                 result_url="/accounts/classifications",
             )
             db.session.commit()
@@ -94,11 +99,16 @@ def auto_classify_accounts(
             if current_run is not None and current_run.status != "cancelled":
                 current_run.status = "failed"
                 current_run.error_message = "没有可用的分类规则"
-                current_run.summary_json = {
-                    "instance_id": instance_id,
-                    "rules_count": 0,
-                    "accounts_count": len(accounts),
-                }
+                current_run.summary_json = build_auto_classify_accounts_summary(
+                    task_key="auto_classify_accounts",
+                    inputs={"instance_id": instance_id},
+                    rules_count=0,
+                    accounts_count=len(accounts),
+                    total_matches=0,
+                    total_classifications_added=0,
+                    failed_count=0,
+                    duration_ms=int(round((time.perf_counter() - started_at) * 1000)),
+                )
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
             return {"success": False, "message": "没有可用的分类规则", "run_id": resolved_run_id}
@@ -122,17 +132,20 @@ def auto_classify_accounts(
                     details_json={"skipped": True, "skip_reason": "没有需要分类的账户"},
                 )
 
-            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if current_run is not None and current_run.status != "cancelled":
-                current_run.summary_json = {
-                    "instance_id": instance_id,
-                    "rules_count": len(rules),
-                    "accounts_count": 0,
-                    "total_matches": 0,
-                    "total_classifications_added": 0,
-                    "failed_count": 0,
-                    "duration_ms": int(round((time.perf_counter() - started_at) * 1000)),
-                }
+        current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+        if current_run is not None and current_run.status != "cancelled":
+            current_run.summary_json = build_auto_classify_accounts_summary(
+                task_key="auto_classify_accounts",
+                inputs={"instance_id": instance_id},
+                rules_count=len(rules),
+                accounts_count=0,
+                total_matches=0,
+                total_classifications_added=0,
+                failed_count=0,
+                duration_ms=int(round((time.perf_counter() - started_at) * 1000)),
+                skipped=True,
+                skip_reason="没有需要分类的账户",
+            )
 
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
@@ -260,15 +273,16 @@ def auto_classify_accounts(
 
         current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
         if current_run is not None and current_run.status != "cancelled":
-            current_run.summary_json = {
-                "instance_id": instance_id,
-                "rules_count": len(rules),
-                "accounts_count": len(accounts),
-                "total_matches": total_matches,
-                "total_classifications_added": total_classifications_added,
-                "failed_count": 0,
-                "duration_ms": int(round((time.perf_counter() - started_at) * 1000)),
-            }
+            current_run.summary_json = build_auto_classify_accounts_summary(
+                task_key="auto_classify_accounts",
+                inputs={"instance_id": instance_id},
+                rules_count=len(rules),
+                accounts_count=len(accounts),
+                total_matches=total_matches,
+                total_classifications_added=total_classifications_added,
+                failed_count=0,
+                duration_ms=int(round((time.perf_counter() - started_at) * 1000)),
+            )
 
         task_runs_service.finalize_run(resolved_run_id)
         db.session.commit()
