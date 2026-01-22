@@ -26,26 +26,16 @@ var schedulerStore = null;
 var schedulerModalsController = null;
 
 function setSchedulerStatCard(key, payload) {
-    const card = document.querySelector(`[data-stat="${key}"]`);
+    const card = document.querySelector(`[data-stat-key="${key}"]`);
     if (!card) {
         return;
     }
-    const valueNode = card.querySelector('[data-stat-value]');
+    const valueNode = card.querySelector('[data-role="metric-value"]');
     if (valueNode && payload?.value !== undefined) {
         valueNode.textContent = payload.value;
-        if (payload?.tone) {
-            valueNode.setAttribute('data-value-tone', payload.tone);
-        }
     }
-    const metaNode = card.querySelector('[data-stat-meta]');
-    if (metaNode) {
-        if (payload?.metaHtml) {
-            metaNode.innerHTML = payload.metaHtml;
-        } else if (payload?.meta) {
-            metaNode.textContent = payload.meta;
-        } else {
-            metaNode.textContent = '';
-        }
+    if (payload?.tone) {
+        card.setAttribute('data-tone', payload.tone);
     }
 }
 

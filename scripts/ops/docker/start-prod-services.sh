@@ -43,7 +43,12 @@ load_env_file() {
 prepare_runtime_dirs() {
     log_info "初始化运行目录..."
     mkdir -p /app/userdata/{logs,exports,backups,uploads} /var/log/nginx /var/run
-    touch /var/log/nginx/nginx.log /app/userdata/logs/whalefall.log /app/userdata/logs/whalefall_error.log
+    touch \
+        /var/log/nginx/nginx.log \
+        /app/userdata/logs/whalefall_web.log \
+        /app/userdata/logs/whalefall_web_error.log \
+        /app/userdata/logs/whalefall_scheduler.log \
+        /app/userdata/logs/whalefall_scheduler_error.log
     log_success "运行目录准备完成"
 }
 

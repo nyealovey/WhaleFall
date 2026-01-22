@@ -6,46 +6,6 @@
     gap: var(--spacing-md);
 }
 
-.tags-stat-card {
-    background-color: var(--surface-elevated);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-lg);
-    padding: var(--spacing-lg);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-}
-
-.tags-stat-card__label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-.tags-stat-card__value {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.tags-stat-card[data-value-tone="success"] .tags-stat-card__value {
-    color: var(--status-success);
-}
-
-.tags-stat-card[data-value-tone="warning"] .tags-stat-card__value {
-    color: var(--status-warning);
-}
-
-.tags-stat-card[data-value-tone="info"] .tags-stat-card__value {
-    color: var(--status-info);
-}
-
-.tags-stat-card__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
 #tags-grid .gridjs-table tbody tr:nth-child(even) td {
     background-color: color-mix(in srgb, var(--surface-muted) 8%, transparent);
 }

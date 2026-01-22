@@ -60,7 +60,7 @@ related:
 
 ### 4) 调度器（`app/scheduler.py`）
 
-- MUST: 单实例策略与启停策略遵循 [[standards/backend/task-and-scheduler|任务与调度(APScheduler)]]（文件锁、`ENABLE_SCHEDULER`、reloader 子进程策略）。
+- MUST: 单实例策略与启停策略遵循 [[standards/backend/task-and-scheduler|任务与调度(APScheduler)]]（`ENABLE_SCHEDULER`、reloader 子进程策略、生产 Web/Scheduler 分进程建议）。
 - MUST: 调度器初始化失败不得阻塞应用启动（必须记录结构化日志并安全返回）。
 - SHOULD: 任务函数导入路径保持稳定，新增任务同时更新 `TASK_FUNCTIONS` 与配置文件，避免“找不到 callable”。
 

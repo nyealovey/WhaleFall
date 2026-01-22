@@ -123,6 +123,7 @@ show_complete_status() {
     log_info "访问地址:"
     echo "  - 应用首页: http://localhost"
     echo "  - 健康检查: http://localhost/api/v1/health/basic"
+    echo "  - Scheduler API: http://localhost/api/v1/scheduler/jobs"
     echo "  - 静态文件: http://localhost/static/"
 
     echo ""

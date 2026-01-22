@@ -154,7 +154,7 @@ graph TB
 
 - 主库: SQLAlchemy models 存储在 PostgreSQL(由 `SQLALCHEMY_DATABASE_URI` 配置).
 - 缓存: Flask-Caching, 支持 `CACHE_TYPE=simple/redis`(生产建议 redis).
-- 调度器: APScheduler + SQLite jobstore(`userdata/scheduler.db`), 通过文件锁在多进程下保持单实例执行.
+- 调度器: APScheduler + SQLite jobstore(`userdata/scheduler.db`), 通过部署约束保持单实例执行（推荐 Web/Scheduler 分进程 + `ENABLE_SCHEDULER` 开关）.
 
 ## 3. 整体架构图(组件视角)
 
@@ -524,16 +524,14 @@ graph TB
 
 调度器实现:
 
-- `app/scheduler.py`: APScheduler 封装, SQLite jobstore, 文件锁, `ENABLE_SCHEDULER` 开关
+- `app/scheduler.py`: APScheduler 封装, SQLite jobstore, `ENABLE_SCHEDULER` 开关
 - `app/config/scheduler_tasks.yaml`: 默认任务配置
 
 ```mermaid
 flowchart TD
     Start["create_app(init_scheduler_on_start=true)"] --> Should["should_start_scheduler? (ENABLE_SCHEDULER + process role)"]
     Should -->|no| Skip["skip scheduler init"]
-    Should -->|yes| Lock["acquire file lock (single instance)"]
-    Lock -->|fail| Skip2["skip (other process owns lock)"]
-    Lock -->|ok| Init["init APScheduler (SQLite jobstore)"]
+    Should -->|yes| Init["init APScheduler (SQLite jobstore)"]
     Init --> Load["load existing jobs"]
     Load --> Defaults["register default jobs from scheduler_tasks.yaml"]
     Defaults --> Run["BackgroundScheduler running"]

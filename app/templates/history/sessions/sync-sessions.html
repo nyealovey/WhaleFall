@@ -3,6 +3,7 @@
 {% set page_density = 'compact' %}
 {% from 'components/filters/macros.html' import filter_card, task_run_trigger_source_filter, task_run_category_filter, status_active_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}运行中心 - 鲸落{% endblock %}
 
@@ -21,28 +22,16 @@
         <div class="layout-shell-inner">
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 session-stats-row">
                 <div class="col">
-                    <div class="session-stats-card">
-                        <p class="session-stats-card__label">总会话数</p>
-                        <div class="session-stats-card__value" id="totalSessions">0</div>
-                    </div>
+                    {{ metric_card('总会话数', value=0, value_id='totalSessions', icon_class='fas fa-list') }}
                 </div>
                 <div class="col">
-                    <div class="session-stats-card">
-                        <p class="session-stats-card__label">运行中</p>
-                        <div class="session-stats-card__value session-stats-card__value--info" id="runningSessions">0</div>
-                    </div>
+                    {{ metric_card('运行中', value=0, value_id='runningSessions', icon_class='fas fa-spinner', tone='info') }}
                 </div>
                 <div class="col">
-                    <div class="session-stats-card">
-                        <p class="session-stats-card__label">已完成</p>
-                        <div class="session-stats-card__value session-stats-card__value--success" id="completedSessions">0</div>
-                    </div>
+                    {{ metric_card('已完成', value=0, value_id='completedSessions', icon_class='fas fa-check', tone='success') }}
                 </div>
                 <div class="col">
-                    <div class="session-stats-card">
-                        <p class="session-stats-card__label">失败/取消</p>
-                        <div class="session-stats-card__value session-stats-card__value--danger" id="failedSessions">0</div>
-                    </div>
+                    {{ metric_card('失败/取消', value=0, value_id='failedSessions', icon_class='fas fa-times', tone='danger') }}
                 </div>
             </div>
         </div>
