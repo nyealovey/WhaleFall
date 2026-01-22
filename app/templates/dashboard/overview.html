@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/ui/macros.html' import metric_card %}
 
 {% block content_outer %}
 {% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息') %}
@@ -23,75 +24,59 @@
         <div class="layout-shell-inner">
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
                 <div class="col">
-                    <div class="card dashboard-stat-card h-100">
-                        <div class="card-body">
-                            <p class="dashboard-stat-card__label">数据库实例</p>
-                            <div class="dashboard-stat-card__value">
-                                {{ overview.instances.total if overview and overview.instances else 0 }}
-                            </div>
-                            <div class="dashboard-stat-card__meta">
-                                <span class="status-pill status-pill--success">
-                                    <i class="fas fa-check"></i>
-                                    {{ overview.instances.active if overview and overview.instances else 0 }} 活跃
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    {% call metric_card(
+                        '数据库实例',
+                        value=(overview.instances.total if overview and overview.instances else 0),
+                        icon_class='fas fa-server'
+                    ) %}
+                        <span class="status-pill status-pill--success">
+                            <i class="fas fa-check"></i>
+                            {{ overview.instances.active if overview and overview.instances else 0 }} 活跃
+                        </span>
+                    {% endcall %}
                 </div>
                 <div class="col">
-                    <div class="card dashboard-stat-card h-100">
-                        <div class="card-body">
-                            <p class="dashboard-stat-card__label">账户总数（含已删除）</p>
-                            <div class="dashboard-stat-card__value">
-                                {{ overview.accounts.total if overview and overview.accounts else 0 }}
-                            </div>
-                            <div class="dashboard-stat-card__meta">
-                                <span class="status-pill status-pill--success">
-                                    <i class="fas fa-unlock"></i>
-                                    {{ overview.accounts.active if overview and overview.accounts else 0 }} 活跃
-                                </span>
-                                <span class="status-pill status-pill--warning">
-                                    <i class="fas fa-user-lock"></i>
-                                    {{ overview.accounts.locked if overview and overview.accounts else 0 }} 受限
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    {% call metric_card(
+                        '账户总数（含已删除）',
+                        value=(overview.accounts.total if overview and overview.accounts else 0),
+                        icon_class='fas fa-users'
+                    ) %}
+                        <span class="status-pill status-pill--success">
+                            <i class="fas fa-unlock"></i>
+                            {{ overview.accounts.active if overview and overview.accounts else 0 }} 活跃
+                        </span>
+                        <span class="status-pill status-pill--warning">
+                            <i class="fas fa-user-lock"></i>
+                            {{ overview.accounts.locked if overview and overview.accounts else 0 }} 受限
+                        </span>
+                    {% endcall %}
                 </div>
                 <div class="col">
-                    <div class="card dashboard-stat-card h-100">
-                        <div class="card-body">
-                            <p class="dashboard-stat-card__label">总容量</p>
-                            <div class="dashboard-stat-card__value">
-                                {{ (overview.capacity.total_gb / 1024) | round(0) | int if overview and overview.capacity else 0 }} TB
-                            </div>
-                            <div class="dashboard-stat-card__meta">
-                                <span class="chip-outline chip-outline--brand">
-                                    {{ overview.capacity.used_percent if overview and overview.capacity else 0 }}% 使用率
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    {% call metric_card(
+                        '总容量',
+                        value=((overview.capacity.total_gb / 1024) | round(0) | int if overview and overview.capacity else 0) ~ ' TB',
+                        icon_class='fas fa-hdd'
+                    ) %}
+                        <span class="chip-outline chip-outline--brand">
+                            {{ overview.capacity.used_percent if overview and overview.capacity else 0 }}% 使用率
+                        </span>
+                    {% endcall %}
                 </div>
                 <div class="col">
-                    <div class="card dashboard-stat-card h-100">
-                        <div class="card-body">
-                            <p class="dashboard-stat-card__label">数据库总数（含已删除）</p>
-                            <div class="dashboard-stat-card__value">
-                                {{ overview.databases.total if overview and overview.databases else 0 }}
-                            </div>
-                            <div class="dashboard-stat-card__meta">
-                                <span class="status-pill status-pill--success">
-                                    <i class="fas fa-check"></i>
-                                    {{ overview.databases.active if overview and overview.databases else 0 }} 在线
-                                </span>
-                                <span class="status-pill status-pill--danger">
-                                    <i class="fas fa-trash"></i>
-                                    {{ overview.databases.inactive if overview and overview.databases else 0 }} 已删除
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    {% call metric_card(
+                        '数据库总数（含已删除）',
+                        value=(overview.databases.total if overview and overview.databases else 0),
+                        icon_class='fas fa-database'
+                    ) %}
+                        <span class="status-pill status-pill--success">
+                            <i class="fas fa-check"></i>
+                            {{ overview.databases.active if overview and overview.databases else 0 }} 在线
+                        </span>
+                        <span class="status-pill status-pill--danger">
+                            <i class="fas fa-trash"></i>
+                            {{ overview.databases.inactive if overview and overview.databases else 0 }} 已删除
+                        </span>
+                    {% endcall %}
                 </div>
             </div>
         </div>

@@ -1,0 +1,72 @@
+/* MetricCard component (SSOT)
+ *
+ * Pages own layout only; MetricCard owns visual baseline.
+ */
+
+.wf-metric-card {
+    background: var(--surface-elevated);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-md);
+    height: 100%;
+}
+
+.wf-metric-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.wf-metric-card__main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.wf-metric-card__label {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.wf-metric-card__value {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.wf-metric-card__icon {
+    color: color-mix(in srgb, var(--text-muted) 80%, transparent);
+    font-size: 1.35rem;
+}
+
+.wf-metric-card__meta {
+    margin-top: var(--spacing-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.wf-metric-card[data-tone="success"] .wf-metric-card__value {
+    color: var(--status-success);
+}
+
+.wf-metric-card[data-tone="warning"] .wf-metric-card__value {
+    color: var(--status-warning);
+}
+
+.wf-metric-card[data-tone="danger"] .wf-metric-card__value {
+    color: var(--status-danger);
+}
+
+.wf-metric-card[data-tone="info"] .wf-metric-card__value {
+    color: var(--status-info);
+}
+
+.wf-metric-card[data-tone="muted"] .wf-metric-card__value {
+    color: var(--text-muted);
+}
+

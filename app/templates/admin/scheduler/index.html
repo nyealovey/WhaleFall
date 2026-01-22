@@ -2,6 +2,7 @@
 {% set page_id = 'SchedulerPage' %}
 
 {% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}定时任务管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
@@ -24,31 +25,18 @@
         <div class="layout-shell-inner">
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 scheduler-stats">
                 <div class="col">
-                    <div class="scheduler-stat-card" data-stat="total_jobs">
-                        <p class="scheduler-stat-card__label">任务总数</p>
-                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
-                    </div>
+                    {{ metric_card('任务总数', value=0, icon_class='fas fa-tasks', data_stat_key='total_jobs') }}
                 </div>
                 <div class="col">
-                    <div class="scheduler-stat-card" data-stat="running_jobs">
-                        <p class="scheduler-stat-card__label">运行中</p>
-                        <div class="scheduler-stat-card__value" data-stat-value data-value-tone="info">0</div>
-                    </div>
+                    {{ metric_card('运行中', value=0, icon_class='fas fa-play', data_stat_key='running_jobs', tone='info') }}
                 </div>
                 <div class="col">
-                    <div class="scheduler-stat-card" data-stat="paused_jobs">
-                        <p class="scheduler-stat-card__label">已暂停</p>
-                        <div class="scheduler-stat-card__value" data-stat-value data-value-tone="warning">0</div>
-                    </div>
+                    {{ metric_card('已暂停', value=0, icon_class='fas fa-pause', data_stat_key='paused_jobs', tone='warning') }}
                 </div>
                 <div class="col">
-                    <div class="scheduler-stat-card" data-stat="builtin_jobs">
-                        <p class="scheduler-stat-card__label">内置任务</p>
-                        <div class="scheduler-stat-card__value" data-stat-value data-value-tone="success">0</div>
-                        <div class="scheduler-stat-card__meta">
-                            <span class="chip-outline chip-outline--brand"><i class="fas fa-shield-alt"></i> 系统任务</span>
-                        </div>
-                    </div>
+                    {% call metric_card('内置任务', value=0, icon_class='fas fa-shield-alt', data_stat_key='builtin_jobs', tone='success') %}
+                        <span class="chip-outline chip-outline--brand"><i class="fas fa-shield-alt"></i> 系统任务</span>
+                    {% endcall %}
                 </div>
             </div>
         </div>

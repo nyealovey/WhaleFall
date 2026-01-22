@@ -8,7 +8,7 @@ tags:
   - standards/index
 status: active
 created: 2025-12-23
-updated: 2026-01-15
+updated: 2026-01-22
 owner: WhaleFall Team
 scope: UI standards 入口与索引
 related:
@@ -29,6 +29,7 @@ related:
 - [[standards/ui/template-event-binding-standards|模板事件绑定规范]]
 - [[standards/ui/grid-standards|Grid 列表页标准]]
 - [[standards/ui/danger-operation-confirmation-guidelines|高风险操作二次确认]]
+- [[standards/ui/metric-card-standards|MetricCard 指标卡标准]]
 
 ## 全量浏览(不维护手工清单)
 
