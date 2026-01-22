@@ -34,7 +34,19 @@ class _StubMySQLConnection:
 
         result = None
 
-        if "FROM INFORMATION_SCHEMA.COLUMNS" in sql_upper:
+        if sql_upper.startswith("SHOW COLUMNS FROM MYSQL.USER"):
+            # Capability probe: adapter should check column existence before selecting it.
+            column_name = None
+            if isinstance(_params, (list, tuple)) and _params:
+                column_name = str(_params[0]).lower()
+            if column_name == "is_role" and self._forbid_is_role_column:
+                result = []
+            elif column_name == "is_role":
+                result = [("is_role", "enum('N','Y')", "YES", "", None, "")]
+            else:
+                result = []
+
+        elif "FROM INFORMATION_SCHEMA.COLUMNS" in sql_upper:
             if self._forbid_information_schema:
                 raise AssertionError(f"information_schema query forbidden: {sql}")
             result = []
@@ -67,7 +79,7 @@ class _StubMySQLConnection:
 
         elif "FROM MYSQL.USER" in sql_upper and "ORDER BY USER, HOST" in sql_upper:
             if self._forbid_is_role_column and "IS_ROLE" in sql_upper:
-                raise ConnectionAdapterError("(1054, \"Unknown column 'is_role' in 'field list'\")")
+                raise AssertionError(f"is_role should not be selected when column is absent: {sql}")
             result = list(self._user_rows)
 
         elif "FROM MYSQL.USER" in sql_upper and "WHERE USER = %S AND HOST = %S" in sql_upper:
