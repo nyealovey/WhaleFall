@@ -1,0 +1,29 @@
+{# MetricCard (SSOT) - unify metric/stat cards across pages. #}
+
+{% macro metric_card(label, value='-', icon_class=None, tone=None, value_id=None, card_class='', data_stat_key=None) -%}
+<article
+    class="card wf-metric-card {{ card_class|default('') }}"
+    {% if tone %}data-tone="{{ tone }}"{% endif %}
+    {% if data_stat_key %}data-stat-key="{{ data_stat_key }}"{% endif %}
+>
+    <div class="wf-metric-card__header">
+        <div class="wf-metric-card__main">
+            <p class="wf-metric-card__label">{{ label }}</p>
+            <div class="wf-metric-card__value" data-role="metric-value" {% if value_id %}id="{{ value_id }}"{% endif %}>
+                {{ value }}
+            </div>
+        </div>
+        {% if icon_class %}
+        <div class="wf-metric-card__icon" aria-hidden="true">
+            <i class="{{ icon_class }}"></i>
+        </div>
+        {% endif %}
+    </div>
+    {% if caller is defined %}
+    <div class="wf-metric-card__meta">
+        {{ caller() }}
+    </div>
+    {% endif %}
+</article>
+{%- endmacro %}
+
