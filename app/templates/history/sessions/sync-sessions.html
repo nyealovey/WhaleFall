@@ -3,7 +3,6 @@
 {% set page_density = 'compact' %}
 {% from 'components/filters/macros.html' import filter_card, task_run_trigger_source_filter, task_run_category_filter, status_active_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
-{% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}运行中心 - 鲸落{% endblock %}
 
@@ -16,27 +15,6 @@
 {% block content_outer %}
 <div id="task-runs-page-root">
 {{ page_header('fas fa-tasks', '运行中心', '查看和管理后台任务运行记录') }}
-
-<section class="page-section">
-    <div class="layout-shell">
-        <div class="layout-shell-inner">
-            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 session-stats-row">
-                <div class="col">
-                    {{ metric_card('总会话数', value=0, value_id='totalSessions', icon_class='fas fa-list') }}
-                </div>
-                <div class="col">
-                    {{ metric_card('运行中', value=0, value_id='runningSessions', icon_class='fas fa-spinner', tone='info') }}
-                </div>
-                <div class="col">
-                    {{ metric_card('已完成', value=0, value_id='completedSessions', icon_class='fas fa-check', tone='success') }}
-                </div>
-                <div class="col">
-                    {{ metric_card('失败/取消', value=0, value_id='failedSessions', icon_class='fas fa-times', tone='danger') }}
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
@@ -55,7 +33,10 @@
         <div class="layout-shell-inner">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list"></i> 任务运行列表</h5>
+                    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                        <h5 class="mb-0"><i class="fas fa-list"></i> 任务运行列表</h5>
+                        <span class="chip-outline chip-outline--muted" id="taskRunsTotalCount">共 0 条</span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div id="task-runs-grid"></div>

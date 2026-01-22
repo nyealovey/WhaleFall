@@ -58,12 +58,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   const FILTER_FORM_ID = 'task-runs-filter-form';
   const GRID_CONTAINER_ID = 'task-runs-grid';
   const AUTO_REFRESH_INTERVAL = 30000;
-  const SESSION_STATS_IDS = {
-    total: 'totalSessions',
-    running: 'runningSessions',
-    completed: 'completedSessions',
-    failed: 'failedSessions',
-  };
+  const TOTAL_COUNT_ID = 'taskRunsTotalCount';
 
   const getRowMeta = (row) => rowMeta.get(row);
 
@@ -288,7 +283,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   function handleServerResponse(response) {
     const payload = response?.data || response || {};
     const items = payload.items || [];
-    updateSessionStats(payload);
+    updateTotalCount(payload);
     return items.map((item) => [
       item.run_id || '-',
       item.status || '-',
@@ -519,37 +514,13 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
   }
 
-  function updateSessionStats(payload) {
-    const stats = {
-      total: Number(payload.total) || 0,
-      running: 0,
-      completed: 0,
-      failed: 0,
-    };
-    (payload.items || []).forEach((item) => {
-      const status = (item?.status || '').toLowerCase();
-      if (['running', 'pending', 'paused'].includes(status)) {
-        stats.running += 1;
-      } else if (status === 'completed') {
-        stats.completed += 1;
-      } else if (['failed', 'cancelled'].includes(status)) {
-        stats.failed += 1;
-      }
-    });
-    setStatValue(SESSION_STATS_IDS.total, stats.total);
-    setStatValue(SESSION_STATS_IDS.running, stats.running);
-    setStatValue(SESSION_STATS_IDS.completed, stats.completed);
-    setStatValue(SESSION_STATS_IDS.failed, stats.failed);
-  }
-
-  function setStatValue(elementId, value) {
-    if (!elementId) {
+  function updateTotalCount(payload) {
+    const total = Number(payload?.total) || 0;
+    const element = documentRef.getElementById(TOTAL_COUNT_ID);
+    if (!element) {
       return;
     }
-    const element = documentRef.getElementById(elementId);
-    if (element) {
-      element.textContent = value;
-    }
+    element.textContent = `共 ${total} 条`;
   }
 
   /**
