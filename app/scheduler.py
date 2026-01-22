@@ -1,18 +1,16 @@
 """鲸落定时任务调度器.
 
-使用 APScheduler 实现轻量级定时任务,并通过文件锁控制单实例运行.
+使用 APScheduler 实现轻量级定时任务.
 """
 
 from __future__ import annotations
 
-import atexit
-import fcntl  # type: ignore[attr-defined]
 import os
 import time
 from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
@@ -40,18 +38,6 @@ logger = get_system_logger()
 JobFunc = Callable[..., object]
 TriggerArg = BaseTrigger | str
 
-
-class _SchedulerLockState:
-    """记录调度器文件锁的句柄与所属进程."""
-
-    def __init__(self) -> None:
-        self.handle: IO[str] | None = None
-        self.pid: int | None = None
-
-
-_LOCK_STATE = _SchedulerLockState()
-
-LOCK_IO_EXCEPTIONS: tuple[type[Exception], ...] = (OSError,)
 JOB_REMOVAL_EXCEPTIONS: tuple[type[Exception], ...] = (JobLookupError, LookupError)
 JOBSTORE_OPERATION_EXCEPTIONS: tuple[type[Exception], ...] = (
     SQLAlchemyError,
@@ -330,73 +316,6 @@ def get_scheduler() -> BackgroundScheduler | None:
     return scheduler.scheduler
 
 
-def _acquire_scheduler_lock() -> bool:
-    """尝试获取文件锁,确保单进程运行调度器.
-
-    Returns:
-        bool: 成功获取锁返回 True,否则返回 False.
-
-    """
-    current_pid = os.getpid()
-
-    if _LOCK_STATE.handle and _LOCK_STATE.pid == current_pid:
-        return True
-    if _LOCK_STATE.handle:
-        # 子进程继承了锁句柄,但并未真正持有锁,需要重新获取
-        try:  # pragma: no cover - 防御性释放
-            _LOCK_STATE.handle.close()
-        except LOCK_IO_EXCEPTIONS as close_error:
-            logger.warning("继承的调度器锁句柄关闭失败", error=str(close_error))
-        _LOCK_STATE.handle = None
-        _LOCK_STATE.pid = None
-
-    lock_path = Path("userdata") / "scheduler.lock"
-    lock_path.parent.mkdir(exist_ok=True)
-    handle = lock_path.open("w+")
-    try:
-        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        handle.close()
-        logger.info("检测到其他进程正在运行调度器,跳过当前进程的调度器初始化")
-        return False
-    except LOCK_IO_EXCEPTIONS as lock_error:  # pragma: no cover - 极端情况
-        handle.close()
-        logger.exception("获取调度器锁失败", error=str(lock_error))
-        return False
-    else:
-        handle.write(str(current_pid))
-        handle.flush()
-        _LOCK_STATE.handle = handle
-        _LOCK_STATE.pid = current_pid
-        logger.info("调度器锁已获取,当前进程负责运行定时任务", pid=os.getpid())
-        return True
-
-
-def _release_scheduler_lock() -> None:
-    """释放调度器文件锁并清理句柄.
-
-    Returns:
-        None: 锁释放或无需释放时直接返回.
-
-    """
-    if not _LOCK_STATE.handle:
-        return
-    try:  # pragma: no cover
-        fcntl.flock(_LOCK_STATE.handle, fcntl.LOCK_UN)
-    except LOCK_IO_EXCEPTIONS as unlock_error:
-        logger.warning("释放调度器文件锁失败", error=str(unlock_error))
-    try:  # pragma: no cover
-        _LOCK_STATE.handle.close()
-    except LOCK_IO_EXCEPTIONS as close_error:
-        logger.warning("关闭调度器锁文件失败", error=str(close_error))
-    finally:
-        _LOCK_STATE.handle = None
-        _LOCK_STATE.pid = None
-
-
-atexit.register(_release_scheduler_lock)
-
-
 def _should_start_scheduler(settings: Settings) -> bool:
     """根据环境变量及进程角色判断是否需启动调度器.
 
@@ -414,7 +333,7 @@ def _should_start_scheduler(settings: Settings) -> bool:
     server_software = settings.server_software
     if server_software.startswith("gunicorn"):
         logger.info(
-            "检测到 gunicorn 环境,通过文件锁保持单实例",
+            "检测到 gunicorn 环境",
             parent_pid=os.getppid(),
         )
 
@@ -438,9 +357,6 @@ def init_scheduler(app: Flask, settings: Settings) -> TaskScheduler | None:
 
     """
     if not _should_start_scheduler(settings):
-        return None
-
-    if not _acquire_scheduler_lock():
         return None
 
     if scheduler.app is not None:

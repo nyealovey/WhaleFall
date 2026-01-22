@@ -247,7 +247,7 @@ Expected:
 
 **Step 1: Update doc**
 - 增加一节“生产部署建议”：web/scheduler 分进程（或分容器），web 侧 `ENABLE_SCHEDULER=false`。
-- 强调：文件锁仍可作为同容器/同宿主机的兜底，但多副本部署应使用集中式锁（redis/postgres advisory lock）作为下一步。
+- 强调：多副本部署应使用集中式锁（redis/postgres advisory lock）作为下一步，避免任务重复执行。
 
 **Step 2: Commit**
 
@@ -255,4 +255,3 @@ Expected:
 git add docs/Obsidian/standards/backend/task-and-scheduler.md
 git commit -m "docs: document dedicated scheduler process deployment"
 ```
-
