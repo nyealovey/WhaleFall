@@ -10,28 +10,6 @@
     min-width: 140px;
 }
 
-
-.capacity-stats .stats-card {
-    background-color: var(--surface-elevated);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    box-shadow: var(--shadow-sm);
-}
-
-.capacity-stats .stats-card,
-.capacity-stats .stats-card *:not(.btn) {
-    color: var(--text-primary) !important;
-}
-
-.capacity-stats .stats-card-icon i {
-    color: var(--text-muted);
-}
-
-.capacity-stats .stats-card-label {
-    color: var(--text-muted) !important;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
 .chip-toggle-group {
     display: inline-flex;
     gap: 0.5rem;
