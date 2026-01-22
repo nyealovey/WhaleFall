@@ -18,6 +18,7 @@ from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import SyncItemStats, sync_session_service
+from app.services.task_runs.task_run_summary_builders import build_sync_accounts_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -241,6 +242,22 @@ def sync_accounts(
                     operation="sync_accounts",
                     run_id=resolved_run_id,
                 )
+                current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+                if current_run is not None and current_run.status != "cancelled":
+                    current_run.summary_json = build_sync_accounts_summary(
+                        task_key="sync_accounts",
+                        inputs={"manual_run": manual_run},
+                        instances_total=0,
+                        instances_successful=0,
+                        instances_failed=0,
+                        accounts_synced=0,
+                        accounts_created=0,
+                        accounts_updated=0,
+                        accounts_deactivated=0,
+                        session_id=None,
+                        skipped=True,
+                        skip_reason="没有找到启用的数据库实例",
+                    )
                 task_runs_service.finalize_run(resolved_run_id)
                 db.session.commit()
                 return
@@ -295,6 +312,10 @@ def sync_accounts(
 
                 total_synced = 0
                 total_failed = 0
+                accounts_synced = 0
+                accounts_created = 0
+                accounts_updated = 0
+                accounts_deactivated = 0
 
                 for i, instance in enumerate(instances):
                     if _is_cancelled():
@@ -331,6 +352,11 @@ def sync_accounts(
                     total_synced += synced
                     total_failed += failed
 
+                    accounts_synced += int(record.items_synced or 0)
+                    accounts_created += int(record.items_created or 0)
+                    accounts_updated += int(record.items_updated or 0)
+                    accounts_deactivated += int(record.items_deleted or 0)
+
                     metrics = {
                         "items_synced": record.items_synced or 0,
                         "items_created": record.items_created or 0,
@@ -361,6 +387,21 @@ def sync_accounts(
                 session.status = "completed" if total_failed == 0 else "failed"
                 session.completed_at = time_utils.now()
                 db.session.commit()
+
+                current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+                if current_run is not None and current_run.status != "cancelled":
+                    current_run.summary_json = build_sync_accounts_summary(
+                        task_key="sync_accounts",
+                        inputs={"manual_run": manual_run},
+                        instances_total=len(instances),
+                        instances_successful=total_synced,
+                        instances_failed=total_failed,
+                        accounts_synced=accounts_synced,
+                        accounts_created=accounts_created,
+                        accounts_updated=accounts_updated,
+                        accounts_deactivated=accounts_deactivated,
+                        session_id=session.session_id if session is not None else None,
+                    )
 
                 task_runs_service.finalize_run(resolved_run_id)
                 db.session.commit()

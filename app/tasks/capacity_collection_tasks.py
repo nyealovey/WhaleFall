@@ -13,6 +13,7 @@ from app.services.capacity.capacity_collection_task_runner import (
     CapacityCollectionTaskRunner,
     CapacitySyncTotals,
 )
+from app.services.task_runs.task_run_summary_builders import build_sync_databases_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -175,6 +176,19 @@ def sync_databases(
                     task="sync_databases",
                     run_id=resolved_run_id,
                 )
+                current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+                if current_run is not None and current_run.status != "cancelled":
+                    current_run.summary_json = build_sync_databases_summary(
+                        task_key="sync_databases",
+                        inputs={"manual_run": manual_run},
+                        instances_total=0,
+                        instances_successful=0,
+                        instances_failed=0,
+                        total_size_mb=0,
+                        session_id=None,
+                        skipped=True,
+                        skip_reason="没有找到活跃的数据库实例",
+                    )
                 task_runs_service.finalize_run(resolved_run_id)
                 db.session.commit()
                 return {"run_id": resolved_run_id, **runner.no_active_instances_result()}
@@ -273,13 +287,15 @@ def sync_databases(
 
             current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
             if current_run is not None and current_run.status != "cancelled":
-                current_run.summary_json = {
-                    "instances_total": len(active_instances),
-                    "instances_processed": totals.total_synced + totals.total_failed,
-                    "instances_successful": totals.total_synced,
-                    "instances_failed": totals.total_failed,
-                    "total_size_mb": totals.total_collected_size_mb,
-                }
+                current_run.summary_json = build_sync_databases_summary(
+                    task_key="sync_databases",
+                    inputs={"manual_run": manual_run},
+                    instances_total=len(active_instances),
+                    instances_successful=totals.total_synced,
+                    instances_failed=totals.total_failed,
+                    total_size_mb=totals.total_collected_size_mb,
+                    session_id=getattr(session_obj, "session_id", None),
+                )
 
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
