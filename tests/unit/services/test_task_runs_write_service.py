@@ -36,6 +36,7 @@ def test_task_runs_write_service_start_run_creates_task_run(app) -> None:
     try:
         from app.models.task_run import TaskRun
         from app.models.task_run_item import TaskRunItem
+        from app.schemas.task_run_summary import TaskRunSummaryFactory
         from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
     except ModuleNotFoundError as exc:
         pytest.fail(f"TaskRun 功能未实现: {exc}")
@@ -50,7 +51,7 @@ def test_task_runs_write_service_start_run_creates_task_run(app) -> None:
             task_category="account",
             trigger_source="manual",
             created_by=1,
-            summary_json={"hello": "world"},
+            summary_json=None,
             result_url="/accounts/ledgers",
         )
         assert isinstance(run_id, str)
@@ -66,8 +67,32 @@ def test_task_runs_write_service_start_run_creates_task_run(app) -> None:
         assert row.trigger_source == "manual"
         assert row.created_by == 1
         assert row.status == "running"
-        assert row.summary_json == {"hello": "world"}
+        assert row.summary_json == TaskRunSummaryFactory.base(task_key="sync_accounts")
         assert row.result_url == "/accounts/ledgers"
+
+
+@pytest.mark.unit
+def test_task_runs_write_service_start_run_rejects_raw_dict_summary(app) -> None:
+    try:
+        from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
+    except ModuleNotFoundError as exc:
+        pytest.fail(f"TaskRun 功能未实现: {exc}")
+
+    _ensure_task_run_tables(app)
+
+    with app.app_context():
+        service = TaskRunsWriteService()
+
+        with pytest.raises(Exception):
+            service.start_run(
+                task_key="sync_accounts",
+                task_name="账户同步",
+                task_category="account",
+                trigger_source="manual",
+                created_by=1,
+                summary_json={"hello": "world"},
+                result_url="/accounts/ledgers",
+            )
 
 
 @pytest.mark.unit
@@ -234,6 +259,7 @@ def test_task_runs_write_service_cancel_run_marks_pending_running_items_cancelle
 def test_task_runs_write_service_serializes_date_values_in_json_columns(app) -> None:
     try:
         from app.models.task_run_item import TaskRunItem
+        from app.schemas.task_run_summary import TaskRunSummaryFactory
         from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
     except ModuleNotFoundError as exc:
         pytest.fail(f"TaskRun 功能未实现: {exc}")
@@ -242,13 +268,16 @@ def test_task_runs_write_service_serializes_date_values_in_json_columns(app) -> 
 
     with app.app_context():
         service = TaskRunsWriteService()
+
+        summary_json = TaskRunSummaryFactory.base(task_key="sync_databases")
+        summary_json["common"]["inputs"]["stat_date"] = date(2025, 1, 1)
         run_id = service.start_run(
             task_key="sync_databases",
             task_name="数据库同步",
             task_category="capacity",
             trigger_source="manual",
             created_by=1,
-            summary_json={"stat_date": date(2025, 1, 1)},
+            summary_json=summary_json,
             result_url="/databases/ledgers",
         )
         service.init_items(

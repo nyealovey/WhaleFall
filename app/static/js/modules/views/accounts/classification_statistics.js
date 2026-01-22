@@ -167,21 +167,20 @@ function mountAccountClassificationStatisticsPage(global) {
   }
 
   function readStateFromForm(refs) {
+    const classificationId = normalizeInt(refs.classificationId?.value);
+    const ruleId = normalizeInt(refs.ruleId?.value);
     return {
-      classificationId: normalizeInt(refs.classificationId?.value),
+      classificationId,
       periodType: normalizePeriodType(refs.periodType?.value),
       dbType: normalizeString(refs.dbType?.value),
       instanceId: normalizeInt(refs.instanceId?.value),
-      ruleId: normalizeInt(refs.ruleId?.value),
+      // 未选分类时不允许携带 rule_id, 避免误导与错误请求
+      ruleId: classificationId ? ruleId : null,
       ruleStatus: normalizeRuleStatus(refs.ruleStatus?.value),
     };
   }
 
   function refreshAll({ silent }) {
-    if (!state.classificationId) {
-      renderEmptyState();
-      return;
-    }
     refreshRulesList({ silent: true })
       .then(() => refreshCharts({ silent }))
       .catch((error) => {
@@ -212,9 +211,11 @@ function mountAccountClassificationStatisticsPage(global) {
         const rules = Array.isArray(data.rules) ? data.rules : data.data?.rules || [];
         const windowStart = data.window_start || data.data?.window_start || null;
         const windowEnd = data.window_end || data.data?.window_end || null;
+        const latestStart = data.latest_period_start || data.data?.latest_period_start || null;
+        const latestEnd = data.latest_period_end || data.data?.latest_period_end || null;
         rulesCache = Array.isArray(rules) ? rules : [];
         selectedRuleMeta = resolveSelectedRule(rulesCache, state.ruleId);
-        renderRulesWindowLabel(windowStart, windowEnd);
+        renderRulesWindowLabel(latestStart || windowStart, latestEnd || windowEnd);
         renderRulesList(rulesCache);
         applyRuleSearch();
       })
@@ -228,6 +229,25 @@ function mountAccountClassificationStatisticsPage(global) {
   }
 
   function refreshCharts({ silent }) {
+    if (!state.classificationId) {
+      renderSecondaryEmptyState();
+      return service
+        .fetchAllClassificationsTrends({
+          periodType: state.periodType,
+          periods: DEFAULT_PERIODS,
+          dbType: state.dbType,
+          instanceId: state.instanceId,
+        })
+        .then((payload) => {
+          const data = payload?.data ?? payload ?? {};
+          renderAllClassificationsTrend(data);
+        })
+        .catch((error) => {
+          console.error("加载全分类趋势失败:", error);
+          notify("趋势数据加载失败", "error", { silent });
+        });
+    }
+
     return service
       .fetchClassificationTrend({
         classificationId: state.classificationId,
@@ -330,7 +350,9 @@ function mountAccountClassificationStatisticsPage(global) {
     if (!elements.rulesWindowLabel) {
       return;
     }
-    const range = windowStart && windowEnd ? `${windowStart} ~ ${windowEnd}` : "窗口累计";
+    const range = windowStart && windowEnd
+      ? (windowStart === windowEnd ? String(windowStart) : `${windowStart} ~ ${windowEnd}`)
+      : "最新周期";
     elements.rulesWindowLabel.textContent = range;
   }
 
@@ -359,7 +381,12 @@ function mountAccountClassificationStatisticsPage(global) {
       const dbType = rule?.db_type || "";
       const version = rule?.rule_version;
       const isActive = Boolean(rule?.is_active);
-      const sum = Number(rule?.window_value_sum) || 0;
+      const latestAvg = rule?.latest_value_avg;
+      const latestSum = Number(rule?.latest_value_sum) || 0;
+      const latestCoverageDays = Number(rule?.latest_coverage_days) || 0;
+      const latestExpectedDays = Number(rule?.latest_expected_days) || 0;
+      const windowSum = Number(rule?.window_value_sum) || 0;
+      const displayValue = formatCountValue(latestAvg, state.periodType);
       const selected = state.ruleId && String(state.ruleId) === String(ruleId);
 
       const button = document.createElement("button");
@@ -370,7 +397,11 @@ function mountAccountClassificationStatisticsPage(global) {
       button.dataset.ruleDbType = String(dbType || "");
       button.dataset.ruleVersion = String(version || "");
       button.dataset.ruleActive = isActive ? "1" : "0";
-      button.dataset.ruleSum = String(sum);
+      button.dataset.ruleLatestAvg = String(latestAvg ?? "");
+      button.dataset.ruleLatestSum = String(latestSum);
+      button.dataset.ruleLatestCoverageDays = String(latestCoverageDays);
+      button.dataset.ruleLatestExpectedDays = String(latestExpectedDays);
+      button.dataset.ruleWindowSum = String(windowSum);
 
       button.innerHTML = `
         <div class="acs-rule-item__main">
@@ -383,7 +414,14 @@ function mountAccountClassificationStatisticsPage(global) {
             </span>
           </div>
         </div>
-        <div class="acs-rule-item__count" title="窗口累计命中账号数">${formatInteger(sum)}</div>
+        <div class="acs-rule-item__count" title="${escapeHtml(buildRuleCountTitle({
+          latestAvg,
+          latestSum,
+          latestCoverageDays,
+          latestExpectedDays,
+          windowSum,
+          periodType: state.periodType,
+        }))}">${escapeHtml(displayValue)}</div>
       `;
 
       button.addEventListener("click", () => handleRuleSelect(rule));
@@ -419,6 +457,60 @@ function mountAccountClassificationStatisticsPage(global) {
     });
   }
 
+  function renderAllClassificationsTrend(payload) {
+    if (!elements.classificationCanvas || !global.Chart) {
+      return;
+    }
+    if (elements.classificationCoverage) {
+      elements.classificationCoverage.textContent = "全部分类";
+    }
+
+    const buckets = Array.isArray(payload?.buckets) ? payload.buckets : [];
+    const series = Array.isArray(payload?.series) ? payload.series : [];
+
+    const labels = buckets.map((bucket) => formatBucketLabel(bucket?.period_start, state.periodType));
+    const datasets = series.map((item, index) => {
+      const name = item?.classification_name || `分类#${item?.classification_id || index + 1}`;
+      const points = Array.isArray(item?.points) ? item.points : [];
+      const values = points.map((point) => Number(point?.value_avg) || 0);
+      const color = getChartColor(index, 0.9);
+
+      return {
+        label: name,
+        data: values,
+        borderColor: color,
+        backgroundColor: getChartColor(index, 0.12),
+        fill: false,
+        tension: 0.1,
+        pointRadius: series.length > 8 ? 0 : 2,
+        pointHoverRadius: series.length > 8 ? 3 : 4,
+        _metaPoints: points,
+      };
+    });
+
+    const ctx = elements.classificationCanvas.getContext("2d");
+    if (classificationChart) {
+      classificationChart.destroy();
+    }
+
+    if (!datasets.length || !labels.length) {
+      classificationChart = renderEmptyChart(ctx, "分类趋势");
+      return;
+    }
+
+    classificationChart = new global.Chart(
+      ctx,
+      buildLineChartConfig({
+        labels,
+        datasets,
+        yLabel: "去重账号数",
+        periodType: state.periodType,
+        tooltipMode: "index",
+        legendDisplay: true,
+      }),
+    );
+  }
+
   function renderClassificationTrend(trend) {
     if (!elements.classificationCanvas || !global.Chart) {
       return;
@@ -433,14 +525,33 @@ function mountAccountClassificationStatisticsPage(global) {
     if (classificationChart) {
       classificationChart.destroy();
     }
-    classificationChart = new global.Chart(ctx, buildLineChartConfig({
-      title: "分类趋势",
+    if (!labels.length) {
+      classificationChart = renderEmptyChart(ctx, "分类趋势");
+      return;
+    }
+
+    const dataset = {
       label: "去重账号数",
-      labels,
-      values,
-      points,
-      periodType: state.periodType,
-    }));
+      data: values,
+      borderColor: getChartColor(0, 0.9),
+      backgroundColor: getChartColor(0, 0.12),
+      fill: false,
+      tension: 0.1,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+      _metaPoints: points,
+    };
+    classificationChart = new global.Chart(
+      ctx,
+      buildLineChartConfig({
+        labels,
+        datasets: [dataset],
+        yLabel: "去重账号数",
+        periodType: state.periodType,
+        tooltipMode: "nearest",
+        legendDisplay: false,
+      }),
+    );
   }
 
   function renderRuleTrend(trend) {
@@ -462,14 +573,33 @@ function mountAccountClassificationStatisticsPage(global) {
     if (secondaryChart) {
       secondaryChart.destroy();
     }
-    secondaryChart = new global.Chart(ctx, buildLineChartConfig({
-      title,
+    if (!labels.length) {
+      secondaryChart = renderEmptyChart(ctx, title);
+      return;
+    }
+
+    const dataset = {
       label: "命中账号数",
-      labels,
-      values,
-      points,
-      periodType: state.periodType,
-    }));
+      data: values,
+      borderColor: getChartColor(1, 0.9),
+      backgroundColor: getChartColor(1, 0.12),
+      fill: false,
+      tension: 0.1,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+      _metaPoints: points,
+    };
+    secondaryChart = new global.Chart(
+      ctx,
+      buildLineChartConfig({
+        labels,
+        datasets: [dataset],
+        yLabel: "命中账号数",
+        periodType: state.periodType,
+        tooltipMode: "nearest",
+        legendDisplay: false,
+      }),
+    );
   }
 
   function renderRuleContributions(payload) {
@@ -491,57 +621,140 @@ function mountAccountClassificationStatisticsPage(global) {
     if (secondaryChart) {
       secondaryChart.destroy();
     }
-    secondaryChart = new global.Chart(ctx, buildBarChartConfig({
-      title: "规则贡献（当前周期）",
-      labels,
-      values,
-      items,
-      periodType: state.periodType,
-    }));
+    if (!labels.length) {
+      secondaryChart = renderEmptyChart(ctx, "规则贡献");
+      return;
+    }
+
+    const dataset = {
+      label: "规则贡献",
+      data: values,
+      backgroundColor: getChartColor(2, 0.65),
+      borderColor: getChartColor(2, 0.9),
+      borderWidth: 1,
+      borderRadius: 8,
+      _metaItems: items,
+    };
+    secondaryChart = new global.Chart(
+      ctx,
+      buildBarChartConfig({
+        labels,
+        datasets: [dataset],
+        yLabel: "命中账号数",
+        periodType: state.periodType,
+      }),
+    );
   }
 
-  function buildLineChartConfig({ label, labels, values, points, periodType }) {
-    const contrast = resolveCssVar("--surface-contrast") || "#2c3e50";
-    const line = resolveCssVar("--status-info") || "#3498db";
-    const fill = withAlpha(line, 0.18);
-    const grid = withAlpha(contrast, 0.08);
+  function renderSecondaryEmptyState() {
+    if (elements.secondaryTitle) {
+      elements.secondaryTitle.textContent = "规则贡献（当前周期）";
+    }
+    setCoverageText(elements.secondaryCoverage, 0, 0);
+
+    if (!elements.secondaryCanvas || !global.Chart) {
+      return;
+    }
+    const ctx = elements.secondaryCanvas.getContext("2d");
+    if (secondaryChart) {
+      secondaryChart.destroy();
+    }
+    secondaryChart = renderEmptyChart(ctx, "规则贡献");
+  }
+
+  function buildLineChartConfig({ labels, datasets, yLabel, periodType, tooltipMode, legendDisplay }) {
+    const contrast = resolveCssVar("--surface-contrast") || "var(--surface-contrast)";
+    const gridColor = withAlpha(contrast, 0.08);
+    const suggested = computePositiveRange(datasets);
 
     return {
       type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label,
-            data: values,
-            borderColor: line,
-            backgroundColor: fill,
-            fill: true,
-            pointRadius: 2,
-            pointHoverRadius: 4,
-            tension: 0.35,
-          },
-        ],
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: { mode: "nearest", axis: "x", intersect: false },
+        interaction: { mode: tooltipMode || "nearest", axis: "x", intersect: false },
+        plugins: {
+          legend: { display: Boolean(legendDisplay), position: "right" },
+          tooltip: {
+            mode: tooltipMode || "nearest",
+            intersect: false,
+            callbacks: {
+              label(context) {
+                const idx = context.dataIndex;
+                const points = context.dataset?._metaPoints;
+                const meta = (Array.isArray(points) ? points.at(idx) : null) || {};
+                const avg = meta?.value_avg ?? context.parsed?.y;
+                const sum = meta?.value_sum;
+                const cov = meta?.coverage_days;
+                const exp = meta?.expected_days;
+                const prefix = periodType === "daily" ? "值" : "均值";
+                const avgText = `${prefix}: ${formatCountValue(avg, periodType)}`;
+                const sumText = periodType === "daily" ? "" : `，累计: ${formatInteger(sum)}`;
+                const covText = exp ? `，覆盖: ${formatInteger(cov)}/${formatInteger(exp)} 天` : "";
+                const leading = legendDisplay ? `${context.dataset?.label || ""} ` : "";
+                return `${leading}${avgText}${sumText}${covText}`.trim();
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            display: true,
+            title: { display: true, text: "时间" },
+            grid: { display: false },
+            ticks: { color: withAlpha(contrast, 0.7) },
+          },
+          y: {
+            display: true,
+            title: { display: true, text: yLabel || "账号数" },
+            beginAtZero: true,
+            suggestedMin: suggested?.suggestedMin,
+            suggestedMax: suggested?.suggestedMax,
+            grid: {
+              color: (ctx) => (ctx.tick?.value === 0 ? contrast : gridColor),
+              lineWidth: (ctx) => (ctx.tick?.value === 0 ? 2 : 1),
+              borderDash: (ctx) => (ctx.tick?.value === 0 ? [] : [2, 2]),
+            },
+            ticks: {
+              color: withAlpha(contrast, 0.7),
+              callback(value) {
+                return formatCountValue(value, periodType);
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  function buildBarChartConfig({ labels, datasets, yLabel, periodType }) {
+    const contrast = resolveCssVar("--surface-contrast") || "var(--surface-contrast)";
+    const gridColor = withAlpha(contrast, 0.08);
+    const suggested = computePositiveRange(datasets);
+
+    return {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
               label(context) {
                 const idx = context.dataIndex;
-                const meta = (Array.isArray(points) ? points.at(idx) : null) || {};
-                const avg = meta?.value_avg;
+                const items = context.dataset?._metaItems;
+                const meta = (Array.isArray(items) ? items.at(idx) : null) || {};
+                const avg = meta?.value_avg ?? context.parsed?.y;
                 const sum = meta?.value_sum;
                 const cov = meta?.coverage_days;
                 const exp = meta?.expected_days;
                 const prefix = periodType === "daily" ? "值" : "均值";
-                const avgText = `${prefix}: ${formatNumber(avg, periodType === "daily" ? 0 : 1)}`;
+                const avgText = `${prefix}: ${formatCountValue(avg, periodType)}`;
                 const sumText = periodType === "daily" ? "" : `，累计: ${formatInteger(sum)}`;
-                const covText = `，覆盖: ${formatInteger(cov)}/${formatInteger(exp)} 天`;
+                const covText = exp ? `，覆盖: ${formatInteger(cov)}/${formatInteger(exp)} 天` : "";
                 return `${avgText}${sumText}${covText}`;
               },
             },
@@ -549,106 +762,31 @@ function mountAccountClassificationStatisticsPage(global) {
         },
         scales: {
           x: {
+            display: true,
             grid: { display: false },
             ticks: { color: withAlpha(contrast, 0.7) },
           },
           y: {
+            display: true,
+            title: { display: true, text: yLabel || "账号数" },
             beginAtZero: true,
-            grid: { color: grid },
+            suggestedMin: suggested?.suggestedMin,
+            suggestedMax: suggested?.suggestedMax,
+            grid: {
+              color: (ctx) => (ctx.tick?.value === 0 ? contrast : gridColor),
+              lineWidth: (ctx) => (ctx.tick?.value === 0 ? 2 : 1),
+              borderDash: (ctx) => (ctx.tick?.value === 0 ? [] : [2, 2]),
+            },
             ticks: {
               color: withAlpha(contrast, 0.7),
               callback(value) {
-                return formatInteger(value);
+                return formatCountValue(value, periodType);
               },
             },
           },
         },
       },
     };
-  }
-
-  function buildBarChartConfig({ title, labels, values, items, periodType }) {
-    const contrast = resolveCssVar("--surface-contrast") || "#2c3e50";
-    const bar = resolveCssVar("--status-warning") || "#f39c12";
-    const grid = withAlpha(contrast, 0.08);
-
-    return {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: title,
-            data: values,
-            backgroundColor: withAlpha(bar, 0.45),
-            borderColor: withAlpha(bar, 0.9),
-            borderWidth: 1,
-            borderRadius: 8,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label(context) {
-                const idx = context.dataIndex;
-                const meta = (Array.isArray(items) ? items.at(idx) : null) || {};
-                const avg = meta?.value_avg;
-                const sum = meta?.value_sum;
-                const cov = meta?.coverage_days;
-                const exp = meta?.expected_days;
-                const prefix = periodType === "daily" ? "值" : "均值";
-                const avgText = `${prefix}: ${formatNumber(avg, periodType === "daily" ? 0 : 1)}`;
-                const sumText = periodType === "daily" ? "" : `，累计: ${formatInteger(sum)}`;
-                const covText = `，覆盖: ${formatInteger(cov)}/${formatInteger(exp)} 天`;
-                return `${avgText}${sumText}${covText}`;
-              },
-            },
-          },
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: withAlpha(contrast, 0.7) } },
-          y: {
-            beginAtZero: true,
-            grid: { color: grid },
-            ticks: {
-              color: withAlpha(contrast, 0.7),
-              callback(value) {
-                return formatInteger(value);
-              },
-            },
-          },
-        },
-      },
-    };
-  }
-
-  function renderEmptyState() {
-    if (elements.rulesEmpty) {
-      elements.rulesEmpty.style.display = "block";
-    }
-    elements.rulesList?.querySelectorAll(".acs-rule-item").forEach((node) => node.remove());
-    setCoverageText(elements.classificationCoverage, 0, 0);
-    setCoverageText(elements.secondaryCoverage, 0, 0);
-    if (elements.secondaryTitle) {
-      elements.secondaryTitle.textContent = "规则贡献（当前周期）";
-    }
-    destroyCharts();
-  }
-
-  function destroyCharts() {
-    if (classificationChart) {
-      classificationChart.destroy();
-      classificationChart = null;
-    }
-    if (secondaryChart) {
-      secondaryChart.destroy();
-      secondaryChart = null;
-    }
   }
 
   function setRulesLoading(loading) {
@@ -824,16 +962,63 @@ function mountAccountClassificationStatisticsPage(global) {
     return n.toLocaleString();
   }
 
-  function formatNumber(value, precision) {
+  function formatCountValue(value, periodType) {
+    const normalized = String(periodType || "daily").toLowerCase();
+    if (normalized === "daily") {
+      return formatInteger(value);
+    }
+    if (global.NumberFormat?.formatDecimal) {
+      return global.NumberFormat.formatDecimal(value, { precision: 1, trimZero: false, fallback: "0" });
+    }
     const n = Number(value);
     if (!Number.isFinite(n)) {
-      return "0";
+      return "0.0";
     }
-    const digits = Number.isFinite(Number(precision)) ? Math.max(0, Number(precision)) : 0;
-    return n.toFixed(digits);
+    return n.toFixed(1);
+  }
+
+  function buildRuleCountTitle({
+    latestAvg,
+    latestSum,
+    latestCoverageDays,
+    latestExpectedDays,
+    windowSum,
+    periodType,
+  }) {
+    const normalized = String(periodType || "daily").toLowerCase();
+    const avgValue = latestAvg === null || latestAvg === undefined ? latestSum : latestAvg;
+    if (normalized === "daily") {
+      return `最新当日命中: ${formatInteger(avgValue)}，窗口累计: ${formatInteger(windowSum)}`;
+    }
+    const coverage = `${formatInteger(latestCoverageDays)}/${formatInteger(latestExpectedDays)} 天`;
+    return `最新周期均值: ${formatCountValue(avgValue, normalized)}，累计: ${formatInteger(latestSum)}，覆盖: ${coverage}，窗口累计: ${formatInteger(windowSum)}`;
+  }
+
+  function computePositiveRange(datasets) {
+    const values = [];
+    (datasets || []).forEach((dataset) => {
+      (dataset?.data || []).forEach((value) => {
+        const n = Number(value);
+        if (Number.isFinite(n)) {
+          values.push(n);
+        }
+      });
+    });
+    if (!values.length) {
+      return null;
+    }
+    const max = Math.max(...values, 0);
+    if (max <= 0) {
+      return { suggestedMin: 0, suggestedMax: 1 };
+    }
+    const padding = Math.max(max * 0.1, 1);
+    return { suggestedMin: 0, suggestedMax: max + padding };
   }
 
   function escapeHtml(value) {
+    if (global.UI?.escapeHtml) {
+      return global.UI.escapeHtml(value);
+    }
     const str = String(value ?? "");
     return str
       .replace(/&/g, "&amp;")
@@ -844,6 +1029,9 @@ function mountAccountClassificationStatisticsPage(global) {
   }
 
   function resolveCssVar(name) {
+    if (global.ColorTokens?.resolveCssVar) {
+      return global.ColorTokens.resolveCssVar(name);
+    }
     try {
       return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     } catch {
@@ -851,7 +1039,53 @@ function mountAccountClassificationStatisticsPage(global) {
     }
   }
 
+  function getChartColor(index, alpha) {
+    if (global.ColorTokens?.getChartColor) {
+      return global.ColorTokens.getChartColor(index, alpha);
+    }
+    const fallback = resolveCssVar("--status-info") || "#3498db";
+    return withAlpha(fallback, alpha);
+  }
+
+  function renderEmptyChart(ctx, title) {
+    const contrast = resolveCssVar("--surface-contrast") || "var(--surface-contrast)";
+    const ColorTokens = global.ColorTokens || null;
+    const background = ColorTokens?.getOrangeColor?.({ tone: "muted", alpha: 0.2 })
+      || getChartColor(0, 0.12)
+      || withAlpha(contrast, 0.08);
+    const border = ColorTokens?.getOrangeColor?.({ tone: "strong" })
+      || getChartColor(0, 0.25)
+      || withAlpha(contrast, 0.2);
+
+    return new global.Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["暂无数据"],
+        datasets: [
+          {
+            label: "暂无数据",
+            data: [0],
+            backgroundColor: background,
+            borderColor: border,
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: `${title || "数据"} - 暂无数据` },
+          legend: { display: false },
+        },
+      },
+    });
+  }
+
   function withAlpha(color, alpha) {
+    if (global.ColorTokens?.withAlpha) {
+      return global.ColorTokens.withAlpha(color, alpha);
+    }
     if (!color) {
       return color;
     }

@@ -242,6 +242,12 @@ _account_classification_trend_query_parser.add_argument("periods", type=int, def
 _account_classification_trend_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_trend_query_parser.add_argument("instance_id", type=int, location="args")
 
+_account_classification_trends_query_parser = new_parser()
+_account_classification_trends_query_parser.add_argument("period_type", type=str, default="daily", location="args")
+_account_classification_trends_query_parser.add_argument("periods", type=int, default=7, location="args")
+_account_classification_trends_query_parser.add_argument("db_type", type=str, location="args")
+_account_classification_trends_query_parser.add_argument("instance_id", type=int, location="args")
+
 _account_classification_rule_trend_query_parser = new_parser()
 _account_classification_rule_trend_query_parser.add_argument("rule_id", type=int, location="args")
 _account_classification_rule_trend_query_parser.add_argument("period_type", type=str, default="daily", location="args")
@@ -290,6 +296,37 @@ AccountClassificationTrendSuccessEnvelope = make_success_envelope_model(
     AccountClassificationTrendData,
 )
 
+AccountClassificationTrendsBucketModel = ns.model(
+    "AccountClassificationTrendsBucket",
+    {
+        "period_start": fields.String(required=True),
+        "period_end": fields.String(required=True),
+        "expected_days": fields.Integer(required=True),
+    },
+)
+AccountClassificationTrendsSeriesModel = ns.model(
+    "AccountClassificationTrendsSeries",
+    {
+        "classification_id": fields.Integer(required=True),
+        "classification_name": fields.String(required=True),
+        "points": fields.List(fields.Nested(AccountClassificationTrendPointModel), required=True),
+    },
+)
+AccountClassificationTrendsData = ns.model(
+    "AccountClassificationTrendsData",
+    {
+        "period_type": fields.String(required=True),
+        "periods": fields.Integer(required=True),
+        "buckets": fields.List(fields.Nested(AccountClassificationTrendsBucketModel), required=True),
+        "series": fields.List(fields.Nested(AccountClassificationTrendsSeriesModel), required=True),
+    },
+)
+AccountClassificationTrendsSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountClassificationTrendsSuccessEnvelope",
+    AccountClassificationTrendsData,
+)
+
 AccountClassificationRuleContributionsItemModel = ns.model(
     "AccountClassificationRuleContributionsItem",
     {
@@ -328,6 +365,10 @@ AccountClassificationRuleOverviewItemModel = ns.model(
         "db_type": fields.String(required=True),
         "rule_version": fields.Integer(required=True),
         "is_active": fields.Boolean(required=True),
+        "latest_value_avg": fields.Float(required=True),
+        "latest_value_sum": fields.Integer(required=True),
+        "latest_coverage_days": fields.Integer(required=True),
+        "latest_expected_days": fields.Integer(required=True),
         "window_value_sum": fields.Integer(required=True),
     },
 )
@@ -336,6 +377,10 @@ AccountClassificationRulesOverviewData = ns.model(
     {
         "window_start": fields.String(required=True),
         "window_end": fields.String(required=True),
+        "latest_period_start": fields.String(required=True),
+        "latest_period_end": fields.String(required=True),
+        "latest_coverage_days": fields.Integer(required=True),
+        "latest_expected_days": fields.Integer(required=True),
         "rules": fields.List(fields.Nested(AccountClassificationRuleOverviewItemModel), required=True),
     },
 )
@@ -651,6 +696,53 @@ class AccountsStatisticsRulesResource(BaseResource):
             action="get_rule_stats",
             public_error="获取规则命中统计失败",
             context={"rule_ids": rule_ids},
+        )
+
+
+@ns.route("/statistics/classifications/trends")
+class AccountClassificationTrendsResource(BaseResource):
+    """账户分类趋势统计资源(全分类, 每日留痕)."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountClassificationTrendsSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_account_classification_trends_query_parser)
+    def get(self):
+        """获取全分类趋势(未选分类时用于多折线)."""
+        parsed = _account_classification_trends_query_parser.parse_args()
+        raw_period_type = parsed.get("period_type")
+        period_type = raw_period_type if isinstance(raw_period_type, str) else "daily"
+        raw_periods = parsed.get("periods")
+        periods = raw_periods if isinstance(raw_periods, int) else 7
+        raw_db_type = parsed.get("db_type")
+        db_type = raw_db_type if isinstance(raw_db_type, str) else None
+        raw_instance_id = parsed.get("instance_id")
+        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+
+        def _execute():
+            result = AccountClassificationDailyStatsReadService().get_all_classifications_trends(
+                period_type=period_type,
+                periods=periods,
+                db_type=db_type,
+                instance_id=instance_id,
+            )
+            return self.success(data=result, message="全分类趋势获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_all_classifications_trends",
+            public_error="获取全分类趋势失败",
+            context={
+                "period_type": period_type,
+                "periods": periods,
+                "db_type": db_type,
+                "instance_id": instance_id,
+            },
         )
 
 

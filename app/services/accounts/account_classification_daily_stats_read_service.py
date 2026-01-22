@@ -4,7 +4,7 @@
 - 分类趋势(去重账号数): 支持日/周/月/季聚合(非日=均值展示,缺失天不计入分母)
 - 规则趋势(命中账号数): 同上
 - 规则贡献(当前周期 TopN)
-- 规则列表(窗口累计，用于左侧排序/展示)
+- 规则列表(最新周期命中均值/当日值, 支持保留窗口累计用于排查)
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from datetime import date, timedelta
 from typing import TypedDict
 
 from app.core.exceptions import ValidationError
-from app.models.account_classification import ClassificationRule
+from app.models.account_classification import AccountClassification, ClassificationRule
 from app.repositories.account_classification_daily_stats_read_repository import (
     AccountClassificationDailyStatsReadRepository,
 )
@@ -60,6 +60,10 @@ class RuleOverviewItem(TypedDict):
     db_type: str
     rule_version: int
     is_active: bool
+    latest_value_avg: float | int
+    latest_value_sum: int
+    latest_coverage_days: int
+    latest_expected_days: int
     window_value_sum: int
 
 
@@ -96,6 +100,67 @@ class AccountClassificationDailyStatsReadService:
             instance_id=instance_id,
         )
         return self._rollup_to_buckets(buckets=buckets, daily_totals=daily_totals)
+
+    def get_all_classifications_trends(
+        self,
+        *,
+        period_type: str,
+        periods: int,
+        db_type: str | None,
+        instance_id: int | None,
+    ) -> dict[str, object]:
+        """获取全分类趋势(未选分类时用于多折线展示)."""
+        normalized_period_type = self._normalize_period_type(period_type)
+        normalized_periods = self._normalize_periods(periods)
+
+        buckets = self._build_period_buckets(normalized_period_type, normalized_periods)
+        start_date = buckets[0].period_start
+        end_date = buckets[-1].period_end
+
+        daily_totals_map = self._repository.fetch_all_classifications_daily_totals(
+            start_date=start_date,
+            end_date=end_date,
+            db_type=db_type,
+            instance_id=instance_id,
+        )
+
+        bucket_payload = [
+            {
+                "period_start": bucket.period_start.isoformat(),
+                "period_end": bucket.period_end.isoformat(),
+                "expected_days": bucket.expected_days,
+            }
+            for bucket in buckets
+        ]
+
+        classifications = (
+            AccountClassification.query.filter(AccountClassification.is_active.is_(True))
+            .order_by(AccountClassification.priority.desc())
+            .all()
+        )
+
+        series: list[dict[str, object]] = []
+        for classification in classifications:
+            classification_id = int(classification.id)
+            points = self._rollup_to_buckets(
+                buckets=buckets,
+                daily_totals=daily_totals_map.get(classification_id, {}),
+            )
+            display_name = getattr(classification, "display_name", None) or getattr(classification, "code", None) or ""
+            series.append(
+                {
+                    "classification_id": classification_id,
+                    "classification_name": display_name,
+                    "points": points,
+                }
+            )
+
+        return {
+            "period_type": normalized_period_type,
+            "periods": normalized_periods,
+            "buckets": bucket_payload,
+            "series": series,
+        }
 
     def get_rule_trend(
         self,
@@ -205,7 +270,12 @@ class AccountClassificationDailyStatsReadService:
         instance_id: int | None,
         status: str,
     ) -> dict[str, object]:
-        """列出规则概览(用于左侧列表：窗口累计 + 默认排序)."""
+        """列出规则概览(用于左侧列表).
+
+        口径:
+        - 主展示值: 最新周期的命中均值(weekly/monthly/quarterly)或最新当日值(daily)
+        - 兼容字段: 保留窗口累计(window_value_sum), 便于排查
+        """
         normalized_period_type = self._normalize_period_type(period_type)
         normalized_periods = self._normalize_periods(periods)
         status = self._normalize_rule_status(status)
@@ -214,6 +284,9 @@ class AccountClassificationDailyStatsReadService:
         start_date = buckets[0].period_start
         end_date = buckets[-1].period_end
 
+        latest_start, latest_end = self._period_calculator.get_current_period(normalized_period_type)
+        latest_expected_days = (latest_end - latest_start).days + 1
+
         totals = self._repository.fetch_rule_totals_by_rule_id(
             classification_id=classification_id,
             start_date=start_date,
@@ -221,6 +294,28 @@ class AccountClassificationDailyStatsReadService:
             db_type=db_type,
             instance_id=instance_id,
         )
+        latest_totals = self._repository.fetch_rule_totals_by_rule_id(
+            classification_id=classification_id,
+            start_date=latest_start,
+            end_date=latest_end,
+            db_type=db_type,
+            instance_id=instance_id,
+        )
+        latest_coverages = self._repository.fetch_rule_coverage_days_by_rule_id(
+            classification_id=classification_id,
+            start_date=latest_start,
+            end_date=latest_end,
+            db_type=db_type,
+            instance_id=instance_id,
+        )
+        latest_stat_dates = self._repository.fetch_rule_stat_dates(
+            classification_id=classification_id,
+            start_date=latest_start,
+            end_date=latest_end,
+            db_type=db_type,
+            instance_id=instance_id,
+        )
+        latest_coverage_days = len(latest_stat_dates)
 
         rules_query = ClassificationRule.query.filter(ClassificationRule.classification_id == classification_id)
         if db_type:
@@ -235,6 +330,13 @@ class AccountClassificationDailyStatsReadService:
         items: list[RuleOverviewItem] = []
         for rule in rules:
             window_sum = int(totals.get(rule.id, 0))
+            latest_sum = int(latest_totals.get(rule.id, 0))
+            rule_coverage_days = int(latest_coverages.get(rule.id, 0))
+
+            if normalized_period_type == "daily":
+                latest_value_avg: float | int = latest_sum
+            else:
+                latest_value_avg = round((latest_sum / rule_coverage_days) if rule_coverage_days else 0.0, 1)
             items.append(
                 {
                     "rule_id": int(rule.id),
@@ -242,15 +344,29 @@ class AccountClassificationDailyStatsReadService:
                     "db_type": rule.db_type,
                     "rule_version": rule.rule_version,
                     "is_active": bool(rule.is_active),
+                    "latest_value_avg": latest_value_avg,
+                    "latest_value_sum": latest_sum,
+                    "latest_coverage_days": rule_coverage_days,
+                    "latest_expected_days": latest_expected_days,
                     "window_value_sum": window_sum,
                 },
             )
 
-        items.sort(key=lambda item: item["window_value_sum"], reverse=True)
+        items.sort(
+            key=lambda item: (
+                float(item["latest_value_avg"]),
+                int(item["window_value_sum"]),
+            ),
+            reverse=True,
+        )
 
         return {
             "window_start": start_date.isoformat(),
             "window_end": end_date.isoformat(),
+            "latest_period_start": latest_start.isoformat(),
+            "latest_period_end": latest_end.isoformat(),
+            "latest_coverage_days": int(latest_coverage_days),
+            "latest_expected_days": int(latest_expected_days),
             "rules": items,
         }
 
