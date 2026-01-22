@@ -483,7 +483,7 @@ function mountTagsIndexPage(global) {
       if (!card) {
         return;
       }
-      const valueEl = card.querySelector(".tags-stat-card__value");
+      const valueEl = card.querySelector('[data-role="metric-value"]');
       if (valueEl) {
         valueEl.textContent = value;
       }

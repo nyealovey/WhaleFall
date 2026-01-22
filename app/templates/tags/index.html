@@ -3,6 +3,7 @@
 {% set page_density = 'compact' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, tag_category_filter, status_active_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}标签管理 - 鲸落{% endblock %}
 
@@ -35,36 +36,20 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="tags-stats-grid" id="tagStatsContainer">
-                <article class="tags-stat-card" data-stat-key="total" data-value-tone="info">
-                    <div class="tags-stat-card__label">全部标签</div>
-                    <div class="tags-stat-card__value">{{ stats.total }}</div>
-                    <div class="tags-stat-card__meta">
-                        <span class="chip-outline chip-outline--muted">
-                            <i class="fas fa-layer-group me-1"></i>{{ stats.category_count }} 个分类
-                        </span>
-                    </div>
-                </article>
-                <article class="tags-stat-card" data-stat-key="active" data-value-tone="success">
-                    <div class="tags-stat-card__label">启用标签</div>
-                    <div class="tags-stat-card__value">{{ stats.active }}</div>
-                    <div class="tags-stat-card__meta">
-                        <span class="status-pill status-pill--success"><i class="fas fa-check-circle"></i>启用</span>
-                    </div>
-                </article>
-                <article class="tags-stat-card" data-stat-key="inactive" data-value-tone="warning">
-                    <div class="tags-stat-card__label">停用标签</div>
-                    <div class="tags-stat-card__value">{{ stats.inactive }}</div>
-                    <div class="tags-stat-card__meta">
-                        <span class="status-pill status-pill--muted"><i class="fas fa-ban"></i>停用</span>
-                    </div>
-                </article>
-                <article class="tags-stat-card" data-stat-key="category_count" data-value-tone="muted">
-                    <div class="tags-stat-card__label">标签分类</div>
-                    <div class="tags-stat-card__value">{{ stats.category_count }}</div>
-                    <div class="tags-stat-card__meta">
-                        <span class="chip-outline chip-outline--muted"><i class="fas fa-tag"></i>分类池</span>
-                    </div>
-                </article>
+                {% call metric_card('全部标签', value=stats.total, icon_class='fas fa-tags', tone='info', data_stat_key='total') %}
+                    <span class="chip-outline chip-outline--muted">
+                        <i class="fas fa-layer-group me-1"></i>{{ stats.category_count }} 个分类
+                    </span>
+                {% endcall %}
+                {% call metric_card('启用标签', value=stats.active, icon_class='fas fa-check-circle', tone='success', data_stat_key='active') %}
+                    <span class="status-pill status-pill--success"><i class="fas fa-check-circle"></i>启用</span>
+                {% endcall %}
+                {% call metric_card('停用标签', value=stats.inactive, icon_class='fas fa-ban', tone='warning', data_stat_key='inactive') %}
+                    <span class="status-pill status-pill--muted"><i class="fas fa-ban"></i>停用</span>
+                {% endcall %}
+                {% call metric_card('标签分类', value=stats.category_count, icon_class='fas fa-tag', tone='muted', data_stat_key='category_count') %}
+                    <span class="chip-outline chip-outline--muted"><i class="fas fa-tag"></i>分类池</span>
+                {% endcall %}
             </div>
         </div>
     </div>

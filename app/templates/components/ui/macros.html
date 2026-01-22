@@ -1,5 +1,28 @@
-{% macro stats_card(title, value_id, icon_class='fas fa-chart-line', card_class='bg-primary text-white', default_value='-') -%}
-    {% include 'components/ui/stats_card.html' %}
+{%- from 'components/ui/metric_card.html' import metric_card as _metric_card -%}
+{% macro metric_card(label, value='-', icon_class=None, tone=None, value_id=None, card_class='', data_stat_key=None) -%}
+    {%- if caller is defined -%}
+        {%- call _metric_card(
+            label=label,
+            value=value,
+            icon_class=icon_class,
+            tone=tone,
+            value_id=value_id,
+            card_class=card_class,
+            data_stat_key=data_stat_key
+        ) -%}
+            {{ caller() }}
+        {%- endcall -%}
+    {%- else -%}
+        {{ _metric_card(
+            label=label,
+            value=value,
+            icon_class=icon_class,
+            tone=tone,
+            value_id=value_id,
+            card_class=card_class,
+            data_stat_key=data_stat_key
+        ) }}
+    {%- endif -%}
 {%- endmacro %}
 
 {% macro btn_close(dismiss_target='modal', aria_label='关闭', extra_class='') -%}
