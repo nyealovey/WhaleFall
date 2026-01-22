@@ -2,6 +2,33 @@
     {% include 'components/ui/stats_card.html' %}
 {%- endmacro %}
 
+{%- from 'components/ui/metric_card.html' import metric_card as _metric_card -%}
+{% macro metric_card(label, value='-', icon_class=None, tone=None, value_id=None, card_class='', data_stat_key=None) -%}
+    {%- if caller is defined -%}
+        {%- call _metric_card(
+            label=label,
+            value=value,
+            icon_class=icon_class,
+            tone=tone,
+            value_id=value_id,
+            card_class=card_class,
+            data_stat_key=data_stat_key
+        ) -%}
+            {{ caller() }}
+        {%- endcall -%}
+    {%- else -%}
+        {{ _metric_card(
+            label=label,
+            value=value,
+            icon_class=icon_class,
+            tone=tone,
+            value_id=value_id,
+            card_class=card_class,
+            data_stat_key=data_stat_key
+        ) }}
+    {%- endif -%}
+{%- endmacro %}
+
 {% macro btn_close(dismiss_target='modal', aria_label='关闭', extra_class='') -%}
     <button type="button" class="btn-close {{ extra_class|default('') }}" data-bs-dismiss="{{ dismiss_target }}" aria-label="{{ aria_label|default('关闭') }}"></button>
 {%- endmacro %}
