@@ -4,52 +4,6 @@
     margin-bottom: var(--spacing-sm);
 }
 
-.scheduler-stat-card {
-    background: var(--surface-elevated);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-lg);
-    padding: var(--spacing-md);
-    box-shadow: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-height: 140px;
-}
-
-.scheduler-stat-card__label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-
-.scheduler-stat-card__value {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.1;
-}
-
-.scheduler-stat-card__value[data-value-tone="success"] {
-    color: var(--status-success);
-}
-
-.scheduler-stat-card__value[data-value-tone="info"] {
-    color: var(--status-info);
-}
-
-.scheduler-stat-card__value[data-value-tone="warning"] {
-    color: var(--status-warning);
-}
-
-.scheduler-stat-card__value[data-value-tone="danger"] {
-    color: var(--status-danger);
-}
-
-.scheduler-stat-card__meta {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
 /* job cards */
 .scheduler-card {
     background: var(--surface-elevated);
