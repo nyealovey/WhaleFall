@@ -35,6 +35,18 @@
       });
     }
 
+    fetchAllClassificationsTrends({ periodType, periods, dbType, instanceId }) {
+      return this.httpClient.get(`${BASE_PATH}/classifications/trends`, {
+        params: {
+          period_type: periodType,
+          periods,
+          db_type: dbType || undefined,
+          instance_id: instanceId || undefined,
+        },
+        headers: { Accept: "application/json" },
+      });
+    }
+
     fetchRuleTrend({ ruleId, periodType, periods, dbType, instanceId }) {
       return this.httpClient.get(`${BASE_PATH}/rules/trend`, {
         params: {
@@ -85,4 +97,3 @@
 
   global.AccountClassificationStatisticsService = AccountClassificationStatisticsService;
 })(window);
-
