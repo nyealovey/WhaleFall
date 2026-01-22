@@ -1,7 +1,3 @@
-{% macro stats_card(title, value_id, icon_class='fas fa-chart-line', card_class='bg-primary text-white', default_value='-') -%}
-    {% include 'components/ui/stats_card.html' %}
-{%- endmacro %}
-
 {%- from 'components/ui/metric_card.html' import metric_card as _metric_card -%}
 {% macro metric_card(label, value='-', icon_class=None, tone=None, value_id=None, card_class='', data_stat_key=None) -%}
     {%- if caller is defined -%}
