@@ -16,6 +16,8 @@ NC='\033[0m' # No Color
 NGINX_CONTAINER_DEV="whalefall_app_dev"
 NGINX_CONTAINER_PROD="whalefall_app_prod"
 NGINX_CONFIG_PATH="/etc/nginx/conf.d/whalefall.conf"
+NGINX_SITE_AVAILABLE_PATH="/etc/nginx/sites-available/whalefall"
+NGINX_SITE_ENABLED_PATH="/etc/nginx/sites-enabled/whalefall"
 NGINX_SSL_PATH="/etc/nginx/ssl"
 
 # 日志函数
@@ -170,14 +172,24 @@ show_config() {
     docker exec "$container_name" cat /etc/nginx/nginx.conf
 
     echo ""
+    echo "conf.d 配置:"
+    docker exec "$container_name" cat "$NGINX_CONFIG_PATH" 2>/dev/null || echo "(无: $NGINX_CONFIG_PATH)"
+
+    echo ""
     echo "站点配置:"
-    docker exec "$container_name" cat "$NGINX_CONFIG_PATH"
+    if docker exec "$container_name" test -f "$NGINX_SITE_AVAILABLE_PATH"; then
+        docker exec "$container_name" cat "$NGINX_SITE_AVAILABLE_PATH"
+    elif docker exec "$container_name" test -f "$NGINX_SITE_ENABLED_PATH"; then
+        docker exec "$container_name" cat "$NGINX_SITE_ENABLED_PATH"
+    else
+        echo "(未找到站点配置: $NGINX_SITE_AVAILABLE_PATH / $NGINX_SITE_ENABLED_PATH)"
+    fi
 }
 
 # 上传配置文件
 upload_config() {
     local env=$1
-    local config_file=${CONFIG_FILE:-"nginx/conf.d/whalefall-${env}.conf"}
+    local config_file=${CONFIG_FILE:-"nginx/sites-available/whalefall-${env}"}
     local container_name=$(get_container_name "$env")
 
     if [ ! -f "$config_file" ]; then
@@ -188,20 +200,26 @@ upload_config() {
     log_info "上传Nginx配置 ($env)..."
     check_container "$container_name"
 
+    local ts
+    ts=$(date +%Y%m%d_%H%M%S)
+    local backup_path="${NGINX_SITE_AVAILABLE_PATH}.backup.${ts}"
+
     # 检查配置文件是否存在，如果存在则备份
-    if docker exec "$container_name" test -f "$NGINX_CONFIG_PATH"; then
+    if docker exec "$container_name" test -f "$NGINX_SITE_AVAILABLE_PATH"; then
         log_info "备份当前配置..."
-        docker exec "$container_name" cp "$NGINX_CONFIG_PATH" "${NGINX_CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+        docker exec "$container_name" cp "$NGINX_SITE_AVAILABLE_PATH" "$backup_path"
     fi
 
     # 上传新配置到临时文件
     docker cp "$config_file" "$container_name:/tmp/nginx_config.conf"
 
     # 在容器内创建或覆盖配置文件
-    docker exec "$container_name" sh -c "cat /tmp/nginx_config.conf > $NGINX_CONFIG_PATH"
+    docker exec "$container_name" sh -c "cat /tmp/nginx_config.conf > $NGINX_SITE_AVAILABLE_PATH"
+    docker exec "$container_name" ln -sf "$NGINX_SITE_AVAILABLE_PATH" "$NGINX_SITE_ENABLED_PATH"
 
     # 删除默认的default.conf以避免冲突
     docker exec "$container_name" rm -f /etc/nginx/conf.d/default.conf
+    docker exec "$container_name" rm -f /etc/nginx/sites-enabled/default
 
     # 测试配置
     if docker exec "$container_name" nginx -t; then
@@ -213,7 +231,10 @@ upload_config() {
         fi
     else
         log_error "配置文件语法错误，已恢复备份"
-        docker exec "$container_name" cp "${NGINX_CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)" "$NGINX_CONFIG_PATH"
+        if docker exec "$container_name" test -f "$backup_path"; then
+            docker exec "$container_name" cp "$backup_path" "$NGINX_SITE_AVAILABLE_PATH"
+            docker exec "$container_name" ln -sf "$NGINX_SITE_AVAILABLE_PATH" "$NGINX_SITE_ENABLED_PATH"
+        fi
         exit 1
     fi
 }
