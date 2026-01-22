@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 from app.core.constants.scheduler_jobs import BUILTIN_TASK_IDS
-from app.core.constants.sync_constants import SyncCategory
 from app.core.exceptions import NotFoundError, SystemError
 from app.core.types.scheduler import SchedulerJobDetail, SchedulerJobListItem
 from app.repositories.scheduler_jobs_repository import SchedulerJobsRepository
@@ -29,13 +28,6 @@ CRON_DAY_OF_WEEK_INDEX = 4
 CRON_HOUR_INDEX = 5
 CRON_MINUTE_INDEX = 6
 CRON_SECOND_INDEX = 7
-
-
-JOB_CATEGORY_MAP: dict[str, str] = {
-    "sync_accounts": SyncCategory.ACCOUNT.value,
-    "sync_databases": SyncCategory.CAPACITY.value,
-    "calculate_database_aggregations": SyncCategory.AGGREGATION.value,
-}
 
 
 class SchedulerJobsReadService:
@@ -87,10 +79,7 @@ class SchedulerJobsReadService:
         trigger_type, trigger_args = self._collect_trigger_args(job)
         state = "STATE_RUNNING" if scheduler.running and job.next_run_time else "STATE_PAUSED"
 
-        last_run_time = self._repository.lookup_job_last_run(job_name=job.name)
-        if not last_run_time:
-            category = JOB_CATEGORY_MAP.get(job.id)
-            last_run_time = self._repository.resolve_session_last_run(category=category, limit=10)
+        last_run_time = self._repository.lookup_job_last_run(job_id=job.id)
 
         return SchedulerJobListItem(
             id=job.id,

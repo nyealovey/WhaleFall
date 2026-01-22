@@ -7,18 +7,15 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.constants.sync_constants import SyncOperationType
 from app.core.exceptions import ConflictError
-from app.models.sync_session import SyncSession
-from app.models.unified_log import UnifiedLog
+from app.models.task_run import TaskRun
 from app.scheduler import get_scheduler
 from app.utils.structlog_config import log_warning
-from app.utils.time_utils import time_utils
+from app.utils.time_utils import UTC_TZ
 
 
 class SchedulerJobsRepository:
@@ -33,50 +30,17 @@ class SchedulerJobsRepository:
         return scheduler
 
     @staticmethod
-    def lookup_job_last_run(*, job_name: str) -> str | None:
-        """从日志中查询任务上次运行时间."""
-        try:
-            recent_log = (
-                UnifiedLog.query.filter(
-                    UnifiedLog.module == "scheduler",
-                    UnifiedLog.message.like(f"%{job_name}%"),
-                    UnifiedLog.timestamp >= time_utils.now() - timedelta(days=1),
-                )
-                .order_by(UnifiedLog.timestamp.desc())
-                .first()
-            )
-            if recent_log:
-                return recent_log.timestamp.isoformat()
-        except SQLAlchemyError as lookup_error:  # pragma: no cover - 防御性告警
-            log_warning(
-                "获取任务上次运行时间失败",
-                module="scheduler",
-                job_name=job_name,
-                error=str(lookup_error),
-            )
+    def lookup_job_last_run(*, job_id: str) -> str | None:
+        """从 TaskRun 中查询任务上次运行时间(以 started_at 为准)."""
+        latest = (
+            TaskRun.query.filter(TaskRun.task_key == job_id)
+            .order_by(TaskRun.started_at.desc(), TaskRun.id.desc())
+            .first()
+        )
+        if latest and latest.started_at:
+            started_at = latest.started_at
+            if isinstance(started_at, datetime) and started_at.tzinfo is None:
+                # SQLite 等环境可能丢失 tzinfo; API 输出统一按 UTC 处理。
+                started_at = started_at.replace(tzinfo=UTC_TZ)
+            return started_at.isoformat()
         return None
-
-    @staticmethod
-    def resolve_session_last_run(*, category: str | None, limit: int = 10) -> str | None:
-        """按同步分类推断上次运行时间.
-
-        约束:
-        - 仅使用 completed_at(完成时间), 不做 updated_at/started_at/created_at 回退.
-        - 若存在定时任务会话, 优先返回定时任务会话的 completed_at.
-        - 否则返回第一条手动会话的 completed_at.
-        """
-        if not category:
-            return None
-
-        sessions = SyncSession.get_sessions_by_category(category, limit=limit)
-        manual_fallback: str | None = None
-        for session in sessions:
-            ts = session.completed_at
-            if not ts:
-                continue
-            if session.sync_type == SyncOperationType.SCHEDULED_TASK.value:
-                return ts.isoformat()
-            if manual_fallback is None:
-                manual_fallback = ts.isoformat()
-
-        return manual_fallback

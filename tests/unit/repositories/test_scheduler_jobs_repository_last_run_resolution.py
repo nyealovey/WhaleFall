@@ -1,70 +1,85 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import pytest
 
-import app.repositories.scheduler_jobs_repository as scheduler_jobs_repository_module
-from app.core.constants.sync_constants import SyncOperationType
+from app import create_app, db
 from app.repositories.scheduler_jobs_repository import SchedulerJobsRepository
+from app.settings import Settings
 
 
-@dataclass(frozen=True)
-class _DummySession:
-    sync_type: str
-    completed_at: datetime | None = None
-    updated_at: datetime | None = None
-    started_at: datetime | None = None
-    created_at: datetime | None = None
+@pytest.fixture(scope="function")
+def app(monkeypatch):
+    settings = Settings.load()
+    app = create_app(init_scheduler_on_start=False, settings=settings)
+    app.config["TESTING"] = True
+    return app
 
 
-@pytest.mark.unit
-def test_resolve_session_last_run_uses_completed_at_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    ts = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    sessions = [
-        _DummySession(
-            sync_type=SyncOperationType.SCHEDULED_TASK.value,
-            completed_at=None,
-            updated_at=ts,
-        ),
-        _DummySession(
-            sync_type=SyncOperationType.MANUAL_TASK.value,
-            completed_at=None,
-            created_at=ts,
-        ),
-    ]
-
-    def _get_sessions_by_category(_category: str, limit: int = 50) -> list[_DummySession]:
-        del _category, limit
-        return sessions
-
-    monkeypatch.setattr(
-        scheduler_jobs_repository_module.SyncSession,
-        "get_sessions_by_category",
-        _get_sessions_by_category,
-    )
-
-    assert SchedulerJobsRepository.resolve_session_last_run(category="account", limit=10) is None
+def _ensure_task_run_table(app) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["task_runs"],
+            ],
+        )
 
 
 @pytest.mark.unit
-def test_resolve_session_last_run_prefers_scheduled_completed_at(monkeypatch: pytest.MonkeyPatch) -> None:
-    manual_ts = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    scheduled_ts = datetime(2026, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
-    sessions = [
-        _DummySession(sync_type=SyncOperationType.MANUAL_TASK.value, completed_at=manual_ts),
-        _DummySession(sync_type=SyncOperationType.SCHEDULED_TASK.value, completed_at=scheduled_ts),
-    ]
+def test_lookup_job_last_run_returns_none_when_no_task_runs(app) -> None:
+    _ensure_task_run_table(app)
+    with app.app_context():
+        assert SchedulerJobsRepository.lookup_job_last_run(job_id="calculate_account_classification") is None
 
-    def _get_sessions_by_category(_category: str, limit: int = 50) -> list[_DummySession]:
-        del _category, limit
-        return sessions
 
-    monkeypatch.setattr(
-        scheduler_jobs_repository_module.SyncSession,
-        "get_sessions_by_category",
-        _get_sessions_by_category,
-    )
+@pytest.mark.unit
+def test_lookup_job_last_run_returns_latest_started_at(app) -> None:
+    _ensure_task_run_table(app)
 
-    assert SchedulerJobsRepository.resolve_session_last_run(category="account", limit=10) == scheduled_ts.isoformat()
+    from app.models.task_run import TaskRun
+
+    older = datetime(2026, 1, 22, 2, 0, 0, tzinfo=timezone.utc)
+    newer = datetime(2026, 1, 22, 3, 0, 0, tzinfo=timezone.utc)
+
+    with app.app_context():
+        db.session.add(
+            TaskRun(
+                run_id="run-old",
+                task_key="calculate_account_classification",
+                task_name="统计账户分类",
+                task_category="classification",
+                trigger_source="scheduled",
+                status="completed",
+                started_at=older,
+                completed_at=older,
+            ),
+        )
+        db.session.add(
+            TaskRun(
+                run_id="run-new",
+                task_key="calculate_account_classification",
+                task_name="统计账户分类",
+                task_category="classification",
+                trigger_source="scheduled",
+                status="completed",
+                started_at=newer,
+                completed_at=newer,
+            ),
+        )
+        db.session.add(
+            TaskRun(
+                run_id="run-other",
+                task_key="sync_accounts",
+                task_name="账户同步",
+                task_category="account",
+                trigger_source="scheduled",
+                status="completed",
+                started_at=newer,
+                completed_at=newer,
+            ),
+        )
+        db.session.commit()
+
+        assert SchedulerJobsRepository.lookup_job_last_run(job_id="calculate_account_classification") == newer.isoformat()
