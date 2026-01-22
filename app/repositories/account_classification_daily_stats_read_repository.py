@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import func
+from sqlalchemy import distinct, func
 
 from app import db
 from app.models.account_classification_daily_stats import (
@@ -20,6 +20,52 @@ from app.models.account_classification_daily_stats import (
 
 class AccountClassificationDailyStatsReadRepository:
     """账户分类每日统计 Read Repository."""
+
+    @staticmethod
+    def fetch_all_classifications_daily_totals(
+        *,
+        start_date: date,
+        end_date: date,
+        db_type: str | None,
+        instance_id: int | None,
+    ) -> dict[int, dict[date, int]]:
+        """按天汇总所有分类的去重账号数.
+
+        返回结构: `{classification_id: {stat_date: total}}`.
+        """
+        query = (
+            db.session.query(
+                AccountClassificationDailyClassificationMatchStat.classification_id,
+                AccountClassificationDailyClassificationMatchStat.stat_date,
+                func.sum(AccountClassificationDailyClassificationMatchStat.matched_accounts_distinct_count).label(
+                    "total"
+                ),
+            )
+            .filter(
+                AccountClassificationDailyClassificationMatchStat.stat_date >= start_date,
+                AccountClassificationDailyClassificationMatchStat.stat_date <= end_date,
+            )
+            .group_by(
+                AccountClassificationDailyClassificationMatchStat.classification_id,
+                AccountClassificationDailyClassificationMatchStat.stat_date,
+            )
+            .order_by(AccountClassificationDailyClassificationMatchStat.stat_date.asc())
+        )
+
+        if db_type:
+            query = query.filter(AccountClassificationDailyClassificationMatchStat.db_type == db_type)
+        if instance_id is not None:
+            query = query.filter(AccountClassificationDailyClassificationMatchStat.instance_id == instance_id)
+
+        data: dict[int, dict[date, int]] = {}
+        for row in query.all():
+            classification_id = getattr(row, "classification_id", None)
+            stat_date = getattr(row, "stat_date", None)
+            if classification_id is None or stat_date is None:
+                continue
+            data.setdefault(int(classification_id), {})[stat_date] = int(getattr(row, "total", 0) or 0)
+
+        return data
 
     @staticmethod
     def fetch_classification_daily_totals(
@@ -117,6 +163,41 @@ class AccountClassificationDailyStatsReadRepository:
 
         rows = query.all()
         return {int(row.rule_id): int(row.total or 0) for row in rows if row.rule_id is not None}
+
+    @staticmethod
+    def fetch_rule_coverage_days_by_rule_id(
+        *,
+        classification_id: int,
+        start_date: date,
+        end_date: date,
+        db_type: str | None,
+        instance_id: int | None,
+    ) -> dict[int, int]:
+        """按规则统计覆盖天数(用于均值分母, 缺失天不计入)."""
+        query = (
+            db.session.query(
+                AccountClassificationDailyRuleMatchStat.rule_id,
+                func.count(distinct(AccountClassificationDailyRuleMatchStat.stat_date)).label("coverage_days"),
+            )
+            .filter(
+                AccountClassificationDailyRuleMatchStat.classification_id == classification_id,
+                AccountClassificationDailyRuleMatchStat.stat_date >= start_date,
+                AccountClassificationDailyRuleMatchStat.stat_date <= end_date,
+            )
+            .group_by(AccountClassificationDailyRuleMatchStat.rule_id)
+        )
+
+        if db_type:
+            query = query.filter(AccountClassificationDailyRuleMatchStat.db_type == db_type)
+        if instance_id is not None:
+            query = query.filter(AccountClassificationDailyRuleMatchStat.instance_id == instance_id)
+
+        rows = query.all()
+        return {
+            int(row.rule_id): int(row.coverage_days or 0)
+            for row in rows
+            if row.rule_id is not None
+        }
 
     @staticmethod
     def fetch_rule_stat_dates(
