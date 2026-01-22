@@ -50,6 +50,7 @@ def build_sync_accounts_summary(
     skipped: bool = False,
     skip_reason: str | None = None,
 ) -> dict[str, Any]:
+    """构建 sync_accounts 的最终 summary_json(v1)."""
     metrics = [
         _metric(key="instances_total", label="实例总数", value=instances_total, unit="个", tone="info"),
         _metric(key="instances_successful", label="成功实例", value=instances_successful, unit="个", tone="success"),
@@ -90,6 +91,7 @@ def build_sync_databases_summary(
     skipped: bool = False,
     skip_reason: str | None = None,
 ) -> dict[str, Any]:
+    """构建 sync_databases 的最终 summary_json(v1)."""
     metrics = [
         _metric(key="instances_total", label="实例总数", value=instances_total, unit="个", tone="info"),
         _metric(key="instances_successful", label="成功实例", value=instances_successful, unit="个", tone="success"),
@@ -124,6 +126,7 @@ def build_calculate_database_aggregations_summary(
     skipped: bool = False,
     skip_reason: str | None = None,
 ) -> dict[str, Any]:
+    """构建 calculate_database_aggregations 的最终 summary_json(v1)."""
     record_total = record_instance + record_database
     metrics = [
         _metric(key="instances_total", label="实例总数", value=instances_total, unit="个", tone="info"),
@@ -159,6 +162,7 @@ def build_calculate_account_classification_summary(
     skipped: bool = False,
     skip_reason: str | None = None,
 ) -> dict[str, Any]:
+    """构建 calculate_account_classification 的最终 summary_json(v1)."""
     scope = {"time": {"type": "date", "timezone": _CHINA_TZ, "date": stat_date}, "target": {}}
     metrics = [
         _metric(key="rules_count", label="规则数", value=rules_count, unit="条", tone="info"),
@@ -197,6 +201,7 @@ def build_auto_classify_accounts_summary(
     skipped: bool = False,
     skip_reason: str | None = None,
 ) -> dict[str, Any]:
+    """构建 auto_classify_accounts 的最终 summary_json(v1)."""
     metrics = [
         _metric(key="rules_count", label="规则数", value=rules_count, unit="条", tone="info"),
         _metric(key="accounts_count", label="账户数", value=accounts_count, unit="个", tone="info"),
@@ -236,6 +241,7 @@ def build_capacity_aggregate_current_summary(
     skipped: bool = False,
     skip_reason: str | None = None,
 ) -> dict[str, Any]:
+    """构建 capacity_aggregate_current 的最终 summary_json(v1)."""
     metrics = [
         _metric(key="scope", label="范围", value=scope, tone="info"),
         _metric(key="requested_period_type", label="请求周期", value=requested_period_type, tone="info"),
@@ -257,4 +263,3 @@ def build_capacity_aggregate_current_summary(
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,
     )
-
