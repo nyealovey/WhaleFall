@@ -252,23 +252,96 @@ copy_code_to_container() {
         exit 1
     fi
 
-    # 确保gunicorn.conf.py文件存在
-    log_info "确保gunicorn.conf.py文件存在..."
+    # 同步关键部署配置（避免“热更新仅覆盖 /app 代码，但容器内 /etc 配置仍为旧版本”）
+
+    # 同步 gunicorn.conf.py（Web 进程配置）
+    log_info "同步 gunicorn.conf.py..."
     if docker exec "$flask_container_id" bash -c "
-        if [ ! -f /app/gunicorn.conf.py ]; then
-            if [ -f /app/nginx/gunicorn/gunicorn-prod.conf.py ]; then
-                cp /app/nginx/gunicorn/gunicorn-prod.conf.py /app/gunicorn.conf.py
-                echo '已复制gunicorn.conf.py到根目录'
-            else
-                echo '警告：未找到gunicorn-prod.conf.py文件'
-            fi
-        else
-            echo 'gunicorn.conf.py已存在'
+        set -e
+        src=/app/nginx/gunicorn/gunicorn-prod.conf.py
+        dest=/app/gunicorn.conf.py
+        ts=\$(date +%Y%m%d_%H%M%S)
+
+        if [ ! -f \"\$src\" ]; then
+            echo '错误：未找到 /app/nginx/gunicorn/gunicorn-prod.conf.py'
+            exit 1
         fi
+
+        if [ -f \"\$dest\" ]; then
+            cp \"\$dest\" \"\${dest}.backup.\${ts}\" 2>/dev/null || true
+        fi
+        cp \"\$src\" \"\$dest\"
+        echo '已同步 /app/gunicorn.conf.py'
     "; then
-        log_success "gunicorn.conf.py文件检查完成"
+        log_success "gunicorn.conf.py同步完成"
     else
-        log_warning "gunicorn.conf.py文件检查失败，但继续执行"
+        log_error "gunicorn.conf.py同步失败"
+        exit 1
+    fi
+
+    # 同步 Supervisor 配置（决定 web/scheduler 两套 gunicorn 的启动方式）
+    log_info "同步 Supervisor 配置..."
+    if docker exec "$flask_container_id" bash -c "
+        set -e
+        src=/app/nginx/supervisor/whalefall-prod.conf
+        dest=/etc/supervisor/conf.d/whalefall.conf
+        ts=\$(date +%Y%m%d_%H%M%S)
+
+        if [ ! -f \"\$src\" ]; then
+            echo '错误：未找到 /app/nginx/supervisor/whalefall-prod.conf'
+            exit 1
+        fi
+
+        if [ -f \"\$dest\" ]; then
+            cp \"\$dest\" \"\${dest}.backup.\${ts}\" 2>/dev/null || true
+        fi
+        cp \"\$src\" \"\$dest\"
+        echo '已同步 /etc/supervisor/conf.d/whalefall.conf'
+    "; then
+        log_success "Supervisor配置同步完成"
+    else
+        log_error "Supervisor配置同步失败"
+        exit 1
+    fi
+
+    # 同步 Nginx 站点配置（包含 /api/v1/scheduler/** 路由到 scheduler 进程）
+    log_info "同步 Nginx 站点配置..."
+    if docker exec "$flask_container_id" bash -c "
+        set -e
+        src=/app/nginx/sites-available/whalefall-prod
+        dest=/etc/nginx/sites-available/whalefall
+        ts=\$(date +%Y%m%d_%H%M%S)
+        backup=''
+
+        if [ ! -f \"\$src\" ]; then
+            echo '错误：未找到 /app/nginx/sites-available/whalefall-prod'
+            exit 1
+        fi
+
+        if [ -f \"\$dest\" ]; then
+            backup=\"\${dest}.backup.\${ts}\"
+            cp \"\$dest\" \"\$backup\" 2>/dev/null || true
+        fi
+
+        cp \"\$src\" \"\$dest\"
+        ln -sf /etc/nginx/sites-available/whalefall /etc/nginx/sites-enabled/whalefall
+
+        if nginx -t; then
+            echo '已同步 Nginx 站点配置，并通过 nginx -t'
+            exit 0
+        fi
+
+        echo 'Nginx 配置校验失败，尝试回滚...'
+        if [ -n \"\$backup\" ] && [ -f \"\$backup\" ]; then
+            cp \"\$backup\" \"\$dest\" 2>/dev/null || true
+            nginx -t 2>/dev/null || true
+        fi
+        exit 1
+    "; then
+        log_success "Nginx站点配置同步完成"
+    else
+        log_error "Nginx站点配置同步失败"
+        exit 1
     fi
 
     # 清理临时目录
@@ -633,6 +706,9 @@ show_update_result() {
     echo "  - 查看Gunicorn进程: docker compose -f docker-compose.prod.yml exec whalefall ps aux | grep gunicorn"
     echo "  - 查看Gunicorn访问日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /app/userdata/logs/gunicorn_access.log"
     echo "  - 查看Gunicorn错误日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /app/userdata/logs/gunicorn_error.log"
+    echo "  - 查看Scheduler API: curl http://localhost/api/v1/scheduler/jobs"
+    echo "  - 查看Scheduler Gunicorn访问日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /app/userdata/logs/gunicorn_scheduler_access.log"
+    echo "  - 查看Scheduler Gunicorn错误日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /app/userdata/logs/gunicorn_scheduler_error.log"
     echo "  - 快速检查Gunicorn: ./check-gunicorn.sh"
     echo "  - 重启服务: docker compose -f docker-compose.prod.yml restart whalefall"
     echo "  - 进入容器: docker compose -f docker-compose.prod.yml exec whalefall bash"

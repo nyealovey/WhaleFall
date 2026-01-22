@@ -7,7 +7,7 @@ tags:
   - standards/backend
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-22
 owner: WhaleFall Team
 scope: "`app/scheduler.py`, `app/tasks/**`, 调度器管理路由与后台线程"
 related:
@@ -38,9 +38,9 @@ related:
 
 ### 2) 调度器单实例（强约束）
 
-- MUST：调度器必须通过文件锁保持单实例运行（当前实现位于 `app/scheduler.py`）。
+- MUST：调度器必须保持单实例运行，避免重复跑任务造成数据破坏。
 - MUST：当环境变量 `ENABLE_SCHEDULER` 明确禁用时不得启动调度器。
-- SHOULD：在 gunicorn 或 Flask reloader 场景中，遵循现有实现的“子进程/单实例”策略，避免重复初始化。
+- SHOULD：在 gunicorn 或 Flask reloader 场景中，遵循现有实现的“进程角色判断”策略，避免重复初始化。
 
 ### 3) 任务注册与配置（强约束）
 
@@ -54,6 +54,16 @@ related:
 - MUST：任务必须使用结构化日志（`get_system_logger()` 或模块 logger），禁止 `print`。
 - SHOULD：任务日志包含 `job_id/task_name` 等维度，便于在日志中心过滤。
 - SHOULD：任务失败时只记录必要诊断信息，避免把敏感数据写入日志(详见 [[standards/backend/sensitive-data-handling|敏感数据处理]])。
+
+## 生产部署建议
+
+> 目标：Web 多 worker 不卡顿、任务不重复、Scheduler 管理接口稳定可用。
+
+- 推荐：将 Web 与 Scheduler 分进程（或分容器）部署。
+  - Web 进程：仅提供页面与业务 API，设置 `ENABLE_SCHEDULER=false`。
+  - Scheduler 进程：专门运行 APScheduler，设置 `ENABLE_SCHEDULER=true`（通常保持单 worker）。
+  - 反向代理：将 `/api/v1/scheduler/**` 路由到 Scheduler 进程，其余请求路由到 Web 进程。
+- 单实例说明：当前实现不提供跨进程/跨主机互斥；多副本部署场景应使用集中式锁（例如 Redis lock / PostgreSQL advisory lock）作为单实例保障。
 
 ## 正反例
 
@@ -84,7 +94,7 @@ def run_task() -> None:
 - 评审检查：
   - 新增任务是否同时更新 `TASK_FUNCTIONS` 与 `scheduler_tasks.yaml`？
   - 是否在无 app context 场景里安全地创建 app 并包裹？
-- 运行期观察：通过调度器页面/日志中心确认任务未重复执行（同一时间窗口只有一个进程持锁）。
+- 运行期观察：通过调度器页面/日志中心确认任务未重复执行（同一时间窗口只有一个实例在跑）。
 
 ## 变更历史
 

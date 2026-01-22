@@ -8,7 +8,7 @@ tags:
   - operations/scheduler
 status: draft
 created: 2026-01-10
-updated: 2026-01-10
+updated: 2026-01-22
 owner: WhaleFall Team
 scope: APScheduler + SQLite jobstore(`userdata/scheduler.db`) 的运行口径, 多进程/多实例注意点, 重置方式与风险
 related:
@@ -37,8 +37,8 @@ related:
 - 调度器实现: `app/scheduler.py`
 - 默认任务配置: `app/config/scheduler_tasks.yaml`
 - jobstore: SQLite, 文件路径固定为 `userdata/scheduler.db`
-- 单机多进程(gunicorn): 通过文件锁 `userdata/scheduler.lock` 保持"同一台机器仅 1 个进程"启动 scheduler.
-- 多机多实例: 每台机器都会各自启动 scheduler, 因为 jobstore/lock 都是本地文件, 不共享.
+- 单实例策略: 通过部署约束确保仅 1 个进程启用 `ENABLE_SCHEDULER=true`（推荐 Web/Scheduler 分进程/分容器）。
+- 多机多实例: 每台机器都会各自启动 scheduler, 因为 jobstore 是本地文件, 不共享.
 
 > [!warning]
 > 生产多实例部署时, 默认会出现任务重复执行(每台机器 1 份). 正确口径是: 仅让 1 个实例启用 scheduler, 其余实例禁用.
@@ -68,8 +68,7 @@ related:
 通过文件:
 
 ```bash
-ls -la userdata/scheduler.db userdata/scheduler.lock || true
-cat userdata/scheduler.lock || true
+ls -la userdata/scheduler.db || true
 ```
 
 ### 5.2 重新加载默认任务
@@ -101,11 +100,8 @@ ts="$(date +%Y%m%d%H%M%S)"
 if [[ -f userdata/scheduler.db ]]; then
   cp -a userdata/scheduler.db "userdata/scheduler.db.bak.${ts}"
 fi
-if [[ -f userdata/scheduler.lock ]]; then
-  cp -a userdata/scheduler.lock "userdata/scheduler.lock.bak.${ts}"
-fi
 
-rm -f userdata/scheduler.db userdata/scheduler.lock
+rm -f userdata/scheduler.db
 ```
 
 验证:
@@ -133,12 +129,11 @@ rm -f userdata/scheduler.db userdata/scheduler.lock
 检查:
 
 - 当前进程是否启用了 `ENABLE_SCHEDULER`
-- `userdata/scheduler.lock` 是否被其他进程持有
 - 是否处于 Flask reloader 父进程(开发模式)导致 scheduler 被跳过
 
 代码入口:
 
-- `app/scheduler.py` -> `_should_start_scheduler()` / `_acquire_scheduler_lock()`
+- `app/scheduler.py` -> `_should_start_scheduler()`
 
 ### 6.3 jobstore 文件存在但任务为空
 
@@ -146,4 +141,3 @@ rm -f userdata/scheduler.db userdata/scheduler.lock
 
 - 调用 reload: `POST /api/v1/scheduler/jobs/actions/reload`
 - 或按 5.3 重置 jobstore
-

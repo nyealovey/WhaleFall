@@ -2,7 +2,7 @@
 {% set page_id = 'LogsPage' %}
 {% set page_density = 'compact' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, log_level_filter, module_filter, time_range_filter %}
-{% from 'components/ui/macros.html' import stats_card %}
+{% from 'components/ui/macros.html' import metric_card %}
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}日志中心{% endblock %}
@@ -22,28 +22,16 @@
         <div class="layout-shell-inner">
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 log-stats-row">
                 <div class="col">
-                    <div class="log-stats-card">
-                        <p class="log-stats-card__label">总日志数</p>
-                        <div class="log-stats-card__value" id="totalLogs" data-stat-format="plain">0</div>
-                    </div>
+                    {{ metric_card('总日志数', value=0, value_id='totalLogs', icon_class='fas fa-list') }}
                 </div>
                 <div class="col">
-                    <div class="log-stats-card">
-                        <p class="log-stats-card__label">错误日志</p>
-                        <div class="log-stats-card__value log-stats-card__value--danger" id="errorLogs">0</div>
-                    </div>
+                    {{ metric_card('错误日志', value=0, value_id='errorLogs', icon_class='fas fa-exclamation-triangle', tone='danger') }}
                 </div>
                 <div class="col">
-                    <div class="log-stats-card">
-                        <p class="log-stats-card__label">警告日志</p>
-                        <div class="log-stats-card__value log-stats-card__value--warning" id="warningLogs">0</div>
-                    </div>
+                    {{ metric_card('警告日志', value=0, value_id='warningLogs', icon_class='fas fa-exclamation-circle', tone='warning') }}
                 </div>
                 <div class="col">
-                    <div class="log-stats-card">
-                        <p class="log-stats-card__label">模块数量</p>
-                        <div class="log-stats-card__value" id="modulesCount" data-stat-format="plain">0</div>
-                    </div>
+                    {{ metric_card('模块数量', value=0, value_id='modulesCount', icon_class='fas fa-cubes') }}
                 </div>
             </div>
         </div>

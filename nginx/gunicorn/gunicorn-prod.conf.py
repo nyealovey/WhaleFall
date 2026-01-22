@@ -13,7 +13,7 @@ bind = "0.0.0.0:5001"
 backlog = 2048
 
 # 工作进程 - 简化配置
-workers = 1  # 固定2个进程, 避免复杂配置
+workers = 2  # Web 进程使用 2 个 worker,避免长耗时任务拖慢页面响应
 worker_class = "gevent"  # 使用gevent工作器, 支持异步
 worker_connections = 1000  # gevent工作器连接数
 timeout = 120

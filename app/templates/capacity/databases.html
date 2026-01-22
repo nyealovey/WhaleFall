@@ -2,7 +2,7 @@
 {% set page_id = 'CapacityDatabasesPage' %}
 {% set page_density = 'compact' %}
 {% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, database_filter, period_type_filter %}
-{% from 'components/ui/macros.html' import stats_card %}
+{% from 'components/ui/macros.html' import metric_card %}
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}容量统计(数据库) - 数据库大小监控{% endblock %}
@@ -28,11 +28,19 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
     <!-- 统计概览 -->
-    <div class="row g-3 capacity-stats mb-4">
-        {{ stats_card('总数据库数', 'totalDatabases', 'fas fa-database', 'capacity-stats-card') }}
-        {{ stats_card('总容量', 'totalCapacity', 'fas fa-hdd', 'capacity-stats-card') }}
-        {{ stats_card('平均容量', 'averageSize', 'fas fa-chart-line', 'capacity-stats-card') }}
-        {{ stats_card('最大容量', 'maxSize', 'fas fa-expand-arrows-alt', 'capacity-stats-card') }}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 capacity-stats mb-4">
+        <div class="col">
+            {{ metric_card('总数据库数', value_id='totalDatabases', icon_class='fas fa-database') }}
+        </div>
+        <div class="col">
+            {{ metric_card('总容量', value_id='totalCapacity', icon_class='fas fa-hdd') }}
+        </div>
+        <div class="col">
+            {{ metric_card('平均容量', value_id='averageSize', icon_class='fas fa-chart-line') }}
+        </div>
+        <div class="col">
+            {{ metric_card('最大容量', value_id='maxSize', icon_class='fas fa-expand-arrows-alt') }}
+        </div>
     </div>
 
     <div class="page-section page-section--stacked filter-card-wrapper mb-4">
