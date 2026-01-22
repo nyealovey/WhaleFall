@@ -1,6 +1,7 @@
 {%- from 'components/ui/metric_card.html' import metric_card as _metric_card -%}
 {% macro metric_card(label, value='-', icon_class=None, tone=None, value_id=None, card_class='', data_stat_key=None) -%}
     {%- if caller is defined -%}
+        {%- set outer_caller = caller -%}
         {%- call _metric_card(
             label=label,
             value=value,
@@ -10,7 +11,7 @@
             card_class=card_class,
             data_stat_key=data_stat_key
         ) -%}
-            {{ caller() }}
+            {{ outer_caller() }}
         {%- endcall -%}
     {%- else -%}
         {{ _metric_card(
