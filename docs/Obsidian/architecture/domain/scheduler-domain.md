@@ -8,9 +8,9 @@ tags:
   - domain/scheduler
 status: active
 created: 2026-01-10
-updated: 2026-01-10
+updated: 2026-01-22
 owner: WhaleFall Team
-scope: APScheduler(jobstore/lock/job lifecycle), 以及与 tasks/operations 的边界
+scope: APScheduler(jobstore/job lifecycle), 以及与 tasks/operations 的边界
 related:
   - "[[architecture/spec]]"
   - "[[operations/scheduler-jobstore-ops]]"
@@ -26,7 +26,7 @@ related:
 ## 边界与职责
 
 - 负责 job 的注册/持久化(jobstore)/触发与手动运行入口.
-- 通过文件锁确保多进程下仅 1 个 scheduler 实例持锁运行.
+- 通过部署约束确保多进程/多实例下仅 1 个 scheduler 实例运行（推荐 Web/Scheduler 分进程/分容器 + `ENABLE_SCHEDULER` 开关）。
 - 任务逻辑不在 scheduler 内实现, 而是 dispatch 到 `app/tasks/**`.
 
 ## 关键配置与文件
@@ -34,7 +34,6 @@ related:
 - scheduler 开关: `ENABLE_SCHEDULER`
 - 默认任务配置: `app/config/scheduler_tasks.yaml`
 - jobstore(SQLite): `userdata/scheduler.db`
-- file lock: `userdata/scheduler.lock`
 
 ## 代码落点(常用)
 

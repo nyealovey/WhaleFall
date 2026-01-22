@@ -26,7 +26,7 @@
 		{"id":"g202000000000032","type":"text","text":"## Redis\n\n- cache\n- 提升读写性能","x":2980,"y":80,"width":360,"height":160,"color":"4"},
 		{"id":"g202000000000031","type":"text","text":"## PostgreSQL\n\n- 元数据主库\n- 账本/审计日志","x":2440,"y":80,"width":420,"height":160,"color":"4"},
 		{"id":"g202000000000034","type":"text","text":"## Managed DB Instances\n\n- MySQL / PostgreSQL\n- SQL Server / Oracle\n- ...","x":2980,"y":470,"width":360,"height":220,"color":"4"},
-		{"id":"g202000000000033","type":"text","text":"## Local filesystem (userdata)\n\n- scheduler jobstore: `scheduler.db`\n- scheduler lock: `scheduler.lock`","x":2440,"y":580,"width":420,"height":220,"color":"4"},
+		{"id":"g202000000000033","type":"text","text":"## Local filesystem (userdata)\n\n- scheduler jobstore: `scheduler.db`","x":2440,"y":580,"width":420,"height":220,"color":"4"},
 		{"id":"g202000000000021","type":"text","text":"## Web UI + API Server\n\n- Flask (templates + RESTX)\n- 统一响应封套","x":800,"y":-160,"width":430,"height":160,"color":"3"},
 		{"id":"g202000000000022","type":"text","text":"## Domain Services\n\n- instances / accounts / capacity / ...\n- 读写元数据与账本","x":780,"y":100,"width":430,"height":200,"color":"2"},
 		{"id":"g202000000000023","type":"text","text":"## DB Adapter Layer\n\n- 多数据库适配\n- 归一化输出(面向业务域)","x":780,"y":450,"width":430,"height":200,"color":"6"},
@@ -45,7 +45,7 @@
 		{"id":"g202000000001010","fromNode":"g202000000000021","fromSide":"right","toNode":"g202000000000024","toSide":"left","label":"manage jobs"},
 		{"id":"g202000000001011","fromNode":"g202000000000024","fromSide":"bottom","toNode":"g202000000000025","toSide":"top","label":"dispatch"},
 		{"id":"g202000000001012","fromNode":"g202000000000025","fromSide":"bottom","toNode":"g202000000000026","toSide":"top","label":"run"},
-		{"id":"g202000000001013","fromNode":"g202000000000025","fromSide":"right","toNode":"g202000000000033","toSide":"left","label":"jobstore/lock"},
+		{"id":"g202000000001013","fromNode":"g202000000000025","fromSide":"right","toNode":"g202000000000033","toSide":"left","label":"jobstore"},
 		{"id":"g202000000001014","fromNode":"g202000000000026","fromSide":"right","toNode":"g202000000000034","toSide":"left","label":"connect/query/DDL"},
 		{"id":"g202000000001015","fromNode":"g202000000000026","fromSide":"right","toNode":"g202000000000031","toSide":"left","label":"write metadata/ledger"},
 		{"id":"g202000000001016","fromNode":"g202000000000026","fromSide":"right","toNode":"g202000000000032","toSide":"left","label":"cache"}

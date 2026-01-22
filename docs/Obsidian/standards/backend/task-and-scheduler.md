@@ -38,9 +38,9 @@ related:
 
 ### 2) 调度器单实例（强约束）
 
-- MUST：调度器必须通过文件锁保持单实例运行（当前实现位于 `app/scheduler.py`）。
+- MUST：调度器必须保持单实例运行，避免重复跑任务造成数据破坏。
 - MUST：当环境变量 `ENABLE_SCHEDULER` 明确禁用时不得启动调度器。
-- SHOULD：在 gunicorn 或 Flask reloader 场景中，遵循现有实现的“子进程/单实例”策略，避免重复初始化。
+- SHOULD：在 gunicorn 或 Flask reloader 场景中，遵循现有实现的“进程角色判断”策略，避免重复初始化。
 
 ### 3) 任务注册与配置（强约束）
 
@@ -63,8 +63,7 @@ related:
   - Web 进程：仅提供页面与业务 API，设置 `ENABLE_SCHEDULER=false`。
   - Scheduler 进程：专门运行 APScheduler，设置 `ENABLE_SCHEDULER=true`（通常保持单 worker）。
   - 反向代理：将 `/api/v1/scheduler/**` 路由到 Scheduler 进程，其余请求路由到 Web 进程。
-- 文件锁说明：当前 `app/scheduler.py` 的文件锁适用于“同宿主机/同容器内多进程”的单实例保护；当进行多副本/跨主机部署时，文件锁无法提供全局互斥。
-  - 多副本部署场景应使用集中式锁（例如 Redis lock / PostgreSQL advisory lock）作为单实例保障。
+- 单实例说明：当前实现不提供跨进程/跨主机互斥；多副本部署场景应使用集中式锁（例如 Redis lock / PostgreSQL advisory lock）作为单实例保障。
 
 ## 正反例
 
@@ -95,7 +94,7 @@ def run_task() -> None:
 - 评审检查：
   - 新增任务是否同时更新 `TASK_FUNCTIONS` 与 `scheduler_tasks.yaml`？
   - 是否在无 app context 场景里安全地创建 app 并包裹？
-- 运行期观察：通过调度器页面/日志中心确认任务未重复执行（同一时间窗口只有一个进程持锁）。
+- 运行期观察：通过调度器页面/日志中心确认任务未重复执行（同一时间窗口只有一个实例在跑）。
 
 ## 变更历史
 
