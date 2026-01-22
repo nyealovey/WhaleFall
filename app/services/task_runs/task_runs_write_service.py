@@ -18,6 +18,7 @@ from app import db
 from app.core.exceptions import NotFoundError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.schemas.task_run_summary import TaskRunSummaryFactory, TaskRunSummaryV1
 from app.utils.time_utils import time_utils
 
 
@@ -64,6 +65,12 @@ class TaskRunsWriteService:
         result_url: str | None = None,
     ) -> str:
         """创建 TaskRun 并返回 run_id(由调用方控制 commit)."""
+        resolved_summary_json = (
+            TaskRunSummaryFactory.base(task_key=task_key)
+            if summary_json is None
+            else TaskRunSummaryV1.model_validate(summary_json).validate_task_key(task_key).model_dump(mode="python")
+        )
+
         run_id = str(uuid4())
         # SQLAlchemy Model __init__ signature isn't type-aware; assign fields explicitly for pyright.
         run = TaskRun()
@@ -75,7 +82,7 @@ class TaskRunsWriteService:
         run.status = "running"
         run.started_at = time_utils.now()
         run.created_by = created_by
-        run.summary_json = None if summary_json is None else self._ensure_json_serializable(summary_json)
+        run.summary_json = self._ensure_json_serializable(resolved_summary_json)
         run.result_url = result_url
         run.progress_total = 0
         run.progress_completed = 0
