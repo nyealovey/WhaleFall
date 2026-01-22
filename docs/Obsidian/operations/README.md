@@ -28,6 +28,7 @@ related:
 - [[operations/observability-ops|可观测与排障(Observability Ops)]]
 - [[operations/scheduler-jobstore-ops|Scheduler/jobstore 运维口径]]
 - [[operations/account-classification-daily-stats-ops|账户分类每日统计（每日留痕）]]
+- [[operations/task-run-summary-json|TaskRun summary_json 口径（v1）]]
 
 ## 约定
 
