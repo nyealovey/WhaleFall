@@ -1,39 +1,5 @@
 /* 系统仪表盘样式 - 遵循色彩精简方案 */
 
-.dashboard-stat-card {
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    border-radius: var(--border-radius-lg);
-    background-color: var(--surface-elevated);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition-base);
-    height: 100%;
-}
-
-.dashboard-stat-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-}
-
-.dashboard-stat-card__label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-bottom: var(--spacing-xs);
-}
-
-.dashboard-stat-card__value {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.2;
-}
-
-.dashboard-stat-card__meta {
-    margin-top: var(--spacing-sm);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
 .resource-usage {
     margin-bottom: var(--spacing-lg);
 }
