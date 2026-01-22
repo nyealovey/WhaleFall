@@ -17,6 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.exceptions import SystemError, ValidationError
 from app.infra.route_safety import log_with_context
+from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
 
 BACKGROUND_EXCEPTIONS: tuple[type[Exception], ...] = (
@@ -112,7 +113,10 @@ class AutoClassifyActionsService:
             task_category="classification",
             trigger_source="manual",
             created_by=created_by,
-            summary_json={"instance_id": instance_id},
+            summary_json=TaskRunSummaryFactory.base(
+                task_key="auto_classify_accounts",
+                inputs={"instance_id": instance_id},
+            ),
             result_url="/accounts/classifications",
         )
         return AutoClassifyAccountsPreparedRun(run_id=run_id, instance_id=instance_id)

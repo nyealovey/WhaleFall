@@ -22,10 +22,10 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='account-classification-statistics-filter', action='', method='GET', submit_label='应用', clear_label='重置', auto_register=False, extra_classes='acs-filter-card') %}
-                <div class="col-md-4 col-12">
+                <div class="col-md-2 col-12">
                     <label for="classification_id" class="form-label">账户分类</label>
-                    <select id="classification_id" name="classification_id" class="form-select" required>
-                        <option value="">请选择分类</option>
+                    <select id="classification_id" name="classification_id" class="form-select">
+                        <option value="">全部分类</option>
                         {% for option in classification_options or [] %}
                             <option value="{{ option['value'] }}"
                                     {% if option['value'] == selected_classification_id %}selected{% endif %}
@@ -50,7 +50,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-3 col-12">
+                <div class="col-md-2 col-12">
                     <label for="db_type" class="form-label">数据库类型</label>
                     <select id="db_type" name="db_type" class="form-select">
                         <option value="">全部类型</option>
@@ -62,7 +62,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-3 col-12">
+                <div class="col-md-2 col-12">
                     <label for="instance_id" class="form-label">实例</label>
                     <select id="instance_id"
                             name="instance_id"
@@ -96,7 +96,7 @@
                                 <span>规则列表</span>
                             </div>
                             <div class="acs-panel__meta">
-                                <span class="chip-outline chip-outline--muted" id="acs-rules-window-label">窗口累计</span>
+                                <span class="chip-outline chip-outline--muted" id="acs-rules-window-label">最新周期</span>
                             </div>
                         </div>
                         <div class="acs-panel__body">
@@ -117,7 +117,7 @@
                             <div class="acs-rules-list" data-role="rules-list">
                                 <div class="acs-empty-state" data-role="rules-empty">
                                     <i class="fas fa-filter"></i>
-                                    <p class="mb-0">请选择分类后加载规则与趋势</p>
+                                    <p class="mb-0">选择分类后加载规则列表与规则趋势</p>
                                 </div>
                             </div>
                         </div>
@@ -137,8 +137,8 @@
                                 </div>
                             </div>
                             <div class="acs-panel__body acs-panel__body--chart">
-                                <div class="acs-chart-stage">
-                                    <canvas id="acs-classification-trend"></canvas>
+                                <div class="chart-stage chart-stage--md">
+                                    <canvas id="acs-classification-trend" class="chart-canvas"></canvas>
                                 </div>
                             </div>
                         </article>
@@ -154,8 +154,8 @@
                                 </div>
                             </div>
                             <div class="acs-panel__body acs-panel__body--chart">
-                                <div class="acs-chart-stage">
-                                    <canvas id="acs-rule-secondary"></canvas>
+                                <div class="chart-stage chart-stage--md">
+                                    <canvas id="acs-rule-secondary" class="chart-canvas"></canvas>
                                 </div>
                                 <p class="acs-hint mb-0">
                                     说明：规则之间允许重叠，“各规则之和”不等于分类去重总数。

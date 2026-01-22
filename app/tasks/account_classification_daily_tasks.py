@@ -15,6 +15,7 @@ from app.models.task_run_item import TaskRunItem
 from app.repositories.account_classification_daily_stats_repository import AccountClassificationDailyStatsRepository
 from app.repositories.account_classification_repository import ClassificationRepository
 from app.services.account_classification.dsl_v4 import DslV4Evaluator
+from app.services.task_runs.task_run_summary_builders import build_calculate_account_classification_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -100,13 +101,16 @@ def calculate_account_classification(
                 if current_run is not None and current_run.status != "cancelled":
                     current_run.status = "failed"
                     current_run.error_message = "没有可用的分类规则"
-                    current_run.summary_json = {
-                        "stat_date": resolved_date.isoformat(),
-                        "rules_count": 0,
-                        "accounts_count": len(accounts),
-                        "rule_match_rows": 0,
-                        "classification_match_rows": 0,
-                    }
+                    current_run.summary_json = build_calculate_account_classification_summary(
+                        task_key="calculate_account_classification",
+                        inputs={"manual_run": manual_run},
+                        stat_date=resolved_date,
+                        computed_at=computed_at,
+                        rules_count=0,
+                        accounts_count=len(accounts),
+                        rule_match_rows=0,
+                        classification_match_rows=0,
+                    )
                 task_runs_service.finalize_run(resolved_run_id)
                 db.session.commit()
                 return {"success": False, "message": "没有可用的分类规则", "run_id": resolved_run_id}
@@ -116,13 +120,16 @@ def calculate_account_classification(
                 if current_run is not None and current_run.status != "cancelled":
                     current_run.status = "failed"
                     current_run.error_message = "没有需要统计的账户"
-                    current_run.summary_json = {
-                        "stat_date": resolved_date.isoformat(),
-                        "rules_count": len(rules),
-                        "accounts_count": 0,
-                        "rule_match_rows": 0,
-                        "classification_match_rows": 0,
-                    }
+                    current_run.summary_json = build_calculate_account_classification_summary(
+                        task_key="calculate_account_classification",
+                        inputs={"manual_run": manual_run},
+                        stat_date=resolved_date,
+                        computed_at=computed_at,
+                        rules_count=len(rules),
+                        accounts_count=0,
+                        rule_match_rows=0,
+                        classification_match_rows=0,
+                    )
                     now = time_utils.now()
                     for item in TaskRunItem.query.filter_by(run_id=resolved_run_id).all():
                         if item.status in {"pending", "running"}:
@@ -295,14 +302,16 @@ def calculate_account_classification(
 
             current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
             if current_run is not None and current_run.status != "cancelled":
-                current_run.summary_json = {
-                    "stat_date": resolved_date.isoformat(),
-                    "computed_at": computed_at.isoformat(),
-                    "rules_count": len(rules),
-                    "accounts_count": len(accounts),
-                    "rule_match_rows": len(rule_records),
-                    "classification_match_rows": len(classification_records),
-                }
+                current_run.summary_json = build_calculate_account_classification_summary(
+                    task_key="calculate_account_classification",
+                    inputs={"manual_run": manual_run},
+                    stat_date=resolved_date,
+                    computed_at=computed_at,
+                    rules_count=len(rules),
+                    accounts_count=len(accounts),
+                    rule_match_rows=len(rule_records),
+                    classification_match_rows=len(classification_records),
+                )
 
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()

@@ -135,4 +135,22 @@ def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None
     assert isinstance(overview_payload, dict)
     assert overview_payload.get("success") is True
     assert isinstance(overview_payload.get("data"), dict)
-    assert isinstance(overview_payload["data"].get("rules"), list)
+    overview_data = overview_payload["data"]
+    assert isinstance(overview_data.get("rules"), list)
+    # latest 周期字段: 用于规则列表展示"最后一次命中"(最新周期均值/当日值)
+    assert isinstance(overview_data.get("latest_period_start"), str)
+    assert isinstance(overview_data.get("latest_period_end"), str)
+    assert isinstance(overview_data.get("latest_coverage_days"), int)
+    assert isinstance(overview_data.get("latest_expected_days"), int)
+
+    # 新增：全分类趋势接口(未选分类时使用, 受 period/db_type/instance 筛选影响)
+    all_trends = auth_client.get(
+        "/api/v1/accounts/statistics/classifications/trends?period_type=daily&periods=7",
+    )
+    assert all_trends.status_code == 200
+    all_trends_payload = all_trends.get_json()
+    assert isinstance(all_trends_payload, dict)
+    assert all_trends_payload.get("success") is True
+    assert isinstance(all_trends_payload.get("data"), dict)
+    assert isinstance(all_trends_payload["data"].get("buckets"), list)
+    assert isinstance(all_trends_payload["data"].get("series"), list)
