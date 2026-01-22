@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% set page_id = 'InstanceStatisticsPage' %}
 {% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}实例统计 - 鲸落{% endblock %}
 
@@ -17,50 +18,34 @@
 </div>
 {% endcall %}
 
-<section class="page-section page-section--stacked">
-    <div class="layout-shell">
-        <div class="layout-shell-inner">
-            <div class="row g-3 instance-stat-card-row">
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <article class="instance-stat-card">
-                        <div class="instance-stat-card__label">总实例数</div>
-                        <div class="instance-stat-card__value" data-stat-value="total_instances">{{ stats.total_instances }}</div>
-                        <div class="instance-stat-card__meta">
-                            <span class="chip-outline chip-outline--muted"><i class="fas fa-clock me-1"></i>实时</span>
-                        </div>
-                    </article>
-                </div>
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <article class="instance-stat-card">
-                        <div class="instance-stat-card__label">启用实例</div>
-                        <div class="instance-stat-card__value" data-stat-value="active_instances">{{ stats.active_instances }}</div>
-                        <div class="instance-stat-card__meta">
-                            <span class="status-pill status-pill--success"><i class="fas fa-check-circle me-1"></i>启用</span>
-                        </div>
-                    </article>
-                </div>
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <article class="instance-stat-card">
-                        <div class="instance-stat-card__label">停用实例</div>
-                        <div class="instance-stat-card__value" data-stat-value="inactive_instances">{{ stats.inactive_instances }}</div>
-                        <div class="instance-stat-card__meta">
-                            <span class="status-pill status-pill--muted"><i class="fas fa-ban me-1"></i>停用</span>
-                        </div>
-                    </article>
-                </div>
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <article class="instance-stat-card">
-                        <div class="instance-stat-card__label">数据库类型</div>
-                        <div class="instance-stat-card__value" data-stat-value="db_types_count">{{ stats.db_types_count }}</div>
-                        <div class="instance-stat-card__meta">
-                            <span class="chip-outline chip-outline--brand"><i class="fas fa-layer-group me-1"></i>覆盖面</span>
-                        </div>
-                    </article>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+	<section class="page-section page-section--stacked">
+	    <div class="layout-shell">
+	        <div class="layout-shell-inner">
+	            <div class="row g-3 instance-stats-row">
+	                <div class="col-12 col-sm-6 col-xl-3">
+	                    {% call metric_card('在线实例', value=(stats.active_instances or 0), icon_class='fas fa-server', tone='success', data_stat_key='active_instances') %}
+	                        <span class="status-pill status-pill--success"><i class="fas fa-check-circle me-1"></i>在线</span>
+	                    {% endcall %}
+	                </div>
+	                <div class="col-12 col-sm-6 col-xl-3">
+	                    {% call metric_card('停用/下线实例', value=(stats.inactive_instances or 0), icon_class='fas fa-ban', tone='muted', data_stat_key='inactive_instances') %}
+	                        <span class="status-pill status-pill--muted"><i class="fas fa-ban me-1"></i>停用</span>
+	                    {% endcall %}
+	                </div>
+	                <div class="col-12 col-sm-6 col-xl-3">
+	                    {% call metric_card('已删除实例', value=(stats.deleted_instances or 0), icon_class='fas fa-trash', tone='danger', data_stat_key='deleted_instances') %}
+	                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
+	                    {% endcall %}
+	                </div>
+	                <div class="col-12 col-sm-6 col-xl-3">
+	                    {% call metric_card('数据库类型', value=(stats.db_types_count or 0), icon_class='fas fa-layer-group', tone='info', data_stat_key='db_types_count') %}
+	                        <span class="chip-outline chip-outline--brand"><i class="fas fa-layer-group me-1"></i>覆盖面</span>
+	                    {% endcall %}
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</section>
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">

@@ -2,6 +2,7 @@
 {% set page_id = 'AdminPartitionsPage' %}
 {% set page_density = 'compact' %}
 {% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}分区管理 - 管理中心{% endblock %}
 
@@ -24,41 +25,30 @@
 </div>
 {% endcall %}
 
-<section class="page-section page-section--stacked">
-    <div class="layout-shell">
-        <div class="layout-shell-inner">
-            <div class="row g-3 admin-partitions__stats" id="partitionStats">
-                <div class="col-md-3 col-12">
-                    <div class="partition-stat-card" data-stat="total_partitions">
-                        <p class="partition-stat-card__label">分区总数</p>
-                        <div class="partition-stat-card__value" data-stat-value>0</div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-12">
-                    <div class="partition-stat-card" data-stat="total_size">
-                        <p class="partition-stat-card__label">总大小</p>
-                        <div class="partition-stat-card__value" data-stat-value>0 B</div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-12">
-                    <div class="partition-stat-card" data-stat="total_records">
-                        <p class="partition-stat-card__label">总记录数</p>
-                        <div class="partition-stat-card__value" data-stat-value>0</div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-12">
-                    <div class="partition-stat-card partition-health-card" data-stat="health">
-                        <p class="partition-stat-card__label" data-stat-label>健康状态</p>
-                        <div class="partition-health-card__state" data-stat-value data-value-tone="muted">--</div>
-                        <div class="partition-health-card__meta" data-stat-meta>
-                            <span class="partition-health-card__meta-badge">数据库连接未知</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+	<section class="page-section page-section--stacked">
+	    <div class="layout-shell">
+	        <div class="layout-shell-inner">
+	            <div class="row g-3 admin-partitions__stats" id="partitionStats">
+	                <div class="col-md-3 col-12">
+	                    {{ metric_card('分区总数', value=0, icon_class='fas fa-layer-group', data_stat_key='total_partitions') }}
+	                </div>
+	                <div class="col-md-3 col-12">
+	                    {{ metric_card('总大小', value='0 B', icon_class='fas fa-hdd', data_stat_key='total_size') }}
+	                </div>
+	                <div class="col-md-3 col-12">
+	                    {{ metric_card('总记录数', value=0, icon_class='fas fa-list-ol', data_stat_key='total_records') }}
+	                </div>
+	                <div class="col-md-3 col-12">
+	                    {% call metric_card('健康状态', value='--', icon_class='fas fa-heartbeat', tone='muted', data_stat_key='health') %}
+	                        <div data-role="metric-meta">
+	                            <span class="chip-outline chip-outline--muted">数据库连接未知</span>
+	                        </div>
+	                    {% endcall %}
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</section>
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">

@@ -423,9 +423,9 @@ function mountInstanceStatisticsPage() {
      * @returns {void} 刷新 DOM 以及版本图表。
      */
     function updateStatistics(stats) {
-        setStatValue('total_instances', stats.total_instances);
         setStatValue('active_instances', stats.active_instances);
         setStatValue('inactive_instances', stats.inactive_instances);
+        setStatValue('deleted_instances', stats.deleted_instances);
         setStatValue('db_types_count', stats.db_types_count);
 
         if (stats.version_stats && versionChart) {
@@ -434,14 +434,14 @@ function mountInstanceStatisticsPage() {
     }
 
     /**
-     * 将数值写入 data-stat-value 对应节点。
+     * 将数值写入 MetricCard 对应节点。
      *
-     * @param {string} key 数据键。
+     * @param {string} key 数据键（`data-stat-key`）。
      * @param {number|string} value 数值。
      * @returns {void}
      */
     function setStatValue(key, value) {
-        const targetElements = select(`[data-stat-value="${key}"]`);
+        const targetElements = select(`[data-stat-key="${key}"] [data-role="metric-value"]`);
         if (!targetElements.length) {
             return;
         }

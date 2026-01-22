@@ -1,37 +1,5 @@
 /* 账户变更历史页面样式 */
 
-.change-log-stats-card {
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    border-radius: var(--border-radius-lg);
-    background-color: var(--surface-elevated);
-    padding: var(--spacing-md);
-    height: 100%;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-}
-
-.change-log-stats-card__label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-bottom: 0;
-}
-
-.change-log-stats-card__value {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.change-log-stats-card__value--success {
-    color: var(--status-success);
-}
-
-.change-log-stats-card__value--danger {
-    color: var(--status-danger);
-}
-
 .change-log-message-cell {
     display: block;
     max-width: 520px;
@@ -60,4 +28,3 @@
     min-width: 90px;
     text-align: center;
 }
-

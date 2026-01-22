@@ -4,86 +4,6 @@
     margin-bottom: var(--spacing-sm);
 }
 
-.partition-stat-card {
-    background: var(--surface-elevated);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-lg);
-    padding: var(--spacing-md);
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-height: 140px;
-    box-shadow: none;
-}
-
-.partition-stat-card__label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-.partition-stat-card__value {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.1;
-}
-
-.partition-stat-card__value[data-value-tone="success"] {
-    color: var(--status-success);
-}
-
-.partition-stat-card__value[data-value-tone="info"] {
-    color: var(--status-info);
-}
-
-.partition-stat-card__value[data-value-tone="warning"] {
-    color: var(--status-warning);
-}
-
-.partition-stat-card__value[data-value-tone="danger"] {
-    color: var(--status-danger);
-}
-
-.partition-health-card {
-    min-height: auto;
-    gap: var(--spacing-sm);
-}
-
-.partition-health-card__state {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--status-success);
-    line-height: 1;
-}
-
-.partition-health-card__state[data-value-tone="danger"] {
-    color: var(--status-danger);
-}
-
-.partition-health-card__state[data-value-tone="warning"] {
-    color: var(--status-warning);
-}
-
-.partition-health-card__state[data-value-tone="muted"] {
-    color: var(--text-muted);
-}
-
-.partition-health-card__meta {
-    margin: 0;
-}
-
-.partition-health-card__meta-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.15rem 0.75rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    background: color-mix(in srgb, var(--surface-muted) 20%, transparent);
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
 .partition-grid-meta {
     font-size: 0.9rem;
 }
@@ -138,10 +58,4 @@
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
-}
-
-@media (max-width: 992px) {
-    .partition-stat-card__value {
-        font-size: 1.5rem;
-    }
 }
