@@ -62,6 +62,28 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
+    def _has_mysql_user_column(self, conn: _MySQLConnectionProtocol, column_name: str) -> bool:
+        """探测 mysql.user 是否包含指定列.
+
+        为什么要探测:
+        - 仅靠版本号判断(8.0+)不足以保证 mysql.user 暴露 `is_role`。
+        - 部分兼容实现/托管版会隐藏该列,直接 SELECT 会触发 1054 并产生错误日志。
+        """
+        try:
+            rows = conn.execute_query("SHOW COLUMNS FROM mysql.user LIKE %s", (column_name,))
+        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+            # 探测失败时按"不存在"处理,避免产生预期内的错误日志,并保证同步可继续。
+            self.logger.warning(
+                "detect_mysql_user_column_failed",
+                module="mysql_account_adapter",
+                column=column_name,
+                fallback=True,
+                fallback_reason="SHOW_COLUMNS_FAILED",
+                error=str(exc),
+            )
+            return False
+        return bool(rows)
+
     def _fetch_mysql_user_rows(
         self,
         conn: _MySQLConnectionProtocol,
@@ -82,20 +104,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         )
         user_from_where = " FROM mysql.user " "WHERE " + where_clause + " ORDER BY User, Host"
 
-        user_sql = user_select + (", is_role as is_role" if supports_roles else "") + user_from_where
-
-        has_is_role_column = supports_roles
-        try:
-            users = conn.execute_query(user_sql, params)
-        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
-            # 部分 MySQL 兼容实现/托管版会隐藏 mysql.user 的 is_role 列，即使版本号为 8.x。
-            # 这种情况下退回到不选 is_role，并通过 role_edges/default_roles 推断角色集合。
-            error_message = str(exc).lower()
-            if supports_roles and "unknown column" in error_message and "is_role" in error_message:
-                has_is_role_column = False
-                users = conn.execute_query(user_select + user_from_where, params)
-            else:
-                raise
+        has_is_role_column = supports_roles and self._has_mysql_user_column(conn, "is_role")
+        user_sql = user_select + (", is_role as is_role" if has_is_role_column else "") + user_from_where
+        users = conn.execute_query(user_sql, params)
         return users, has_is_role_column
 
     def _fetch_assigned_role_usernames(self, connection: object) -> set[str]:
