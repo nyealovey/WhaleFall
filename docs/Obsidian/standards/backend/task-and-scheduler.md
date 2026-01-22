@@ -7,7 +7,7 @@ tags:
   - standards/backend
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-22
 owner: WhaleFall Team
 scope: "`app/scheduler.py`, `app/tasks/**`, 调度器管理路由与后台线程"
 related:
@@ -54,6 +54,17 @@ related:
 - MUST：任务必须使用结构化日志（`get_system_logger()` 或模块 logger），禁止 `print`。
 - SHOULD：任务日志包含 `job_id/task_name` 等维度，便于在日志中心过滤。
 - SHOULD：任务失败时只记录必要诊断信息，避免把敏感数据写入日志(详见 [[standards/backend/sensitive-data-handling|敏感数据处理]])。
+
+## 生产部署建议
+
+> 目标：Web 多 worker 不卡顿、任务不重复、Scheduler 管理接口稳定可用。
+
+- 推荐：将 Web 与 Scheduler 分进程（或分容器）部署。
+  - Web 进程：仅提供页面与业务 API，设置 `ENABLE_SCHEDULER=false`。
+  - Scheduler 进程：专门运行 APScheduler，设置 `ENABLE_SCHEDULER=true`（通常保持单 worker）。
+  - 反向代理：将 `/api/v1/scheduler/**` 路由到 Scheduler 进程，其余请求路由到 Web 进程。
+- 文件锁说明：当前 `app/scheduler.py` 的文件锁适用于“同宿主机/同容器内多进程”的单实例保护；当进行多副本/跨主机部署时，文件锁无法提供全局互斥。
+  - 多副本部署场景应使用集中式锁（例如 Redis lock / PostgreSQL advisory lock）作为单实例保障。
 
 ## 正反例
 
