@@ -5,7 +5,7 @@ import pytest
 pytestmark = pytest.mark.unit
 
 from app.core.constants.http_methods import HttpMethod
-from app.core.constants.status_types import InstanceStatus, JobStatus, SyncSessionStatus, SyncStatus, TaskStatus
+from app.core.constants.status_types import SyncSessionStatus, SyncStatus, TaskRunStatus
 from app.core.constants.user_roles import UserRole
 from app.utils.user_role_utils import get_user_role_permissions
 
@@ -23,9 +23,9 @@ def test_status_collections_are_tuples() -> None:
     assert isinstance(SyncStatus.TERMINAL, tuple)
     assert isinstance(SyncSessionStatus.ALL, tuple)
     assert isinstance(SyncSessionStatus.TERMINAL, tuple)
-    assert isinstance(TaskStatus.ALL, tuple)
-    assert isinstance(InstanceStatus.ALL, tuple)
-    assert isinstance(JobStatus.ALL, tuple)
+    assert isinstance(TaskRunStatus.ALL, tuple)
+    assert isinstance(TaskRunStatus.TERMINAL, tuple)
+    assert isinstance(TaskRunStatus.IN_PROGRESS, tuple)
 
 
 def test_user_role_permissions_are_immutable() -> None:
