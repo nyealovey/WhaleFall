@@ -28,7 +28,7 @@
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
-	                    {% call metric_card('停用/下线实例', value=(stats.inactive_instances or 0), icon_class='fas fa-ban', tone='muted', data_stat_key='inactive_instances') %}
+	                    {% call metric_card('停用实例', value=(stats.inactive_instances or 0), icon_class='fas fa-ban', tone='muted', data_stat_key='inactive_instances') %}
 	                        <span class="status-pill status-pill--muted"><i class="fas fa-ban me-1"></i>停用</span>
 	                    {% endcall %}
 	                </div>

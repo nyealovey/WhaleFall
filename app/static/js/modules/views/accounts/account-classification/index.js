@@ -591,7 +591,7 @@ function mountAccountClassificationPage(window, document) {
     function renderMatchedAccountsPill(count) {
         const total = Number(count) || 0;
         const tone = total > 0 ? 'info' : 'muted';
-        const label = total > 0 ? `${total} 条命中` : '暂无命中';
+        const label = `${total}`;
         return renderStatusPill(label, tone, 'fa-users');
     }
 
