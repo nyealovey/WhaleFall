@@ -1,9 +1,5 @@
 /* 定时任务管理页面色彩与组件规范 */
 
-.scheduler-stats {
-    margin-bottom: var(--spacing-sm);
-}
-
 /* job cards */
 .scheduler-card {
     background: var(--surface-elevated);

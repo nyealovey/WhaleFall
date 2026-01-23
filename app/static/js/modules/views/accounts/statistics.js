@@ -73,13 +73,16 @@ function mountAccountsStatisticsPage(global) {
   }
 
   function setValue(key, value) {
-    const nodes = document.querySelectorAll(`[data-stat-value="${key}"]`);
-    if (!nodes.length) {
+    const cards = document.querySelectorAll(`[data-stat-key="${key}"]`);
+    if (!cards.length) {
       return;
     }
     const formatted = formatInteger(value);
-    nodes.forEach((node) => {
-      node.textContent = formatted;
+    cards.forEach((card) => {
+      const node = card.querySelector('[data-role="metric-value"]');
+      if (node) {
+        node.textContent = formatted;
+      }
     });
   }
 
@@ -233,4 +236,3 @@ window.AccountsStatisticsPage = {
     mountAccountsStatisticsPage(window);
   },
 };
-
