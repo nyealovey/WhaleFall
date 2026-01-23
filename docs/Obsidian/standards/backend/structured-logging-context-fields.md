@@ -69,6 +69,17 @@ related:
 - SHOULD: `error_message`：异常消息摘要（注意脱敏）。
 - SHOULD: `recoverable`：是否可重试（当对外返回 error envelope 时与错误口径保持一致）。
 
+### 4.5 环境/部署维度
+
+> [!note]
+> 该类字段用于把问题与“发布版本/节点/机房”关联，通常由日志基础设施自动注入，业务代码不应手写。
+
+- SHOULD: `environment`：环境名（development/staging/production 等）。
+- SHOULD: `app_name` / `app_version`：应用标识与版本。
+- SHOULD: `build_hash`：构建/提交 hash（用于关联某次发布）。
+- SHOULD: `region`：部署区域/机房/region。
+- SHOULD: `runtime_instance_id`：运行时实例标识（如 hostname / k8s pod name），避免与业务域的 `instance_id` 冲突。
+
 ## 5. 门禁/检查方式（建议）
 
 - 单元测试：优先用“入口函数门禁”固化字段结构，而不是对全量调用点做 fragile 的 grep：
@@ -77,4 +88,3 @@ related:
 ## 6. 变更历史
 
 - 2026-01-13：新增标准，补齐结构化日志 `context` 字段命名与推荐维度口径。
-

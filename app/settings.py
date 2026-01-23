@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import secrets
+import socket
 from pathlib import Path
 
 from cryptography.fernet import Fernet
@@ -72,6 +74,29 @@ DEFAULT_PROXY_FIX_TRUSTED_IPS = ("127.0.0.1", "::1")
 DEFAULT_API_V1_DOCS_ENABLED = True
 DEFAULT_ENABLE_SCHEDULER = True
 
+_BUILD_HASH_PATTERN = re.compile(r"^[0-9a-fA-F]{7,64}$")
+
+
+def _resolve_last_build_hash() -> str | None:
+    """读取仓库/镜像内的 `.last_build_hash`，用于注入可观测字段.
+
+    说明：
+    - `.last_build_hash` 在本仓库已存在，通常由构建流程写入。
+    - 环境变量 `BUILD_HASH` 优先级更高；该文件仅作为“缺省填充”，避免生产日志缺少部署维度。
+    """
+    candidate = PROJECT_ROOT / ".last_build_hash"
+    if not candidate.exists():
+        return None
+    try:
+        content = candidate.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if not content:
+        return None
+    if not _BUILD_HASH_PATTERN.match(content):
+        return None
+    return content
+
 
 def _parse_csv(raw: str) -> tuple[str, ...]:
     parts = [item.strip() for item in raw.split(",")]
@@ -116,6 +141,15 @@ class Settings(BaseSettings):
 
     app_name: str = Field(default="鲸落", validation_alias="APP_NAME")
     app_version: str = APP_VERSION
+
+    # Observability / Deployment characteristics
+    # 说明：
+    # - 这些字段用于日志的“环境特征维度”，便于关联发布与定位节点问题。
+    # - 值来源：优先环境变量；若缺失可使用仓库内 `.last_build_hash`/hostname 作为缺省填充。
+    build_hash: str = Field(default="", validation_alias="BUILD_HASH")
+    deploy_region: str = Field(default="", validation_alias="DEPLOY_REGION")
+    # 注意：业务域中已大量使用 `instance_id` 表示“数据库实例 ID”，因此运行时实例标识使用更明确的命名避免冲突。
+    runtime_instance_id: str = Field(default="", validation_alias="RUNTIME_INSTANCE_ID")
 
     secret_key: str = Field(default="", validation_alias="SECRET_KEY")
     jwt_secret_key: str = Field(default="", validation_alias="JWT_SECRET_KEY")
@@ -288,6 +322,9 @@ class Settings(BaseSettings):
             "DEBUG": self.debug,
             "APP_NAME": self.app_name,
             "APP_VERSION": self.app_version,
+            "BUILD_HASH": self.build_hash,
+            "DEPLOY_REGION": self.deploy_region,
+            "RUNTIME_INSTANCE_ID": self.runtime_instance_id,
             "SECRET_KEY": self.secret_key,
             "JWT_SECRET_KEY": self.jwt_secret_key,
             "JWT_ACCESS_TOKEN_EXPIRES": self.jwt_access_token_expires_seconds,
@@ -344,6 +381,7 @@ class Settings(BaseSettings):
         debug = self._resolve_debug(environment_normalized)
         self._ensure_secret_keys(debug)
         self._ensure_password_encryption_key(debug, environment_normalized)
+        self._apply_observability_defaults(environment_normalized)
         self._ensure_database_url(environment_normalized)
         self._normalize_cache_redis_url(environment_normalized)
         self._apply_proxy_fix_defaults(environment_normalized)
@@ -351,6 +389,20 @@ class Settings(BaseSettings):
 
         self._validate()
         return self
+
+    def _apply_observability_defaults(self, environment_normalized: str) -> None:
+        """为日志系统填充部署维度缺省值（不引入强制门禁）."""
+        if "build_hash" not in self.model_fields_set:
+            resolved = _resolve_last_build_hash()
+            object.__setattr__(self, "build_hash", resolved or "unknown")
+
+        if "deploy_region" not in self.model_fields_set:
+            default_region = "local" if environment_normalized in {"development", "testing", "test"} else "unknown"
+            object.__setattr__(self, "deploy_region", default_region)
+
+        if "runtime_instance_id" not in self.model_fields_set:
+            hostname = socket.gethostname().strip() or "unknown"
+            object.__setattr__(self, "runtime_instance_id", hostname)
 
     def _resolve_debug(self, environment_normalized: str) -> bool:
         if "debug" in self.model_fields_set:
