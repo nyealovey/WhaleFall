@@ -1,23 +1,23 @@
 (function (window) {
   "use strict";
 
-  /**
-   * 验证 service 是否实现批量打标签所需的方法。
-   *
-   * @param {Object} service - 服务对象
-   * @param {Function} service.listInstances - 获取实例列表的方法
-   * @param {Function} service.listAllTags - 获取所有标签的方法
-   * @param {Function} service.batchAssign - 批量分配标签的方法
-   * @param {Function} service.batchRemoveAll - 批量移除标签的方法
-   * @return {Object} 校验后的服务对象
-   * @throws {Error} 当 service 为空或缺少必需方法时抛出
-   */
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const isSafeKey = (key) => typeof key === "string" && key && !UNSAFE_KEYS.includes(key);
+
+  const EVENT_NAMES = {
+    loading: "tagBatchAssign:loading",
+    updated: "tagBatchAssign:updated",
+    selectionChanged: "tagBatchAssign:selectionChanged",
+    modeChanged: "tagBatchAssign:modeChanged",
+    operationSuccess: "tagBatchAssign:operationSuccess",
+    error: "tagBatchAssign:error",
+  };
+
   function ensureService(service) {
     if (!service) {
       throw new Error("createTagBatchStore: service is required");
     }
-    const REQUIRED_METHODS = ["listInstances", "listAllTags", "batchAssign", "batchRemoveAll"];
-    REQUIRED_METHODS.forEach(function (method) {
+    ["listInstances", "listAllTags", "batchAssign", "batchRemoveAll"].forEach(function (method) {
       // 固定白名单方法名，避免动态键注入。
       // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
@@ -27,13 +27,6 @@
     return service;
   }
 
-  /**
-   * 获取 mitt 事件总线。
-   *
-   * @param {Object} [emitter] - 可选的 mitt 实例
-   * @return {Object} mitt 事件总线实例
-   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
-   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -44,201 +37,406 @@
     return window.mitt();
   }
 
-  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
-  const LOADING_KEYS = new Set(["instances", "tags", "operation"]);
-  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
-
-  function setMapValue(map, key, value, allowedKeys) {
-    if (!isSafeKey(key)) {
-      return;
+  function ensureLodash(lodash) {
+    const resolved = lodash || window.LodashUtils || null;
+    if (!resolved) {
+      throw new Error("createTagBatchStore: 需要 LodashUtils");
     }
-    if (allowedKeys && !allowedKeys.has(key)) {
-      return;
-    }
-    // eslint-disable-next-line security/detect-object-injection
-    map[key] = value;
+    return resolved;
   }
 
-  /**
-   * 拷贝 state，以便事件 payload 使用。
-   *
-   * @param {Object} state - 状态对象
-   * @return {Object} 状态对象的拷贝
-   */
+  function ensureSuccess(response, fallbackMessage) {
+    if (response && response.success === false) {
+      const error = new Error(response.message || response.error || fallbackMessage || "操作失败");
+      error.raw = response;
+      throw error;
+    }
+    return response;
+  }
+
+  function toNumericId(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  }
+
+  function cloneArrayOfObjects(list) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+    return list.map(function (item) {
+      return item && typeof item === "object" ? Object.assign({}, item) : item;
+    });
+  }
+
+  function cloneGroupedObject(grouped) {
+    const source = grouped && typeof grouped === "object" ? grouped : {};
+    const cloned = {};
+    Object.keys(source).forEach(function (key) {
+      if (!isSafeKey(key)) {
+        return;
+      }
+      // eslint-disable-next-line security/detect-object-injection
+      const list = source[key];
+      // eslint-disable-next-line security/detect-object-injection
+      cloned[key] = Array.isArray(list) ? cloneArrayOfObjects(list) : [];
+    });
+    return cloned;
+  }
+
   function cloneState(state) {
     return {
-      instances: state.instances.slice(),
-      tags: state.tags.slice(),
-      selectedInstances: Array.from(state.selectedInstances),
-      selectedTags: Array.from(state.selectedTags),
       mode: state.mode,
+      instancesByDbType: cloneGroupedObject(state.instancesByDbType),
+      tagsByCategory: cloneGroupedObject(state.tagsByCategory),
+      selectedInstanceIds: Array.from(state.selectedInstanceIds),
+      selectedTagIds: Array.from(state.selectedTagIds),
       loading: Object.assign({}, state.loading),
       lastError: state.lastError,
+      lastResult: state.lastResult,
     };
   }
 
-  /**
-   * 将 id 列表转换为数值数组。
-   *
-   * @param {Array} ids - ID 数组
-   * @return {Array} 规范化后的数字 ID 数组
-   */
-  function normalizeIds(ids) {
-    if (!Array.isArray(ids)) {
-      return [];
-    }
-    return ids
-      .map(function (value) {
-        const numeric = Number(value);
-        return Number.isFinite(numeric) ? numeric : null;
-      })
-      .filter(function (value) {
-        return value !== null;
-      });
+  function extractInstances(response) {
+    const payload = response?.data ?? response;
+    const instances = payload?.instances ?? payload?.items ?? [];
+    return Array.isArray(instances) ? instances : [];
   }
 
-  /**
-   * 创建标签批量分配状态管理 Store。
-   *
-   * 提供批量为实例分配或移除标签的功能，包括实例选择、标签选择和批量操作。
-   *
-   * @param {Object} options - 配置选项
-   * @param {Object} options.service - 标签批量操作服务对象
-   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
-   * @param {string} [options.initialMode='assign'] - 初始模式，'assign' 或 'remove'
-   * @return {Object} Store API 对象
-   *
-   * @example
-   * const store = createTagBatchStore({
-   *   service: tagBatchService,
-   *   initialMode: 'assign'
-   * });
-   * store.init().then(() => {
-   *   console.log(store.getState());
-   * });
-   */
+  function extractTags(response) {
+    const payload = response?.data ?? response;
+    const tags = payload?.tags ?? payload?.items ?? [];
+    return Array.isArray(tags) ? tags : [];
+  }
+
+  function groupInstancesByDbType(lodash, instances) {
+    const groups = lodash.groupBy(instances || [], function (item) {
+      return item?.db_type || "unknown";
+    });
+    return lodash.mapValues(groups, function (items) {
+      return lodash.orderBy(
+        items,
+        [
+          function (instance) {
+            const name = instance?.name;
+            return typeof name === "string" ? name.trim().toLowerCase() : "";
+          },
+        ],
+        ["asc"],
+      );
+    });
+  }
+
+  function groupTagsByCategory(lodash, tags) {
+    const groups = lodash.groupBy(tags || [], function (item) {
+      return item?.category || "未分类";
+    });
+    return lodash.mapValues(groups, function (items) {
+      return lodash.orderBy(
+        items,
+        [
+          function (tag) {
+            const label = tag?.display_name || tag?.name;
+            return typeof label === "string" ? label.trim().toLowerCase() : "";
+          },
+        ],
+        ["asc"],
+      );
+    });
+  }
+
+  function buildIdSetFromList(list) {
+    const ids = new Set();
+    (list || []).forEach(function (item) {
+      const id = toNumericId(item?.id);
+      if (id !== null) {
+        ids.add(id);
+      }
+    });
+    return ids;
+  }
+
   function createTagBatchStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);
     const emitter = ensureEmitter(opts.emitter);
+    const LodashUtils = ensureLodash(opts.LodashUtils);
 
     const state = {
-      instances: [],
-      tags: [],
-      selectedInstances: new Set(),
-      selectedTags: new Set(),
-      mode: opts.initialMode === "remove" ? "remove" : "assign",
+      mode: "assign",
+      instancesByDbType: {},
+      tagsByCategory: {},
+      selectedInstanceIds: new Set(),
+      selectedTagIds: new Set(),
       loading: {
-        instances: false,
-        tags: false,
+        data: false,
         operation: false,
       },
       lastError: null,
+      lastResult: null,
     };
 
-    /**
-     * 发布事件并默认附带 state 快照。
-     *
-     * @param {string} eventName 事件名称。
-     * @param {Object} [payload] 自定义 payload，默认取 state 快照。
-     * @returns {void}
-     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
-    /**
-     * 统一错误处理。
-     *
-     * @param {Error|Object|string} error 错误对象。
-     * @param {Object} [meta] 附加上下文。
-     * @returns {void}
-     */
+    function emitLoading(target) {
+      emit(EVENT_NAMES.loading, {
+        target: target || "unknown",
+        loading: Object.assign({}, state.loading),
+        state: cloneState(state),
+      });
+    }
+
+    function emitSelectionChanged(reason) {
+      emit(EVENT_NAMES.selectionChanged, {
+        reason: reason || "update",
+        selectedInstanceIds: Array.from(state.selectedInstanceIds),
+        selectedTagIds: Array.from(state.selectedTagIds),
+        state: cloneState(state),
+      });
+    }
+
     function handleError(error, meta) {
       state.lastError = error;
-      emit("batchAssign:error", {
-        error,
+      emit(EVENT_NAMES.error, {
+        error: error,
         meta: meta || {},
         state: cloneState(state),
       });
     }
 
-    /**
-     * 更新可选实例列表并清理无效选择。
-     *
-     * @param {Array<Object>} instances 后端返回的实例数组。
-     * @returns {void}
-     */
-    function setInstances(instances) {
-      state.instances = Array.isArray(instances) ? instances.slice() : [];
-      const validIds = new Set(state.instances.map(function (item) {
-        return item.id;
-      }));
-      state.selectedInstances.forEach(function (id) {
-        if (!validIds.has(id)) {
-          state.selectedInstances.delete(id);
+    function pruneSelections(availableInstanceIds, availableTagIds) {
+      let changed = false;
+      state.selectedInstanceIds.forEach(function (id) {
+        if (!availableInstanceIds.has(id)) {
+          state.selectedInstanceIds.delete(id);
+          changed = true;
         }
       });
-      emit("batchAssign:instancesUpdated", cloneState(state));
-    }
-
-    /**
-     * 更新标签列表并同步选择集。
-     *
-     * @param {Array<Object>} tags 标签数组。
-     * @returns {void}
-     */
-    function setTags(tags) {
-      state.tags = Array.isArray(tags) ? tags.slice() : [];
-      const validIds = new Set(state.tags.map(function (item) {
-        return item.id;
-      }));
-      state.selectedTags.forEach(function (id) {
-        if (!validIds.has(id)) {
-          state.selectedTags.delete(id);
+      state.selectedTagIds.forEach(function (id) {
+        if (!availableTagIds.has(id)) {
+          state.selectedTagIds.delete(id);
+          changed = true;
         }
       });
-      emit("batchAssign:tagsUpdated", cloneState(state));
+      if (changed) {
+        emitSelectionChanged("prune");
+      }
     }
 
-    /**
-     * 通知外部选择集发生变化。
-     *
-     * @param {string} kind 当前变更的集合类型，例如 'instances' 或 'tags'。
-     * @returns {void}
-     */
-    function emitSelection(kind) {
-      emit("batchAssign:selectionChanged", {
-        kind: kind,
-        selectedInstances: Array.from(state.selectedInstances),
-        selectedTags: Array.from(state.selectedTags),
-        state: cloneState(state),
-      });
-    }
-
-    /**
-     * 根据 check 状态更新集合中的 ID。
-     *
-     * @param {Set<number>} setRef 需要更新的集合。
-     * @param {Array<number|string>} ids 待处理的 ID 列表。
-     * @param {boolean} checked true 表示添加，false 表示移除。
-     * @returns {void}
-     */
-    function setSelection(setRef, ids, checked) {
-      const incoming = normalizeIds(ids);
-      incoming.forEach(function (id) {
-        if (checked) {
-          setRef.add(id);
-        } else {
-          setRef.delete(id);
+    const actions = {
+      setMode: function (mode) {
+        if (mode !== "assign" && mode !== "remove") {
+          return Promise.reject(new Error("TagBatchStore: mode 必须为 assign/remove"));
         }
-      });
-    }
+        if (state.mode === mode) {
+          return Promise.resolve(cloneState(state));
+        }
+        state.mode = mode;
+        if (mode === "remove") {
+          state.selectedTagIds.clear();
+          emitSelectionChanged("modeChanged");
+        }
+        emit(EVENT_NAMES.modeChanged, { mode: state.mode, state: cloneState(state) });
+        return Promise.resolve(cloneState(state));
+      },
+
+      loadData: function () {
+        state.loading.data = true;
+        emitLoading("data");
+
+        return Promise.all([service.listInstances(), service.listAllTags()])
+          .then(function ([instancesResp, tagsResp]) {
+            const instancesResult = ensureSuccess(instancesResp, "加载实例失败");
+            const tagsResult = ensureSuccess(tagsResp, "加载标签失败");
+
+            const instances = extractInstances(instancesResult);
+            const tags = extractTags(tagsResult);
+
+            state.instancesByDbType = groupInstancesByDbType(LodashUtils, instances);
+            state.tagsByCategory = groupTagsByCategory(LodashUtils, tags);
+            state.lastError = null;
+
+            // 刷新数据后对选择集做一次收敛，避免保留失效 ID。
+            pruneSelections(buildIdSetFromList(instances), buildIdSetFromList(tags));
+
+            emit(EVENT_NAMES.updated, { state: cloneState(state) });
+            return cloneState(state);
+          })
+          .catch(function (error) {
+            handleError(error, { action: "loadData" });
+            throw error;
+          })
+          .finally(function () {
+            state.loading.data = false;
+            emitLoading("data");
+          });
+      },
+
+      clearSelections: function () {
+        if (state.selectedInstanceIds.size === 0 && state.selectedTagIds.size === 0) {
+          return;
+        }
+        state.selectedInstanceIds.clear();
+        state.selectedTagIds.clear();
+        emitSelectionChanged("clear");
+      },
+
+      setInstanceSelected: function (instanceId, selected) {
+        const id = toNumericId(instanceId);
+        if (id === null) {
+          return;
+        }
+        const shouldSelect = Boolean(selected);
+        const has = state.selectedInstanceIds.has(id);
+        if (shouldSelect && !has) {
+          state.selectedInstanceIds.add(id);
+          emitSelectionChanged("instance");
+        } else if (!shouldSelect && has) {
+          state.selectedInstanceIds.delete(id);
+          emitSelectionChanged("instance");
+        }
+      },
+
+      setTagSelected: function (tagId, selected) {
+        const id = toNumericId(tagId);
+        if (id === null) {
+          return;
+        }
+        const shouldSelect = Boolean(selected);
+        const has = state.selectedTagIds.has(id);
+        if (shouldSelect && !has) {
+          state.selectedTagIds.add(id);
+          emitSelectionChanged("tag");
+        } else if (!shouldSelect && has) {
+          state.selectedTagIds.delete(id);
+          emitSelectionChanged("tag");
+        }
+      },
+
+      setInstancesByDbTypeSelected: function (dbType, selected) {
+        if (!isSafeKey(dbType)) {
+          return;
+        }
+        // eslint-disable-next-line security/detect-object-injection
+        const group = state.instancesByDbType[dbType];
+        if (!Array.isArray(group)) {
+          return;
+        }
+
+        const shouldSelect = Boolean(selected);
+        let changed = false;
+        group.forEach(function (item) {
+          const id = toNumericId(item?.id);
+          if (id === null) {
+            return;
+          }
+          const has = state.selectedInstanceIds.has(id);
+          if (shouldSelect && !has) {
+            state.selectedInstanceIds.add(id);
+            changed = true;
+          } else if (!shouldSelect && has) {
+            state.selectedInstanceIds.delete(id);
+            changed = true;
+          }
+        });
+        if (changed) {
+          emitSelectionChanged("instanceGroup");
+        }
+      },
+
+      setTagsByCategorySelected: function (category, selected) {
+        if (!isSafeKey(category)) {
+          return;
+        }
+        // eslint-disable-next-line security/detect-object-injection
+        const group = state.tagsByCategory[category];
+        if (!Array.isArray(group)) {
+          return;
+        }
+
+        const shouldSelect = Boolean(selected);
+        let changed = false;
+        group.forEach(function (item) {
+          const id = toNumericId(item?.id);
+          if (id === null) {
+            return;
+          }
+          const has = state.selectedTagIds.has(id);
+          if (shouldSelect && !has) {
+            state.selectedTagIds.add(id);
+            changed = true;
+          } else if (!shouldSelect && has) {
+            state.selectedTagIds.delete(id);
+            changed = true;
+          }
+        });
+        if (changed) {
+          emitSelectionChanged("tagGroup");
+        }
+      },
+
+      executeOperation: function () {
+        const instanceIds = Array.from(state.selectedInstanceIds);
+        if (!instanceIds.length) {
+          return Promise.reject(new Error("请选择实例"));
+        }
+        if (state.mode === "assign") {
+          const tagIds = Array.from(state.selectedTagIds);
+          if (!tagIds.length) {
+            return Promise.reject(new Error("请选择标签"));
+          }
+
+          state.loading.operation = true;
+          emitLoading("operation");
+          return service
+            .batchAssign({ instance_ids: instanceIds, tag_ids: tagIds })
+            .then(function (response) {
+              const result = ensureSuccess(response, "批量分配失败");
+              state.lastError = null;
+              state.lastResult = result;
+              emit(EVENT_NAMES.operationSuccess, { mode: "assign", response: result, state: cloneState(state) });
+              return result;
+            })
+            .catch(function (error) {
+              handleError(error, { action: "executeOperation", mode: "assign" });
+              throw error;
+            })
+            .finally(function () {
+              state.loading.operation = false;
+              emitLoading("operation");
+            });
+        }
+
+        state.loading.operation = true;
+        emitLoading("operation");
+        return service
+          .batchRemoveAll({ instance_ids: instanceIds })
+          .then(function (response) {
+            const result = ensureSuccess(response, "批量移除失败");
+            state.lastError = null;
+            state.lastResult = result;
+            emit(EVENT_NAMES.operationSuccess, { mode: "remove", response: result, state: cloneState(state) });
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "executeOperation", mode: "remove" });
+            throw error;
+          })
+          .finally(function () {
+            state.loading.operation = false;
+            emitLoading("operation");
+          });
+      },
+    };
 
     const api = {
-      init: function () {
-        return api.actions.loadAll();
-      },
       getState: function () {
         return cloneState(state);
       },
@@ -248,189 +446,15 @@
       unsubscribe: function (eventName, handler) {
         emitter.off(eventName, handler);
       },
-      actions: {
-        loadInstances: function () {
-          setMapValue(state.loading, "instances", true, LOADING_KEYS);
-          emit("batchAssign:loading", { target: "instances", state: cloneState(state) });
-          return service
-            .listInstances()
-            .then(function (response) {
-              const payload = response?.data ?? response ?? {};
-              const instances = Array.isArray(payload.instances) ? payload.instances : [];
-              setInstances(instances);
-              state.lastError = null;
-              return cloneState(state);
-            })
-            .catch(function (error) {
-              handleError(error, { target: "instances" });
-              throw error;
-            })
-            .finally(function () {
-              setMapValue(state.loading, "instances", false, LOADING_KEYS);
-            });
-        },
-        loadTags: function () {
-          setMapValue(state.loading, "tags", true, LOADING_KEYS);
-          emit("batchAssign:loading", { target: "tags", state: cloneState(state) });
-          return service
-            .listAllTags()
-            .then(function (response) {
-              const payload = response?.data ?? response ?? {};
-              const tags = Array.isArray(payload.tags) ? payload.tags : [];
-              setTags(tags);
-              state.lastError = null;
-              return cloneState(state);
-            })
-            .catch(function (error) {
-              handleError(error, { target: "tags" });
-              throw error;
-            })
-            .finally(function () {
-              setMapValue(state.loading, "tags", false, LOADING_KEYS);
-            });
-        },
-        loadAll: function () {
-          return Promise.all([api.actions.loadInstances(), api.actions.loadTags()]);
-        },
-        setMode: function (mode) {
-          if (mode !== "assign" && mode !== "remove") {
-            return;
-          }
-          if (state.mode === mode) {
-            return;
-          }
-          state.mode = mode;
-          emit("batchAssign:modeChanged", {
-            mode: state.mode,
-            state: cloneState(state),
-          });
-        },
-        toggleInstance: function (instanceId) {
-          const numericId = Number(instanceId);
-          if (!Number.isFinite(numericId)) {
-            return;
-          }
-          if (state.selectedInstances.has(numericId)) {
-            state.selectedInstances.delete(numericId);
-          } else {
-            state.selectedInstances.add(numericId);
-          }
-          emitSelection("instance");
-        },
-        toggleTag: function (tagId) {
-          const numericId = Number(tagId);
-          if (!Number.isFinite(numericId)) {
-            return;
-          }
-          if (state.selectedTags.has(numericId)) {
-            state.selectedTags.delete(numericId);
-          } else {
-            state.selectedTags.add(numericId);
-          }
-          emitSelection("tag");
-        },
-        setInstanceSelection: function (ids, checked) {
-          setSelection(state.selectedInstances, ids, Boolean(checked));
-          emitSelection("instance");
-        },
-        setTagSelection: function (ids, checked) {
-          setSelection(state.selectedTags, ids, Boolean(checked));
-          emitSelection("tag");
-        },
-        clearSelections: function () {
-          state.selectedInstances.clear();
-          state.selectedTags.clear();
-          emitSelection("all");
-        },
-        selectAllInstances: function () {
-          const ids = state.instances.map(function (instance) {
-            return instance.id;
-          });
-          state.selectedInstances = new Set(normalizeIds(ids));
-          emitSelection("instance");
-        },
-        selectAllTags: function () {
-          const ids = state.tags.map(function (tag) {
-            return tag.id;
-          });
-          state.selectedTags = new Set(normalizeIds(ids));
-          emitSelection("tag");
-        },
-        performAssign: function () {
-          const instanceIds = Array.from(state.selectedInstances);
-          const tagIds = Array.from(state.selectedTags);
-          if (!instanceIds.length || !tagIds.length) {
-            return Promise.reject(new Error("请选择实例与标签"));
-          }
-          setMapValue(state.loading, "operation", true, LOADING_KEYS);
-          emit("batchAssign:operationLoading", { active: true, mode: "assign", state: cloneState(state) });
-          return service
-            .batchAssign({
-              instance_ids: instanceIds,
-              tag_ids: tagIds,
-            })
-            .then(function (response) {
-              if (response && response.success === false) {
-                const error = new Error(response.message || "批量分配标签失败");
-                error.raw = response;
-                throw error;
-              }
-              emit("batchAssign:operationSuccess", {
-                mode: "assign",
-                response,
-                state: cloneState(state),
-              });
-              return response;
-            })
-            .catch(function (error) {
-              handleError(error, { action: "assign" });
-              throw error;
-            })
-            .finally(function () {
-              setMapValue(state.loading, "operation", false, LOADING_KEYS);
-              emit("batchAssign:operationLoading", { active: false, mode: "assign", state: cloneState(state) });
-            });
-        },
-        performRemove: function () {
-          const instanceIds = Array.from(state.selectedInstances);
-          if (!instanceIds.length) {
-            return Promise.reject(new Error("请选择实例"));
-          }
-          setMapValue(state.loading, "operation", true, LOADING_KEYS);
-          emit("batchAssign:operationLoading", { active: true, mode: "remove", state: cloneState(state) });
-          return service
-            .batchRemoveAll({
-              instance_ids: instanceIds,
-            })
-            .then(function (response) {
-              if (response && response.success === false) {
-                const error = new Error(response.message || "批量移除失败");
-                error.raw = response;
-                throw error;
-              }
-              emit("batchAssign:operationSuccess", {
-                mode: "remove",
-                response,
-                state: cloneState(state),
-              });
-              return response;
-            })
-            .catch(function (error) {
-              handleError(error, { action: "remove" });
-              throw error;
-            })
-            .finally(function () {
-              setMapValue(state.loading, "operation", false, LOADING_KEYS);
-              emit("batchAssign:operationLoading", { active: false, mode: "remove", state: cloneState(state) });
-            });
-        },
-      },
+      actions: actions,
       destroy: function () {
         if (emitter.all && typeof emitter.all.clear === "function") {
           emitter.all.clear();
         }
-        state.selectedInstances.clear();
-        state.selectedTags.clear();
+        state.selectedInstanceIds.clear();
+        state.selectedTagIds.clear();
+        state.instancesByDbType = {};
+        state.tagsByCategory = {};
       },
     };
 
@@ -439,3 +463,4 @@
 
   window.createTagBatchStore = createTagBatchStore;
 })(window);
+
