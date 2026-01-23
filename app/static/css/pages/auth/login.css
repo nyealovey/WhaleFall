@@ -3,8 +3,7 @@
 .auth-main {
     min-height: calc(100vh - var(--layout-navbar-height));
     padding: clamp(2rem, 6vw, 4rem) 0;
-    background: radial-gradient(circle at 20% 20%, color-mix(in oklab, var(--accent-primary) 30%, transparent), transparent 55%),
-        linear-gradient(135deg, color-mix(in srgb, var(--surface-muted) 92%, transparent), var(--surface-base));
+    background: transparent;
 }
 
 /* 登录页的 info 类 flash 提示：弱化背景与强调边框，文本居中展示。 */
@@ -19,62 +18,13 @@
     padding-left: 3rem;
 }
 
-.login-shell .layout-shell-inner {
-    width: 100%;
-}
-
-.login-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: var(--spacing-xl);
-    align-items: stretch;
-}
-
-.login-hero {
-    background: color-mix(in srgb, var(--surface-elevated) 95%, transparent);
-    box-shadow: var(--shadow-lg);
-    border: none;
-}
-
-.login-hero__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    margin-bottom: var(--spacing-sm);
-}
-
-.login-hero__title {
-    font-size: clamp(1.75rem, 2.4vw, 2.75rem);
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-sm);
-}
-
-.login-hero__subtitle {
-    color: var(--text-muted);
-    line-height: 1.7;
-    margin-bottom: var(--spacing-md);
-}
-
-.login-hero__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.login-shell {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    color: var(--text-primary);
-}
-
-.login-hero__list li {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    border-radius: var(--border-radius-md);
-    background: color-mix(in srgb, var(--surface-muted) 16%, transparent);
+    justify-content: center;
 }
 
 .login-panel {
+    width: min(100%, 30rem);
     border: none;
     box-shadow: var(--shadow-lg);
 }
@@ -197,10 +147,6 @@
 }
 
 @media (max-width: 768px) {
-    .login-grid {
-        gap: var(--spacing-lg);
-    }
-
     .login-panel__header {
         flex-direction: column;
         text-align: center;
