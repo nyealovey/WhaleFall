@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import cast
-
 from flask import Blueprint, render_template, request
-from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
 
 from app.core.constants import STATUS_ACTIVE_OPTIONS, UserRole
 from app.infra.route_safety import safe_route_call
-from app.utils.decorators import create_required, require_csrf, update_required, view_required
+from app.utils.decorators import view_required
 from app.utils.user_role_utils import get_user_role_display_name
-from app.views.user_forms import UserFormView
 
 # 创建蓝图
 users_bp = Blueprint("users", __name__)
@@ -46,34 +41,3 @@ def index() -> str:
         public_error="加载用户管理页面失败",
         context={"endpoint": "users_index"},
     )
-
-
-# ---------------------------------------------------------------------------
-# 表单路由
-# ---------------------------------------------------------------------------
-_user_create_view = cast(
-    Callable[..., ResponseReturnValue],
-    UserFormView.as_view("user_create_form"),
-)
-_user_create_view = login_required(create_required(require_csrf(_user_create_view)))
-
-users_bp.add_url_rule(
-    "/create",
-    view_func=cast(RouteCallable, _user_create_view),
-    methods=["GET", "POST"],
-    defaults={"resource_id": None},
-    endpoint="create",
-)
-
-_user_edit_view = cast(
-    Callable[..., ResponseReturnValue],
-    UserFormView.as_view("user_edit_form"),
-)
-_user_edit_view = login_required(update_required(require_csrf(_user_edit_view)))
-
-users_bp.add_url_rule(
-    "/<int:user_id>/edit",
-    view_func=cast(RouteCallable, _user_edit_view),
-    methods=["GET", "POST"],
-    endpoint="edit",
-)

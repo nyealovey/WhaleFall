@@ -182,7 +182,9 @@ def normalize_permission_snapshot_categories_v4(db_type: str, categories: Mappin
 
     if db_type == DatabaseType.SQLSERVER:
         if "sqlserver_server_roles" in categories:
-            normalized["sqlserver_server_roles"] = _normalize_str_list(categories.get("sqlserver_server_roles"), dict_key="name")
+            normalized["sqlserver_server_roles"] = _normalize_str_list(
+                categories.get("sqlserver_server_roles"), dict_key="name"
+            )
 
         if "sqlserver_database_roles" in categories:
             database_roles_value = categories.get("sqlserver_database_roles")
@@ -194,7 +196,9 @@ def normalize_permission_snapshot_categories_v4(db_type: str, categories: Mappin
                     normalized_database_roles[key] = _normalize_str_list(entry, dict_key="name")
                 normalized["sqlserver_database_roles"] = normalized_database_roles
             elif isinstance(database_roles_value, list):
-                normalized["sqlserver_database_roles"] = {"__all__": _normalize_str_list(database_roles_value, dict_key="name")}
+                normalized["sqlserver_database_roles"] = {
+                    "__all__": _normalize_str_list(database_roles_value, dict_key="name")
+                }
         return normalized
 
     if db_type == DatabaseType.ORACLE:

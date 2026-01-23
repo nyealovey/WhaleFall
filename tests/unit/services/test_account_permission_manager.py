@@ -34,7 +34,10 @@ def test_apply_permissions_writes_roles_into_categories() -> None:
 
     manager._apply_permissions(record, permissions)
 
-    assert record.permission_snapshot.get("categories", {}).get("mysql_granted_roles") == {"direct": ["r1@%"], "default": []}
+    assert record.permission_snapshot.get("categories", {}).get("mysql_granted_roles") == {
+        "direct": ["r1@%"],
+        "default": [],
+    }
 
 
 @pytest.mark.unit

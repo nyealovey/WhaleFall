@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import cast
-
 from flask import Blueprint, render_template, request
-from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
 
 from app.core.constants import STATUS_ACTIVE_OPTIONS, DatabaseType
@@ -19,8 +15,7 @@ from app.utils.database_type_utils import (
     get_database_type_display_name,
     get_database_type_icon,
 )
-from app.utils.decorators import create_required, require_csrf, update_required, view_required
-from app.views.instance_forms import InstanceFormView
+from app.utils.decorators import view_required
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
@@ -86,36 +81,6 @@ def index() -> str:
             "tags_count": len(tags),
         },
     )
-
-
-# ---------------------------------------------------------------------------
-# 表单路由
-# ---------------------------------------------------------------------------
-_instance_create_view = cast(
-    Callable[..., ResponseReturnValue],
-    InstanceFormView.as_view("instance_create_form"),
-)
-_instance_create_view = login_required(create_required(require_csrf(_instance_create_view)))
-
-instances_bp.add_url_rule(
-    "/create",
-    view_func=cast(RouteCallable, _instance_create_view),
-    methods=["GET", "POST"],
-    endpoint="create",
-)
-
-_instance_edit_view = cast(
-    Callable[..., ResponseReturnValue],
-    InstanceFormView.as_view("instance_edit_form"),
-)
-_instance_edit_view = login_required(update_required(require_csrf(_instance_edit_view)))
-
-instances_bp.add_url_rule(
-    "/<int:instance_id>/edit",
-    view_func=cast(RouteCallable, _instance_edit_view),
-    methods=["GET", "POST"],
-    endpoint="edit",
-)
 
 
 # 注册额外路由模块

@@ -30,10 +30,6 @@ function renderStatusPill(label, tone, icon) {
     return `<span class="status-pill status-pill--${tone}">${iconHtml}${label}</span>`;
 }
 
-function formatNumber(value) {
-    return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
-}
-
 function getStatusMeta(state) {
     switch (state) {
         case 'STATE_RUNNING':
