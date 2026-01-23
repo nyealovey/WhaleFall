@@ -427,15 +427,45 @@
     if (!payload || typeof payload !== "object") {
       return;
     }
-    const totalEl = document.getElementById("totalChanges");
-    const successEl = document.getElementById("successChanges");
-    const failedEl = document.getElementById("failedChanges");
-    const accountsEl = document.getElementById("affectedAccounts");
+    const total = Number(payload.total_changes ?? 0) || 0;
+    const success = Number(payload.success_count ?? 0) || 0;
+    const failed = Number(payload.failed_count ?? 0) || 0;
+    const affectedAccounts = Number(payload.affected_accounts ?? 0) || 0;
 
-    if (totalEl) totalEl.textContent = String(payload.total_changes ?? 0);
-    if (successEl) successEl.textContent = String(payload.success_count ?? 0);
-    if (failedEl) failedEl.textContent = String(payload.failed_count ?? 0);
-    if (accountsEl) accountsEl.textContent = String(payload.affected_accounts ?? 0);
+    const setText = (id, value) => {
+      const element = document.getElementById(id);
+      if (!element) {
+        return;
+      }
+      element.textContent = String(value);
+    };
+
+    setText("totalChanges", total);
+    setText("successChanges", success);
+    setText("failedChanges", failed);
+    setText("affectedAccounts", affectedAccounts);
+
+    // 二级维度：成功/失败拆分 + 成功率/失败率 + 人均变更（避免冗余文字，通过 icon + 数字表达）。
+    setText("changeLogsMetaSuccessCount", success);
+    setText("changeLogsMetaFailedCount", failed);
+    setText("changeLogsMetaAffectedAccounts", affectedAccounts);
+
+    const formatPercent = global.NumberFormat.formatPercent;
+    const successRatio = total > 0 ? success / total : 0;
+    const failedRatio = total > 0 ? failed / total : 0;
+    setText(
+      "changeLogsMetaSuccessRate",
+      formatPercent(successRatio, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+    );
+    setText(
+      "changeLogsMetaFailedRate",
+      formatPercent(failedRatio, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+    );
+    const avgPerAccount = affectedAccounts > 0 ? total / affectedAccounts : 0;
+    setText(
+      "changeLogsMetaAvgPerAccount",
+      global.NumberFormat.formatDecimal(avgPerAccount, { precision: 1, trimZero: true, fallback: "0" }),
+    );
   }
 
   function initializeDetailModal() {
