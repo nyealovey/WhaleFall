@@ -93,7 +93,9 @@ class HistoryAccountChangeLogsReadService:
                     username=username,
                     change_type=change_type,
                     status=str(getattr(log_entry, "status", "") or ""),
-                    message=_normalize_display_message(getattr(log_entry, "message", None), username=username, change_type=change_type),
+                    message=_normalize_display_message(
+                        getattr(log_entry, "message", None), username=username, change_type=change_type
+                    ),
                     change_time=change_time_display,
                     session_id=getattr(log_entry, "session_id", None),
                     privilege_diff_count=len(privilege_entries),
@@ -145,7 +147,9 @@ class HistoryAccountChangeLogsReadService:
             "change_type": change_type,
             "change_time": change_time_display,
             "status": str(getattr(log_entry, "status", "") or ""),
-            "message": _normalize_display_message(getattr(log_entry, "message", None), username=username, change_type=change_type),
+            "message": _normalize_display_message(
+                getattr(log_entry, "message", None), username=username, change_type=change_type
+            ),
             "privilege_diff": privilege_entries,
             "other_diff": other_entries,
             "session_id": getattr(log_entry, "session_id", None),

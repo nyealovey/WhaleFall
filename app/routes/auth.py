@@ -1,10 +1,8 @@
 """鲸落 - 用户认证路由."""
 
-from collections.abc import Callable
 from typing import cast
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask.typing import ResponseReturnValue
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.core.constants import FlashCategory, HttpHeaders, HttpMethod
@@ -12,26 +10,34 @@ from app.infra.flask_typing import RouteCallable, RouteReturn
 from app.infra.route_safety import safe_route_call
 from app.services.auth.login_service import LoginService
 from app.utils.decorators import require_csrf
-from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
+from app.utils.rate_limiter import login_rate_limit
 from app.utils.redirect_safety import resolve_safe_redirect_target
 from app.utils.structlog_config import get_auth_logger
-from app.views.password_forms import ChangePasswordFormView
 
 # 创建蓝图
 auth_bp = Blueprint("auth", __name__)
 
-_change_password_view = cast(
-    Callable[..., ResponseReturnValue],
-    ChangePasswordFormView.as_view("auth_change_password_form"),
-)
-_change_password_view = login_required(password_reset_rate_limit()(require_csrf(_change_password_view)))
-_change_password_view = cast(RouteCallable, _change_password_view)
-auth_bp.add_url_rule(
-    "/change-password",
-    view_func=_change_password_view,
-    methods=["GET", "POST"],
-    endpoint="change_password",
-)
+
+@auth_bp.route("/change-password")
+@login_required
+def change_password() -> RouteReturn:
+    """修改密码入口(已迁移为全站模态).
+
+    说明:
+    - 保留该 URL 兼容旧入口.
+    - 实际修改密码走 `/api/v1/auth/change-password`.
+    """
+
+    def _execute() -> RouteReturn:
+        return redirect(url_for("dashboard.index", open_change_password=1))
+
+    return safe_route_call(
+        _execute,
+        module="auth",
+        action="change_password_redirect",
+        public_error="跳转修改密码失败",
+    )
+
 
 # 获取认证日志记录器
 auth_logger = get_auth_logger()

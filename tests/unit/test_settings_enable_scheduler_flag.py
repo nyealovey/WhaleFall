@@ -10,4 +10,3 @@ def test_settings_enable_scheduler_can_be_disabled(monkeypatch) -> None:
     settings = Settings.load()
 
     assert settings.enable_scheduler is False
-

@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-
 _ROUTE_CALL_ATTRS = {"route", "add_url_rule"}
 
 

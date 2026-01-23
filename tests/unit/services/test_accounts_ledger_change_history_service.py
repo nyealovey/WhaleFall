@@ -56,8 +56,24 @@ def test_get_change_history_returns_minimal_payload_for_add() -> None:
                     change_time=None,
                     status="success",
                     message="账户 demo@% 新增账户,赋予 999 项权限;其他变更:数据库特性 从 a:b 调整为 a:c",
-                    privilege_diff={"version": 1, "entries": [{"field": "roles", "label": "角色", "object": "x", "action": "GRANT", "permissions": ["p"]}]},
-                    other_diff={"version": 1, "entries": [{"field": "type_specific", "label": "数据库特性", "before": "a:b", "after": "a:c", "description": "x"}]},
+                    privilege_diff={
+                        "version": 1,
+                        "entries": [
+                            {"field": "roles", "label": "角色", "object": "x", "action": "GRANT", "permissions": ["p"]}
+                        ],
+                    },
+                    other_diff={
+                        "version": 1,
+                        "entries": [
+                            {
+                                "field": "type_specific",
+                                "label": "数据库特性",
+                                "before": "a:b",
+                                "after": "a:c",
+                                "description": "x",
+                            }
+                        ],
+                    },
                     session_id=None,
                 ),
             ]

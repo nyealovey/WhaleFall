@@ -49,4 +49,3 @@ capture_output = True
 enable_stdio_inheritance = True
 
 worker_tmp_dir = os.getenv("GUNICORN_WORKER_TMP_DIR", tempfile.gettempdir())
-

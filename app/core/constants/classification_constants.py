@@ -1,8 +1,8 @@
 """账户分类相关常量.
 
 说明:
-- 该模块用于 Service / Forms 共享选项常量,避免 Service 依赖 Forms 层定义.
-- 表单层如需使用,请直接从本模块导入或通过 forms/definitions 的 re-export 导入.
+- 该模块用于 Service 与 API 共享选项常量,避免跨层反向依赖.
+- 页面渲染如需注入选项,应由对应 route/service 读取本模块并传入模板.
 """
 
 RISK_LEVEL_OPTIONS = [

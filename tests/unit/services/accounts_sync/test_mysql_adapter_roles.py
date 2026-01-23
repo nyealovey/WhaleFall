@@ -5,8 +5,8 @@ import pytest
 from app.core.constants import DatabaseType
 from app.core.types import RemoteAccount
 from app.models.instance import Instance
-from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.accounts_sync.adapters.mysql_adapter import MySQLAccountAdapter
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 
 
 class _StubMySQLConnection:

@@ -61,6 +61,7 @@
     const submitBtn = document.getElementById('userModalSubmit');
     const titleEl = document.getElementById('userModalTitle');
     const metaEl = document.getElementById('userModalMeta');
+    const isActiveInput = document.getElementById('userIsActive');
 
     let mode = 'create';
     let validator = null;
@@ -122,6 +123,9 @@
       mode = 'create';
       editingUserMeta = null;
       setupValidator('create');
+      if (isActiveInput instanceof HTMLInputElement) {
+        isActiveInput.checked = true;
+      }
       selectOne('#userPassword').attr('required', true);
       selectOne('#userPassword').attr('placeholder', '至少 8 位，包含大小写字母和数字');
       titleEl.textContent = '新建用户';
@@ -170,6 +174,9 @@
         form.user_id.value = user.id;
         form.username.value = user.username;
         form.role.value = user.role;
+        if (isActiveInput instanceof HTMLInputElement) {
+          isActiveInput.checked = Boolean(user.is_active);
+        }
         editingUserMeta = {
           role: user.role,
           is_active: Boolean(user.is_active),
@@ -231,8 +238,8 @@
      */
     function buildPayload() {
       const data = new FormData(form);
-      const nextIsActive = mode === 'edit'
-        ? (editingUserMeta?.is_active ?? true)
+      const nextIsActive = isActiveInput instanceof HTMLInputElement
+        ? Boolean(isActiveInput.checked)
         : true;
       const payload = {
         username: data.get('username'),
@@ -296,7 +303,7 @@
      */
     function submitUpdate(payload) {
       const userId = payload.id;
-     if (!userId) {
+      if (!userId) {
         toast?.error?.('缺少用户ID');
         toggleLoading(false);
         return;
