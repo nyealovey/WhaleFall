@@ -25,20 +25,6 @@ var schedulerService = null;
 var schedulerStore = null;
 var schedulerModalsController = null;
 
-function setSchedulerStatCard(key, payload) {
-    const card = document.querySelector(`[data-stat-key="${key}"]`);
-    if (!card) {
-        return;
-    }
-    const valueNode = card.querySelector('[data-role="metric-value"]');
-    if (valueNode && payload?.value !== undefined) {
-        valueNode.textContent = payload.value;
-    }
-    if (payload?.tone) {
-        card.setAttribute('data-tone', payload.tone);
-    }
-}
-
 function renderStatusPill(label, tone, icon) {
     const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
     return `<span class="status-pill status-pill--${tone}">${iconHtml}${label}</span>`;
@@ -60,24 +46,6 @@ function getStatusMeta(state) {
         default:
             return { text: '未知', tone: 'muted', icon: 'fa-question-circle' };
     }
-}
-
-function updateSchedulerStats(allJobs, activeJobs, pausedJobs) {
-    const total = allJobs.length;
-    const builtin = allJobs.filter(job => job.is_builtin).length;
-    setSchedulerStatCard('total_jobs', { value: formatNumber(total) });
-    setSchedulerStatCard('running_jobs', {
-        value: formatNumber(activeJobs.length),
-        tone: 'info',
-    });
-    setSchedulerStatCard('paused_jobs', {
-        value: formatNumber(pausedJobs.length),
-        tone: 'warning',
-    });
-    setSchedulerStatCard('builtin_jobs', {
-        value: formatNumber(builtin),
-        tone: 'success',
-    });
 }
 
 /**
@@ -328,8 +296,6 @@ function displayJobs(jobs) {
         wrapper.className = 'col-4';
         return wrapper;
     };
-
-    updateSchedulerStats(list, activeJobs, pausedJobs);
 
     // 显示运行中的任务
     activeJobs.forEach(function (job) {

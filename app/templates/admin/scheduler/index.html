@@ -2,7 +2,6 @@
 {% set page_id = 'SchedulerPage' %}
 
 {% from 'components/ui/page_header.html' import page_header %}
-{% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}定时任务管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
@@ -19,29 +18,6 @@
     </button>
 </div>
 {% endcall %}
-
-<section class="page-section page-section--stacked">
-    <div class="layout-shell">
-        <div class="layout-shell-inner">
-            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 scheduler-stats">
-                <div class="col">
-                    {{ metric_card('任务总数', value=0, icon_class='fas fa-tasks', data_stat_key='total_jobs') }}
-                </div>
-                <div class="col">
-                    {{ metric_card('运行中', value=0, icon_class='fas fa-play', data_stat_key='running_jobs', tone='info') }}
-                </div>
-                <div class="col">
-                    {{ metric_card('已暂停', value=0, icon_class='fas fa-pause', data_stat_key='paused_jobs', tone='warning') }}
-                </div>
-                <div class="col">
-                    {% call metric_card('内置任务', value=0, icon_class='fas fa-shield-alt', data_stat_key='builtin_jobs', tone='success') %}
-                        <span class="chip-outline chip-outline--brand"><i class="fas fa-shield-alt"></i> 系统任务</span>
-                    {% endcall %}
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
 <section class="page-section">
     <div class="layout-shell">

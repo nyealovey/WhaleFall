@@ -346,18 +346,21 @@ function mountAdminPartitionsPage(global) {
      * @returns {string} 中文描述。
      */
     function setStatCard(key, payload) {
-        const wrapper = selectOne(`[data-stat="${key}"]`);
+        const wrapper = selectOne(`[data-stat-key="${key}"]`);
         if (!wrapper.length) {
             return;
         }
-        const valueNode = wrapper.find('[data-stat-value]');
+        const valueNode = wrapper.find('[data-role="metric-value"]');
         if (valueNode.length && payload?.value !== undefined) {
             valueNode.text(payload.value);
-            if (payload?.tone) {
-                valueNode.attr('data-value-tone', payload.tone);
-            }
         }
-        const metaNode = wrapper.find('[data-stat-meta]');
+
+        if (payload?.tone) {
+            wrapper.attr('data-tone', payload.tone);
+        } else {
+            wrapper.removeAttr('data-tone');
+        }
+        const metaNode = wrapper.find('[data-role="metric-meta"]');
         if (metaNode.length) {
             if (payload?.metaHtml !== undefined) {
                 metaNode.html(payload.metaHtml);
@@ -419,7 +422,7 @@ function mountAdminPartitionsPage(global) {
 
     function buildHealthMetaBadge(text) {
         const safeText = text || '数据库连接未知';
-        return `<span class="partition-health-card__meta-badge">${safeText}</span>`;
+        return `<span class="chip-outline chip-outline--muted">${safeText}</span>`;
     }
 }
 

@@ -85,6 +85,8 @@ def get_system_overview() -> dict:
         "instances": {
             "total": instance_summary["total_instances"],
             "active": instance_summary["active_instances"],
+            "inactive": instance_summary["disabled_instances"],
+            "deleted": instance_summary["deleted_instances"],
         },
         "accounts": {
             "total": account_summary["total_accounts"],

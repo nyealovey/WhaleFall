@@ -7,6 +7,18 @@
         linear-gradient(135deg, color-mix(in srgb, var(--surface-muted) 92%, transparent), var(--surface-base));
 }
 
+/* 登录页的 info 类 flash 提示：弱化背景与强调边框，文本居中展示。 */
+.main-content .alert.alert-info {
+    background: transparent;
+    border-left: 0;
+    text-align: center;
+}
+
+.main-content .alert.alert-info.alert-dismissible {
+    /* Bootstrap 为关闭按钮预留了右侧 3rem，这里同步左侧 padding，保证视觉居中。 */
+    padding-left: 3rem;
+}
+
 .login-shell .layout-shell-inner {
     width: 100%;
 }
