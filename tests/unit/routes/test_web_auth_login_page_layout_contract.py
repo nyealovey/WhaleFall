@@ -30,4 +30,3 @@ def test_web_auth_login_page_css_does_not_use_gradient_background() -> None:
     css = css_path.read_text(encoding="utf-8")
     assert "radial-gradient(" not in css
     assert "linear-gradient(" not in css
-

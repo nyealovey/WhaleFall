@@ -10,6 +10,7 @@ ALLOWED_INFRA_ROLLBACK_FILES = {
     Path("app/infra/logging/queue_worker.py"),
 }
 
+
 def _extract_app_db_names(tree: ast.AST) -> set[str]:
     names = {"db"}
     if not isinstance(tree, ast.Module):

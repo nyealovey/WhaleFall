@@ -86,9 +86,7 @@ class AccountsLedgerChangeHistoryService:
                     raise
 
             message = (
-                "新增账户"
-                if change_type == "add"
-                else _strip_username_prefix(log_entry.message, username=username)
+                "新增账户" if change_type == "add" else _strip_username_prefix(log_entry.message, username=username)
             )
 
             history_items.append(

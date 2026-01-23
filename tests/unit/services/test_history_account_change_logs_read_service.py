@@ -24,8 +24,24 @@ def test_list_logs_returns_minimal_message_and_no_diffs_for_add() -> None:
                 message="账户 demo@% 新增账户,赋予 999 项权限;其他变更:数据库特性 从 a:b 调整为 a:c",
                 change_time=None,
                 session_id=None,
-                privilege_diff={"version": 1, "entries": [{"field": "roles", "label": "角色", "object": "x", "action": "GRANT", "permissions": ["p"]}]},
-                other_diff={"version": 1, "entries": [{"field": "type_specific", "label": "数据库特性", "before": "a:b", "after": "a:c", "description": "x"}]},
+                privilege_diff={
+                    "version": 1,
+                    "entries": [
+                        {"field": "roles", "label": "角色", "object": "x", "action": "GRANT", "permissions": ["p"]}
+                    ],
+                },
+                other_diff={
+                    "version": 1,
+                    "entries": [
+                        {
+                            "field": "type_specific",
+                            "label": "数据库特性",
+                            "before": "a:b",
+                            "after": "a:c",
+                            "description": "x",
+                        }
+                    ],
+                },
             )
             return PaginatedResult(
                 items=[(log_entry, "inst-1", 42)],
@@ -82,8 +98,24 @@ def test_get_log_detail_returns_minimal_payload_for_add() -> None:
                 message="账户 demo@% 新增账户,赋予 999 项权限;其他变更:数据库特性 从 a:b 调整为 a:c",
                 change_time=None,
                 session_id=None,
-                privilege_diff={"version": 1, "entries": [{"field": "roles", "label": "角色", "object": "x", "action": "GRANT", "permissions": ["p"]}]},
-                other_diff={"version": 1, "entries": [{"field": "type_specific", "label": "数据库特性", "before": "a:b", "after": "a:c", "description": "x"}]},
+                privilege_diff={
+                    "version": 1,
+                    "entries": [
+                        {"field": "roles", "label": "角色", "object": "x", "action": "GRANT", "permissions": ["p"]}
+                    ],
+                },
+                other_diff={
+                    "version": 1,
+                    "entries": [
+                        {
+                            "field": "type_specific",
+                            "label": "数据库特性",
+                            "before": "a:b",
+                            "after": "a:c",
+                            "description": "x",
+                        }
+                    ],
+                },
             )
 
     service = HistoryAccountChangeLogsReadService(repository=cast(Any, _Repository()))
@@ -94,4 +126,3 @@ def test_get_log_detail_returns_minimal_payload_for_add() -> None:
     assert log["message"] == "新增账户"
     assert log["privilege_diff"] == []
     assert log["other_diff"] == []
-
