@@ -7,6 +7,14 @@
 
 {% block content_outer %}
 {% set total_instances = stats.total_instances or 0 %}
+{% set active_instances = stats.active_instances or 0 %}
+{% set inactive_instances = stats.inactive_instances or 0 %}
+{% set deleted_instances = stats.deleted_instances or 0 %}
+{% set active_rate = (active_instances / total_instances * 100) if total_instances else 0 %}
+{% set deleted_rate = (deleted_instances / total_instances * 100) if total_instances else 0 %}
+{% set sorted_db_types = (stats.db_type_stats | sort(attribute='count', reverse=True)) if stats.db_type_stats else [] %}
+{% set top_db_type = sorted_db_types[0] if sorted_db_types else None %}
+{% set top_db_type_share = (top_db_type.count / total_instances * 100) if top_db_type and total_instances else 0 %}
 {% call page_header('fas fa-chart-bar', '实例统计', '查看数据库实例画像与分布') %}
 <div class="page-header-actions d-flex gap-2 flex-wrap">
     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
@@ -23,23 +31,34 @@
 	        <div class="layout-shell-inner">
 	            <div class="row g-3 instance-stats-row">
 	                <div class="col-12 col-sm-6 col-xl-3">
-	                    {% call metric_card('在线实例', value=(stats.active_instances or 0), icon_class='fas fa-server', tone='success', data_stat_key='active_instances') %}
-	                        <span class="status-pill status-pill--success"><i class="fas fa-check-circle me-1"></i>在线</span>
+	                    {% call metric_card('实例总数', value=total_instances, icon_class='fas fa-server', tone='info', data_stat_key='total_instances') %}
+	                        <span class="chip-outline chip-outline--muted" title="停用" aria-label="停用">
+	                            <i class="fas fa-ban" aria-hidden="true"></i><span id="instancesMetaInactiveCount" aria-hidden="true">{{ inactive_instances }}</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
-	                    {% call metric_card('停用实例', value=(stats.inactive_instances or 0), icon_class='fas fa-ban', tone='muted', data_stat_key='inactive_instances') %}
-	                        <span class="status-pill status-pill--muted"><i class="fas fa-ban me-1"></i>停用</span>
+	                    {% call metric_card('在线实例', value=active_instances, icon_class='fas fa-check-circle', tone='success', data_stat_key='active_instances') %}
+	                        <span class="chip-outline chip-outline--muted" title="在线率" aria-label="在线率">
+	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="instancesMetaActiveRate" aria-hidden="true">{{ '%.1f'|format(active_rate) }}%</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
-	                    {% call metric_card('已删除实例', value=(stats.deleted_instances or 0), icon_class='fas fa-trash', tone='danger', data_stat_key='deleted_instances') %}
-	                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
+	                    {% call metric_card('已删除实例', value=deleted_instances, icon_class='fas fa-trash', tone='danger', data_stat_key='deleted_instances') %}
+	                        <span class="chip-outline chip-outline--muted" title="删除率" aria-label="删除率">
+	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="instancesMetaDeletedRate" aria-hidden="true">{{ '%.1f'|format(deleted_rate) }}%</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
 	                    {% call metric_card('数据库类型', value=(stats.db_types_count or 0), icon_class='fas fa-layer-group', tone='info', data_stat_key='db_types_count') %}
-	                        <span class="chip-outline chip-outline--brand"><i class="fas fa-layer-group me-1"></i>覆盖面</span>
+	                        <span class="chip-outline chip-outline--muted" title="Top 类型" aria-label="Top 类型">
+	                            <i class="fas fa-database" aria-hidden="true"></i><span id="instancesMetaTopDbType" aria-hidden="true">{{ top_db_type.db_type.upper() if top_db_type else '-' }}</span>
+	                        </span>
+	                        <span class="chip-outline chip-outline--muted" title="Top 占比" aria-label="Top 占比">
+	                            <i class="fas fa-chart-pie" aria-hidden="true"></i><span id="instancesMetaTopDbTypeShare" aria-hidden="true">{{ '%.1f'|format(top_db_type_share) }}%</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	            </div>

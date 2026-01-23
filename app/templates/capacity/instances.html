@@ -30,13 +30,28 @@
     <!-- 统计概览 -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 capacity-stats mb-4">
         <div class="col">
-            {{ metric_card('在线实例数', value_id='totalInstances', icon_class='fas fa-server') }}
+            {% call metric_card('在线实例数', value_id='totalInstances', icon_class='fas fa-server') %}
+                <span class="chip-outline chip-outline--muted" title="周期" aria-label="周期">
+                    <i class="fas fa-calendar" aria-hidden="true"></i><span id="capInstMetaPeriod" aria-hidden="true">-</span>
+                </span>
+                <span class="chip-outline chip-outline--muted" title="来源" aria-label="来源">
+                    <i class="fas fa-database" aria-hidden="true"></i><span id="capInstMetaSource" aria-hidden="true">-</span>
+                </span>
+            {% endcall %}
         </div>
         <div class="col">
-            {{ metric_card('总容量', value_id='totalDatabases', icon_class='fas fa-hdd') }}
+            {% call metric_card('总容量', value_id='totalDatabases', icon_class='fas fa-hdd') %}
+                <span class="chip-outline chip-outline--muted" title="最大占比" aria-label="最大占比">
+                    <i class="fas fa-chart-pie" aria-hidden="true"></i><span id="capInstMetaLargestShare" aria-hidden="true">0%</span>
+                </span>
+            {% endcall %}
         </div>
         <div class="col">
-            {{ metric_card('平均容量', value_id='averageSize', icon_class='fas fa-chart-line') }}
+            {% call metric_card('平均容量', value_id='averageSize', icon_class='fas fa-chart-line') %}
+                <span class="chip-outline chip-outline--muted" title="最大/均值" aria-label="最大/均值">
+                    <i class="fas fa-divide" aria-hidden="true"></i><span id="capInstMetaMaxToAvg" aria-hidden="true">0</span>
+                </span>
+            {% endcall %}
         </div>
         <div class="col">
             {{ metric_card('最大容量', value_id='maxSize', icon_class='fas fa-expand-arrows-alt') }}

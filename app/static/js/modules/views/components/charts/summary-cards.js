@@ -106,6 +106,26 @@
         value = definition.resolve(summary);
       }
       element.text(formatter(value));
+
+      const meta = definition.meta;
+      if (!meta || !Array.isArray(meta)) {
+        return;
+      }
+      meta.forEach((metaDef) => {
+        if (!metaDef || !metaDef.selector) {
+          return;
+        }
+        const metaEl = selectOne(metaDef.selector);
+        if (!metaEl.length) {
+          return;
+        }
+        const metaFormatter = resolveFormatter(metaDef);
+        let metaValue = summary?.[metaDef.field];
+        if (metaDef.resolve) {
+          metaValue = metaDef.resolve(summary);
+        }
+        metaEl.text(metaFormatter(metaValue));
+      });
     });
   }
 
