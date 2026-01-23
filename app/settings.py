@@ -56,6 +56,8 @@ DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_LOG_FILE = "userdata/logs/app.log"
 DEFAULT_LOG_MAX_SIZE_BYTES = 10 * 1024 * 1024
 DEFAULT_LOG_BACKUP_COUNT = 5
+DEFAULT_LOG_HTTP_REQUEST_COMPLETED_MODE = "slow_or_error"
+DEFAULT_LOG_HTTP_REQUEST_COMPLETED_SLOW_MS = 1000
 
 DEFAULT_SESSION_LIFETIME_SECONDS = 3600
 DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS = 7 * 24 * 3600
@@ -213,6 +215,14 @@ class Settings(BaseSettings):
     log_file: str = Field(default=DEFAULT_LOG_FILE, validation_alias="LOG_FILE")
     log_max_size_bytes: int = Field(default=DEFAULT_LOG_MAX_SIZE_BYTES, validation_alias="LOG_MAX_SIZE")
     log_backup_count: int = Field(default=DEFAULT_LOG_BACKUP_COUNT, validation_alias="LOG_BACKUP_COUNT")
+    log_http_request_completed_mode: str = Field(
+        default=DEFAULT_LOG_HTTP_REQUEST_COMPLETED_MODE,
+        validation_alias="LOG_HTTP_REQUEST_COMPLETED_MODE",
+    )
+    log_http_request_completed_slow_ms: int = Field(
+        default=DEFAULT_LOG_HTTP_REQUEST_COMPLETED_SLOW_MS,
+        validation_alias="LOG_HTTP_REQUEST_COMPLETED_SLOW_MS",
+    )
 
     session_lifetime_seconds: int = Field(
         default=DEFAULT_SESSION_LIFETIME_SECONDS,
@@ -257,6 +267,11 @@ class Settings(BaseSettings):
     @classmethod
     def _normalize_cache_type(cls, value: str) -> str:
         return value.lower()
+
+    @field_validator("log_http_request_completed_mode")
+    @classmethod
+    def _normalize_http_request_completed_mode(cls, value: str) -> str:
+        return value.strip().lower()
 
     @field_validator("oracle_client_lib_dir", "oracle_home", "cache_redis_url", mode="before")
     @classmethod
@@ -351,6 +366,8 @@ class Settings(BaseSettings):
             "LOG_FILE": self.log_file,
             "LOG_MAX_SIZE": self.log_max_size_bytes,
             "LOG_BACKUP_COUNT": self.log_backup_count,
+            "LOG_HTTP_REQUEST_COMPLETED_MODE": self.log_http_request_completed_mode,
+            "LOG_HTTP_REQUEST_COMPLETED_SLOW_MS": self.log_http_request_completed_slow_ms,
             "PERMANENT_SESSION_LIFETIME": self.session_lifetime_seconds,
             "REMEMBER_COOKIE_DURATION": self.remember_cookie_duration_seconds,
             "LOGIN_RATE_LIMIT": self.login_rate_limit,
@@ -501,6 +518,11 @@ class Settings(BaseSettings):
             ("PROXY_FIX_X_PREFIX 必须为非负整数", self.proxy_fix_x_prefix < 0),
             ("CACHE_TYPE 仅支持 simple/redis", self.cache_type not in {"simple", "redis"}),
             ("CACHE_TYPE=redis 时必须提供 CACHE_REDIS_URL", self.cache_type == "redis" and not self.cache_redis_url),
+            (
+                "LOG_HTTP_REQUEST_COMPLETED_MODE 仅支持 all/slow_or_error/errors_only/off",
+                self.log_http_request_completed_mode not in {"all", "slow_or_error", "errors_only", "off"},
+            ),
+            ("LOG_HTTP_REQUEST_COMPLETED_SLOW_MS 必须为非负整数(ms)", self.log_http_request_completed_slow_ms < 0),
             (
                 "生产环境必须设置 PASSWORD_ENCRYPTION_KEY(用于凭据加/解密)",
                 self.is_production and not password_encryption_key_present,

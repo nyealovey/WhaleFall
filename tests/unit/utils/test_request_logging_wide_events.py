@@ -26,6 +26,8 @@ def test_request_id_is_propagated_and_injected_into_unified_log_context(monkeypa
     monkeypatch.setenv("CACHE_TYPE", "simple")
     monkeypatch.delenv("CACHE_REDIS_URL", raising=False)
     monkeypatch.setenv("PASSWORD_ENCRYPTION_KEY", "")
+    # 门禁：该测试关注“成功请求也有 wide event”，因此显式开启 all 模式。
+    monkeypatch.setenv("LOG_HTTP_REQUEST_COMPLETED_MODE", "all")
 
     settings = Settings.load()
     app = create_app(init_scheduler_on_start=False, settings=settings)
@@ -68,6 +70,34 @@ def test_request_id_is_propagated_and_injected_into_unified_log_context(monkeypa
     assert isinstance(wide_entry["context"].get("build_hash"), str)
     assert isinstance(wide_entry["context"].get("region"), str)
     assert isinstance(wide_entry["context"].get("runtime_instance_id"), str)
+
+
+@pytest.mark.unit
+def test_http_request_completed_is_emitted_for_errors_by_default(monkeypatch) -> None:
+    """默认策略应避免被请求日志淹没，但错误请求仍应有 wide event."""
+    monkeypatch.setenv("FLASK_ENV", "testing")
+    monkeypatch.setenv("CACHE_TYPE", "simple")
+    monkeypatch.delenv("CACHE_REDIS_URL", raising=False)
+    monkeypatch.setenv("PASSWORD_ENCRYPTION_KEY", "")
+
+    settings = Settings.load()
+    app = create_app(init_scheduler_on_start=False, settings=settings)
+    app.config["TESTING"] = True
+
+    fake_worker = _FakeWorker()
+    structlog_config.handler.set_worker(cast(Any, fake_worker))
+
+    client = app.test_client()
+    response = client.get("/_not_found", headers={"X-Request-ID": "req_error_404"})
+    assert response.status_code == 404
+
+    messages = [entry.get("message") for entry in fake_worker.entries]
+    assert "http_request_completed" in messages
+
+    wide_entry = next(entry for entry in fake_worker.entries if entry.get("message") == "http_request_completed")
+    assert wide_entry.get("module") == "http"
+    assert wide_entry["context"].get("request_id") == "req_error_404"
+    assert wide_entry["context"].get("status_code") == 404
 
 
 @pytest.mark.unit
