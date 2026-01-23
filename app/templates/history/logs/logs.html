@@ -22,16 +22,47 @@
         <div class="layout-shell-inner">
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 log-stats-row">
                 <div class="col">
-                    {{ metric_card('总日志数', value=0, value_id='totalLogs', icon_class='fas fa-list') }}
+                    {% call metric_card('总日志数', value=0, value_id='totalLogs', icon_class='fas fa-list') %}
+                        <span class="status-pill status-pill--danger" title="错误" aria-label="错误">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i><span id="logsMetaErrorCount" aria-hidden="true">0</span>
+                        </span>
+                        <span class="status-pill status-pill--warning" title="告警" aria-label="告警">
+                            <i class="fas fa-exclamation-circle" aria-hidden="true"></i><span id="logsMetaWarningCount" aria-hidden="true">0</span>
+                        </span>
+                        <span class="chip-outline chip-outline--muted" title="Top 模块" aria-label="Top 模块">
+                            <i class="fas fa-cube" aria-hidden="true"></i><span id="logsMetaTopModule" aria-hidden="true">-</span>
+                        </span>
+                    {% endcall %}
                 </div>
                 <div class="col">
-                    {{ metric_card('错误日志', value=0, value_id='errorLogs', icon_class='fas fa-exclamation-triangle', tone='danger') }}
+                    {% call metric_card('错误日志', value=0, value_id='errorLogs', icon_class='fas fa-exclamation-triangle', tone='danger') %}
+                        <span class="chip-outline chip-outline--muted" title="错误率" aria-label="错误率">
+                            <i class="fas fa-percent" aria-hidden="true"></i><span id="logsMetaErrorRate" aria-hidden="true">0%</span>
+                        </span>
+                        <span class="status-pill status-pill--danger" title="严重" aria-label="严重">
+                            <i class="fas fa-times-circle" aria-hidden="true"></i><span id="logsMetaCriticalCount" aria-hidden="true">0</span>
+                        </span>
+                    {% endcall %}
                 </div>
                 <div class="col">
-                    {{ metric_card('警告日志', value=0, value_id='warningLogs', icon_class='fas fa-exclamation-circle', tone='warning') }}
+                    {% call metric_card('警告日志', value=0, value_id='warningLogs', icon_class='fas fa-exclamation-circle', tone='warning') %}
+                        <span class="chip-outline chip-outline--muted" title="占比" aria-label="占比">
+                            <i class="fas fa-chart-pie" aria-hidden="true"></i><span id="logsMetaWarningRate" aria-hidden="true">0%</span>
+                        </span>
+                        <span class="status-pill status-pill--muted" title="信息" aria-label="信息">
+                            <i class="fas fa-info-circle" aria-hidden="true"></i><span id="logsMetaInfoCount" aria-hidden="true">0</span>
+                        </span>
+                    {% endcall %}
                 </div>
                 <div class="col">
-                    {{ metric_card('模块数量', value=0, value_id='modulesCount', icon_class='fas fa-cubes') }}
+                    {% call metric_card('模块数量', value=0, value_id='modulesCount', icon_class='fas fa-cubes') %}
+                        <span class="chip-outline chip-outline--muted" title="Top 模块日志量" aria-label="Top 模块日志量">
+                            <i class="fas fa-hashtag" aria-hidden="true"></i><span id="logsMetaTopModuleCount" aria-hidden="true">0</span>
+                        </span>
+                        <span class="chip-outline chip-outline--muted" title="Top 模块" aria-label="Top 模块">
+                            <i class="fas fa-cube" aria-hidden="true"></i><span id="logsMetaTopModule2" aria-hidden="true">-</span>
+                        </span>
+                    {% endcall %}
                 </div>
             </div>
         </div>
