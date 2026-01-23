@@ -55,6 +55,7 @@ UnifiedLog 的 schema:
 
 `context` 常见键(按来源归类):
 - Request: `url`, `method`, `ip_address`, `user_agent`
+- Env: `environment`, `app_name`, `app_version`, `build_hash`, `region`, `runtime_instance_id`, `host`
 - Actor: `current_user_id`, `current_username`, `current_user_role`, `is_admin`
 - RouteSafety: `module`, `action`, `actor_id`, `error_type`, `error_message`, `commit_failed`, `unexpected`
 - Domain: `session_id`, `instance_id`, `db_type`, `credential_id`, `task_name`(建议按业务补齐)

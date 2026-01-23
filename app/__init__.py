@@ -11,7 +11,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
-from flask import Blueprint, Flask, jsonify, request
+from flask import Blueprint, Flask, g, jsonify, request
 from flask.typing import ResponseReturnValue
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
@@ -25,6 +25,7 @@ from app.api import register_api_blueprints
 from app.core.constants import HttpHeaders, HttpStatus
 from app.infra.error_mapping import map_exception_to_status
 from app.infra.flask_typing import WhaleFallFlask, WhaleFallLoginManager
+from app.infra.logging.request_middleware import register_request_logging
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
 from app.settings import Settings
@@ -103,6 +104,9 @@ def create_app(
     # 配置会话安全
     configure_security(app, resolved_settings)
 
+    # 请求级日志上下文注入 + wide event（必须尽早注册，确保早期 before_request(如 CSRF) 也能拿到 request_id）
+    register_request_logging(app)
+
     # 初始化扩展
     initialize_extensions(app, resolved_settings)
 
@@ -130,6 +134,12 @@ def create_app(
         """全局错误处理."""
         status_code = map_exception_to_status(error, default=HttpStatus.INTERNAL_SERVER_ERROR)
         payload, _ = unified_error_response(error, status_code=status_code, context=ErrorContext(error, request))
+        # 供 request wide event 读取的错误维度（避免泄露原始 message；只保留类型与 error_id）。
+        g._request_error_type = error.__class__.__name__
+        if isinstance(payload, dict):
+            error_id = payload.get("error_id")
+            if isinstance(error_id, str):
+                g._request_error_id = error_id
         return jsonify(payload), status_code
 
     # 性能监控已移除

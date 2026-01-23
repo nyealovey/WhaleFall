@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import atexit
+import json
 import sys
 from contextlib import suppress
-from functools import wraps
+from functools import partial, wraps
 from typing import TYPE_CHECKING, ParamSpec, cast
 
 import structlog
@@ -87,7 +88,6 @@ class StructlogConfig:
                 self._add_global_context,
                 self.handler,
                 self._get_console_renderer(),
-                structlog.processors.JSONRenderer(),
             ]
             structlog.configure(
                 processors=cast("list[structlog.types.Processor]", processors),
@@ -205,8 +205,13 @@ class StructlogConfig:
             event_dict["app_name"] = "鲸落"
             event_dict["app_version"] = APP_VERSION
 
-        if has_request_context():
+        if has_app_context():
             event_dict["environment"] = current_app.config.get("ENV", "development")
+            event_dict["build_hash"] = current_app.config.get("BUILD_HASH", "unknown")
+            event_dict["region"] = current_app.config.get("DEPLOY_REGION", "unknown")
+            event_dict["runtime_instance_id"] = current_app.config.get("RUNTIME_INSTANCE_ID", "unknown")
+
+        if has_request_context():
             event_dict["host"] = getattr(g, "host", "localhost")
 
         logger_name = getattr(_logger, "name", "unknown")
@@ -218,7 +223,7 @@ class StructlogConfig:
         """根据终端能力返回渲染器.
 
         Returns:
-            structlog renderer,用于控制台输出.
+            structlog renderer,用于控制台输出或 JSON 行输出.
 
         """
         if sys.stdout.isatty():
@@ -226,7 +231,8 @@ class StructlogConfig:
                 colors=True,
                 exception_formatter=structlog.dev.RichTracebackFormatter(show_locals=True, max_frames=10),
             )
-        return structlog.dev.ConsoleRenderer(colors=False)
+        # 非交互环境优先输出 JSON（避免 ConsoleRenderer 的不可解析文本）。
+        return structlog.processors.JSONRenderer(serializer=partial(json.dumps, ensure_ascii=False))
 
     def shutdown(self) -> None:
         """关闭日志系统.
