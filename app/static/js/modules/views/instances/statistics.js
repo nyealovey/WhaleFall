@@ -423,13 +423,58 @@ function mountInstanceStatisticsPage() {
      * @returns {void} 刷新 DOM 以及版本图表。
      */
     function updateStatistics(stats) {
+        setStatValue('total_instances', stats.total_instances);
         setStatValue('active_instances', stats.active_instances);
-        setStatValue('inactive_instances', stats.inactive_instances);
         setStatValue('deleted_instances', stats.deleted_instances);
         setStatValue('db_types_count', stats.db_types_count);
+        updateStatisticsMeta(stats);
 
         if (stats.version_stats && versionChart) {
             updateVersionChart(stats.version_stats);
+        }
+    }
+
+    function updateStatisticsMeta(stats) {
+        const total = Number(stats?.total_instances ?? 0) || 0;
+        const active = Number(stats?.active_instances ?? 0) || 0;
+        const inactive = Number(stats?.inactive_instances ?? 0) || 0;
+        const deleted = Number(stats?.deleted_instances ?? 0) || 0;
+
+        const setText = (id, value) => {
+            const node = document.getElementById(id);
+            if (!node) {
+                return;
+            }
+            node.textContent = String(value);
+        };
+
+        setText('instancesMetaInactiveCount', global.NumberFormat.formatInteger(inactive, { fallback: inactive }));
+
+        const formatPercent = global.NumberFormat?.formatPercent;
+        if (typeof formatPercent === 'function') {
+            setText(
+                'instancesMetaActiveRate',
+                formatPercent(total > 0 ? active / total : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+            );
+            setText(
+                'instancesMetaDeletedRate',
+                formatPercent(total > 0 ? deleted / total : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+            );
+        }
+
+        const dbTypeStats = Array.isArray(stats?.db_type_stats) ? stats.db_type_stats : [];
+        const sorted = dbTypeStats
+            .slice()
+            .sort((a, b) => (Number(b?.count ?? 0) || 0) - (Number(a?.count ?? 0) || 0));
+        const top1 = sorted[0] || null;
+        const topType = top1?.db_type ? String(top1.db_type).toUpperCase() : '-';
+        const topCount = Number(top1?.count ?? 0) || 0;
+        setText('instancesMetaTopDbType', topType);
+        if (typeof formatPercent === 'function') {
+            setText(
+                'instancesMetaTopDbTypeShare',
+                formatPercent(total > 0 ? topCount / total : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+            );
         }
     }
 

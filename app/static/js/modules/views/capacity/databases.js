@@ -97,10 +97,71 @@ function mountCapacityDatabasesPage(window) {
         percent: "size_change_percent",
       },
       summaryCards: [
-        { selector: "#totalDatabases", field: "total_databases", formatter: "number" },
-        { selector: "#totalCapacity", field: "total_size_mb", formatter: "sizeFromMB" },
-        { selector: "#averageSize", field: "avg_size_mb", formatter: "sizeFromMB" },
-        { selector: "#maxSize", field: "max_size_mb", formatter: "sizeFromMB" },
+        {
+          selector: "#totalDatabases",
+          field: "total_databases",
+          formatter: "number",
+          meta: [
+            { selector: "#capDbMetaInstances", field: "total_instances", formatter: "number" },
+            {
+              selector: "#capDbMetaDbPerInstance",
+              resolve: (summary) => {
+                const total = Number(summary?.total_databases ?? 0) || 0;
+                const instances = Number(summary?.total_instances ?? 0) || 0;
+                return instances > 0 ? total / instances : 0;
+              },
+              formatter: (value) =>
+                window.NumberFormat.formatDecimal(value, { precision: 1, trimZero: true, fallback: "0" }),
+            },
+          ],
+        },
+        {
+          selector: "#totalCapacity",
+          field: "total_size_mb",
+          formatter: "sizeFromMB",
+          meta: [
+            {
+              selector: "#capDbMetaGrowthRate",
+              field: "growth_rate",
+              formatter: (value) =>
+                window.NumberFormat.formatPercent(value, { precision: 1, trimZero: true, inputType: "percent", fallback: "0%" }),
+            },
+          ],
+        },
+        {
+          selector: "#averageSize",
+          field: "avg_size_mb",
+          formatter: "sizeFromMB",
+          meta: [
+            {
+              selector: "#capDbMetaMaxToAvg",
+              resolve: (summary) => {
+                const max = Number(summary?.max_size_mb ?? 0) || 0;
+                const avg = Number(summary?.avg_size_mb ?? 0) || 0;
+                return avg > 0 ? max / avg : 0;
+              },
+              formatter: (value) =>
+                `${window.NumberFormat.formatDecimal(value, { precision: 1, trimZero: true, fallback: "0" })}x`,
+            },
+          ],
+        },
+        {
+          selector: "#maxSize",
+          field: "max_size_mb",
+          formatter: "sizeFromMB",
+          meta: [
+            {
+              selector: "#capDbMetaLargestShare",
+              resolve: (summary) => {
+                const max = Number(summary?.max_size_mb ?? 0) || 0;
+                const total = Number(summary?.total_size_mb ?? 0) || 0;
+                return total > 0 ? max / total : 0;
+              },
+              formatter: (value) =>
+                window.NumberFormat.formatPercent(value, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+            },
+          ],
+        },
       ],
       chartTitles: {
         trend: "容量统计趋势图",

@@ -472,16 +472,12 @@ function mountTagsIndexPage(global) {
     if (!statsContainer || !stats) {
       return;
     }
-    const mapping = {
-      total: stats.total,
-      active: stats.active,
-      inactive: stats.inactive,
-      category_count: stats.category_count,
-    };
-    Object.entries(mapping).forEach(([key, value]) => {
-      if (typeof value === "undefined" || value === null) {
-        return;
-      }
+    const total = Number(stats.total ?? 0) || 0;
+    const active = Number(stats.active ?? 0) || 0;
+    const inactive = Number(stats.inactive ?? 0) || 0;
+    const categories = Number(stats.category_count ?? 0) || 0;
+
+    const setCardValue = (key, value) => {
       const card = statsContainer.querySelector(`[data-stat-key="${key}"]`);
       if (!card) {
         return;
@@ -490,7 +486,45 @@ function mountTagsIndexPage(global) {
       if (valueEl) {
         valueEl.textContent = value;
       }
-    });
+    };
+
+    setCardValue("total", total);
+    const formatPercent = global.NumberFormat?.formatPercent;
+    setCardValue(
+      "active_rate",
+      typeof formatPercent === "function"
+        ? formatPercent(total > 0 ? active / total : 0, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" })
+        : "0%",
+    );
+    setCardValue(
+      "inactive_rate",
+      typeof formatPercent === "function"
+        ? formatPercent(total > 0 ? inactive / total : 0, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" })
+        : "0%",
+    );
+    setCardValue("category_count", categories);
+
+    const setText = (id, value) => {
+      const el = global.document.getElementById(id);
+      if (!el) {
+        return;
+      }
+      el.textContent = String(value);
+    };
+
+    setText("tagsMetaActiveCount", active);
+    setText("tagsMetaInactiveCount", inactive);
+
+    const formatDecimal = global.NumberFormat?.formatDecimal;
+    const avgPerCategory = categories > 0 ? total / categories : 0;
+    const activePerCategory = categories > 0 ? active / categories : 0;
+    if (typeof formatDecimal === "function") {
+      setText("tagsMetaAvgPerCategory", formatDecimal(avgPerCategory, { precision: 1, trimZero: true, fallback: "0" }));
+      setText("tagsMetaActivePerCategory", formatDecimal(activePerCategory, { precision: 1, trimZero: true, fallback: "0" }));
+    } else {
+      setText("tagsMetaAvgPerCategory", avgPerCategory.toFixed(1));
+      setText("tagsMetaActivePerCategory", activePerCategory.toFixed(1));
+    }
   }
 
   function exposeActions() {
