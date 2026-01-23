@@ -22,16 +22,38 @@
 	        <div class="layout-shell-inner">
 	            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 change-log-stats-row">
 	                <div class="col">
-	                    {{ metric_card('变更总数', value=0, value_id='totalChanges', icon_class='fas fa-list') }}
+	                    {% call metric_card('变更总数', value=0, value_id='totalChanges', icon_class='fas fa-list') %}
+	                        <span class="status-pill status-pill--success" title="成功" aria-label="成功">
+	                            <i class="fas fa-check" aria-hidden="true"></i><span id="changeLogsMetaSuccessCount" aria-hidden="true">0</span>
+	                        </span>
+	                        <span class="status-pill status-pill--danger" title="失败" aria-label="失败">
+	                            <i class="fas fa-times" aria-hidden="true"></i><span id="changeLogsMetaFailedCount" aria-hidden="true">0</span>
+	                        </span>
+	                        <span class="chip-outline chip-outline--muted" title="影响账号" aria-label="影响账号">
+	                            <i class="fas fa-users" aria-hidden="true"></i><span id="changeLogsMetaAffectedAccounts" aria-hidden="true">0</span>
+	                        </span>
+	                    {% endcall %}
 	                </div>
 	                <div class="col">
-	                    {{ metric_card('成功变更', value=0, value_id='successChanges', icon_class='fas fa-check', tone='success') }}
+	                    {% call metric_card('成功变更', value=0, value_id='successChanges', icon_class='fas fa-check', tone='success') %}
+	                        <span class="chip-outline chip-outline--muted" title="成功率" aria-label="成功率">
+	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="changeLogsMetaSuccessRate" aria-hidden="true">0%</span>
+	                        </span>
+	                    {% endcall %}
 	                </div>
 	                <div class="col">
-	                    {{ metric_card('失败变更', value=0, value_id='failedChanges', icon_class='fas fa-times', tone='danger') }}
+	                    {% call metric_card('失败变更', value=0, value_id='failedChanges', icon_class='fas fa-times', tone='danger') %}
+	                        <span class="chip-outline chip-outline--muted" title="失败率" aria-label="失败率">
+	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="changeLogsMetaFailedRate" aria-hidden="true">0%</span>
+	                        </span>
+	                    {% endcall %}
 	                </div>
 	                <div class="col">
-	                    {{ metric_card('影响账号数', value=0, value_id='affectedAccounts', icon_class='fas fa-users') }}
+	                    {% call metric_card('影响账号数', value=0, value_id='affectedAccounts', icon_class='fas fa-users') %}
+	                        <span class="chip-outline chip-outline--muted" title="人均变更" aria-label="人均变更">
+	                            <i class="fas fa-hashtag" aria-hidden="true"></i><span id="changeLogsMetaAvgPerAccount" aria-hidden="true">0</span>
+	                        </span>
+	                    {% endcall %}
 	                </div>
 	            </div>
 	        </div>
