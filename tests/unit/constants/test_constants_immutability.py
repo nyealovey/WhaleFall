@@ -1,5 +1,9 @@
 """验证常量集合的不可变性."""
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 from app.core.constants.http_methods import HttpMethod
 from app.core.constants.status_types import InstanceStatus, JobStatus, SyncSessionStatus, SyncStatus, TaskStatus
 from app.core.constants.user_roles import UserRole

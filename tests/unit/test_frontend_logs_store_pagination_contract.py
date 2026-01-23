@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -20,4 +21,5 @@ def test_frontend_logs_store_pagination_contract_is_stable() -> None:
     hits = [marker for marker in legacy_markers if marker in content]
     assert not hits, f"发现日志分页兼容残留: {hits}"
 
-    assert "limit: state.pagination.perPage" in content, "日志分页请求必须使用 limit 参数"
+    assert re.search(r"\bdata\.limit\b", content), "日志分页响应必须使用 limit 字段"
+    assert re.search(r"\blimit\s*:\s*state\.pagination\.perPage\b", content), "日志分页请求必须使用 limit 参数"
