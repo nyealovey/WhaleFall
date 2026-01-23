@@ -406,11 +406,11 @@ function mountInstancesListPage() {
                     }
                     return gridHtml(`
                         <div class="active-count-stack">
-                            <span class="status-pill status-pill--muted">
-                                <i class="fas fa-database" aria-hidden="true"></i>${dbCount} 库
+                            <span class="status-pill status-pill--muted" title="活跃数据库数" aria-label="活跃数据库数 ${dbCount}">
+                                <i class="fas fa-database" aria-hidden="true"></i><span class="active-count-value" aria-hidden="true">${dbCount}</span>
                             </span>
-                            <span class="status-pill status-pill--muted">
-                                <i class="fas fa-user" aria-hidden="true"></i>${accountCount} 账
+                            <span class="status-pill status-pill--muted" title="活跃账户数" aria-label="活跃账户数 ${accountCount}">
+                                <i class="fas fa-user" aria-hidden="true"></i><span class="active-count-value" aria-hidden="true">${accountCount}</span>
                             </span>
                         </div>
                     `);
