@@ -206,17 +206,58 @@ function mountAdminPartitionsPage(global) {
      * @param {Object} data 统计数据。
      * @returns {void}
      */
-    function updatePartitionStats(data) {
+    function updatePartitionStats(data, partitions) {
         const stats = data && typeof data === 'object' ? data : {};
+        const items = Array.isArray(partitions) ? partitions : [];
+        const counts = { past: 0, current: 0, future: 0 };
+        items.forEach((item) => {
+            const status = (item?.status || '').toLowerCase();
+            if (status === 'past') {
+                counts.past += 1;
+            } else if (status === 'future') {
+                counts.future += 1;
+            } else if (status === 'current') {
+                counts.current += 1;
+            }
+        });
+        const currentPartition = items.find((item) => (item?.status || '').toLowerCase() === 'current') || null;
+        const totalPartitions = Number(stats.total_partitions ?? 0) || 0;
+        const totalRecords = Number(stats.total_records ?? 0) || 0;
+        const avgRecordsPerPartition = totalPartitions > 0 ? totalRecords / totalPartitions : 0;
+        const formatDecimal = global.NumberFormat?.formatDecimal;
+        const avgRecordsLabel =
+            typeof formatDecimal === 'function'
+                ? formatDecimal(avgRecordsPerPartition, { precision: 1, trimZero: true, fallback: '0' })
+                : String(avgRecordsPerPartition.toFixed(1));
 
         setStatCard('total_partitions', {
-            value: formatNumber(stats.total_partitions ?? 0),
+            value: formatNumber(totalPartitions),
+            metaHtml: buildStatMetaChips([
+                { icon: 'fa-history', title: '历史分区', value: counts.past },
+                { icon: 'fa-calendar-day', title: '当前分区', value: counts.current },
+                { icon: 'fa-calendar-plus', title: '未来分区', value: counts.future },
+            ]),
         });
         setStatCard('total_size', {
             value: stats.total_size || '0 B',
+            metaHtml: buildStatMetaChips([
+                {
+                    icon: 'fa-layer-group',
+                    title: '当前分区大小',
+                    value: currentPartition?.size ? escapeHtml(currentPartition.size) : '-',
+                },
+            ]),
         });
         setStatCard('total_records', {
-            value: formatNumber(stats.total_records ?? 0),
+            value: formatNumber(totalRecords),
+            metaHtml: buildStatMetaChips([
+                { icon: 'fa-divide', title: '平均/分区', value: avgRecordsLabel },
+                {
+                    icon: 'fa-table',
+                    title: '当前分区记录数',
+                    value: formatNumber(Number(currentPartition?.record_count ?? 0) || 0),
+                },
+            ]),
         });
 
         const healthMeta = resolvePartitionStatusMeta(stats.status);
@@ -243,7 +284,8 @@ function mountAdminPartitionsPage(global) {
      */
     function handleInfoUpdated(payload) {
         const stats = payload?.stats || payload?.state?.stats || {};
-        updatePartitionStats(stats);
+        const partitions = payload?.partitions || payload?.state?.partitions || [];
+        updatePartitionStats(stats, partitions);
         loadHealthStatus();
     }
 
@@ -424,6 +466,37 @@ function mountAdminPartitionsPage(global) {
     function buildHealthMetaBadge(text) {
         const safeText = text || '数据库连接未知';
         return `<span class="chip-outline chip-outline--muted">${safeText}</span>`;
+    }
+
+    function escapeHtml(value) {
+        const text = value === null || value === undefined ? '' : String(value);
+        return text.replace(/[&<>"']/g, (char) => {
+            switch (char) {
+                case '&':
+                    return '&amp;';
+                case '<':
+                    return '&lt;';
+                case '>':
+                    return '&gt;';
+                case '"':
+                    return '&quot;';
+                case "'":
+                    return '&#39;';
+                default:
+                    return char;
+            }
+        });
+    }
+
+    function buildStatMetaChips(items) {
+        const chips = (items || [])
+            .filter((item) => item && item.value !== undefined && item.value !== null)
+            .map((item) => {
+                const title = escapeHtml(item.title || '');
+                const value = item.value === '-' ? '-' : escapeHtml(item.value);
+                return `<span class="chip-outline chip-outline--muted" title="${title}" aria-label="${title}"><i class="fas ${item.icon}" aria-hidden="true"></i><span aria-hidden="true">${value}</span></span>`;
+            });
+        return chips.join('');
     }
 }
 

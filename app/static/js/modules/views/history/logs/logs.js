@@ -484,6 +484,8 @@
             return;
         }
         const params = Object.assign({}, filters || {});
+        const windowHours = Number(params.hours);
+        refreshStats.lastWindowHours = Number.isFinite(windowHours) && windowHours > 0 ? windowHours : 24;
         logsService
             .fetchStats(params)
             .then((response) => {
@@ -506,7 +508,7 @@
         const totalLogs = Number(stats.total_logs ?? stats.total ?? 0) || 0;
         const errorLogs = Number(stats.error_logs ?? stats.error_count ?? 0) || 0;
         const warningLogs = Number(stats.warning_logs ?? stats.warning_count ?? 0) || 0;
-        const modulesCount = Number(stats.modules_count ?? stats.module_count ?? 0) || 0;
+        const infoLogs = Number(stats.info_count ?? 0) || 0;
 
         const setText = (id, value) => {
             const element = document.getElementById(id);
@@ -519,11 +521,11 @@
         setText('totalLogs', totalLogs);
         setText('errorLogs', errorLogs);
         setText('warningLogs', warningLogs);
-        setText('modulesCount', modulesCount);
+        setText('infoLogs', infoLogs);
 
         // 二级维度：错误/告警、占比、Top 模块（避免冗余文字，通过 icon + 数字/短文本表达）。
-        setText('logsMetaErrorCount', errorLogs);
-        setText('logsMetaWarningCount', warningLogs);
+        const windowHours = refreshStats.lastWindowHours || 24;
+        setText('logsMetaWindowHours', `${windowHours}h`);
 
         const formatPercent = global.NumberFormat.formatPercent;
         setText(
@@ -537,14 +539,24 @@
         );
 
         setText('logsMetaCriticalCount', Number(stats.critical_count ?? 0) || 0);
-        setText('logsMetaInfoCount', Number(stats.info_count ?? 0) || 0);
+        setText('logsMetaDebugCount', Number(stats.debug_count ?? 0) || 0);
+
+        const errorPerHour = windowHours > 0 ? errorLogs / windowHours : 0;
+        const warningPerHour = windowHours > 0 ? warningLogs / windowHours : 0;
+        setText(
+            'logsMetaErrorPerHour',
+            global.NumberFormat.formatDecimal(errorPerHour, { precision: 1, trimZero: true, fallback: '0' }),
+        );
+        setText(
+            'logsMetaWarningPerHour',
+            global.NumberFormat.formatDecimal(warningPerHour, { precision: 1, trimZero: true, fallback: '0' }),
+        );
 
         const topModules = Array.isArray(stats.top_modules) ? stats.top_modules : [];
         const top1 = topModules[0] || null;
         const topModuleName = top1?.module ? String(top1.module) : '-';
         const topModuleCount = Number(top1?.count ?? 0) || 0;
         setText('logsMetaTopModule', topModuleName);
-        setText('logsMetaTopModule2', topModuleName);
         setText('logsMetaTopModuleCount', topModuleCount);
     }
 

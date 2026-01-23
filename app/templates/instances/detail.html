@@ -203,25 +203,21 @@
                     <div class="tab-pane fade show active" id="capacity-pane" role="tabpanel" aria-labelledby="capacity-tab">
                         <div id="databaseSizesContent">
                             <div class="row g-3 instance-stat-grid mb-3">
-                                <div class="col-lg-4 col-12">
+                                <div class="col-12">
                                     <div class="instance-stat-card">
-                                        <p class="instance-stat-card__label">在线数据库</p>
-                                        <span class="instance-stat-card__value" data-value-tone="success" id="databaseOnlineCount">-</span>
-                                        <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>
-                                    </div>
-                                </div>
-                                <div class="col-lg-4 col-12">
-                                    <div class="instance-stat-card">
-                                        <p class="instance-stat-card__label">已删除数据库</p>
-                                        <span class="instance-stat-card__value" data-value-tone="danger" id="databaseDeletedCount">-</span>
-                                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
-                                    </div>
-                                </div>
-                                <div class="col-lg-4 col-12">
-                                    <div class="instance-stat-card">
-                                        <p class="instance-stat-card__label">总容量</p>
-                                        <span class="instance-stat-card__value" data-value-tone="info" id="databaseTotalCapacity">-</span>
-                                        <span class="status-pill status-pill--info"><i class="fas fa-hdd me-1"></i>容量</span>
+                                        <p class="instance-stat-card__label">数据库</p>
+                                        <span class="instance-stat-card__value" data-value-tone="info" id="databaseTotalCount">-</span>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <span class="status-pill status-pill--success" title="在线" aria-label="在线">
+                                                <i class="fas fa-check" aria-hidden="true"></i><span id="databaseOnlineCount" aria-hidden="true">-</span>
+                                            </span>
+                                            <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
+                                                <i class="fas fa-trash" aria-hidden="true"></i><span id="databaseDeletedCount" aria-hidden="true">-</span>
+                                            </span>
+                                            <span class="status-pill status-pill--info" title="总容量" aria-label="总容量">
+                                                <i class="fas fa-hdd" aria-hidden="true"></i><span id="databaseTotalCapacity" aria-hidden="true">-</span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -254,7 +250,7 @@
                                     </form>
                                 </div>
                                 <div class="text-end col-md-4 col-12">
-                                    <span class="chip-outline chip-outline--muted" id="databaseCount">共 0 个数据库</span>
+                                    <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
                                 </div>
                             </div>
 
@@ -266,25 +262,25 @@
                     <div class="tab-pane fade" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
                 <!-- 账户概览标签 -->
                 <div class="row g-3 instance-stat-grid mb-3">
-                    <div class="col-lg-4 col-12">
+                    {% set active_accounts = account_summary.active or 0 %}
+                    {% set deleted_accounts = account_summary.deleted or 0 %}
+                    {% set superuser_accounts = account_summary.superuser or 0 %}
+                    {% set total_accounts = active_accounts + deleted_accounts %}
+                    <div class="col-12">
                         <div class="instance-stat-card">
-                            <p class="instance-stat-card__label">活跃账户</p>
-                            <span class="instance-stat-card__value" data-value-tone="success">{{ account_summary.active }}</span>
-                            <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-12">
-                        <div class="instance-stat-card">
-                            <p class="instance-stat-card__label">已删除账户</p>
-                            <span class="instance-stat-card__value" data-value-tone="danger">{{ account_summary.deleted }}</span>
-                            <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-12">
-                        <div class="instance-stat-card">
-                            <p class="instance-stat-card__label">超级管理员</p>
-                            <span class="instance-stat-card__value" data-value-tone="info">{{ account_summary.superuser }}</span>
-                            <span class="status-pill status-pill--info"><i class="fas fa-crown me-1"></i>高权限</span>
+                            <p class="instance-stat-card__label">账户</p>
+                            <span class="instance-stat-card__value" data-value-tone="info" id="accountTotalCount">{{ total_accounts }}</span>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="status-pill status-pill--success" title="活跃" aria-label="活跃">
+                                    <i class="fas fa-user-check" aria-hidden="true"></i><span id="accountActiveCount" aria-hidden="true">{{ active_accounts }}</span>
+                                </span>
+                                <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
+                                    <i class="fas fa-user-slash" aria-hidden="true"></i><span id="accountDeletedCount" aria-hidden="true">{{ deleted_accounts }}</span>
+                                </span>
+                                <span class="status-pill status-pill--info" title="超管" aria-label="超管">
+                                    <i class="fas fa-crown" aria-hidden="true"></i><span id="accountSuperuserCount" aria-hidden="true">{{ superuser_accounts }}</span>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -317,7 +313,7 @@
 	                        </form>
 	                    </div>
 	                    <div class="text-end col-md-4 col-12">
-	                        <span class="chip-outline chip-outline--muted" id="accountCount">共 {{ account_summary.active }} 个账户</span>
+	                        <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
 	                    </div>
 	                </div>
 

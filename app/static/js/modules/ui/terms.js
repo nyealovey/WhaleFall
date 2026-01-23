@@ -54,6 +54,40 @@
     }
   }
 
+  function resolvePeriodTypeText(periodType) {
+    const normalized = (periodType || "").toString().trim().toLowerCase();
+    switch (normalized) {
+      case "daily":
+        return "日";
+      case "weekly":
+        return "周";
+      case "monthly":
+        return "月";
+      case "quarterly":
+        return "季";
+      case "yearly":
+        return "年";
+      case "all":
+        return "全部";
+      default:
+        return normalized ? "未知" : "-";
+    }
+  }
+
+  function resolveCapacitySourceText(source) {
+    const normalized = (source || "").toString().trim().toLowerCase();
+    switch (normalized) {
+      case "instance_size_stats":
+      case "database_size_stats":
+        return "采集";
+      case "capacity_aggregation":
+      case "aggregation":
+        return "聚合";
+      default:
+        return normalized ? "未知" : "-";
+    }
+  }
+
   global.UI = global.UI || {};
   global.UI.Terms = global.UI.Terms || {};
   global.UI.Terms.resolveActiveStatusText = resolveActiveStatusText;
@@ -61,4 +95,6 @@
   global.UI.Terms.resolveLockStatusText = resolveLockStatusText;
   global.UI.Terms.resolveRunStatusText = resolveRunStatusText;
   global.UI.Terms.resolveTaskStatusText = resolveTaskStatusText;
+  global.UI.Terms.resolvePeriodTypeText = resolvePeriodTypeText;
+  global.UI.Terms.resolveCapacitySourceText = resolveCapacitySourceText;
 })(window);

@@ -75,9 +75,69 @@ function mountInstanceAggregationsPage(window) {
       autoApplyOnFilterChange: false,
       api: apiFactory(),
       summaryCards: [
-        { selector: "#totalInstances", field: "total_instances", formatter: "number" },
-        { selector: "#totalDatabases", field: "total_size_mb", formatter: "sizeFromMB" },
-        { selector: "#averageSize", field: "avg_size_mb", formatter: "sizeFromMB" },
+        {
+          selector: "#totalInstances",
+          field: "total_instances",
+          formatter: "number",
+          meta: [
+            {
+              selector: "#capInstMetaPeriod",
+              field: "period_type",
+              formatter: (value) => {
+                const resolver = window.UI?.Terms?.resolvePeriodTypeText;
+                if (typeof resolver === "function") {
+                  return resolver(value);
+                }
+                return value ?? "-";
+              },
+            },
+            {
+              selector: "#capInstMetaSource",
+              field: "source",
+              formatter: (value) => {
+                const resolver = window.UI?.Terms?.resolveCapacitySourceText;
+                if (typeof resolver === "function") {
+                  return resolver(value);
+                }
+                return value ?? "-";
+              },
+            },
+          ],
+        },
+        {
+          selector: "#totalDatabases",
+          field: "total_size_mb",
+          formatter: "sizeFromMB",
+          meta: [
+            {
+              selector: "#capInstMetaLargestShare",
+              resolve: (summary) => {
+                const max = Number(summary?.max_size_mb ?? 0) || 0;
+                const total = Number(summary?.total_size_mb ?? 0) || 0;
+                return total > 0 ? max / total : 0;
+              },
+              formatter: (value) =>
+                window.NumberFormat.formatPercent(value, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+            },
+          ],
+        },
+        {
+          selector: "#averageSize",
+          field: "avg_size_mb",
+          formatter: "sizeFromMB",
+          meta: [
+            {
+              selector: "#capInstMetaMaxToAvg",
+              resolve: (summary) => {
+                const max = Number(summary?.max_size_mb ?? 0) || 0;
+                const avg = Number(summary?.avg_size_mb ?? 0) || 0;
+                return avg > 0 ? max / avg : 0;
+              },
+              formatter: (value) =>
+                `${window.NumberFormat.formatDecimal(value, { precision: 1, trimZero: true, fallback: "0" })}x`,
+            },
+          ],
+        },
         { selector: "#maxSize", field: "max_size_mb", formatter: "sizeFromMB" },
       ],
       chartTitles: {

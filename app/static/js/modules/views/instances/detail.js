@@ -871,12 +871,12 @@ function renderAccountActions(meta) {
 }
 
 function updateAccountCount(total) {
-    const badge = selectOne('#accountCount');
-    if (!badge.length) {
+    const node = selectOne('#accountTotalCount');
+    if (!node.length) {
         return;
     }
     const count = Number(total) || 0;
-    badge.text(`共 ${count} 个账户`);
+    node.text(String(count));
 }
 
 /**
@@ -1130,12 +1130,12 @@ function renderDatabaseActionsCell(meta) {
 }
 
 function updateDatabaseCount(total) {
-    const badge = selectOne('#databaseCount');
-    if (!badge.length) {
+    const node = selectOne('#databaseTotalCount');
+    if (!node.length) {
         return;
     }
     const count = Number(total) || 0;
-    badge.text(`共 ${count} 个数据库`);
+    node.text(String(count));
 }
 
 function openDatabaseTableSizesModal(actionEvent) {
@@ -1489,7 +1489,7 @@ function toggleDeletedAccounts() {
     }
 
     const accountRows = select('.account-row');
-    const accountCount = selectOne('#accountCount');
+    const accountTotal = selectOne('#accountTotalCount');
     if (!accountRows.length) {
         return;
     }
@@ -1505,8 +1505,8 @@ function toggleDeletedAccounts() {
         }
     });
 
-    if (accountCount.length) {
-        accountCount.text(`共 ${visibleCount} 个账户`);
+    if (accountTotal.length) {
+        accountTotal.text(String(visibleCount));
     }
 }
 
