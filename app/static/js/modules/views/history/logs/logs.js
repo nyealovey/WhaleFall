@@ -503,19 +503,49 @@
      * @return {void}
      */
     function updateStatsDisplay(stats) {
-        const mapping = {
-            totalLogs: stats.total_logs ?? stats.total ?? 0,
-            errorLogs: stats.error_logs ?? stats.error_count ?? 0,
-            warningLogs: stats.warning_logs ?? stats.warning_count ?? 0,
-            modulesCount: stats.modules_count ?? stats.module_count ?? 0,
-        };
-        Object.entries(mapping).forEach(([id, value]) => {
+        const totalLogs = Number(stats.total_logs ?? stats.total ?? 0) || 0;
+        const errorLogs = Number(stats.error_logs ?? stats.error_count ?? 0) || 0;
+        const warningLogs = Number(stats.warning_logs ?? stats.warning_count ?? 0) || 0;
+        const modulesCount = Number(stats.modules_count ?? stats.module_count ?? 0) || 0;
+
+        const setText = (id, value) => {
             const element = document.getElementById(id);
             if (!element) {
                 return;
             }
-            element.textContent = value ?? 0;
-        });
+            element.textContent = value;
+        };
+
+        setText('totalLogs', totalLogs);
+        setText('errorLogs', errorLogs);
+        setText('warningLogs', warningLogs);
+        setText('modulesCount', modulesCount);
+
+        // 二级维度：错误/告警、占比、Top 模块（避免冗余文字，通过 icon + 数字/短文本表达）。
+        setText('logsMetaErrorCount', errorLogs);
+        setText('logsMetaWarningCount', warningLogs);
+
+        const formatPercent = global.NumberFormat.formatPercent;
+        setText(
+            'logsMetaErrorRate',
+            formatPercent(stats.error_rate, { precision: 1, trimZero: true, inputType: 'percent', fallback: '0%' }),
+        );
+        const warningRatio = totalLogs > 0 ? warningLogs / totalLogs : 0;
+        setText(
+            'logsMetaWarningRate',
+            formatPercent(warningRatio, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+        );
+
+        setText('logsMetaCriticalCount', Number(stats.critical_count ?? 0) || 0);
+        setText('logsMetaInfoCount', Number(stats.info_count ?? 0) || 0);
+
+        const topModules = Array.isArray(stats.top_modules) ? stats.top_modules : [];
+        const top1 = topModules[0] || null;
+        const topModuleName = top1?.module ? String(top1.module) : '-';
+        const topModuleCount = Number(top1?.count ?? 0) || 0;
+        setText('logsMetaTopModule', topModuleName);
+        setText('logsMetaTopModule2', topModuleName);
+        setText('logsMetaTopModuleCount', topModuleCount);
     }
 
     /**
