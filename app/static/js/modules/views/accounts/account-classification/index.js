@@ -48,28 +48,43 @@ function mountAccountClassificationPage(window, document) {
         console.error('AccountClassificationService 未加载，账户分类页面无法初始化');
         return;
     }
+    const createAccountClassificationStore = window.createAccountClassificationStore;
+    if (typeof createAccountClassificationStore !== 'function') {
+        console.error('createAccountClassificationStore 未加载，账户分类页面无法初始化');
+        return;
+    }
     const service = new AccountClassificationService();
+    const store = createAccountClassificationStore({ service });
+
+    // 注入依赖: PermissionPolicyCenter 不应自行直连 service.
+    if (typeof window.PermissionPolicyCenter?.configure === 'function') {
+        window.PermissionPolicyCenter.configure({
+            fetchPermissions: store.actions.fetchPermissions,
+        });
+    }
+
     /**
-     * 将服务的各 API 封装为前端调用入口。
+     * 将 store actions 封装为页面调用入口(兼容现有 modal controller 的 api 形态)。
      */
     const api = {
         classifications: {
-            list: () => service.listClassifications(),
-            detail: id => service.getClassification(id),
-            create: payload => service.createClassification(payload),
-            update: (id, payload) => service.updateClassification(id, payload),
-            remove: id => service.deleteClassification(id),
+            detail: id => store.actions.fetchClassificationDetail(id),
+            create: payload => store.actions.createClassification(payload),
+            update: (id, payload) => store.actions.updateClassification(id, payload),
+            remove: id => store.actions.deleteClassification(id),
         },
         rules: {
-            list: () => service.listRules(),
-            stats: ids => service.ruleStats(ids),
-            create: payload => service.createRule(payload),
-            detail: id => service.getRule(id),
-            update: (id, payload) => service.updateRule(id, payload),
-            remove: id => service.deleteRule(id),
+            detail: id => store.actions.fetchRuleDetail(id),
+            create: payload => store.actions.createRule(payload),
+            update: (id, payload) => store.actions.updateRule(id, payload),
+            remove: id => store.actions.deleteRule(id),
         },
         automation: {
-            trigger: payload => service.triggerAutomation(payload),
+            trigger: payload => store.actions.triggerAutomation(payload),
+        },
+        load: {
+            classifications: () => store.actions.loadClassifications(),
+            rules: () => store.actions.loadRules(),
         },
     };
 
@@ -94,11 +109,6 @@ function mountAccountClassificationPage(window, document) {
             console.error(`[AccountClassificationPage] ${context}`, error, extras || {});
         };
 
-    const state = {
-        classifications: [],
-        rulesByDbType: {},
-    };
-
     const permissionView = window.AccountClassificationPermissionView
         ? window.AccountClassificationPermissionView.createView({
               PermissionPolicyCenter: window.PermissionPolicyCenter,
@@ -117,8 +127,8 @@ function mountAccountClassificationPage(window, document) {
               permissionView,
               debugLog,
               handleRequestError,
-              onMutated: loadRules,
-              getClassificationOptions: () => state.classifications,
+              onMutated: null,
+              getClassificationOptions: () => store.getState().classifications,
           })
         : null;
 
@@ -132,13 +142,49 @@ function mountAccountClassificationPage(window, document) {
               api: api.classifications,
               debugLog,
               handleRequestError,
-              onMutated: async () => {
-                  await loadClassifications();
-                  ruleModals?.updateClassificationOptions(state.classifications);
-                  await loadRules();
-              },
+              onMutated: null,
           })
         : null;
+
+    const ACTION_ERROR_MESSAGES = {
+        loadClassifications: '加载分类失败',
+        loadRules: '加载规则失败',
+        loadRuleStats: '加载规则统计失败',
+        createClassification: '创建分类失败',
+        updateClassification: '更新分类失败',
+        deleteClassification: '删除分类失败',
+        createRule: '创建规则失败',
+        updateRule: '更新规则失败',
+        deleteRule: '删除规则失败',
+        triggerAutomation: '自动分类失败',
+        fetchPermissions: '加载权限配置失败',
+    };
+
+    function handleStoreError(payload) {
+        const error = payload?.error || payload;
+        const action = payload?.meta?.action;
+        const fallback = ACTION_ERROR_MESSAGES[action] || '操作失败';
+        handleRequestError(error, fallback, action || 'account_classification_store');
+        if (action === 'loadClassifications') {
+            renderClassifications([]);
+        }
+        if (action === 'loadRules') {
+            renderRules({});
+        }
+    }
+
+    store.subscribe('accountClassification:classificationsUpdated', (payload) => {
+        const list = payload?.classifications || store.getState().classifications;
+        renderClassifications(list);
+        ruleModals?.updateClassificationOptions?.(list);
+    });
+
+    store.subscribe('accountClassification:rulesUpdated', (payload) => {
+        const rulesByDbType = payload?.rulesByDbType || store.getState().rulesByDbType;
+        renderRules(rulesByDbType);
+    });
+
+    store.subscribe('accountClassification:error', handleStoreError);
 
     /**
      * 页面入口：初始化模态、加载分类与规则。
@@ -152,56 +198,14 @@ function mountAccountClassificationPage(window, document) {
         setupGlobalSearchListener();
         ruleModals?.init();
         classificationModals?.init();
-        loadClassifications()
-            .then(list => {
-                ruleModals?.updateClassificationOptions?.(list);
-            })
-            .catch(error => debugLog('分类加载失败', error));
-        loadRules();
+        store.actions.loadClassifications().catch(error => debugLog('分类加载失败', error));
+        store.actions.loadRules().catch(error => debugLog('规则加载失败', error));
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', startPageInitialization, { once: true });
     } else {
         startPageInitialization();
-    }
-
-    /* ========== 数据加载 ========== */
-    /**
-     * 拉取分类列表并渲染，同时缓存 state。
-     */
-    async function loadClassifications() {
-        try {
-            debugLog('开始加载分类');
-            const response = await api.classifications.list();
-            const list = extractClassifications(response);
-            state.classifications = list;
-            debugLog('分类加载成功', { count: list.length });
-            renderClassifications(list);
-            return list;
-        } catch (error) {
-            handleRequestError(error, '加载分类失败', 'load_classifications');
-            renderClassifications([]);
-            throw error;
-        }
-    }
-
-    /**
-     * 拉取规则列表，附加统计信息后渲染。
-     */
-    async function loadRules() {
-        try {
-            debugLog('开始加载规则');
-            const response = await api.rules.list();
-            const rulesByDbType = extractRules(response);
-            const enriched = await attachRuleStats(rulesByDbType);
-            state.rulesByDbType = enriched;
-            debugLog('规则加载成功', { dbTypes: Object.keys(enriched).length });
-            renderRules(enriched);
-        } catch (error) {
-            handleRequestError(error, '加载规则失败', 'load_rules');
-            renderRules({});
-        }
     }
 
     /**
@@ -266,91 +270,9 @@ function mountAccountClassificationPage(window, document) {
         try {
             await api.rules.remove(ruleId);
             toast.success('规则已删除');
-            await loadRules();
         } catch (error) {
             handleRequestError(error, '删除规则失败', 'delete_rule');
         }
-    }
-
-    /**
-     * 从接口响应提取分类数组。
-     *
-     * @param {Object} response API 响应对象。
-     * @returns {Array<Object>} 分类数组。
-     */
-    function extractClassifications(response) {
-        const collection = response?.data?.classifications ?? [];
-        return Array.isArray(collection) ? collection : [];
-    }
-
-    /**
-     * 从接口响应提取按 db_type 分类的规则对象。
-     *
-     * @param {Object} response API 响应对象。
-     * @returns {Object} 以 db_type 为键的规则映射。
-     */
-    function extractRules(response) {
-        const raw = response?.data?.rules_by_db_type ?? {};
-        return typeof raw === 'object' && raw !== null ? raw : {};
-    }
-
-    /**
-     * 为规则字典附加匹配账户数统计。
-     *
-     * @param {Object} rulesByDbType 原始规则字典。
-     * @returns {Promise<Object>} 附加统计后的规则字典。
-     */
-    async function attachRuleStats(rulesByDbType) {
-        const ids = collectRuleIds(rulesByDbType);
-        if (ids.length === 0) {
-            return rulesByDbType;
-        }
-
-        try {
-            const response = await api.rules.stats(ids);
-            const statsList = response?.data?.rule_stats ?? [];
-            const statsMap = {};
-            if (Array.isArray(statsList)) {
-                statsList.forEach(item => {
-                    if (item && typeof item.rule_id === 'number') {
-                        statsMap[item.rule_id] = item.matched_accounts_count ?? 0;
-                    }
-                });
-            }
-            Object.values(rulesByDbType).forEach(ruleGroup => {
-                if (Array.isArray(ruleGroup)) {
-                    ruleGroup.forEach(rule => {
-                        if (rule && typeof rule.id === 'number') {
-                            rule.matched_accounts_count = statsMap[rule.id] ?? 0;
-                        }
-                    });
-                }
-            });
-        } catch (error) {
-            console.error('加载规则统计失败', error);
-        }
-
-        return rulesByDbType;
-    }
-
-    /**
-     * 将 rulesByDbType 拆平，收集规则 ID 列表。
-     *
-     * @param {Object} rulesByDbType 规则分组。
-     * @returns {Array<number>} 规则 ID 数组。
-     */
-    function collectRuleIds(rulesByDbType) {
-        const ids = [];
-        Object.values(rulesByDbType || {}).forEach(ruleGroup => {
-            if (Array.isArray(ruleGroup)) {
-                ruleGroup.forEach(rule => {
-                    if (rule && typeof rule.id === 'number') {
-                        ids.push(rule.id);
-                    }
-                });
-            }
-        });
-        return ids;
     }
 
     /**
@@ -705,9 +627,6 @@ function mountAccountClassificationPage(window, document) {
         try {
             const response = await api.classifications.remove(id);
             toast.success(response?.message || '分类删除成功');
-            await loadClassifications();
-            ruleModals?.updateClassificationOptions(state.classifications);
-            await loadRules();
         } catch (error) {
             handleRequestError(error, '删除分类失败', 'delete_classification');
         }
@@ -836,14 +755,6 @@ function mountAccountClassificationPage(window, document) {
         return message;
     }
 
-    window.AccountClassificationPage = {
-        mount: () => mountAccountClassificationPage(window, document),
-        reload: () => {
-            loadClassifications();
-            loadRules();
-        },
-        state,
-    };
 }
 
 // 提前注册页面入口，供 page-loader 查找。

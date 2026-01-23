@@ -1,12 +1,14 @@
 (function (window, document) {
   "use strict";
 
-  const AccountClassificationService = window.AccountClassificationService;
-  if (!AccountClassificationService) {
-    console.error("AccountClassificationService 未初始化，权限策略中心无法加载");
-    return;
+  // 通过 Page Entry 注入 fetchPermissions，避免本模块自行直连 service。
+  let fetchPermissions = null;
+  function ensureFetchPermissions() {
+    if (typeof fetchPermissions !== "function") {
+      throw new Error("PermissionPolicyCenter: fetchPermissions 未配置");
+    }
+    return fetchPermissions;
   }
-  const accountClassificationService = new AccountClassificationService();
   const permissionPlaceholderCache = new Map();
 
   /**
@@ -1196,6 +1198,18 @@
    */
   class PermissionPolicyCenter {
     /**
+     * 配置依赖(由 Page Entry 注入)。
+     *
+     * @param {Object} options 配置项
+     * @param {Function} options.fetchPermissions 拉取权限配置的方法
+     * @returns {void}
+     */
+    static configure(options) {
+      const injected = options?.fetchPermissions;
+      fetchPermissions = typeof injected === "function" ? injected : null;
+    }
+
+    /**
      * 加载权限配置。
      *
      * @param {string} dbType - 数据库类型
@@ -1230,9 +1244,9 @@
       `;
 
       try {
-        const response = await accountClassificationService.fetchPermissions(dbType);
+        const response = await ensureFetchPermissions()(dbType);
         if (response && response.success === false) {
-          throw new Error(response.error || "加载权限配置失败");
+          throw new Error(response.error || response.message || "加载权限配置失败");
         }
         const permissions = sortPermissionConfig(response?.data?.permissions ?? {});
         const strategy = getStrategy(dbType);
