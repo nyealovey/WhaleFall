@@ -131,6 +131,7 @@
     // 设置用户角色，供JavaScript使用
     window.currentUserRole = '{{ current_user.role }}';
 </script>
+    <script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/services/account_classification_service.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/stores/account_classification_store.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/permissions/permission-policy-center.js') }}"></script>

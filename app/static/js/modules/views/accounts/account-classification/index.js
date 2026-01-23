@@ -18,6 +18,12 @@ function mountAccountClassificationPage(window, document) {
     const debugEnabled = window.DEBUG_ACCOUNT_CLASSIFICATION ?? true;
     window.DEBUG_ACCOUNT_CLASSIFICATION = debugEnabled;
 
+    const escapeHtml = window.UI?.escapeHtml;
+    if (typeof escapeHtml !== 'function') {
+        console.error('UI.escapeHtml 未初始化，账户分类页面无法安全渲染');
+        return;
+    }
+
     /**
      * 统一的调试日志输出。
      *
@@ -383,19 +389,19 @@ function mountAccountClassificationPage(window, document) {
         ];
 
         return `
-            <div class="classification-card" data-id="${classification.id}">
+            <div class="classification-card" data-id="${escapeHtml(classification?.id ?? '')}">
                 <div class="classification-card__header">
                     <div class="classification-card__title">
                         ${iconHtml}
                         <div>
                             <div class="classification-card__name-row">
-                                <div class="classification-card__name">${classification.name || '未命名分类'}</div>
+                                <div class="classification-card__name">${escapeHtml(classification?.name || '未命名分类')}</div>
                                 <div class="classification-card__badges">
                                     ${renderSystemClassificationPill(classification.is_system)}
                                     ${renderRiskLevelPill(classification.risk_level)}
                                 </div>
                             </div>
-                            <div class="small text-muted"><code>${classification.code || '-'}</code></div>
+                            <div class="small text-muted"><code>${escapeHtml(classification?.code || '-')}</code></div>
                         </div>
                     </div>
                     <div class="classification-card__actions">
@@ -404,7 +410,7 @@ function mountAccountClassificationPage(window, document) {
                 </div>
                 ${
                     classification.description
-                        ? `<p class="classification-card__desc">${classification.description}</p>`
+                        ? `<p class="classification-card__desc">${escapeHtml(classification.description)}</p>`
                         : ''
                 }
                 <div class="ledger-chip-stack">${chips.join('')}</div>
@@ -422,14 +428,14 @@ function mountAccountClassificationPage(window, document) {
         }
 
         const editButton = `
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-classification" data-classification-id="${classification.id}" title="编辑分类">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="编辑分类">
                 <i class="fas fa-edit"></i>
             </button>
         `;
         const deleteButton = classification.is_system
             ? ''
             : `
-                <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-classification" data-classification-id="${classification.id}" title="删除分类">
+                <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="删除分类">
                     <i class="fas fa-trash"></i>
                 </button>
             `;
@@ -506,14 +512,16 @@ function mountAccountClassificationPage(window, document) {
             return '';
         }
         const modifierClass = modifier ? ` ledger-chip--${modifier}` : '';
-        return `<span class="ledger-chip${modifierClass}">${label}</span>`;
+        return `<span class="ledger-chip${modifierClass}">${escapeHtml(label)}</span>`;
     }
 
     function renderStatusPill(label, tone = 'muted', icon, title) {
         const toneClass = tone ? ` status-pill--${tone}` : '';
         const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
-        const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-        return `<span class="status-pill${toneClass}"${titleAttr}>${iconHtml}${label}</span>`;
+        const safeLabel = escapeHtml(label ?? '');
+        const safeTitle = title === undefined || title === null ? '' : escapeHtml(title);
+        const titleAttr = safeTitle ? ` title="${safeTitle}"` : '';
+        return `<span class="status-pill${toneClass}"${titleAttr}>${iconHtml}${safeLabel}</span>`;
     }
 
     /**
@@ -552,7 +560,7 @@ function mountAccountClassificationPage(window, document) {
                 <div class="rule-group-card__header">
                     <div class="rule-group-card__title">
                         <i class="${dbIcon} text-primary"></i>
-                        <span>${label}</span>
+                        <span>${escapeHtml(label)}</span>
                     </div>
                     ${renderStatusPill(`${rules.length}`, 'muted', 'fa-layer-group', `规则数 ${rules.length}`)}
                 </div>
@@ -575,7 +583,7 @@ function mountAccountClassificationPage(window, document) {
             <div class="rule-card">
                 <div class="rule-card__body">
                     <div class="rule-card__info">
-                        <div class="rule-card__title">${rule.rule_name}</div>
+                        <div class="rule-card__title">${escapeHtml(rule?.rule_name || '')}</div>
                         <div class="rule-card__classification">
                             ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
                         </div>
@@ -605,13 +613,13 @@ function mountAccountClassificationPage(window, document) {
             `;
         }
         return `
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="view-rule" data-rule-id="${rule.id}" title="查看详情">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="view-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="查看详情">
                 <i class="fas fa-eye"></i>
             </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-rule" data-rule-id="${rule.id}" title="编辑规则">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="编辑规则">
                 <i class="fas fa-edit"></i>
             </button>
-            <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-rule" data-rule-id="${rule.id}" title="删除规则">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="删除规则">
                 <i class="fas fa-trash"></i>
             </button>
         `;
