@@ -308,11 +308,14 @@ function mountCredentialsListPage(global) {
     const meta = rowMeta.get(row);
     const resolvedCount = Number.isFinite(Number(count)) ? Number(count) : Number(meta.instance_count ?? 0);
     if (!gridHtml) {
-      return `${resolvedCount} 个实例`;
+      return `${resolvedCount}`;
     }
+    const variant = resolvedCount ? "info" : "muted";
     return gridHtml(
       `<div class="instance-count-stack">
-        ${buildStatusPillMarkup(`${resolvedCount} 个实例`, resolvedCount ? "info" : "muted", "fa-database")}
+        <span class="status-pill status-pill--${variant}" title="绑定实例数" aria-label="绑定实例数 ${resolvedCount}">
+          <i class="fas fa-database" aria-hidden="true"></i><span aria-hidden="true">${resolvedCount}</span>
+        </span>
       </div>`,
     );
   }

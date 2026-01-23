@@ -358,7 +358,8 @@ function mountAdminPartitionsPage(global) {
         if (payload?.tone) {
             wrapper.attr('data-tone', payload.tone);
         } else {
-            wrapper.removeAttr('data-tone');
+            // Umbrella.js 没有 removeAttr，移除属性用 attr(name, null)。
+            wrapper.attr('data-tone', null);
         }
         const metaNode = wrapper.find('[data-role="metric-meta"]');
         if (metaNode.length) {

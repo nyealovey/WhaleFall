@@ -39,7 +39,7 @@
                         </span>
                         <span class="status-pill status-pill--danger">
                             <i class="fas fa-trash"></i>
-                            {{ overview.instances.deleted if overview and overview.instances else 0 }} 已删除
+                            {{ overview.instances.deleted if overview and overview.instances else 0 }} 删除
                         </span>
                     {% endcall %}
                 </div>
@@ -59,7 +59,7 @@
                         </span>
                         <span class="status-pill status-pill--muted">
                             <i class="fas fa-user-slash"></i>
-                            {{ (overview.accounts.total - overview.accounts.active) if overview and overview.accounts else 0 }} 停用/下线
+                            {{ (overview.accounts.total - overview.accounts.active) if overview and overview.accounts else 0 }} 停用
                         </span>
                     {% endcall %}
                 </div>
@@ -72,7 +72,7 @@
                 </div>
                 <div class="col">
                     {% call metric_card(
-                        '数据库总数（含已删除）',
+                        '数据库总数',
                         value=(overview.databases.total if overview and overview.databases else 0),
                         icon_class='fas fa-database'
                     ) %}
