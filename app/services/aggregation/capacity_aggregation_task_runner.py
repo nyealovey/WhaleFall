@@ -17,6 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import AppError
+from app.core.constants.status_types import SyncStatus
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
@@ -24,9 +25,9 @@ from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.aggregation_tasks_read_service import AggregationTasksReadService
 from app.services.sync_session_service import SyncItemStats, sync_session_service
 
-STATUS_COMPLETED = "completed"
+STATUS_COMPLETED = SyncStatus.COMPLETED
 STATUS_SKIPPED = "skipped"
-STATUS_FAILED = "failed"
+STATUS_FAILED = SyncStatus.FAILED
 
 PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
 

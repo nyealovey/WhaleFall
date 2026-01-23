@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from app.core.constants.status_types import TaskRunStatus
 from app.core.types.listing import PaginatedResult
 from app.core.types.task_runs import (
     TaskRunDetailResult,
@@ -52,7 +53,7 @@ class TaskRunsReadService:
         """获取任务运行失败子项(错误日志列表)."""
         run = self._repository.get_run(run_id)
         items = self._repository.list_run_items(run_id)
-        failed = [item for item in items if item.status == "failed"]
+        failed = [item for item in items if item.status == TaskRunStatus.FAILED]
         return TaskRunErrorLogsResult(
             run=self._to_run_item(run),
             items=[self._to_item_item(item) for item in failed],
