@@ -132,20 +132,20 @@ def auto_classify_accounts(
                     details_json={"skipped": True, "skip_reason": "没有需要分类的账户"},
                 )
 
-        current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-        if current_run is not None and current_run.status != "cancelled":
-            current_run.summary_json = build_auto_classify_accounts_summary(
-                task_key="auto_classify_accounts",
-                inputs={"instance_id": instance_id},
-                rules_count=len(rules),
-                accounts_count=0,
-                total_matches=0,
-                total_classifications_added=0,
-                failed_count=0,
-                duration_ms=int(round((time.perf_counter() - started_at) * 1000)),
-                skipped=True,
-                skip_reason="没有需要分类的账户",
-            )
+            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+            if current_run is not None and current_run.status != "cancelled":
+                current_run.summary_json = build_auto_classify_accounts_summary(
+                    task_key="auto_classify_accounts",
+                    inputs={"instance_id": instance_id},
+                    rules_count=len(rules),
+                    accounts_count=0,
+                    total_matches=0,
+                    total_classifications_added=0,
+                    failed_count=0,
+                    duration_ms=int(round((time.perf_counter() - started_at) * 1000)),
+                    skipped=True,
+                    skip_reason="没有需要分类的账户",
+                )
 
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
