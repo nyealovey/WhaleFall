@@ -14,7 +14,7 @@ from contextlib import suppress
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from flask import Flask, g, request
+from flask import Flask, current_app, g, request
 from flask_login import current_user
 
 from app.utils.logging.context_vars import request_id_var, user_id_var
@@ -87,6 +87,18 @@ def register_request_logging(app: Flask) -> None:
 
         status_code = int(getattr(response, "status_code", 0) or 0)
         outcome = "success" if status_code and status_code < 400 else "error"
+
+        mode = str(current_app.config.get("LOG_HTTP_REQUEST_COMPLETED_MODE", "slow_or_error")).strip().lower()
+        slow_ms = int(current_app.config.get("LOG_HTTP_REQUEST_COMPLETED_SLOW_MS", 1000))
+        is_slow = duration_ms is not None and duration_ms >= slow_ms
+        is_error = status_code >= 400
+
+        if mode == "off":
+            return response
+        if mode == "errors_only" and not is_error:
+            return response
+        if mode == "slow_or_error" and not (is_error or is_slow):
+            return response
 
         logger = get_logger("http")
         logger.info(

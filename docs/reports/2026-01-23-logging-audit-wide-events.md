@@ -17,8 +17,9 @@ method: 静态代码审计 + 本地最小化运行验证（不含线上日志抽
 - request correlation：为每个请求注入 `request_id`（支持入站 `X-Request-ID`）并写入 contextvars；同时在响应头回传 `X-Request-ID`。
   - 实现：`app/infra/logging/request_middleware.py:49`
   - 注册顺序：在 CSRF 等早期 `before_request` 之前注册，确保“早期拒绝请求”也有 request_id。`app/__init__.py:109`
-- wide event：每个请求在完成时发射一条 `http_request_completed`（含 `status_code/outcome/duration_ms/route/endpoint` 等）。
-  - 实现：`app/infra/logging/request_middleware.py:80`
+- wide event：请求完成时发射 `http_request_completed`（含 `status_code/outcome/duration_ms/route/endpoint` 等）。为避免日志中心被请求日志淹没，默认仅记录“慢请求或错误请求”，可通过配置切换为记录全部/仅错误/关闭。
+  - 实现：`app/infra/logging/request_middleware.py`
+  - 配置：`LOG_HTTP_REQUEST_COMPLETED_MODE`、`LOG_HTTP_REQUEST_COMPLETED_SLOW_MS`（见 `env.example`）
 - 环境特征字段：为所有日志注入 `build_hash/region/runtime_instance_id`（Settings 缺省从 `.last_build_hash`/hostname 填充），并把 `environment` 扩展为“有 app_context 即写入”。
   - 实现：`app/settings.py`、`app/utils/structlog_config.py:185`
   - env.example：`env.example`
@@ -72,7 +73,7 @@ method: 静态代码审计 + 本地最小化运行验证（不含线上日志抽
 
 建议（目标态）：
 
-- 引入一个 request middleware：`before_request` 采集/生成维度，`after_request` emit 一条 `http_request_completed` wide event（无论成功或失败都保证一条）。
+- 引入一个 request middleware：`before_request` 采集/生成维度，`after_request` emit `http_request_completed` wide event（可配置为全量/仅慢或错/仅错/关闭）。
 - handler/业务代码只负责“补充业务维度”，而不是承担 request 基础字段与发射逻辑（符合 skill 的 “Middleware Pattern”）。
 
 已整改：
