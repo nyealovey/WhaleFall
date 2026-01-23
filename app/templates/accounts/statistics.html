@@ -7,6 +7,15 @@
 
 {% block content_outer %}
 {% set total_accounts = stats.total_accounts or 0 %}
+{% set active_accounts = stats.active_accounts or 0 %}
+{% set locked_accounts = stats.locked_accounts or 0 %}
+{% set total_instances = stats.total_instances or 0 %}
+{% set active_rate = (active_accounts / total_accounts * 100) if total_accounts else 0 %}
+{% set locked_rate = (locked_accounts / total_accounts * 100) if total_accounts else 0 %}
+{% set inactive_accounts = (total_accounts - active_accounts) if total_accounts else 0 %}
+{% set avg_per_instance = (total_accounts / total_instances) if total_instances else 0 %}
+{% set active_per_instance = (active_accounts / total_instances) if total_instances else 0 %}
+{% set locked_per_instance = (locked_accounts / total_instances) if total_instances else 0 %}
 {% call page_header('fas fa-chart-bar', '账户统计', '概览账户规模、分类与数据库类型分布') %}
 <div class="page-header-actions d-flex gap-2 flex-wrap">
     <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-secondary">
@@ -24,22 +33,36 @@
 	            <div class="row g-3 accounts-stats-row">
 	                <div class="col-12 col-sm-6 col-xl-3">
 	                    {% call metric_card('总账户数', value=(stats.total_accounts or 0), icon_class='fas fa-users', data_stat_key='total_accounts') %}
-	                        <span class="chip-outline chip-outline--muted"><i class="fas fa-clock me-1"></i>实时</span>
+	                        <span class="chip-outline chip-outline--muted" title="活跃率" aria-label="活跃率">
+	                            <i class="fas fa-user-check" aria-hidden="true"></i><span id="accountsMetaActiveRate" aria-hidden="true">{{ '%.1f'|format(active_rate) }}%</span>
+	                        </span>
+	                        <span class="chip-outline chip-outline--muted" title="锁定率" aria-label="锁定率">
+	                            <i class="fas fa-user-lock" aria-hidden="true"></i><span id="accountsMetaLockedRate" aria-hidden="true">{{ '%.1f'|format(locked_rate) }}%</span>
+	                        </span>
+	                        <span class="chip-outline chip-outline--muted" title="未活跃" aria-label="未活跃">
+	                            <i class="fas fa-user-slash" aria-hidden="true"></i><span id="accountsMetaInactiveCount" aria-hidden="true">{{ inactive_accounts }}</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
 	                    {% call metric_card('活跃账户', value=(stats.active_accounts or 0), icon_class='fas fa-user-check', tone='success', data_stat_key='active_accounts') %}
-	                        <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>活跃</span>
+	                        <span class="chip-outline chip-outline--muted" title="活跃/实例" aria-label="活跃/实例">
+	                            <i class="fas fa-server" aria-hidden="true"></i><span id="accountsMetaActivePerInstance" aria-hidden="true">{{ active_per_instance|round(1) }}</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
 	                    {% call metric_card('锁定账户', value=(stats.locked_accounts or 0), icon_class='fas fa-user-lock', tone='warning', data_stat_key='locked_accounts') %}
-	                        <span class="status-pill status-pill--warning"><i class="fas fa-user-lock me-1"></i>需关注</span>
+	                        <span class="chip-outline chip-outline--muted" title="锁定/实例" aria-label="锁定/实例">
+	                            <i class="fas fa-server" aria-hidden="true"></i><span id="accountsMetaLockedPerInstance" aria-hidden="true">{{ locked_per_instance|round(1) }}</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
 	                    {% call metric_card('在线实例', value=(stats.total_instances or 0), icon_class='fas fa-server', tone='info', data_stat_key='total_instances') %}
-	                        <span class="chip-outline chip-outline--brand"><i class="fas fa-database me-1"></i>覆盖率</span>
+	                        <span class="chip-outline chip-outline--muted" title="账户/实例" aria-label="账户/实例">
+	                            <i class="fas fa-users" aria-hidden="true"></i><span id="accountsMetaAvgPerInstance" aria-hidden="true">{{ avg_per_instance|round(1) }}</span>
+	                        </span>
 	                    {% endcall %}
 	                </div>
 	            </div>

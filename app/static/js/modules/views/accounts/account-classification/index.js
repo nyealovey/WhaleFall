@@ -509,10 +509,11 @@ function mountAccountClassificationPage(window, document) {
         return `<span class="ledger-chip${modifierClass}">${label}</span>`;
     }
 
-    function renderStatusPill(label, tone = 'muted', icon) {
+    function renderStatusPill(label, tone = 'muted', icon, title) {
         const toneClass = tone ? ` status-pill--${tone}` : '';
         const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
-        return `<span class="status-pill${toneClass}">${iconHtml}${label}</span>`;
+        const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+        return `<span class="status-pill${toneClass}"${titleAttr}>${iconHtml}${label}</span>`;
     }
 
     /**
@@ -553,7 +554,7 @@ function mountAccountClassificationPage(window, document) {
                         <i class="${dbIcon} text-primary"></i>
                         <span>${label}</span>
                     </div>
-                    ${renderStatusPill(`共 ${rules.length} 条`, 'muted', 'fa-layer-group')}
+                    ${renderStatusPill(`${rules.length}`, 'muted', 'fa-layer-group', `规则数 ${rules.length}`)}
                 </div>
                 <div class="rule-list">
                     ${rules.map(rule => renderRuleRow(rule)).join('')}

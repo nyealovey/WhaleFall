@@ -32,23 +32,37 @@
 {% endif %}
 
 {% set stats = tag_stats or {'total': 0, 'active': 0, 'inactive': 0, 'category_count': 0} %}
+{% set total_tags = stats.total or 0 %}
+{% set active_tags = stats.active or 0 %}
+{% set inactive_tags = stats.inactive or 0 %}
+{% set tag_categories = stats.category_count or 0 %}
+{% set active_rate = (active_tags / total_tags * 100) if total_tags else 0 %}
+{% set inactive_rate = (inactive_tags / total_tags * 100) if total_tags else 0 %}
+{% set avg_per_category = (total_tags / tag_categories) if tag_categories else 0 %}
+{% set active_per_category = (active_tags / tag_categories) if tag_categories else 0 %}
 <section class="page-section page-section--flush">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="tags-stats-grid" id="tagStatsContainer">
-                {% call metric_card('全部标签', value=stats.total, icon_class='fas fa-tags', tone='info', data_stat_key='total') %}
-                    <span class="chip-outline chip-outline--muted">
-                        <i class="fas fa-layer-group me-1"></i>{{ stats.category_count }} 个分类
+                {% call metric_card('全部标签', value=total_tags, icon_class='fas fa-tags', tone='info', data_stat_key='total') %}
+                    <span class="chip-outline chip-outline--muted" title="均值/分类" aria-label="均值/分类">
+                        <i class="fas fa-layer-group" aria-hidden="true"></i><span id="tagsMetaAvgPerCategory" aria-hidden="true">{{ avg_per_category|round(1) }}</span>
                     </span>
                 {% endcall %}
-                {% call metric_card('启用标签', value=stats.active, icon_class='fas fa-check-circle', tone='success', data_stat_key='active') %}
-                    <span class="status-pill status-pill--success"><i class="fas fa-check-circle"></i>启用</span>
+                {% call metric_card('启用率', value=('%.1f'|format(active_rate) ~ '%'), icon_class='fas fa-check-circle', tone='success', data_stat_key='active_rate') %}
+                    <span class="chip-outline chip-outline--muted" title="启用" aria-label="启用">
+                        <i class="fas fa-check" aria-hidden="true"></i><span id="tagsMetaActiveCount" aria-hidden="true">{{ active_tags }}</span>
+                    </span>
                 {% endcall %}
-                {% call metric_card('停用标签', value=stats.inactive, icon_class='fas fa-ban', tone='warning', data_stat_key='inactive') %}
-                    <span class="status-pill status-pill--muted"><i class="fas fa-ban"></i>停用</span>
+                {% call metric_card('停用率', value=('%.1f'|format(inactive_rate) ~ '%'), icon_class='fas fa-ban', tone='warning', data_stat_key='inactive_rate') %}
+                    <span class="chip-outline chip-outline--muted" title="停用" aria-label="停用">
+                        <i class="fas fa-ban" aria-hidden="true"></i><span id="tagsMetaInactiveCount" aria-hidden="true">{{ inactive_tags }}</span>
+                    </span>
                 {% endcall %}
-                {% call metric_card('标签分类', value=stats.category_count, icon_class='fas fa-tag', tone='muted', data_stat_key='category_count') %}
-                    <span class="chip-outline chip-outline--muted"><i class="fas fa-tag"></i>分类池</span>
+                {% call metric_card('标签分类', value=tag_categories, icon_class='fas fa-tag', tone='muted', data_stat_key='category_count') %}
+                    <span class="chip-outline chip-outline--muted" title="启用/分类" aria-label="启用/分类">
+                        <i class="fas fa-user-check" aria-hidden="true"></i><span id="tagsMetaActivePerCategory" aria-hidden="true">{{ active_per_category|round(1) }}</span>
+                    </span>
                 {% endcall %}
             </div>
         </div>

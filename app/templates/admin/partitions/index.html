@@ -30,13 +30,19 @@
 	        <div class="layout-shell-inner">
 	            <div class="row g-3 admin-partitions__stats" id="partitionStats">
 	                <div class="col-md-3 col-12">
-	                    {{ metric_card('分区总数', value=0, icon_class='fas fa-layer-group', data_stat_key='total_partitions') }}
+	                    {% call metric_card('分区总数', value=0, icon_class='fas fa-layer-group', data_stat_key='total_partitions') %}
+	                        <div data-role="metric-meta"></div>
+	                    {% endcall %}
 	                </div>
 	                <div class="col-md-3 col-12">
-	                    {{ metric_card('总大小', value='0 B', icon_class='fas fa-hdd', data_stat_key='total_size') }}
+	                    {% call metric_card('总大小', value='0 B', icon_class='fas fa-hdd', data_stat_key='total_size') %}
+	                        <div data-role="metric-meta"></div>
+	                    {% endcall %}
 	                </div>
 	                <div class="col-md-3 col-12">
-	                    {{ metric_card('总记录数', value=0, icon_class='fas fa-list-ol', data_stat_key='total_records') }}
+	                    {% call metric_card('总记录数', value=0, icon_class='fas fa-list-ol', data_stat_key='total_records') %}
+	                        <div data-role="metric-meta"></div>
+	                    {% endcall %}
 	                </div>
 	                <div class="col-md-3 col-12">
 	                    {% call metric_card('健康状态', value='--', icon_class='fas fa-heartbeat', tone='muted', data_stat_key='health') %}

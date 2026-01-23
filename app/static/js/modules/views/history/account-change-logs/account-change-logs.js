@@ -409,6 +409,8 @@
       return;
     }
     const hours = filters?.hours;
+    const windowHours = Number(hours);
+    refreshStats.lastWindowHours = Number.isFinite(windowHours) && windowHours > 0 ? windowHours : 24;
     service
       .fetchStats({ hours })
       .then((resp) => {
@@ -431,6 +433,7 @@
     const success = Number(payload.success_count ?? 0) || 0;
     const failed = Number(payload.failed_count ?? 0) || 0;
     const affectedAccounts = Number(payload.affected_accounts ?? 0) || 0;
+    const windowHours = refreshStats.lastWindowHours || 24;
 
     const setText = (id, value) => {
       const element = document.getElementById(id);
@@ -441,30 +444,45 @@
     };
 
     setText("totalChanges", total);
-    setText("successChanges", success);
     setText("failedChanges", failed);
     setText("affectedAccounts", affectedAccounts);
-
-    // 二级维度：成功/失败拆分 + 成功率/失败率 + 人均变更（避免冗余文字，通过 icon + 数字表达）。
-    setText("changeLogsMetaSuccessCount", success);
-    setText("changeLogsMetaFailedCount", failed);
-    setText("changeLogsMetaAffectedAccounts", affectedAccounts);
 
     const formatPercent = global.NumberFormat.formatPercent;
     const successRatio = total > 0 ? success / total : 0;
     const failedRatio = total > 0 ? failed / total : 0;
     setText(
-      "changeLogsMetaSuccessRate",
+      "successRate",
       formatPercent(successRatio, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
     );
     setText(
       "changeLogsMetaFailedRate",
       formatPercent(failedRatio, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
     );
+
     const avgPerAccount = affectedAccounts > 0 ? total / affectedAccounts : 0;
     setText(
       "changeLogsMetaAvgPerAccount",
       global.NumberFormat.formatDecimal(avgPerAccount, { precision: 1, trimZero: true, fallback: "0" }),
+    );
+
+    setText("changeLogsMetaWindowHours", `${windowHours}h`);
+
+    const successPerAccount = affectedAccounts > 0 ? success / affectedAccounts : 0;
+    setText(
+      "changeLogsMetaSuccessPerAccount",
+      global.NumberFormat.formatDecimal(successPerAccount, { precision: 1, trimZero: true, fallback: "0" }),
+    );
+
+    const failedPerAccount = affectedAccounts > 0 ? failed / affectedAccounts : 0;
+    setText(
+      "changeLogsMetaFailedPerAccount",
+      global.NumberFormat.formatDecimal(failedPerAccount, { precision: 1, trimZero: true, fallback: "0" }),
+    );
+
+    const changesPerHour = windowHours > 0 ? total / windowHours : 0;
+    setText(
+      "changeLogsMetaChangesPerHour",
+      global.NumberFormat.formatDecimal(changesPerHour, { precision: 1, trimZero: true, fallback: "0" }),
     );
   }
 
