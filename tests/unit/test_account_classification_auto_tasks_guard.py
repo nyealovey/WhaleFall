@@ -69,4 +69,3 @@ def test_auto_classify_accounts_no_accounts_return_must_be_guarded_by_accounts_c
         "发现 `没有需要分类的账户` 的 return 不在 `if not accounts:` 分支内，"
         f"可能导致误判并跳过分类逻辑：{path.relative_to(repo_root)}:{not_guarded_lines}"
     )
-

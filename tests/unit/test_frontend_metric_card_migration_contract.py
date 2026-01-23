@@ -116,4 +116,3 @@ def test_frontend_metric_card_migration_contract() -> None:
     tags_js_content = _read_text(repo_root, tags_js)
     assert ".tags-stat-card__value" not in tags_js_content, f"{tags_js} 不应再依赖 .tags-stat-card__value"
     assert "metric-value" in tags_js_content, f"{tags_js} 应使用 MetricCard 的 value selector"
-

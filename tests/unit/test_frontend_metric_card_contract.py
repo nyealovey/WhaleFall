@@ -29,4 +29,3 @@ def test_frontend_metric_card_contract_is_present() -> None:
 
     assert "wf-metric-card" in template_content, "MetricCard 模板必须包含 wf-metric-card 基准 class"
     assert ".wf-metric-card" in css_content, "MetricCard CSS 必须定义 .wf-metric-card 样式"
-

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+
 def _extract_app_db_names(tree: ast.AST) -> set[str]:
     names = {"db"}
     if not isinstance(tree, ast.Module):

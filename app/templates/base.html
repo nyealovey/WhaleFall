@@ -41,6 +41,10 @@
     <link href="{{ url_for('static', filename='css/components/charts.css') }}" rel="stylesheet">
     <!-- 模态框尺寸样式 -->
     <link href="{{ url_for('static', filename='css/components/modals.css') }}" rel="stylesheet">
+    {% if current_user.is_authenticated %}
+    <!-- CRUD 模态样式(用于全站模态表单, 包含修改密码等) -->
+    <link href="{{ url_for('static', filename='css/components/crud-modal.css') }}" rel="stylesheet">
+    {% endif %}
     <!-- 指标卡片标准组件样式 -->
     <link href="{{ url_for('static', filename='css/components/metric-card.css') }}" rel="stylesheet">
     <!-- 状态标签组件样式 -->
@@ -174,9 +178,11 @@
                             <i class="fas fa-user me-1"></i>{{ current_user.username }}
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">
+                            <li>
+                                <button type="button" class="dropdown-item" data-action="open-change-password">
                                     <i class="fas fa-key me-2"></i>修改密码
-                                </a></li>
+                                </button>
+                            </li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
@@ -248,6 +254,9 @@
     </footer>
 
     {% include 'components/ui/danger_confirm_modal.html' %}
+    {% if current_user.is_authenticated %}
+        {% include 'auth/modals/change-password-modals.html' %}
+    {% endif %}
 
     <!-- 引入 Bootstrap JS -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
@@ -297,6 +306,9 @@
 
     <!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
 
+    {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='js/modules/views/auth/modals/change-password-modals.js') }}"></script>
+    {% endif %}
     <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>

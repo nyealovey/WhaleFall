@@ -78,4 +78,6 @@ def test_lookup_job_last_run_returns_latest_started_at(app) -> None:
         db.session.add(run_other)
         db.session.commit()
 
-        assert SchedulerJobsRepository.lookup_job_last_run(job_id="calculate_account_classification") == newer.isoformat()
+        assert (
+            SchedulerJobsRepository.lookup_job_last_run(job_id="calculate_account_classification") == newer.isoformat()
+        )

@@ -168,7 +168,13 @@ def build_calculate_account_classification_summary(
         _metric(key="rules_count", label="规则数", value=rules_count, unit="条", tone="info"),
         _metric(key="accounts_count", label="账户数", value=accounts_count, unit="个", tone="info"),
         _metric(key="rule_match_rows", label="规则匹配行数", value=rule_match_rows, unit="行", tone="info"),
-        _metric(key="classification_match_rows", label="分类匹配行数", value=classification_match_rows, unit="行", tone="info"),
+        _metric(
+            key="classification_match_rows",
+            label="分类匹配行数",
+            value=classification_match_rows,
+            unit="行",
+            tone="info",
+        ),
     ]
     ext_data = {
         "stat_date": stat_date,
@@ -206,8 +212,20 @@ def build_auto_classify_accounts_summary(
         _metric(key="rules_count", label="规则数", value=rules_count, unit="条", tone="info"),
         _metric(key="accounts_count", label="账户数", value=accounts_count, unit="个", tone="info"),
         _metric(key="total_matches", label="命中数", value=total_matches, unit="个", tone="info"),
-        _metric(key="total_classifications_added", label="新增分类数", value=total_classifications_added, unit="个", tone="info"),
-        _metric(key="failed_count", label="失败数", value=failed_count, unit="个", tone="danger" if failed_count else "success"),
+        _metric(
+            key="total_classifications_added",
+            label="新增分类数",
+            value=total_classifications_added,
+            unit="个",
+            tone="info",
+        ),
+        _metric(
+            key="failed_count",
+            label="失败数",
+            value=failed_count,
+            unit="个",
+            tone="danger" if failed_count else "success",
+        ),
         _metric(key="duration_ms", label="耗时", value=duration_ms, unit="ms", tone="info"),
     ]
     ext_data = {

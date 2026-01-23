@@ -28,4 +28,3 @@ def test_frontend_metric_card_macro_forwards_call_block_content() -> None:
 
     assert "wf-metric-card__meta" in rendered
     assert "Hello" in rendered
-

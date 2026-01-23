@@ -38,7 +38,9 @@ def test_prepare_background_auto_classify_uses_summary_envelope(monkeypatch) -> 
 @pytest.mark.unit
 def test_prepare_background_capacity_aggregate_current_uses_summary_envelope(monkeypatch) -> None:
     from app.schemas.task_run_summary import TaskRunSummaryV1
-    from app.services.capacity.capacity_current_aggregation_actions_service import CapacityCurrentAggregationActionsService
+    from app.services.capacity.capacity_current_aggregation_actions_service import (
+        CapacityCurrentAggregationActionsService,
+    )
     from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
 
     captured: dict[str, object] = {}

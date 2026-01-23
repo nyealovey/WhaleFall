@@ -126,7 +126,9 @@ def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
     return []
 
 
-def _extract_privileges(db_type: str, categories: Mapping[str, object]) -> tuple[JsonDict, list[str], list[str], list[str]]:
+def _extract_privileges(
+    db_type: str, categories: Mapping[str, object]
+) -> tuple[JsonDict, list[str], list[str], list[str]]:
     privileges: JsonDict = {}
 
     global_privileges: list[str] = []

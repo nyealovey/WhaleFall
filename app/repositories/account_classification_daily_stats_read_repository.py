@@ -193,11 +193,7 @@ class AccountClassificationDailyStatsReadRepository:
             query = query.filter(AccountClassificationDailyRuleMatchStat.instance_id == instance_id)
 
         rows = query.all()
-        return {
-            int(row.rule_id): int(row.coverage_days or 0)
-            for row in rows
-            if row.rule_id is not None
-        }
+        return {int(row.rule_id): int(row.coverage_days or 0) for row in rows if row.rule_id is not None}
 
     @staticmethod
     def fetch_rule_stat_dates(
