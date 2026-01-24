@@ -65,10 +65,12 @@ function mountInstancesListPage() {
     let batchCreateController = null;
     let selectedInstanceIds = new Set();
     let checkboxDelegationInitialized = false;
+    let tagManagementStore = null;
 
     ready(() => {
         initializeServices();
         initializeInstanceStore();
+        initializeTagManagementStore();
         initializeModals();
         initializeGridPage();
         initializeTagFilter();
@@ -120,6 +122,28 @@ function mountInstancesListPage() {
 	            }
 	        }
 	    }
+
+    function initializeTagManagementStore() {
+        const TagManagementService = global.TagManagementService;
+        const createTagManagementStore = global.createTagManagementStore;
+        if (!TagManagementService || typeof createTagManagementStore !== 'function') {
+            console.error('TagManagementService/createTagManagementStore 未加载，标签筛选不可用');
+            tagManagementStore = null;
+            return null;
+        }
+        try {
+            const service = new TagManagementService();
+            tagManagementStore = createTagManagementStore({
+                service,
+                emitter: global.mitt ? global.mitt() : null,
+            });
+            return tagManagementStore;
+        } catch (error) {
+            console.error('初始化 TagManagementStore 失败:', error);
+            tagManagementStore = null;
+            return null;
+        }
+    }
 
     /**
      * 初始化实例 Store。
@@ -748,11 +772,16 @@ function mountInstancesListPage() {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
             return;
         }
+        if (!tagManagementStore) {
+            console.error('TagManagementStore 未初始化，跳过标签筛选初始化');
+            return;
+        }
         const scope = 'instance-tag-selector';
         const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
         const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
         const initialValues = parseInitialTagValues(hiddenInput?.value || null);
         global.TagSelectorHelper.setupForForm({
+            store: tagManagementStore,
             modalSelector: `#${scope}-modal`,
             rootSelector: '[data-tag-selector]',
             scope,
