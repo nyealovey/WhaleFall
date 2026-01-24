@@ -125,6 +125,20 @@
       );
     }
 
+    /**
+     * 获取实例下拉选项。
+     *
+     * @param {string|null} dbType 数据库类型，可选
+     * @return {Promise<Object>} 后端响应
+     */
+    fetchInstanceOptions(dbType) {
+      const normalized = typeof dbType === "string" ? dbType.trim() : "";
+      return this.httpClient.get("/api/v1/instances/options", {
+        params: { db_type: normalized || undefined },
+        headers: { Accept: "application/json" },
+      });
+    }
+
     batchDeleteInstances(instanceIds) {
       if (!Array.isArray(instanceIds) || instanceIds.length === 0) {
         throw new Error("InstanceManagementService: batchDeleteInstances 需要实例ID");
