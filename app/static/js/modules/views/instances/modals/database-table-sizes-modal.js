@@ -2,18 +2,16 @@
   'use strict';
 
   const gridjs = window.gridjs;
-  const toast = window.toast || {
-    success: console.info,
-    error: console.error,
-    info: console.info,
-    warning: console.warn,
-  };
 
   function ensureDeps(options) {
     const ui = options?.ui || window.UI;
-    const injectedService = options?.service || null;
-    const Service = options?.InstanceManagementService || window.InstanceManagementService;
-    const http = options?.http || null;
+    const store = options?.store || null;
+    const toast = options?.toast || window.toast || {
+      success: console.info,
+      error: console.error,
+      info: console.info,
+      warning: console.warn,
+    };
 
     if (!ui?.createModal) {
       throw new Error('DatabaseTableSizesModal: UI.createModal 未初始化');
@@ -21,44 +19,23 @@
     if (!ui?.escapeHtml) {
       throw new Error('DatabaseTableSizesModal: UI.escapeHtml 未初始化');
     }
-    if (!Service) {
-      throw new Error('DatabaseTableSizesModal: InstanceManagementService 未加载');
-    }
     if (!gridjs?.Grid) {
       throw new Error('DatabaseTableSizesModal: gridjs.Grid 未加载');
     }
-
-    let service = injectedService;
-    if (!service) {
-      service = new Service(http);
-    }
     if (
-      !service ||
-      typeof service.fetchDatabaseTableSizes !== 'function' ||
-      typeof service.refreshDatabaseTableSizes !== 'function'
+      !store ||
+      !store.actions ||
+      typeof store.actions.fetchDatabaseTableSizes !== 'function' ||
+      typeof store.actions.refreshDatabaseTableSizes !== 'function'
     ) {
-      throw new Error('DatabaseTableSizesModal: service 未初始化');
+      throw new Error('DatabaseTableSizesModal: store 未初始化');
     }
 
     return {
       ui,
-      service,
+      toast,
+      store,
     };
-  }
-
-  function parsePayload(raw) {
-    if (!raw) {
-      return {};
-    }
-    if (typeof raw === 'string') {
-      try {
-        return JSON.parse(raw);
-      } catch (error) {
-        console.warn('DatabaseTableSizesModal: payload 解析失败', error);
-        return {};
-      }
-    }
-    return raw;
   }
 
   function formatSizeFromMb(value) {
@@ -100,7 +77,7 @@
   }
 
   function createController(options) {
-    const { ui, service } = ensureDeps(options);
+    const { ui, toast, store } = ensureDeps(options);
     const escapeHtml = ui.escapeHtml;
 
     const modalEl = document.getElementById('tableSizesModal');
@@ -220,10 +197,7 @@
       }
       renderLoading();
       try {
-        const resp = await service.fetchDatabaseTableSizes(currentDatabaseId, params);
-        if (!resp?.success) {
-          throw new Error(resp?.message || '加载失败');
-        }
+        const resp = await store.actions.fetchDatabaseTableSizes(currentDatabaseId, params);
         const payload = resp?.data || resp || {};
         lastSnapshotPayload = payload;
         setHeader(currentDatabaseName, payload.collected_at);
@@ -244,13 +218,10 @@
 
       modalApi?.setLoading?.(true, '刷新中...');
       try {
-        const resp = await service.refreshDatabaseTableSizes(currentDatabaseId, {
+        const resp = await store.actions.refreshDatabaseTableSizes(currentDatabaseId, {
           limit: 2000,
           page: 1,
         });
-        if (!resp?.success) {
-          throw new Error(resp?.message || '刷新失败');
-        }
         const payload = resp?.data || resp || {};
         lastSnapshotPayload = payload;
         setHeader(currentDatabaseName, payload.collected_at);
@@ -275,9 +246,8 @@
     const modal = ui.createModal({
       modalSelector: '#tableSizesModal',
       onOpen: ({ modal: api, payload }) => {
-        const parsed = parsePayload(payload);
-        currentDatabaseId = parsed?.database_id || parsed?.databaseId || null;
-        currentDatabaseName = parsed?.database_name || parsed?.databaseName || null;
+        currentDatabaseId = payload?.database_id || payload?.databaseId || null;
+        currentDatabaseName = payload?.database_name || payload?.databaseName || null;
         lastSnapshotPayload = null;
         setHeader(currentDatabaseName, null);
         loadSnapshot({ limit: 2000, page: 1 });

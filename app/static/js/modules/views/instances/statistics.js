@@ -108,7 +108,10 @@ function mountInstanceStatisticsPage() {
             .init({})
             .then(() => {
                 bindInstanceStoreEvents();
-                instanceStore.actions.loadStats({ silent: true }).catch(() => {});
+                instanceStore.actions.loadStats({ silent: true }).catch((error) => {
+                    console.error('加载实例统计失败:', error);
+                    showErrorNotification('加载实例统计失败');
+                });
             })
             .catch((error) => {
                 console.warn('InstanceStore 初始化失败', error);
@@ -397,19 +400,13 @@ function mountInstanceStatisticsPage() {
      * @returns {void} 触发网络请求并更新统计。
      */
     function refreshStatistics() {
-        if (!ensureInstanceService()) {
+        if (!instanceStore?.actions?.loadStats) {
+            console.error('InstanceStore 未初始化，无法刷新实例统计');
+            showErrorNotification('InstanceStore 未初始化');
             return;
         }
-        const loader = instanceStore
-            ? instanceStore.actions.loadStats({ silent: true })
-            : instanceService.fetchStatistics();
-        loader
-            .then((data) => {
-                if (!instanceStore) {
-                    updateStatistics(data);
-                    showDataUpdatedNotification();
-                }
-            })
+        instanceStore.actions
+            .loadStats({ silent: true })
             .catch((error) => {
                 console.error('刷新统计数据失败:', error);
                 showErrorNotification('刷新统计数据失败');
