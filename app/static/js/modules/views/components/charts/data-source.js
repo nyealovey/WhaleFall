@@ -1,11 +1,18 @@
 (function (window) {
   "use strict";
 
-  const CapacityStatsService = window.CapacityStatsService;
-  if (!CapacityStatsService) {
-    throw new Error("CapacityStatsService 未初始化，无法发起容量统计请求");
+  function ensureService(service) {
+    if (!service) {
+      throw new Error("createCapacityStatsDataSource: service 未注入");
+    }
+    if (typeof service.get !== "function") {
+      throw new Error("createCapacityStatsDataSource: service.get 未实现");
+    }
+    if (typeof service.post !== "function") {
+      throw new Error("createCapacityStatsDataSource: service.post 未实现");
+    }
+    return service;
   }
-  const capacityStatsService = new CapacityStatsService();
 
   /**
    * 确保响应包含 data 对象。
@@ -56,91 +63,85 @@
   }
 
   /**
-   * 拉取汇总数据。
+   * CapacityStatsDataSource 工厂：纯数据获取层（必须注入 service）。
+   *
+   * @param {Object} options
+   * @param {Object} options.service - CapacityStatsService 实例
+   * @returns {Object} DataSource API
    */
-  async function fetchSummary(config, params) {
-    const response = await capacityStatsService.get(
-      config.summaryEndpoint,
-      params,
-      config.summaryDefaults
-    );
-    return extractSummary(response);
-  }
+  function createCapacityStatsDataSource(options) {
+    const opts = options || {};
+    const service = ensureService(opts.service);
 
-  /**
-   * 拉取趋势数据。
-   */
-  async function fetchTrend(config, params) {
-    const response = await capacityStatsService.get(
-      config.trendEndpoint,
-      params,
-      config.trendDefaults
-    );
-    return extractItems(response);
-  }
-
-  /**
-   * 拉取变化数据。
-   */
-  async function fetchChange(config, params) {
-    const response = await capacityStatsService.get(
-      config.changeEndpoint,
-      params,
-      config.changeDefaults
-    );
-    return extractItems(response);
-  }
-
-  /**
-   * 拉取变化百分比数据。
-   */
-  async function fetchPercentChange(config, params) {
-    const response = await capacityStatsService.get(
-      config.percentEndpoint,
-      params,
-      config.percentDefaults
-    );
-    return extractItems(response);
-  }
-
-  /**
-   * 提交容量即时计算任务。
-   */
-  async function calculateCurrent(url, payload) {
-    await capacityStatsService.post(url, payload || {});
-  }
-
-  /**
-   * 获取实例下拉数据。
-   */
-  async function fetchInstances(url, params) {
-    const response = await capacityStatsService.get(url, params);
-    const payload = ensureDataObject(response, "实例选项响应缺少 data");
-    if (!Array.isArray(payload.instances)) {
-      throw new Error("实例选项响应缺少 instances 数组");
+    async function fetchSummary(config, params) {
+      const response = await service.get(
+        config.summaryEndpoint,
+        params,
+        config.summaryDefaults,
+      );
+      return extractSummary(response);
     }
-    return payload.instances;
-  }
 
-  /**
-   * 获取数据库下拉数据。
-   */
-  async function fetchDatabases(url, params) {
-    const response = await capacityStatsService.get(url, params);
-    const payload = ensureDataObject(response, "数据库选项响应缺少 data");
-    if (!Array.isArray(payload.databases)) {
-      throw new Error("数据库选项响应缺少 databases 数组");
+    async function fetchTrend(config, params) {
+      const response = await service.get(
+        config.trendEndpoint,
+        params,
+        config.trendDefaults,
+      );
+      return extractItems(response);
     }
-    return payload.databases;
+
+    async function fetchChange(config, params) {
+      const response = await service.get(
+        config.changeEndpoint,
+        params,
+        config.changeDefaults,
+      );
+      return extractItems(response);
+    }
+
+    async function fetchPercentChange(config, params) {
+      const response = await service.get(
+        config.percentEndpoint,
+        params,
+        config.percentDefaults,
+      );
+      return extractItems(response);
+    }
+
+    async function calculateCurrent(url, payload) {
+      await service.post(url, payload || {});
+    }
+
+    async function fetchInstances(url, params) {
+      const response = await service.get(url, params);
+      const payload = ensureDataObject(response, "实例选项响应缺少 data");
+      if (!Array.isArray(payload.instances)) {
+        throw new Error("实例选项响应缺少 instances 数组");
+      }
+      return payload.instances;
+    }
+
+    async function fetchDatabases(url, params) {
+      const response = await service.get(url, params);
+      const payload = ensureDataObject(response, "数据库选项响应缺少 data");
+      if (!Array.isArray(payload.databases)) {
+        throw new Error("数据库选项响应缺少 databases 数组");
+      }
+      return payload.databases;
+    }
+
+    return {
+      fetchSummary,
+      fetchTrend,
+      fetchChange,
+      fetchPercentChange,
+      calculateCurrent,
+      fetchInstances,
+      fetchDatabases,
+    };
   }
 
-  window.CapacityStatsDataSource = {
-    fetchSummary,
-    fetchTrend,
-    fetchChange,
-    fetchPercentChange,
-    calculateCurrent,
-    fetchInstances,
-    fetchDatabases,
-  };
+  window.createCapacityStatsDataSource = createCapacityStatsDataSource;
 })(window);
+

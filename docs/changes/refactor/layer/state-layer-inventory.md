@@ -33,8 +33,8 @@
 | DatabaseLedgerPage | `app/templates/databases/ledgers.html` | `app/static/js/modules/views/databases/ledgers.js` | `tag_management_store.js`(组件) | DONE | - |
 | AdminPartitionsPage | `app/templates/admin/partitions/index.html` | `app/static/js/modules/views/admin/partitions/index.js` | `partition_store.js` | DONE | - |
 | SchedulerPage | `app/templates/admin/scheduler/index.html` | `app/static/js/modules/views/admin/scheduler/index.js` | `scheduler_store.js` | PARTIAL | 基本 OK，后续按“禁兜底/统一注入”收敛 |
-| CapacityDatabasesPage | `app/templates/capacity/databases.html` | `app/static/js/modules/views/capacity/databases.js` | - | PARTIAL | charts/data-source 组件内 `new CapacityStatsService()`（P2） |
-| InstanceAggregationsPage | `app/templates/capacity/instances.html` | `app/static/js/modules/views/capacity/instances.js` | - | PARTIAL | charts/data-source 组件内 `new CapacityStatsService()`（P2） |
+| CapacityDatabasesPage | `app/templates/capacity/databases.html` | `app/static/js/modules/views/capacity/databases.js` | - | DONE | - |
+| InstanceAggregationsPage | `app/templates/capacity/instances.html` | `app/static/js/modules/views/capacity/instances.js` | - | DONE | - |
 | DashboardOverviewPage | `app/templates/dashboard/overview.html` | `app/static/js/modules/views/dashboard/overview.js` | `dashboard_store.js` | DONE | 图表数据下沉 store，入口脚本不再直连 service 方法 |
 | AccountsStatisticsPage | `app/templates/accounts/statistics.html` | `app/static/js/modules/views/accounts/statistics.js` | `accounts_statistics_store.js` | DONE | 刷新动作下沉 store，入口脚本不再直连 service 方法 |
 | AccountClassificationStatisticsPage | `app/templates/accounts/classification_statistics.html` | `app/static/js/modules/views/accounts/classification_statistics.js` | `account_classification_statistics_store.js` | DONE | 已迁移到 store/actions，views 不再直连 `httpU` |
@@ -52,7 +52,7 @@
 | `app/static/js/modules/views/components/permissions/permission-viewer.js` | `accounts/ledgers.html` / `instances/detail.html` | DONE | - | 已改为 `PermissionViewer.configure({ fetchPermissions, showPermissionsModal, toast })` 注入依赖 |
 | `app/static/js/modules/views/admin/partitions/partition-list.js` | `admin/partitions/index.html` | DONE | - | 已改为注入 `gridUrl`（由 Page Entry 提供），组件内不再 new Service |
 | `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js` | `admin/partitions/index.html` | DONE | - | 已移除 direct request fallback，强制依赖 `PartitionStoreInstance` |
-| `app/static/js/modules/views/components/charts/data-source.js` | capacity 两个页面 | TODO | 组件内 `new CapacityStatsService()`（P2） | 改为 `createDataSource({ service })` 或注入 store/actions |
+| `app/static/js/modules/views/components/charts/data-source.js` | capacity 两个页面 | DONE | - | 已改为 `createCapacityStatsDataSource({ service })` 并由 Page Entry 注入 `CapacityStats.Manager({ dataSource })` |
 | `app/static/js/modules/views/components/tags/tag-selector-controller.js` | 多页面 include | DONE | - | 已改为注入 `TagManagementStore`；组件内不再 `new TagManagementService()`/`createTagManagementStore()` |
 
 ## Store Backlog（待新增）

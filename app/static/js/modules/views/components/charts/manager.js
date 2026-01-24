@@ -1,7 +1,6 @@
 (function (window) {
   "use strict";
 
-  const DataSource = window.CapacityStatsDataSource;
   const Transformers = window.CapacityStatsTransformers;
   const SummaryCards = window.CapacityStatsSummaryCards;
   const Filters = window.CapacityStatsFilters;
@@ -53,6 +52,29 @@
   };
 
   const ENFORCED_MANUAL_PERIOD = "daily";
+
+  function ensureDataSource(dataSource) {
+    if (!dataSource) {
+      throw new Error("CapacityStatsManager: dataSource 未注入");
+    }
+    const required = [
+      "fetchSummary",
+      "fetchTrend",
+      "fetchChange",
+      "fetchPercentChange",
+      "calculateCurrent",
+      "fetchInstances",
+      "fetchDatabases",
+    ];
+    required.forEach((method) => {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
+      if (typeof dataSource[method] !== "function") {
+        throw new Error(`CapacityStatsManager: dataSource.${method} 未实现`);
+      }
+    });
+    return dataSource;
+  }
 
   const PERIOD_TEXT = {
     daily: {
@@ -206,18 +228,25 @@
      *
      * @constructor
      * @param {Object} userConfig - 用户配置对象
+     * @param {Object} userConfig.dataSource - DataSource（必须注入）
      * @param {Function} userConfig.labelExtractor - 标签提取函数（必需）
      * @param {string} [userConfig.filterFormId] - 筛选表单 ID
      * @param {boolean} [userConfig.autoApplyOnFilterChange=true] - 是否自动应用筛选
      * @throws {Error} 当缺少 labelExtractor 配置时抛出
      */
     constructor(userConfig) {
+      const resolvedDataSource = userConfig?.dataSource || null;
       const userOverrides = userConfig ? LodashUtils.cloneDeep(userConfig) : {};
+      // dataSource 不属于 UI config（避免 merge 进 config 干扰后续读取）
+      if (Object.prototype.hasOwnProperty.call(userOverrides, "dataSource")) {
+        delete userOverrides.dataSource;
+      }
       this.config = LodashUtils.merge({}, DEFAULT_CONFIG, userOverrides);
       this.config.autoApplyOnFilterChange =
         userOverrides?.autoApplyOnFilterChange !== undefined
           ? Boolean(userOverrides.autoApplyOnFilterChange)
           : DEFAULT_CONFIG.autoApplyOnFilterChange;
+      this.dataSource = ensureDataSource(resolvedDataSource);
       this.filterFormId = (this.config.filterFormId || "").replace(/^#/, "") || null;
       this.handleFilterEvent = this.handleFilterEvent.bind(this);
       this.eventBusUnsubscribers = [];
@@ -459,7 +488,7 @@
         );
         params.start_date = range.startDate;
         params.end_date = range.endDate;
-        const summary = await DataSource.fetchSummary(this.config.api, params);
+        const summary = await this.dataSource.fetchSummary(this.config.api, params);
         SummaryCards.updateCards(summary, this.config.summaryCards || []);
       } catch (error) {
         this.notifyError(`加载汇总数据失败: ${error.message}`);
@@ -473,7 +502,7 @@
       this.toggleLoader("trend", true);
       try {
         const params = this.buildTrendParams();
-        const items = await DataSource.fetchTrend(this.config.api, params);
+        const items = await this.dataSource.fetchTrend(this.config.api, params);
         this.dataStore.trend = Array.isArray(items) ? items : [];
         this.renderTrendChart();
       } catch (error) {
@@ -511,7 +540,7 @@
       this.toggleLoader("change", true);
       try {
         const params = this.buildChangeParams();
-        const items = await DataSource.fetchChange(this.config.api, params);
+        const items = await this.dataSource.fetchChange(this.config.api, params);
         this.dataStore.change = Array.isArray(items) ? items : [];
         this.renderChangeChart();
       } catch (error) {
@@ -550,7 +579,7 @@
       this.toggleLoader("percent", true);
       try {
         const params = this.buildPercentParams();
-        const items = await DataSource.fetchPercentChange(this.config.api, params);
+        const items = await this.dataSource.fetchPercentChange(this.config.api, params);
         this.dataStore.percent = Array.isArray(items) ? items : [];
         this.renderChangePercentChart();
       } catch (error) {
@@ -694,7 +723,7 @@
       }
 
       try {
-        await DataSource.calculateCurrent(this.config.api.calculateEndpoint, {
+        await this.dataSource.calculateCurrent(this.config.api.calculateEndpoint, {
           period_type: periodType,
           scope: this.config.scope || "instance",
         });
@@ -772,7 +801,7 @@
         params.db_type = this.state.filters.dbType;
       }
       try {
-        const instances = await DataSource.fetchInstances(endpoint, params);
+        const instances = await this.dataSource.fetchInstances(endpoint, params);
         Filters.updateSelectOptions("#instance", {
           placeholder: "所有实例",
           items: instances,
@@ -817,7 +846,7 @@
         limit: 1000,
       };
       try {
-        const databases = await DataSource.fetchDatabases(
+        const databases = await this.dataSource.fetchDatabases(
           endpoint,
           params
         );
