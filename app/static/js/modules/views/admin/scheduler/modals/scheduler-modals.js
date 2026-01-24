@@ -9,27 +9,25 @@
      * @param {Object} [options.ValidationRules] - 验证规则
      * @param {Object} [options.toast] - Toast 通知工具
      * @param {Function} [options.getJob] - 获取任务的函数
-     * @param {Function} [options.ensureStore] - 确保状态管理的函数
-     * @param {Function} [options.getStore] - 获取状态管理的函数
+     * @param {Object} options.store - SchedulerStore（必须注入）
      * @param {Function} [options.showLoadingState] - 显示加载状态的函数
      * @param {Function} [options.hideLoadingState] - 隐藏加载状态的函数
      * @return {Object} 控制器对象，包含 init、openEdit 方法
-     * @throws {Error} 当缺少必需的 store 访问方法时抛出
+     * @throws {Error} 当缺少必需的 store 依赖时抛出
      */
     function createController(options) {
         const {
             FormValidator,
             ValidationRules,
-     toast,
-     getJob,
-     ensureStore,
-     getStore,
-     showLoadingState,
-      hideLoadingState,
-    } = options || {};
+            toast,
+            getJob,
+            store,
+            showLoadingState,
+            hideLoadingState,
+        } = options || {};
 
-        if (!ensureStore || !getStore) {
-            throw new Error('SchedulerModals: 缺少 store 访问方法');
+        if (!store?.actions?.updateJob) {
+            throw new Error('SchedulerModals: 缺少 store.actions.updateJob');
         }
 
         const editModalEl = document.getElementById('editJobModal');
@@ -82,9 +80,6 @@
          * @return {void}
          */
         function openEdit(jobId) {
-            if (!ensureStore()) {
-                return;
-            }
             const job = getJob?.(jobId);
             if (!job) {
                 toast?.error?.('任务不存在');
@@ -182,9 +177,6 @@
          * @returns {void}
          */
         function handleSubmit() {
-            if (!ensureStore()) {
-                return;
-            }
             const formElement = editForm;
             const formData = new FormData(formElement);
             const jobId = formData.get('job_id');
@@ -198,8 +190,7 @@
             const submitButton = formElement.querySelector('button[type="submit"]');
             showLoadingState?.(submitButton, '保存中...');
 
-            getStore()
-                .actions.updateJob(jobId, payload)
+            store.actions.updateJob(jobId, payload)
                 .then(function () {
                     toast?.success?.('任务更新成功');
                     editModal?.hide();
