@@ -5,9 +5,8 @@
    * 创建凭据新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.credentialService] - 凭据服务(推荐注入)
-   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 CredentialsService)
-   * @param {Object} [options.CredentialsService] - CredentialsService 类(兼容注入)
+   * @param {Object} options.store - CredentialsStore（由 Page Entry 注入）
+   * @param {Function} [options.onSaved] - 保存成功后的回调（用于刷新列表等）
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -17,9 +16,8 @@
    */
   function createController(options) {
     const {
-      credentialService: injectedCredentialService = null,
-      http = null,
-      CredentialsService = window.CredentialsService,
+      store = null,
+      onSaved = null,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
@@ -29,20 +27,14 @@
     if (!DOMHelpers) {
       throw new Error('CredentialModals: DOMHelpers 未加载');
     }
-    let credentialService = injectedCredentialService;
-    if (!credentialService) {
-      if (!CredentialsService) {
-        throw new Error('CredentialModals: CredentialsService 未加载');
-      }
-      credentialService = new CredentialsService(http);
-    }
     if (
-      !credentialService ||
-      typeof credentialService.getCredential !== 'function' ||
-      typeof credentialService.createCredential !== 'function' ||
-      typeof credentialService.updateCredential !== 'function'
+      !store ||
+      !store.actions ||
+      typeof store.actions.load !== 'function' ||
+      typeof store.actions.create !== 'function' ||
+      typeof store.actions.update !== 'function'
     ) {
-      throw new Error('CredentialModals: credentialService 未初始化');
+      throw new Error('CredentialModals: credentials store 未初始化');
     }
 
     const modalEl = document.getElementById('credentialModal');
@@ -212,11 +204,10 @@
         titleEl.textContent = '编辑凭据';
         updateSubmitButtonCopy();
         setMetaState('加载中', 'status-pill--muted');
-        const response = await credentialService.getCredential(credentialId);
-        if (!response?.success || !response?.data) {
-          throw new Error(response?.message || '获取凭据失败');
+        const credential = await store.actions.load(credentialId);
+        if (!credential) {
+          throw new Error('获取凭据失败');
         }
-        const credential = response.data?.credential || response.data;
         form.credential_id.value = credential.id;
         form.name.value = credential.name || '';
         form.credential_type.value = credential.credential_type || '';
@@ -290,14 +281,13 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      credentialService.createCredential(payload)
+      store.actions.create(payload)
         .then((resp) => {
-          if (!resp?.success) {
-            throw new Error(resp?.message || '添加凭据失败');
-          }
           toast?.success?.(resp?.message || '添加凭据成功');
           modal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'create', response: resp });
+          }
         })
         .catch((error) => {
           console.error('添加凭据失败', error);
@@ -319,14 +309,13 @@
         toggleLoading(false);
         return;
       }
-      credentialService.updateCredential(credentialId, payload)
+      store.actions.update(credentialId, payload)
         .then((resp) => {
-          if (!resp?.success) {
-            throw new Error(resp?.message || '保存凭据失败');
-          }
           toast?.success?.(resp?.message || '保存成功');
           modal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'edit', response: resp });
+          }
         })
         .catch((error) => {
           console.error('保存凭据失败', error);
@@ -373,6 +362,10 @@
     }
 
     function resolveErrorMessage(error, fallback) {
+      const resolver = window.UI?.resolveErrorMessage;
+      if (typeof resolver === 'function') {
+        return resolver(error, fallback);
+      }
       if (!error) {
         return fallback;
       }
