@@ -16,6 +16,8 @@
     }
     const required = ["getGridUrl", "getUser", "createUser", "updateUser", "deleteUser"];
     required.forEach((method) => {
+      // 固定白名单方法名, 避免动态键注入.
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error(`createUsersStore: service.${method} 未实现`);
       }
@@ -79,7 +81,18 @@
     }
 
     function setLoading(key, loading, meta) {
-      state.loading[key] = Boolean(loading);
+      const next = Boolean(loading);
+      if (key === "load") {
+        state.loading.load = next;
+      } else if (key === "create") {
+        state.loading.create = next;
+      } else if (key === "update") {
+        state.loading.update = next;
+      } else if (key === "remove") {
+        state.loading.remove = next;
+      } else {
+        return;
+      }
       emit("users:loading", {
         loading: { ...state.loading },
         meta: meta || {},
@@ -210,4 +223,3 @@
 
   window.createUsersStore = createUsersStore;
 })(window);
-

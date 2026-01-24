@@ -765,14 +765,6 @@ function mountAccountClassificationStatisticsPage(global) {
     });
   }
 
-  function resolveSelectedRule(rules, ruleId) {
-    if (!ruleId) {
-      return null;
-    }
-    const id = String(ruleId);
-    return (rules || []).find((rule) => String(rule?.rule_id) === id) || null;
-  }
-
   function resolveRuleTitle(ruleMeta, ruleId) {
     if (!ruleId) {
       return "规则趋势（命中账号数）";

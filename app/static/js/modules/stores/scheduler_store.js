@@ -337,6 +337,9 @@
           emitter.all.clear();
         }
         state.jobs = [];
+        state.stats = { active: 0, paused: 0 };
+        state.loading.jobs = false;
+        state.lastError = null;
       },
     };
 

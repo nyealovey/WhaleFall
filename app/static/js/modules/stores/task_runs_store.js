@@ -14,6 +14,8 @@
     }
     const required = ["getGridUrl", "detail", "cancel"];
     required.forEach((method) => {
+      // 固定白名单方法名, 避免动态键注入.
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error(`createTaskRunsStore: service.${method} 未实现`);
       }
@@ -86,7 +88,14 @@
     }
 
     function setLoading(key, loading, meta) {
-      state.loading[key] = Boolean(loading);
+      const next = Boolean(loading);
+      if (key === "detail") {
+        state.loading.detail = next;
+      } else if (key === "cancel") {
+        state.loading.cancel = next;
+      } else {
+        return;
+      }
       emit("taskRuns:loading", {
         loading: { ...state.loading },
         meta: meta || {},
@@ -187,4 +196,3 @@
 
   window.createTaskRunsStore = createTaskRunsStore;
 })(window);
-

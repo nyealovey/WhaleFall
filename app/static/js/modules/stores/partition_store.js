@@ -344,7 +344,12 @@
             return cloneState(state);
           })
           .catch(function (error) {
-            handleError(error, { target: "info" });
+            handleError(error, {
+              target: "info",
+              action: options?.action || "loadInfo",
+              step: options?.step,
+              nonBlocking: Boolean(options?.nonBlocking),
+            });
             throw error;
           })
           .finally(function () {
@@ -397,9 +402,16 @@
               date: date,
               state: cloneState(state),
             });
-            return actions.loadInfo({ silent: true }).catch(function () {
+            return actions
+              .loadInfo({
+                silent: true,
+                nonBlocking: true,
+                step: "refreshInfo",
+                action: "createPartition",
+              })
+              .catch(function () {
               return result;
-            });
+              });
           })
           .catch(function (error) {
             handleError(error, { target: "create" });
@@ -425,9 +437,16 @@
               retention_months: months,
               state: cloneState(state),
             });
-            return actions.loadInfo({ silent: true }).catch(function () {
+            return actions
+              .loadInfo({
+                silent: true,
+                nonBlocking: true,
+                step: "refreshInfo",
+                action: "cleanupPartitions",
+              })
+              .catch(function () {
               return result;
-            });
+              });
           })
           .catch(function (error) {
             handleError(error, { target: "cleanup" });
@@ -461,7 +480,24 @@
         if (emitter.all && typeof emitter.all.clear === "function") {
           emitter.all.clear();
         }
+        state.stats = {
+          total_partitions: 0,
+          total_size: "0 B",
+          total_records: 0,
+          status: "未知",
+        };
         state.partitions = [];
+        state.metrics = {
+          periodType: "daily",
+          payload: [],
+        };
+        state.loading = {
+          info: false,
+          create: false,
+          cleanup: false,
+          metrics: false,
+        };
+        state.lastError = null;
       },
     };
 
