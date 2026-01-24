@@ -50,6 +50,11 @@ function mountAuthListPage(global) {
     console.error("UserService 未初始化");
     return;
   }
+  const createUsersStore = global.createUsersStore;
+  if (typeof createUsersStore !== "function") {
+    console.error("createUsersStore 未初始化");
+    return;
+  }
 
   const gridHtml = gridjs.html;
   const { ready, selectOne } = helpers;
@@ -64,12 +69,20 @@ function mountAuthListPage(global) {
   let gridPage = null;
   let usersGrid = null;
   let userModals = null;
-  let userService = null;
+  let usersStore = null;
   let canManageUsers = false;
   let currentUserId = null;
 
   ready(() => {
-    userService = new UserService();
+    try {
+      usersStore = createUsersStore({
+        service: new UserService(),
+        emitter: global.mitt ? global.mitt() : null,
+      });
+    } catch (error) {
+      console.error("初始化 UsersStore 失败:", error);
+      return;
+    }
     initializeUserModals();
     initializeGridPage();
     bindCreateButton();
@@ -87,11 +100,14 @@ function mountAuthListPage(global) {
       return;
     }
     userModals = global.UserModals.createController({
-      userService,
+      store: usersStore,
       FormValidator: global.FormValidator,
       ValidationRules: global.ValidationRules,
       toast: global.toast,
       DOMHelpers: global.DOMHelpers,
+      onSaved: () => {
+        usersGrid?.refresh?.();
+      },
     });
     userModals.init?.();
   }
@@ -120,7 +136,7 @@ function mountAuthListPage(global) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: userService.getGridUrl(),
+          url: usersStore?.gridUrl || "",
           headers: {
             "X-Requested-With": "XMLHttpRequest",
           },
@@ -235,7 +251,7 @@ function mountAuthListPage(global) {
    * @returns {Promise<void>} 删除流程。
    */
   async function requestDeleteUser(userId, username, trigger) {
-    if (!userService || !userId || !canManageUsers) {
+    if (!usersStore || !usersStore.actions?.remove || !userId || !canManageUsers) {
       return;
     }
     if (Number(userId) === Number(currentUserId)) {
@@ -267,13 +283,9 @@ function mountAuthListPage(global) {
     showLoadingState(trigger, "删除中...");
 
     try {
-      const data = await userService.deleteUser(userId);
-      if (data?.success) {
-        global.toast?.success?.(data.message || "用户删除成功");
-        usersGrid?.refresh?.();
-      } else {
-        throw new Error(data?.message || "删除用户失败");
-      }
+      const resp = await usersStore.actions.remove(userId);
+      global.toast?.success?.(resp?.message || "用户删除成功");
+      usersGrid?.refresh?.();
     } catch (error) {
       console.error("删除用户失败", error);
       global.toast?.error?.(resolveErrorMessage(error, "删除用户失败"));
