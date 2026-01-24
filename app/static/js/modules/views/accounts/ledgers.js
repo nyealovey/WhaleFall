@@ -70,16 +70,40 @@ function mountAccountsListPage(global) {
   let accountsGrid = null;
   let instanceService = null;
   let instanceStore = null;
+  let tagManagementStore = null;
 
   ready(() => {
     configurePermissionViewer();
     initializeInstanceService();
     initializeInstanceStore();
+    initializeTagManagementStore();
     initializeGridPage();
     initializeTagFilter();
     bindDatabaseTypeButtons();
     bindSyncAllAccountsAction();
   });
+
+  function initializeTagManagementStore() {
+    const TagManagementService = global.TagManagementService;
+    const createTagManagementStore = global.createTagManagementStore;
+    if (!TagManagementService || typeof createTagManagementStore !== "function") {
+      console.error("TagManagementService/createTagManagementStore 未加载，标签筛选不可用");
+      tagManagementStore = null;
+      return null;
+    }
+    try {
+      const service = new TagManagementService();
+      tagManagementStore = createTagManagementStore({
+        service,
+        emitter: global.mitt ? global.mitt() : null,
+      });
+      return tagManagementStore;
+    } catch (error) {
+      console.error("初始化 TagManagementStore 失败:", error);
+      tagManagementStore = null;
+      return null;
+    }
+  }
 
   function configurePermissionViewer() {
     const viewer = global.PermissionViewer;
@@ -537,10 +561,15 @@ function mountAccountsListPage(global) {
       console.warn("TagSelectorHelper 未加载，跳过标签筛选初始化");
       return;
     }
+    if (!tagManagementStore) {
+      console.error("TagManagementStore 未初始化，跳过标签筛选初始化");
+      return;
+    }
 	    const filterContainer = document.querySelector(`[data-tag-selector-scope="${TAG_SELECTOR_SCOPE}"]`);
 	    const hiddenInput = filterContainer?.querySelector(`#${TAG_SELECTOR_SCOPE}-selected`);
 	    const initialValues = parseInitialTagValues(hiddenInput?.value || null);
 	    global.TagSelectorHelper.setupForForm({
+        store: tagManagementStore,
 	      modalSelector: `#${TAG_SELECTOR_SCOPE}-modal`,
 	      rootSelector: "[data-tag-selector]",
 	      scope: TAG_SELECTOR_SCOPE,
