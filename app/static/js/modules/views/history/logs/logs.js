@@ -91,7 +91,9 @@
             initializeGridPage(pageRoot);
             logsStore?.actions
                 ?.loadStats(gridPage?.getFilters?.() || resolveFilters())
-                .catch(() => {});
+                .catch((error) => {
+                    console.error('获取日志统计失败:', error);
+                });
         });
     }
 
@@ -127,7 +129,9 @@
             name: 'logsStats',
             onFiltersChanged: (_ctx, { filters }) => {
                 syncLogLevelSelectTone();
-                logsStore?.actions?.loadStats(filters).catch(() => {});
+                logsStore?.actions?.loadStats(filters).catch((error) => {
+                    console.error('获取日志统计失败:', error);
+                });
             },
         };
 

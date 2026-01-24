@@ -70,7 +70,9 @@
       initializeDetailModal();
       subscribeToStoreEvents();
       initializeGridPage(pageRoot);
-      store?.actions?.loadStats(gridPage?.getFilters?.() || resolveFilters()).catch(() => {});
+      store?.actions?.loadStats(gridPage?.getFilters?.() || resolveFilters()).catch((error) => {
+        console.error("加载账户变更统计失败:", error);
+      });
     });
   }
 
@@ -98,7 +100,9 @@
     const statsPlugin = {
       name: "accountChangeLogsStats",
       onFiltersChanged: (_ctx, { filters }) => {
-        store?.actions?.loadStats(filters).catch(() => {});
+        store?.actions?.loadStats(filters).catch((error) => {
+          console.error("加载账户变更统计失败:", error);
+        });
       },
     };
 
