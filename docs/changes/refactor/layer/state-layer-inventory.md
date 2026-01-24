@@ -37,7 +37,7 @@
 | InstanceAggregationsPage | `app/templates/capacity/instances.html` | `app/static/js/modules/views/capacity/instances.js` | - | PARTIAL | charts/data-source 组件内 `new CapacityStatsService()`（P2） |
 | DashboardOverviewPage | `app/templates/dashboard/overview.html` | `app/static/js/modules/views/dashboard/overview.js` | (TODO) | TODO | 入口直连 `new DashboardService()`（P1） |
 | AccountsStatisticsPage | `app/templates/accounts/statistics.html` | `app/static/js/modules/views/accounts/statistics.js` | (TODO) | TODO | 入口直连 `new AccountsStatisticsService()`（P1） |
-| AccountClassificationStatisticsPage | `app/templates/accounts/classification_statistics.html` | `app/static/js/modules/views/accounts/classification_statistics.js` | (TODO) | TODO | 入口直连 service（P1）+ `httpU`（P0） |
+| AccountClassificationStatisticsPage | `app/templates/accounts/classification_statistics.html` | `app/static/js/modules/views/accounts/classification_statistics.js` | `account_classification_statistics_store.js` | DONE | 已迁移到 store/actions，views 不再直连 `httpU` |
 | TagsIndexPage | `app/templates/tags/index.html` | `app/static/js/modules/views/tags/index.js` | (TODO) | TODO | 入口直连 `new TagManagementService()`（P1） |
 | AuthListPage | `app/templates/auth/list.html` | `app/static/js/modules/views/auth/list.js` | (TODO) | TODO | 入口直连 `new UserService()`（P1） |
 | SyncSessionsPage | `app/templates/history/sessions/sync-sessions.html` | `app/static/js/modules/views/history/sessions/sync-sessions.js` | (TODO) | TODO | 入口直连 `new TaskRunsService()`（P1） |
@@ -48,7 +48,7 @@
 
 | 模块 | 引用点 | 状态 | 主要问题 | 目标改造 |
 |---|---|---|---|---|
-| `app/static/js/modules/views/auth/modals/change-password-modals.js` | `app/templates/base.html:310` | TODO | Views 直连 `httpU`（P0） | 拆为 `auth_service.js` + `auth_store.js`，页面只 wiring |
+| `app/static/js/modules/views/auth/modals/change-password-modals.js` | `app/templates/base.html:310` | DONE | - | 已改为 `auth_service.js` + `auth_store.js`，views 不再直连 `httpU` |
 | `app/static/js/modules/views/components/permissions/permission-viewer.js` | `accounts/ledgers.html` / `instances/detail.html` | TODO | 组件内 `new PermissionService()`（P2） | 改为 `configure({ fetchAccountPermissions })` 或注入 store/actions |
 | `app/static/js/modules/views/admin/partitions/partition-list.js` | `admin/partitions/index.html` | TODO | 组件内 `new PartitionService()`（P2） | 改为注入 `partitionStore` 或 `partitionService`（由 Page Entry 创建） |
 | `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js` | `admin/partitions/index.html` | TODO | “无 store fallback”（P2） | 删除 fallback，强制依赖 store（注入或读取 `window.PartitionStoreInstance`） |
@@ -57,8 +57,6 @@
 
 ## Store Backlog（待新增）
 
-- `app/static/js/modules/stores/auth_store.js`（配合 change password）
-- `app/static/js/modules/stores/account_classification_statistics_store.js`
 - `app/static/js/modules/stores/logs_store.js`
 - `app/static/js/modules/stores/account_change_logs_store.js`
 - `app/static/js/modules/stores/task_runs_store.js`
@@ -66,4 +64,3 @@
 - `app/static/js/modules/stores/tag_list_store.js`
 - `app/static/js/modules/stores/dashboard_store.js`
 - `app/static/js/modules/stores/accounts_statistics_store.js`
-
