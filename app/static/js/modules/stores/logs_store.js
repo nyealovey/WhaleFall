@@ -14,6 +14,8 @@
     }
     const required = ["getGridUrl", "fetchStats", "fetchLogDetail"];
     required.forEach((method) => {
+      // 固定白名单方法名, 避免动态键注入.
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error(`createLogsStore: service.${method} 未实现`);
       }
@@ -187,18 +189,25 @@
           if (cached) {
             return Promise.resolve(cached);
           }
-          return service.fetchLogDetail(id).then((response) => {
-            const payload = response?.data || response || {};
-            const log = payload.log || payload.data || payload || {};
-            if (log && log.id) {
-              detailCache.set(String(log.id), log);
-            }
-            emit("logs:detailLoaded", {
-              log,
-              state: cloneState(state),
+          return service
+            .fetchLogDetail(id)
+            .then((response) => {
+              const payload = response?.data || response || {};
+              const log = payload.log || payload.data || payload || {};
+              if (log && log.id) {
+                detailCache.set(String(log.id), log);
+              }
+              state.lastError = null;
+              emit("logs:detailLoaded", {
+                log,
+                state: cloneState(state),
+              });
+              return log;
+            })
+            .catch((error) => {
+              handleError(error, { action: "loadLogDetail", logId: id });
+              throw error;
             });
-            return log;
-          });
         },
       },
       destroy: function () {
@@ -217,4 +226,3 @@
 
   window.createLogsStore = createLogsStore;
 })(window);
-

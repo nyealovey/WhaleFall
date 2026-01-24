@@ -146,24 +146,39 @@ function mountAccountClassificationPage(window, document) {
           })
         : null;
 
-    const ACTION_ERROR_MESSAGES = {
-        loadClassifications: '加载分类失败',
-        loadRules: '加载规则失败',
-        loadRuleStats: '加载规则统计失败',
-        createClassification: '创建分类失败',
-        updateClassification: '更新分类失败',
-        deleteClassification: '删除分类失败',
-        createRule: '创建规则失败',
-        updateRule: '更新规则失败',
-        deleteRule: '删除规则失败',
-        triggerAutomation: '自动分类失败',
-        fetchPermissions: '加载权限配置失败',
-    };
+    function resolveActionErrorMessage(action) {
+        switch (action) {
+            case 'loadClassifications':
+                return '加载分类失败';
+            case 'loadRules':
+                return '加载规则失败';
+            case 'loadRuleStats':
+                return '加载规则统计失败';
+            case 'createClassification':
+                return '创建分类失败';
+            case 'updateClassification':
+                return '更新分类失败';
+            case 'deleteClassification':
+                return '删除分类失败';
+            case 'createRule':
+                return '创建规则失败';
+            case 'updateRule':
+                return '更新规则失败';
+            case 'deleteRule':
+                return '删除规则失败';
+            case 'triggerAutomation':
+                return '自动分类失败';
+            case 'fetchPermissions':
+                return '加载权限配置失败';
+            default:
+                return '操作失败';
+        }
+    }
 
     function handleStoreError(payload) {
         const error = payload?.error || payload;
         const action = payload?.meta?.action;
-        const fallback = ACTION_ERROR_MESSAGES[action] || '操作失败';
+        const fallback = resolveActionErrorMessage(action);
         handleRequestError(error, fallback, action || 'account_classification_store');
         if (action === 'loadClassifications') {
             renderClassifications([]);

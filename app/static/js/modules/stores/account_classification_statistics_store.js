@@ -40,6 +40,8 @@
       "fetchRulesOverview",
     ];
     required.forEach((method) => {
+      // 固定白名单方法名, 避免动态键注入.
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error(
           `createAccountClassificationStatisticsStore: service.${method} 未实现`,
@@ -219,10 +221,19 @@
     }
 
     function setLoading(key, loading, meta) {
-      state.loading[key] = Boolean(loading);
+      const next = Boolean(loading);
+      if (key === "rules") {
+        state.loading.rules = next;
+      } else if (key === "charts") {
+        state.loading.charts = next;
+      } else if (key === "instances") {
+        state.loading.instances = next;
+      } else {
+        return;
+      }
       emit("accountClassificationStatistics:loading", {
         key,
-        loading: state.loading[key],
+        loading: next,
         meta: meta || {},
         state: cloneState(state),
       });
@@ -509,4 +520,3 @@
 
   window.createAccountClassificationStatisticsStore = createAccountClassificationStatisticsStore;
 })(window);
-

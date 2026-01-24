@@ -816,8 +816,25 @@
         if (emitter.all && typeof emitter.all.clear === "function") {
           emitter.all.clear();
         }
-        state.selection.clear();
+        state.filters = {};
         state.instances = [];
+        state.stats = {
+          total_instances: 0,
+          active_instances: 0,
+          inactive_instances: 0,
+          total_accounts: 0,
+          total_databases: 0,
+          db_types_count: 0,
+        };
+        state.loading.stats = false;
+        state.loading.batchDelete = false;
+        state.loading.batchCreate = false;
+        state.operations.syncAccounts.clear();
+        state.operations.syncCapacity.clear();
+        state.operations.syncAllAccounts = false;
+        state.uploadResult = null;
+        state.lastError = null;
+        state.selection.clear();
         state.availableInstanceIds.clear();
       },
     };

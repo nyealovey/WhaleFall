@@ -14,6 +14,8 @@
     }
     const required = ["getGridUrl", "fetchStats", "fetchDetail"];
     required.forEach((method) => {
+      // 固定白名单方法名, 避免动态键注入.
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error(`createAccountChangeLogsStore: service.${method} 未实现`);
       }
@@ -191,16 +193,23 @@
           if (!id) {
             return Promise.reject(new Error("AccountChangeLogsStore: loadDetail 需要 logId"));
           }
-          return service.fetchDetail(id).then((resp) => {
-            const resolved = ensureSuccessResponse(resp, "获取详情失败");
-            const payload = resolved?.data || resolved || {};
-            const log = payload?.log || null;
-            emit("accountChangeLogs:detailLoaded", {
-              log,
-              state: cloneState(state),
+          return service
+            .fetchDetail(id)
+            .then((resp) => {
+              const resolved = ensureSuccessResponse(resp, "获取详情失败");
+              const payload = resolved?.data || resolved || {};
+              const log = payload?.log || null;
+              state.lastError = null;
+              emit("accountChangeLogs:detailLoaded", {
+                log,
+                state: cloneState(state),
+              });
+              return log;
+            })
+            .catch((error) => {
+              handleError(error, { action: "loadDetail", logId: id });
+              throw error;
             });
-            return log;
-          });
         },
       },
       destroy: function () {
@@ -219,4 +228,3 @@
 
   window.createAccountChangeLogsStore = createAccountChangeLogsStore;
 })(window);
-

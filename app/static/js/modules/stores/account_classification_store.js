@@ -143,7 +143,6 @@
     const statsMap = {};
     statsList.forEach(function (item) {
       if (item && typeof item.rule_id === "number") {
-        // eslint-disable-next-line security/detect-object-injection
         statsMap[item.rule_id] = item.matched_accounts_count ?? 0;
       }
     });
@@ -157,7 +156,6 @@
         if (!rule || typeof rule !== "object" || typeof rule.id !== "number") {
           return;
         }
-        // eslint-disable-next-line security/detect-object-injection
         rule.matched_accounts_count = statsMap[rule.id] ?? 0;
       });
     });
@@ -273,9 +271,17 @@
       },
 
       fetchClassificationDetail: function (id) {
-        return service.getClassification(id).then(function (response) {
-          return ensureSuccess(response, "获取分类信息失败");
-        });
+        return service
+          .getClassification(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "获取分类信息失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "fetchClassificationDetail", id: id });
+            throw error;
+          });
       },
 
       createClassification: function (payload) {
@@ -324,9 +330,17 @@
       },
 
       fetchRuleDetail: function (id) {
-        return service.getRule(id).then(function (response) {
-          return ensureSuccess(response, "获取规则信息失败");
-        });
+        return service
+          .getRule(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "获取规则信息失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "fetchRuleDetail", id: id });
+            throw error;
+          });
       },
 
       createRule: function (payload) {
@@ -375,15 +389,31 @@
       },
 
       triggerAutomation: function (payload) {
-        return service.triggerAutomation(payload || {}).then(function (response) {
-          return ensureSuccess(response, "触发自动分类失败");
-        });
+        return service
+          .triggerAutomation(payload || {})
+          .then(function (response) {
+            const result = ensureSuccess(response, "触发自动分类失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "triggerAutomation" });
+            throw error;
+          });
       },
 
       fetchPermissions: function (dbType) {
-        return service.fetchPermissions(dbType).then(function (response) {
-          return ensureSuccess(response, "加载权限配置失败");
-        });
+        return service
+          .fetchPermissions(dbType)
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载权限配置失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "fetchPermissions", dbType: dbType });
+            throw error;
+          });
       },
     };
 
@@ -404,6 +434,9 @@
         }
         state.classifications = [];
         state.rulesByDbType = {};
+        state.loading.classifications = false;
+        state.loading.rules = false;
+        state.lastError = null;
       },
     };
 

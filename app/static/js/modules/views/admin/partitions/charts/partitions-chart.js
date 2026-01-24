@@ -61,36 +61,6 @@ function mountAggregationsChart(context = window) {
     }
 
 /**
- * 将过滤条件序列化为查询参数。
- *
- * @param {Object} values 过滤条件对象。
- * @returns {URLSearchParams} 序列化结果。
- */
-function buildChartQueryParams(values) {
-    const params = new URLSearchParams();
-    Object.entries(values || {}).forEach(([key, value]) => {
-        if (value === undefined || value === null) {
-            return;
-        }
-        if (Array.isArray(value)) {
-            value.forEach((item) => {
-                if (item !== undefined && item !== null) {
-                    params.append(key, item);
-                }
-            });
-        } else if (typeof value === 'string') {
-            const trimmed = value.trim();
-            if (trimmed !== '') {
-                params.append(key, trimmed);
-            }
-        } else {
-            params.append(key, value);
-        }
-    });
-    return params;
-}
-
-/**
  * 负责监听 store、拉取数据并渲染 Chart.js。
  */
 class AggregationsChartManager {

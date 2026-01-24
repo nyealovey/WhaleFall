@@ -451,10 +451,15 @@
         if (emitter.all && typeof emitter.all.clear === "function") {
           emitter.all.clear();
         }
+        state.mode = "assign";
         state.selectedInstanceIds.clear();
         state.selectedTagIds.clear();
         state.instancesByDbType = {};
         state.tagsByCategory = {};
+        state.loading.data = false;
+        state.loading.operation = false;
+        state.lastError = null;
+        state.lastResult = null;
       },
     };
 
@@ -463,4 +468,3 @@
 
   window.createTagBatchStore = createTagBatchStore;
 })(window);
-

@@ -217,7 +217,7 @@
         this.renderSelection();
         this.renderStats(payload?.stats || null);
       });
-      this.store.subscribe("tagManagement:selectionChanged", (payload) => {
+      this.store.subscribe("tagManagement:selectionChanged", () => {
         // 选择变更会影响标签列表的 selected 状态与已选 chips。
         this.renderTags();
         this.renderSelection();
