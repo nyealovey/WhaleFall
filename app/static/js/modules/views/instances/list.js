@@ -59,6 +59,7 @@ function mountInstancesListPage() {
     let gridPage = null;
     let instancesGrid = null;
     let instanceStore = null;
+    let instanceCrudStore = null;
     let instanceService = null;
     let managementService = null;
     let instanceModalController = null;
@@ -70,6 +71,7 @@ function mountInstancesListPage() {
     ready(() => {
         initializeServices();
         initializeInstanceStore();
+        initializeInstanceCrudStore();
         initializeTagManagementStore();
         initializeModals();
         initializeGridPage();
@@ -122,6 +124,31 @@ function mountInstancesListPage() {
 	            }
 	        }
 	    }
+
+    function initializeInstanceCrudStore() {
+        const createInstanceCrudStore = global.createInstanceCrudStore;
+        if (typeof createInstanceCrudStore !== 'function') {
+            console.error('createInstanceCrudStore 未加载，实例创建/编辑不可用');
+            instanceCrudStore = null;
+            return null;
+        }
+        if (!instanceService) {
+            console.error('InstanceService 未初始化，实例创建/编辑不可用');
+            instanceCrudStore = null;
+            return null;
+        }
+        try {
+            instanceCrudStore = createInstanceCrudStore({
+                service: instanceService,
+                emitter: global.mitt ? global.mitt() : null,
+            });
+            return instanceCrudStore;
+        } catch (error) {
+            console.error('初始化 InstanceCrudStore 失败:', error);
+            instanceCrudStore = null;
+            return null;
+        }
+    }
 
     function initializeTagManagementStore() {
         const TagManagementService = global.TagManagementService;
@@ -183,7 +210,16 @@ function mountInstancesListPage() {
     function initializeModals() {
         if (global.InstanceModals?.createController) {
             try {
-                instanceModalController = global.InstanceModals.createController();
+                instanceModalController = global.InstanceModals.createController({
+                    store: instanceCrudStore,
+                    FormValidator: global.FormValidator,
+                    ValidationRules: global.ValidationRules,
+                    toast: global.toast,
+                    DOMHelpers: global.DOMHelpers,
+                    onSaved: () => {
+                        instancesGrid?.refresh?.();
+                    },
+                });
                 instanceModalController.init?.();
             } catch (error) {
                 console.error('实例模态初始化失败:', error);
@@ -755,6 +791,9 @@ function mountInstancesListPage() {
      * @returns {string} API 地址。
      */
     function buildBaseUrl() {
+        if (instanceCrudStore?.gridUrl) {
+            return instanceCrudStore.gridUrl;
+        }
         if (instanceService?.getGridUrl) {
             return instanceService.getGridUrl();
         }

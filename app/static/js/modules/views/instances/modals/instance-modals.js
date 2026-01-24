@@ -5,9 +5,8 @@
    * 创建实例新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.instanceService] - 实例服务(推荐注入)
-   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 InstanceService)
-   * @param {Object} [options.InstanceService] - InstanceService 类(兼容注入)
+   * @param {Object} options.store - InstanceCrudStore（由 Page Entry 注入）
+   * @param {Function} [options.onSaved] - 保存成功后的回调（由 Page Entry 决定刷新策略）
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -17,9 +16,8 @@
    */
   function createController(options) {
     const {
-      instanceService: injectedInstanceService = null,
-      http = null,
-      InstanceService = window.InstanceService,
+      store = null,
+      onSaved = null,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
@@ -27,20 +25,14 @@
     } = options || {};
 
     if (!DOMHelpers) throw new Error('InstanceModals: DOMHelpers 未加载');
-    let instanceService = injectedInstanceService;
-    if (!instanceService) {
-      if (!InstanceService) {
-        throw new Error('InstanceModals: InstanceService 未加载');
-      }
-      instanceService = new InstanceService(http);
-    }
     if (
-      !instanceService ||
-      typeof instanceService.getInstance !== 'function' ||
-      typeof instanceService.createInstance !== 'function' ||
-      typeof instanceService.updateInstance !== 'function'
+      !store ||
+      !store.actions ||
+      typeof store.actions.load !== 'function' ||
+      typeof store.actions.create !== 'function' ||
+      typeof store.actions.update !== 'function'
     ) {
-      throw new Error('InstanceModals: instanceService 未初始化');
+      throw new Error('InstanceModals: store 未初始化');
     }
 
     const modalEl = document.getElementById('instanceModal');
@@ -133,12 +125,11 @@
         titleEl.textContent = '编辑实例';
         updateSubmitButtonCopy();
         setMetaState('加载中', 'status-pill--muted');
-        const resp = await instanceService.getInstance(instanceId);
-        const data = resp?.data?.instance || resp?.data;
-        if (!resp?.success || !data) {
-          throw new Error(resp?.message || '加载实例失败');
+        const instance = await store.actions.load(instanceId);
+        if (!instance) {
+          throw new Error('加载实例失败');
         }
-        fillForm(data);
+        fillForm(instance);
         setMetaState('编辑', 'status-pill--info');
         modal.show();
       } catch (error) {
@@ -223,12 +214,13 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      instanceService.createInstance(payload)
+      store.actions.create(payload)
         .then((resp) => {
-          if (!resp?.success) throw new Error(resp?.message || '添加实例失败');
           toast?.success?.(resp?.message || '添加实例成功');
           modal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'create', response: resp });
+          }
         })
         .catch((error) => {
           console.error('添加实例失败', error);
@@ -250,12 +242,13 @@
         toggleLoading(false);
         return;
       }
-      instanceService.updateInstance(id, payload)
+      store.actions.update(id, payload)
         .then((resp) => {
-          if (!resp?.success) throw new Error(resp?.message || '保存实例失败');
           toast?.success?.(resp?.message || '保存成功');
           modal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'edit', response: resp });
+          }
         })
         .catch((error) => {
           console.error('保存实例失败', error);
@@ -300,6 +293,10 @@
     }
 
     function resolveErrorMessage(error, fallback) {
+      const resolver = window.UI?.resolveErrorMessage;
+      if (typeof resolver === 'function') {
+        return resolver(error, fallback);
+      }
       if (!error) return fallback;
       if (typeof error === 'string') return error;
       return error.message || fallback;

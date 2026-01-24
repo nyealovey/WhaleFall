@@ -32,20 +32,31 @@
   - `app/static/js/modules/views/admin/partitions/partition-list.js`：改为注入 `gridUrl`（组件不再 `new PartitionService()`）
   - `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js`：删除 direct request fallback，强制依赖 `PartitionStoreInstance`
   - 新增前端契约单测（静态扫描）：`tests/unit/test_frontend_partition_list_injection_contracts.py`、`tests/unit/test_frontend_partitions_chart_requires_store.py`
+- `TagSelector`：
+  - `app/static/js/modules/views/components/tags/tag-selector-controller.js`：改为 DI-only（必须注入 store）
+  - 页面入口注入 store：`accounts/ledgers.js`、`databases/ledgers.js`、`instances/list.js`
+  - 新增前端契约单测：`tests/unit/test_frontend_tag_selector_injection_contracts.py`
+- `CapacityStatsDataSource`：
+  - `app/static/js/modules/views/components/charts/data-source.js`：改为 `createCapacityStatsDataSource({ service })` 工厂
+  - `CapacityStats.Manager`：强制注入 `dataSource`，不再读全局单例
+  - 新增前端契约单测：`tests/unit/test_frontend_capacity_data_source_injection_contracts.py`
+- `CredentialsListPage`：
+  - `credential-modals.js`：改为注入 store/actions；移除内部 service 构造
+  - `credentials/list.js`：移除迁移期兜底，统一由 store 提供 gridUrl；保存后刷新 grid（不再 reload）
+  - 新增前端契约单测：`tests/unit/test_frontend_credentials_strict_layering.py`
+- `InstanceModals`：
+  - 新增 `instance_crud_store.js`（InstanceService -> store/actions）
+  - `instance-modals.js`：改为 DI-only（必须注入 store/actions），移除内部 `new InstanceService()` 与 `window.location.reload()`
+  - 更新注入点：`instances/list.js`、`instances/detail.js`（list 刷新 grid；detail 保存后 reload）
+  - 新增前端契约单测：`tests/unit/test_frontend_instance_modals_strict_injection_contracts.py`
 
 ### PARTIAL/TODO（仍需收敛到“全站严格”）
 
 - Pages（PARTIAL）：
-  - `CredentialsListPage`：迁移期兜底存在（需 fail fast + 去除兼容支路）
   - `InstancesListPage` / `InstanceDetailPage` / `InstanceStatisticsPage`：迁移期兜底 + 组件注入未完全收口
-  - `AccountsListPage` / `DatabaseLedgerPage`：tag selector 组件内业务 state + `new TagManagementService()`（P2）
   - `SchedulerPage`：基本 OK，但仍需按“禁兜底/统一注入”收敛
-  - `CapacityDatabasesPage` / `InstanceAggregationsPage`：charts/data-source 组件内 `new CapacityStatsService()`（P2）
 - Shared Components（TODO，优先级最高，因为影响多页面）：
-  - `app/static/js/modules/views/components/tags/tag-selector-controller.js`：内部 `new TagManagementService()` + 自维护业务 state
-  - `app/static/js/modules/views/components/charts/data-source.js`：内部 `new CapacityStatsService()`
-  - `app/static/js/modules/views/credentials/modals/credential-modals.js`：内部可构造 `CredentialsService`（迁移期兼容支路）
-  - `app/static/js/modules/views/instances/modals/instance-modals.js`：内部可构造 `InstanceService`（迁移期兼容支路）
+  - （已完成）`InstanceModals` 注入收口；下一步推进 Instances* 页面“业务 state 下沉”
 
 ---
 
@@ -193,4 +204,3 @@ rg -o \"filename=\\x27(js/(?:modules|common|core)/[^\\x27]+\\\\.js)\\x27\" -r '$
 comm -23 /tmp/all_modules_js.txt /tmp/referenced_js.txt
 ```
 - 删完跑：`uv run pytest -m unit`
-

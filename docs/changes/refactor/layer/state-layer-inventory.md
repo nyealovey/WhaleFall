@@ -26,8 +26,8 @@
 | AccountClassificationPage | `app/templates/accounts/account-classification/index.html` | `app/static/js/modules/views/accounts/account-classification/index.js` | `account_classification_store.js` | DONE | - |
 | TagsBatchAssignPage | `app/templates/tags/bulk/assign.html` | `app/static/js/modules/views/tags/batch-assign.js` | `tag_batch_store.js` | DONE | - |
 | CredentialsListPage | `app/templates/credentials/list.html` | `app/static/js/modules/views/credentials/list.js` | `credentials_store.js` | DONE | CredentialModals 改为注入 store/actions；列表页移除迁移期兜底并统一由 store 提供 gridUrl |
-| InstancesListPage | `app/templates/instances/list.html` | `app/static/js/modules/views/instances/list.js` | `instance_store.js` | PARTIAL | 页面内仍维护 selection 等状态；InstanceModals 需强制注入依赖 |
-| InstanceDetailPage | `app/templates/instances/detail.html` | `app/static/js/modules/views/instances/detail.js` | `instance_store.js` | PARTIAL | 页面体量大，存在 service 直连与迁移期兜底（后续拆分） |
+| InstancesListPage | `app/templates/instances/list.html` | `app/static/js/modules/views/instances/list.js` | `instance_store.js` / `instance_crud_store.js` | PARTIAL | 页面内仍维护 selection 等状态（需继续下沉/移除 `selectedInstanceIds`） |
+| InstanceDetailPage | `app/templates/instances/detail.html` | `app/static/js/modules/views/instances/detail.js` | `instance_store.js` / `instance_crud_store.js` | PARTIAL | 页面体量大，存在 service 直连与迁移期兜底（后续拆分）；已收口 InstanceModals 注入 |
 | InstanceStatisticsPage | `app/templates/instances/statistics.html` | `app/static/js/modules/views/instances/statistics.js` | `instance_store.js` | PARTIAL | 存在迁移期兜底（后续收敛） |
 | AccountsListPage | `app/templates/accounts/ledgers.html` | `app/static/js/modules/views/accounts/ledgers.js` | `instance_store.js` | DONE | - |
 | DatabaseLedgerPage | `app/templates/databases/ledgers.html` | `app/static/js/modules/views/databases/ledgers.js` | `tag_management_store.js`(组件) | DONE | - |
@@ -54,5 +54,6 @@
 | `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js` | `admin/partitions/index.html` | DONE | - | 已移除 direct request fallback，强制依赖 `PartitionStoreInstance` |
 | `app/static/js/modules/views/components/charts/data-source.js` | capacity 两个页面 | DONE | - | 已改为 `createCapacityStatsDataSource({ service })` 并由 Page Entry 注入 `CapacityStats.Manager({ dataSource })` |
 | `app/static/js/modules/views/components/tags/tag-selector-controller.js` | 多页面 include | DONE | - | 已改为注入 `TagManagementStore`；组件内不再 `new TagManagementService()`/`createTagManagementStore()` |
+| `app/static/js/modules/views/instances/modals/instance-modals.js` | instances list/detail | DONE | - | 已改为注入 `InstanceCrudStore`；组件内不再 `new InstanceService()`/`window.location.reload()` |
 
 ## Store Backlog（待新增）
