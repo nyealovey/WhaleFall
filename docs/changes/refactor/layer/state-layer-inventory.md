@@ -26,13 +26,13 @@
 | AccountClassificationPage | `app/templates/accounts/account-classification/index.html` | `app/static/js/modules/views/accounts/account-classification/index.js` | `account_classification_store.js` | DONE | - |
 | TagsBatchAssignPage | `app/templates/tags/bulk/assign.html` | `app/static/js/modules/views/tags/batch-assign.js` | `tag_batch_store.js` | DONE | - |
 | CredentialsListPage | `app/templates/credentials/list.html` | `app/static/js/modules/views/credentials/list.js` | `credentials_store.js` | DONE | CredentialModals 改为注入 store/actions；列表页移除迁移期兜底并统一由 store 提供 gridUrl |
-| InstancesListPage | `app/templates/instances/list.html` | `app/static/js/modules/views/instances/list.js` | `instance_store.js` / `instance_crud_store.js` | PARTIAL | 页面内仍维护 selection 等状态（需继续下沉/移除 `selectedInstanceIds`） |
-| InstanceDetailPage | `app/templates/instances/detail.html` | `app/static/js/modules/views/instances/detail.js` | `instance_store.js` / `instance_crud_store.js` | PARTIAL | 页面体量大，存在 service 直连与迁移期兜底（后续拆分）；已收口 InstanceModals 注入 |
-| InstanceStatisticsPage | `app/templates/instances/statistics.html` | `app/static/js/modules/views/instances/statistics.js` | `instance_store.js` | PARTIAL | 存在迁移期兜底（后续收敛） |
+| InstancesListPage | `app/templates/instances/list.html` | `app/static/js/modules/views/instances/list.js` | `instance_store.js` / `instance_crud_store.js` | DONE | selection 下沉 store（移除 `selectedInstanceIds`）；BatchCreate/InstanceModals 均为 DI-only 且通过 `onSaved` 刷新 grid |
+| InstanceDetailPage | `app/templates/instances/detail.html` | `app/static/js/modules/views/instances/detail.js` | `instance_store.js` / `instance_crud_store.js` | DONE | 同步/变更历史/数据库容量/表容量加载均走 store/actions；删除走 InstanceCrudStore；后续可拆分减重（非分层阻塞） |
+| InstanceStatisticsPage | `app/templates/instances/statistics.html` | `app/static/js/modules/views/instances/statistics.js` | `instance_store.js` | DONE | 刷新/首屏统一走 store.actions.loadStats；移除 `.catch(() => {})` 静默吞异常 |
 | AccountsListPage | `app/templates/accounts/ledgers.html` | `app/static/js/modules/views/accounts/ledgers.js` | `instance_store.js` | DONE | - |
 | DatabaseLedgerPage | `app/templates/databases/ledgers.html` | `app/static/js/modules/views/databases/ledgers.js` | `tag_management_store.js`(组件) | DONE | - |
 | AdminPartitionsPage | `app/templates/admin/partitions/index.html` | `app/static/js/modules/views/admin/partitions/index.js` | `partition_store.js` | DONE | - |
-| SchedulerPage | `app/templates/admin/scheduler/index.html` | `app/static/js/modules/views/admin/scheduler/index.js` | `scheduler_store.js` | PARTIAL | 基本 OK，后续按“禁兜底/统一注入”收敛 |
+| SchedulerPage | `app/templates/admin/scheduler/index.html` | `app/static/js/modules/views/admin/scheduler/index.js` | `scheduler_store.js` | DONE | SchedulerModals DI-only（注入 store），Page Entry 移除 try/catch 兜底并统一注入依赖 |
 | CapacityDatabasesPage | `app/templates/capacity/databases.html` | `app/static/js/modules/views/capacity/databases.js` | - | DONE | - |
 | InstanceAggregationsPage | `app/templates/capacity/instances.html` | `app/static/js/modules/views/capacity/instances.js` | - | DONE | - |
 | DashboardOverviewPage | `app/templates/dashboard/overview.html` | `app/static/js/modules/views/dashboard/overview.js` | `dashboard_store.js` | DONE | 图表数据下沉 store，入口脚本不再直连 service 方法 |
