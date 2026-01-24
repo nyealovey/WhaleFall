@@ -688,12 +688,17 @@
 
     // Initial mode sync
     const initialMode = documentRef.querySelector('input[name="batchMode"]:checked')?.value || "assign";
-    store.actions.setMode(initialMode).catch(() => {});
+    store.actions.setMode(initialMode).catch((error) => {
+      console.error("初始化批量模式失败:", error);
+      toast.error(error?.message || "初始化批量模式失败");
+    });
     syncModeUI(initialMode);
     refreshSelectionUI();
     setLoadingState("instances", true);
     setLoadingState("tags", true);
-    store.actions.loadData().catch(() => {});
+    store.actions.loadData().catch((error) => {
+      console.error("加载批量分配数据失败:", error);
+    });
   }
 
   global.TagsBatchAssignPage = {
