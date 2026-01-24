@@ -11,14 +11,13 @@
     const LOG_FILTER_FORM_ID = 'logs-filter-form';
 
     let helpers = null;
-    let logsService = null;
+    let logsStore = null;
     let gridPage = null;
     let logDetailModalController = null;
     let GridPage = null;
     let GridPlugins = null;
     let escapeHtml = null;
     let rowMeta = null;
-    const logCache = new Map();
     const LOG_LEVEL_SELECT_ID = 'level';
     const LOG_LEVEL_SELECT_TONE_CLASSES = [
         'log-level-select--danger',
@@ -62,7 +61,20 @@
             console.error('LogsService 未初始化');
             return;
         }
-        logsService = new global.LogsService();
+        if (typeof global.createLogsStore !== 'function') {
+            console.error('createLogsStore 未初始化');
+            return;
+        }
+
+        try {
+            logsStore = global.createLogsStore({
+                service: new global.LogsService(),
+                emitter: global.mitt ? global.mitt() : null,
+            });
+        } catch (error) {
+            console.error('初始化 LogsStore 失败:', error);
+            return;
+        }
 
         const pageRoot = document.getElementById('logs-page-root');
         if (!pageRoot) {
@@ -75,8 +87,26 @@
             setDefaultTimeRange();
             syncLogLevelSelectTone();
             initializeLogDetailModal();
+            subscribeToStoreEvents();
             initializeGridPage(pageRoot);
-            refreshStats(gridPage?.getFilters?.() || resolveFilters());
+            logsStore?.actions
+                ?.loadStats(gridPage?.getFilters?.() || resolveFilters())
+                .catch(() => {});
+        });
+    }
+
+    function subscribeToStoreEvents() {
+        if (!logsStore?.subscribe) {
+            return;
+        }
+        logsStore.subscribe('logs:statsUpdated', (payload) => {
+            const stats = payload?.stats || payload?.state?.stats || {};
+            const windowHours = payload?.windowHours || payload?.state?.windowHours || 24;
+            updateStatsDisplay(stats, windowHours);
+        });
+        logsStore.subscribe('logs:statsError', (payload) => {
+            console.error('获取日志统计失败:', payload?.error);
+            showStatsError('获取日志统计失败');
         });
     }
 
@@ -97,7 +127,7 @@
             name: 'logsStats',
             onFiltersChanged: (_ctx, { filters }) => {
                 syncLogLevelSelectTone();
-                refreshStats(filters);
+                logsStore?.actions?.loadStats(filters).catch(() => {});
             },
         };
 
@@ -109,7 +139,7 @@
                 sort: false,
                 columns: buildColumns(),
                 server: {
-                    url: logsService.getGridUrl(),
+                    url: logsStore?.gridUrl || '',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
@@ -151,10 +181,10 @@
     function handleServerResponse(response) {
         const payload = response?.data || response || {};
         const items = Array.isArray(payload.items) ? payload.items : [];
-        logCache.clear();
-        return items.map((item) => {
-            const normalized = normalizeLogItem(item);
-            logCache.set(normalized.id, normalized);
+        const normalizedItems = logsStore?.actions?.ingestGridItems
+            ? logsStore.actions.ingestGridItems(items)
+            : [];
+        return normalizedItems.map((normalized) => {
             return [
                 normalized.timestamp_display || '-',
                 normalized.level || '-',
@@ -279,25 +309,6 @@
             return rowMeta.get(row);
         }
         return {};
-    }
-
-    /**
-     * 规范化日志项数据。
-     *
-     * @param {Object} item - 原始日志项
-     * @return {Object} 规范化后的日志对象
-     */
-    function normalizeLogItem(item) {
-        return {
-            id: item.id,
-            timestamp: item.timestamp,
-            timestamp_display: item.timestamp_display || item.timestamp || '-',
-            level: item.level || '-',
-            module: item.module || '-',
-            message: item.message || '',
-            context: item.context,
-            traceback: item.traceback,
-        };
     }
 
     /**
@@ -474,37 +485,14 @@
     }
 
     /**
-     * 刷新统计数据。
-     *
-     * @param {Object} filters - 筛选条件对象
-     * @return {void}
-     */
-    function refreshStats(filters) {
-        if (!logsService) {
-            return;
-        }
-        const params = Object.assign({}, filters || {});
-        const windowHours = Number(params.hours);
-        refreshStats.lastWindowHours = Number.isFinite(windowHours) && windowHours > 0 ? windowHours : 24;
-        logsService
-            .fetchStats(params)
-            .then((response) => {
-                const payload = response?.data || response || {};
-                updateStatsDisplay(payload);
-            })
-            .catch((error) => {
-                console.error('获取日志统计失败:', error);
-                showStatsError('获取日志统计失败');
-            });
-    }
-
-    /**
      * 更新统计数据显示。
      *
      * @param {Object} stats - 统计数据对象
+     * @param {number} windowHoursRaw - 窗口小时数
      * @return {void}
      */
-    function updateStatsDisplay(stats) {
+    function updateStatsDisplay(stats, windowHoursRaw) {
+        const windowHours = Number(windowHoursRaw) > 0 ? Number(windowHoursRaw) : 24;
         const totalLogs = Number(stats.total_logs ?? stats.total ?? 0) || 0;
         const errorLogs = Number(stats.error_logs ?? stats.error_count ?? 0) || 0;
         const warningLogs = Number(stats.warning_logs ?? stats.warning_count ?? 0) || 0;
@@ -524,7 +512,6 @@
         setText('infoLogs', infoLogs);
 
         // 二级维度：错误/告警、占比、Top 模块（避免冗余文字，通过 icon + 数字/短文本表达）。
-        const windowHours = refreshStats.lastWindowHours || 24;
         setText('logsMetaWindowHours', `${windowHours}h`);
 
         const formatPercent = global.NumberFormat.formatPercent;
@@ -610,19 +597,12 @@
         if (!numericId) {
             return;
         }
-        const cached = logCache.get(numericId);
-        if (cached) {
-            logDetailModalController?.open(cached);
+        if (!logsStore?.actions?.loadLogDetail) {
             return;
         }
-        if (!logsService) {
-            return;
-        }
-        logsService
-            .fetchLogDetail(numericId)
-            .then((response) => {
-                const payload = response?.data || response || {};
-                const log = payload.log || payload.data || payload || {};
+        logsStore.actions
+            .loadLogDetail(numericId)
+            .then((log) => {
                 logDetailModalController?.open(log);
             })
             .catch((error) => {
