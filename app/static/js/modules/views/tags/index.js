@@ -55,7 +55,11 @@ function mountTagsIndexPage(global) {
     console.error("TagManagementService 未初始化");
     return;
   }
-  const tagService = new TagManagementService();
+  const createTagListStore = global.createTagListStore;
+  if (typeof createTagListStore !== "function") {
+    console.error("createTagListStore 未初始化");
+    return;
+  }
 
   const gridHtml = gridjs.html;
   const { ready, selectOne } = helpers;
@@ -72,14 +76,34 @@ function mountTagsIndexPage(global) {
   let canManageTags = false;
   let gridPage = null;
   let tagsGrid = null;
+  let tagListStore = null;
 
   ready(() => {
+    try {
+      tagListStore = createTagListStore({
+        service: new TagManagementService(),
+        emitter: global.mitt ? global.mitt() : null,
+      });
+    } catch (error) {
+      console.error("初始化 TagListStore 失败:", error);
+      return;
+    }
     statsContainer = pageRoot.querySelector("#tagStatsContainer");
+    subscribeToStoreEvents();
     initializeTagModals();
     initializeGridPage();
     bindQuickActions();
     exposeActions();
   });
+
+  function subscribeToStoreEvents() {
+    if (!tagListStore?.subscribe) {
+      return;
+    }
+    tagListStore.subscribe("tags:statsUpdated", (payload) => {
+      updateTagStats(payload?.stats || payload?.state?.stats);
+    });
+  }
 
   /**
    * 初始化标签列表 grid page skeleton。
@@ -104,7 +128,7 @@ function mountTagsIndexPage(global) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: tagService.getGridUrl(),
+          url: tagListStore?.gridUrl || "",
           headers: { "X-Requested-With": "XMLHttpRequest" },
           then: handleServerResponse,
           total: (response) => {
@@ -191,11 +215,14 @@ function mountTagsIndexPage(global) {
       return;
     }
     tagModals = global.TagModals.createController({
-      tagService,
+      store: tagListStore,
       FormValidator: global.FormValidator,
       ValidationRules: global.ValidationRules,
       toast: global.toast,
       DOMHelpers: global.DOMHelpers,
+      onSaved: () => {
+        tagsGrid?.refresh?.();
+      },
     });
     tagModals.init?.();
   }
@@ -227,8 +254,8 @@ function mountTagsIndexPage(global) {
     if (!tagId || !canManageTags) {
       return;
     }
-    if (typeof tagService.deleteTag !== "function") {
-      console.error("tagService 未初始化，无法删除标签");
+    if (!tagListStore?.actions?.remove) {
+      console.error("TagListStore 未初始化，无法删除标签");
       return;
     }
 
@@ -268,10 +295,7 @@ function mountTagsIndexPage(global) {
     }
 
     try {
-      const resp = await tagService.deleteTag(tagId);
-      if (!resp?.success) {
-        throw new Error(resp?.message || "删除标签失败");
-      }
+      const resp = await tagListStore.actions.remove(tagId);
       global.toast?.success?.(resp?.message || "删除标签成功");
       tagsGrid?.refresh?.();
     } catch (error) {
@@ -346,8 +370,9 @@ function mountTagsIndexPage(global) {
 
   function handleServerResponse(response) {
     const payload = response?.data || response || {};
-    updateTagStats(payload.stats);
-    const items = payload.items || [];
+    const items = tagListStore?.actions?.ingestGridPayload
+      ? tagListStore.actions.ingestGridPayload(payload)
+      : payload.items || [];
     return items.map((item) => [
       item.display_name || item.name || "-",
       item.category || "-",

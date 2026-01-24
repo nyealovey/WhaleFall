@@ -5,9 +5,8 @@
    * 创建标签新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.tagService] - 标签服务(推荐注入)
-   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 TagManagementService)
-   * @param {Object} [options.TagManagementService] - TagManagementService 类(兼容注入)
+   * @param {Object} options.store - TagListStore（由 Page Entry 注入）
+   * @param {Function} [options.onSaved] - 保存成功后的回调（用于刷新列表等）
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -17,9 +16,8 @@
    */
   function createController(options) {
     const {
-      tagService: injectedTagService = null,
-      http = null,
-      TagManagementService = window.TagManagementService,
+      store = null,
+      onSaved = null,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
@@ -30,20 +28,14 @@
       throw new Error('TagModals: DOMHelpers 未加载');
     }
 
-    let tagService = injectedTagService;
-    if (!tagService) {
-      if (!TagManagementService) {
-        throw new Error('TagModals: TagManagementService 未加载');
-      }
-      tagService = new TagManagementService(http);
-    }
     if (
-      !tagService ||
-      typeof tagService.getTag !== 'function' ||
-      typeof tagService.createTag !== 'function' ||
-      typeof tagService.updateTag !== 'function'
+      !store ||
+      !store.actions ||
+      typeof store.actions.load !== 'function' ||
+      typeof store.actions.create !== 'function' ||
+      typeof store.actions.update !== 'function'
     ) {
-      throw new Error('TagModals: tagService 未初始化');
+      throw new Error('TagModals: tag list store 未初始化');
     }
 
     const modalEl = document.getElementById('tagModal');
@@ -173,11 +165,10 @@
         titleEl.textContent = '编辑标签';
         updateSubmitButtonCopy();
         setMetaState('加载中', 'status-pill--muted');
-        const payload = await tagService.getTag(tagId);
-        if (!payload?.success || !payload?.data?.tag) {
-          throw new Error(payload?.message || '加载标签失败');
+        const tag = await store.actions.load(tagId);
+        if (!tag) {
+          throw new Error('加载标签失败');
         }
-        const tag = payload.data.tag;
         form.tag_id.value = tag.id;
         form.name.value = tag.name || '';
         form.display_name.value = tag.display_name || '';
@@ -246,15 +237,14 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      tagService
-        .createTag(payload)
+      store.actions
+        .create(payload)
         .then((resp) => {
-          if (!resp?.success) {
-            throw new Error(resp?.message || '添加标签失败');
-          }
           toast?.success?.(resp?.message || '添加标签成功');
           modal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'create', response: resp });
+          }
         })
         .catch((error) => {
           console.error('添加标签失败', error);
@@ -271,20 +261,19 @@
      */
     function submitUpdate(payload) {
       const tagId = payload.id;
-     if (!tagId) {
+      if (!tagId) {
         toast?.error?.('缺少标签ID');
         toggleLoading(false);
         return;
       }
-      tagService
-        .updateTag(tagId, payload)
+      store.actions
+        .update(tagId, payload)
         .then((resp) => {
-          if (!resp?.success) {
-            throw new Error(resp?.message || '保存标签失败');
-          }
           toast?.success?.(resp?.message || '保存成功');
           modal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'edit', response: resp });
+          }
         })
         .catch((error) => {
           console.error('保存标签失败', error);
