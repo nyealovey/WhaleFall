@@ -105,6 +105,7 @@ function ensureInstanceService() {
 
     // 页面加载完成，不自动测试连接
     ready(() => {
+        configurePermissionViewer();
         bindTemplateActions();
         initializeInstanceStore();
         initializeHistoryModal();
@@ -115,6 +116,37 @@ function ensureInstanceService() {
         initializeDatabaseSizesGrid();
         window.setTimeout(loadDatabaseSizes, 500);
     });
+
+function configurePermissionViewer() {
+    const viewer = window.PermissionViewer;
+    const PermissionService = window.PermissionService;
+    if (!viewer?.configure || typeof PermissionService !== 'function') {
+        console.error('PermissionViewer/PermissionService 未加载，权限查看功能不可用');
+        return;
+    }
+    if (typeof window.showPermissionsModal !== 'function') {
+        console.error('showPermissionsModal 未加载，权限查看功能不可用');
+        return;
+    }
+    let service = null;
+    try {
+        service = new PermissionService();
+    } catch (error) {
+        console.error('初始化 PermissionService 失败:', error);
+        return;
+    }
+    try {
+        viewer.configure({
+            fetchPermissions: ({ accountId, apiUrl }) => {
+                return apiUrl ? service.fetchByUrl(apiUrl) : service.fetchAccountPermissions(accountId);
+            },
+            showPermissionsModal: window.showPermissionsModal,
+            toast: window.toast,
+        });
+    } catch (error) {
+        console.error('配置 PermissionViewer 失败:', error);
+    }
+}
 
 function resetGridFilterForms() {
     ['instance-accounts-filter-form', 'instance-databases-filter-form'].forEach((formId) => {
@@ -557,7 +589,12 @@ function syncCapacity(instanceId, instanceName, event) {
  * @return {void}
  */
 function viewInstanceAccountPermissions(accountId) {
-    window.viewAccountPermissions(accountId, { scope: 'instance-permission' });
+    const viewer = window.PermissionViewer?.viewAccountPermissions;
+    if (typeof viewer !== 'function') {
+        console.error('PermissionViewer 未注册');
+        return;
+    }
+    viewer(accountId, { scope: 'instance-permission' });
 }
 
 /**
