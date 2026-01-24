@@ -40,7 +40,7 @@
 | AccountClassificationStatisticsPage | `app/templates/accounts/classification_statistics.html` | `app/static/js/modules/views/accounts/classification_statistics.js` | `account_classification_statistics_store.js` | DONE | 已迁移到 store/actions，views 不再直连 `httpU` |
 | TagsIndexPage | `app/templates/tags/index.html` | `app/static/js/modules/views/tags/index.js` | (TODO) | TODO | 入口直连 `new TagManagementService()`（P1） |
 | AuthListPage | `app/templates/auth/list.html` | `app/static/js/modules/views/auth/list.js` | (TODO) | TODO | 入口直连 `new UserService()`（P1） |
-| SyncSessionsPage | `app/templates/history/sessions/sync-sessions.html` | `app/static/js/modules/views/history/sessions/sync-sessions.js` | (TODO) | TODO | 入口直连 `new TaskRunsService()`（P1） |
+| SyncSessionsPage | `app/templates/history/sessions/sync-sessions.html` | `app/static/js/modules/views/history/sessions/sync-sessions.js` | `task_runs_store.js` | DONE | 总数/详情/取消下沉 store，入口脚本不再直连 service 方法 |
 | LogsPage | `app/templates/history/logs/logs.html` | `app/static/js/modules/views/history/logs/logs.js` | `logs_store.js` | DONE | 统计/详情/缓存下沉 store，入口脚本不再直连 service 方法 |
 | AccountChangeLogsPage | `app/templates/history/account_change_logs/account-change-logs.html` | `app/static/js/modules/views/history/account-change-logs/account-change-logs.js` | `account_change_logs_store.js` | DONE | 统计/详情/缓存下沉 store，入口脚本不再直连 service 方法 |
 
@@ -57,7 +57,6 @@
 
 ## Store Backlog（待新增）
 
-- `app/static/js/modules/stores/task_runs_store.js`
 - `app/static/js/modules/stores/users_store.js`
 - `app/static/js/modules/stores/tag_list_store.js`
 - `app/static/js/modules/stores/dashboard_store.js`
