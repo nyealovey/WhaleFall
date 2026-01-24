@@ -34,7 +34,10 @@ function mountAdminPartitionsPage(global) {
         initializeCharts();
         bindEvents();
         if (global.PartitionsListGrid?.mount) {
-            global.PartitionsListGrid.mount(global);
+            global.PartitionsListGrid.mount({
+                windowRef: global,
+                gridUrl: partitionService.getGridUrl(),
+            });
         }
     });
 

@@ -31,7 +31,7 @@
 | InstanceStatisticsPage | `app/templates/instances/statistics.html` | `app/static/js/modules/views/instances/statistics.js` | `instance_store.js` | PARTIAL | 存在迁移期兜底（后续收敛） |
 | AccountsListPage | `app/templates/accounts/ledgers.html` | `app/static/js/modules/views/accounts/ledgers.js` | `instance_store.js` | PARTIAL | tag selector 组件内 `new TagManagementService()` + 自维护 state（P2） |
 | DatabaseLedgerPage | `app/templates/databases/ledgers.html` | `app/static/js/modules/views/databases/ledgers.js` | `tag_management_store.js`(组件) | PARTIAL | tag selector 组件内 `new TagManagementService()` + 自维护 state（P2） |
-| AdminPartitionsPage | `app/templates/admin/partitions/index.html` | `app/static/js/modules/views/admin/partitions/index.js` | `partition_store.js` | PARTIAL | `partition-list.js` 直连 service；图表存在 fallback（P2） |
+| AdminPartitionsPage | `app/templates/admin/partitions/index.html` | `app/static/js/modules/views/admin/partitions/index.js` | `partition_store.js` | DONE | - |
 | SchedulerPage | `app/templates/admin/scheduler/index.html` | `app/static/js/modules/views/admin/scheduler/index.js` | `scheduler_store.js` | PARTIAL | 基本 OK，后续按“禁兜底/统一注入”收敛 |
 | CapacityDatabasesPage | `app/templates/capacity/databases.html` | `app/static/js/modules/views/capacity/databases.js` | - | PARTIAL | charts/data-source 组件内 `new CapacityStatsService()`（P2） |
 | InstanceAggregationsPage | `app/templates/capacity/instances.html` | `app/static/js/modules/views/capacity/instances.js` | - | PARTIAL | charts/data-source 组件内 `new CapacityStatsService()`（P2） |
@@ -50,8 +50,8 @@
 |---|---|---|---|---|
 | `app/static/js/modules/views/auth/modals/change-password-modals.js` | `app/templates/base.html:310` | DONE | - | 已改为 `auth_service.js` + `auth_store.js`，views 不再直连 `httpU` |
 | `app/static/js/modules/views/components/permissions/permission-viewer.js` | `accounts/ledgers.html` / `instances/detail.html` | DONE | - | 已改为 `PermissionViewer.configure({ fetchPermissions, showPermissionsModal, toast })` 注入依赖 |
-| `app/static/js/modules/views/admin/partitions/partition-list.js` | `admin/partitions/index.html` | TODO | 组件内 `new PartitionService()`（P2） | 改为注入 `partitionStore` 或 `partitionService`（由 Page Entry 创建） |
-| `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js` | `admin/partitions/index.html` | TODO | “无 store fallback”（P2） | 删除 fallback，强制依赖 store（注入或读取 `window.PartitionStoreInstance`） |
+| `app/static/js/modules/views/admin/partitions/partition-list.js` | `admin/partitions/index.html` | DONE | - | 已改为注入 `gridUrl`（由 Page Entry 提供），组件内不再 new Service |
+| `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js` | `admin/partitions/index.html` | DONE | - | 已移除 direct request fallback，强制依赖 `PartitionStoreInstance` |
 | `app/static/js/modules/views/components/charts/data-source.js` | capacity 两个页面 | TODO | 组件内 `new CapacityStatsService()`（P2） | 改为 `createDataSource({ service })` 或注入 store/actions |
 | `app/static/js/modules/views/components/tags/tag-selector-controller.js` | 多页面 include | TODO | 自维护业务 state + 内部 `new TagManagementService()`（P2） | 只保留 UI state；业务状态下沉 store；依赖通过注入传入 |
 

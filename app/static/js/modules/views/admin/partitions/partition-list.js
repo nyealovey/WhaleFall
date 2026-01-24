@@ -9,11 +9,13 @@
   /**
    * 挂载分区列表组件。
    *
-   * @param {Window} [context=global] 自定义上下文。
+   * @param {Object} [options={}] 配置项。
+   * @param {Window} [options.windowRef=global] 自定义上下文。
+   * @param {string} options.gridUrl 分区列表 Grid URL（由 Page Entry 注入）。
    * @returns {void}
    */
-  function mount(context) {
-    const host = context || global;
+  function mount(options = {}) {
+    const host = options.windowRef || global;
     const helpers = global.DOMHelpers;
     if (!helpers) {
       console.error("DOMHelpers 未初始化，无法挂载分区列表");
@@ -34,7 +36,7 @@
     initialized = true;
     const { ready } = helpers;
     ready(() => {
-      initializeGrid({ windowRef: host });
+      initializeGrid({ windowRef: host, gridUrl: options.gridUrl });
       bindRefreshEvent(host);
     });
   }
@@ -60,17 +62,9 @@
       console.warn("未找到分区列表容器，跳过 Grid 初始化");
       return;
     }
-
-    const PartitionService = global.PartitionService;
-    if (!PartitionService) {
-      console.error("PartitionService 未初始化，无法挂载分区列表");
-      return;
-    }
-    let partitionService = null;
-    try {
-      partitionService = new PartitionService();
-    } catch (error) {
-      console.error("初始化 PartitionService 失败:", error);
+    const gridUrl = options.gridUrl;
+    if (!gridUrl) {
+      console.error("PartitionsListGrid 缺少 gridUrl，无法挂载分区列表");
       return;
     }
 
@@ -82,7 +76,7 @@
         sort: false,
         columns: buildColumns(global.gridjs.html),
         server: {
-          url: partitionService.getGridUrl(),
+          url: gridUrl,
           headers: {
             "X-Requested-With": "XMLHttpRequest",
           },
