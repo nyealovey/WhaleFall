@@ -54,13 +54,11 @@ function getSafe(map, key, fallback) {
  * @returns {void}
  */
 function mountAggregationsChart(context = window) {
-const runtime = context || window;
-	const PartitionService = runtime.PartitionService;
-	if (!PartitionService) {
-	    throw new Error('PartitionService 未初始化');
-	}
-	const partitionService = new PartitionService();
-const createPartitionStore = runtime.createPartitionStore;
+    const runtime = context || window;
+    const partitionStore = runtime.PartitionStoreInstance;
+    if (!partitionStore) {
+        throw new Error('PartitionStoreInstance 未初始化');
+    }
 
 /**
  * 将过滤条件序列化为查询参数。
@@ -96,14 +94,16 @@ function buildChartQueryParams(values) {
  * 负责监听 store、拉取数据并渲染 Chart.js。
  */
 class AggregationsChartManager {
-    constructor() {
+    constructor(options = {}) {
         this.chart = null;
         this.currentData = [];
         this.currentChartType = 'line'; // 固定为折线图
         this.currentPeriodType = 'daily';
-        this.partitionStore = window.PartitionStoreInstance || null;
+        this.partitionStore = options.partitionStore || null;
+        if (!this.partitionStore) {
+            throw new Error('AggregationsChartManager: partitionStore 未注入');
+        }
         this.partitionStoreSubscriptions = [];
-        this.ownsStore = false;
         this.handleMetricsUpdated = this.handleMetricsUpdated.bind(this);
         this.handleStoreLoading = this.handleStoreLoading.bind(this);
         this.handleStoreError = this.handleStoreError.bind(this);
@@ -204,39 +204,14 @@ class AggregationsChartManager {
     async loadChartData() {
         this.showChartLoading(true);
 
-        if (this.partitionStore) {
-            try {
-                await this.partitionStore.actions.loadCoreMetrics({
-                    periodType: this.currentPeriodType,
-                    days: 7,
-                });
-            } catch (error) {
-                console.error('加载图表数据异常:', error);
-                this.showError('加载图表数据异常');
-                this.showChartLoading(false);
-            }
-            return;
-        }
-
         try {
-            const params = buildChartQueryParams({
-                period_type: this.currentPeriodType,
+            await this.partitionStore.actions.loadCoreMetrics({
+                periodType: this.currentPeriodType,
                 days: 7,
             });
-
-            const raw = await partitionService.fetchCoreMetrics(params);
-            if (raw.success !== false) {
-                const payload = raw?.data ?? raw ?? {};
-                this.currentData = payload;
-                this.renderChart(payload);
-                this.updateChartStats(payload);
-            } else {
-                this.showError('加载图表数据失败');
-            }
         } catch (error) {
             console.error('加载图表数据异常:', error);
             this.showError('加载图表数据异常');
-        } finally {
             this.showChartLoading(false);
         }
     }
@@ -608,34 +583,11 @@ class AggregationsChartManager {
     }
 
     ensurePartitionStore() {
-        if (this.partitionStore) {
-            this.bindStoreEvents();
-            return true;
+        if (!this.partitionStore) {
+            throw new Error('AggregationsChartManager: partitionStore 未初始化');
         }
-        if (window.PartitionStoreInstance) {
-            this.partitionStore = window.PartitionStoreInstance;
-            this.bindStoreEvents();
-            return true;
-        }
-        if (!createPartitionStore) {
-            console.warn('createPartitionStore 未初始化，使用直接请求模式');
-            return false;
-        }
-        try {
-            this.partitionStore = createPartitionStore({
-                service: partitionService,
-                emitter: window.mitt ? window.mitt() : null,
-            });
-            window.PartitionStoreInstance = this.partitionStore;
-            this.ownsStore = true;
-            this.partitionStore.init({ autoLoad: false });
-            this.bindStoreEvents();
-            return true;
-        } catch (error) {
-            console.error('初始化 PartitionStore 失败:', error);
-            this.partitionStore = null;
-            return false;
-        }
+        this.bindStoreEvents();
+        return true;
     }
 
     bindStoreEvents() {
@@ -697,10 +649,6 @@ class AggregationsChartManager {
             this.partitionStore.unsubscribe(eventName, handler);
         });
         this.partitionStoreSubscriptions.length = 0;
-        if (this.ownsStore) {
-            this.partitionStore.destroy?.();
-            window.PartitionStoreInstance = null;
-        }
         this.partitionStore = null;
     }
 
@@ -733,7 +681,7 @@ ready(() => {
      */
     function initManager() {
         if (typeof Chart !== 'undefined' && typeof AggregationsChartManager !== 'undefined') {
-            window.aggregationsChartManager = new AggregationsChartManager();
+            window.aggregationsChartManager = new AggregationsChartManager({ partitionStore });
             from(window).on('beforeunload', () => {
                 window.aggregationsChartManager?.teardownStore();
             });
