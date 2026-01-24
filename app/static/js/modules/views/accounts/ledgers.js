@@ -72,6 +72,7 @@ function mountAccountsListPage(global) {
   let instanceStore = null;
 
   ready(() => {
+    configurePermissionViewer();
     initializeInstanceService();
     initializeInstanceStore();
     initializeGridPage();
@@ -79,6 +80,39 @@ function mountAccountsListPage(global) {
     bindDatabaseTypeButtons();
     bindSyncAllAccountsAction();
   });
+
+  function configurePermissionViewer() {
+    const viewer = global.PermissionViewer;
+    const PermissionService = global.PermissionService;
+    if (!viewer?.configure || typeof PermissionService !== "function") {
+      console.error("PermissionViewer/PermissionService 未加载，权限查看功能不可用");
+      return;
+    }
+    if (typeof global.showPermissionsModal !== "function") {
+      console.error("showPermissionsModal 未加载，权限查看功能不可用");
+      return;
+    }
+    let service = null;
+    try {
+      service = new PermissionService();
+    } catch (error) {
+      console.error("初始化 PermissionService 失败:", error);
+      return;
+    }
+    try {
+      viewer.configure({
+        fetchPermissions: ({ accountId, apiUrl }) => {
+          return apiUrl
+            ? service.fetchByUrl(apiUrl)
+            : service.fetchAccountPermissions(accountId);
+        },
+        showPermissionsModal: global.showPermissionsModal,
+        toast: global.toast,
+      });
+    } catch (error) {
+      console.error("配置 PermissionViewer 失败:", error);
+    }
+  }
 
   function resolveBasePath(dbType) {
     const normalized = typeof dbType === "string" ? dbType.trim() : "";
@@ -693,9 +727,9 @@ function mountAccountsListPage(global) {
   }
 
   function handleViewPermissions(accountId, trigger) {
-    const viewer = global.viewAccountPermissions;
+    const viewer = global.PermissionViewer?.viewAccountPermissions;
     if (typeof viewer !== "function") {
-      console.error("viewAccountPermissions 未注册");
+      console.error("PermissionViewer 未注册");
       return;
     }
 	    viewer(accountId, {
