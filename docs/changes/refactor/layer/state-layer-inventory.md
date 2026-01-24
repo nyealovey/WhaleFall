@@ -38,7 +38,7 @@
 | DashboardOverviewPage | `app/templates/dashboard/overview.html` | `app/static/js/modules/views/dashboard/overview.js` | (TODO) | TODO | 入口直连 `new DashboardService()`（P1） |
 | AccountsStatisticsPage | `app/templates/accounts/statistics.html` | `app/static/js/modules/views/accounts/statistics.js` | (TODO) | TODO | 入口直连 `new AccountsStatisticsService()`（P1） |
 | AccountClassificationStatisticsPage | `app/templates/accounts/classification_statistics.html` | `app/static/js/modules/views/accounts/classification_statistics.js` | `account_classification_statistics_store.js` | DONE | 已迁移到 store/actions，views 不再直连 `httpU` |
-| TagsIndexPage | `app/templates/tags/index.html` | `app/static/js/modules/views/tags/index.js` | (TODO) | TODO | 入口直连 `new TagManagementService()`（P1） |
+| TagsIndexPage | `app/templates/tags/index.html` | `app/static/js/modules/views/tags/index.js` | `tag_list_store.js` | DONE | 标签 CRUD + stats 下沉 store；TagModals 改为注入 store/actions |
 | AuthListPage | `app/templates/auth/list.html` | `app/static/js/modules/views/auth/list.js` | `users_store.js` | DONE | 用户 CRUD 下沉 store；UserModals 改为注入 store/actions |
 | SyncSessionsPage | `app/templates/history/sessions/sync-sessions.html` | `app/static/js/modules/views/history/sessions/sync-sessions.js` | `task_runs_store.js` | DONE | 总数/详情/取消下沉 store，入口脚本不再直连 service 方法 |
 | LogsPage | `app/templates/history/logs/logs.html` | `app/static/js/modules/views/history/logs/logs.js` | `logs_store.js` | DONE | 统计/详情/缓存下沉 store，入口脚本不再直连 service 方法 |
@@ -57,6 +57,5 @@
 
 ## Store Backlog（待新增）
 
-- `app/static/js/modules/stores/tag_list_store.js`
 - `app/static/js/modules/stores/dashboard_store.js`
 - `app/static/js/modules/stores/accounts_statistics_store.js`
