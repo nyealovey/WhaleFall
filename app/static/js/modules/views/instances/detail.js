@@ -29,6 +29,7 @@
 
     let instanceService = null;
     let instanceCrudService = null;
+    let instanceCrudStore = null;
     let instanceModals = null;
     let instanceStore = null;
     let historyModal = null;
@@ -2050,13 +2051,29 @@ function initializeInstanceModals() {
         console.warn('InstanceModals 未加载，实例编辑不可用');
         return;
     }
+    const createInstanceCrudStore = window.createInstanceCrudStore;
+    if (typeof createInstanceCrudStore !== 'function') {
+        console.error('createInstanceCrudStore 未加载，实例编辑不可用');
+        return;
+    }
+    if (!InstanceService) {
+        console.warn('InstanceService 未注册，实例编辑不可用');
+        return;
+    }
 	    try {
+        if (!instanceCrudStore) {
+            instanceCrudStore = createInstanceCrudStore({
+                service: new InstanceService(),
+                emitter: window.mitt ? window.mitt() : null,
+            });
+        }
 	        instanceModals = window.InstanceModals.createController({
-	            instanceService: InstanceService ? new InstanceService() : null,
+	            store: instanceCrudStore,
 	            FormValidator: window.FormValidator,
 	            ValidationRules: window.ValidationRules,
 	            toast: window.toast,
 	            DOMHelpers: window.DOMHelpers,
+                onSaved: () => window.location.reload(),
         });
         instanceModals.init?.();
     } catch (error) {
