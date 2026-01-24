@@ -2,273 +2,195 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 全站前端严格遵循 `Page Entry -> Views -> Stores -> Services`；页面不自维护业务 state；Views 不直连 `httpU`/不自行 `new *Service()`；删除确定未使用的“状态/模块/兜底分支”。
+**Goal:** 全站前端严格遵循 `Page Entry -> Views -> Stores -> Services`；页面不自维护业务 state；Views/Components 不私自 `new *Service()`；删除确定未使用的“状态/模块/兜底分支/迁移期兼容逻辑”。
 
-**Architecture:** 以 `page_id + page-loader` 为唯一入口：Page Entry 只做 wiring（组装 service/store/view，订阅 store 事件，触发首屏 actions）；Store 维护业务状态与 actions（内部调用 service，发 mitt 事件）；View 只做 DOM 与交互（订阅 store，渲染 UI）。全局/组件脚本同样适用：必须支持依赖注入（`configure(...)` 或 `createX({ store/service })`），禁止在组件内部私自实例化 service。
+**Architecture:** 以每个 `page_id` 的页面脚本作为 Page Entry（wiring only）：创建 service/store、订阅 store 事件、触发首屏 actions；Views/Components 只做 DOM/交互与渲染；Stores 维护业务状态与 actions（内部调用 services 并通过 mitt 广播）；Services 只做 API client 封装。全局/组件脚本同样适用：必须支持依赖注入（`configure(...)` 或 `createX({ store/service })`），禁止组件内部私自实例化业务 service。
 
 **Tech Stack:** Flask(Jinja templates), 原生 JS modules(挂载 `window.*`), `mitt`, Grid.js + `Views.GridPage`, pytest(静态扫描类前端契约测试), ESLint(可选门禁)。
 
 ---
 
-## 现状清单（基于 2026-01-24 的仓库扫描）
+## 单一真源（SSOT）
 
-### P0（硬违例，必须优先清掉）
+- 迁移清单/状态：`docs/changes/refactor/layer/state-layer-inventory.md`
+- 分层标准：
+  - `docs/Obsidian/standards/ui/layer/README.md`
+  - `docs/Obsidian/standards/ui/layer/views-layer-standards.md`
+  - `docs/Obsidian/standards/ui/layer/stores-layer-standards.md`
 
-- Views 直接访问 `httpU`：
-  - `app/static/js/modules/views/accounts/classification_statistics.js:310`
-  - `app/static/js/modules/views/auth/modals/change-password-modals.js:57`（由 `app/templates/base.html:310` 全局加载）
+---
 
-### P1（缺 Store：page_id 页面直连 Service）
+## 当前状态（截至 2026-01-24）
 
-- `LogsPage` → `app/static/js/modules/views/history/logs/logs.js:65`（`new global.LogsService()`）
-- `AccountChangeLogsPage` → `app/static/js/modules/views/history/account-change-logs/account-change-logs.js:49`
-- `SyncSessionsPage` → `app/static/js/modules/views/history/sessions/sync-sessions.js:90`
-- `AuthListPage` → `app/static/js/modules/views/auth/list.js:72`
-- `TagsIndexPage` → `app/static/js/modules/views/tags/index.js:58`
-- `DashboardOverviewPage` → `app/static/js/modules/views/dashboard/overview.js:40`
-- `AccountsStatisticsPage` → `app/static/js/modules/views/accounts/statistics.js:32`
-- `AccountClassificationStatisticsPage` → `app/static/js/modules/views/accounts/classification_statistics.js:26`（同时命中 P0）
+### DONE（已严格落到 store/actions 或无需 store）
 
-### P2（已有 Store/模板已加载 Store，但仍存在“直连 service / fallback / 自维护业务 state”）
+- 详见 `docs/changes/refactor/layer/state-layer-inventory.md` 的 `DONE` 行（多数页面已完成迁移）。
 
-- 组件内私自 `new *Service()`（应改为注入 store/actions 或注入 service）：
-  - `app/static/js/modules/views/admin/partitions/partition-list.js:71`（模板已加载 `partition_store.js`）
-  - `app/static/js/modules/views/components/permissions/permission-viewer.js:22`（模板已加载 `instance_store.js` + `permission_service.js`）
-  - `app/static/js/modules/views/components/charts/data-source.js:8`（容量统计页面共用）
-- 明确的“无 store fallback”（与“全站严格”冲突，应删除）：
-  - `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js:621`（`createPartitionStore 未初始化，使用直接请求模式`）
-- 组件/页面自维护业务 state（示例）：
-  - `app/static/js/modules/views/components/tags/tag-selector-controller.js:199`（`this.state = ...` + 内部 `new TagManagementService`）
-  - `app/static/js/modules/views/tags/index.js` 内直接用接口响应更新统计（应下沉 store）
+### 本日进展（已提交）
+
+- `AdminPartitionsPage`：
+  - `app/static/js/modules/views/admin/partitions/partition-list.js`：改为注入 `gridUrl`（组件不再 `new PartitionService()`）
+  - `app/static/js/modules/views/admin/partitions/charts/partitions-chart.js`：删除 direct request fallback，强制依赖 `PartitionStoreInstance`
+  - 新增前端契约单测（静态扫描）：`tests/unit/test_frontend_partition_list_injection_contracts.py`、`tests/unit/test_frontend_partitions_chart_requires_store.py`
+
+### PARTIAL/TODO（仍需收敛到“全站严格”）
+
+- Pages（PARTIAL）：
+  - `CredentialsListPage`：迁移期兜底存在（需 fail fast + 去除兼容支路）
+  - `InstancesListPage` / `InstanceDetailPage` / `InstanceStatisticsPage`：迁移期兜底 + 组件注入未完全收口
+  - `AccountsListPage` / `DatabaseLedgerPage`：tag selector 组件内业务 state + `new TagManagementService()`（P2）
+  - `SchedulerPage`：基本 OK，但仍需按“禁兜底/统一注入”收敛
+  - `CapacityDatabasesPage` / `InstanceAggregationsPage`：charts/data-source 组件内 `new CapacityStatsService()`（P2）
+- Shared Components（TODO，优先级最高，因为影响多页面）：
+  - `app/static/js/modules/views/components/tags/tag-selector-controller.js`：内部 `new TagManagementService()` + 自维护业务 state
+  - `app/static/js/modules/views/components/charts/data-source.js`：内部 `new CapacityStatsService()`
+  - `app/static/js/modules/views/credentials/modals/credential-modals.js`：内部可构造 `CredentialsService`（迁移期兼容支路）
+  - `app/static/js/modules/views/instances/modals/instance-modals.js`：内部可构造 `InstanceService`（迁移期兼容支路）
 
 ---
 
 ## 里程碑（Milestones）
 
-- M0：建立迁移进度 SSOT（inventory + 基础守护测试）
-- M1：清理 P0（Views 不再出现 `httpU`）
-- M2：补齐 P1 页面 store，并迁移页面逻辑到 store/actions
-- M3：组件脚本严格依赖注入（P2），删除 fallback
-- M4：收口门禁：无 `new *Service()` 出现在 Views/Components（允许存在于 Page Entry wiring）
+- M0：SSOT 完整且可审查（inventory 持续更新 + 基础契约测试覆盖）
+- M1：共享组件严格注入（tag-selector / capacity data-source / 各类 modals）+ 删除兼容/兜底
+- M2：PARTIAL 页面收口为 DONE（Credentials / Scheduler / Capacity / Accounts&DB ledgers）
+- M3：实例相关页面深水区（InstancesList/Statistics/Detail）按“状态下沉 + 组件注入”逐块收敛
+- M4：门禁收口：Views/Components 禁止 `new *Service()`；禁止 fallback；全量扫描通过
 
 ---
 
-## 进度表（建议：两周完成，含缓冲）
+## 进度表（建议：5~8 个工作日 + 缓冲）
 
-> 说明：今天是 2026-01-24（周六）；按工作日从 2026-01-26（周一）开始排期。每个单元完成后都要跑 `uv run pytest -m unit`，并保持“可随时合并”的干净状态（小步提交）。
+> 今天是 2026-01-24（周六）；按工作日从 2026-01-26（周一）开始排期。每个单元完成后都要跑 `uv run pytest -m unit`，保持“小步提交、随时可合并”。
 
 | 日期 | 目标 | 交付物（示例） | 验证 |
 |---|---|---|---|
-| 2026-01-26 | M0：落地 inventory + 基础脚手架 | `docs/changes/refactor/layer/state-layer-inventory.md` | `uv run pytest -m unit` |
-| 2026-01-27 | M1：干掉 change-password 的 `httpU` | 新 `auth_service.js`/`auth_store.js`；`change-password-modals.js` 只 wiring | `pytest -m unit` + `node --check` |
-| 2026-01-28 | M1：干掉 classification_statistics 的 `httpU` | `account_classification_statistics_store.js` + service 注入/实例 options 下沉 | 同上 |
-| 2026-01-29 | M2：LogsPage store 化 | `logs_store.js` + `logs.js` 迁移 | 同上 |
-| 2026-01-30 | M2：AccountChangeLogsPage store 化 | `account_change_logs_store.js` + 页面迁移 | 同上 |
-| 2026-02-02 | M2：SyncSessionsPage store 化 | `task_runs_store.js` + 页面迁移 | 同上 |
-| 2026-02-03 | M2：AuthListPage store 化 | `users_store.js` + `auth/list.js` + `user-modals` 注入改造 | 同上 |
-| 2026-02-04 | M2：TagsIndexPage store 化 | `tag_list_store.js` + `tags/index.js` + `tag-modals` 注入改造 | 同上 |
-| 2026-02-05 | M2：Dashboard + AccountsStatistics store 化 | `dashboard_store.js` + `accounts_statistics_store.js` | 同上 |
-| 2026-02-06 ~ 2026-02-10 | M3：组件注入 + 删 fallback + 收口门禁 | permission-viewer/partition-list/data-source/tag-selector 重构 | `pytest -m unit` + ESLint(可选) |
-| 2026-02-11 ~ 2026-02-13 | M4：全量收口/清理 | 移除遗留“兜底/直连/重复状态”，更新文档 | 全量门禁 |
+| 2026-01-26 | M0：补齐契约测试（Components 注入/禁 new Service） | 新增 `tests/unit/test_frontend_components_no_service_construction.py` 等 | `uv run pytest -m unit` |
+| 2026-01-27 ~ 2026-01-28 | M1：TagSelector 组件严格注入 | `tag-selector-controller.js` 改为 DI-only；更新 3 个页面入口注入 store | `pytest -m unit` |
+| 2026-01-29 | M1：CapacityStatsDataSource 严格注入 | `data-source.js` 改为 factory；capacity 页面入口注入 | `pytest -m unit` |
+| 2026-01-30 | M2：CredentialsListPage 收口 | 移除 try/catch 兜底；credential-modals 改为注入 store/actions | `pytest -m unit` |
+| 2026-02-02 | M2：SchedulerPage 收口 | 统一注入 + 去除兼容支路 | `pytest -m unit` |
+| 2026-02-03 ~ 2026-02-06 | M3：Instances 系列收口（分块） | instance-modals DI-only；逐步把业务 state 下沉 store；删兜底 | `pytest -m unit` |
+| 2026-02-09 | M4：全量扫描 + 删除确定未使用模块 | `rg` 扫描 0 命中；删文件后全量单测绿 | `uv run pytest -m unit` |
 
 ---
 
-## 实施任务（Task Breakdown）
+## 任务拆解（可直接执行）
 
-### Task 1: 建立迁移进度 SSOT（inventory）
-
-**Files:**
-- Create: `docs/changes/refactor/layer/state-layer-inventory.md`
-- (Optional) Create: `docs/changes/refactor/layer/README.md`
-
-**Step 1: 创建目录与 inventory 文档**
-- 内容建议包含一张表：`page_id`、入口脚本、store 文件、是否已迁移、剩余违例（P0/P1/P2）。
-
-**Step 2: 在每次页面迁移后更新 inventory**
-- 每完成一个页面/组件：把状态从 `TODO` 改为 `DONE`，并记录关键文件路径。
-
-**Step 3: 基础校验**
-- 运行：`uv run pytest -m unit`
-
----
-
-### Task 2: P0-1 修复（全局 change-password-modals 禁止 httpU）
+### Task 1: Shared - TagSelector 改为严格注入（优先）
 
 **Files:**
-- Create: `app/static/js/modules/services/auth_service.js`
-- Create: `app/static/js/modules/stores/auth_store.js`
-- Modify: `app/static/js/modules/views/auth/modals/change-password-modals.js`
-- (Optional) Modify: `app/templates/base.html:310`（如需补脚本加载顺序）
-- Test: `tests/unit/test_frontend_no_httpu_in_views.py`
+- Modify: `app/static/js/modules/views/components/tags/tag-selector-controller.js`
+- Modify: `app/static/js/modules/views/accounts/ledgers.js`
+- Modify: `app/static/js/modules/views/databases/ledgers.js`
+- Modify: `app/static/js/modules/views/instances/list.js`
+- Test: `tests/unit/test_frontend_tag_selector_injection_contracts.py`
 
-**Step 1: 写一个会失败的契约测试（先锁定问题点）**
-```python
-from pathlib import Path
-
-import pytest
-
-
-@pytest.mark.unit
-def test_change_password_modals_must_not_use_httpu() -> None:
-    repo_root = Path(__file__).resolve().parents[2]
-    path = repo_root / "app/static/js/modules/views/auth/modals/change-password-modals.js"
-    content = path.read_text(encoding="utf-8", errors="ignore")
-    assert "httpU" not in content, "change-password-modals.js 不得直接访问 window.httpU"
-```
+**Step 1: 写会失败的契约测试**
+- 断言 `tag-selector-controller.js` 不包含 `new TagManagementService`/`createTagManagementStore`。
+- 断言 `TagSelectorHelper.setupForForm/setupForFilter` 必须接收 `store`（或 `getStore`）注入。
 
 **Step 2: 跑测试确认失败**
-- 运行：`uv run pytest -m unit tests/unit/test_frontend_no_httpu_in_views.py -q`
-- 期望：FAIL，命中 `httpU`
-
-**Step 3: 最小实现（按分层拆开）**
-- `AuthService`：封装 `/api/v1/auth/change-password`、`/api/v1/auth/logout`（构造函数允许注入 httpClient，迁移期可 fallback 到 `window.httpU`）。
-- `AuthStore`：只暴露 `actions.changePassword(payload)` / `actions.logout()`，内部调用 `AuthService`，并发 mitt 事件（`auth:loading`/`auth:error`/`auth:changed`）。
-- `change-password-modals.js`：只做 wiring + DOM 交互，调用 store actions，不再读 `window.httpU`。
-
-**Step 4: 跑测试确认通过**
-- 运行：`uv run pytest -m unit tests/unit/test_frontend_no_httpu_in_views.py -q`
-- 期望：PASS
-
-**Step 5: 基础语法校验**
-- 运行：`node --check app/static/js/modules/views/auth/modals/change-password-modals.js`
-
-**Step 6: 提交**
-```bash
-git add tests/unit/test_frontend_no_httpu_in_views.py app/static/js/modules/services/auth_service.js app/static/js/modules/stores/auth_store.js app/static/js/modules/views/auth/modals/change-password-modals.js
-git commit -m "refactor(ui): remove httpU from change-password modal via service/store"
-```
-
----
-
-### Task 3: P0-2 修复（AccountClassificationStatisticsPage 禁止 httpU + 页面 store 化）
-
-**Files:**
-- Create: `app/static/js/modules/stores/account_classification_statistics_store.js`
-- Modify: `app/static/js/modules/services/instance_management_service.js`（新增 `fetchInstanceOptions` 或同等方法）
-- Modify: `app/static/js/modules/views/accounts/classification_statistics.js`
-- Modify: `app/templates/accounts/classification_statistics.html`（补 store 脚本加载顺序）
-- Test: `tests/unit/test_frontend_no_httpu_in_views.py`
-
-**Step 1: 追加一个会失败的契约测试（锁定 httpU）**
-- 在 `tests/unit/test_frontend_no_httpu_in_views.py` 追加对 `classification_statistics.js` 的断言（同 Task 2 思路）。
-
-**Step 2: 跑测试确认失败**
-- 运行：`uv run pytest -m unit tests/unit/test_frontend_no_httpu_in_views.py -q`
+- `uv run pytest -m unit tests/unit/test_frontend_tag_selector_injection_contracts.py -q`
 
 **Step 3: 最小实现**
-- `InstanceManagementService.fetchInstanceOptions({ dbType })`：封装 `/api/v1/instances/options`。
-- `AccountClassificationStatisticsStore`：
-  - state：`filters`（classificationId/periodType/dbType/instanceId/ruleId）、`instanceOptions`、`rulesCache`（如确认为业务态）、`loading/error`
-  - actions：`loadInstanceOptions(dbType)`、`refreshAll(filters)`、`selectDbType(...)` 等
-- 页面 `classification_statistics.js`：
-  - 只读/写 UI（读取表单、绑定事件）
-  - 所有请求/缓存/编排迁入 store actions
-  - 通过 subscribe 驱动渲染（图表、规则列表、下拉选项）
+- `tag-selector-controller.js`：
+  - 删除内部 `new TagManagementService(...)` 与 `createTagManagementStore(...)`。
+  - options 必须传入 `store`（或 `getStore()`），缺依赖直接 throw（fail fast）。
+  - 删除/最小化 `this.state`：优先从 `store.getState()` 取快照渲染；仅保留 UI 临时态（如 modal 打开/关闭）在 controller 内。
+- 页面入口脚本：
+  - 在调用 `TagSelectorHelper.setupForForm(...)` 前创建 `TagManagementStore` 并注入：
+    - `createTagManagementStore({ service: new TagManagementService(), emitter: mitt() })`
 
-**Step 4: 跑测试确认通过 + node check**
-- `uv run pytest -m unit tests/unit/test_frontend_no_httpu_in_views.py -q`
-- `node --check app/static/js/modules/views/accounts/classification_statistics.js`
+**Step 4: 跑测试确认通过**
+- `uv run pytest -m unit tests/unit/test_frontend_tag_selector_injection_contracts.py -q`
+- `uv run pytest -m unit`
 
 **Step 5: 提交**
-```bash
-git add app/static/js/modules/stores/account_classification_statistics_store.js app/static/js/modules/services/instance_management_service.js app/static/js/modules/views/accounts/classification_statistics.js app/templates/accounts/classification_statistics.html tests/unit/test_frontend_no_httpu_in_views.py
-git commit -m "refactor(ui): move account classification statistics to store and remove httpU"
-```
+- `git commit -m "refactor(ui): make tag selector DI-only"`
 
 ---
 
-### Task 4: Grid 列表页“通用迁移模板”（P1 多页面复用）
+### Task 2: Shared - CapacityStatsDataSource 改为严格注入
 
-> 适用页面：`LogsPage`、`AccountChangeLogsPage`、`SyncSessionsPage`、`AuthListPage`、`TagsIndexPage`
+**Files:**
+- Modify: `app/static/js/modules/views/components/charts/data-source.js`
+- Modify: `app/static/js/modules/views/components/charts/manager.js`
+- Modify: `app/static/js/modules/views/capacity/databases.js`
+- Modify: `app/static/js/modules/views/capacity/instances.js`
+- Test: `tests/unit/test_frontend_capacity_data_source_injection_contracts.py`
 
-**目标形态（统一约束）：**
-- Page Entry：只创建 `service + store`，初始化 `GridPage.mount({...})`，把“动作按钮/模态/统计刷新”等绑定到 store actions。
-- Store：提供：
-  - `getGridUrl()`（或暴露 `gridUrl` 常量）
-  - `actions.fetchDetail(id)`（如有详情弹窗）
-  - `actions.fetchStats(filters)`（如页面顶部有统计卡/计数）
-  - `actions.create/update/delete`（如页面有 CRUD）
-  - `subscribe(event, handler)`（mitt 事件）
-- View：不出现 `new *Service()`；不自维护“接口响应形成的业务状态”（例如 stats、详情 cache）。
-
-**每个页面的执行步骤（重复执行即可）：**
-
-**Step 1: 写一个会失败的契约测试**
-- 断言该页面入口脚本不包含 `new .*Service(`（精准到具体 service 名称）。
-- 断言模板引入对应 `js/modules/stores/<x>_store.js`。
+**Step 1: 写会失败的契约测试**
+- 断言 `data-source.js` 不包含 `new CapacityStatsService()`。
 
 **Step 2: 跑测试确认失败**
-- `uv run pytest -m unit tests/unit/<your-test>.py -q`
+- `uv run pytest -m unit tests/unit/test_frontend_capacity_data_source_injection_contracts.py -q`
 
-**Step 3: 创建 store（最小可用）**
-- 在 `app/static/js/modules/stores/<x>_store.js` 提供 `window.createXStore = function ({ service, emitter }) { ... }`。
-- Store 内部只做：
-  - `getState()` 返回快照
-  - `actions.*` 包装 service
-  - `emit('<domain>:updated')` 通知 view
+**Step 3: 最小实现**
+- `data-source.js` 改为 `createCapacityStatsDataSource({ service })`，并挂载到 `window.createCapacityStatsDataSource`。
+- `manager.js` 改为接收 `dataSource`（构造参数或 `configure({ dataSource })`），不再直接读 `window.CapacityStatsDataSource`。
+- capacity 页面入口创建 `service + dataSource` 并注入 manager。
 
-**Step 4: 改页面入口脚本（只 wiring）**
-- 在 `app/static/js/modules/views/...` 内删除 `new *Service()`，改为：
-  - `const service = new XService()`
-  - `const store = createXStore({ service })`
-  - 订阅 store 事件更新 UI
-  - 触发 `store.actions.init/load(...)`
+**Step 4: 跑测试确认通过**
+- `uv run pytest -m unit`
 
-**Step 5: 跑测试通过 + node check**
-- `uv run pytest -m unit -q`
-- `node --check <modified-js>`
-
-**Step 6: 小步提交**
-- `git commit -m "refactor(ui): <page> move service calls into store"`
+**Step 5: 提交**
+- `git commit -m "refactor(ui): make capacity charts data source DI-only"`
 
 ---
 
-### Task 5: Dashboard / 统计类页面迁移模板（P1 的非 GridPage 页面）
+### Task 3: CredentialsListPage 去兜底 + Modals 注入收口
 
-> 适用页面：`DashboardOverviewPage`、`AccountsStatisticsPage`
+**Files:**
+- Modify: `app/static/js/modules/views/credentials/list.js`
+- Modify: `app/static/js/modules/views/credentials/modals/credential-modals.js`
+- Modify: `app/static/js/modules/stores/credentials_store.js`（如需补齐 create/update actions）
+- Test: `tests/unit/test_frontend_credentials_page_strict_wiring.py`
 
-**执行要点：**
-- Store 负责所有请求与数据规整（例如 `dashboardStore.actions.fetchCharts()` / `accountsStatisticsStore.actions.refresh()`）。
-- 页面只订阅 store 的 `*:updated` 事件并渲染。
+**Step 1: 写会失败的契约测试**
+- 断言 `credential-modals.js` 不包含 `new CredentialsService` 分支（或必须由 options 注入）。
+- 断言 `list.js` 不包含“吞异常继续运行”的兜底初始化逻辑（例如创建失败后仍继续 mount）。
 
----
+**Step 2: 实现**
+- Page Entry（list.js）fail fast：依赖缺失直接 return。
+- Modals 改为注入 `store/actions`（或注入 `credentialService` 且不允许内部 new）。
+- 删除 `window.location.reload()`（如可行，改为触发 grid refresh；否则在 plan 中明确仍保留 reload 的原因）。
 
-### Task 6: P2 组件脚本严格注入（permission-viewer / partition-list / capacity data-source / tag-selector）
-
-**Files (representative):**
-- Modify: `app/static/js/modules/views/components/permissions/permission-viewer.js`
-- Modify: `app/static/js/modules/views/admin/partitions/partition-list.js`
-- Modify: `app/static/js/modules/views/components/charts/data-source.js`
-- Modify: `app/static/js/modules/views/components/tags/tag-selector-controller.js`
-- Modify templates that include these scripts (按实际引用点)
-- Test: 新增/扩展静态契约测试（禁止组件内 `new *Service()`；禁止 fallback 分支）
-
-**原则：**
-- 组件必须提供 `configure({ ...deps })` 或 `createX({ store/service })`。
-- 禁止在组件内部实例化 service。
-- 禁止“无 store fallback”（直接请求模式/静默降级）。
+**Step 3: 测试 + 提交**
+- `uv run pytest -m unit`
+- `git commit -m "refactor(ui): make credentials page strict layering"`
 
 ---
 
-### Task 7: 最终收口（门禁与清理）
+### Task 4: Instances 系列页面收口（分批）
 
-**Step 1: 全量扫描确认无残留**
-- `rg -n "\\bhttpU\\b" app/static/js/modules/views`
-- `rg -n "new\\s+[A-Za-z0-9]+Service\\(" app/static/js/modules/views`
+**Files:**
+- Modify: `app/static/js/modules/views/instances/modals/instance-modals.js`
+- Modify: `app/static/js/modules/views/instances/list.js`
+- Modify: `app/static/js/modules/views/instances/statistics.js`
+- Modify: `app/static/js/modules/views/instances/detail.js`
+- Test: 追加静态契约测试（按页面拆）
 
-**Step 2: 删除确定未使用模块**
-- 以“无引用”为准（模板/入口/require 关系），再删文件；删除后跑 `uv run pytest -m unit`。
-
-**Step 3: ESLint（可选但推荐）**
-- 修复 `./scripts/ci/eslint-report.sh quick` 所需依赖后，把它纳入日常门禁。
+**策略：**
+- 先做“注入收口”（instance-modals DI-only），再做“业务 state 下沉”（页面拆大 store/actions）。
+- 每次只推进一个页面/一个模块，确保可回滚、可提交。
 
 ---
 
-## 执行方式（你确认后我就开始按任务推进）
+### Task 5: 最终收口（门禁 + 清理）
 
-计划已落盘到 `docs/plans/2026-01-24-frontend-strict-layering-refactor.md`。
+**Step 1: 全量扫描**
+```bash
+rg -n \"\\bwindow\\.httpU\\b\" app/static/js/modules/views app/static/js/modules/stores
+rg -n \"\\bnew\\s+[A-Za-z0-9]+Service\\b\" app/static/js/modules/views/components app/static/js/modules/views/**/modals
+```
 
-你可以选：
-1) 我按进度表从 2026-01-26 开始逐任务执行（每个任务一个小提交 + 跑 `uv run pytest -m unit`）。
-2) 你指定优先级（例如先把 P0+LogsPage 完成），我按你的顺序推进。
+**Step 2: 删除“确定未使用”的模块**
+- 以“模板无引用”为准（禁止猜测）。示例：
+```bash
+find app/static/js/modules -type f -name \"*.js\" | sed \"s|^app/static/||\" | sort > /tmp/all_modules_js.txt
+rg -o \"filename=\\x27(js/(?:modules|common|core)/[^\\x27]+\\\\.js)\\x27\" -r '$1' app/templates -S --no-filename | sort -u > /tmp/referenced_js.txt
+comm -23 /tmp/all_modules_js.txt /tmp/referenced_js.txt
+```
+- 删完跑：`uv run pytest -m unit`
 
