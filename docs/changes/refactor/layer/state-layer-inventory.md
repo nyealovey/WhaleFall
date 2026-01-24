@@ -25,7 +25,7 @@
 | LoginPage | `app/templates/auth/login.html` | `app/static/js/modules/views/auth/login.js` | - | DONE | 无 service/store 需求 |
 | AccountClassificationPage | `app/templates/accounts/account-classification/index.html` | `app/static/js/modules/views/accounts/account-classification/index.js` | `account_classification_store.js` | DONE | - |
 | TagsBatchAssignPage | `app/templates/tags/bulk/assign.html` | `app/static/js/modules/views/tags/batch-assign.js` | `tag_batch_store.js` | DONE | - |
-| CredentialsListPage | `app/templates/credentials/list.html` | `app/static/js/modules/views/credentials/list.js` | `credentials_store.js` | PARTIAL | 迁移期 try/catch 兜底存在（后续按“禁兜底”收敛） |
+| CredentialsListPage | `app/templates/credentials/list.html` | `app/static/js/modules/views/credentials/list.js` | `credentials_store.js` | DONE | CredentialModals 改为注入 store/actions；列表页移除迁移期兜底并统一由 store 提供 gridUrl |
 | InstancesListPage | `app/templates/instances/list.html` | `app/static/js/modules/views/instances/list.js` | `instance_store.js` | PARTIAL | 页面内仍维护 selection 等状态；InstanceModals 需强制注入依赖 |
 | InstanceDetailPage | `app/templates/instances/detail.html` | `app/static/js/modules/views/instances/detail.js` | `instance_store.js` | PARTIAL | 页面体量大，存在 service 直连与迁移期兜底（后续拆分） |
 | InstanceStatisticsPage | `app/templates/instances/statistics.html` | `app/static/js/modules/views/instances/statistics.js` | `instance_store.js` | PARTIAL | 存在迁移期兜底（后续收敛） |
