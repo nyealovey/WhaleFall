@@ -50,13 +50,11 @@
   - 更新注入点：`instances/list.js`、`instances/detail.js`（list 刷新 grid；detail 保存后 reload）
   - 新增前端契约单测：`tests/unit/test_frontend_instance_modals_strict_injection_contracts.py`
 
-### PARTIAL/TODO（仍需收敛到“全站严格”）
+### 收口状态（截至 2026-01-24）
 
-- Pages（PARTIAL）：
-  - `InstancesListPage` / `InstanceDetailPage` / `InstanceStatisticsPage`：迁移期兜底 + 组件注入未完全收口
-  - `SchedulerPage`：基本 OK，但仍需按“禁兜底/统一注入”收敛
-- Shared Components（TODO，优先级最高，因为影响多页面）：
-  - （已完成）`InstanceModals` 注入收口；下一步推进 Instances* 页面“业务 state 下沉”
+- Pages：
+  - `InstancesListPage` / `InstanceDetailPage` / `InstanceStatisticsPage`：已收口为 store/actions 驱动（移除 service 兜底）；新增契约单测 `tests/unit/test_frontend_instances_strict_layering_contracts.py`
+  - `SchedulerPage`：SchedulerModals 改为 DI-only 注入 store；Page Entry 移除 try/catch 兜底；新增契约单测 `tests/unit/test_frontend_scheduler_strict_layering_contracts.py`
 
 ---
 
