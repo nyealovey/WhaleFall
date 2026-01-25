@@ -22,7 +22,7 @@ Flask、SQLAlchemy、APScheduler、Redis、PostgreSQL（主库）、Bootstrap 5�
 
 - 所有配置集中在 `app/settings.py`：解析环境变量、默认值、校验。
 - 新增/调整配置项必须走 `app/settings.py`（禁止硬编码/散落在模块里）。
-- 参考：`docs/Obsidian/standards/backend/hard/configuration-and-secrets.md`
+- 参考：`docs/Obsidian/standards/backend/standard/configuration-and-secrets.md`
 
 ## 路由安全模式（safe_route_call）
 
@@ -91,7 +91,7 @@ def example_view() -> Response:
 - 任务定义：`app/tasks/`
 - 所有任务必须在 Flask `app.app_context()` 内运行
 
-参见：`docs/Obsidian/standards/backend/hard/task-and-scheduler.md`
+参见：`docs/Obsidian/standards/backend/standard/task-and-scheduler.md`
 
 ## 结构化日志
 

@@ -13,8 +13,8 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`app/models/**` 下所有 SQLAlchemy 模型"
 related:
-  - "[[standards/backend/hard/database-migrations]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/database-migrations]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/gate/layer/repository-layer]]"
   - "[[standards/backend/gate/layer/services-layer]]"
 ---
@@ -77,7 +77,7 @@ related:
 
 ### 6) `to_dict` 规范
 
-- MUST: `to_dict` 默认不得包含敏感信息, 敏感字段受 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束.
+- MUST: `to_dict` 默认不得包含敏感信息, 敏感字段受 [[standards/backend/standard/sensitive-data-handling|敏感数据处理]] 约束.
 - SHOULD: `to_dict` 支持 `include_sensitive: bool = False` 之类的显式开关, 且默认关闭.
 - SHOULD: `to_dict` 控制规模(<= 30 行), 超出则拆分辅助函数或使用 DTO 转换放在 Service.
 

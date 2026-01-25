@@ -14,7 +14,7 @@ scope: 仓库内所有文件/目录/符号命名(Python/Jinja2/JS/CSS/脚本)
 related:
   - "[[standards/README]]"
   - "[[standards/core/guide/coding]]"
-  - "[[standards/core/hard/governance]]"
+  - "[[standards/core/standard/governance]]"
 ---
 
 # 命名规范

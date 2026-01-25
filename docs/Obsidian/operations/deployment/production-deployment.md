@@ -14,8 +14,8 @@ owner: WhaleFall Team
 scope: 使用 scripts/deploy/deploy-prod-all.sh 进行生产环境完全重建(含 DB 初始化与 Alembic stamp)
 related:
   - "[[operations/deployment/deployment-guide|标准部署 Runbook]]"
-  - "[[standards/backend/hard/configuration-and-secrets]]"
-  - "[[standards/backend/hard/database-migrations]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/database-migrations]]"
   - "[[reference/database/schema-baseline]]"
 ---
 
@@ -56,7 +56,7 @@ related:
 
 ### 4) 配置
 
-- `env.example` 已复制为 `.env` 且必填项已填写(见 [[standards/backend/hard/configuration-and-secrets]]).
+- `env.example` 已复制为 `.env` 且必填项已填写(见 [[standards/backend/standard/configuration-and-secrets]]).
 
 ## 步骤
 

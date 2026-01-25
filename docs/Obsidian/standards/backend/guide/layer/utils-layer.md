@@ -13,8 +13,8 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/utils/**` 下所有工具模块"
 related:
-  - "[[standards/backend/hard/sensitive-data-handling]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
   - "[[standards/backend/design/shared-kernel]]"
 ---
 
@@ -67,7 +67,7 @@ app/utils/
 ### 3) 异常处理
 
 - MUST: 默认情况下不要吞异常. 当函数语义明确是 "best-effort" 时才允许返回兜底值, 且必须在 docstring 写清楚.
-- MUST: 记录日志时遵循 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束.
+- MUST: 记录日志时遵循 [[standards/backend/standard/sensitive-data-handling|敏感数据处理]] 约束.
 - SHOULD: 只捕获可预期的异常类型(例如 `ValueError`, `TypeError`), 避免 `except Exception` 造成误吞.
 
 ### 4) 类型注解

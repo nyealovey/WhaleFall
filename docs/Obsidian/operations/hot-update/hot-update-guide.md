@@ -14,8 +14,8 @@ scope: 生产环境热更新脚本 scripts/deploy/update-prod-flask.sh(不重建
 related:
   - "[[operations/hot-update/README|热更新 Runbook 索引]]"
   - "[[operations/deployment/deployment-guide|标准部署 Runbook]]"
-  - "[[standards/backend/hard/configuration-and-secrets]]"
-  - "[[standards/backend/hard/database-migrations]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/database-migrations]]"
   - "[[reference/database/schema-baseline]]"
 ---
 
@@ -48,7 +48,7 @@ related:
 ### 2) 运行状态
 
 - `docker compose -f docker-compose.prod.yml ps` 显示 `postgres/redis/whalefall` 都是 `Up`.
-- `.env` 存在且包含生产密钥(详见 [[standards/backend/hard/configuration-and-secrets]]).
+- `.env` 存在且包含生产密钥(详见 [[standards/backend/standard/configuration-and-secrets]]).
 
 ### 3) 风险认知(脚本会做的事)
 
@@ -137,7 +137,7 @@ git branch -vv
 
 优先按标准文档排查与修复(不要反复重试扩大破坏面):
 
-- [[standards/backend/hard/database-migrations]]
+- [[standards/backend/standard/database-migrations]]
 - [[reference/database/schema-baseline]]
 
 手工进入容器执行(用于排障):

@@ -19,7 +19,7 @@
 4. 如需常量/作业配置，按现有约定更新 `app/core/constants/`（若存在）
 5. 补充任务的幂等性/失败处理与可观测性（日志字段/告警留钩子）
 
-参见（SSOT）：`docs/Obsidian/standards/backend/hard/task-and-scheduler.md`
+参见（SSOT）：`docs/Obsidian/standards/backend/standard/task-and-scheduler.md`
 
 ## 新增 Grid.js 列表页（UI）
 

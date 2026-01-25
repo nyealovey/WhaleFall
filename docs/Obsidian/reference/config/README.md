@@ -12,7 +12,7 @@ owner: WhaleFall Team
 scope: 配置相关参考文档索引(环境变量/默认值/约束/开关)
 related:
   - "[[reference/README|reference]]"
-  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
 ---
 
 # 配置参考
@@ -21,7 +21,7 @@ related:
 > 本目录维护配置相关参考文档(环境变量, 默认值与约束, 功能开关等).
 
 > [!info] Related standards (SSOT)
-> - [[standards/backend/hard/configuration-and-secrets|configuration and secrets]]
+> - [[standards/backend/standard/configuration-and-secrets|configuration and secrets]]
 
 ## 索引
 

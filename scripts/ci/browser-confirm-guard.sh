@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # 浏览器 confirm 门禁：禁止在前端使用 window.confirm/global.confirm/confirm 弹窗
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/danger-operation-confirmation.md
 
 set -euo pipefail
 
@@ -28,18 +31,21 @@ PLAIN_CONFIRM_PATTERN='(^|[^.\w])confirm\s*\('
 if "${RG_BIN}" -n "${WINDOW_CONFIRM_PATTERN}" "${TARGET_DIR}"; then
   echo "" >&2
   echo "检测到 window.confirm 调用，请改用 UI.confirmDanger(options)。" >&2
+  echo "参考：docs/Obsidian/standards/ui/gate/danger-operation-confirmation.md" >&2
   exit 1
 fi
 
 if "${RG_BIN}" -n "${GLOBAL_CONFIRM_PATTERN}" "${TARGET_DIR}"; then
   echo "" >&2
   echo "检测到 global.confirm 调用，请改用 UI.confirmDanger(options)。" >&2
+  echo "参考：docs/Obsidian/standards/ui/gate/danger-operation-confirmation.md" >&2
   exit 1
 fi
 
 if "${RG_BIN}" -n "${PLAIN_CONFIRM_PATTERN}" "${TARGET_DIR}"; then
   echo "" >&2
   echo "检测到 confirm(...) 调用，请改用 UI.confirmDanger(options)。" >&2
+  echo "参考：docs/Obsidian/standards/ui/gate/danger-operation-confirmation.md" >&2
   exit 1
 fi
 

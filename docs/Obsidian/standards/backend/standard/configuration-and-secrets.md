@@ -6,13 +6,13 @@ tags:
   - standards
   - standards/backend
 status: active
-enforcement: hard
+enforcement: standard
 created: 2025-12-25
 updated: 2026-01-12
 owner: WhaleFall Team
 scope: 配置读取(`app/settings.py`)、环境变量(`.env`/`env.example`)、部署注入与密钥管理
 related:
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/gate/layer/settings-layer]]"
   - "[[standards/backend/gate/bootstrap-and-entrypoint]]"
 ---

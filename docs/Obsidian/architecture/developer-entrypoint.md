@@ -55,7 +55,7 @@ related:
 - Action: 用 `/actions/<action>` 表达非 CRUD 动作(尤其是 side effect).
 - 标准入口:
   - [[standards/backend/gate/layer/api-layer#API 命名与路径规范(REST Resource Naming)|API 命名与路径规范]]
-  - [[standards/backend/hard/action-endpoint-failure-semantics|Action endpoint failure semantics]]
+  - [[standards/backend/standard/action-endpoint-failure-semantics|Action endpoint failure semantics]]
 
 ### 1.2 先更新 contract(再写代码)
 
@@ -76,9 +76,9 @@ related:
 核心规则:
 
 - 路由保持薄: 入参解析/权限/调用 service/返回封套.
-- 写操作事务边界: [[standards/backend/hard/write-operation-boundary|写操作事务边界]].
+- 写操作事务边界: [[standards/backend/standard/write-operation-boundary|写操作事务边界]].
 - 入参解析与 schema: [[standards/backend/gate/request-payload-and-schema-validation|request payload and schema validation]].
-- 错误封套与对外口径: [[standards/backend/hard/error-message-schema-unification|error message schema unification]].
+- 错误封套与对外口径: [[standards/backend/standard/error-message-schema-unification|error message schema unification]].
 
 ### 1.4 最小自检(按改动取子集)
 
@@ -102,9 +102,9 @@ related:
 
 标准入口:
 
-- [[standards/backend/hard/task-and-scheduler|task and scheduler]]
-- [[standards/backend/hard/write-operation-boundary|写操作事务边界]]
-- [[standards/backend/hard/sensitive-data-handling|sensitive data handling]]
+- [[standards/backend/standard/task-and-scheduler|task and scheduler]]
+- [[standards/backend/standard/write-operation-boundary|写操作事务边界]]
+- [[standards/backend/standard/sensitive-data-handling|sensitive data handling]]
 
 ## 3. 新增/修改页面(UI)
 
@@ -156,4 +156,4 @@ related:
 
 - 单测: `uv run pytest -m unit`
 - 类型: `make typecheck`
-- 如涉及新依赖/环境变量: 走 `app/settings.py` 并更新 `env.example`(见 [[standards/backend/hard/configuration-and-secrets|configuration and secrets]])
+- 如涉及新依赖/环境变量: 走 `app/settings.py` 并更新 `env.example`(见 [[standards/backend/standard/configuration-and-secrets|configuration and secrets]])

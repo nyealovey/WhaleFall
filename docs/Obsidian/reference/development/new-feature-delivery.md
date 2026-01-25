@@ -43,14 +43,14 @@ related:
 ### B. 后端(如涉及)
 
 - [ ] 路由/API 保持薄, 编排下沉到 service: [[standards/backend/guide/layer/README]]
-- [ ] 写路径事务边界遵循 [[standards/backend/hard/write-operation-boundary]]
+- [ ] 写路径事务边界遵循 [[standards/backend/standard/write-operation-boundary]]
 - [ ] 对外错误口径与封套遵循:
   - [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)]]
-  - [[standards/backend/hard/error-message-schema-unification]]
+  - [[standards/backend/standard/error-message-schema-unification]]
 - [ ] 新增/变更 payload 解析与 schema 校验遵循 [[standards/backend/gate/request-payload-and-schema-validation]]
-- [ ] 新增/变更配置项走 `app/settings.py` 并更新 `env.example`: [[standards/backend/hard/configuration-and-secrets]]
-- [ ] 涉及迁移时遵循 [[standards/backend/hard/database-migrations]]
-- [ ] 涉及任务/调度时遵循 [[standards/backend/hard/task-and-scheduler]]
+- [ ] 新增/变更配置项走 `app/settings.py` 并更新 `env.example`: [[standards/backend/standard/configuration-and-secrets]]
+- [ ] 涉及迁移时遵循 [[standards/backend/standard/database-migrations]]
+- [ ] 涉及任务/调度时遵循 [[standards/backend/standard/task-and-scheduler]]
 
 ### C. 前端/UI(如涉及)
 

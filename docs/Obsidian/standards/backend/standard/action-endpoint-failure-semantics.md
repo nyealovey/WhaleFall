@@ -6,15 +6,15 @@ tags:
   - standards
   - standards/backend
 status: active
-enforcement: hard
+enforcement: standard
 created: 2025-12-28
 updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/api/v1/**` Flask-RESTX endpoints, 尤其是 `/actions/*`, 以及 `safe_route_call` 事务边界"
 related:
   - "[[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
-  - "[[standards/backend/hard/write-operation-boundary]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/write-operation-boundary]]"
 ---
 
 # Action endpoint failure semantics (business failure vs exception)
@@ -105,7 +105,7 @@ related:
 
 当需要"保留部分写入, 但回滚某个子步骤"时:
 
-- MAY: 在 service/coordinator 内使用 `with db.session.begin_nested(): ...` 创建 savepoint, 让局部失败不影响外层事务(见 [[standards/backend/hard/write-operation-boundary|写操作事务边界]]).
+- MAY: 在 service/coordinator 内使用 `with db.session.begin_nested(): ...` 创建 savepoint, 让局部失败不影响外层事务(见 [[standards/backend/standard/write-operation-boundary|写操作事务边界]]).
 - MUST NOT: 在 services 内直接 `db.session.rollback()` 回滚整个请求事务.
 
 ---

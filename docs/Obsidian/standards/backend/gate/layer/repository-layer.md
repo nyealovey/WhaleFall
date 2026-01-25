@@ -13,7 +13,7 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/repositories/**` 下所有仓储类"
 related:
-  - "[[standards/backend/hard/write-operation-boundary]]"
+  - "[[standards/backend/standard/write-operation-boundary]]"
   - "[[standards/backend/gate/layer/services-layer]]"
   - "[[standards/backend/gate/layer/models-layer]]"
 ---
@@ -46,7 +46,7 @@ related:
 ### 2) 事务处理
 
 - MUST: Repository 可以 `flush` 以获取主键或触发约束, 但 MUST NOT `commit`.
-- MUST: 写操作的事务语义由上层(通常为 Service/Coordinator) 决策；提交点由入口(`safe_route_call`/tasks/scripts) 统一承担，参考 [[standards/backend/hard/write-operation-boundary]].
+- MUST: 写操作的事务语义由上层(通常为 Service/Coordinator) 决策；提交点由入口(`safe_route_call`/tasks/scripts) 统一承担，参考 [[standards/backend/standard/write-operation-boundary]].
 
 ### 3) 命名规范
 
@@ -136,6 +136,7 @@ class BadRepository:
 
 ## 门禁/检查方式
 
+- 静态门禁（commit 位置 allowlist）：`./scripts/ci/db-session-commit-allowlist-guard.sh`（事务边界见 [[standards/backend/standard/write-operation-boundary]]）
 - 评审检查:
   - 是否存在在 Repository 内 `commit`?
   - 是否引入业务判断或调用 Service?

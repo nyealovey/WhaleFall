@@ -12,7 +12,7 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/utils/request_payload.py`, `app/schemas/**`, `app/services/**`, `app/api/v1/**`, `app/forms/handlers/**`"
 related:
-  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
   - "[[standards/backend/gate/layer/schemas-layer]]"
   - "[[standards/backend/design/compatibility-and-deprecation]]"
 ---

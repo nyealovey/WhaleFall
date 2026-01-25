@@ -14,9 +14,9 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/settings.py` 统一配置读取与校验"
 related:
-  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
   - "[[standards/backend/gate/bootstrap-and-entrypoint]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/guide/layer/README|后端分层标准]]"
 ---
 
@@ -65,7 +65,7 @@ related:
 ### 4) 敏感信息处理
 
 - MUST NOT: 把密钥/口令/令牌/连接串原文写入日志。
-- SHOULD: 需要排障时只记录“变量名/是否存在/来源/长度”等非敏感信息，遵循 [[standards/backend/hard/sensitive-data-handling]]。
+- SHOULD: 需要排障时只记录“变量名/是否存在/来源/长度”等非敏感信息，遵循 [[standards/backend/standard/sensitive-data-handling]]。
 
 ### 5) 导出到 Flask 配置
 

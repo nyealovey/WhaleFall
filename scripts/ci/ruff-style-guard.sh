@@ -4,6 +4,9 @@
 # 说明:
 # - 目标是把 D/I/PLC/G 作为“增量门禁”，避免一次性清理全仓库 600+ 条历史问题。
 # - baseline 不含行号/列号，避免重排代码导致误报。
+#
+# 参考：
+# - docs/Obsidian/standards/core/gate/ruff-style-baseline.md
 
 set -euo pipefail
 
@@ -95,6 +98,7 @@ fi
 if [[ ! -f "${BASELINE_FILE}" ]]; then
   echo "未找到 baseline 文件: ${BASELINE_FILE}" >&2
   echo "请先运行: ./scripts/ci/ruff-style-guard.sh --update-baseline" >&2
+  echo "参考：docs/Obsidian/standards/core/gate/ruff-style-baseline.md" >&2
   exit 1
 fi
 
@@ -105,6 +109,7 @@ if [[ -n "${new_hits}" ]]; then
   echo "检测到新增的 Ruff(style) violations(禁止新增):" >&2
   echo "${new_hits}" >&2
   echo "如确需更新 baseline, 请运行: ./scripts/ci/ruff-style-guard.sh --update-baseline" >&2
+  echo "参考：docs/Obsidian/standards/core/gate/ruff-style-baseline.md" >&2
   exit 1
 fi
 

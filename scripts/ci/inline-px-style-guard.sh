@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Inline px style 门禁：锁定现状 baseline，禁止在 templates 中新增 inline `height/width: Npx` 用于布局
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/layout-sizing.md
 
 set -euo pipefail
 

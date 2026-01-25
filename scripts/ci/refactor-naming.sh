@@ -6,6 +6,9 @@
 #   ./scripts/ci/refactor-naming.sh --dry-run   # 只检测
 #   ./scripts/ci/refactor-naming.sh             # 检测并给出修复建议
 #
+# 参考：
+# - docs/Obsidian/standards/core/gate/naming.md
+#
 
 set -euo pipefail
 

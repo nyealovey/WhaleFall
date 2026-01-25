@@ -16,7 +16,7 @@ related:
   - "[[standards/ui/guide/layer/README]]"
   - "[[standards/ui/design/javascript-module]]"
   - "[[standards/backend/gate/layer/services-layer]]"
-  - "[[standards/backend/hard/action-endpoint-failure-semantics]]"
+  - "[[standards/backend/standard/action-endpoint-failure-semantics]]"
 ---
 
 # Services 前端服务层编写规范
@@ -60,7 +60,7 @@ related:
 - SHOULD: method 命名使用稳定动词:
   - `list`/`fetch*`/`get*` 用于读.
   - `create*`/`update*`/`delete*`/`restore*` 用于写.
-  - `*Action` 或 `actions/*` 对应后端 action endpoints, 参考 [[standards/backend/hard/action-endpoint-failure-semantics]].
+  - `*Action` 或 `actions/*` 对应后端 action endpoints, 参考 [[standards/backend/standard/action-endpoint-failure-semantics]].
 - SHOULD: 文件命名与导出形态以仓库现状为准(例如 `snake_case.js`), 由 Page Entry 负责 wiring.
 
 ### 4) query/payload 序列化与安全键过滤

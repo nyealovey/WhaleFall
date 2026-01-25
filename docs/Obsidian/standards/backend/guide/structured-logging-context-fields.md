@@ -14,7 +14,7 @@ owner: WhaleFall Team
 scope: "`app/utils/structlog_config.py`, `app/infra/route_safety.py`, `app/utils/logging/handlers.py` 相关日志字段口径"
 related:
   - "[[standards/backend/guide/structured-logging-minimum-fields]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/gate/layer/tasks-layer]]"
   - "[[standards/backend/gate/layer/services-layer]]"
 ---
@@ -39,7 +39,7 @@ related:
 
 ### 3.2 敏感数据
 
-- MUST: 上下文字段必须遵循 [[standards/backend/hard/sensitive-data-handling]]，禁止把口令/令牌/连接串等敏感信息写入日志。
+- MUST: 上下文字段必须遵循 [[standards/backend/standard/sensitive-data-handling]]，禁止把口令/令牌/连接串等敏感信息写入日志。
 
 ## 4. 推荐维度（SHOULD）
 

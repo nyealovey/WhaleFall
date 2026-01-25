@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # error/message 字段漂移门禁：锁定现状 baseline，禁止新增漂移命中
+#
+# 参考：
+# - docs/Obsidian/standards/backend/standard/error-message-schema-unification.md
 
 set -euo pipefail
 
@@ -53,7 +56,7 @@ new_hits="$(comm -13 "${baseline_sorted_file}" "${current_file}" || true)"
 if [[ -n "${new_hits}" ]]; then
   echo "检测到新增的 error/message 漂移命中（禁止新增）：" >&2
   echo "${new_hits}" >&2
-  echo "请按 docs/Obsidian/standards/backend/hard/error-message-schema-unification.md 统一结果结构，避免在读端写互兜底链。" >&2
+  echo "请按 docs/Obsidian/standards/backend/standard/error-message-schema-unification.md 统一结果结构，避免在读端写互兜底链。" >&2
   exit 1
 fi
 

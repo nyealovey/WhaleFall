@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # GridWrapper 日志门禁：禁止在 grid-wrapper.js 内常驻 console.log
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/grid.md
 
 set -euo pipefail
 

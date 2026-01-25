@@ -14,7 +14,7 @@ scope: 错误封套 message_code/message_key 参考入口与索引
 related:
   - "[[reference/README|reference]]"
   - "[[standards/backend/gate/layer/api-layer]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
 ---
 
 # 错误码参考

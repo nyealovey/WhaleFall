@@ -13,7 +13,7 @@ scope: Grid.js 列表页迁移的执行清单(面向自检/交付)
 related:
   - "[[standards/ui/gate/grid]]"
   - "[[standards/backend/gate/layer/api-layer]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
 ---
 
 # Grid.js 列表页迁移 checklist
@@ -22,7 +22,7 @@ related:
 > 本文是 checklist(面向执行与查阅), 不是 standards SSOT.
 > 规则与门禁口径以以下 standards SSOT 为准:
 > - [[standards/ui/gate/grid|Grid 列表页标准]]
-> - [[standards/backend/gate/layer/api-layer|API Layer 标准]] + [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]]
+> - [[standards/backend/gate/layer/api-layer|API Layer 标准]] + [[standards/backend/standard/error-message-schema-unification|错误消息字段统一]]
 
 ## 迁移自检
 

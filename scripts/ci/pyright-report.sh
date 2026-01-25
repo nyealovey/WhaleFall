@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Pyright 报告脚本：运行 pyright 并将输出保存到 docs/reports
+#
+# 参考：
+# - docs/Obsidian/standards/core/guide/scripts.md
+# - docs/Obsidian/standards/core/guide/coding.md
 
 set -euo pipefail
 

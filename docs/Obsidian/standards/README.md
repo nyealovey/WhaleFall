@@ -13,7 +13,7 @@ owner: WhaleFall Team
 scope: WhaleFall standards 入口与索引
 related:
   - "[[standards/doc/guide/documentation]]"
-  - "[[standards/core/hard/governance]]"
+  - "[[standards/core/standard/governance]]"
 ---
 
 # 规范标准
@@ -23,7 +23,7 @@ related:
 
 ## 关键入口(少量)
 
-- [[standards/core/hard/governance|Standards 治理与 enforcement 分级]]
+- [[standards/core/standard/governance|Standards 治理与 enforcement 分级]]
 - [[standards/doc/README|文档编写标准索引]]
 - [[standards/core/guide/coding|编码规范]]
 - [[standards/core/gate/naming|命名规范]]

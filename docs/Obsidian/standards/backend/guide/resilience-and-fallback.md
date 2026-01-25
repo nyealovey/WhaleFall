@@ -14,8 +14,8 @@ updated: 2026-01-14
 owner: WhaleFall Team
 scope: 运行期容错、降级、failover 与临时 workaround 的引入约束（避免 silent fallback 与语义漂移）
 related:
-  - "[[standards/backend/hard/action-endpoint-failure-semantics]]"
-  - "[[standards/backend/hard/write-operation-boundary]]"
+  - "[[standards/backend/standard/action-endpoint-failure-semantics]]"
+  - "[[standards/backend/standard/write-operation-boundary]]"
   - "[[standards/backend/design/compatibility-and-deprecation]]"
   - "[[standards/backend/guide/structured-logging-context-fields]]"
 ---
@@ -68,8 +68,8 @@ related:
 
 ### 4.2 对写操作的约束（避免语义漂移）
 
-- MUST: 写路径的事务提交点必须遵循 [[standards/backend/hard/write-operation-boundary]]，容错逻辑不得在可复用层引入 `commit/rollback`。
-- MUST: 当“失败是否回滚”会影响数据一致性时，必须遵循 [[standards/backend/hard/action-endpoint-failure-semantics]] 的约定：
+- MUST: 写路径的事务提交点必须遵循 [[standards/backend/standard/write-operation-boundary]]，容错逻辑不得在可复用层引入 `commit/rollback`。
+- MUST: 当“失败是否回滚”会影响数据一致性时，必须遵循 [[standards/backend/standard/action-endpoint-failure-semantics]] 的约定：
   - 需要原子性：抛异常触发 rollback
   - 允许保留已完成子步骤：以业务结果失败返回错误封套（不抛异常）
 - SHOULD: “单项失败不影响整体”优先使用 savepoint（`begin_nested()`）而不是在 service 内 `db.session.rollback()`。

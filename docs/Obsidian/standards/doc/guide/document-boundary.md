@@ -127,7 +127,7 @@ related:
 
 ### 正例: 标准(规则 SSOT)
 
-- `docs/Obsidian/standards/backend/hard/write-operation-boundary.md`
+- `docs/Obsidian/standards/backend/standard/write-operation-boundary.md`
 - `docs/Obsidian/standards/ui/guide/layer/README.md`
 
 ### 正例: 参考手册(契约 SSOT)

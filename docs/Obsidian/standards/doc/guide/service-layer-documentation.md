@@ -17,9 +17,9 @@ scope: app/services/** 的服务层设计与实现说明文档
 related:
   - "[[standards/doc/guide/documentation]]"
   - "[[standards/core/guide/halfwidth-characters]]"
-  - "[[standards/backend/hard/write-operation-boundary]]"
-  - "[[standards/backend/hard/action-endpoint-failure-semantics]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/write-operation-boundary]]"
+  - "[[standards/backend/standard/action-endpoint-failure-semantics]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
   - "[[reference/service/accounts-sync-permission-manager|示例: AccountPermissionManager 权限同步文档]]"
 ---
 

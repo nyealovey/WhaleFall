@@ -332,14 +332,34 @@ pytest -m unit "$@"
 
 | 门禁脚本 | 检查内容 | 运行命令（迁移后） |
 |----------|----------|----------|
-| `ruff-report.sh` | Python 代码风格 | `./scripts/ci/ruff-report.sh style` |
-| `pyright-report.sh` | Python 类型检查 | `./scripts/ci/pyright-report.sh` |
-| `eslint-report.sh` | JavaScript 代码风格 | `./scripts/ci/eslint-report.sh quick` |
-| `error-message-drift-guard.sh` | 错误消息漂移 | `./scripts/ci/error-message-drift-guard.sh` |
-| `inline-handler-guard.sh` | 模板 inline handler 回归 | `./scripts/ci/inline-handler-guard.sh` |
-| `pagination-param-guard.sh` | 分页参数一致性 | `./scripts/ci/pagination-param-guard.sh` |
-| `secrets-guard.sh` | 环境变量密钥 | `./scripts/ci/secrets-guard.sh` |
-| `tag-selector-filter-id-guard.sh` | TagSelectorFilter 固定 DOM id 回归 | `./scripts/ci/tag-selector-filter-id-guard.sh` |
+| `api-layer-guard.sh` | API 层越界依赖/直查库/直触 DB | `./scripts/ci/api-layer-guard.sh` |
+| `browser-confirm-guard.sh` | 禁止 `confirm()` 弹窗（统一 `UI.confirmDanger`） | `./scripts/ci/browser-confirm-guard.sh` |
+| `btn-close-aria-guard.sh` | `btn-close` 可访问名称（`aria-label="关闭"`） | `./scripts/ci/btn-close-aria-guard.sh` |
+| `button-hierarchy-guard.sh` | 按钮层级：禁止全局 `.btn { border: none/0 }` | `./scripts/ci/button-hierarchy-guard.sh` |
+| `component-style-drift-guard.sh` | 组件样式漂移：禁止 pages 层重复定义共享组件类 | `./scripts/ci/component-style-drift-guard.sh` |
+| `css-token-guard.sh` | CSS Token：禁止 `var(--xxx)` 引用未定义 token | `./scripts/ci/css-token-guard.sh` |
+| `danger-button-semantics-guard.sh` | 危险按钮语义：禁止 `text-danger` 伪装危险按钮 | `./scripts/ci/danger-button-semantics-guard.sh` |
+| `db-session-commit-allowlist-guard.sh` | `db.session.commit()` 位置 allowlist（全局） | `./scripts/ci/db-session-commit-allowlist-guard.sh` |
+| `db-session-commit-services-drift-guard.sh` | services `commit()` 漂移（baseline，禁止新增） | `./scripts/ci/db-session-commit-services-drift-guard.sh` |
+| `db-session-route-write-guard.sh` | routes 直写 `db.session.*`（add/delete/commit/flush） | `./scripts/ci/db-session-route-write-guard.sh` |
+| `db-session-write-boundary-guard.sh` | 写操作事务边界组合门禁 | `./scripts/ci/db-session-write-boundary-guard.sh` |
+| `error-message-drift-guard.sh` | `error/message` 互兜底漂移（baseline，禁止新增） | `./scripts/ci/error-message-drift-guard.sh` |
+| `eslint-report.sh` | JavaScript 代码风格报告 | `./scripts/ci/eslint-report.sh quick` |
+| `forms-layer-guard.sh` | 防止 `app/forms/**` 体系回归（跨层依赖/DB/query） | `./scripts/ci/forms-layer-guard.sh` |
+| `grid-wrapper-log-guard.sh` | 禁止 GridWrapper 常驻 `console.log` | `./scripts/ci/grid-wrapper-log-guard.sh` |
+| `inline-handler-guard.sh` | 模板 inline handler（baseline，禁止新增） | `./scripts/ci/inline-handler-guard.sh` |
+| `inline-px-style-guard.sh` | 模板 inline px 布局（baseline，禁止新增） | `./scripts/ci/inline-px-style-guard.sh` |
+| `or-fallback-pattern-guard.sh` | 高风险 `or` 兜底形态（禁字段 alias 链/禁 silent fallback） | `./scripts/ci/or-fallback-pattern-guard.sh` |
+| `pagination-param-guard.sh` | 分页参数一致性（必须用 `limit`） | `./scripts/ci/pagination-param-guard.sh` |
+| `pyright-guard.sh` | Pyright baseline（禁止新增 diagnostics） | `./scripts/ci/pyright-guard.sh` |
+| `pyright-report.sh` | Python 类型检查报告 | `./scripts/ci/pyright-report.sh` |
+| `refactor-naming.sh` | 命名巡检（重命名建议/报告） | `./scripts/ci/refactor-naming.sh --dry-run` |
+| `ruff-report.sh` | Python 代码风格报告 | `./scripts/ci/ruff-report.sh style` |
+| `ruff-style-guard.sh` | Ruff(style) baseline（禁止新增 D/I/PLC/G violations） | `./scripts/ci/ruff-style-guard.sh` |
+| `secrets-guard.sh` | `env.example` 禁止写入真实密钥/口令 | `./scripts/ci/secrets-guard.sh` |
+| `services-repository-enforcement-guard.sh` | Service 直查库/query（baseline，禁止新增） | `./scripts/ci/services-repository-enforcement-guard.sh` |
+| `tag-selector-filter-id-guard.sh` | 可复用组件固定 DOM id 回归（TagSelectorFilter） | `./scripts/ci/tag-selector-filter-id-guard.sh` |
+| `tasks-layer-guard.sh` | tasks 直查库/直写库（允许 commit/rollback 作为边界入口） | `./scripts/ci/tasks-layer-guard.sh` |
 
 ### 9.2 建议新增门禁
 
@@ -359,4 +379,4 @@ pytest -m unit "$@"
 | 2026-01-08 | 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter |
 | 2026-01-09 | scripts 目录结构迁移: 迁移映射/步骤/兼容性过渡(一次性记录, 用后可删) |
 | 2026-01-15 | 新增门禁：补充 `inline-handler-guard.sh`（模板 inline handler 回归） |
-| 2026-01-25 | 减负: 区分 `scripts/ci/**`(强约束) 与其他脚本(建议), 避免把所有脚本都按门禁脚本标准要求 |
+| 2026-01-25 | 减负: 区分 `scripts/ci/**`(强约束) 与其他脚本(建议), 并补齐 `scripts/ci` 门禁清单 |

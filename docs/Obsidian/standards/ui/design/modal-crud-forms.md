@@ -129,6 +129,7 @@ def bad_route():
 
 ## 门禁/检查方式
 
+- 静态门禁（防止 `app/forms/**` 体系回归）：`./scripts/ci/forms-layer-guard.sh`（目录不存在时自动跳过）
 - 评审检查:
   - 是否存在独立 create/edit 表单页?
   - 写操作是否全部走 `/api/v1/**` 且具备 CSRF/权限保护?

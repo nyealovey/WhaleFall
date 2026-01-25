@@ -5,6 +5,10 @@
 # 说明：
 # - services-layer-standards 约定 Service 的数据访问与 Query 组装应下沉到 Repository。
 # - 当前仓库仍存在历史命中，因此采用 baseline 方式先“禁止新增”，再逐步清理。
+#
+# 参考：
+# - docs/Obsidian/standards/backend/gate/layer/services-layer.md
+# - docs/Obsidian/standards/backend/gate/layer/repository-layer.md
 
 set -euo pipefail
 
