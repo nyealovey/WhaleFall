@@ -14,8 +14,8 @@ owner: WhaleFall Team
 scope: "`app/routes/**` 下所有 Flask Blueprint 路由"
 related:
   - "[[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
@@ -48,14 +48,14 @@ related:
 
 - MUST: 所有路由函数通过 `safe_route_call(...)` 包裹实际执行逻辑.
 - MUST: `safe_route_call` 入参至少包含 `module`, `action`, `public_error`.
-- SHOULD: `context` 中放关键参数以便排障, 但必须遵循 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束.
+- SHOULD: `context` 中放关键参数以便排障, 但必须遵循 [[standards/backend/standard/sensitive-data-handling|敏感数据处理]] 约束.
 
 ### 3) JSON 响应格式
 
 - MUST: 返回 JSON 的路由遵循 [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)|响应封套(JSON Envelope)]].
 - MUST: 成功响应使用 `jsonify_unified_success(...)`.
 - MUST: 错误响应由统一错误处理器或 `safe_route_call` 输出, 禁止业务代码手写错误 JSON.
-- MUST: 错误消息字段遵循 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]].
+- MUST: 错误消息字段遵循 [[standards/backend/standard/error-message-schema-unification|错误消息字段统一]].
 
 ### 4) 参数解析
 
@@ -74,7 +74,7 @@ related:
 
 - MUST NOT: `app.models.*` 的查询接口(例如 `Model.query`)
 - MUST NOT: `app.repositories.*` (应通过 Service)
-- MUST NOT: `db.session`（提交点在 `safe_route_call`；事务语义由 Service 决策，详见 [[standards/backend/hard/write-operation-boundary|写操作事务边界]]）
+- MUST NOT: `db.session`（提交点在 `safe_route_call`；事务语义由 Service 决策，详见 [[standards/backend/standard/write-operation-boundary|写操作事务边界]]）
 
 ### 6) 装饰器顺序
 

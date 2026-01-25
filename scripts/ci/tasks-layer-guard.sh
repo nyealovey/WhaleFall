@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Tasks 层门禁：禁止 tasks 直查库/直写库（允许 commit/rollback 作为事务边界入口）
+#
+# 参考：
+# - docs/Obsidian/standards/backend/gate/layer/tasks-layer.md
 
 set -euo pipefail
 

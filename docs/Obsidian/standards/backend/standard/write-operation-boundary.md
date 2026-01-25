@@ -6,13 +6,13 @@ tags:
   - standards
   - standards/backend
 status: active
-enforcement: hard
+enforcement: standard
 created: 2025-12-25
 updated: 2026-01-13
 owner: WhaleFall Team
 scope: 写操作的事务提交/回滚边界与门禁
 related:
-  - "[[standards/backend/hard/action-endpoint-failure-semantics]]"
+  - "[[standards/backend/standard/action-endpoint-failure-semantics]]"
 ---
 
 # 写操作事务边界(Write Operation Boundary)
@@ -96,6 +96,7 @@ related:
 
 - routes 写操作门禁：`scripts/ci/db-session-route-write-guard.sh`
 - services commit 漂移门禁：`scripts/ci/db-session-commit-services-drift-guard.sh`
+- commit 位置 allowlist 门禁：`scripts/ci/db-session-commit-allowlist-guard.sh`
 - 全局写边界门禁（组合）：`scripts/ci/db-session-write-boundary-guard.sh`
 
 ## 8. 变更历史

@@ -17,9 +17,9 @@ related:
   - "[[standards/backend/gate/layer/schemas-layer]]"
   - "[[standards/backend/gate/request-payload-and-schema-validation]]"
   - "[[standards/backend/gate/internal-data-contract-and-versioning]]"
-  - "[[standards/backend/hard/configuration-and-secrets]]"
-  - "[[standards/backend/hard/action-endpoint-failure-semantics]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/action-endpoint-failure-semantics]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
 ---
 
 # 兼容与弃用生命周期(Compatibility & Deprecation)
@@ -50,7 +50,7 @@ related:
 
 - MUST: 写路径（HTTP body）字段 alias/类型转换/默认值/兼容策略必须落在 `app/schemas/**`（schema）侧，并由 Service `validate_or_raise(...)` 消费 typed payload（见 [[standards/backend/gate/request-payload-and-schema-validation]]）。
 - MUST: internal payload 的版本化与形状迁移必须落在 adapter/normalizer 单入口（见 [[standards/backend/gate/internal-data-contract-and-versioning]]）。
-- MUST: env alias 只能发生在 `app/settings.py`（见 [[standards/backend/hard/configuration-and-secrets]]）。
+- MUST: env alias 只能发生在 `app/settings.py`（见 [[standards/backend/standard/configuration-and-secrets]]）。
 - MUST NOT: 在业务代码中新增 `data.get("new") or data.get("old")`、`payload.get("x") or default` 等 silent fallback 兼容链（除非该兼容逻辑位于 schema/adapter 且带单测）。
 
 ### 4.2 可观测性（避免 silent fallback）
@@ -70,7 +70,7 @@ related:
 
 ### 4.4 与事务语义的关系（避免误回滚/误提交）
 
-- MUST: 当兼容/回退逻辑可能影响“是否回滚”的语义时，必须遵循 [[standards/backend/hard/action-endpoint-failure-semantics]]：
+- MUST: 当兼容/回退逻辑可能影响“是否回滚”的语义时，必须遵循 [[standards/backend/standard/action-endpoint-failure-semantics]]：
   - 需要原子回滚：走异常（触发 `safe_route_call` rollback）
   - 允许保留已完成子步骤写入：走业务结果失败（返回错误封套，不抛异常）
 

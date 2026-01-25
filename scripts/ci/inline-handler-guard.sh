@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Inline handler 门禁：锁定现状 baseline，禁止在 templates 中新增 inline `on*="..."` 事件处理器
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/template-event-binding.md
 
 set -euo pipefail
 

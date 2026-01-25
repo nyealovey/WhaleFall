@@ -17,8 +17,8 @@ related:
   - "[[standards/backend/guide/layer/README|后端分层标准]]"
   - "[[standards/backend/gate/layer/routes-layer]]"
   - "[[standards/backend/gate/request-payload-and-schema-validation]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
@@ -90,7 +90,7 @@ related:
 ### 3) 响应封套与错误口径
 
 - MUST: 对外 JSON 响应使用统一封套, 字段与示例见下文 [[#响应封套(JSON Envelope)]].
-- MUST: 错误消息字段遵循 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]].
+- MUST: 错误消息字段遵循 [[standards/backend/standard/error-message-schema-unification|错误消息字段统一]].
 - MUST: API v1 success 响应使用 `BaseResource.success(...)`(底层 `unified_success_response(...)`).
 - MUST: Routes(JSON) success 响应使用 `jsonify_unified_success(...)`.
 - MUST: 错误响应由统一错误处理器输出(例如 RestX `Api.handle_error`, 或 `BaseResource.error_message(...)`), 业务代码禁止手写错误 JSON.
@@ -160,7 +160,7 @@ related:
 
 ###### 5) 错误消息与兼容约束
 
-- MUST: 错误消息口径遵循 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]], 禁止在任何层新增 `error/message` 互兜底链.
+- MUST: 错误消息口径遵循 [[standards/backend/standard/error-message-schema-unification|错误消息字段统一]], 禁止在任何层新增 `error/message` 互兜底链.
 - MUST: 对外 API payload（包括 success envelope 的 `data` 内嵌结构）不得出现字段名 `error_code`；如需机器可读错误码，统一使用 `message_code`（或边界层定义的命名空间字段），并在边界层完成映射，禁止下游写互兜底链。
 - SHOULD: 当返回结构发生演进时, 优先通过新增字段向前兼容, 避免重命名/挪字段导致调用方写兼容分支.
 
@@ -210,7 +210,7 @@ return jsonify({"success": False, "msg": "failed"}), 400
 - MUST: 所有 `Resource` 方法必须通过 `BaseResource.safe_call(...)`（推荐）或 `safe_route_call(...)` 包裹实际执行函数.
 - MUST: `BaseResource.safe_call(...)` 是对 `safe_route_call(...)` 的统一封装（语义等价，事务/异常语义一致）；评审时视为满足 `safe_route_call` 的 MUST。
 - MUST: `safe_route_call` 入参至少包含 `module`, `action`, `public_error`.
-- SHOULD: 在 `context` 中带上关键参数, 但必须遵循 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束.
+- SHOULD: 在 `context` 中带上关键参数, 但必须遵循 [[standards/backend/standard/sensitive-data-handling|敏感数据处理]] 约束.
 - MUST NOT: 在端点内 `try/except Exception` 后吞异常继续返回成功.
 
 ### 5) 依赖规则
@@ -410,6 +410,7 @@ class BadResource(Resource):
 
 ## 门禁/检查方式
 
+- 静态门禁：`./scripts/ci/api-layer-guard.sh`
 - 评审检查:
   - 是否所有 `Resource` 方法都通过 `BaseResource.safe_call(...)` 或 `safe_route_call(...)` 统一兜底?
   - 是否出现 `Model.query`/`db.session`/原生 SQL?

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # 写操作边界门禁：禁止 routes 直写 db.session（add/delete/commit/flush）
+#
+# 参考：
+# - docs/Obsidian/standards/backend/standard/write-operation-boundary.md
 
 set -euo pipefail
 
@@ -25,7 +28,7 @@ if [[ -n "${hits}" ]]; then
   echo "${hits}" >&2
   echo "" >&2
   echo "请将写操作收敛到：routes -> WriteService -> Repository(add/delete/flush)，并由 safe_route_call 统一提交事务。" >&2
-  echo "参考：docs/changes/refactor/002-backend-write-operation-boundary-plan.md" >&2
+  echo "参考：docs/Obsidian/standards/backend/standard/write-operation-boundary.md" >&2
   exit 1
 fi
 

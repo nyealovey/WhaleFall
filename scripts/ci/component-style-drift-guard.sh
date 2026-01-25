@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # 共享组件样式漂移门禁：防止 pages 层重复定义 status-pill / btn-icon 等共享组件类，导致跨页面样式漂移
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/button-hierarchy.md
+# - docs/Obsidian/standards/ui/guide/color.md
 
 set -euo pipefail
 
@@ -34,6 +38,9 @@ if [[ -n "${matches}" ]]; then
   echo "  - status-pill：app/static/css/components/status-pill.css" >&2
   echo "  - btn-icon：app/static/css/components/buttons.css" >&2
   echo "- 页面确需差异时，请改为容器作用域覆写（例如 .page-scope .status-pill / .page-scope .btn-icon）。" >&2
+  echo "参考：" >&2
+  echo "- docs/Obsidian/standards/ui/gate/button-hierarchy.md" >&2
+  echo "- docs/Obsidian/standards/ui/guide/color.md" >&2
   exit 1
 fi
 

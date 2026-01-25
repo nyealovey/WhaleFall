@@ -15,8 +15,8 @@ related:
   - "[[architecture/developer-entrypoint]]"
   - "[[standards/backend/gate/layer/api-layer]]"
   - "[[standards/doc/guide/api-contract-markdown]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[API/auth-api-contract]]"
 ---
 
@@ -116,7 +116,7 @@ related:
 ### 6.4 action endpoint 的失败语义影响事务
 
 - 当你想 "失败也要保留部分写入" 时, 不要抛异常.
-- 细节见 [[standards/backend/hard/action-endpoint-failure-semantics]] 与 [[standards/backend/hard/write-operation-boundary]].
+- 细节见 [[standards/backend/standard/action-endpoint-failure-semantics]] 与 [[standards/backend/standard/write-operation-boundary]].
 
 ## 7. 新增 endpoint 的最小 checklist
 
@@ -124,5 +124,5 @@ related:
 - auth: 明确是 session 还是 jwt, 并选用对应 decorator.
 - permission: 给出 `api_permission_required(...)` 或 web 的 `*_required`, 同步更新 contract 的 Permission 列.
 - csrf: 写操作加 `@require_csrf`, token 走 `X-CSRFToken`.
-- errors: 对外口径走统一错误封套(见 [[standards/backend/hard/error-message-schema-unification]]).
+- errors: 对外口径走统一错误封套(见 [[standards/backend/standard/error-message-schema-unification]]).
 

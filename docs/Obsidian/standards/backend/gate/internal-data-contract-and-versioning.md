@@ -17,7 +17,7 @@ related:
   - "[[standards/backend/gate/layer/schemas-layer]]"
   - "[[standards/backend/guide/layer/types-layer]]"
   - "[[standards/backend/design/compatibility-and-deprecation]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
 ---
 
 # 内部数据契约与版本化(Internal Data Contract)
@@ -41,7 +41,7 @@ related:
 
 - HTTP body payload（见 [[standards/backend/gate/request-payload-and-schema-validation]]）
 - YAML 配置文件（见 [[standards/backend/gate/yaml-config-validation]]）
-- 结构化日志/审计日志的上下文字段（例如 `UnifiedLog.context`）：该类字段以“可扩展诊断上下文”为目标，允许自由扩展 key，但必须遵循 [[standards/backend/hard/sensitive-data-handling]] 的脱敏约束。
+- 结构化日志/审计日志的上下文字段（例如 `UnifiedLog.context`）：该类字段以“可扩展诊断上下文”为目标，允许自由扩展 key，但必须遵循 [[standards/backend/standard/sensitive-data-handling]] 的脱敏约束。
 
 ## 3. 术语
 
@@ -123,6 +123,7 @@ related:
 
 ## 5. 门禁/检查方式（建议）
 
+- 静态门禁（高风险 `or` 兜底形态）：`./scripts/ci/or-fallback-pattern-guard.sh`
 - 单元测试（必须）：为每个 internal contract 的 adapter 覆盖：
   - canonical 输入（最新版本）→ 输出稳定
   - 至少 1 个历史版本输入 → 输出稳定

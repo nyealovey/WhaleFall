@@ -18,7 +18,7 @@ related:
   - "[[reference/errors/message-code-catalog]]"
   - "[[reference/service/auth-services]]"
   - "[[standards/backend/gate/layer/api-layer]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
   - "[[canvas/auth/web-login-sequence.canvas]]"
   - "[[canvas/auth/api-login-sequence.canvas]]"
 ---

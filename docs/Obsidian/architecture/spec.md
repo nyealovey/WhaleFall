@@ -266,10 +266,10 @@ graph TD
 
 关键约束(避免架构漂移):
 
-- 写路径事务边界: service 负责事务边界与失败语义, 见 [[standards/backend/hard/write-operation-boundary]].
-- API 错误封套: API v1 必须走统一错误口径, 见 [[standards/backend/hard/error-message-schema-unification]].
+- 写路径事务边界: service 负责事务边界与失败语义, 见 [[standards/backend/standard/write-operation-boundary]].
+- API 错误封套: API v1 必须走统一错误口径, 见 [[standards/backend/standard/error-message-schema-unification]].
 - request payload 与 schema: 写路径入参校验优先用 `app/schemas/**`(Pydantic), 见 [[standards/backend/gate/request-payload-and-schema-validation]].
-- 任务必须在 `app.app_context()` 内运行, 见 [[standards/backend/hard/task-and-scheduler]].
+- 任务必须在 `app.app_context()` 内运行, 见 [[standards/backend/standard/task-and-scheduler]].
 
 ## 5. 关键流程(As-built)
 

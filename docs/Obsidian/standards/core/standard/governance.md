@@ -7,7 +7,7 @@ tags:
   - standards
   - standards/governance
 status: active
-enforcement: hard
+enforcement: standard
 created: 2026-01-25
 updated: 2026-01-25
 owner: WhaleFall Team
@@ -34,7 +34,7 @@ related:
 
 所有 standards 文档的 YAML frontmatter MUST 包含 `enforcement` 字段, 且取值只能为:
 
-- `hard`: 硬标准(高风险不变量/对外契约/安全与一致性)
+- `standard`: 标准(强约束：高风险不变量/对外契约/安全与一致性)
 - `gate`: 门禁标准(以 `scripts/ci/*-guard.sh` 等自动化门禁为主要执行方式)
 - `guide`: 指南(建议/经验法则, 允许例外, 不做硬拦截)
 - `design`: 设计(架构/模式/默认路径 + 取舍, 不应写成“必须这样做”)
@@ -46,7 +46,7 @@ related:
 
 ### 1) `MUST` 的使用边界
 
-- MUST: `hard` 文档才允许大量使用 `MUST/MUST NOT`.
+- MUST: `standard` 文档才允许大量使用 `MUST/MUST NOT`.
 - MUST: `gate` 文档中的 `MUST/MUST NOT` 必须能被门禁脚本检查(或能明确给出可执行的自查命令).
 - SHOULD: `guide/design` 文档避免使用 `MUST`, 优先用 `SHOULD` 或“默认做法/推荐/例外”.
 - MUST NOT: 把“主观偏好/审美/局部经验”写成 `MUST`(典型症状: 促使为满足标准而提前抽象/拆层/写模板代码).
@@ -62,7 +62,7 @@ related:
 
 ### 3) 设计与标准分离
 
-- SHOULD: 下列内容更适合写为 `design` 而不是 `hard/gate`:
+- SHOULD: 下列内容更适合写为 `design` 而不是 `standard/gate`:
   - 分层方案/目录组织/模块化策略
   - UI 交互模式与组件生态(例如 Grid/Modal CRUD 的默认方案)
   - 第三方库封装策略与升级策略
@@ -80,9 +80,9 @@ related:
 
 ## 正反例
 
-### 正例: hard(契约/安全/一致性)
+### 正例: standard(强约束：契约/安全/一致性)
 
-- `standards/backend/hard/error-message-schema-unification`: 防止 `error/message` 漂移, 下游不再写互兜底链.
+- `standards/backend/standard/error-message-schema-unification`: 防止 `error/message` 漂移, 下游不再写互兜底链.
 
 ### 正例: gate(自动化门禁)
 
@@ -92,7 +92,7 @@ related:
 
 - `standards/ui/gate/grid`: 属于“页面架构/生态”, 文档应更强调默认入口与插件化, 允许少量例外, 关键底线交给门禁脚本守.
 
-### 反例: guide 写成 hard
+### 反例: guide 写成 standard
 
 - 把文本/格式偏好(例如标点/缩写/行数限制)写成大量 `MUST` 且无门禁, 会迫使代码与文档为满足形式而过度改造.
 

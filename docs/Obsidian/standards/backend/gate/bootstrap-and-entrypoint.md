@@ -12,9 +12,9 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/__init__.py`, `app.py`, `wsgi.py`, `app/api/__init__.py`"
 related:
-  - "[[standards/backend/hard/configuration-and-secrets]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
-  - "[[standards/backend/hard/task-and-scheduler]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/task-and-scheduler]]"
   - "[[standards/backend/guide/layer/README|后端分层标准]]"
   - "[[standards/backend/gate/layer/api-layer]]"
 ---
@@ -53,7 +53,7 @@ related:
 
 ### 3) 配置入口（Settings）
 
-- MUST: 配置解析/默认值/校验收敛到 `app/settings.py::Settings`，遵循 [[standards/backend/hard/configuration-and-secrets|配置与密钥]]。
+- MUST: 配置解析/默认值/校验收敛到 `app/settings.py::Settings`，遵循 [[standards/backend/standard/configuration-and-secrets|配置与密钥]]。
 - MAY: `app.py`/`wsgi.py` 使用 `os.environ.setdefault(...)` 写入少量运行默认值（仅限入口脚本，且仅允许下列 allowlist）。
 - MUST: `os.environ.setdefault(...)` 仅用于“运行期识别/启动工具”类变量，不得用于业务语义、功能开关或安全边界变量。
 - MUST NOT: 对任何敏感/密钥/连接信息使用 `setdefault`（例如 `DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `PASSWORD_ENCRYPTION_KEY` 等）。
@@ -79,12 +79,12 @@ related:
 
 ### 5) 日志与错误处理
 
-- MUST: 全局异常必须通过统一错误处理器映射为统一封套，遵循 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]]。
+- MUST: 全局异常必须通过统一错误处理器映射为统一封套，遵循 [[standards/backend/standard/error-message-schema-unification|错误消息字段统一]]。
 - SHOULD: 启动期关键路径（配置、蓝图注册、调度器启动）写结构化日志，便于定位启动失败原因。
 
 ### 6) 调度器启动策略
 
-- MUST: 调度器启动由 `create_app(init_scheduler_on_start=...)` 控制，并遵循 [[standards/backend/hard/task-and-scheduler|任务与调度(APScheduler)]] 的启停约束。
+- MUST: 调度器启动由 `create_app(init_scheduler_on_start=...)` 控制，并遵循 [[standards/backend/standard/task-and-scheduler|任务与调度(APScheduler)]] 的启停约束。
 - MUST: 当调度器初始化失败时不得阻塞应用启动（必须记录错误日志并继续返回 app）。
 
 ## 门禁/检查方式

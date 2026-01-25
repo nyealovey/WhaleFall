@@ -15,8 +15,8 @@ scope: "`app/services/**` 下所有业务服务"
 related:
   - "[[standards/doc/guide/service-layer-documentation]]"
   - "[[standards/backend/gate/request-payload-and-schema-validation]]"
-  - "[[standards/backend/hard/write-operation-boundary]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/write-operation-boundary]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/gate/layer/repository-layer]]"
   - "[[standards/backend/gate/layer/models-layer]]"
 ---
@@ -85,7 +85,7 @@ app/services/
 
 ### 5) 事务边界
 
-- MUST: 默认情况下(Web 请求写路径), Service 是事务语义的主要决策点：通过“正常返回 vs 抛异常”驱动上层 `safe_route_call` 的 `commit/rollback`（提交点见 [[standards/backend/hard/write-operation-boundary|写操作事务边界]]）。
+- MUST: 默认情况下(Web 请求写路径), Service 是事务语义的主要决策点：通过“正常返回 vs 抛异常”驱动上层 `safe_route_call` 的 `commit/rollback`（提交点见 [[standards/backend/standard/write-operation-boundary|写操作事务边界]]）。
 - MUST: Repository 可以 `flush`, 但 MUST NOT `commit`.
 - SHOULD: 批量写入支持部分回滚时使用 `db.session.begin_nested()`.
 
@@ -163,7 +163,7 @@ app/services/
 ### 11) 日志规范
 
 - MUST: 业务关键路径记录结构化日志(使用 `app.utils.structlog_config`).
-- MUST: 日志字段遵循敏感数据约束, 参考 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]].
+- MUST: 日志字段遵循敏感数据约束, 参考 [[standards/backend/standard/sensitive-data-handling|敏感数据处理]].
 - MUST: “关键路径”判定采用 checklist（满足其一即必须打点）：
   - 写操作：create/update/delete/restore/批量写入/任何会触发事务提交的路径
   - 外部依赖交互：数据库连接/远程拉取/调度器修改/缓存读写/文件系统读写
@@ -199,10 +199,12 @@ class BadService:
 
 ## 门禁/检查方式
 
+- 增量门禁（禁止新增 services 直查库/query）：`./scripts/ci/services-repository-enforcement-guard.sh`
+- 增量门禁（禁止新增 services 内 `db.session.commit()`）：`./scripts/ci/db-session-commit-services-drift-guard.sh`（事务边界见 [[standards/backend/standard/write-operation-boundary]]）
 - 评审检查:
   - 是否存在在 Service 内返回 `Response` 或依赖 `flask.request`?
   - 是否存在在 Repository 内 `commit`?
-  - 写操作事务边界是否遵循 [[standards/backend/hard/write-operation-boundary]]?
+  - 写操作事务边界是否遵循 [[standards/backend/standard/write-operation-boundary]]?
 - 自查命令(示例):
 
 ```bash
@@ -213,4 +215,4 @@ rg -n "db\\.session\\.commit\\(" app/repositories
 ## 变更历史
 
 - 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.
-- 2026-01-13: 将事务边界表述拆分为“提交点 vs 决策点”, 统一口径对齐 [[standards/backend/hard/write-operation-boundary|写操作事务边界]].
+- 2026-01-13: 将事务边界表述拆分为“提交点 vs 决策点”, 统一口径对齐 [[standards/backend/standard/write-operation-boundary|写操作事务边界]].

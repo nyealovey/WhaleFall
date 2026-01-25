@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # API 层门禁：禁止 API 端点直依赖 models/routes 或直接触 DB/query
+#
+# 参考：
+# - docs/Obsidian/standards/backend/gate/layer/api-layer.md
 
 set -euo pipefail
 

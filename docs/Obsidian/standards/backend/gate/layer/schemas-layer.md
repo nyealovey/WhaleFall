@@ -16,8 +16,8 @@ related:
   - "[[standards/backend/guide/layer/README|后端分层标准]]"
   - "[[standards/backend/gate/request-payload-and-schema-validation]]"
   - "[[standards/backend/gate/or-fallback-decision-table]]"
-  - "[[standards/backend/hard/error-message-schema-unification]]"
-  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/sensitive-data-handling]]"
   - "[[standards/backend/guide/layer/types-layer]]"
   - "[[standards/backend/gate/layer/services-layer]]"
 ---
@@ -45,7 +45,7 @@ related:
 - MUST: schema 负责字段级校验与规范化（例如 `"" -> None`、`str.strip()`、布尔/整数转换）。
 - MUST NOT: schema 访问数据库或依赖 `db.session`。
 - MUST NOT: schema 依赖 `app.models.*`, `app.services.*`, `app.repositories.*`, `app.routes.*`, `app.api.*`。
-- SHOULD: schema 校验失败时输出中文错误文案，并与 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]] 保持一致。
+- SHOULD: schema 校验失败时输出中文错误文案，并与 [[standards/backend/standard/error-message-schema-unification|错误消息字段统一]] 保持一致。
 
 ### 2) 兼容/迁移(字段 alias 与形状兼容)
 
@@ -98,6 +98,7 @@ related:
 
 ## 门禁/检查方式
 
+- 静态门禁（高风险 `or` 兜底形态）：`./scripts/ci/or-fallback-pattern-guard.sh`（决策表见 [[standards/backend/gate/or-fallback-decision-table]]）
 - 评审检查:
   - 是否把兼容/兜底逻辑放在了 service 而不是 schema？
   - 是否出现 `or` 兜底覆盖合法空值的问题？

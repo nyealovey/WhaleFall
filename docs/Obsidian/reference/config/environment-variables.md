@@ -13,7 +13,7 @@ owner: WhaleFall Team
 scope: 应用配置(`app/settings.py`)与少量脚本/部署变量
 related:
   - "[[reference/config/README|配置参考]]"
-  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
   - "[[standards/core/guide/halfwidth-characters]]"
 ---
 
@@ -24,7 +24,7 @@ related:
 
 > [!info] SSOT
 > - 解析 + 默认值 + 校验: `app/settings.py::Settings.load()`.
-> - 密钥与新增配置项流程: [[standards/backend/hard/configuration-and-secrets]].
+> - 密钥与新增配置项流程: [[standards/backend/standard/configuration-and-secrets]].
 
 ## 约定与默认值
 

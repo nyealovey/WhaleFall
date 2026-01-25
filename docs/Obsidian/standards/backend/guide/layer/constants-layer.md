@@ -13,14 +13,14 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/core/constants/**` 下所有常量与枚举定义"
 related:
-  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/standard/configuration-and-secrets]]"
   - "[[standards/backend/design/shared-kernel]]"
 ---
 
 # Constants 常量层编写规范
 
 > [!note] 说明
-> Constants 放不可变的业务常量与枚举. 环境相关或可变配置放 Settings, 参考 [[standards/backend/hard/configuration-and-secrets|配置与密钥]].
+> Constants 放不可变的业务常量与枚举. 环境相关或可变配置放 Settings, 参考 [[standards/backend/standard/configuration-and-secrets|配置与密钥]].
 
 ## 目的
 

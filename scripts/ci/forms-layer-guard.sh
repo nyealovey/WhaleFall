@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Forms 层门禁：禁止跨层依赖与 DB/query 访问
+#
+# 参考：
+# - docs/Obsidian/standards/ui/design/modal-crud-forms.md
 
 set -euo pipefail
 

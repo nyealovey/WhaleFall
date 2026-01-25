@@ -101,3 +101,15 @@ if "tags" in payload.model_fields_set:
 - 看到 `x or []/{}`：先问“显式空是否有语义（清空/合法空）”；如果有，必须改为缺失判定或 schema 默认 + `model_fields_set`。
 - internal contract：未知版本必须显式失败（fail-fast 或 `InternalContractResult(ok=false, ...)`），禁止 silent fallback。
 
+## 6. 门禁/检查方式
+
+- 静态门禁（初期只覆盖最高风险形态）：`./scripts/ci/or-fallback-pattern-guard.sh`
+- 评审检查：
+  - 是否在业务层（service/repo/api）写了 alias/迁移 `or` 链？
+  - 是否把缺失/None/显式空合并为同一语义？
+  - internal contract 未知版本是否 fail-fast（而不是 `{}`/`[]` silent fallback）？
+
+## 7. 变更历史
+
+- 2026-01-16：新增决策表，统一 `or`/truthy 兜底评审口径。
+- 2026-01-25：补齐门禁入口与标准文档结构。

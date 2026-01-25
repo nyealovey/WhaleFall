@@ -14,11 +14,11 @@
 
 **Files:**
 - Create: `docs/Obsidian/standards/core/.gitkeep` (仅在 Git 需要时)
-- Create: `docs/Obsidian/standards/core/hard/.gitkeep`
+- Create: `docs/Obsidian/standards/core/standard/.gitkeep`
 - Create: `docs/Obsidian/standards/core/gate/.gitkeep`
 - Create: `docs/Obsidian/standards/core/guide/.gitkeep`
 - Create: `docs/Obsidian/standards/core/design/.gitkeep`
-- Create: `docs/Obsidian/standards/backend/hard/.gitkeep`
+- Create: `docs/Obsidian/standards/backend/standard/.gitkeep`
 - Create: `docs/Obsidian/standards/backend/gate/.gitkeep`
 - Create: `docs/Obsidian/standards/backend/guide/.gitkeep`
 - Create: `docs/Obsidian/standards/backend/design/.gitkeep`
@@ -45,7 +45,7 @@ Expected: 目录创建成功；不产生文档内容变更。
 ### Task 2: core 文档移动 + 重命名
 
 **Files:**
-- Move: `docs/Obsidian/standards/standards-governance.md` -> `docs/Obsidian/standards/core/hard/governance.md`
+- Move: `docs/Obsidian/standards/standards-governance.md` -> `docs/Obsidian/standards/core/standard/governance.md`
 - Move: `docs/Obsidian/standards/naming-standards.md` -> `docs/Obsidian/standards/core/gate/naming.md`
 - Move: `docs/Obsidian/standards/coding-standards.md` -> `docs/Obsidian/standards/core/guide/coding.md`
 - Move: `docs/Obsidian/standards/git-workflow-standards.md` -> `docs/Obsidian/standards/core/guide/git-workflow.md`
@@ -60,7 +60,7 @@ Expected: 目录创建成功；不产生文档内容变更。
 
 Run:
 ```bash
-git mv docs/Obsidian/standards/standards-governance.md docs/Obsidian/standards/core/hard/governance.md
+git mv docs/Obsidian/standards/standards-governance.md docs/Obsidian/standards/core/standard/governance.md
 git mv docs/Obsidian/standards/naming-standards.md docs/Obsidian/standards/core/gate/naming.md
 git mv docs/Obsidian/standards/coding-standards.md docs/Obsidian/standards/core/guide/coding.md
 git mv docs/Obsidian/standards/git-workflow-standards.md docs/Obsidian/standards/core/guide/git-workflow.md

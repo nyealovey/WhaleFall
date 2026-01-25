@@ -6,7 +6,7 @@ tags:
   - standards
   - standards/backend
 status: active
-enforcement: hard
+enforcement: standard
 created: 2025-12-18
 updated: 2026-01-13
 owner: WhaleFall Team
@@ -35,7 +35,7 @@ related:
 - MUST：产生方必须写入 `message`（人类可读、可展示的摘要文案）。
 - SHOULD：失败时可写入 `error`（诊断信息/异常信息摘要），避免把堆栈/巨型 SQL 直接塞进 `message`。
   - MUST：该 `error` 为**内部结果对象**字段；对外 API JSON envelope 的 `error` 字段语义固定为 boolean（见 [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)]]），不得把诊断字符串写入对外 envelope 的 `error`。
-  - SHOULD：如确需对外携带非敏感诊断信息，只允许在边界层放入 error envelope 的 `extra`（例如 `extra.diagnostic_error`），且必须遵循 [[standards/backend/hard/sensitive-data-handling]]。
+  - SHOULD：如确需对外携带非敏感诊断信息，只允许在边界层放入 error envelope 的 `extra`（例如 `extra.diagnostic_error`），且必须遵循 [[standards/backend/standard/sensitive-data-handling]]。
 - MAY：批量/多阶段场景可写入 `errors`（错误字符串列表）。
 - SHOULD：如有机器可读需求，在内部结果对象新增 `error_code`（受控枚举），禁止用 `message` 承载机器语义。
 - MUST：对外 API 错误封套使用 `message_code`（见 [[standards/backend/gate/layer/api-layer#失败响应字段(固定口径)]]），不得透传 `error_code` 作为对外稳定字段。
