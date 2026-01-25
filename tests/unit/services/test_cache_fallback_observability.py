@@ -8,37 +8,9 @@ from flask_caching import Cache
 
 import app.services.cache.cache_actions_service as cache_actions_service_module
 import app.services.cache_service as cache_service_module
-import app.utils.rate_limiter as rate_limiter_module
 from app.repositories.instances_repository import InstancesRepository
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.services.cache_service import CacheService
-
-
-@pytest.mark.unit
-def test_rate_limiter_cache_failure_logs_fallback(monkeypatch) -> None:
-    class _DummyLogger:
-        def __init__(self) -> None:
-            self.calls: list[tuple[str, dict[str, object]]] = []
-
-        def warning(self, event: str, **kwargs: object) -> None:
-            self.calls.append((event, dict(kwargs)))
-
-    dummy_logger = _DummyLogger()
-    monkeypatch.setattr(rate_limiter_module, "get_system_logger", lambda: dummy_logger)
-
-    class _DummyCache:
-        @staticmethod
-        def get(_key: str):  # noqa: ANN001
-            raise ConnectionError("boom")
-
-    limiter = rate_limiter_module.RateLimiter(cache=cast(Cache, _DummyCache()))
-    result = limiter.is_allowed("user-1", "login", limit=1, window=60)
-    assert result.get("allowed") is True
-
-    assert dummy_logger.calls
-    _, payload = dummy_logger.calls[0]
-    assert payload.get("fallback") is True
-    assert payload.get("fallback_reason") == "rate_limiter_cache_check_failed"
 
 
 @pytest.mark.unit

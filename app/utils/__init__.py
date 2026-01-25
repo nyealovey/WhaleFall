@@ -7,10 +7,8 @@
 - password_crypto_utils: 密码加密工具
 - cache_utils: 缓存管理工具
 - decorators: 装饰器集合
-- rate_limiter: 速率限制器
 - structlog_config: 结构化日志配置
 - query_filter_utils: 筛选器选项格式化工具
 - safe_query_builder: 安全查询构建器
 - version_parser: 数据库版本解析器
-- sqlserver_connection_utils: SQL Server 连接诊断工具
 """

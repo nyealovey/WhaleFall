@@ -14,7 +14,7 @@ status: draft
 created: 2026-01-09
 updated: 2026-01-09
 owner: WhaleFall Team
-scope: app/services/account_classification/dsl_v4.py
+scope: app/utils/account_classification_dsl_v4.py
 related:
   - "[[reference/service/account-classification-orchestrator|Account Classification Orchestrator]]"
   - "[[reference/service/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"
@@ -56,7 +56,6 @@ DSL v4 用于对 `permission_facts` 执行规则匹配，表达式以 JSON 对�
 | --- | --- | --- | --- |
 | Caller | `AccountClassificationService._evaluate_rule()` | orchestrator 中执行评估 | 校验失败通常上抛 `ValidationError` |
 | Data | `permission_facts` | evaluator 输入 facts | facts 缺失时由 orchestrator 抛 `AppError(CONFLICT)` |
-| Metrics | `prometheus_client`(可选) | 记录耗时与错误计数 | 缺失时 no-op 降级 |
 | Logs | `log_error` | 记录 evaluation error | 不影响 matched 结果 |
 
 ## 3. 事务与失败语义(Transaction + Failure Semantics)
@@ -85,13 +84,9 @@ sequenceDiagram
     autonumber
     participant Orchestrator as "AccountClassificationService"
     participant Eval as "DslV4Evaluator"
-    participant Metrics as "prometheus_client (optional)"
 
     Orchestrator->>Eval: evaluate(expression)
     Eval->>Eval: validate shape + eval tree
-    opt metrics enabled
-        Eval->>Metrics: observe duration / inc errors
-    end
     Eval-->>Orchestrator: {matched, errors}
 ```
 
@@ -139,20 +134,15 @@ sequenceDiagram
 
 | 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
 | --- | --- | --- | --- | --- |
-| `app/services/account_classification/dsl_v4.py:42` | 兼容/回退 | prometheus_client 不存在时 `_NoopMetric` 降级 | 运行环境未安装 prometheus_client | 若线上强依赖指标则固定依赖并移除 no-op |
-| `app/services/account_classification/dsl_v4.py:202` | 防御 | facts 非 mapping 时回退为 `{}` | 上游传入 None/异常对象 | 上游强类型后删除兜底 |
-| `app/services/account_classification/dsl_v4.py:254` | 防御 | `args = node.get("args", [])` 默认空数组 | args 缺失 | schema 强约束后收敛 |
-| `app/services/account_classification/dsl_v4.py:265` | 防御/适配 | `all(...)`/`any(...)` 实现 AND/OR 短路(符合 Python 语义) | args 很长/存在昂贵子表达式 | 保留 |
-| `app/services/account_classification/dsl_v4.py:281` | 防御 | `raw_args is None -> {}` | args 显式传 null | 写入侧规范化后删除 |
-| `app/services/account_classification/dsl_v4.py:307` | 回退 | 未知 fn -> 记录 `UNKNOWN_DSL_FUNCTION` 并返回 False(fail closed) | expression 引入新函数 | 新增函数并补齐校验后移除该错误分支(或保留) |
-| `app/services/account_classification/dsl_v4.py:371` | 防御 | `server_privs or []` 合并时兜底空集合 | privileges 字段为空/缺失 | facts schema 稳定后简化 |
-| `app/services/account_classification/dsl_v4.py:304` | 防御 | metrics registry 冲突时 suppress(ValueError) | prometheus registry 冲突 | 明确指标注册位置后收敛 |
+| `app/utils/account_classification_dsl_v4.py:161` | 防御 | facts 非 mapping 时回退为 `{}` | 上游传入 None/异常对象 | 上游强类型后删除兜底 |
+| `app/utils/account_classification_dsl_v4.py:211` | 防御 | `args = node.get("args", [])` 默认空数组 | args 缺失 | schema 强约束后收敛 |
+| `app/utils/account_classification_dsl_v4.py:222` | 防御/适配 | `all(...)`/`any(...)` 实现 AND/OR 短路(符合 Python 语义) | args 很长/存在昂贵子表达式 | 保留 |
+| `app/utils/account_classification_dsl_v4.py:239` | 防御 | `raw_args is None -> {}` | args 显式传 null | 写入侧规范化后删除 |
+| `app/utils/account_classification_dsl_v4.py:259` | 回退 | 未知 fn -> 记录 `UNKNOWN_DSL_FUNCTION` 并返回 False(fail closed) | expression 引入新函数 | 新增函数并补齐校验后移除该错误分支(或保留) |
+| `app/utils/account_classification_dsl_v4.py:323` | 防御 | `server_privs or []` 合并时兜底空集合 | privileges 字段为空/缺失 | facts schema 稳定后简化 |
 
-## 8. 可观测性(Logs + Metrics)
+## 8. 可观测性(Logs)
 
-- Metrics(若 prometheus 可用)：
-  - `account_classification_dsl_evaluation_duration_seconds{function}`
-  - `account_classification_dsl_evaluation_errors_total{error_type}`
 - Logs：
   - `dsl_v4_evaluation_error`(module=account_classification, error_type + context)
 
