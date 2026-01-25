@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from app.core.constants import DatabaseType
-from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.core.types.common_filter_options import (
     CommonDatabaseOptionItem,
     CommonDatabasesOptionsFilters,
@@ -25,10 +24,10 @@ from app.utils.database_type_utils import (
     get_database_type_icon,
 )
 from app.utils.query_filter_utils import (
-    build_category_options,
     build_classification_options,
     build_database_select_options,
     build_instance_select_options,
+    build_key_value_options,
     build_tag_options,
 )
 
@@ -47,9 +46,8 @@ class FilterOptionsService:
 
     def list_tag_categories(self) -> list[dict[str, str]]:
         """获取标签分类选项."""
-        label_mapping = dict(TAG_CATEGORY_CHOICES)
         categories_raw = self._repository.list_active_tag_categories()
-        return build_category_options(categories_raw, label_mapping)
+        return build_key_value_options(categories_raw)
 
     def list_classification_options(self) -> list[dict[str, str]]:
         """获取账户分类选项."""
