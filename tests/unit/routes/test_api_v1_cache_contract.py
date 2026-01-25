@@ -1,9 +1,9 @@
 import pytest
 
-import app.services.cache_service as cache_service_module
 from app import db
 from app.models.instance import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService
+from app.services.cache.cache_actions_service import CacheActionsService
 
 
 def _get_csrf_token(client) -> str:  # type: ignore[no-untyped-def]
@@ -70,27 +70,27 @@ def test_api_v1_cache_actions_missing_payload_contract(auth_client) -> None:
 
 @pytest.mark.unit
 def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
-    class _DummyCacheService:
+    class _DummyCacheManager:
         @staticmethod
-        def get_cache_stats() -> dict[str, object]:
+        def get_stats() -> dict[str, object]:
             return {"keys": 1}
 
         @staticmethod
-        def invalidate_user_cache(instance_id: int, username: str) -> bool:
-            del instance_id, username
-            return True
+        def get(_key: str):  # noqa: ANN001
+            return {"rules": [{"id": 1}]}
 
-        @staticmethod
-        def invalidate_instance_cache(instance_id: int) -> bool:
-            del instance_id
-            return True
-
-        @staticmethod
-        def get_classification_rules_by_db_type_cache(db_type: str):  # noqa: ANN001
-            del db_type
-            return [{"id": 1}]
-
-    monkeypatch.setattr(cache_service_module, "cache_service", _DummyCacheService())
+    monkeypatch.setattr(
+        CacheActionsService,
+        "_get_cache_manager",
+        staticmethod(lambda: _DummyCacheManager()),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        CacheActionsService,
+        "_require_cache_service",
+        staticmethod(lambda: (_ for _ in ()).throw(RuntimeError("boom"))),
+        raising=False,
+    )
     monkeypatch.setattr(AccountClassificationService, "invalidate_cache", lambda self: True)
     monkeypatch.setattr(AccountClassificationService, "invalidate_db_type_cache", lambda self, db_type: True)
 
