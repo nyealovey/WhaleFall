@@ -1,4 +1,4 @@
-{% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='', auto_register=True) -%}
+{% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='', auto_register=True, scope=None) -%}
     {% set fields = caller() %}
     {% include 'components/ui/filter_card.html' %}
 {%- endmacro %}
@@ -111,12 +111,14 @@
     {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', col_class, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro instance_filter(options, current_value='', col_class='col-md-2 col-12', disabled=False) -%}
+{% macro instance_filter(scope, options, current_value='', col_class='col-md-2 col-12', disabled=False) -%}
+{% set field_id = scope ~ '-instance' %}
 <div class="{{ col_class }}">
-    <label for="instance" class="form-label">实例</label>
-    <select id="instance"
+    <label for="{{ field_id }}" class="form-label">实例</label>
+    <select id="{{ field_id }}"
             name="instance"
             class="form-select"
+            data-role="instance-filter"
             {% if disabled %}disabled{% endif %}>
         <option value="">所有实例</option>
         {% for option in options or [] %}
@@ -130,12 +132,14 @@
 </div>
 {%- endmacro %}
 
-{% macro database_filter(options, current_value='', col_class='col-md-2 col-12', disabled=False) -%}
+{% macro database_filter(scope, options, current_value='', col_class='col-md-2 col-12', disabled=False) -%}
+{% set field_id = scope ~ '-database' %}
 <div class="{{ col_class }}">
-    <label for="database" class="form-label">数据库</label>
-    <select id="database"
+    <label for="{{ field_id }}" class="form-label">数据库</label>
+    <select id="{{ field_id }}"
             name="database_id"
             class="form-select"
+            data-role="database-filter"
             {% if disabled %}disabled{% endif %}>
         <option value="">所有数据库</option>
         {% for option in options or [] %}

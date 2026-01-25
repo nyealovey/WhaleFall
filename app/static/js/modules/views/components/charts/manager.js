@@ -248,6 +248,14 @@
           : DEFAULT_CONFIG.autoApplyOnFilterChange;
       this.dataSource = ensureDataSource(resolvedDataSource);
       this.filterFormId = (this.config.filterFormId || "").replace(/^#/, "") || null;
+      this.filterFormEl = this.filterFormId ? selectOne(`#${this.filterFormId}`).first() : null;
+      this.filterElements = {
+        form: this.filterFormEl,
+        dbType: this.filterFormEl ? selectOne("#db_type", this.filterFormEl).first() : null,
+        instance: this.filterFormEl ? selectOne('[data-role="instance-filter"]', this.filterFormEl).first() : null,
+        database: this.filterFormEl ? selectOne('[data-role="database-filter"]', this.filterFormEl).first() : null,
+        periodType: this.filterFormEl ? selectOne("#period_type", this.filterFormEl).first() : null,
+      };
       this.handleFilterEvent = this.handleFilterEvent.bind(this);
       this.eventBusUnsubscribers = [];
       if (EventBus && this.filterFormId) {
@@ -366,6 +374,8 @@
      * 绑定页面交互事件，更新 state 并触发重绘。
      */
     bindEvents() {
+      const filterRoot = this.filterFormEl || null;
+
       this.attach("#refreshData", "click", (event) => {
         event.preventDefault();
         this.refreshAll();
@@ -376,12 +386,12 @@
         this.handleCalculateToday();
       });
 
-      this.attach("#db_type", "change", (event) => this.handleDbTypeChange(event));
-      this.attach("#instance", "change", (event) => this.handleInstanceChange(event));
+      this.attach("#db_type", "change", (event) => this.handleDbTypeChange(event), { root: filterRoot });
+      this.attach('[data-role="instance-filter"]', "change", (event) => this.handleInstanceChange(event), { root: filterRoot });
       if (this.config.supportsDatabaseFilter) {
-        this.attach("#database", "change", (event) => this.handleDatabaseChange(event));
+        this.attach('[data-role="database-filter"]', "change", (event) => this.handleDatabaseChange(event), { root: filterRoot });
       }
-      this.attach("#period_type", "change", (event) => this.handlePeriodTypeChange(event));
+      this.attach("#period_type", "change", (event) => this.handlePeriodTypeChange(event), { root: filterRoot });
 
       this.attachGroup("chartType", (value) => {
         this.state.charts.trend.type = value;
@@ -434,8 +444,9 @@
     /**
      * 工具：按选择器为单个元素绑定事件。
      */
-    attach(selector, eventName, handler) {
-      const element = selectOne(selector);
+    attach(selector, eventName, handler, options = {}) {
+      const root = options?.root || null;
+      const element = root ? selectOne(selector, root) : selectOne(selector);
       if (!element.length) {
         return;
       }
@@ -445,11 +456,12 @@
     /**
      * 工具：为同名 radio/checkbox 组绑定事件。
      */
-    attachGroup(name, handler) {
+    attachGroup(name, handler, options = {}) {
+      const root = options?.root || null;
       if (!name) {
         return;
       }
-      const inputs = select(`input[name="${name}"]`);
+      const inputs = root ? select(`input[name="${name}"]`, root) : select(`input[name="${name}"]`);
       if (!inputs.length) {
         return;
       }
@@ -740,14 +752,14 @@
       const value = event?.target?.value || "";
       this.state.filters.dbType = value;
       this.state.filters.instanceId = "";
-      Filters.syncSelectValue("#instance", "");
-      Filters.setDisabled("#instance", true);
+      Filters.syncSelectValue(this.filterElements.instance, "");
+      Filters.setDisabled(this.filterElements.instance, true);
 
       if (this.config.supportsDatabaseFilter) {
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
-        Filters.syncSelectValue("#database", "");
-        Filters.setDisabled("#database", true);
+        Filters.syncSelectValue(this.filterElements.database, "");
+        Filters.setDisabled(this.filterElements.database, true);
       }
 
       await this.refreshInstanceOptions({ preserveSelection: false });
@@ -763,8 +775,8 @@
       if (this.config.supportsDatabaseFilter) {
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
-        Filters.syncSelectValue("#database", "");
-        Filters.setDisabled("#database", true);
+        Filters.syncSelectValue(this.filterElements.database, "");
+        Filters.setDisabled(this.filterElements.database, true);
         await this.refreshDatabaseOptions(value, { preserveSelection: false });
       }
       await this.refreshAll();
@@ -802,7 +814,7 @@
       }
       try {
         const instances = await this.dataSource.fetchInstances(endpoint, params);
-        Filters.updateSelectOptions("#instance", {
+        Filters.updateSelectOptions(this.filterElements.instance, {
           placeholder: "所有实例",
           items: instances,
           allowEmpty: true,
@@ -817,10 +829,10 @@
             return dbType ? `${name} (${dbType})` : name;
           },
         });
-        Filters.setDisabled("#instance", !this.state.filters.dbType);
+        Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbType);
       } catch (error) {
         this.notifyError(`加载实例列表失败: ${error.message}`);
-        Filters.setDisabled("#instance", true);
+        Filters.setDisabled(this.filterElements.instance, true);
       }
     }
 
@@ -833,12 +845,12 @@
         return;
       }
       if (!instanceId) {
-        Filters.updateSelectOptions("#database", {
+        Filters.updateSelectOptions(this.filterElements.database, {
           placeholder: "所有数据库",
           allowEmpty: true,
           items: [],
         });
-        Filters.setDisabled("#database", true);
+        Filters.setDisabled(this.filterElements.database, true);
         return;
       }
       const params = {
@@ -857,7 +869,7 @@
           ],
           ["asc"],
         );
-        Filters.updateSelectOptions("#database", {
+        Filters.updateSelectOptions(this.filterElements.database, {
           placeholder: "所有数据库",
           allowEmpty: true,
           items: sortedDatabases,
@@ -865,10 +877,10 @@
           getOptionValue: (item) => item?.id,
           getOptionLabel: (item) => item?.database_name || "未知数据库",
         });
-        Filters.setDisabled("#database", !instanceId);
+        Filters.setDisabled(this.filterElements.database, !instanceId);
       } catch (error) {
         this.notifyError(`加载数据库列表失败: ${error.message}`);
-        Filters.setDisabled("#database", true);
+        Filters.setDisabled(this.filterElements.database, true);
       }
     }
 
@@ -889,14 +901,14 @@
         databaseName: null,
         periodType: "daily",
       };
-      Filters.syncSelectValue("#db_type", "");
-      Filters.syncSelectValue("#instance", "");
-      Filters.setDisabled("#instance", true);
+      Filters.syncSelectValue(this.filterElements.dbType, "");
+      Filters.syncSelectValue(this.filterElements.instance, "");
+      Filters.setDisabled(this.filterElements.instance, true);
       if (this.config.supportsDatabaseFilter) {
-        Filters.syncSelectValue("#database", "");
-        Filters.setDisabled("#database", true);
+        Filters.syncSelectValue(this.filterElements.database, "");
+        Filters.setDisabled(this.filterElements.database, true);
       }
-      Filters.syncSelectValue("#period_type", "daily");
+      Filters.syncSelectValue(this.filterElements.periodType, "daily");
       this.state.overrides.change = false;
       this.state.overrides.percent = false;
       await this.prepareInitialOptions();
@@ -913,9 +925,9 @@
       this.state.filters.databaseId = latest.databaseId || "";
       this.state.filters.databaseName = latest.databaseName || null;
       this.state.filters.periodType = latest.periodType || "daily";
-      Filters.setDisabled("#instance", !this.state.filters.dbType);
+      Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbType);
       if (this.config.supportsDatabaseFilter) {
-        Filters.setDisabled("#database", !this.state.filters.instanceId);
+        Filters.setDisabled(this.filterElements.database, !this.state.filters.instanceId);
       }
       await this.refreshAll();
     }

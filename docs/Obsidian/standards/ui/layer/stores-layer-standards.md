@@ -7,8 +7,9 @@ tags:
   - standards/ui
   - standards/ui/layer
 status: active
+enforcement: design
 created: 2026-01-09
-updated: 2026-01-09
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/static/js/modules/stores/**` 下所有前端 Store(状态 + actions)"
 related:
@@ -21,6 +22,8 @@ related:
 
 > [!note] 说明
 > Stores 层承载前端的"业务编排 + 状态管理". 它是 view 与 service 之间的中间层: view 触发 actions, store 调用 services, 更新状态并广播事件.
+>
+> 本文为 `enforcement: design`: 描述默认分层与推荐边界. `MUST` 主要保留给安全底线(例如危险键过滤)与明显的错误用法, 其余尽量用 SHOULD 表达(避免为满足形式而过度封装/过度抽象).
 
 ## 目的
 
@@ -36,46 +39,47 @@ related:
 
 ### 1) 职责边界
 
-- MUST: store 只负责:
+- SHOULD: store 只负责:
   - 状态管理(state, derived state).
   - actions(同步/异步), 调用 services 并更新状态.
   - 通过 mitt 广播事件, 通知 view 更新.
-- MUST NOT: 直接操作 DOM(如 `document.querySelector`, `DOMHelpers`).
-- MUST NOT: 直接触发 UI 提示(如 `toast.*`), 用户提示由 view 或页面控制器完成.
-- MUST NOT: 直接调用 `window.httpU` 访问 API(应通过 service).
+- SHOULD NOT: 直接操作 DOM(如 `document.querySelector`, `DOMHelpers`).
+- SHOULD NOT: 直接触发 UI 提示(如 `toast.*`), 用户提示由 view 或页面控制器完成.
+- SHOULD NOT: 直接调用 `window.httpU` 访问 API(优先通过 service).
 
 ### 2) 导出形态与依赖注入
 
-- MUST: store 以 `createXStore(options)` 形式导出, 并挂载 `window.createXStore`.
-- MUST: `options.service` 为必填依赖, 并在创建时校验方法存在.
+- SHOULD: store 以 `createXStore(options)` 形式导出(便于注入依赖与测试), 是否挂载到 `window.*` 以现有 wiring 方式为准.
+- SHOULD: `options.service` 通过注入传入(避免在 store 内直接 new service).
 - SHOULD: `options.emitter` 支持注入, 未传入才回退 `window.mitt()`.
 
 ### 3) 状态暴露与不可变快照
 
-- MUST: 对外暴露的 `getState()` 返回状态快照, 禁止直接返回内部 state 引用.
+- SHOULD: 对外暴露的 `getState()` 返回状态快照, 避免直接暴露内部可变引用导致“外部误改 state”.
 - SHOULD: 快照中避免返回可变引用(Set/Map), 对外转换为数组或普通对象.
 - SHOULD: store 事件 payload 携带快照, 方便 view 在无额外读取的情况下渲染.
 
 ### 4) actions 规范
 
-- MUST: actions 方法要么同步更新 state, 要么返回 `Promise`.
-- MUST: 异步 actions 在 `catch` 中:
-  - 记录 `state.lastError`.
-  - emit `<domain>:error` 事件(携带 error 与 meta).
-  - rethrow, 让上层决定是否 toast/回退.
+- SHOULD: actions 方法要么同步更新 state, 要么返回 `Promise`.
+- SHOULD: 为每个 store 选定一种“错误传播策略”, 并保持一致:
+  - A) 抛异常(rethrow) -> 上层(view/page)决定 toast/回退
+  - B) 返回显式失败结果(例如 `{ ok: false, error }`) -> 上层按结果分支处理
+- MUST: 禁止 silent swallow(吞异常后当成功继续走下去). 异步 actions 出错时至少要让调用方可感知(throw 或显式失败返回).
+- SHOULD: 异步 actions 出错时, 记录 `state.lastError` 并 emit `<domain>:error`(携带 error 与 meta), 便于统一 UI 反馈与调试.
 - SHOULD: 使用 loading/operation 标记(state.loading, state.operations), 避免 UI 重复点击.
 - SHOULD: 需要依赖后端 envelope(`success=false`)时, 在 store 内转换为 `Error`, 并保留原始响应.
 
 ### 5) 事件命名与释放
 
 - SHOULD: 事件名遵循 `<domain>:<action>` 约定, 并以常量集中管理.
-- MUST: 提供 `subscribe(event, handler)` 与 `unsubscribe(event, handler)`.
-- MUST: 提供 `destroy()` 清理 emitter 订阅与内部状态, 避免长驻页面造成泄漏.
+- SHOULD: 提供 `subscribe(event, handler)` 与 `unsubscribe(event, handler)`(或等价方式), 让 view 可控订阅与释放.
+- SHOULD: 提供 `destroy()` 清理 emitter 订阅与内部状态, 避免长驻页面造成泄漏.
 
 ### 6) 安全键过滤(对象注入/原型污染防御)
 
-- MUST: 对来自表单/URL/dataset 的动态键名, 在写入对象或作为 map key 前过滤:
-  - `__proto__`, `prototype`, `constructor`
+- MUST NOT: 将来自表单/URL/dataset 的动态键名不加过滤地写入对象或作为 map key(原型污染风险).
+  - MUST: 过滤危险键: `__proto__`, `prototype`, `constructor`.
 - SHOULD: 对允许键建立 allowlist(Set), 并在写入时校验, 避免误写入未知字段.
 
 ## 正反例

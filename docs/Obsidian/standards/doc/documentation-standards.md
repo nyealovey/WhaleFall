@@ -7,8 +7,9 @@ tags:
   - standards/general
   - standards/doc
 status: active
+enforcement: guide
 created: 2025-12-25
-updated: 2026-01-10
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: 仓库 `docs/` 下所有文档(含后续新增)
 related:
@@ -38,7 +39,7 @@ related:
 - **按用途分层**：架构/参考/运维/规范/变更/报告分开。
 - **单一真源**：同一主题只允许一个权威文档；历史版本进入归档。
 - **新增文档英文命名**：文件名统一英文 `kebab-case.md`；正文默认中文。
-- **半角字符**: 新增或修改的文档内容必须使用半角 ASCII 标点/符号/空格, 禁止全角/非 ASCII 变体. 详见 [[standards/halfwidth-character-standards]].
+- **字符清洁**: 新增或修改的文档内容 SHOULD 避免不可见空白字符; 代码相关文本(路径/命令/标识符等)优先使用半角 ASCII. 详见 [[standards/halfwidth-character-standards]].
 - **链接可追溯**：仓库内链接必须可追溯. `docs/Obsidian/**` 使用 wikilinks; 其他文档使用相对路径链接, 且迁移时同步更新。
 
 ### 1.3 适用范围
@@ -284,7 +285,7 @@ related:
 - 检测仓库内 `docs/` 链接是否指向不存在文件（断链）。
 - 检测新增文档文件名是否符合 `kebab-case.md`。
 - 检测 `docs/changes/**` 下新增文档是否符合 `NNN-short-title.md`（三位编号前缀、每目录递增）。
-- 检测 `docs/` 下是否存在全角/非 ASCII 标点或全角空格 (见 [[standards/halfwidth-character-standards]]).
+- 检测 `docs/` 下是否存在全角空格/不换行空格等不可见字符 (见 [[standards/halfwidth-character-standards]]).
 
 ## 9. 变更历史
 

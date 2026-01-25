@@ -8,8 +8,9 @@ tags:
   - standards/backend
   - standards/backend/layer
 status: active
+enforcement: gate
 created: 2026-01-09
-updated: 2026-01-13
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/api/**` 下所有 REST API 端点、模型与注册入口"
 related:
@@ -25,6 +26,12 @@ related:
 
 > [!note] 说明
 > API 层负责 HTTP 协议入口与 OpenAPI 文档生成, 业务编排应下沉到 Service, 数据访问应下沉到 Repository.
+>
+> 本文为 `enforcement: gate`: `MUST/MUST NOT` 优先用于两类规则:
+> - 已有门禁脚本可自动检查的越界行为(例如直查库/越界 import)
+> - 对外 API 契约(响应封套/错误字段)的稳定性要求
+>
+> 其他内容尽量用 SHOULD 表达, 避免把“实现偏好”写成硬约束导致过度设计.
 
 ## 目的
 
@@ -50,8 +57,8 @@ related:
 
 ### 2) 参数解析与校验
 
-- MUST: Query 参数使用 `reqparse.RequestParser` 并配合 `@ns.expect(parser)`.
-- MUST: JSON body 使用 `ns.model(...)` 并配合 `@ns.expect(model)` 生成稳定 OpenAPI schema.
+- SHOULD: Query 参数优先使用 `reqparse.RequestParser` 并配合 `@ns.expect(parser)` 生成清晰的 OpenAPI 文档.
+- SHOULD: JSON body 优先使用 `ns.model(...)` 并配合 `@ns.expect(model)` 生成稳定 OpenAPI schema.
 - SHOULD: 业务级校验与数据规范化在 Service 内完成, 参考 [[standards/backend/request-payload-and-schema-validation]].
 - MUST NOT: 把 RESTX 的 `ns.model` 当作唯一校验来源(它更偏文档与序列化).
 
@@ -64,10 +71,10 @@ related:
 
 规则（可执行、可检查）:
 
-- MUST: 对写路径 JSON body 的 `@ns.expect(Model)` 必须显式 `validate=False`（避免 RESTX 运行期校验与 schema 口径分裂，导致错误封套漂移）。
+- SHOULD: 对写路径 JSON body 的 `@ns.expect(Model)` 优先显式 `validate=False`（避免 RESTX 运行期校验与 schema 口径分裂，导致错误封套漂移）。
 - MUST: 写路径的字段级校验/类型转换/默认值/兼容策略必须落在 `app/schemas/**`（schema）侧，禁止在 API 层手写 `data.get("x") or default`、`int(...)`、`strip()` 等规则。
 - MUST: 写路径必须通过 Service 执行业务动作；Service MUST 使用 `validate_or_raise(...)` 产出 typed payload（详见 [[standards/backend/request-payload-and-schema-validation]] 与 [[standards/backend/layer/schemas-layer-standards]]）。
-- MUST: `parse_payload(...)` 在一次请求链路中只执行一次（API 边界或 Service 入口二选一）；禁止 API+Service 双重解析导致语义漂移。
+- SHOULD: `parse_payload(...)` 在一次请求链路中只执行一次（API 边界或 Service 入口二选一）；避免 API+Service 双重解析导致语义漂移。
 
 #### 2.2 写路径推荐流水线（API v1）
 
@@ -215,7 +222,7 @@ return jsonify({"success": False, "msg": "failed"}), 400
 
 禁止依赖:
 
-- MUST NOT: `app.repositories.*` (应通过 Service, 即使只读也不例外)
+- SHOULD NOT: `app.repositories.*` (默认通过 Service; 如确需直连 Repository, 在评审中说明原因与替代方案)
 - MUST NOT: `app.models.*` 的查询接口(例如 `Model.query`)
 - MUST NOT: `app` 的数据库会话(例如 `db.session`)
 - MUST NOT: `app.routes.*` (避免与页面路由层交叉依赖)

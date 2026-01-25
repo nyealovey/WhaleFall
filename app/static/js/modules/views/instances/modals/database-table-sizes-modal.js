@@ -1,7 +1,7 @@
 (function (window, document) {
   'use strict';
 
-  const gridjs = window.gridjs;
+  const GridTable = window.GridTable || null;
 
   function ensureDeps(options) {
     const ui = options?.ui || window.UI;
@@ -19,8 +19,8 @@
     if (!ui?.escapeHtml) {
       throw new Error('DatabaseTableSizesModal: UI.escapeHtml 未初始化');
     }
-    if (!gridjs?.Grid) {
-      throw new Error('DatabaseTableSizesModal: gridjs.Grid 未加载');
+    if (!GridTable?.create) {
+      throw new Error('DatabaseTableSizesModal: GridTable 未加载');
     }
     if (
       !store ||
@@ -35,6 +35,7 @@
       ui,
       toast,
       store,
+      gridTable: GridTable,
     };
   }
 
@@ -77,7 +78,7 @@
   }
 
   function createController(options) {
-    const { ui, toast, store } = ensureDeps(options);
+    const { ui, toast, store, gridTable } = ensureDeps(options);
     const escapeHtml = ui.escapeHtml;
 
     const modalEl = document.getElementById('tableSizesModal');
@@ -173,7 +174,7 @@
         formatRowCount(row?.row_count),
       ]));
 
-      grid = new gridjs.Grid({
+      grid = gridTable.create({
         columns,
         data,
         sort: true,

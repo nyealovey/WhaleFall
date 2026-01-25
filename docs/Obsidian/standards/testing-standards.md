@@ -6,8 +6,9 @@ tags:
   - standards
   - standards/general
 status: active
+enforcement: guide
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`tests/` 目录下所有测试代码"
 related:
@@ -106,8 +107,8 @@ tests/
 
 ### 5.2 环境变量设置规则
 
-- MUST：环境变量只在 `tests/conftest.py` 顶部设置一次
-- MUST NOT：在测试文件中重复设置 `os.environ`
+- SHOULD：环境变量集中在 `tests/conftest.py` 顶部设置一次(尤其是会影响 import-time 行为的变量)
+- SHOULD NOT：在测试文件中重复设置 `os.environ`(容易引入导入顺序依赖与隐蔽漂移)
 - 原因：避免导入顺序问题和重复代码
 
 ```python
@@ -167,7 +168,8 @@ markers = [
 
 ### 7.2 标记使用规则
 
-- MUST：所有测试函数必须标记 `@pytest.mark.unit` 或 `@pytest.mark.integration`
+- SHOULD：新增测试建议标记 `@pytest.mark.unit` 或 `@pytest.mark.integration`(便于筛选运行).
+  - 推荐: 使用模块级 `pytestmark = pytest.mark.unit` 减少重复标注.
 - SHOULD：执行时间 > 1s 额外标记 `@pytest.mark.slow`
 
 ```python
@@ -215,9 +217,9 @@ tests/
 
 ### 8.2 环境变量配置
 
-- MUST：在根 `conftest.py` 顶部设置测试环境变量（在任何 import 之前）
-- MUST NOT：在测试文件中重复设置
-- MUST NOT：在 fixture 函数内部设置环境变量
+- SHOULD：在根 `conftest.py` 顶部设置测试环境变量（在任何 import 之前）, 避免 import-time 行为漂移
+- SHOULD NOT：在测试文件中重复设置
+- SHOULD NOT：在 fixture 函数内部设置环境变量(如需按用例调整, 优先使用 `monkeypatch.setenv`)
 
 ```python
 # tests/conftest.py（文件最顶部，在所有 import 之前）
@@ -257,7 +259,7 @@ from app import create_app, db
 
 **规则**：
 - MUST：使用 mock/monkeypatch 隔离外部依赖
-- MUST：每个测试函数只验证一个行为
+- SHOULD：每个测试函数尽量聚焦一个行为(但不强制拆到极碎, 以可读性与维护成本为准)
 - MUST NOT：访问真实数据库、网络、文件系统
 - SHOULD：执行时间 < 100ms
 
@@ -342,25 +344,26 @@ tests/fixtures/
     └── seed_test_data.sql
 ```
 
-## 11. 覆盖率要求
+## 11. 覆盖率参考(非门禁)
 
 ### 11.1 目标
 
-| 层级 | 最低覆盖率 | 目标覆盖率 |
-|------|-----------|-----------|
-| `utils/` | 80% | 90% |
-| `services/` | 70% | 85% |
-| `routes/` | 60%（契约） | 80% |
-| `models/` | 50% | 70% |
+覆盖率用于发现盲区与回归风险, 不建议把“数字门槛”作为日常开发的硬约束(否则容易为了达标写脆弱/无意义的测试).
+
+建议目标(参考, 可按实际复杂度调整):
+
+| 层级 | 建议目标 |
+|------|---------|
+| `utils/` | 80%+ |
+| `services/` | 70%+ |
+| `routes/` | 以契约测试为主(结构覆盖) |
+| `models/` | 视业务复杂度而定 |
 
 ### 11.2 运行覆盖率
 
 ```bash
 # 生成 HTML 报告
 pytest --cov=app --cov-report=html tests/unit/
-
-# 检查覆盖率门槛
-pytest --cov=app --cov-fail-under=70 tests/unit/
 
 # CI 模式
 pytest --cov=app --cov-report=xml tests/
@@ -371,8 +374,8 @@ pytest --cov=app --cov-report=xml tests/
 ### 12.1 CI 门禁
 
 - MUST：所有单元测试通过
-- MUST：无新增测试文件缺少 marker
-- SHOULD：覆盖率不低于基线
+- SHOULD：新增/修改测试尽量补齐 marker(便于筛选运行)
+- SHOULD：覆盖率不低于团队当前基线(趋势观察优先)
 
 ### 12.2 本地检查命令
 

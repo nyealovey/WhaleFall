@@ -8,6 +8,7 @@ tags:
   - standards
   - standards/backend
 status: active
+enforcement: guide
 created: 2026-01-13
 updated: 2026-01-14
 owner: WhaleFall Team

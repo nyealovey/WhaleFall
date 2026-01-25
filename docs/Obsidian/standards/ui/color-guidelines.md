@@ -6,6 +6,7 @@ tags:
   - standards
   - standards/ui
 status: active
+enforcement: guide
 created: 2025-12-02
 updated: 2026-01-15
 owner: WhaleFall Team

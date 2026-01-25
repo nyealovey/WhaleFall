@@ -991,8 +991,8 @@ function mountAccountClassificationStatisticsPage(global) {
     if (global.ColorTokens?.getChartColor) {
       return global.ColorTokens.getChartColor(index, alpha);
     }
-    const fallback = resolveCssVar("--status-info") || "#3498db";
-    return withAlpha(fallback, alpha);
+    const resolved = resolveCssVar("--status-info");
+    return withAlpha(resolved, alpha);
   }
 
   function renderEmptyChart(ctx, title) {

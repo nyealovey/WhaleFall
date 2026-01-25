@@ -7,6 +7,7 @@ tags:
   - standards/general
   - standards/doc
 status: active
+enforcement: guide
 created: 2025-12-25
 updated: 2026-01-09
 owner: WhaleFall Team
