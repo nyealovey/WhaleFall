@@ -299,7 +299,7 @@ def initialize_extensions(app: Flask, settings: Settings) -> None:
     cache.init_app(app)
 
     # 初始化缓存工具与缓存服务
-    init_cache_manager(cache)
+    init_cache_manager(cache, default_timeout=settings.cache_default_timeout_seconds)
     init_cache_service(
         cache,
         default_ttl=settings.cache_default_ttl_seconds,
