@@ -13,10 +13,10 @@ owner: WhaleFall Team
 scope: "`app/core/**` + shared kernel 风格代码"
 related:
   - "[[standards/backend/README|后端标准索引]]"
-  - "[[standards/backend/layer/README|后端分层标准(目录结构与依赖方向)]]"
-  - "[[standards/backend/layer/constants-layer-standards|Constants 常量层编写规范]]"
-  - "[[standards/backend/layer/types-layer-standards|Types 类型定义层编写规范]]"
-  - "[[standards/backend/layer/utils-layer-standards|Utils 工具层编写规范]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准(目录结构与依赖方向)]]"
+  - "[[standards/backend/guide/layer/constants-layer|Constants 常量层编写规范]]"
+  - "[[standards/backend/guide/layer/types-layer|Types 类型定义层编写规范]]"
+  - "[[standards/backend/guide/layer/utils-layer|Utils 工具层编写规范]]"
 ---
 
 # Shared Kernel 编写规范
@@ -34,11 +34,11 @@ related:
 
 - **Shared Kernel（唯一路径）**：`app/core/**`
   - `app/core/exceptions.py`：异常（语义对象）
-  - `app/core/constants/**`：不可变常量/枚举/静态映射（详见 [[standards/backend/layer/constants-layer-standards]]）
-  - `app/core/types/**`：跨层类型契约/协议/结构（详见 [[standards/backend/layer/types-layer-standards]]）
+  - `app/core/constants/**`：不可变常量/枚举/静态映射（详见 [[standards/backend/guide/layer/constants-layer]]）
+  - `app/core/types/**`：跨层类型契约/协议/结构（详见 [[standards/backend/guide/layer/types-layer]]）
 - **shared-kernel-like utils（历史原因位于 utils，但必须保持“纯”）**
   - 例如：`app/utils/payload_converters.py`、`app/utils/time_utils.py`、`app/utils/version_parser.py`
-  - 这类模块应同时遵循本规范与 [[standards/backend/layer/utils-layer-standards]] 的“纯工具”约束。
+  - 这类模块应同时遵循本规范与 [[standards/backend/guide/layer/utils-layer]] 的“纯工具”约束。
 
 > [!important]
 > 禁止在 `app/core/__init__.py` 进行 re-export；调用方必须显式 import `app.core.constants.*` / `app.core.types.*`。

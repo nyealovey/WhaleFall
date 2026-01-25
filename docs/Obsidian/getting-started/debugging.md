@@ -191,5 +191,5 @@ rg -n 'instance_id=' app
 - 可观测与排障 Runbook: [[operations/observability-ops]]
 - API contract 索引: [[API/api-v1-api-contract]]
 - 错误封套与失败语义:
-  - [[standards/backend/error-message-schema-unification]]
-  - [[standards/backend/action-endpoint-failure-semantics]]
+  - [[standards/backend/hard/error-message-schema-unification]]
+  - [[standards/backend/hard/action-endpoint-failure-semantics]]

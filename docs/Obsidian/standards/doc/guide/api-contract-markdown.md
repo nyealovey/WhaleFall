@@ -13,8 +13,8 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`/api/v1/**` 路由清单, `docs/Obsidian/API/**-api-contract.md`"
 related:
-  - "[[standards/backend/layer/api-layer-standards#API 命名与路径规范(REST Resource Naming)]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/backend/gate/layer/api-layer#API 命名与路径规范(REST Resource Naming)]]"
+  - "[[standards/doc/guide/documentation]]"
   - "[[API/api-v1-api-contract]]"
   - "[[API/accounts-api-contract]]"
 ---

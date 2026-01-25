@@ -15,14 +15,14 @@ owner: WhaleFall Team
 scope: 前端分层(layer)标准入口与索引
 related:
   - "[[standards/ui/README]]"
-  - "[[standards/ui/javascript-module-standards]]"
-  - "[[standards/ui/vendor-library-usage-standards]]"
-  - "[[standards/backend/layer/README]]"
+  - "[[standards/ui/design/javascript-module]]"
+  - "[[standards/ui/design/vendor-library-usage]]"
+  - "[[standards/backend/guide/layer/README]]"
 ---
 
 # 前端分层标准
 
-本目录定义前端各层的职责边界, 依赖方向, 命名与组织方式. 它在 [[standards/ui/javascript-module-standards|前端模块化(modules)规范]] 的基础上, 将关键约束按层细化为可审查的标准.
+本目录定义前端各层的职责边界, 依赖方向, 命名与组织方式. 它在 [[standards/ui/design/javascript-module|前端模块化(modules)规范]] 的基础上, 将关键约束按层细化为可审查的标准.
 
 ## 与后端分层的对齐(参考)
 
@@ -105,9 +105,9 @@ graph TD
 
 ## 索引
 
-- [[standards/ui/layer/page-entry-layer-standards|Page Entry 页面入口层编写规范]]
-- [[standards/ui/layer/services-layer-standards|Services 前端服务层编写规范]]
-- [[standards/ui/layer/stores-layer-standards|Stores 前端状态层编写规范]]
-- [[standards/ui/layer/views-layer-standards|Views 视图层编写规范]]
-- [[standards/ui/layer/ui-layer-standards|UI Modules 工具层编写规范]]
+- [[standards/ui/design/layer/page-entry-layer|Page Entry 页面入口层编写规范]]
+- [[standards/ui/design/layer/services-layer|Services 前端服务层编写规范]]
+- [[standards/ui/design/layer/stores-layer|Stores 前端状态层编写规范]]
+- [[standards/ui/design/layer/views-layer|Views 视图层编写规范]]
+- [[standards/ui/design/layer/ui-layer|UI Modules 工具层编写规范]]
 - 长示例(非 SSOT): [[reference/examples/ui-layer-examples|UI 分层示例(长示例)]]

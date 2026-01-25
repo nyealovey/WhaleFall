@@ -12,7 +12,7 @@ updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`docs/**` 文档, 代码注释, Docstring"
 related:
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # 半角字符与全角字符禁用规范

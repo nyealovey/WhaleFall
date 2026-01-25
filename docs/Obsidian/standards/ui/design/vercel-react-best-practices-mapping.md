@@ -14,9 +14,9 @@ owner: WhaleFall Team
 scope: 将 Vercel React Best Practices 的核心性能思想映射到 SSR(Jinja) + Progressive Enhancement 的落地策略
 related:
   - "[[standards/ui/README]]"
-  - "[[standards/ui/performance-standards]]"
-  - "[[standards/ui/vendor-library-usage-standards]]"
-  - "[[standards/ui/layer/page-entry-layer-standards]]"
+  - "[[standards/ui/design/performance]]"
+  - "[[standards/ui/design/vendor-library-usage]]"
+  - "[[standards/ui/design/layer/page-entry-layer]]"
 ---
 
 # Vercel React Best Practices 到 Flask + Jinja 的映射
@@ -33,14 +33,14 @@ related:
 
 | 原则类别(原文) | React/Next 常见落点 | Flask/Jinja 的等价落点 | 本仓库标准入口 |
 |---|---|---|---|
-| Eliminating Waterfalls | `await` 串行, API route 串行, Suspense 边界不当 | Page Entry/Views 的多请求并行(`Promise.all`), 后端路由一次性准备页面数据, 避免页面启动时再串行拉首屏必需数据 | [[standards/ui/performance-standards]] |
-| Bundle Size Optimization | 避免 barrel import, dynamic import, defer third-party | `base.html` 只放全站必需资源, vendor 默认按页引入, 页面脚本只在需要的模板里加载 | [[standards/ui/vendor-library-usage-standards]] |
-| Server-Side Performance | RSC 序列化边界, per-request dedupe, cache | 后端路由/服务层避免 N+1, 模板不做重计算, SSR 输出尽量接近最终 UI, 可缓存的在后端缓存 | [[standards/backend/layer/services-layer-standards]] |
-| Client-Side Data Fetching | dedupe listener, SWR, storage 版本化 | 避免重复绑定全局事件, 统一 store/view 生命周期, localStorage 只保存最小必要且要版本化 | [[standards/ui/layer/views-layer-standards]] |
-| Re-render Optimization | derived state, memoization, effect deps | DOM 更新做"最小改动", 避免整块 re-render, 事件处理放在 handler, 共享状态集中到 store | [[standards/ui/layer/stores-layer-standards]] |
-| Rendering Performance | content-visibility, SVG precision | 长列表优先 SSR + 分页, 或使用 `content-visibility`, 避免大 SVG/复杂阴影导致渲染开销 | [[standards/ui/design-token-governance-guidelines]] |
-| JavaScript Performance | batch DOM/CSS, cache loops | 批量 DOM 变更(类名切换), 事件委托, 避免 layout thrashing | [[standards/ui/layer/views-layer-standards]] |
-| Advanced Patterns | init once, stable refs | 全局模块只初始化一次, 页面 mount/destroy 可重复执行且不泄漏 | [[standards/ui/layer/page-entry-layer-standards]] |
+| Eliminating Waterfalls | `await` 串行, API route 串行, Suspense 边界不当 | Page Entry/Views 的多请求并行(`Promise.all`), 后端路由一次性准备页面数据, 避免页面启动时再串行拉首屏必需数据 | [[standards/ui/design/performance]] |
+| Bundle Size Optimization | 避免 barrel import, dynamic import, defer third-party | `base.html` 只放全站必需资源, vendor 默认按页引入, 页面脚本只在需要的模板里加载 | [[standards/ui/design/vendor-library-usage]] |
+| Server-Side Performance | RSC 序列化边界, per-request dedupe, cache | 后端路由/服务层避免 N+1, 模板不做重计算, SSR 输出尽量接近最终 UI, 可缓存的在后端缓存 | [[standards/backend/gate/layer/services-layer]] |
+| Client-Side Data Fetching | dedupe listener, SWR, storage 版本化 | 避免重复绑定全局事件, 统一 store/view 生命周期, localStorage 只保存最小必要且要版本化 | [[standards/ui/design/layer/views-layer]] |
+| Re-render Optimization | derived state, memoization, effect deps | DOM 更新做"最小改动", 避免整块 re-render, 事件处理放在 handler, 共享状态集中到 store | [[standards/ui/design/layer/stores-layer]] |
+| Rendering Performance | content-visibility, SVG precision | 长列表优先 SSR + 分页, 或使用 `content-visibility`, 避免大 SVG/复杂阴影导致渲染开销 | [[standards/ui/gate/design-token-governance]] |
+| JavaScript Performance | batch DOM/CSS, cache loops | 批量 DOM 变更(类名切换), 事件委托, 避免 layout thrashing | [[standards/ui/design/layer/views-layer]] |
+| Advanced Patterns | init once, stable refs | 全局模块只初始化一次, 页面 mount/destroy 可重复执行且不泄漏 | [[standards/ui/design/layer/page-entry-layer]] |
 
 ## 3) 在本仓库的可执行落地(不依赖 React)
 

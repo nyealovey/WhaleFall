@@ -12,7 +12,7 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: "`app/templates/**` 与 `app/static/css/**` 中所有按钮与按钮状态实现"
 related:
-  - "[[standards/ui/danger-operation-confirmation-guidelines]]"
+  - "[[standards/ui/gate/danger-operation-confirmation]]"
 ---
 
 # 按钮层级与状态

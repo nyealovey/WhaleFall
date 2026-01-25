@@ -13,10 +13,10 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`app/models/**` 下所有 SQLAlchemy 模型"
 related:
-  - "[[standards/backend/database-migrations]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/repository-layer-standards]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
+  - "[[standards/backend/hard/database-migrations]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/gate/layer/repository-layer]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
 # Models 数据模型层编写规范
@@ -77,7 +77,7 @@ related:
 
 ### 6) `to_dict` 规范
 
-- MUST: `to_dict` 默认不得包含敏感信息, 敏感字段受 [[standards/backend/sensitive-data-handling|敏感数据处理]] 约束.
+- MUST: `to_dict` 默认不得包含敏感信息, 敏感字段受 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束.
 - SHOULD: `to_dict` 支持 `include_sensitive: bool = False` 之类的显式开关, 且默认关闭.
 - SHOULD: `to_dict` 控制规模(<= 30 行), 超出则拆分辅助函数或使用 DTO 转换放在 Service.
 
@@ -134,4 +134,4 @@ rg -n "from app\\.services\\.|from app\\.repositories\\." app/models
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.

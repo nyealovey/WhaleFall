@@ -12,9 +12,9 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/api/v1/**` Flask-RESTX endpoints, 尤其是 `/actions/*`, 以及 `safe_route_call` 事务边界"
 related:
-  - "[[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]"
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/write-operation-boundary]]"
+  - "[[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/hard/write-operation-boundary]]"
 ---
 
 # Action endpoint failure semantics (business failure vs exception)
@@ -92,7 +92,7 @@ related:
 
 ### 4.3 错误封套与 message_code
 
-- MUST: 对外错误封套必须遵循 [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|响应封套(JSON Envelope)]].
+- MUST: 对外错误封套必须遵循 [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)|响应封套(JSON Envelope)]].
 - MUST: `message_code` 必须能表达 domain 语义, 不得依赖 `ConflictError` 的默认 `CONSTRAINT_VIOLATION` 作为对外稳定标识.
 - SHOULD: action 类接口的"业务结果失败"优先使用 `BaseResource.error_message(..., message_key=...)` 指定 `message_code`.
 
@@ -105,7 +105,7 @@ related:
 
 当需要"保留部分写入, 但回滚某个子步骤"时:
 
-- MAY: 在 service/coordinator 内使用 `with db.session.begin_nested(): ...` 创建 savepoint, 让局部失败不影响外层事务(见 [[standards/backend/write-operation-boundary|写操作事务边界]]).
+- MAY: 在 service/coordinator 内使用 `with db.session.begin_nested(): ...` 创建 savepoint, 让局部失败不影响外层事务(见 [[standards/backend/hard/write-operation-boundary|写操作事务边界]]).
 - MUST NOT: 在 services 内直接 `db.session.rollback()` 回滚整个请求事务.
 
 ---

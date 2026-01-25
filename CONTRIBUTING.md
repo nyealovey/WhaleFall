@@ -4,7 +4,7 @@
 
 ## Workflow
 
-- 分支策略: 见 `docs/Obsidian/standards/git-workflow-standards.md`.
+- 分支策略: 见 `docs/Obsidian/standards/core/guide/git-workflow.md`.
 - 日常开发: 从 `dev` 拉分支, PR 合入 `dev`.
 
 ## Local checks

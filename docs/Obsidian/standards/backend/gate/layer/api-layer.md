@@ -14,12 +14,12 @@ updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/api/**` 下所有 REST API 端点、模型与注册入口"
 related:
-  - "[[standards/backend/layer/README|后端分层标准]]"
-  - "[[standards/backend/layer/routes-layer-standards]]"
-  - "[[standards/backend/request-payload-and-schema-validation]]"
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准]]"
+  - "[[standards/backend/gate/layer/routes-layer]]"
+  - "[[standards/backend/gate/request-payload-and-schema-validation]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
 # API 层编写规范
@@ -59,7 +59,7 @@ related:
 
 - SHOULD: Query 参数优先使用 `reqparse.RequestParser` 并配合 `@ns.expect(parser)` 生成清晰的 OpenAPI 文档.
 - SHOULD: JSON body 优先使用 `ns.model(...)` 并配合 `@ns.expect(model)` 生成稳定 OpenAPI schema.
-- SHOULD: 业务级校验与数据规范化在 Service 内完成, 参考 [[standards/backend/request-payload-and-schema-validation]].
+- SHOULD: 业务级校验与数据规范化在 Service 内完成, 参考 [[standards/backend/gate/request-payload-and-schema-validation]].
 - MUST NOT: 把 RESTX 的 `ns.model` 当作唯一校验来源(它更偏文档与序列化).
 
 #### 2.1 输入治理分层（RESTX model vs parse_payload vs pydantic schema）
@@ -73,7 +73,7 @@ related:
 
 - SHOULD: 对写路径 JSON body 的 `@ns.expect(Model)` 优先显式 `validate=False`（避免 RESTX 运行期校验与 schema 口径分裂，导致错误封套漂移）。
 - MUST: 写路径的字段级校验/类型转换/默认值/兼容策略必须落在 `app/schemas/**`（schema）侧，禁止在 API 层手写 `data.get("x") or default`、`int(...)`、`strip()` 等规则。
-- MUST: 写路径必须通过 Service 执行业务动作；Service MUST 使用 `validate_or_raise(...)` 产出 typed payload（详见 [[standards/backend/request-payload-and-schema-validation]] 与 [[standards/backend/layer/schemas-layer-standards]]）。
+- MUST: 写路径必须通过 Service 执行业务动作；Service MUST 使用 `validate_or_raise(...)` 产出 typed payload（详见 [[standards/backend/gate/request-payload-and-schema-validation]] 与 [[standards/backend/gate/layer/schemas-layer]]）。
 - SHOULD: `parse_payload(...)` 在一次请求链路中只执行一次（API 边界或 Service 入口二选一）；避免 API+Service 双重解析导致语义漂移。
 
 #### 2.2 写路径推荐流水线（API v1）
@@ -90,7 +90,7 @@ related:
 ### 3) 响应封套与错误口径
 
 - MUST: 对外 JSON 响应使用统一封套, 字段与示例见下文 [[#响应封套(JSON Envelope)]].
-- MUST: 错误消息字段遵循 [[standards/backend/error-message-schema-unification|错误消息字段统一]].
+- MUST: 错误消息字段遵循 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]].
 - MUST: API v1 success 响应使用 `BaseResource.success(...)`(底层 `unified_success_response(...)`).
 - MUST: Routes(JSON) success 响应使用 `jsonify_unified_success(...)`.
 - MUST: 错误响应由统一错误处理器输出(例如 RestX `Api.handle_error`, 或 `BaseResource.error_message(...)`), 业务代码禁止手写错误 JSON.
@@ -160,7 +160,7 @@ related:
 
 ###### 5) 错误消息与兼容约束
 
-- MUST: 错误消息口径遵循 [[standards/backend/error-message-schema-unification|错误消息字段统一]], 禁止在任何层新增 `error/message` 互兜底链.
+- MUST: 错误消息口径遵循 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]], 禁止在任何层新增 `error/message` 互兜底链.
 - MUST: 对外 API payload（包括 success envelope 的 `data` 内嵌结构）不得出现字段名 `error_code`；如需机器可读错误码，统一使用 `message_code`（或边界层定义的命名空间字段），并在边界层完成映射，禁止下游写互兜底链。
 - SHOULD: 当返回结构发生演进时, 优先通过新增字段向前兼容, 避免重命名/挪字段导致调用方写兼容分支.
 
@@ -210,7 +210,7 @@ return jsonify({"success": False, "msg": "failed"}), 400
 - MUST: 所有 `Resource` 方法必须通过 `BaseResource.safe_call(...)`（推荐）或 `safe_route_call(...)` 包裹实际执行函数.
 - MUST: `BaseResource.safe_call(...)` 是对 `safe_route_call(...)` 的统一封装（语义等价，事务/异常语义一致）；评审时视为满足 `safe_route_call` 的 MUST。
 - MUST: `safe_route_call` 入参至少包含 `module`, `action`, `public_error`.
-- SHOULD: 在 `context` 中带上关键参数, 但必须遵循 [[standards/backend/sensitive-data-handling|敏感数据处理]] 约束.
+- SHOULD: 在 `context` 中带上关键参数, 但必须遵循 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束.
 - MUST NOT: 在端点内 `try/except Exception` 后吞异常继续返回成功.
 
 ### 5) 依赖规则
@@ -428,5 +428,5 @@ rg -n "@ns\\.expect\\([^\\n]*Payload\\b" app/api/v1/namespaces | rg -v "validate
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.
 - 2026-01-13: 明确 RESTX model/`parse_payload`/pydantic schema 的分工与写路径推荐流水线, 减少“口头约定”与校验口径漂移.

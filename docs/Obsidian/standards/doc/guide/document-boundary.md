@@ -12,8 +12,8 @@ updated: 2026-01-10
 owner: WhaleFall Team
 scope: "`docs/Obsidian/**` 与 `docs/changes/**` 的文档归类, SSOT 边界与冲突处理"
 related:
-  - "[[standards/doc/documentation-standards]]"
-  - "[[standards/halfwidth-character-standards]]"
+  - "[[standards/doc/guide/documentation]]"
+  - "[[standards/core/guide/halfwidth-characters]]"
   - "[[standards/README]]"
   - "[[reference/README]]"
   - "[[operations/README]]"
@@ -119,7 +119,7 @@ related:
 
 - MUST: 发现标准冲突时, 不允许"各写各的"长期共存, 必须合并或明确优先级.
 - SHOULD: 优先级默认规则:
-  1) scope 更窄/更具体的标准优先(例如 `standards/ui/layer/**` 优先于 `standards/coding-standards`)
+  1) scope 更窄/更具体的标准优先(例如 `standards/ui/design/layer/**` 优先于 `standards/core/guide/coding`)
   2) 同 scope 冲突时, 以明确标注 SSOT 的文档为准, 并通过 PR 解决冲突
 - MUST: 冲突解决后, 需要更新索引入口与相关 wikilinks, 避免读者继续读到旧规则.
 
@@ -127,8 +127,8 @@ related:
 
 ### 正例: 标准(规则 SSOT)
 
-- `docs/Obsidian/standards/backend/write-operation-boundary.md`
-- `docs/Obsidian/standards/ui/layer/README.md`
+- `docs/Obsidian/standards/backend/hard/write-operation-boundary.md`
+- `docs/Obsidian/standards/ui/guide/layer/README.md`
 
 ### 正例: 参考手册(契约 SSOT)
 

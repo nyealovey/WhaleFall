@@ -13,9 +13,9 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/repositories/**` 下所有仓储类"
 related:
-  - "[[standards/backend/write-operation-boundary]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
-  - "[[standards/backend/layer/models-layer-standards]]"
+  - "[[standards/backend/hard/write-operation-boundary]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
+  - "[[standards/backend/gate/layer/models-layer]]"
 ---
 
 # Repository 仓储层编写规范
@@ -46,7 +46,7 @@ related:
 ### 2) 事务处理
 
 - MUST: Repository 可以 `flush` 以获取主键或触发约束, 但 MUST NOT `commit`.
-- MUST: 写操作的事务语义由上层(通常为 Service/Coordinator) 决策；提交点由入口(`safe_route_call`/tasks/scripts) 统一承担，参考 [[standards/backend/write-operation-boundary]].
+- MUST: 写操作的事务语义由上层(通常为 Service/Coordinator) 决策；提交点由入口(`safe_route_call`/tasks/scripts) 统一承担，参考 [[standards/backend/hard/write-operation-boundary]].
 
 ### 3) 命名规范
 
@@ -149,5 +149,5 @@ rg -n "from app\\.services\\." app/repositories
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.
 - 2026-01-13: 明确 Repository 不承载事务提交点, 并将“事务边界”表述对齐为“提交点 vs 决策点”.

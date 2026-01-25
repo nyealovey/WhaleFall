@@ -19,7 +19,7 @@ scope: app/services/database_sync/database_sync_service.py
 related:
   - "[[reference/service/database-sync-adapters|Database Sync Adapters(差异表)]]"
   - "[[reference/service/database-sync-table-sizes|Database Sync Table Sizes]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Database Sync(容量同步/数据库容量采集)概览

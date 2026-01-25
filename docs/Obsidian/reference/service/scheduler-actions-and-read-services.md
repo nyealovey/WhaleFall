@@ -21,7 +21,7 @@ related:
   - "[[API/scheduler-api-contract]]"
   - "[[operations/scheduler-jobstore-ops]]"
   - "[[reference/service/scheduler-job-write-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Scheduler Actions/Read Services(任务列表/详情/运行/重载)

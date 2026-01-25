@@ -24,8 +24,8 @@ related:
   - "[[reference/service/accounts-sync-adapters|Accounts Sync Adapters]]"
   - "[[reference/service/accounts-sync-permission-manager|AccountPermissionManager 权限同步]]"
   - "[[reference/service/accounts-ledger-services|Accounts Ledger Services]]"
-  - "[[standards/backend/layer/api-layer-standards|API Layer Standards]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/backend/gate/layer/api-layer|API Layer Standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # MySQL Roles 同步与展示(账号/角色/成员)

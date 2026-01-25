@@ -12,11 +12,11 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/__init__.py`, `app.py`, `wsgi.py`, `app/api/__init__.py`"
 related:
-  - "[[standards/backend/configuration-and-secrets]]"
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/task-and-scheduler]]"
-  - "[[standards/backend/layer/README|后端分层标准]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
+  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/hard/task-and-scheduler]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
 ---
 
 # Bootstrap/Entrypoint 启动规范
@@ -53,7 +53,7 @@ related:
 
 ### 3) 配置入口（Settings）
 
-- MUST: 配置解析/默认值/校验收敛到 `app/settings.py::Settings`，遵循 [[standards/backend/configuration-and-secrets|配置与密钥]]。
+- MUST: 配置解析/默认值/校验收敛到 `app/settings.py::Settings`，遵循 [[standards/backend/hard/configuration-and-secrets|配置与密钥]]。
 - MAY: `app.py`/`wsgi.py` 使用 `os.environ.setdefault(...)` 写入少量运行默认值（仅限入口脚本，且仅允许下列 allowlist）。
 - MUST: `os.environ.setdefault(...)` 仅用于“运行期识别/启动工具”类变量，不得用于业务语义、功能开关或安全边界变量。
 - MUST NOT: 对任何敏感/密钥/连接信息使用 `setdefault`（例如 `DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `PASSWORD_ENCRYPTION_KEY` 等）。
@@ -75,16 +75,16 @@ related:
 
 - MUST: `app/api/__init__.py` 作为 API blueprint 注册入口，语义属于 API 层（不建议为它单开一层）。
 - MUST: API 注册入口只负责 “组装并 register blueprint”，不得承载业务逻辑或数据库访问。
-- SHOULD: API 标准 scope 覆盖 `app/api/**`（含注册入口），详见 [[standards/backend/layer/api-layer-standards]]。
+- SHOULD: API 标准 scope 覆盖 `app/api/**`（含注册入口），详见 [[standards/backend/gate/layer/api-layer]]。
 
 ### 5) 日志与错误处理
 
-- MUST: 全局异常必须通过统一错误处理器映射为统一封套，遵循 [[standards/backend/error-message-schema-unification|错误消息字段统一]]。
+- MUST: 全局异常必须通过统一错误处理器映射为统一封套，遵循 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]]。
 - SHOULD: 启动期关键路径（配置、蓝图注册、调度器启动）写结构化日志，便于定位启动失败原因。
 
 ### 6) 调度器启动策略
 
-- MUST: 调度器启动由 `create_app(init_scheduler_on_start=...)` 控制，并遵循 [[standards/backend/task-and-scheduler|任务与调度(APScheduler)]] 的启停约束。
+- MUST: 调度器启动由 `create_app(init_scheduler_on_start=...)` 控制，并遵循 [[standards/backend/hard/task-and-scheduler|任务与调度(APScheduler)]] 的启停约束。
 - MUST: 当调度器初始化失败时不得阻塞应用启动（必须记录错误日志并继续返回 app）。
 
 ## 门禁/检查方式

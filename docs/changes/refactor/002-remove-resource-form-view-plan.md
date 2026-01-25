@@ -5,7 +5,7 @@
 > 创建: 2026-01-23
 > 更新: 2026-01-23
 > 范围: 移除 `ResourceFormView` + `app/forms/**` 表单定义体系, 统一为 "标签管理" 风格的 API + Modal CRUD
-> 关联: `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/Obsidian/standards/backend/layer/api-layer-standards.md`
+> 关联: `docs/Obsidian/standards/doc/guide/changes.md`, `docs/Obsidian/standards/core/guide/halfwidth-characters.md`, `docs/Obsidian/standards/backend/gate/layer/api-layer.md`
 
 ---
 

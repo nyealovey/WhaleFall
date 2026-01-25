@@ -6,7 +6,7 @@
 > Updated: 2026-01-24
 > Scope: `app/static/js/modules/stores/**`
 > Related:
-> - `../../../Obsidian/standards/ui/layer/stores-layer-standards.md`
+> - `../../../Obsidian/standards/ui/design/layer/stores-layer.md`
 > - `state-layer-inventory.md`
 
 ## 1. 动机与范围
@@ -17,7 +17,7 @@
 
 ## 2. 不变约束(验收口径)
 
-以下口径以 SSOT `../../../Obsidian/standards/ui/layer/stores-layer-standards.md` 为准, 本文只摘录用于审计.
+以下口径以 SSOT `../../../Obsidian/standards/ui/design/layer/stores-layer.md` 为准, 本文只摘录用于审计.
 
 - MUST: Store 不得直接操作 DOM, 不得调用 `toast.*`, 不得直连 `window.httpU`.
 - MUST: Store 以 `createXStore(options)` 导出, 并挂载 `window.createXStore`.

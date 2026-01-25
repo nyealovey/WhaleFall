@@ -22,7 +22,7 @@ related:
   - "[[API/instances-api-contract]]"
   - "[[reference/service/instances-write-and-batch]]"
   - "[[architecture/domain/instances-domain]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Instances Read Services(列表/详情/统计)

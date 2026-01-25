@@ -13,14 +13,14 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/core/constants/**` 下所有常量与枚举定义"
 related:
-  - "[[standards/backend/configuration-and-secrets]]"
-  - "[[standards/backend/shared-kernel-standards]]"
+  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/design/shared-kernel]]"
 ---
 
 # Constants 常量层编写规范
 
 > [!note] 说明
-> Constants 放不可变的业务常量与枚举. 环境相关或可变配置放 Settings, 参考 [[standards/backend/configuration-and-secrets|配置与密钥]].
+> Constants 放不可变的业务常量与枚举. 环境相关或可变配置放 Settings, 参考 [[standards/backend/hard/configuration-and-secrets|配置与密钥]].
 
 ## 目的
 
@@ -152,4 +152,4 @@ rg -n "from app\\." app/core/constants
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.

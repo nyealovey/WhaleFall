@@ -13,11 +13,11 @@ updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/static/js/modules/ui/**` 下可复用 UI 工具与交互组件"
 related:
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/ui/javascript-module-standards]]"
-  - "[[standards/ui/button-hierarchy-guidelines]]"
-  - "[[standards/ui/danger-operation-confirmation-guidelines]]"
-  - "[[standards/ui/component-dom-id-scope-guidelines]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/ui/design/javascript-module]]"
+  - "[[standards/ui/gate/button-hierarchy]]"
+  - "[[standards/ui/gate/danger-operation-confirmation]]"
+  - "[[standards/ui/gate/component-dom-id-scope]]"
 ---
 
 # UI Modules 工具层编写规范
@@ -55,7 +55,7 @@ related:
 
 ### 3) 依赖与全局读取
 
-- SHOULD: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- SHOULD: `window.*` 的访问规则以 [[standards/ui/guide/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
 - SHOULD: UI Modules 允许依赖:
   - `window.DOMHelpers`
   - `window.UI`(同层工具)
@@ -65,8 +65,8 @@ related:
 
 ### 4) DOM id 作用域与可访问性
 
-- SHOULD: 遵循 [[standards/ui/component-dom-id-scope-guidelines|可复用组件 DOM id 作用域规范]](该文档为 `enforcement: gate`, 以门禁为准).
-- SHOULD: 为可点击/可关闭组件补齐可访问名称(aria-label), 参考 [[standards/ui/close-button-accessible-name-guidelines]].
+- SHOULD: 遵循 [[standards/ui/gate/component-dom-id-scope|可复用组件 DOM id 作用域规范]](该文档为 `enforcement: gate`, 以门禁为准).
+- SHOULD: 为可点击/可关闭组件补齐可访问名称(aria-label), 参考 [[standards/ui/gate/close-button-accessible-name]].
 
 ### 5) 安全键过滤
 

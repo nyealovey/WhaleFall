@@ -13,10 +13,10 @@ owner: WhaleFall Team
 scope: "`app/templates/**` + `app/static/**` 的资源加载, SSR 优先与前端交互增强"
 related:
   - "[[standards/ui/README]]"
-  - "[[standards/ui/vercel-react-best-practices-mapping]]"
-  - "[[standards/ui/vendor-library-usage-standards]]"
-  - "[[standards/ui/layer/page-entry-layer-standards]]"
-  - "[[standards/ui/layer/views-layer-standards]]"
+  - "[[standards/ui/design/vercel-react-best-practices-mapping]]"
+  - "[[standards/ui/design/vendor-library-usage]]"
+  - "[[standards/ui/design/layer/page-entry-layer]]"
+  - "[[standards/ui/design/layer/views-layer]]"
 ---
 
 # 前端性能标准(SSR + Progressive Enhancement)

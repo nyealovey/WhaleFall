@@ -14,7 +14,7 @@ scope: APScheduler + SQLite jobstore(`userdata/scheduler.db`) 的运行口径, �
 related:
   - "[[operations/README|operations]]"
   - "[[API/scheduler-api-contract]]"
-  - "[[standards/backend/task-and-scheduler]]"
+  - "[[standards/backend/hard/task-and-scheduler]]"
   - "[[reference/errors/message-code-catalog]]"
 ---
 

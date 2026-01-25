@@ -13,11 +13,11 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/infra/**`, `app/scheduler.py`"
 related:
-  - "[[standards/backend/layer/README|后端分层标准]]"
-  - "[[standards/backend/write-operation-boundary]]"
-  - "[[standards/backend/task-and-scheduler]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/error-message-schema-unification]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准]]"
+  - "[[standards/backend/hard/write-operation-boundary]]"
+  - "[[standards/backend/hard/task-and-scheduler]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
 ---
 
 # Infra 基础设施层编写规范
@@ -55,13 +55,13 @@ related:
 
 ### 3) 事务边界与数据库访问
 
-- MUST: 写路径的 `commit/rollback` 只允许发生在“事务边界入口”，详见 [[standards/backend/write-operation-boundary|写操作事务边界]]。
+- MUST: 写路径的 `commit/rollback` 只允许发生在“事务边界入口”，详见 [[standards/backend/hard/write-operation-boundary|写操作事务边界]]。
 - MUST: Infra 中涉及事务边界的模块必须在 docstring/README 明确其策略（成功提交、异常回滚、回退异常类型）。
 - SHOULD: 若需避免循环导入，使用 `importlib.import_module`/惰性加载（参考日志 worker 的做法），但必须保证导入路径稳定。
 
 ### 4) 调度器（`app/scheduler.py`）
 
-- MUST: 单实例策略与启停策略遵循 [[standards/backend/task-and-scheduler|任务与调度(APScheduler)]]（`ENABLE_SCHEDULER`、reloader 子进程策略、生产 Web/Scheduler 分进程建议）。
+- MUST: 单实例策略与启停策略遵循 [[standards/backend/hard/task-and-scheduler|任务与调度(APScheduler)]]（`ENABLE_SCHEDULER`、reloader 子进程策略、生产 Web/Scheduler 分进程建议）。
 - MUST: 调度器初始化失败不得阻塞应用启动（必须记录结构化日志并安全返回）。
 - SHOULD: 任务函数导入路径保持稳定，新增任务同时更新 `TASK_FUNCTIONS` 与配置文件，避免“找不到 callable”。
 

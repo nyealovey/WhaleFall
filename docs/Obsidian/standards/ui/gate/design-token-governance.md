@@ -12,7 +12,7 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: "`app/static/css/**` 中的全局 Token、组件 Token 与引用规范"
 related:
-  - "[[standards/ui/color-guidelines]]"
+  - "[[standards/ui/guide/color]]"
 ---
 
 # 设计 Token 治理(CSS Variables)

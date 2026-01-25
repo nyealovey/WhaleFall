@@ -13,8 +13,8 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/core/types/**` 下所有类型定义与协议"
 related:
-  - "[[standards/backend/request-payload-and-schema-validation]]"
-  - "[[standards/backend/shared-kernel-standards]]"
+  - "[[standards/backend/gate/request-payload-and-schema-validation]]"
+  - "[[standards/backend/design/shared-kernel]]"
 ---
 
 # Types 类型定义层编写规范
@@ -191,5 +191,5 @@ rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session" app
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.
 - 2026-01-11: 明确禁止在 `TYPE_CHECKING` 中引用 models, 统一改用 `Protocol`/弱类型, 并补充示例.

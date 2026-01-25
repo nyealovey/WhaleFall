@@ -12,8 +12,8 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: 已迁移为 reference checklist, 本文件仅保留兼容入口
 related:
-  - "[[standards/coding-standards]]"
-  - "[[standards/backend/error-message-schema-unification]]"
+  - "[[standards/core/guide/coding]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
   - "[[standards/ui/README]]"
   - "[[reference/development/new-feature-delivery]]"
 ---

@@ -19,7 +19,7 @@ related:
   - "[[API/accounts-api-contract]]"
   - "[[API/instances-api-contract]]"
   - "[[API/databases-api-contract]]"
-  - "[[standards/backend/sensitive-data-handling]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
   - "[[reference/errors/message-code-catalog]]"
   - "[[canvas/files/files-exports-flow.canvas]]"
 ---
@@ -88,7 +88,7 @@ CSV 文件可能被 Excel/Sheets 打开. 为避免公式注入:
 
 标准入口:
 
-- [[standards/backend/sensitive-data-handling]]
+- [[standards/backend/hard/sensitive-data-handling]]
 
 ## 流程图
 

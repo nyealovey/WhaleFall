@@ -13,9 +13,9 @@ updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/static/js/modules/stores/**` 下所有前端 Store(状态 + actions)"
 related:
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/ui/javascript-module-standards]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/ui/design/javascript-module]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
 # Stores 前端状态层编写规范

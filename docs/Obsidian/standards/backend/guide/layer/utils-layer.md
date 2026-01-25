@@ -13,9 +13,9 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/utils/**` 下所有工具模块"
 related:
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/shared-kernel-standards]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/design/shared-kernel]]"
 ---
 
 # Utils 工具层编写规范
@@ -44,7 +44,7 @@ related:
 
 > [!note]
 > `app/utils/**` 同时包含两类代码：
-> - **纯工具(shared-kernel-like)**：不依赖 Flask/DB/request context，可跨层复用（例如 `payload_converters/time_utils/version_parser`）。这类模块应尽量向 `app/core/**` 收敛，至少需要同时满足 [[standards/backend/shared-kernel-standards]] 的约束。
+> - **纯工具(shared-kernel-like)**：不依赖 Flask/DB/request context，可跨层复用（例如 `payload_converters/time_utils/version_parser`）。这类模块应尽量向 `app/core/**` 收敛，至少需要同时满足 [[standards/backend/design/shared-kernel]] 的约束。
 > - **边界工具**：与 HTTP/日志/安全/中间件强绑定（例如响应封套、请求上下文日志）。这类模块不属于 shared kernel，必须避免被 `app/core/**`、`app/core/constants/**`、`app/core/types/**` 反向依赖。
 
 ### 2) 模块组织(推荐)
@@ -67,7 +67,7 @@ app/utils/
 ### 3) 异常处理
 
 - MUST: 默认情况下不要吞异常. 当函数语义明确是 "best-effort" 时才允许返回兜底值, 且必须在 docstring 写清楚.
-- MUST: 记录日志时遵循 [[standards/backend/sensitive-data-handling|敏感数据处理]] 约束.
+- MUST: 记录日志时遵循 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束.
 - SHOULD: 只捕获可预期的异常类型(例如 `ValueError`, `TypeError`), 避免 `except Exception` 造成误吞.
 
 ### 4) 类型注解
@@ -218,4 +218,4 @@ rg -n "from app\\.(models|services|repositories|routes|api)\\.|db\\.session" app
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.

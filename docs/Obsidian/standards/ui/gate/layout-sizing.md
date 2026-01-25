@@ -12,8 +12,8 @@ updated: 2026-01-15
 owner: WhaleFall FE
 scope: "`app/templates/**`, `app/static/css/**`"
 related:
-  - "[[standards/ui/design-token-governance-guidelines]]"
-  - "[[standards/halfwidth-character-standards]]"
+  - "[[standards/ui/gate/design-token-governance]]"
+  - "[[standards/core/guide/halfwidth-characters]]"
 ---
 
 # Layout Sizing Guidelines
@@ -54,7 +54,7 @@ related:
 
 - MUST: 页面内纵向分组使用 `.page-section`, 相邻 section 间距由 Token 控制 (`--page-spacing-regular` / `--page-spacing-tight`).
 - MUST NOT: 用 "随手写 margin-top: 37px" 作为页面节奏方案. 如现有 Token 不满足, 先补 Token 再使用 (见 `design-token-governance-guidelines.md`).
-  - 参考: [[standards/ui/design-token-governance-guidelines|设计 Token 治理]]
+  - 参考: [[standards/ui/gate/design-token-governance|设计 Token 治理]]
 
 ### 4) 尺寸单位与写法 (MUST)
 

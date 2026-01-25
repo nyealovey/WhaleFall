@@ -15,9 +15,9 @@ updated: 2026-01-15
 owner: WhaleFall Team
 scope: 所有基于 Grid.js 的列表页, 以及 `GridWrapper`/`Views.GridPage`/plugins 生态
 related:
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
-  - "[[standards/backend/error-message-schema-unification]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
   - "[[reference/development/gridjs-migration-checklist]]"
 ---
 
@@ -32,7 +32,7 @@ related:
 ## 适用范围
 
 - 前端: 所有 Grid.js 列表页(含多 grid 页面), 以及 `GridWrapper` 调用方.
-- 后端: 本文仅描述 UI 侧依赖契约摘要; 后端 SSOT 见 [[standards/backend/layer/api-layer-standards]] 与 [[standards/backend/error-message-schema-unification]].
+- 后端: 本文仅描述 UI 侧依赖契约摘要; 后端 SSOT 见 [[standards/backend/gate/layer/api-layer]] 与 [[standards/backend/hard/error-message-schema-unification]].
 
 ## 规则(MUST/SHOULD/MAY)
 
@@ -47,7 +47,7 @@ related:
   - Action delegation: `Views.GridPlugins.actionDelegation(...)`
   - Export: `Views.GridPlugins.exportButton(...)`
 - MUST NOT: 页面脚本自行拼接分页/排序 query params(交由 `GridWrapper` + `TableQueryParams`).
-- MUST NOT: 模板内联 `onclick="..."`（全站模板规则见 [[standards/ui/template-event-binding-standards]]；列表页统一使用 `actionDelegation`/`data-action`）。
+- MUST NOT: 模板内联 `onclick="..."`（全站模板规则见 [[standards/ui/gate/template-event-binding]]；列表页统一使用 `actionDelegation`/`data-action`）。
 
 ### 2) 单一真源 helpers(MUST)
 
@@ -109,9 +109,9 @@ related:
 
 > [!info] SSOT
 > 后端 query params/封套/错误字段以以下标准为准:
-> - [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API Layer: 响应封套(JSON Envelope)]]
-> - [[standards/backend/layer/api-layer-standards#7) Query 参数命名(canonical: snake_case)|API Layer: Query 参数命名]]
-> - [[standards/backend/error-message-schema-unification|错误消息字段统一]]
+> - [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)|API Layer: 响应封套(JSON Envelope)]]
+> - [[standards/backend/gate/layer/api-layer#7) Query 参数命名(canonical: snake_case)|API Layer: Query 参数命名]]
+> - [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]]
 >
 > UI 侧依赖字段摘要:
 > - 列表数据: `data.items` + `data.total`.

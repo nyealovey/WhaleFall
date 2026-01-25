@@ -13,7 +13,7 @@ owner: WhaleFall Team
 scope: 存放 standards 引用的长示例/正反例/脚本片段(非 SSOT 规则)的索引与入口
 related:
   - "[[reference/README]]"
-  - "[[standards/doc/document-boundary-standards]]"
+  - "[[standards/doc/guide/document-boundary]]"
 ---
 
 # Examples & Snippets

@@ -12,7 +12,7 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: 写操作的事务提交/回滚边界与门禁
 related:
-  - "[[standards/backend/action-endpoint-failure-semantics]]"
+  - "[[standards/backend/hard/action-endpoint-failure-semantics]]"
 ---
 
 # 写操作事务边界(Write Operation Boundary)

@@ -12,14 +12,14 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: docs/Obsidian/operations 入口与索引
 related:
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # 运维 Runbook
 
 > [!info] Purpose
 > 本目录沉淀可复制执行的运维 Runbook (部署, 热更新, 回滚, 排障).
-> 编写规范见 [[standards/doc/documentation-standards]].
+> 编写规范见 [[standards/doc/guide/documentation]].
 
 ## 索引
 

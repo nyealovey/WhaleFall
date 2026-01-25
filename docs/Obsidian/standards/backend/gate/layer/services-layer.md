@@ -13,12 +13,12 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/services/**` 下所有业务服务"
 related:
-  - "[[standards/doc/service-layer-documentation-standards]]"
-  - "[[standards/backend/request-payload-and-schema-validation]]"
-  - "[[standards/backend/write-operation-boundary]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/repository-layer-standards]]"
-  - "[[standards/backend/layer/models-layer-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
+  - "[[standards/backend/gate/request-payload-and-schema-validation]]"
+  - "[[standards/backend/hard/write-operation-boundary]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/gate/layer/repository-layer]]"
+  - "[[standards/backend/gate/layer/models-layer]]"
 ---
 
 # Services 服务层编写规范
@@ -78,14 +78,14 @@ app/services/
 
 ### 4) 输入校验与数据规范化
 
-- MUST: 对外部输入(HTTP payload, task payload)做 schema 校验与显式转换, 参考 [[standards/backend/request-payload-and-schema-validation]].
+- MUST: 对外部输入(HTTP payload, task payload)做 schema 校验与显式转换, 参考 [[standards/backend/gate/request-payload-and-schema-validation]].
 - MUST: 字段级规范化/校验（`strip()`、类型转换、默认值补齐、字段 alias/形状兼容等）必须收敛到 `app/schemas/**`；Service 禁止手写 `data.get("x") or default`、`int(...)`、`strip()` 等字段级规则。
 - SHOULD: Service 的输入侧仅保留跨字段与业务规则校验（例如互斥字段、跨资源一致性、权限/配额/状态机约束），避免把“字段级规则”散落到业务编排里。
 - MUST NOT: 在 Routes/API 与 Service 两处重复实现相同校验规则.
 
 ### 5) 事务边界
 
-- MUST: 默认情况下(Web 请求写路径), Service 是事务语义的主要决策点：通过“正常返回 vs 抛异常”驱动上层 `safe_route_call` 的 `commit/rollback`（提交点见 [[standards/backend/write-operation-boundary|写操作事务边界]]）。
+- MUST: 默认情况下(Web 请求写路径), Service 是事务语义的主要决策点：通过“正常返回 vs 抛异常”驱动上层 `safe_route_call` 的 `commit/rollback`（提交点见 [[standards/backend/hard/write-operation-boundary|写操作事务边界]]）。
 - MUST: Repository 可以 `flush`, 但 MUST NOT `commit`.
 - SHOULD: 批量写入支持部分回滚时使用 `db.session.begin_nested()`.
 
@@ -163,12 +163,12 @@ app/services/
 ### 11) 日志规范
 
 - MUST: 业务关键路径记录结构化日志(使用 `app.utils.structlog_config`).
-- MUST: 日志字段遵循敏感数据约束, 参考 [[standards/backend/sensitive-data-handling|敏感数据处理]].
+- MUST: 日志字段遵循敏感数据约束, 参考 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]].
 - MUST: “关键路径”判定采用 checklist（满足其一即必须打点）：
   - 写操作：create/update/delete/restore/批量写入/任何会触发事务提交的路径
   - 外部依赖交互：数据库连接/远程拉取/调度器修改/缓存读写/文件系统读写
   - 对外 action：`/actions/*` 类端点或会触发外部副作用的服务编排
-  - 存在回退/降级/workaround 分支：必须包含 `fallback=true` 与 `fallback_reason`（见 [[standards/backend/resilience-and-fallback-standards|回退/降级标准]]）
+  - 存在回退/降级/workaround 分支：必须包含 `fallback=true` 与 `fallback_reason`（见 [[standards/backend/guide/resilience-and-fallback|回退/降级标准]]）
 
 ## 正反例
 
@@ -202,7 +202,7 @@ class BadService:
 - 评审检查:
   - 是否存在在 Service 内返回 `Response` 或依赖 `flask.request`?
   - 是否存在在 Repository 内 `commit`?
-  - 写操作事务边界是否遵循 [[standards/backend/write-operation-boundary]]?
+  - 写操作事务边界是否遵循 [[standards/backend/hard/write-operation-boundary]]?
 - 自查命令(示例):
 
 ```bash
@@ -212,5 +212,5 @@ rg -n "db\\.session\\.commit\\(" app/repositories
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
-- 2026-01-13: 将事务边界表述拆分为“提交点 vs 决策点”, 统一口径对齐 [[standards/backend/write-operation-boundary|写操作事务边界]].
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-13: 将事务边界表述拆分为“提交点 vs 决策点”, 统一口径对齐 [[standards/backend/hard/write-operation-boundary|写操作事务边界]].

@@ -13,17 +13,17 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/utils/structlog_config.py`, `app/infra/route_safety.py`, `app/utils/logging/handlers.py` 相关日志字段口径"
 related:
-  - "[[standards/backend/structured-logging-minimum-fields]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/tasks-layer-standards]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
+  - "[[standards/backend/guide/structured-logging-minimum-fields]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/gate/layer/tasks-layer]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
 # 结构化日志上下文字段规范(Logging Context Fields)
 
 ## 1. 目的
 
-- 在“最小字段 schema”（见 [[standards/backend/structured-logging-minimum-fields]]）之上，补齐可检索的业务维度口径，减少日志字段依赖人脑随意拼装。
+- 在“最小字段 schema”（见 [[standards/backend/guide/structured-logging-minimum-fields]]）之上，补齐可检索的业务维度口径，减少日志字段依赖人脑随意拼装。
 - 降低排障成本：同类操作必须能用同一组键检索（例如 `action`、`instance_id`、`job_id`）。
 
 ## 2. 适用范围
@@ -39,7 +39,7 @@ related:
 
 ### 3.2 敏感数据
 
-- MUST: 上下文字段必须遵循 [[standards/backend/sensitive-data-handling]]，禁止把口令/令牌/连接串等敏感信息写入日志。
+- MUST: 上下文字段必须遵循 [[standards/backend/hard/sensitive-data-handling]]，禁止把口令/令牌/连接串等敏感信息写入日志。
 
 ## 4. 推荐维度（SHOULD）
 

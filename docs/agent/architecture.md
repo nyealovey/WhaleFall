@@ -22,7 +22,7 @@ Flask、SQLAlchemy、APScheduler、Redis、PostgreSQL（主库）、Bootstrap 5�
 
 - 所有配置集中在 `app/settings.py`：解析环境变量、默认值、校验。
 - 新增/调整配置项必须走 `app/settings.py`（禁止硬编码/散落在模块里）。
-- 参考：`docs/Obsidian/standards/backend/configuration-and-secrets.md`
+- 参考：`docs/Obsidian/standards/backend/hard/configuration-and-secrets.md`
 
 ## 路由安全模式（safe_route_call）
 
@@ -56,7 +56,7 @@ def example_view() -> Response:
 - 成功：`jsonify_unified_success(data=..., message=...)`
 - 错误：`jsonify_unified_error_message(message=..., status_code=...)`
 
-参见：`docs/Obsidian/standards/backend/layer/api-layer-standards.md#响应封套(JSON Envelope)`
+参见：`docs/Obsidian/standards/backend/gate/layer/api-layer.md#响应封套(JSON Envelope)`
 
 ## 数据库适配器（多数据库支持）
 
@@ -91,7 +91,7 @@ def example_view() -> Response:
 - 任务定义：`app/tasks/`
 - 所有任务必须在 Flask `app.app_context()` 内运行
 
-参见：`docs/Obsidian/standards/backend/task-and-scheduler.md`
+参见：`docs/Obsidian/standards/backend/hard/task-and-scheduler.md`
 
 ## 结构化日志
 
@@ -125,7 +125,7 @@ def example_view() -> Response:
 - `URLSync`：筛选/分页状态与 URL 同步（按各页封装位置复用）
 - `ExportButton`：CSV/Excel 导出（按各页封装位置复用）
 
-**必须遵循（SSOT）**：`docs/Obsidian/standards/ui/grid-standards.md`
+**必须遵循（SSOT）**：`docs/Obsidian/standards/ui/gate/grid.md`
 
 **迁移交付自检**：`docs/Obsidian/reference/development/gridjs-migration-checklist.md`
 

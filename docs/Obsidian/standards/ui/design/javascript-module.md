@@ -12,9 +12,9 @@ updated: 2026-01-24
 owner: WhaleFall Team
 scope: "`app/static/js/modules/**`(services/stores/views/ui)与相关全局对象(`DOMHelpers/httpU/UI`)"
 related:
-  - "[[standards/ui/component-dom-id-scope-guidelines]]"
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/ui/vendor-library-usage-standards]]"
+  - "[[standards/ui/gate/component-dom-id-scope]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/ui/design/vendor-library-usage]]"
 ---
 
 # 前端模块化(modules)规范
@@ -35,7 +35,7 @@ related:
 
 > [!info] SSOT
 > modules 的分层标准已按层拆分为 SSOT 文档, 本文只保留概览与入口:
-> - [[standards/ui/layer/README|前端分层(layer)标准索引]]
+> - [[standards/ui/guide/layer/README|前端分层(layer)标准索引]]
 
 ### 1) 依赖方向(必须)
 
@@ -46,11 +46,11 @@ related:
 
 详细规则见:
 
-- [[standards/ui/layer/page-entry-layer-standards|Page Entry 页面入口层编写规范]]
-- [[standards/ui/layer/services-layer-standards|Services 前端服务层编写规范]]
-- [[standards/ui/layer/stores-layer-standards|Stores 前端状态层编写规范]]
-- [[standards/ui/layer/views-layer-standards|Views 视图层编写规范]]
-- [[standards/ui/layer/ui-layer-standards|UI Modules 工具层编写规范]]
+- [[standards/ui/design/layer/page-entry-layer|Page Entry 页面入口层编写规范]]
+- [[standards/ui/design/layer/services-layer|Services 前端服务层编写规范]]
+- [[standards/ui/design/layer/stores-layer|Stores 前端状态层编写规范]]
+- [[standards/ui/design/layer/views-layer|Views 视图层编写规范]]
+- [[standards/ui/design/layer/ui-layer|UI Modules 工具层编写规范]]
 
 ### 2) 文件命名(概览)
 

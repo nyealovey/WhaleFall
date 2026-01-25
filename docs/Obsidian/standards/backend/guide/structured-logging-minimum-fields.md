@@ -12,10 +12,10 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/utils/structlog_config.py`, `app/utils/logging/handlers.py`, `app/models/unified_log.py`"
 related:
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/tasks-layer-standards]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
-  - "[[standards/backend/structured-logging-context-fields]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/gate/layer/tasks-layer]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
+  - "[[standards/backend/guide/structured-logging-context-fields]]"
 ---
 
 # 结构化日志最小字段 Schema
@@ -44,7 +44,7 @@ related:
 单一真源：
 
 - 结构化事件转换为落库字段：`app/utils/logging/handlers.py::_build_log_entry`
-- 脱敏规则：[[standards/backend/sensitive-data-handling|敏感数据处理]]
+- 脱敏规则：[[standards/backend/hard/sensitive-data-handling|敏感数据处理]]
 
 ## 4. 规则（MUST/SHOULD）
 

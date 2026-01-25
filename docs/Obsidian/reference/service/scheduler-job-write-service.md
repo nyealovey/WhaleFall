@@ -17,7 +17,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/scheduler/scheduler_job_write_service.py
 related:
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Scheduler Job Write Service(内置任务触发器更新)

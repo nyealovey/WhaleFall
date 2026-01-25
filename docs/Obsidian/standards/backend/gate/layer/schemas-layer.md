@@ -13,13 +13,13 @@ updated: 2026-01-16
 owner: WhaleFall Team
 scope: "`app/schemas/**` 下所有 schema 与校验工具"
 related:
-  - "[[standards/backend/layer/README|后端分层标准]]"
-  - "[[standards/backend/request-payload-and-schema-validation]]"
-  - "[[standards/backend/or-fallback-decision-table]]"
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/types-layer-standards]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准]]"
+  - "[[standards/backend/gate/request-payload-and-schema-validation]]"
+  - "[[standards/backend/gate/or-fallback-decision-table]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/guide/layer/types-layer]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
 # Schemas 校验层编写规范
@@ -45,7 +45,7 @@ related:
 - MUST: schema 负责字段级校验与规范化（例如 `"" -> None`、`str.strip()`、布尔/整数转换）。
 - MUST NOT: schema 访问数据库或依赖 `db.session`。
 - MUST NOT: schema 依赖 `app.models.*`, `app.services.*`, `app.repositories.*`, `app.routes.*`, `app.api.*`。
-- SHOULD: schema 校验失败时输出中文错误文案，并与 [[standards/backend/error-message-schema-unification|错误消息字段统一]] 保持一致。
+- SHOULD: schema 校验失败时输出中文错误文案，并与 [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]] 保持一致。
 
 ### 2) 兼容/迁移(字段 alias 与形状兼容)
 
@@ -59,7 +59,7 @@ related:
 ### 3) 默认值与兜底(`or` 使用约束)
 
 - MUST: schema 中的默认值必须是“语义默认值”，并且可被审计（字段默认/`default_factory`/显式 `None`）。
-- MUST: 当合法值可能为 `0/""/[]/{}` 时，禁止用 `or` 兜底（会覆盖合法值）；应改为 `is None` 或显式缺失判定（参见 [[standards/backend/or-fallback-decision-table]]）。
+- MUST: 当合法值可能为 `0/""/[]/{}` 时，禁止用 `or` 兜底（会覆盖合法值）；应改为 `is None` 或显式缺失判定（参见 [[standards/backend/gate/or-fallback-decision-table]]）。
 - SHOULD: update/patch 场景必须用 `model_fields_set` 区分“缺失”与“显式提供但为空”（例如 `[]` 表示“清空”）。
 - MAY: 对“空白字符串视为缺省”的字段使用 `cleaned or None` 做 canonicalization，但必须在注释/命名中明确语义，并补单测覆盖空白/缺失/合法空串策略（例如 `_parse_optional_string`）。
 

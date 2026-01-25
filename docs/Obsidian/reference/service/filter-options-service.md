@@ -19,7 +19,7 @@ related:
   - "[[API/instances-api-contract]]"
   - "[[API/databases-api-contract]]"
   - "[[API/tags-api-contract]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Filter Options Service(通用筛选器选项)

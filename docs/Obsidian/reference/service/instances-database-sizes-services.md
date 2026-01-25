@@ -20,7 +20,7 @@ related:
   - "[[API/databases-api-contract]]"
   - "[[reference/service/database-sync-overview]]"
   - "[[reference/service/database-sync-table-sizes]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Instance Database Sizes Services(容量历史/表容量快照查询)

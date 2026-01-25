@@ -18,7 +18,7 @@ related:
   - "[[API/credentials-api-contract]]"
   - "[[reference/service/credential-write-service]]"
   - "[[architecture/domain/credentials-connections-domain]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Credentials List Service(凭据列表)

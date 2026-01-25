@@ -5,7 +5,7 @@
 > 创建: 2025-12-30
 > 更新: 2026-01-09
 > 范围: `docs/plans/**`
-> 关联: `docs/README.md`, `docs/Obsidian/standards/doc/documentation-standards.md`
+> 关联: `docs/README.md`, `docs/Obsidian/standards/doc/guide/documentation.md`
 
 本目录存放按日期归档的设计与实施方案. 建议从 `docs/README.md` 或相关模块文档链接进入, 并保持每个主题只有一个 "单一真源" 文档.
 

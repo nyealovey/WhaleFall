@@ -12,7 +12,7 @@ updated: 2026-01-22
 owner: WhaleFall Team
 scope: "`app/scheduler.py`, `app/tasks/**`, 调度器管理路由与后台线程"
 related:
-  - "[[standards/backend/sensitive-data-handling]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
 ---
 
 # 任务与调度(APScheduler)
@@ -54,7 +54,7 @@ related:
 
 - MUST：任务必须使用结构化日志（`get_system_logger()` 或模块 logger），禁止 `print`。
 - SHOULD：任务日志包含 `job_id/task_name` 等维度，便于在日志中心过滤。
-- SHOULD：任务失败时只记录必要诊断信息，避免把敏感数据写入日志(详见 [[standards/backend/sensitive-data-handling|敏感数据处理]])。
+- SHOULD：任务失败时只记录必要诊断信息，避免把敏感数据写入日志(详见 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]])。
 
 ## 生产部署建议
 

@@ -12,9 +12,9 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/utils/request_payload.py`, `app/schemas/**`, `app/services/**`, `app/api/v1/**`, `app/forms/handlers/**`"
 related:
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/layer/schemas-layer-standards]]"
-  - "[[standards/backend/compatibility-and-deprecation]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/gate/layer/schemas-layer]]"
+  - "[[standards/backend/design/compatibility-and-deprecation]]"
 ---
 
 # 请求 payload 解析与 schema 校验标准
@@ -30,7 +30,7 @@ related:
 
 - 所有写操作(创建/更新/批量写入/修改密码)的入口与服务层.
 - 任何从 JSON mapping(`request.get_json()`) 或 `MultiDict`(`request.form` 等) 进入系统的**写路径 body payload**.
-- 不包含 query 参数(`request.args`): API 使用 `reqparse`/`@ns.expect(parser)`；Routes 参考 [[standards/backend/layer/routes-layer-standards]] 的建议做显式 `strip/cast`。
+- 不包含 query 参数(`request.args`): API 使用 `reqparse`/`@ns.expect(parser)`；Routes 参考 [[standards/backend/gate/layer/routes-layer]] 的建议做显式 `strip/cast`。
 
 ## 3. 规则
 

@@ -16,7 +16,7 @@ related:
   - "[[architecture/spec]]"
   - "[[architecture/developer-entrypoint]]"
   - "[[architecture/identity-access]]"
-  - "[[standards/backend/layer/README|后端分层标准]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准]]"
   - "[[operations/observability-ops]]"
 ---
 
@@ -92,5 +92,5 @@ related:
 - 落点: `app/repositories/**`
 - 职责: 只读 query 组合, 数据访问细节, 避免在上层散落复杂查询.
 
-分层依赖方向见 [[standards/backend/layer/README|后端分层标准]] 与 [[architecture/module-dependency-graph]].
+分层依赖方向见 [[standards/backend/guide/layer/README|后端分层标准]] 与 [[architecture/module-dependency-graph]].
 

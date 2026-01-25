@@ -12,7 +12,7 @@ updated: 2026-01-14
 owner: WhaleFall Team
 scope: "`app/templates/**` 与 `app/static/js/**` 中所有可复用组件(含 Jinja 宏)"
 related:
-  - "[[standards/ui/javascript-module-standards]]"
+  - "[[standards/ui/design/javascript-module]]"
 ---
 
 # 可复用组件 DOM id 作用域规范

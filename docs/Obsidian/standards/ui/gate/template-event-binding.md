@@ -12,9 +12,9 @@ updated: 2026-01-15
 owner: WhaleFall FE
 scope: "`app/templates/**`"
 related:
-  - "[[standards/ui/layer/page-entry-layer-standards]]"
-  - "[[standards/ui/layer/views-layer-standards]]"
-  - "[[standards/ui/grid-standards]]"
+  - "[[standards/ui/design/layer/page-entry-layer]]"
+  - "[[standards/ui/design/layer/views-layer]]"
+  - "[[standards/ui/gate/grid]]"
 ---
 
 # 模板事件绑定规范
@@ -37,8 +37,8 @@ related:
 
 ### 2) 与分层的关系（落点）
 
-- MUST：页面级事件绑定由 [[standards/ui/layer/page-entry-layer-standards|Page Entry]] 或 [[standards/ui/layer/views-layer-standards|Views]] 负责；模板不得承载 JS 逻辑。
-- SHOULD：Grid 列表页行内动作优先使用 `Views.GridPlugins.actionDelegation(...)`（见 [[standards/ui/grid-standards]]）。
+- MUST：页面级事件绑定由 [[standards/ui/design/layer/page-entry-layer|Page Entry]] 或 [[standards/ui/design/layer/views-layer|Views]] 负责；模板不得承载 JS 逻辑。
+- SHOULD：Grid 列表页行内动作优先使用 `Views.GridPlugins.actionDelegation(...)`（见 [[standards/ui/gate/grid]]）。
 
 ## 正反例
 

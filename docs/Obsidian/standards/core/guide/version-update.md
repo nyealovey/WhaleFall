@@ -12,7 +12,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: 发布版本号(`MAJOR.MINOR.PATCH`)更新、版本展示与版本漂移治理
 related:
-  - "[[standards/git-workflow-standards]]"
+  - "[[standards/core/guide/git-workflow]]"
   - "[[reference/development/version-update-checklist]]"
 ---
 

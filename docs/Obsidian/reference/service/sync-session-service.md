@@ -17,7 +17,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/sync_session_service.py
 related:
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Sync Session Service(同步会话/实例记录状态机)

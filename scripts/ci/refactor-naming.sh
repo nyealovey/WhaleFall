@@ -109,7 +109,7 @@ fi
 echo "❌ 检测到以下命名问题（报告已写入 $REPORT_PATH）："
 printf '%s\n' "${issues[@]}"
 echo
-echo "👉 请根据 docs/Obsidian/standards/naming-standards.md 执行命名修复与重命名。"
+echo "👉 请根据 docs/Obsidian/standards/core/gate/naming.md 执行命名修复与重命名。"
 
 if [[ "$DRY_RUN" == true ]]; then
   exit 1

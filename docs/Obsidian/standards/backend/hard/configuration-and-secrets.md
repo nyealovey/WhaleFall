@@ -12,9 +12,9 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: 配置读取(`app/settings.py`)、环境变量(`.env`/`env.example`)、部署注入与密钥管理
 related:
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/settings-layer-standards]]"
-  - "[[standards/backend/bootstrap-and-entrypoint]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/gate/layer/settings-layer]]"
+  - "[[standards/backend/gate/bootstrap-and-entrypoint]]"
 ---
 
 # 配置与密钥(Settings/.env/env.example)
@@ -37,7 +37,7 @@ related:
 - MUST：新增/修改配置项必须落在 `app/settings.py` 的 `Settings`（解析 + 默认值 + 校验）。
 - MUST：`create_app(settings=...)` 只消费 `Settings`（或其 `to_flask_config()`），不得在工厂函数内直接读取环境变量。
 - MUST NOT：在业务模块中新增 `os.environ.get(...)` 读取配置（除非属于“密钥读取工具”的封装层，且在本文件明确记录）。
-  - 入口脚本（`app.py`, `wsgi.py`）允许设置少量运行默认值，详见 [[standards/backend/bootstrap-and-entrypoint|Bootstrap/Entrypoint 启动规范]]。
+  - 入口脚本（`app.py`, `wsgi.py`）允许设置少量运行默认值，详见 [[standards/backend/gate/bootstrap-and-entrypoint|Bootstrap/Entrypoint 启动规范]]。
 
 ### 2) `.env` 与 `env.example`
 

@@ -12,8 +12,8 @@ owner: WhaleFall Team
 scope: `standards/backend/layer/**` 引用的长代码示例与正反例集合(非规则 SSOT)
 related:
   - "[[reference/examples/README]]"
-  - "[[standards/backend/layer/README]]"
-  - "[[standards/doc/document-boundary-standards]]"
+  - "[[standards/backend/guide/layer/README]]"
+  - "[[standards/doc/guide/document-boundary]]"
 ---
 
 # Backend 分层示例(长示例)

@@ -14,10 +14,10 @@ updated: 2026-01-14
 owner: WhaleFall Team
 scope: 内部 JSON payload（snapshot/cache/JSON column）的结构稳定、版本化与兼容退出策略
 related:
-  - "[[standards/backend/layer/schemas-layer-standards]]"
-  - "[[standards/backend/layer/types-layer-standards]]"
-  - "[[standards/backend/compatibility-and-deprecation]]"
-  - "[[standards/backend/sensitive-data-handling]]"
+  - "[[standards/backend/gate/layer/schemas-layer]]"
+  - "[[standards/backend/guide/layer/types-layer]]"
+  - "[[standards/backend/design/compatibility-and-deprecation]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
 ---
 
 # 内部数据契约与版本化(Internal Data Contract)
@@ -39,9 +39,9 @@ related:
 
 不包含：
 
-- HTTP body payload（见 [[standards/backend/request-payload-and-schema-validation]]）
-- YAML 配置文件（见 [[standards/backend/yaml-config-validation]]）
-- 结构化日志/审计日志的上下文字段（例如 `UnifiedLog.context`）：该类字段以“可扩展诊断上下文”为目标，允许自由扩展 key，但必须遵循 [[standards/backend/sensitive-data-handling]] 的脱敏约束。
+- HTTP body payload（见 [[standards/backend/gate/request-payload-and-schema-validation]]）
+- YAML 配置文件（见 [[standards/backend/gate/yaml-config-validation]]）
+- 结构化日志/审计日志的上下文字段（例如 `UnifiedLog.context`）：该类字段以“可扩展诊断上下文”为目标，允许自由扩展 key，但必须遵循 [[standards/backend/hard/sensitive-data-handling]] 的脱敏约束。
 
 ## 3. 术语
 
@@ -109,7 +109,7 @@ related:
   - `data.get("new") or data.get("old")`
   - `_ensure_str_list_from_dicts(x) or _ensure_str_list(x)`
   - `payload.get("x") or []`（当 `[]` 可能是合法值时）
-- SHOULD: adapter/normalizer 优先使用 pydantic model（或 TypedDict + 显式 normalize 函数），并遵循 [[standards/backend/layer/schemas-layer-standards]] 的兼容/默认值约束。
+- SHOULD: adapter/normalizer 优先使用 pydantic model（或 TypedDict + 显式 normalize 函数），并遵循 [[standards/backend/gate/layer/schemas-layer]] 的兼容/默认值约束。
 
 ### 4.3 `or` 兜底使用约束（关键）
 
@@ -119,7 +119,7 @@ related:
 ### 4.4 兼容退出机制（防止永久化）
 
 - MUST: 每个 adapter 支持的历史版本集合必须可枚举（例如只支持 v3/v4，不允许“无限兼容”）。
-- SHOULD: 每个历史版本兼容分支必须有退出策略，参考 [[standards/backend/compatibility-and-deprecation]]。
+- SHOULD: 每个历史版本兼容分支必须有退出策略，参考 [[standards/backend/design/compatibility-and-deprecation]]。
 
 ## 5. 门禁/检查方式（建议）
 

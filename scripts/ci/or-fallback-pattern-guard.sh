@@ -6,9 +6,9 @@
 # - 禁止 internal contract 相关模块在 version 不匹配时 silent fallback 为 `{}`/`[]`
 #
 # 参考：
-# - docs/Obsidian/standards/backend/or-fallback-decision-table.md
-# - docs/Obsidian/standards/backend/layer/schemas-layer-standards.md
-# - docs/Obsidian/standards/backend/internal-data-contract-and-versioning.md
+# - docs/Obsidian/standards/backend/gate/or-fallback-decision-table.md
+# - docs/Obsidian/standards/backend/gate/layer/schemas-layer.md
+# - docs/Obsidian/standards/backend/gate/internal-data-contract-and-versioning.md
 
 set -euo pipefail
 
@@ -35,7 +35,7 @@ if [[ -n "${alias_hits}" ]]; then
   echo "${alias_hits}" >&2
   echo "" >&2
   echo "请将字段 alias/迁移下沉到 schema/adapter（例如 Pydantic v2 AliasChoices 或 model_validator），避免覆盖合法 falsy 值导致语义漂移。" >&2
-  echo "参考：docs/Obsidian/standards/backend/or-fallback-decision-table.md" >&2
+  echo "参考：docs/Obsidian/standards/backend/gate/or-fallback-decision-table.md" >&2
   exit 1
 fi
 
@@ -48,7 +48,7 @@ if [[ -n "${empty_fallback_hits}" ]]; then
   echo "${empty_fallback_hits}" >&2
   echo "" >&2
   echo "请将默认值/缺失处理下沉到 schema/adapter（Pydantic default/default_factory 或 explicit None/key-in-dict 判定），避免把缺失/None/显式空合并为同一语义。" >&2
-  echo "参考：docs/Obsidian/standards/backend/or-fallback-decision-table.md" >&2
+  echo "参考：docs/Obsidian/standards/backend/gate/or-fallback-decision-table.md" >&2
   exit 1
 fi
 
@@ -68,7 +68,7 @@ if [[ -n "${contract_hits}" ]]; then
   echo "${contract_hits}" >&2
   echo "" >&2
 echo "未知版本必须显式失败（fail-fast 或返回 InternalContractResult(ok=false, ...)），禁止 return {} / [] 继续消费。" >&2
-echo "参考：docs/Obsidian/standards/backend/internal-data-contract-and-versioning.md" >&2
+echo "参考：docs/Obsidian/standards/backend/gate/internal-data-contract-and-versioning.md" >&2
 exit 1
 fi
 

@@ -12,9 +12,9 @@ updated: 2026-01-13
 owner: WhaleFall Team
 scope: "`app/config/*.yaml`, `app/schemas/yaml_configs.py`, 相关读取入口"
 related:
-  - "[[standards/backend/configuration-and-secrets]]"
-  - "[[standards/backend/request-payload-and-schema-validation]]"
-  - "[[standards/backend/compatibility-and-deprecation]]"
+  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/gate/request-payload-and-schema-validation]]"
+  - "[[standards/backend/design/compatibility-and-deprecation]]"
 ---
 
 # YAML 配置读取与校验标准
