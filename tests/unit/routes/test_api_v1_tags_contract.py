@@ -167,7 +167,10 @@ def test_api_v1_tags_categories_contract() -> None:
 
         data = payload.get("data")
         assert isinstance(data, dict)
-        assert isinstance(data.get("categories"), list)
+        categories = data.get("categories")
+        assert isinstance(categories, list)
+        assert categories == ["other"]
+        assert all(isinstance(item, str) for item in categories)
 
 
 @pytest.mark.unit

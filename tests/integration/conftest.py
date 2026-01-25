@@ -10,6 +10,7 @@ import os
 
 import pytest
 
+
 def _require_integration_database_url() -> str:
     """集成测试必须显式配置真实数据库（禁止默认 sqlite fallback）。"""
     database_url = os.environ.get("DATABASE_URL", "")

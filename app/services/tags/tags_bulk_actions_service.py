@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from app.core.constants.system_constants import ErrorMessages
-from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -248,5 +247,5 @@ class TagsBulkActionsService:
             all_tags.update(tags_relation.all())
 
         tags_data = [tag.to_dict() for tag in all_tags]
-        category_names = dict(TAG_CATEGORY_CHOICES)
+        category_names = {tag.category: tag.category for tag in all_tags if tag.category}
         return TagsBulkInstanceTagsResult(tags=tags_data, category_names=category_names)
