@@ -165,5 +165,7 @@ class ClassificationCache:
         manager = self._get_manager()
         if not manager:
             return False
-        return manager.delete(_classification_rules_key_by_db_type(db_type))
-
+        # 当前分类规则读取仅依赖全量 key（`classification_rules:all`）。
+        # db_type 定向清理为了保持对外语义可用，选择同时清理全量 key，确保后续读取可回源更新。
+        ok = manager.delete(_CLASSIFICATION_RULES_ALL_KEY)
+        return manager.delete(_classification_rules_key_by_db_type(db_type)) and ok

@@ -238,33 +238,42 @@ class CacheActionsService:
         stats = manager.get_stats()
         db_type_stats: dict[str, dict[str, object]] = {}
 
+        all_rules: list[object] | None = None
+        try:
+            all_key = f"{_CLASSIFICATION_RULES_PREFIX}:all"
+            all_rules = _extract_rules_from_cache(manager.get(all_key))
+        except Exception as exc:
+            log_fallback(
+                "warning",
+                "获取分类缓存统计失败",
+                module="cache",
+                action="get_classification_cache_stats",
+                fallback_reason="cache_stats_failed",
+                context={},
+                extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
+            )
+
+        grouped_counts: dict[str, int] = {db_type: 0 for db_type in CLASSIFICATION_DB_TYPES}
+        if all_rules is not None:
+            for rule in all_rules:
+                if not isinstance(rule, dict):
+                    continue
+                db_type_raw = rule.get("db_type")
+                if not isinstance(db_type_raw, str):
+                    continue
+                normalized = db_type_raw.strip().lower()
+                if normalized in grouped_counts:
+                    grouped_counts[normalized] += 1
+
+        rules_cached = all_rules is not None
         for db_type in CLASSIFICATION_DB_TYPES:
-            cache_key = f"{_CLASSIFICATION_RULES_PREFIX}:{db_type}"
-            try:
-                rules_cache = _extract_rules_from_cache(manager.get(cache_key))
-                db_type_stats[db_type] = {
-                    "rules_cached": rules_cache is not None,
-                    "rules_count": len(rules_cache) if rules_cache else 0,
-                }
-            except Exception as exc:
-                log_fallback(
-                    "warning",
-                    "获取数据库类型缓存统计失败",
-                    module="cache",
-                    action="get_classification_cache_stats",
-                    fallback_reason="cache_stats_failed",
-                    context={"db_type": db_type},
-                    extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
-                )
-                db_type_stats[db_type] = {
-                    "rules_cached": False,
-                    "rules_count": 0,
-                    "error": str(exc),
-                }
+            db_type_stats[db_type] = {
+                "rules_cached": rules_cached,
+                "rules_count": grouped_counts.get(db_type, 0),
+            }
 
         return CacheClassificationStatsResult(
             cache_stats=stats,
             db_type_stats=db_type_stats,
             cache_enabled=True,
         )
-

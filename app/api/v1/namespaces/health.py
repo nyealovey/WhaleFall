@@ -25,6 +25,7 @@ from app.utils.time_utils import time_utils
 
 ns = Namespace("health", description="健康检查")
 
+
 def check_database_health() -> dict[str, object]:
     """检查数据库健康状态."""
     result = check_database_health_service()
