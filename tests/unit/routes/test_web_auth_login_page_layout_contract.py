@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 
@@ -20,13 +18,3 @@ def test_web_auth_login_page_does_not_render_marketing_hero(client) -> None:
     html = response.get_data(as_text=True)
     assert "login-hero" not in html
     assert "统一的数据库运维控制台" not in html
-
-
-@pytest.mark.unit
-def test_web_auth_login_page_css_does_not_use_gradient_background() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
-    css_path = repo_root / "app/static/css/pages/auth/login.css"
-
-    css = css_path.read_text(encoding="utf-8")
-    assert "radial-gradient(" not in css
-    assert "linear-gradient(" not in css

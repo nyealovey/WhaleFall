@@ -9,7 +9,7 @@ tags:
 status: active
 enforcement: gate
 created: 2026-01-09
-updated: 2026-01-13
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/services/**` 下所有业务服务"
 related:
@@ -201,6 +201,7 @@ class BadService:
 
 - 增量门禁（禁止新增 services 直查库/query）：`./scripts/ci/services-repository-enforcement-guard.sh`
 - 增量门禁（禁止新增 services 内 `db.session.commit()`）：`./scripts/ci/db-session-commit-services-drift-guard.sh`（事务边界见 [[standards/backend/standard/write-operation-boundary]]）
+- 静态门禁（rollback allowlist）：`./scripts/ci/db-session-rollback-allowlist-guard.sh`
 - 评审检查:
   - 是否存在在 Service 内返回 `Response` 或依赖 `flask.request`?
   - 是否存在在 Repository 内 `commit`?

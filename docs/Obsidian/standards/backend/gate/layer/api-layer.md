@@ -411,6 +411,7 @@ class BadResource(Resource):
 ## 门禁/检查方式
 
 - 静态门禁：`./scripts/ci/api-layer-guard.sh`
+- 静态门禁（v1 JSON body expect）：`./scripts/ci/api-v1-ns-expect-guard.sh`
 - 评审检查:
   - 是否所有 `Resource` 方法都通过 `BaseResource.safe_call(...)` 或 `safe_route_call(...)` 统一兜底?
   - 是否出现 `Model.query`/`db.session`/原生 SQL?

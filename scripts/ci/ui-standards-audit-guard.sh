@@ -23,7 +23,12 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-PY_BIN="${PY_BIN:-python3}"
+DEFAULT_PY_BIN="python3"
+if [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
+  # CI 默认会通过 uv 创建 .venv；优先使用项目虚拟环境，避免依赖落在 system site-packages。
+  DEFAULT_PY_BIN="${ROOT_DIR}/.venv/bin/python"
+fi
+PY_BIN="${PY_BIN:-${DEFAULT_PY_BIN}}"
 if ! command -v "${PY_BIN}" >/dev/null 2>&1; then
   echo "未检测到 python3，无法执行 UI standards audit 门禁检查。" >&2
   exit 1
@@ -229,6 +234,19 @@ def _check_instances_detail_no_legacy_instance_stat_card() -> None:
         _fail(f"{rel_path} 仍包含私有指标卡样式 token: {', '.join(hits)}")
 
 
+def _check_auth_login_css_no_gradient_background() -> None:
+    repo_root = _repo_root()
+    rel_path = "app/static/css/pages/auth/login.css"
+    css_text = (repo_root / rel_path).read_text(encoding="utf-8", errors="ignore")
+    forbidden_tokens = [
+        "radial-gradient(",
+        "linear-gradient(",
+    ]
+    hits = [token for token in forbidden_tokens if token in css_text]
+    if hits:
+        _fail(f"{rel_path} 禁止使用渐变背景 token: {', '.join(hits)}")
+
+
 def _check_templates_no_fixed_component_ids() -> None:
     repo_root = _repo_root()
     env = Environment()
@@ -419,6 +437,7 @@ def main() -> int:
     checks = [
         _check_no_hardcoded_hex_colors_in_project_js,
         _check_instances_detail_no_legacy_instance_stat_card,
+        _check_auth_login_css_no_gradient_background,
         _check_templates_no_fixed_component_ids,
         _check_no_direct_gridjs_grid_in_views_modules,
     ]
@@ -439,4 +458,3 @@ def main() -> int:
 
 raise SystemExit(main())
 PY
-

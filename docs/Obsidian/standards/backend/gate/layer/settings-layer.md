@@ -10,7 +10,7 @@ tags:
 status: active
 enforcement: gate
 created: 2026-01-12
-updated: 2026-01-12
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/settings.py` 统一配置读取与校验"
 related:
@@ -87,6 +87,7 @@ related:
 
 ## 门禁/检查方式
 
+- 静态门禁（env 读取集中）：`./scripts/ci/settings-env-read-guard.sh`
 - 评审检查:
   - 是否把 env 读取散落到业务模块？
   - 是否出现 `or` 兜底覆盖合法空值？
@@ -100,4 +101,3 @@ rg -n "os\\.(environ\\.get|getenv)\\(" app | rg -v "app/settings\\.py|app\\.py|w
 ## 变更历史
 
 - 2026-01-12: 新增 Settings/Config 层标准, 覆盖 `app/settings.py`.
-

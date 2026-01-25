@@ -49,7 +49,10 @@ for t in "${TARGETS[@]}"; do
 done
 
 if ((${#existing_targets[@]})); then
-  hits="$("${RG_BIN}" -n --hidden -- "${LEGACY_HEALTH_API_PREFIX}" "${existing_targets[@]}" || true)"
+  # 排除 scripts/ci：门禁脚本自身会包含“旧路径”字面量（用于说明/变量），不应被扫描目标命中。
+  hits="$(
+    "${RG_BIN}" -n --hidden --glob '!scripts/ci/**' -- "${LEGACY_HEALTH_API_PREFIX}" "${existing_targets[@]}" || true
+  )"
   if [[ -n "${hits}" ]]; then
     echo "发现旧健康检查 API 路径引用(将导致 410)：" >&2
     echo "${hits}" >&2
@@ -101,4 +104,3 @@ if [[ -f "${MAKEFILE_PROD}" ]]; then
 fi
 
 echo "✅ ops legacy 门禁通过。"
-

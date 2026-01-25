@@ -371,9 +371,17 @@ pytest --cov=app --cov-report=xml tests/
 
 ## 12. 门禁与检查
 
-### 12.1 CI 门禁
+### 12.0 Tests vs Gates（强约束）
 
-- MUST：所有单元测试通过
+- MUST：`tests/` 只保留“运行时行为/契约验证”（例如 API contract、service 规则、schema 校验）。
+- MUST NOT：在 `tests/` 内写“扫描仓库源码/目录结构/模板/静态文件文本”的门禁（例如 `rglob/read_text/rg` 扫描 `app/**`）。此类检查必须落在 `scripts/ci/**`，并在 CI gates job 中执行。
+- MUST：新增门禁脚本必须在对应 SSOT 文档的“门禁/检查方式”登记（避免只有脚本没有入口导致规则漂移）。
+
+### 12.1 CI 门禁（强约束）
+
+- MUST：全量测试必跑且必须通过：`uv run pytest`
+- MUST：门禁脚本必跑且必须通过：`./scripts/ci/**`（见 `docs/Obsidian/standards/core/guide/scripts.md` 的门禁清单）
+- MUST：测试中不得出现 `pytest.skip`（如确需引入，必须在 PR 中说明“场景/复现/替代方案/退场机制”，并明确是否进入 CI）
 - SHOULD：新增/修改测试尽量补齐 marker(便于筛选运行)
 - SHOULD：覆盖率不低于团队当前基线(趋势观察优先)
 

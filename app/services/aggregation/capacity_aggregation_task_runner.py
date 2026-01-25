@@ -15,9 +15,9 @@ from typing import Any
 import structlog
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.core.constants.status_types import SyncStatus
 from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import AppError
-from app.core.constants.status_types import SyncStatus
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession

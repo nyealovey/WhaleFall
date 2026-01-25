@@ -8,7 +8,7 @@ tags:
 status: active
 enforcement: gate
 created: 2025-12-29
-updated: 2026-01-14
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/templates/**` 与 `app/static/js/**` 中所有可复用组件(含 Jinja 宏)"
 related:
@@ -86,6 +86,7 @@ TagSelectorHelper.setupForForm({
 ## 门禁/检查方式
 
 - `./scripts/ci/tag-selector-filter-id-guard.sh`
+- 聚合 audit 门禁（fixed id 回归）：`./scripts/ci/ui-standards-audit-guard.sh`
 
 ## 变更历史
 

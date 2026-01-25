@@ -8,7 +8,7 @@ tags:
 status: active
 enforcement: design
 created: 2025-12-25
-updated: 2026-01-24
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/static/js/modules/**`(services/stores/views/ui)与相关全局对象(`DOMHelpers/httpU/UI`)"
 related:
@@ -116,6 +116,7 @@ related:
 ## 门禁/检查方式
 
 - ESLint 报告(改动 `app/static/js` 时建议执行): `./scripts/ci/eslint-report.sh quick`
+- 分层/注入 contracts 门禁：`./scripts/ci/frontend-contracts-guard.sh`
 - 安全规则提醒: 出现 `security/detect-object-injection` 时优先用 allowlist/固定映射消除, 而不是关闭规则
 
 ## 变更历史
