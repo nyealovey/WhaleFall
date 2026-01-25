@@ -150,16 +150,16 @@ def test_cache_manager_set_ttl_zero_is_preserved() -> None:
 
 @pytest.mark.unit
 def test_cache_actions_clear_all_cache_logs_fallback_and_counts(monkeypatch) -> None:
-    class _DummyManager:
-        @staticmethod
-        def invalidate_instance_cache(instance_id: int) -> bool:
-            if instance_id == 1:
-                return True
-            if instance_id == 2:
-                return False
-            raise RuntimeError("boom")
+    def _fake_invalidate_instance_cache(instance_id: int) -> bool:
+        if instance_id == 1:
+            return True
+        if instance_id == 2:
+            return False
+        raise RuntimeError("boom")
 
-    monkeypatch.setattr(CacheActionsService, "_require_cache_service", staticmethod(lambda: _DummyManager()))
+    monkeypatch.setattr(
+        CacheActionsService, "_invalidate_instance_cache", staticmethod(_fake_invalidate_instance_cache)
+    )
     monkeypatch.setattr(
         InstancesRepository,
         "list_active_instances",
@@ -210,16 +210,16 @@ def test_cache_actions_clear_all_cache_logs_fallback_and_counts(monkeypatch) -> 
 def test_cache_actions_classification_stats_partial_failure_logs_fallback(monkeypatch) -> None:
     class _DummyManager:
         @staticmethod
-        def get_cache_stats() -> dict[str, object]:
+        def get_stats() -> dict[str, object]:
             return {"keys": 1}
 
         @staticmethod
-        def get_classification_rules_by_db_type_cache(db_type: str):  # noqa: ANN001
-            if db_type == "mysql":
+        def get(key: str):  # noqa: ANN001
+            if key.endswith(":mysql"):
                 raise RuntimeError("boom")
-            return [{"id": 1}]
+            return {"rules": [{"id": 1}]}
 
-    monkeypatch.setattr(CacheActionsService, "_require_cache_service", staticmethod(lambda: _DummyManager()))
+    monkeypatch.setattr(CacheActionsService, "_get_cache_manager", staticmethod(lambda: _DummyManager()))
     monkeypatch.setattr(cache_actions_service_module, "CLASSIFICATION_DB_TYPES", ("mysql", "postgresql"))
 
     fallback_calls: list[str] = []
