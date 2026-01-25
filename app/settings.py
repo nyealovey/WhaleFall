@@ -381,6 +381,9 @@ class Settings(BaseSettings):
             "DB_SIZE_COLLECTION_INTERVAL": self.db_size_collection_interval_hours,
             "DB_SIZE_COLLECTION_TIMEOUT": self.db_size_collection_timeout_seconds,
         }
+        payload["RATELIMIT_STORAGE_URI"] = (
+            self.cache_redis_url if self.cache_type == "redis" and self.cache_redis_url else "memory://"
+        )
         if self.cache_type == "redis" and self.cache_redis_url:
             payload["CACHE_REDIS_URL"] = self.cache_redis_url
         return payload

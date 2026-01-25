@@ -5,12 +5,13 @@ from typing import cast
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
+from app import limiter
 from app.core.constants import FlashCategory, HttpHeaders, HttpMethod
 from app.infra.flask_typing import RouteCallable, RouteReturn
+from app.infra.rate_limiting import build_login_rate_limit, login_rate_limit_key
 from app.infra.route_safety import safe_route_call
 from app.services.auth.login_service import LoginService
 from app.utils.decorators import require_csrf
-from app.utils.rate_limiter import login_rate_limit
 from app.utils.redirect_safety import resolve_safe_redirect_target
 from app.utils.structlog_config import get_auth_logger
 
@@ -130,7 +131,10 @@ def login() -> RouteReturn:
 
 auth_bp.add_url_rule(
     "/login",
-    view_func=cast(RouteCallable, login_rate_limit()(require_csrf(login))),
+    view_func=cast(
+        RouteCallable,
+        limiter.limit(build_login_rate_limit, methods=["POST"], key_func=login_rate_limit_key)(require_csrf(login)),
+    ),
     methods=["GET", "POST"],
 )
 

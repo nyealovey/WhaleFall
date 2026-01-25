@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, cast
 import pymssql  # type: ignore[import-not-found]
 
 from app.core.types import DBAPICursor
-from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
 
 from .base import (
     ConnectionAdapterError,
@@ -107,11 +106,6 @@ class SQLServerConnection(DatabaseConnection):
                 tds_version="7.2",
             )
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
-            diagnosis = sqlserver_connection_utils.diagnose_connection_error(
-                str(exc),
-                self.instance.host,
-                self.instance.port,
-            )
             self.db_logger.exception(
                 "SQL Server连接失败",
                 module="connection",
@@ -123,7 +117,6 @@ class SQLServerConnection(DatabaseConnection):
                 username=username,
                 error=str(exc),
                 error_type=type(exc).__name__,
-                diagnosis=diagnosis,
             )
             return False
         else:

@@ -10,14 +10,15 @@ from flask_login import current_user, logout_user
 from flask_restx import Namespace, fields
 from flask_wtf.csrf import generate_csrf
 
+from app import limiter
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required
 from app.core.constants import TimeConstants
 from app.core.constants.system_constants import SuccessMessages
+from app.infra.rate_limiting import build_login_rate_limit, login_rate_limit_key, password_reset_rate_limit_key
 from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
-from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 
 ns = Namespace("auth", description="认证")
 
@@ -144,7 +145,7 @@ class LoginResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(429, "Too Many Requests", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @login_rate_limit()
+    @limiter.limit(build_login_rate_limit, key_func=login_rate_limit_key)
     @require_csrf
     def post(self):
         """执行登录."""
@@ -204,7 +205,7 @@ class ChangePasswordResource(BaseResource):
     @ns.response(429, "Too Many Requests", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_login_required
-    @password_reset_rate_limit()
+    @limiter.limit("3 per hour", key_func=password_reset_rate_limit_key)
     @require_csrf
     def post(self):
         """修改密码."""

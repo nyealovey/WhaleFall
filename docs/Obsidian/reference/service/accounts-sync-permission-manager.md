@@ -320,10 +320,6 @@ object 命名规则: `object = "<label>:<key>"`(key 非空) 否则 `object = "<l
 
 ## 7. 可观测性与异常路径要点
 
-- Prometheus:
-  - `account_permission_snapshot_write_success_total{db_type}`
-  - `account_permission_snapshot_write_failed_total{db_type,error_type}`
-  - `account_permission_snapshot_build_duration_seconds{db_type}`
 - SQLAlchemyError:
   - `synchronize()` 在 `flush()` 失败时记录 `account_permission_sync_flush_failed` 并向上抛出.
 - 变更日志异常:
@@ -333,7 +329,6 @@ object 命名规则: `object = "<label>:<key>"`(key 非空) 否则 `object = "<l
 
 | 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
 | --- | --- | --- | --- | --- |
-| `app/services/accounts_sync/permission_manager.py:95` | 兼容/防御 | Prometheus client 缺失时用 `_NoopMetric` 降级(避免 import 失败) | `prometheus_client` 未安装或不可用 | 若线上强依赖指标: 固化依赖并移除 no-op 分支；否则保留 |
 | `app/services/accounts_sync/permission_manager.py:137` | 防御/清洗 | `type_specific` 禁用键清洗(移除 `is_superuser/is_locked/roles/privileges`) | 上游把敏感/重复字段塞进 `type_specific` | 上游不再产出禁用键后删除清洗与对应错误码 |
 | `app/services/accounts_sync/permission_manager.py:187` | 防御 | `message or summary.get("message") or ...` 补齐异常 message | 调用方未传 message/summary 缺字段 | summary schema 稳定后删除兜底 |
 | `app/services/accounts_sync/permission_manager.py:477` | 防御 | `(permissions or {})` 避免 `permissions=None` 触发崩溃 | 上游传入 None(违反约定) | 上游强约束 + 单测覆盖后删除 |

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
@@ -69,52 +68,6 @@ OTHER_FIELD_LABELS: dict[str, str] = {
     "is_locked": "锁定状态",
     "type_specific": "数据库特性",
 }
-
-try:  # pragma: no cover - optional dependency
-    from prometheus_client import Counter as _Counter, Histogram as _Histogram  # type: ignore[import-not-found]
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    _Counter = None
-    _Histogram = None
-
-
-class _NoopMetric:
-    def labels(self, *_args: object, **_kwargs: object) -> _NoopMetric:
-        return self
-
-    def inc(self, *_args: object, **_kwargs: object) -> None:
-        return
-
-    def observe(self, *_args: object, **_kwargs: object) -> None:
-        return
-
-
-def _build_counter(name: str, documentation: str, labelnames: list[str]) -> _NoopMetric:
-    if _Counter is None:  # pragma: no cover
-        return _NoopMetric()
-    return _Counter(name, documentation, labelnames)  # type: ignore[return-value]
-
-
-def _build_histogram(name: str, documentation: str, labelnames: list[str]) -> _NoopMetric:
-    if _Histogram is None:  # pragma: no cover
-        return _NoopMetric()
-    return _Histogram(name, documentation, labelnames)  # type: ignore[return-value]
-
-
-snapshot_write_success = _build_counter(
-    "account_permission_snapshot_write_success_total",
-    "Account permission snapshot write successes.",
-    ["db_type"],
-)
-snapshot_write_failed = _build_counter(
-    "account_permission_snapshot_write_failed_total",
-    "Account permission snapshot write failures.",
-    ["db_type", "error_type"],
-)
-snapshot_build_duration = _build_histogram(
-    "account_permission_snapshot_build_duration_seconds",
-    "Account permission snapshot build duration.",
-    ["db_type"],
-)
 
 _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "mysql_global_privileges": "mysql_global_privileges",
@@ -486,20 +439,10 @@ class AccountPermissionManager:
                 record.type_specific = normalize_type_specific_v1(sanitized_type_specific)
                 permissions = {**permissions, "type_specific": dict(sanitized_type_specific)}
 
-        db_type_label_value = getattr(record, "db_type", None)
-        db_type_label = "unknown" if db_type_label_value in (None, "") else str(db_type_label_value).lower()
-        started = time.perf_counter()
-        try:
-            record.permission_snapshot = self._build_permission_snapshot(
-                record,
-                permissions,
-            )
-        except Exception as exc:  # pragma: no cover - 防御性
-            snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
-            raise
-        else:
-            snapshot_write_success.labels(db_type=db_type_label).inc()
-            snapshot_build_duration.labels(db_type=db_type_label).observe(time.perf_counter() - started)
+        record.permission_snapshot = self._build_permission_snapshot(
+            record,
+            permissions,
+        )
 
         try:
             record.permission_facts = build_permission_facts(
