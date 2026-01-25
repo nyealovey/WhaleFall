@@ -12,8 +12,8 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.core.constants.system_constants import SuccessMessages
-from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
 from app.services.health.health_checks_service import (
+    check_cache_health as check_cache_health_service,
     check_database_health as check_database_health_service,
     check_ping,
     get_basic_health,
@@ -25,14 +25,6 @@ from app.utils.time_utils import time_utils
 
 ns = Namespace("health", description="健康检查")
 
-CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (*CACHE_EXCEPTIONS, ConnectionError)
-
-
-def _get_cache_service() -> CacheService | None:
-    """返回已初始化的缓存服务实例."""
-    return cache_service
-
-
 def check_database_health() -> dict[str, object]:
     """检查数据库健康状态."""
     result = check_database_health_service()
@@ -42,11 +34,8 @@ def check_database_health() -> dict[str, object]:
 
 def check_cache_health() -> dict[str, object]:
     """检查缓存健康状态."""
-    manager = _get_cache_service()
-    try:
-        is_ok = bool(manager and manager.health_check())
-    except CACHE_HEALTH_EXCEPTIONS:
-        is_ok = False
+    result = check_cache_health_service()
+    is_ok = bool(result.get("healthy"))
     return {"healthy": is_ok, "status": "connected" if is_ok else "error"}
 
 

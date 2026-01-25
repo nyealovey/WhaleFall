@@ -16,14 +16,14 @@ from app import app_start_time, cache
 from app.core.constants import TimeConstants
 from app.infra.route_safety import log_with_context
 from app.repositories.health_repository import HealthRepository
-from app.services.cache_service import CACHE_EXCEPTIONS
 from app.settings import APP_VERSION
+from app.utils.cache_utils import CACHE_OPERATION_EXCEPTIONS
 from app.utils.time_utils import time_utils
 
 RESOURCE_USAGE_THRESHOLD = 90
 
 DATABASE_HEALTH_EXCEPTIONS: tuple[type[Exception], ...] = (SQLAlchemyError,)
-CACHE_HEALTH_EXCEPTIONS: tuple[type[Exception], ...] = (*CACHE_EXCEPTIONS, ConnectionError)
+CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (*CACHE_OPERATION_EXCEPTIONS, AttributeError, OSError)
 SYSTEM_HEALTH_EXCEPTIONS: tuple[type[Exception], ...] = (psutil.Error, OSError, ValueError)
 UPTIME_EXCEPTIONS: tuple[type[Exception], ...] = (AttributeError, TypeError, ValueError)
 
