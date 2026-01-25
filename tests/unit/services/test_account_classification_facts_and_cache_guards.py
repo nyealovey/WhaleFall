@@ -28,7 +28,7 @@ def test_classification_cache_get_rules_accepts_only_wrapped_schema() -> None:
         def __init__(self, payload: object) -> None:
             self._payload = payload
 
-        def get_classification_rules_cache(self) -> object:
+        def get(self, _key: str) -> object:  # noqa: ANN001
             return self._payload
 
     cache = ClassificationCache(manager=cast(Any, _StubManager({"rules": rules_payload})))
