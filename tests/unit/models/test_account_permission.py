@@ -23,11 +23,9 @@ def test_account_permission_table_contract_has_expected_constraints() -> None:
 
 @pytest.mark.unit
 def test_account_permission_snapshot_columns_contract() -> None:
-    """Phase 0 contract test: skip until snapshot columns land."""
-
     table = db.metadata.tables["account_permission"]
-    if "permission_snapshot" not in table.c or "permission_facts" not in table.c:
-        pytest.skip("permission_snapshot columns not implemented yet")
+    assert "permission_snapshot" in table.c
+    assert "permission_facts" in table.c
 
     snapshot_column = table.c["permission_snapshot"]
     assert snapshot_column.nullable is True

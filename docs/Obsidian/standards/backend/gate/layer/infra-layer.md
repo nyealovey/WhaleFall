@@ -9,7 +9,7 @@ tags:
 status: active
 enforcement: gate
 created: 2026-01-12
-updated: 2026-01-12
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/infra/**`, `app/scheduler.py`"
 related:
@@ -85,6 +85,7 @@ related:
 
 ## 门禁/检查方式
 
+- 静态门禁（rollback allowlist）：`./scripts/ci/db-session-rollback-allowlist-guard.sh`
 - 评审检查:
   - 是否把业务逻辑放进了 Infra？
   - 是否存在静默吞异常或隐式副作用（尤其是 `commit/rollback`）？

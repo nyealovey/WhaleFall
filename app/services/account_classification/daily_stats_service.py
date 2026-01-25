@@ -103,7 +103,7 @@ class AccountClassificationDailyStatsService:
             classification_id = rule.classification_id
             db_type = rule.db_type.strip().lower()
 
-            candidate_accounts = accounts_by_db_type.get(db_type) or []
+            candidate_accounts = accounts_by_db_type.get(db_type, [])
             if not candidate_accounts:
                 continue
 
@@ -129,7 +129,7 @@ class AccountClassificationDailyStatsService:
             rule_id = int(rule.id)
             classification_id = rule.classification_id
             db_type = rule.db_type.strip().lower()
-            instance_ids = sorted(instance_ids_by_db_type.get(db_type) or [])
+            instance_ids = sorted(instance_ids_by_db_type.get(db_type, set()))
             if not instance_ids:
                 continue
 
@@ -152,7 +152,7 @@ class AccountClassificationDailyStatsService:
         classification_records: list[dict[str, object]] = []
         for classification_id, db_types in classification_db_types.items():
             for db_type in sorted(db_types):
-                instance_ids = sorted(instance_ids_by_db_type.get(db_type) or [])
+                instance_ids = sorted(instance_ids_by_db_type.get(db_type, set()))
                 if not instance_ids:
                     continue
                 for instance_id in instance_ids:

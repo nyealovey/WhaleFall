@@ -9,7 +9,7 @@ tags:
 status: active
 enforcement: gate
 created: 2026-01-09
-updated: 2026-01-13
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/repositories/**` 下所有仓储类"
 related:
@@ -137,6 +137,8 @@ class BadRepository:
 ## 门禁/检查方式
 
 - 静态门禁（commit 位置 allowlist）：`./scripts/ci/db-session-commit-allowlist-guard.sh`（事务边界见 [[standards/backend/standard/write-operation-boundary]]）
+- 静态门禁（rollback allowlist）：`./scripts/ci/db-session-rollback-allowlist-guard.sh`
+- 静态门禁（禁止依赖 route_safety）：`./scripts/ci/repositories-route-safety-import-guard.sh`
 - 评审检查:
   - 是否存在在 Repository 内 `commit`?
   - 是否引入业务判断或调用 Service?

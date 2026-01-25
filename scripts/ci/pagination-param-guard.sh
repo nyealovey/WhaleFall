@@ -48,10 +48,10 @@ if [[ ! -f "${TABLE_QUERY_PARAMS_FILE}" ]]; then
 fi
 
 TABLE_FORBIDDEN_PATTERNS=(
-  'readValue\\s*\\(\\s*source\\s*,\\s*["\\x27]pageSize["\\x27]\\s*\\)'
-  'readValue\\s*\\(\\s*source\\s*,\\s*["\\x27]page_size["\\x27]\\s*\\)'
-  '\\bnormalized\\.page_size\\s*='
-  '\\bnormalized\\.pageSize\\s*='
+  'readValue\s*\(\s*source\s*,\s*["\\x27]pageSize["\\x27]\s*\)'
+  'readValue\s*\(\s*source\s*,\s*["\\x27]page_size["\\x27]\s*\)'
+  '\bnormalized\.page_size\s*='
+  '\bnormalized\.pageSize\s*='
   'pagination:legacy-page-size-param'
 )
 
@@ -65,10 +65,10 @@ for pat in "${TABLE_FORBIDDEN_PATTERNS[@]}"; do
 done
 
 REQUIRED_PATTERNS=(
-  'readValue\\s*\\(\\s*source\\s*,\\s*["\\x27]limit["\\x27]\\s*\\)'
-  '\\bnormalized\\.limit\\b'
-  '\\bdelete\\s+normalized\\.page_size\\b'
-  '\\bdelete\\s+normalized\\.pageSize\\b'
+  'readValue\s*\(\s*source\s*,\s*["\\x27]limit["\\x27]\s*\)'
+  '\bnormalized\.limit\b'
+  '\bdelete\s+normalized\.page_size\b'
+  '\bdelete\s+normalized\.pageSize\b'
 )
 
 for pat in "${REQUIRED_PATTERNS[@]}"; do

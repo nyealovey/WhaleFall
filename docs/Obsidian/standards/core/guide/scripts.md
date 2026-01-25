@@ -332,7 +332,9 @@ pytest -m unit "$@"
 
 | 门禁脚本 | 检查内容 | 运行命令（迁移后） |
 |----------|----------|----------|
+| `account-classification-auto-tasks-guard.sh` | account classification auto task 的关键分支防回归（`if not accounts:` 守护） | `./scripts/ci/account-classification-auto-tasks-guard.sh` |
 | `api-layer-guard.sh` | API 层越界依赖/直查库/直触 DB | `./scripts/ci/api-layer-guard.sh` |
+| `api-v1-ns-expect-guard.sh` | API v1 namespaces：`request.get_json()` 必须配 `@ns.expect(...)` | `./scripts/ci/api-v1-ns-expect-guard.sh` |
 | `browser-confirm-guard.sh` | 禁止 `confirm()` 弹窗（统一 `UI.confirmDanger`） | `./scripts/ci/browser-confirm-guard.sh` |
 | `btn-close-aria-guard.sh` | `btn-close` 可访问名称（`aria-label="关闭"`） | `./scripts/ci/btn-close-aria-guard.sh` |
 | `button-hierarchy-guard.sh` | 按钮层级：禁止全局 `.btn { border: none/0 }` | `./scripts/ci/button-hierarchy-guard.sh` |
@@ -341,25 +343,32 @@ pytest -m unit "$@"
 | `danger-button-semantics-guard.sh` | 危险按钮语义：禁止 `text-danger` 伪装危险按钮 | `./scripts/ci/danger-button-semantics-guard.sh` |
 | `db-session-commit-allowlist-guard.sh` | `db.session.commit()` 位置 allowlist（全局） | `./scripts/ci/db-session-commit-allowlist-guard.sh` |
 | `db-session-commit-services-drift-guard.sh` | services `commit()` 漂移（baseline，禁止新增） | `./scripts/ci/db-session-commit-services-drift-guard.sh` |
+| `db-session-rollback-allowlist-guard.sh` | `db.session.rollback()` allowlist（禁止 services/repositories，infra 严格白名单） | `./scripts/ci/db-session-rollback-allowlist-guard.sh` |
 | `db-session-route-write-guard.sh` | routes 直写 `db.session.*`（add/delete/commit/flush） | `./scripts/ci/db-session-route-write-guard.sh` |
 | `db-session-write-boundary-guard.sh` | 写操作事务边界组合门禁 | `./scripts/ci/db-session-write-boundary-guard.sh` |
 | `error-message-drift-guard.sh` | `error/message` 互兜底漂移（baseline，禁止新增） | `./scripts/ci/error-message-drift-guard.sh` |
 | `eslint-report.sh` | JavaScript 代码风格报告 | `./scripts/ci/eslint-report.sh quick` |
+| `frontend-contracts-guard.sh` | 前端分层/注入/迁移 contracts 防回归（从 tests 迁移为门禁） | `./scripts/ci/frontend-contracts-guard.sh` |
 | `forms-layer-guard.sh` | 防止 `app/forms/**` 体系回归（跨层依赖/DB/query） | `./scripts/ci/forms-layer-guard.sh` |
 | `grid-wrapper-log-guard.sh` | 禁止 GridWrapper 常驻 `console.log` | `./scripts/ci/grid-wrapper-log-guard.sh` |
 | `inline-handler-guard.sh` | 模板 inline handler（baseline，禁止新增） | `./scripts/ci/inline-handler-guard.sh` |
 | `inline-px-style-guard.sh` | 模板 inline px 布局（baseline，禁止新增） | `./scripts/ci/inline-px-style-guard.sh` |
+| `ops-legacy-guard.sh` | 运维/部署脚本 legacy 回归（旧 health 路径、迁移残留） | `./scripts/ci/ops-legacy-guard.sh` |
 | `or-fallback-pattern-guard.sh` | 高风险 `or` 兜底形态（禁字段 alias 链/禁 silent fallback） | `./scripts/ci/or-fallback-pattern-guard.sh` |
 | `pagination-param-guard.sh` | 分页参数一致性（必须用 `limit`） | `./scripts/ci/pagination-param-guard.sh` |
 | `pyright-guard.sh` | Pyright baseline（禁止新增 diagnostics） | `./scripts/ci/pyright-guard.sh` |
 | `pyright-report.sh` | Python 类型检查报告 | `./scripts/ci/pyright-report.sh` |
 | `refactor-naming.sh` | 命名巡检（重命名建议/报告） | `./scripts/ci/refactor-naming.sh --dry-run` |
+| `repositories-route-safety-import-guard.sh` | repositories 禁止依赖 `app.infra.route_safety` | `./scripts/ci/repositories-route-safety-import-guard.sh` |
+| `routes-safe-route-call-guard.sh` | routes 含 route 定义的模块必须使用 `safe_route_call(...)` | `./scripts/ci/routes-safe-route-call-guard.sh` |
 | `ruff-report.sh` | Python 代码风格报告 | `./scripts/ci/ruff-report.sh style` |
 | `ruff-style-guard.sh` | Ruff(style) baseline（禁止新增 D/I/PLC/G violations） | `./scripts/ci/ruff-style-guard.sh` |
 | `secrets-guard.sh` | `env.example` 禁止写入真实密钥/口令 | `./scripts/ci/secrets-guard.sh` |
 | `services-repository-enforcement-guard.sh` | Service 直查库/query（baseline，禁止新增） | `./scripts/ci/services-repository-enforcement-guard.sh` |
+| `settings-env-read-guard.sh` | settings 之外禁止读取环境变量（os.environ.get/os.getenv） | `./scripts/ci/settings-env-read-guard.sh` |
 | `tag-selector-filter-id-guard.sh` | 可复用组件固定 DOM id 回归（TagSelectorFilter） | `./scripts/ci/tag-selector-filter-id-guard.sh` |
 | `tasks-layer-guard.sh` | tasks 直查库/直写库（允许 commit/rollback 作为边界入口） | `./scripts/ci/tasks-layer-guard.sh` |
+| `ui-standards-audit-guard.sh` | UI standards audit 聚合门禁（hex 颜色/固定 id/Grid.js 直用等） | `./scripts/ci/ui-standards-audit-guard.sh` |
 
 ### 9.2 建议新增门禁
 

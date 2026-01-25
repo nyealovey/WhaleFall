@@ -9,7 +9,7 @@ tags:
 status: active
 enforcement: gate
 created: 2026-01-09
-updated: 2026-01-13
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/routes/**` 下所有 Flask Blueprint 路由"
 related:
@@ -155,6 +155,7 @@ def bad():
 
 ## 门禁/检查方式
 
+- 静态门禁（safe_route_call 强制）：`./scripts/ci/routes-safe-route-call-guard.sh`
 - 评审检查:
   - 是否所有路由都使用 `safe_route_call`?
   - 是否出现 `Model.query`/`db.session`/原生 SQL?

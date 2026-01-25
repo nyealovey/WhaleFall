@@ -9,7 +9,7 @@ tags:
 status: active
 enforcement: gate
 created: 2026-01-09
-updated: 2026-01-11
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/tasks/**` 下所有后台任务函数"
 related:
@@ -102,6 +102,7 @@ def bad_task():
 ## 门禁/检查方式
 
 - 静态门禁：`./scripts/ci/tasks-layer-guard.sh`
+- 任务特定门禁（account classification）：`./scripts/ci/account-classification-auto-tasks-guard.sh`
 - 评审检查:
   - 任务是否确保在 `app.app_context()` 内执行?
   - 是否存在直接查库或把业务逻辑写在 task 里?

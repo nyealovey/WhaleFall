@@ -19,6 +19,11 @@ def _flags(*, skipped: bool, skip_reason: str | None) -> dict[str, Any]:
     return {"skipped": skipped, "skip_reason": skip_reason}
 
 
+def _inputs(inputs: dict[str, Any] | None) -> dict[str, Any]:
+    # 空 dict 与 None 的语义不能混用；此处仅把“缺失(None)”显式映射为空 dict。
+    return inputs if inputs is not None else {}
+
+
 def _metric(
     *,
     key: str,
@@ -72,7 +77,7 @@ def build_sync_accounts_summary(
     }
     return TaskRunSummaryFactory.base(
         task_key=task_key,
-        inputs=inputs or {},
+        inputs=_inputs(inputs),
         metrics=metrics,
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,
@@ -105,7 +110,7 @@ def build_sync_databases_summary(
     }
     return TaskRunSummaryFactory.base(
         task_key=task_key,
-        inputs=inputs or {},
+        inputs=_inputs(inputs),
         metrics=metrics,
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,
@@ -135,14 +140,14 @@ def build_calculate_database_aggregations_summary(
         _metric(key="records_total", label="聚合记录总数", value=record_total, unit="条", tone="info"),
     ]
     ext_data = {
-        "periods_executed": list(periods_executed or []),
+        "periods_executed": list(periods_executed) if periods_executed is not None else [],
         "instances": {"total": instances_total, "successful": instances_successful, "failed": instances_failed},
         "records": {"instance": record_instance, "database": record_database, "total": record_total},
         "session_id": session_id,
     }
     return TaskRunSummaryFactory.base(
         task_key=task_key,
-        inputs=inputs or {},
+        inputs=_inputs(inputs),
         metrics=metrics,
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,
@@ -186,7 +191,7 @@ def build_calculate_account_classification_summary(
     }
     return TaskRunSummaryFactory.base(
         task_key=task_key,
-        inputs=inputs or {},
+        inputs=_inputs(inputs),
         scope=scope,
         metrics=metrics,
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
@@ -238,7 +243,7 @@ def build_auto_classify_accounts_summary(
     }
     return TaskRunSummaryFactory.base(
         task_key=task_key,
-        inputs=inputs or {},
+        inputs=_inputs(inputs),
         metrics=metrics,
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,
@@ -276,7 +281,7 @@ def build_capacity_aggregate_current_summary(
     }
     return TaskRunSummaryFactory.base(
         task_key=task_key,
-        inputs=inputs or {},
+        inputs=_inputs(inputs),
         metrics=metrics,
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,

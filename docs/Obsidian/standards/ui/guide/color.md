@@ -8,7 +8,7 @@ tags:
 status: active
 enforcement: guide
 created: 2025-12-02
-updated: 2026-01-15
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: 所有管理页面(表格/卡片/详情弹窗/筛选区/标签与状态展示)
 related:
@@ -76,6 +76,7 @@ related:
 ## 门禁/检查方式
 
 - Token 未定义门禁：`./scripts/ci/css-token-guard.sh`
+- JS 硬编码 HEX 颜色门禁（espree AST）：`./scripts/ci/ui-standards-audit-guard.sh`
 - 组件样式漂移门禁（按需）：`./scripts/ci/component-style-drift-guard.sh`
 - 人工评审检查：
   - 是否出现硬编码颜色（HEX/RGB/RGBA）？

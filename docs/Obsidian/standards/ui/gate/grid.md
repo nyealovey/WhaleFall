@@ -11,7 +11,7 @@ tags:
 status: active
 enforcement: gate
 created: 2026-01-14
-updated: 2026-01-15
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: 所有基于 Grid.js 的列表页, 以及 `GridWrapper`/`Views.GridPage`/plugins 生态
 related:
@@ -121,6 +121,7 @@ related:
 
 - 分页参数门禁: `./scripts/ci/pagination-param-guard.sh`
 - GridWrapper 日志门禁: `./scripts/ci/grid-wrapper-log-guard.sh`
+- 聚合 audit 门禁（禁止 views 内直接 new gridjs.Grid 等）：`./scripts/ci/ui-standards-audit-guard.sh`
 - 结果结构漂移门禁(如涉及错误字段): `./scripts/ci/error-message-drift-guard.sh`
 - 自查命令(示例):
   - `rg -n \"new\\s+GridWrapper\\(|new\\s+gridjs\\.Grid\\(\" app/static/js/modules`

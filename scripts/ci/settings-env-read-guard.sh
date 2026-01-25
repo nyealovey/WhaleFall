@@ -28,7 +28,7 @@ fi
 
 TARGET_DIR="app"
 ALLOW_FILES_REGEX='^app/settings\.py:'
-PATTERN='\\bos\\.(?:environ\\.get|getenv)\\('
+PATTERN='\bos\.(?:environ\.get|getenv)\('
 
 hits="$("${RG_BIN}" -n --hidden --type py --glob "!app/settings.py" -- "${PATTERN}" "${TARGET_DIR}" || true)"
 if [[ -n "${hits}" ]]; then
@@ -45,4 +45,3 @@ if [[ -n "${hits}" ]]; then
 fi
 
 echo "✅ settings env 读取门禁通过：未发现 settings 之外的 os.environ.get/os.getenv。"
-
