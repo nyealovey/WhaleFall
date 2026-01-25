@@ -85,12 +85,6 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
         staticmethod(lambda: _DummyCacheManager()),
         raising=False,
     )
-    monkeypatch.setattr(
-        CacheActionsService,
-        "_require_cache_service",
-        staticmethod(lambda: (_ for _ in ()).throw(RuntimeError("boom"))),
-        raising=False,
-    )
     monkeypatch.setattr(AccountClassificationService, "invalidate_cache", lambda self: True)
     monkeypatch.setattr(AccountClassificationService, "invalidate_db_type_cache", lambda self, db_type: True)
 

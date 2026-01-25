@@ -31,7 +31,6 @@ from app.infra.error_mapping import map_exception_to_status
 from app.infra.flask_typing import WhaleFallFlask, WhaleFallLoginManager
 from app.infra.logging.request_middleware import register_request_logging
 from app.scheduler import init_scheduler
-from app.services.cache_service import init_cache_service
 from app.settings import Settings
 from app.utils.cache_utils import init_cache_manager
 from app.utils.proxy_fix_middleware import TrustedProxyFix
@@ -298,15 +297,8 @@ def initialize_extensions(app: Flask, settings: Settings) -> None:
     # 初始化缓存
     cache.init_app(app)
 
-    # 初始化缓存工具与缓存服务
+    # 初始化缓存工具
     init_cache_manager(cache, default_timeout=settings.cache_default_timeout_seconds)
-    init_cache_service(
-        cache,
-        default_ttl=settings.cache_default_ttl_seconds,
-        rule_evaluation_ttl=settings.cache_rule_evaluation_ttl_seconds,
-        rule_ttl=settings.cache_rule_ttl_seconds,
-        account_ttl=settings.cache_account_ttl_seconds,
-    )
 
     # 初始化CSRF保护
     csrf.init_app(app)
