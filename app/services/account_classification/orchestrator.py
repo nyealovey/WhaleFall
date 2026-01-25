@@ -238,8 +238,6 @@ class AccountClassificationService:
                 rule_names=rule_names,
                 rule_count=len(db_rules),
             )
-            serialized = self.repository.serialize_rules(db_rules)
-            self.cache.set_rules_by_db_type(db_type, serialized)
 
         log_info(
             "规则按数据库类型分组完成",

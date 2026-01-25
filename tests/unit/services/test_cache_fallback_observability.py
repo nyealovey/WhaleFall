@@ -172,36 +172,31 @@ def test_cache_actions_clear_all_cache_logs_fallback_and_counts(monkeypatch) -> 
 
 
 @pytest.mark.unit
-def test_cache_actions_classification_stats_partial_failure_logs_fallback(monkeypatch) -> None:
+def test_cache_actions_classification_stats_are_derived_from_all_rules_cache(monkeypatch) -> None:
     class _DummyManager:
-        @staticmethod
-        def get_stats() -> dict[str, object]:
+        def __init__(self) -> None:
+            self.keys: list[str] = []
+
+        def get_stats(self) -> dict[str, object]:
             return {"keys": 1}
 
-        @staticmethod
-        def get(key: str):  # noqa: ANN001
-            if key.endswith(":mysql"):
-                raise RuntimeError("boom")
-            return {"rules": [{"id": 1}]}
+        def get(self, key: str):  # noqa: ANN001
+            self.keys.append(key)
+            return {
+                "rules": [
+                    {"id": 1, "db_type": "mysql"},
+                    {"id": 2, "db_type": "MYSQL"},
+                    {"id": 3, "db_type": "postgresql"},
+                ]
+            }
 
-    monkeypatch.setattr(CacheActionsService, "_get_cache_manager", staticmethod(lambda: _DummyManager()))
+    dummy = _DummyManager()
+    monkeypatch.setattr(CacheActionsService, "_get_cache_manager", staticmethod(lambda: dummy))
     monkeypatch.setattr(cache_actions_service_module, "CLASSIFICATION_DB_TYPES", ("mysql", "postgresql"))
-
-    fallback_calls: list[str] = []
-
-    def _fake_log_fallback(  # type: ignore[no-untyped-def]
-        _level,  # noqa: ANN001
-        _event,  # noqa: ANN001
-        *,
-        fallback_reason,  # noqa: ANN001
-        **_options,  # noqa: ANN001
-    ) -> None:
-        fallback_calls.append(str(fallback_reason))
-
-    monkeypatch.setattr(cache_actions_service_module, "log_fallback", _fake_log_fallback)
 
     result = CacheActionsService().get_classification_cache_stats()
     assert result.cache_enabled is True
-    assert result.db_type_stats["postgresql"]["rules_cached"] is True
-    assert result.db_type_stats["mysql"]["rules_cached"] is False
-    assert "cache_stats_failed" in fallback_calls
+    assert dummy.keys == ["classification_rules:all"]
+    assert result.db_type_stats["mysql"]["rules_cached"] is True
+    assert result.db_type_stats["mysql"]["rules_count"] == 2
+    assert result.db_type_stats["postgresql"]["rules_count"] == 1

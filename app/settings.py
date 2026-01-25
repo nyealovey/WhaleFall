@@ -46,6 +46,7 @@ DEFAULT_CACHE_DEFAULT_TTL_SECONDS = 7 * 24 * 3600
 DEFAULT_CACHE_RULE_EVALUATION_TTL_SECONDS = 24 * 3600
 DEFAULT_CACHE_RULE_TTL_SECONDS = 2 * 3600
 DEFAULT_CACHE_ACCOUNT_TTL_SECONDS = 3600
+DEFAULT_CACHE_OPTIONS_TTL_SECONDS = 60
 DEFAULT_CACHE_REDIS_URL = "redis://localhost:6379/0"
 
 DEFAULT_BCRYPT_LOG_ROUNDS = 12
@@ -192,6 +193,10 @@ class Settings(BaseSettings):
     cache_rule_ttl_seconds: int = Field(default=DEFAULT_CACHE_RULE_TTL_SECONDS, validation_alias="CACHE_RULE_TTL")
     cache_account_ttl_seconds: int = Field(
         default=DEFAULT_CACHE_ACCOUNT_TTL_SECONDS, validation_alias="CACHE_ACCOUNT_TTL"
+    )
+    cache_options_ttl_seconds: int = Field(
+        default=DEFAULT_CACHE_OPTIONS_TTL_SECONDS,
+        validation_alias="CACHE_OPTIONS_TTL",
     )
 
     bcrypt_log_rounds: int = Field(default=DEFAULT_BCRYPT_LOG_ROUNDS, validation_alias="BCRYPT_LOG_ROUNDS")
@@ -353,6 +358,7 @@ class Settings(BaseSettings):
             "CACHE_RULE_EVALUATION_TTL": self.cache_rule_evaluation_ttl_seconds,
             "CACHE_RULE_TTL": self.cache_rule_ttl_seconds,
             "CACHE_ACCOUNT_TTL": self.cache_account_ttl_seconds,
+            "CACHE_OPTIONS_TTL": self.cache_options_ttl_seconds,
             "BCRYPT_LOG_ROUNDS": self.bcrypt_log_rounds,
             "PREFERRED_URL_SCHEME": self.preferred_url_scheme,
             "PROXY_FIX_X_FOR": self.proxy_fix_x_for,
@@ -521,6 +527,7 @@ class Settings(BaseSettings):
             ("PROXY_FIX_X_PREFIX 必须为非负整数", self.proxy_fix_x_prefix < 0),
             ("CACHE_TYPE 仅支持 simple/redis", self.cache_type not in {"simple", "redis"}),
             ("CACHE_TYPE=redis 时必须提供 CACHE_REDIS_URL", self.cache_type == "redis" and not self.cache_redis_url),
+            ("CACHE_OPTIONS_TTL 必须为非负整数(秒)", self.cache_options_ttl_seconds < 0),
             (
                 "LOG_HTTP_REQUEST_COMPLETED_MODE 仅支持 all/slow_or_error/errors_only/off",
                 self.log_http_request_completed_mode not in {"all", "slow_or_error", "errors_only", "off"},
