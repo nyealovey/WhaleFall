@@ -11,6 +11,7 @@ import app.services.cache_service as cache_service_module
 from app.repositories.instances_repository import InstancesRepository
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.services.cache_service import CacheService
+from app.utils.cache_utils import CacheManager
 
 
 @pytest.mark.unit
@@ -93,6 +94,57 @@ def test_cache_service_set_rule_evaluation_cache_ttl_zero_is_preserved(monkeypat
     service = CacheService(cache=cast(Cache, dummy_cache))
 
     assert service.set_rule_evaluation_cache(rule_id=1, account_id=2, result=True, ttl=0) is True
+    assert dummy_cache.calls == [0]
+
+
+@pytest.mark.unit
+def test_cache_manager_delete_failure_logs_fallback() -> None:
+    class _DummyLogger:
+        def __init__(self) -> None:
+            self.warnings: list[dict[str, object]] = []
+
+        def warning(self, _event: str, **kwargs: object) -> None:
+            self.warnings.append(dict(kwargs))
+
+    class _DummyCache:
+        @staticmethod
+        def delete(_key: str):  # noqa: ANN001
+            raise RuntimeError("boom")
+
+    manager = CacheManager(cache=cast(Cache, _DummyCache()))
+    manager.system_logger = _DummyLogger()  # type: ignore[assignment]
+
+    assert manager.delete("k1") is False
+
+    dummy_logger = cast("_DummyLogger", manager.system_logger)
+    assert dummy_logger.warnings
+    payload = dummy_logger.warnings[0]
+    assert payload.get("fallback") is True
+    assert payload.get("fallback_reason") == "cache_delete_failed"
+    assert payload.get("error_type") == "RuntimeError"
+
+
+@pytest.mark.unit
+def test_cache_manager_set_ttl_zero_is_preserved() -> None:
+    class _DummyLogger:
+        def debug(self, _event: str, **_kwargs: object) -> None:
+            return
+
+        def warning(self, _event: str, **_kwargs: object) -> None:
+            return
+
+    class _DummyCache:
+        def __init__(self) -> None:
+            self.calls: list[int] = []
+
+        def set(self, _key: str, _value: object, *, timeout: int) -> None:  # noqa: ANN001
+            self.calls.append(timeout)
+
+    dummy_cache = _DummyCache()
+    manager = CacheManager(cache=cast(Cache, dummy_cache), default_timeout=123)
+    manager.system_logger = _DummyLogger()  # type: ignore[assignment]
+
+    assert manager.set("k1", "v1", timeout=0) is True
     assert dummy_cache.calls == [0]
 
 
