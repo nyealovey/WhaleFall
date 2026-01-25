@@ -6,12 +6,14 @@ tags:
   - standards
   - standards/index
 status: active
+enforcement: guide
 created: 2025-12-25
-updated: 2026-01-10
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: WhaleFall standards 入口与索引
 related:
   - "[[standards/doc/documentation-standards]]"
+  - "[[standards/standards-governance]]"
 ---
 
 # 规范标准
@@ -21,6 +23,7 @@ related:
 
 ## 关键入口(少量)
 
+- [[standards/standards-governance|Standards 治理与 enforcement 分级]]
 - [[standards/doc/README|文档编写标准索引]]
 - [[standards/coding-standards|编码规范]]
 - [[standards/naming-standards|命名规范]]

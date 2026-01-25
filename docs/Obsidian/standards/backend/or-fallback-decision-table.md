@@ -6,6 +6,7 @@ tags:
   - standards
   - standards/backend
 status: active
+enforcement: gate
 created: 2026-01-16
 updated: 2026-01-16
 owner: WhaleFall Team

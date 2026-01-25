@@ -6,8 +6,9 @@ tags:
   - standards
   - standards/general
 status: active
+enforcement: guide
 created: 2025-12-25
-updated: 2026-01-15
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`scripts/` 目录下所有脚本"
 related:
@@ -87,8 +88,9 @@ related:
 
 判定点:
 
-- 必须具备: `#!/usr/bin/env bash` + `set -euo pipefail` + `--help` 用法说明.
-- 门禁脚本必须以退出码表达通过/失败(0 通过, 非 0 失败).
+- `scripts/ci/**`(门禁/报告脚本) MUST 具备: `#!/usr/bin/env bash` + `set -euo pipefail` + `--help` 用法说明.
+- 其他脚本 SHOULD 具备上述元素, 但允许按场景取舍(例如一次性 dev 脚本可简化).
+- 门禁脚本 MUST 以退出码表达通过/失败(0 通过, 非 0 失败).
 
 长模板见: [[reference/examples/scripts-templates#Shell 脚本模板|Shell 脚本模板(长示例)]]
 
@@ -96,7 +98,7 @@ related:
 
 判定点:
 
-- 必须具备: shebang + module docstring(含用法) + 统一 `main() -> int` 退出码.
+- `scripts/ci/**` 与会写数据的 admin/ops 脚本 SHOULD 具备: shebang + module docstring(含用法) + 统一 `main() -> int` 退出码.
 - 应通过 argparse 声明参数, 方便 `--help` 与 CI 集成.
 
 长模板见: [[reference/examples/scripts-templates#Python 脚本模板|Python 脚本模板(长示例)]]
@@ -252,7 +254,7 @@ pytest -m unit "$@"
 
 ## 7. 规则（通用规范）
 
-### 7.1 必须遵守
+### 7.1 `scripts/ci/**` 门禁/报告脚本必须遵守(强约束)
 
 | 规则 | 说明 |
 |------|------|
@@ -263,10 +265,16 @@ pytest -m unit "$@"
 | MUST | 错误信息输出到 stderr（`>&2`） |
 | MUST | 路径使用相对于脚本目录或项目根目录的方式，避免硬编码绝对路径 |
 
-### 7.2 建议遵守
+### 7.2 其他脚本建议遵守(避免过度要求)
 
 | 规则 | 说明 |
 |------|------|
+| SHOULD | 脚本头部包含 shebang（`#!/usr/bin/env bash` 或 `#!/usr/bin/env python3`） |
+| SHOULD | Shell 脚本优先使用 `set -euo pipefail`（严格模式） |
+| SHOULD | 提供 `--help` 参数(尤其是可能被他人复用的脚本) |
+| SHOULD | 使用退出码表示执行结果（0 成功，非 0 失败） |
+| SHOULD | 错误信息输出到 stderr（`>&2`） |
+| SHOULD | 路径使用相对脚本目录或项目根目录, 避免硬编码绝对路径 |
 | SHOULD | 使用颜色输出提升可读性 |
 | SHOULD | 提供 `--dry-run` 参数（涉及写操作时） |
 | SHOULD | 提供 `--verbose` 参数（调试时） |
@@ -301,7 +309,7 @@ pytest -m unit "$@"
 
 ### 8.1 脚本内文档
 
-每个脚本必须在头部包含：
+`scripts/ci/**` SHOULD 在头部包含(便于审查与复用):
 
 - 简要说明（一行）
 - 用法说明
@@ -351,3 +359,4 @@ pytest -m unit "$@"
 | 2026-01-08 | 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter |
 | 2026-01-09 | scripts 目录结构迁移: 迁移映射/步骤/兼容性过渡(一次性记录, 用后可删) |
 | 2026-01-15 | 新增门禁：补充 `inline-handler-guard.sh`（模板 inline handler 回归） |
+| 2026-01-25 | 减负: 区分 `scripts/ci/**`(强约束) 与其他脚本(建议), 避免把所有脚本都按门禁脚本标准要求 |

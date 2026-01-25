@@ -6,8 +6,9 @@ tags:
   - standards
   - standards/ui
 status: active
+enforcement: design
 created: 2026-01-14
-updated: 2026-01-14
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/templates/**` 引入的 vendor 库(bootstrap/chartjs/dayjs/lodash/mitt/numeral/umbrella/just-validate/fontawesome 等)及其项目封装(common/core/modules)"
 related:
@@ -24,12 +25,13 @@ related:
 - 提供可审查的封装层, 让升级/替换/回滚第三方库更可控.
 - 降低隐式全局耦合, 让分层规则与门禁更可执行.
 
-## 总原则(MUST/SHOULD)
+## 总原则(默认做法)
 
-- MUST: 业务代码优先使用项目封装, 不直接调用 vendor global.
-- MUST: 若需要补齐能力(新格式/新 helper/新事件规范), 应优先扩展封装层, 而不是在 view/store/service 内新增零散实现.
-- MUST: `window.*` 的访问边界以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
-- SHOULD: 若确需直接访问 vendor global, 必须在评审中说明原因, 并给出收敛到封装层的计划.
+- SHOULD: 业务代码优先使用项目封装, 避免直接依赖 vendor global.
+- SHOULD: 若需要补齐能力(新格式/新 helper/新事件规范), 优先扩展封装层, 避免在 view/store/service 内新增零散实现.
+- SHOULD: `window.*` 的访问边界以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- SHOULD: vendor 默认按页引入, 只有"全站每页都需要"的资源才进入 `base.html`, 参考 [[standards/ui/performance-standards]].
+- MAY: 如确需直接访问 vendor global, 在评审中说明原因与影响面, 并尽量给出后续收敛计划(什么时候回收).
 
 ## 现有入口(扫描摘要)
 
@@ -52,7 +54,7 @@ related:
 
 ### Grid.js(列表表格)
 
-- MUST: Grid 列表页遵循 [[standards/ui/grid-standards|Grid 列表页标准]], 禁止在页面脚本直接 `new gridjs.Grid(...)` 或绕过 `Views.GridPage`.
+- SHOULD: Grid 列表页遵循 [[standards/ui/grid-standards|Grid 列表页标准]](该标准包含门禁, 以门禁为准).
 
 ### Bootstrap(交互组件)
 
@@ -70,23 +72,23 @@ related:
 推荐入口:
 
 - SHOULD: 优先复用已有图表组件(例如 `app/static/js/modules/views/components/charts/**`), 而不是在页面脚本里堆叠 Chart.js 配置.
-- MUST: 任意重渲染/刷新必须先 `chart.destroy()`.
+- SHOULD: 任意重渲染/刷新前先 `chart.destroy()`(避免重复实例与内存泄漏).
 - SHOULD: 颜色与语义色使用 `window.ColorTokens`, 数值/百分比/容量格式使用 `window.NumberFormat`.
 
 ### JustValidate(表单校验)
 
 推荐入口:
 
-- MUST: 使用 `window.FormValidator.create(...)` 初始化校验, 并使用 `window.ValidationRules` 复用规则与文案.
-- MUST NOT: 在业务代码中直接 `new JustValidate(...)` 或自定义一套重复的 rules/messages.
-- MUST: modal/页面重复初始化时, 旧 validator 必须 `destroy()` 后再创建.
+- SHOULD: 使用 `window.FormValidator.create(...)` 初始化校验, 并使用 `window.ValidationRules` 复用规则与文案.
+- SHOULD NOT: 在业务代码中直接 `new JustValidate(...)` 或自定义一套重复的 rules/messages.
+- SHOULD: modal/页面重复初始化时, 旧 validator 先 `destroy()` 再创建(避免重复绑定).
 
 ### Day.js(时间)
 
 推荐入口:
 
-- MUST: 使用 `window.timeUtils`/`window.TimeFormats` 进行解析与格式化.
-- MUST NOT: 在 `app/static/js/modules/**` 内直接使用 `window.dayjs(...)` 或 `dayjs(...)`.
+- SHOULD: 使用 `window.timeUtils`/`window.TimeFormats` 进行解析与格式化.
+- SHOULD NOT: 在 `app/static/js/modules/**` 内直接使用 `window.dayjs(...)` 或 `dayjs(...)`(避免 locale/timezone 分叉).
 
 约束说明:
 
@@ -97,15 +99,15 @@ related:
 
 推荐入口:
 
-- MUST: 使用 `window.NumberFormat.*`(如 `formatInteger/formatDecimal/formatBytes/formatPercent`)输出用户可见数字.
-- MUST NOT: 直接调用 `window.numeral(...)` 或手写重复的千分位/字节/百分比格式化.
+- SHOULD: 使用 `window.NumberFormat.*`(如 `formatInteger/formatDecimal/formatBytes/formatPercent`)输出用户可见数字.
+- SHOULD NOT: 直接调用 `window.numeral(...)` 或手写重复的千分位/字节/百分比格式化.
 
 ### Lodash(数据处理)
 
 推荐入口:
 
-- MUST: 使用 `window.LodashUtils`(封装后的 allowlist 方法).
-- MUST NOT: 在业务代码中直接使用 `window._` 或解构 `_.xxx`.
+- SHOULD: 使用 `window.LodashUtils`(封装后的 allowlist 方法).
+- SHOULD NOT: 在业务代码中直接使用 `window._` 或解构 `_.xxx`.
 
 约束说明:
 
@@ -119,9 +121,9 @@ related:
 - UI 跨组件同步/观测: MAY 使用 `window.EventBus`(不得做业务编排).
 - Stores: SHOULD 使用私有 emitter, 并支持 `options.emitter` 注入; 未传入时才回退 `window.mitt()`.
 
-禁止项:
+禁止项(建议):
 
-- MUST NOT: Services/Stores 内使用 `window.EventBus`(原因: 形成全局耦合与隐式 side effects).
+- SHOULD NOT: Services/Stores 内使用 `window.EventBus`(原因: 形成全局耦合与隐式 side effects).
 
 事件命名:
 
@@ -131,16 +133,16 @@ related:
 
 推荐入口:
 
-- DOM: MUST 使用 `window.DOMHelpers`(选择/读写/disabled 切换/ready).
-- HTTP: MUST 使用 `window.httpU` 作为 http client(或由 Page Entry 注入), 禁止直接使用 `u.ajax`.
-- MUST NOT: 在业务代码里直接调用 `window.u(...)` 或依赖 umbrella 私有行为.
+- DOM: SHOULD 使用 `window.DOMHelpers`(选择/读写/disabled 切换/ready).
+- HTTP: SHOULD 使用 `window.httpU` 作为 http client(或由 Page Entry 注入), 避免直接使用 `u.ajax`.
+- SHOULD NOT: 在业务代码里直接调用 `window.u(...)` 或依赖 umbrella 私有行为.
 
 ### Font Awesome(图标)
 
 - SHOULD: 纯装饰图标加 `aria-hidden="true"`.
 - SHOULD: 图标按钮必须具备可访问名称(如 `aria-label`), 参考 [[standards/ui/close-button-accessible-name-guidelines]].
 
-## 门禁/自查
+## 自查(可选)
 
 ```bash
 # 禁止在 modules 内直接调用 vendor global(示例)
@@ -154,3 +156,4 @@ rg -n "new\\s+JustValidate\\b" app/static/js/modules
 ## 变更历史
 
 - 2026-01-14: 新增 vendor 库使用标准, 覆盖 dayjs/lodash/mitt/numeral/umbrella/bootstrap/chartjs/just-validate/fontawesome 的入口与约束.
+- 2026-01-25: 减负: 本文定位为 `design`, 以“默认做法/建议/例外”表达, 不再用大量 MUST 强制约束业务代码.

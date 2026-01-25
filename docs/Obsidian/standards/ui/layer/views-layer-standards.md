@@ -7,8 +7,9 @@ tags:
   - standards/ui
   - standards/ui/layer
 status: active
+enforcement: design
 created: 2026-01-09
-updated: 2026-01-15
+updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/static/js/modules/views/**` 下所有页面与组件视图(不含 Page Entry)"
 related:
@@ -24,6 +25,8 @@ related:
 
 > [!note] 说明
 > Views 层只负责 DOM 与交互. 它调用 store/actions 或 services, 订阅 store 事件并渲染. Views 不应承载业务规则, 也不应直接拼接 API path 或自行实现通用 wiring.
+>
+> 本文为 `enforcement: design`: 描述默认分层与推荐边界. `MUST` 主要保留给安全底线(例如 XSS)或已存在门禁覆盖的条款, 其余尽量用 SHOULD 表达(避免过度设计).
 
 ## 目的
 
@@ -41,24 +44,24 @@ related:
 
 ### 1) 职责边界
 
-- MUST: Views 只负责:
+- SHOULD: Views 只负责:
   - DOM 查询/渲染/更新.
   - 绑定用户交互事件, 将动作转成 store actions 或 service 调用.
   - 订阅 store 事件并更新 UI.
-- MUST NOT: 直接实现业务规则(聚合, 冲突判定, 权限规则等). 业务编排应下沉到 store/actions.
-- MUST NOT: 直接拼接 API path 或调用 `httpU`(迁移期例外必须说明理由).
+- SHOULD NOT: 直接实现业务规则(聚合, 冲突判定, 权限规则等). 业务编排优先下沉到 store/actions.
+- SHOULD NOT: 直接拼接 API path 或调用 `httpU`(迁移期例外建议说明理由与回收计划).
 
 ### 2) 依赖注入与全局读取
 
-- MUST: view 通过参数接收 store/service/容器等依赖.
-- MUST: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
-- MUST: Views 禁止读取 allowlist 外全局, 且不得读取 `window.httpU`.
+- SHOULD: view 通过参数接收 store/service/容器等依赖(能注入就注入).
+- SHOULD: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- SHOULD: Views 避免读取 allowlist 外全局, 且尽量不直接读取 `window.httpU`(优先经由 service).
 - SHOULD: 组件型 view 导出 `createXView({ store, container, ... })`, 返回 `{ mount, update, destroy }`.
 
 ### 3) 事件绑定与释放
 
-- MUST: 所有事件绑定必须在 `destroy()` 中解除.
-- MUST: 事件必须通过 JS 绑定（`data-action` + delegation，或 `DOMHelpers`/原生 addEventListener）；模板内联事件处理器（`onclick="..."`）禁止，见 [[standards/ui/template-event-binding-standards]]。
+- SHOULD: 所有事件绑定在 `destroy()` 中解除(避免重复 mount 导致多次绑定).
+- SHOULD: 事件通过 JS 绑定（`data-action` + delegation，或 `DOMHelpers`/原生 addEventListener）；模板内联事件处理器（`onclick="..."`）遵循 [[standards/ui/template-event-binding-standards]](该文档为 `enforcement: gate`, 以门禁为准).
 - SHOULD: 列表页行内动作使用 `Views.GridPlugins.actionDelegation`, 避免重复写 click handler.
 
 ### 4) XSS 与 HTML 输出
@@ -71,18 +74,12 @@ related:
 
 ### 5) Grid list pages 必须使用 GridPage skeleton
 
-- MUST: Grid 列表页使用 `window.Views.GridPage.mount(config)`.
-- MUST: 通过 plugins 处理 wiring:
-  - FilterCard: `Views.GridPlugins.filterCard(...)`
-  - URL sync: `Views.GridPlugins.urlSync(...)`
-  - Action delegation: `Views.GridPlugins.actionDelegation(...)`
-  - Export: `Views.GridPlugins.exportButton(...)`
-- MUST NOT: 页面脚本直接 `new GridWrapper(...)` 或自行拼接分页/排序 query params.
+- SHOULD: Grid 列表页遵循 [[standards/ui/grid-standards|Grid 列表页标准]](该文档为 `enforcement: gate`, 以门禁为准).
 
 ### 6) 高风险操作与异步反馈
 
-- MUST: 高风险操作(删除/批量变更)遵循 [[standards/ui/danger-operation-confirmation-guidelines]].
-- MUST: 异步任务反馈遵循 [[standards/ui/async-task-feedback-guidelines]](loading, disable, toast, recover).
+- SHOULD: 高风险操作(删除/批量变更)遵循 [[standards/ui/danger-operation-confirmation-guidelines]].
+- SHOULD: 异步任务反馈遵循 [[standards/ui/async-task-feedback-guidelines]](loading, disable, toast, recover).
 
 ## 正反例
 

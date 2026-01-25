@@ -6,6 +6,7 @@ tags:
   - standards
   - standards/ui
 status: active
+enforcement: gate
 created: 2025-12-28
 updated: 2026-01-15
 owner: WhaleFall FE

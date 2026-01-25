@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% set page_id = 'InstanceAggregationsPage' %}
 {% set page_density = 'compact' %}
+{% set filter_scope = 'instance-aggregations-filter-form' %}
 {% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, period_type_filter %}
 {% from 'components/ui/macros.html' import metric_card %}
 {% from 'components/ui/page_header.html' import page_header %}
@@ -59,9 +60,9 @@
     </div>
 
     <div class="page-section page-section--stacked filter-card-wrapper mb-4">
-        {% call filter_card(form_id='instance-aggregations-filter-form', action=url_for('capacity_instances.list_instances'), auto_register=False) %}
+        {% call filter_card(form_id=filter_scope, scope=filter_scope, action=url_for('capacity_instances.list_instances'), auto_register=False) %}
             {{ db_type_filter(database_type_options, db_type, col_class='col-md-2 col-12') }}
-            {{ instance_filter(instance_options, instance, disabled=(not db_type), col_class='col-md-2 col-12') }}
+            {{ instance_filter(filter_scope, instance_options, instance, disabled=(not db_type), col_class='col-md-2 col-12') }}
             {{ period_type_filter(period_type_options, period_type, col_class='col-md-2 col-12') }}
         {% endcall %}
     </div>

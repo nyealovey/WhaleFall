@@ -6,8 +6,9 @@ tags:
   - standards
   - standards/ui
 status: active
+enforcement: design
 created: 2025-12-25
-updated: 2026-01-09
+updated: 2026-01-24
 owner: WhaleFall Team
 scope: "`app/static/js/modules/**`(services/stores/views/ui)与相关全局对象(`DOMHelpers/httpU/UI`)"
 related:
@@ -78,6 +79,39 @@ related:
 
 - View 直接调用 `window.httpU` 或直接发请求(应下沉到 service).
 - Store 依赖 View/UI modules, 导致循环依赖与复用困难.
+
+## 逐页迁移最小套路(不引入构建工具)
+
+> [!note] 目标
+> 把"巨型页面脚本"拆成可审查的 wiring + services/stores/views, 并保持行为不变.
+
+1) 模板侧
+
+- 为页面设置 `page_id`.
+- 页面私有资源放在 `extra_css`/`extra_js`, 避免污染 `base.html`.
+- 页面数据通过"单一根节点 dataset"下发(见 Page Entry 标准).
+
+2) Page Entry(入口 wiring)
+
+- 暴露 `window.<PageId> = { mount(global) { ... } }`.
+- 读取 dataset, 组装 service -> store -> view.
+- 触发首屏动作(通常是 `store.actions.load()`), 并保存 destroy 句柄.
+
+3) Services(API client)
+
+- 只封装请求细节: path, query/payload, 最小错误转换.
+- 通过构造器注入 `httpClient`(迁移期允许 fallback `window.httpU`).
+
+4) Stores(状态 + actions)
+
+- 只依赖 service, 不触碰 DOM/toast/httpU.
+- actions 出错 emit `<domain>:error` 并 rethrow, 由 view 决定提示策略.
+
+5) Views(DOM + 交互)
+
+- 事件绑定必须可解除(提供 `destroy()`).
+- 输出 HTML 时遵循 XSS 规则(escapeHtml, 不拼未转义 innerHTML).
+- 列表页遵循 `Views.GridPage` skeleton, 不重复造轮子.
 
 ## 门禁/检查方式
 

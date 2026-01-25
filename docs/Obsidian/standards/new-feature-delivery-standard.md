@@ -6,6 +6,7 @@ tags:
   - standards
   - standards/general
 status: deprecated
+enforcement: guide
 created: 2025-11-27
 updated: 2026-01-09
 owner: WhaleFall Team
