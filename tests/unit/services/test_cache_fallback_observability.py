@@ -7,27 +7,19 @@ import pytest
 from flask_caching import Cache
 
 import app.services.cache.cache_actions_service as cache_actions_service_module
-import app.services.cache_service as cache_service_module
 from app.repositories.instances_repository import InstancesRepository
 from app.services.cache.cache_actions_service import CacheActionsService
-from app.services.cache_service import CacheService
 from app.utils.cache_utils import CacheManager
 
 
 @pytest.mark.unit
-def test_cache_service_get_rule_evaluation_cache_failure_logs_fallback(monkeypatch) -> None:
+def test_cache_manager_get_failure_logs_fallback() -> None:
     class _DummyLogger:
         def __init__(self) -> None:
             self.warnings: list[dict[str, object]] = []
 
         def warning(self, _event: str, **kwargs: object) -> None:
             self.warnings.append(dict(kwargs))
-
-        def debug(self, _event: str, **_kwargs: object) -> None:  # noqa: D401
-            return
-
-        def info(self, _event: str, **_kwargs: object) -> None:  # noqa: D401
-            return
 
     class _DummyCache:
         @staticmethod
@@ -35,18 +27,18 @@ def test_cache_service_get_rule_evaluation_cache_failure_logs_fallback(monkeypat
             raise RuntimeError("boom")
 
     dummy_logger = _DummyLogger()
-    monkeypatch.setattr(cache_service_module, "logger", dummy_logger)
-    service = CacheService(cache=cast(Cache, _DummyCache()))
-    assert service.get_rule_evaluation_cache(rule_id=1, account_id=2) is None
+    manager = CacheManager(cache=cast(Cache, _DummyCache()))
+    manager.system_logger = dummy_logger  # type: ignore[assignment]
+    assert manager.get("k1") is None
 
     assert dummy_logger.warnings
     payload = dummy_logger.warnings[0]
     assert payload.get("fallback") is True
-    assert payload.get("fallback_reason") == "cache_get_rule_evaluation_failed"
+    assert payload.get("fallback_reason") == "cache_get_failed"
 
 
 @pytest.mark.unit
-def test_cache_service_set_rule_evaluation_cache_failure_logs_fallback(monkeypatch) -> None:
+def test_cache_manager_set_failure_logs_fallback() -> None:
     class _DummyLogger:
         def __init__(self) -> None:
             self.warnings: list[dict[str, object]] = []
@@ -54,47 +46,20 @@ def test_cache_service_set_rule_evaluation_cache_failure_logs_fallback(monkeypat
         def warning(self, _event: str, **kwargs: object) -> None:
             self.warnings.append(dict(kwargs))
 
-        def debug(self, _event: str, **_kwargs: object) -> None:
-            return
-
     class _DummyCache:
         @staticmethod
         def set(_key: str, _value: object, *, timeout: int):  # noqa: ANN001
             raise RuntimeError("boom")
 
     dummy_logger = _DummyLogger()
-    monkeypatch.setattr(cache_service_module, "logger", dummy_logger)
-    service = CacheService(cache=cast(Cache, _DummyCache()))
-    assert service.set_rule_evaluation_cache(rule_id=1, account_id=2, result=True) is False
+    manager = CacheManager(cache=cast(Cache, _DummyCache()))
+    manager.system_logger = dummy_logger  # type: ignore[assignment]
+    assert manager.set("k1", "v1") is False
 
     assert dummy_logger.warnings
     payload = dummy_logger.warnings[0]
     assert payload.get("fallback") is True
-    assert payload.get("fallback_reason") == "cache_set_rule_evaluation_failed"
-
-
-@pytest.mark.unit
-def test_cache_service_set_rule_evaluation_cache_ttl_zero_is_preserved(monkeypatch) -> None:
-    class _DummyLogger:
-        def debug(self, _event: str, **_kwargs: object) -> None:
-            return
-
-        def warning(self, _event: str, **_kwargs: object) -> None:
-            return
-
-    class _DummyCache:
-        def __init__(self) -> None:
-            self.calls: list[int] = []
-
-        def set(self, _key: str, _value: object, *, timeout: int) -> None:  # noqa: ANN001
-            self.calls.append(timeout)
-
-    dummy_cache = _DummyCache()
-    monkeypatch.setattr(cache_service_module, "logger", _DummyLogger())
-    service = CacheService(cache=cast(Cache, dummy_cache))
-
-    assert service.set_rule_evaluation_cache(rule_id=1, account_id=2, result=True, ttl=0) is True
-    assert dummy_cache.calls == [0]
+    assert payload.get("fallback_reason") == "cache_set_failed"
 
 
 @pytest.mark.unit
