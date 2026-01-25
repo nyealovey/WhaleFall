@@ -1,7 +1,7 @@
 通用输出约束（必须遵守）：
 - 最终产出是一份 Markdown 审计报告（不是聊天回复/提纲），可直接保存到 `docs/reports/`。
 - 文件名 MUST 使用英文 `kebab-case.md`，并建议带日期前缀：`YYYY-MM-DD_security-audit-report.md`。
-- 报告结构 MUST 遵守 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 最小结构: 摘要结论(先给结论)/范围与方法/发现清单(按 P0/P1/P2)/建议与后续行动/证据与数据来源(可链接到 `docs/reports/artifacts/`).
+- 报告结构 MUST 遵守 `docs/Obsidian/standards/doc/guide/documentation.md` 的 `reports/*` 最小结构: 摘要结论(先给结论)/范围与方法/发现清单(按 P0/P1/P2)/建议与后续行动/证据与数据来源(可链接到 `docs/reports/artifacts/`).
 - 标题下 MUST 包含元信息块：状态/负责人/创建/更新/范围/关联（用相对路径链接标准文档）。
 - 每条发现 MUST 给出可定位证据（文件:行号/路由/函数/配置键），并包含修复建议与验证方法。
 
@@ -80,7 +80,7 @@ E. 附加：扫描“防御/兼容/回退/适配”逻辑里可能隐藏的安�
 - 竞争条件：并发下绕过校验（例如先查后写但无唯一约束）
 - 后台任务：任务参数是否可被用户控制导致越权/注入/资源耗尽
 
-输出格式(严格遵守; 按 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 模板组织):
+输出格式(严格遵守; 按 `docs/Obsidian/standards/doc/guide/documentation.md` 的 `reports/*` 模板组织):
 - 建议报告路径：`docs/reports/YYYY-MM-DD_security-audit-report.md`
 - 标题下必须包含元信息块：状态/负责人/创建/更新/范围/关联
 

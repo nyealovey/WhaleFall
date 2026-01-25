@@ -18,8 +18,8 @@ scope: app/services/** 的服务层实现解读文档索引
 related:
   - "[[reference/README]]"
   - "[[architecture/flows/README]]"
-  - "[[standards/doc/document-boundary-standards]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/document-boundary]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Service 服务层文档索引
@@ -27,7 +27,7 @@ related:
 > [!note] 目标
 > 本目录存放 `app/services/**` 的服务层实现解读文档(流程/失败语义/决策表/兼容兜底清单/图).
 
-- 标准: [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
+- 标准: [[standards/doc/guide/service-layer-documentation|服务层文档标准(Service Docs)]]
 - 流程(SOP): [[architecture/flows/README]]
 - 一次性产物: 计划/进度/复杂度报告位于 `docs/plans/**`, `docs/reports/**`(禁止从 vault 反向引用具体文件; 需长期保留的结论请沉淀到 `docs/Obsidian/**`)
 

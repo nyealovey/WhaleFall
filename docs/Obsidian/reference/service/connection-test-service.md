@@ -18,7 +18,7 @@ owner: WhaleFall Team
 scope: app/services/connection_adapters/connection_test_service.py
 related:
   - "[[reference/service/database-sync-overview|Database Sync 概览(编排 + filters)]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Connection Test Service(数据库连接测试/版本探测)

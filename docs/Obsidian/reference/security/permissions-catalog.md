@@ -14,9 +14,9 @@ owner: WhaleFall Team
 scope: API v1 contract 的 Permission 列, 以及当前代码中的权限字符串约定
 related:
   - "[[API/api-v1-api-contract]]"
-  - "[[standards/doc/api-contract-markdown-standards]]"
+  - "[[standards/doc/guide/api-contract-markdown]]"
   - "[[architecture/identity-access]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
 ---
 
 # Permission strings catalog

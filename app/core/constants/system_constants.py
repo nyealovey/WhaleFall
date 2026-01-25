@@ -60,8 +60,8 @@ class ErrorMessages:
 
     # 认证错误
     INVALID_CREDENTIALS = "用户名或密码错误"
-    TOKEN_EXPIRED = "令牌已过期"  # noqa: S105 RUF100 - UI 提示文案, 来源: docs/Obsidian/standards/coding-standards.md
-    TOKEN_INVALID = "无效的令牌"  # noqa: S105 RUF100 - UI 提示文案, 来源: docs/Obsidian/standards/coding-standards.md
+    TOKEN_EXPIRED = "令牌已过期"  # noqa: S105 RUF100 - UI 提示文案, 来源: docs/Obsidian/standards/core/guide/coding.md
+    TOKEN_INVALID = "无效的令牌"  # noqa: S105 RUF100 - UI 提示文案, 来源: docs/Obsidian/standards/core/guide/coding.md
     ACCOUNT_DISABLED = "账户已被停用"
     ACCOUNT_LOCKED = "账户已被锁定"
     RATE_LIMIT_EXCEEDED = "请求过于频繁,请稍后再试"
@@ -101,7 +101,7 @@ class SuccessMessages:
     LOGIN_SUCCESS = "登录成功"
     LOGOUT_SUCCESS = "登出成功"
     PASSWORD_CHANGED = (
-        "密码修改成功"  # noqa: S105 RUF100 - 用户安全提示, 来源: docs/Obsidian/standards/coding-standards.md
+        "密码修改成功"  # noqa: S105 RUF100 - 用户安全提示, 来源: docs/Obsidian/standards/core/guide/coding.md
     )
     PROFILE_UPDATED = "资料更新成功"
 

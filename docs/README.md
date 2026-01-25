@@ -25,4 +25,4 @@
 
 - 新增文档文件名统一使用英文 `kebab-case.md`.
 - 同一主题只允许存在一个"真源文档"; 历史版本进入 `_archive/`.
-- 文档编写规则见: `Obsidian/standards/doc/documentation-standards.md`.
+- 文档编写规则见: `Obsidian/standards/doc/guide/documentation.md`.

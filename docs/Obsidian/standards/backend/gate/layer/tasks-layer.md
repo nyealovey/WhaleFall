@@ -13,10 +13,10 @@ updated: 2026-01-11
 owner: WhaleFall Team
 scope: "`app/tasks/**` 下所有后台任务函数"
 related:
-  - "[[standards/backend/task-and-scheduler]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/write-operation-boundary]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
+  - "[[standards/backend/hard/task-and-scheduler]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/hard/write-operation-boundary]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
 # Tasks 任务层编写规范
@@ -39,14 +39,14 @@ related:
 ### 1) 应用上下文(强约束)
 
 - MUST: 任何在请求上下文之外运行的任务必须在 `app.app_context()` 内执行.
-- MUST: 处理无上下文场景时遵循 [[standards/backend/task-and-scheduler|任务与调度(APScheduler)]] 的做法(必要时创建 app).
+- MUST: 处理无上下文场景时遵循 [[standards/backend/hard/task-and-scheduler|任务与调度(APScheduler)]] 的做法(必要时创建 app).
 
 ### 2) 职责边界
 
 - MUST: 任务函数只负责调度入口, 参数规整, 调用 `app.services.*`, 记录任务日志.
 - MUST NOT: 直接访问数据库或组装查询, 包括 `Model.query`, `db.session.query`, `db.session.execute`, 原生 SQL.
 - MUST NOT: 在任务函数内执行写入操作, 包括 `db.session.add/delete/merge/flush` 等.
-- MAY: 作为事务边界入口, 任务函数可按阶段调用 `db.session.commit/rollback`(例如长任务分段提交), 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
+- MAY: 作为事务边界入口, 任务函数可按阶段调用 `db.session.commit/rollback`(例如长任务分段提交), 参考 [[standards/backend/hard/write-operation-boundary|写操作事务边界]].
 - MUST NOT: 在任务函数内堆叠复杂业务逻辑(应下沉到 Service).
   - 判据（满足任一条件，默认视为“复杂”，必须下沉到 Service/Runner，或在 PR 中写明例外理由并补测试覆盖）：
     - 单任务函数 > 50 行（以逻辑行计；不含空行/注释/纯日志行）；
@@ -62,11 +62,11 @@ related:
 
 - MUST: 使用结构化日志(例如 `get_system_logger()`), 禁止 `print`.
 - SHOULD: 日志包含 `task`/`job_id`/`instance_id` 等维度.
-- MUST: 遵循 [[standards/backend/sensitive-data-handling|敏感数据处理]] 约束, 禁止把敏感字段写入日志.
+- MUST: 遵循 [[standards/backend/hard/sensitive-data-handling|敏感数据处理]] 约束, 禁止把敏感字段写入日志.
 
 ### 4) 任务注册
 
-- MUST: 任务注册与调度配置遵循 [[standards/backend/task-and-scheduler]].
+- MUST: 任务注册与调度配置遵循 [[standards/backend/hard/task-and-scheduler]].
 - SHOULD: 任务函数保持稳定导入路径, 避免重构导致 scheduler 找不到 callable.
 
 ### 5) 命名规范
@@ -114,4 +114,4 @@ rg -n "Model\\.query|db\\.session\\.(query|execute|add|add_all|delete|merge|flus
 ## 变更历史
 
 - 2026-01-11: 明确 tasks 允许 `commit/rollback` 作为事务边界入口, 但禁止 query/execute 与写入操作, 并更新门禁扫描口径.
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.

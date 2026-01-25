@@ -13,12 +13,12 @@ updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/static/js/modules/views/**` 下所有页面与组件视图(不含 Page Entry)"
 related:
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/ui/javascript-module-standards]]"
-  - "[[standards/ui/grid-standards]]"
-  - "[[standards/ui/component-dom-id-scope-guidelines]]"
-  - "[[standards/ui/danger-operation-confirmation-guidelines]]"
-  - "[[standards/ui/async-task-feedback-guidelines]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/ui/design/javascript-module]]"
+  - "[[standards/ui/gate/grid]]"
+  - "[[standards/ui/gate/component-dom-id-scope]]"
+  - "[[standards/ui/gate/danger-operation-confirmation]]"
+  - "[[standards/ui/guide/async-task-feedback]]"
 ---
 
 # Views 视图层编写规范
@@ -38,7 +38,7 @@ related:
 
 - `app/static/js/modules/views/**` 下的页面脚本与组件脚本.
 - 包含 `views/components/**` 与 `views/grid-page.js` 生态(plugins 等).
-- Page Entry(页面启动脚本)属于 [[standards/ui/layer/page-entry-layer-standards|Page Entry 标准]], 推荐逐步迁移到 `app/static/js/modules/pages/**`.
+- Page Entry(页面启动脚本)属于 [[standards/ui/design/layer/page-entry-layer|Page Entry 标准]], 推荐逐步迁移到 `app/static/js/modules/pages/**`.
 
 ## 规则(MUST/SHOULD/MAY)
 
@@ -54,14 +54,14 @@ related:
 ### 2) 依赖注入与全局读取
 
 - SHOULD: view 通过参数接收 store/service/容器等依赖(能注入就注入).
-- SHOULD: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- SHOULD: `window.*` 的访问规则以 [[standards/ui/guide/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
 - SHOULD: Views 避免读取 allowlist 外全局, 且尽量不直接读取 `window.httpU`(优先经由 service).
 - SHOULD: 组件型 view 导出 `createXView({ store, container, ... })`, 返回 `{ mount, update, destroy }`.
 
 ### 3) 事件绑定与释放
 
 - SHOULD: 所有事件绑定在 `destroy()` 中解除(避免重复 mount 导致多次绑定).
-- SHOULD: 事件通过 JS 绑定（`data-action` + delegation，或 `DOMHelpers`/原生 addEventListener）；模板内联事件处理器（`onclick="..."`）遵循 [[standards/ui/template-event-binding-standards]](该文档为 `enforcement: gate`, 以门禁为准).
+- SHOULD: 事件通过 JS 绑定（`data-action` + delegation，或 `DOMHelpers`/原生 addEventListener）；模板内联事件处理器（`onclick="..."`）遵循 [[standards/ui/gate/template-event-binding]](该文档为 `enforcement: gate`, 以门禁为准).
 - SHOULD: 列表页行内动作使用 `Views.GridPlugins.actionDelegation`, 避免重复写 click handler.
 
 ### 4) XSS 与 HTML 输出
@@ -74,12 +74,12 @@ related:
 
 ### 5) Grid list pages 必须使用 GridPage skeleton
 
-- SHOULD: Grid 列表页遵循 [[standards/ui/grid-standards|Grid 列表页标准]](该文档为 `enforcement: gate`, 以门禁为准).
+- SHOULD: Grid 列表页遵循 [[standards/ui/gate/grid|Grid 列表页标准]](该文档为 `enforcement: gate`, 以门禁为准).
 
 ### 6) 高风险操作与异步反馈
 
-- SHOULD: 高风险操作(删除/批量变更)遵循 [[standards/ui/danger-operation-confirmation-guidelines]].
-- SHOULD: 异步任务反馈遵循 [[standards/ui/async-task-feedback-guidelines]](loading, disable, toast, recover).
+- SHOULD: 高风险操作(删除/批量变更)遵循 [[standards/ui/gate/danger-operation-confirmation]].
+- SHOULD: 异步任务反馈遵循 [[standards/ui/guide/async-task-feedback]](loading, disable, toast, recover).
 
 ## 正反例
 

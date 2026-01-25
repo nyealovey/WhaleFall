@@ -12,8 +12,8 @@ owner: WhaleFall Team
 scope: `standards/ui/layer/**` 引用的长代码示例与正反例集合(非规则 SSOT)
 related:
   - "[[reference/examples/README]]"
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/doc/document-boundary-standards]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/doc/guide/document-boundary]]"
 ---
 
 # UI 分层示例(长示例)

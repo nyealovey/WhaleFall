@@ -13,18 +13,18 @@ updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`app/templates/**` 的 page_id + `app/static/js/bootstrap/page-loader.js` + 各页面入口脚本"
 related:
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/ui/javascript-module-standards]]"
-  - "[[standards/ui/performance-standards]]"
-  - "[[standards/ui/grid-standards]]"
-  - "[[standards/ui/component-dom-id-scope-guidelines]]"
-  - "[[standards/backend/layer/routes-layer-standards]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/ui/design/javascript-module]]"
+  - "[[standards/ui/design/performance]]"
+  - "[[standards/ui/gate/grid]]"
+  - "[[standards/ui/gate/component-dom-id-scope]]"
+  - "[[standards/backend/gate/layer/routes-layer]]"
 ---
 
 # Page Entry 页面入口层编写规范
 
 > [!note] 说明
-> Page Entry 是前端的"请求入口层". 它负责读取模板下发的数据, 组合 services/stores/views, 启动页面并完成 wiring. 类比后端 [[standards/backend/layer/routes-layer-standards|Routes 路由层]], Page Entry 必须保持"薄", 业务逻辑应下沉到 store/actions 或 view components.
+> Page Entry 是前端的"请求入口层". 它负责读取模板下发的数据, 组合 services/stores/views, 启动页面并完成 wiring. 类比后端 [[standards/backend/gate/layer/routes-layer|Routes 路由层]], Page Entry 必须保持"薄", 业务逻辑应下沉到 store/actions 或 view components.
 >
 > 本文为 `enforcement: design`: 描述默认方案与推荐边界. 除明确的安全底线外, 尽量用 SHOULD 表达(避免为了满足形式而过度抽象/过度拆分).
 
@@ -63,7 +63,7 @@ related:
 ### 3) 全局依赖读取规则
 
 - SHOULD: Page Entry 负责读取全局依赖并完成 wiring.
-- SHOULD: `window.*` 的访问规则以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- SHOULD: `window.*` 的访问规则以 [[standards/ui/guide/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
 - SHOULD: 下层优先通过参数接收依赖; 如确需读取 `window.*`, 仅允许访问 allowlist 内的全局.
 - MAY: 迁移期 legacy 代码可临时读取 allowlist 外 `window.*`, 但必须在评审中说明原因, 并给出迁移计划.
 
@@ -80,7 +80,7 @@ related:
 
 ### 5) 列表页 wiring 必须使用 GridPage skeleton
 
-- SHOULD: Grid 列表页遵循 [[standards/ui/grid-standards|Grid 列表页标准]](该文档为 `enforcement: gate`, 以门禁为准).
+- SHOULD: Grid 列表页遵循 [[standards/ui/gate/grid|Grid 列表页标准]](该文档为 `enforcement: gate`, 以门禁为准).
 
 ### 6) 生命周期与清理
 

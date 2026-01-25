@@ -14,10 +14,10 @@ updated: 2026-01-12
 owner: WhaleFall Team
 scope: "`app/settings.py` 统一配置读取与校验"
 related:
-  - "[[standards/backend/configuration-and-secrets]]"
-  - "[[standards/backend/bootstrap-and-entrypoint]]"
-  - "[[standards/backend/sensitive-data-handling]]"
-  - "[[standards/backend/layer/README|后端分层标准]]"
+  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/gate/bootstrap-and-entrypoint]]"
+  - "[[standards/backend/hard/sensitive-data-handling]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准]]"
 ---
 
 # Settings/Config 配置层编写规范
@@ -41,7 +41,7 @@ related:
 
 - MUST: 新增/修改配置项必须落在 `app/settings.py` 的 `Settings`（解析 + 默认值 + 校验 + 导出）。
 - MUST: `create_app(settings=...)` 只消费 `Settings`（或其 `to_flask_config()`），禁止在 `create_app` 内直接读环境变量。
-- MUST NOT: 在业务模块中新增 `os.environ.get(...)`（入口脚本 `app.py/wsgi.py` 设置运行默认值除外，详见 [[standards/backend/bootstrap-and-entrypoint]]）。
+- MUST NOT: 在业务模块中新增 `os.environ.get(...)`（入口脚本 `app.py/wsgi.py` 设置运行默认值除外，详见 [[standards/backend/gate/bootstrap-and-entrypoint]]）。
 
 ### 2) 类型、默认值与校验
 
@@ -65,7 +65,7 @@ related:
 ### 4) 敏感信息处理
 
 - MUST NOT: 把密钥/口令/令牌/连接串原文写入日志。
-- SHOULD: 需要排障时只记录“变量名/是否存在/来源/长度”等非敏感信息，遵循 [[standards/backend/sensitive-data-handling]]。
+- SHOULD: 需要排障时只记录“变量名/是否存在/来源/长度”等非敏感信息，遵循 [[standards/backend/hard/sensitive-data-handling]]。
 
 ### 5) 导出到 Flask 配置
 

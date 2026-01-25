@@ -17,7 +17,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/tags/tag_write_service.py
 related:
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Tags Write Service(标签写操作/批量删除)

@@ -25,7 +25,7 @@ related:
   - "[[API/databases-api-contract]]"
   - "[[API/instances-api-contract]]"
   - "[[reference/service/database-ledger-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Files Export Services(CSV 导出与模板)

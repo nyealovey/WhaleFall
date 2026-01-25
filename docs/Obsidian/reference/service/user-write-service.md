@@ -17,7 +17,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/users/user_write_service.py
 related:
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # User Write Service(用户写操作/最后管理员保护)

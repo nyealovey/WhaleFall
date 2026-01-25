@@ -12,7 +12,7 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: 日志、错误响应、凭据存储与导出(CSV/Excel)相关代码路径
 related:
-  - "[[standards/backend/configuration-and-secrets]]"
+  - "[[standards/backend/hard/configuration-and-secrets]]"
 ---
 
 # 敏感数据处理(脱敏/加密/导出)
@@ -74,7 +74,7 @@ logger.info("connect_failed", database_url=database_url)
 - 单元测试：
   - `tests/unit/utils/test_sensitive_data.py`
   - `tests/unit/utils/test_spreadsheet_formula_safety.py`
-- `env.example` 密钥门禁(相关标准见 [[standards/backend/configuration-and-secrets|配置与密钥]])：`./scripts/ci/secrets-guard.sh`
+- `env.example` 密钥门禁(相关标准见 [[standards/backend/hard/configuration-and-secrets|配置与密钥]])：`./scripts/ci/secrets-guard.sh`
 
 ## 变更历史
 

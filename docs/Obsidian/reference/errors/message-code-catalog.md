@@ -13,8 +13,8 @@ updated: 2026-01-10
 owner: WhaleFall Team
 scope: API v1 错误封套 message_code(message_key) 一览, 含对外语义与常见触发点
 related:
-  - "[[standards/backend/layer/api-layer-standards]]"
-  - "[[standards/backend/error-message-schema-unification]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
   - "[[operations/observability-ops]]"
 ---
 
@@ -25,8 +25,8 @@ related:
 
 ## 1. 背景与落点
 
-- 标准封套格式见: [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API 响应封套]].
-- 统一口径见: [[standards/backend/error-message-schema-unification]].
+- 标准封套格式见: [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)|API 响应封套]].
+- 统一口径见: [[standards/backend/hard/error-message-schema-unification]].
 
 代码落点:
 
@@ -43,7 +43,7 @@ related:
 2. 结合请求路径与模块字段定位入口:
    - `context.url`, `context.method`, `context.request_id`, `context.user_id`
 3. 判断是"业务失败"还是"异常":
-   - action endpoints 语义见: [[standards/backend/action-endpoint-failure-semantics]]
+   - action endpoints 语义见: [[standards/backend/hard/action-endpoint-failure-semantics]]
 4. 按需进入更细的 SOP:
    - [[getting-started/debugging]]
 

@@ -13,7 +13,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`docs/changes/**` 下所有变更文档(含后续新增)"
 related:
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # WhaleFall 变更文档(docs/changes)规范
@@ -165,7 +165,7 @@ docs/changes/
 
 - `Draft`：方案/进度仍在讨论或推进中。
 - `Active`：正在推进，且是当前真源。
-- `Archived`: 变更完成且无需继续更新; 按 [[standards/doc/documentation-standards]] 的归档规则迁移到 `docs/_archive/changes/<category>/YYYY/`.
+- `Archived`: 变更完成且无需继续更新; 按 [[standards/doc/guide/documentation]] 的归档规则迁移到 `docs/_archive/changes/<category>/YYYY/`.
 
 ## 8. 门禁/检查建议（可选）
 

@@ -17,7 +17,7 @@ scope: app/services/dashboard/dashboard_activities_service.py
 related:
   - "[[API/dashboard-api-contract]]"
   - "[[architecture/domain/dashboard-domain]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Dashboard Activities Service(仪表板活动列表)

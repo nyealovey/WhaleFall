@@ -252,7 +252,7 @@ make test
 
 前端列表页统一使用 Grid.js + GridWrapper, 规范 SSOT 与迁移自检入口如下:
 
-- [Grid 列表页标准](docs/Obsidian/standards/ui/grid-standards.md) - wiring/分页/日志单一真源
+- [Grid 列表页标准](docs/Obsidian/standards/ui/gate/grid.md) - wiring/分页/日志单一真源
 - [Grid.js 列表页迁移 checklist](docs/Obsidian/reference/development/gridjs-migration-checklist.md) - 交付自检清单
 
 ### 代码质量
@@ -311,8 +311,8 @@ def example_view() -> Response:
 
 ### 开发文档
 - [编码规范](AGENTS.md) - 项目编码与门禁规范（单一真源）
-- [编码风格补充](docs/Obsidian/standards/coding-standards.md) - 编码与命名基础规范
-- [文档规范](docs/Obsidian/standards/doc/documentation-standards.md) - 文档结构与编写规范
+- [编码风格补充](docs/Obsidian/standards/core/guide/coding.md) - 编码与命名基础规范
+- [文档规范](docs/Obsidian/standards/doc/guide/documentation.md) - 文档结构与编写规范
 
 ### 部署文档
 - [生产部署指南](docs/Obsidian/operations/deployment/production-deployment.md) - 生产环境部署步骤

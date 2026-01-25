@@ -14,10 +14,10 @@ owner: WhaleFall Team
 scope: "`app/templates/**` + `app/static/js/**` 的可访问性基线(按钮, 表单, 弹窗, 键盘操作)"
 related:
   - "[[standards/ui/README]]"
-  - "[[standards/ui/close-button-accessible-name-guidelines]]"
-  - "[[standards/ui/button-hierarchy-guidelines]]"
-  - "[[standards/ui/template-event-binding-standards]]"
-  - "[[standards/ui/async-task-feedback-guidelines]]"
+  - "[[standards/ui/gate/close-button-accessible-name]]"
+  - "[[standards/ui/gate/button-hierarchy]]"
+  - "[[standards/ui/gate/template-event-binding]]"
+  - "[[standards/ui/guide/async-task-feedback]]"
 ---
 
 # 可访问性(A11y)基线标准
@@ -38,7 +38,7 @@ related:
 ### 1) 可访问名称(Accessible Name)
 
 - MUST: 仅图标按钮必须具备稳定的可访问名称, 优先使用 `aria-label`.
-- MUST: 关闭按钮(`btn-close`)必须使用 `aria-label="关闭"`, 见 [[standards/ui/close-button-accessible-name-guidelines]].
+- MUST: 关闭按钮(`btn-close`)必须使用 `aria-label="关闭"`, 见 [[standards/ui/gate/close-button-accessible-name]].
 - SHOULD: 图标仅用于装饰时加 `aria-hidden="true"`.
 
 ### 2) 键盘可用性
@@ -66,7 +66,7 @@ related:
 
 ### 5) 动态反馈(toast, alert, loading)
 
-- MUST: 用户可见错误不得只写 `console.log`, 必须有可见反馈(如 toast/alert), 参考 [[standards/ui/async-task-feedback-guidelines]].
+- MUST: 用户可见错误不得只写 `console.log`, 必须有可见反馈(如 toast/alert), 参考 [[standards/ui/guide/async-task-feedback]].
 - SHOULD: toast/alert 的关闭按钮必须可聚焦且可读屏朗读(包含 `aria-label`).
 
 ## 自查清单(人工)

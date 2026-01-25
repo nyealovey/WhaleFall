@@ -16,8 +16,8 @@ related:
   - "[[architecture/spec]]"
   - "[[API/api-v1-api-contract]]"
   - "[[operations/observability-ops]]"
-  - "[[standards/doc/document-boundary-standards]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/document-boundary]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # WhaleFall 项目结构
@@ -34,7 +34,7 @@ related:
 | `app/` | Flask 应用代码 | 业务代码 SSOT |
 | `docs/` | 文档 | SSOT 在 `docs/Obsidian/**` |
 | `tests/` | 测试 | 单测在 `tests/unit/` |
-| `migrations/` | 数据库迁移 | 约束见 `docs/Obsidian/standards/backend/database-migrations.md` |
+| `migrations/` | 数据库迁移 | 约束见 `docs/Obsidian/standards/backend/hard/database-migrations.md` |
 | `scripts/` | 工具脚本 | CI, 本地巡检, 报告生成 |
 | `sql/` | 初始化/运维 SQL | 运维辅助, 不承载业务逻辑 |
 | `nginx/` | Nginx 配置 | 生产部署相关 |
@@ -179,7 +179,7 @@ related:
 - 模型: `app/models/**`
 - 迁移: `migrations/**`
   - 约束: 不修改历史 migration.
-  - 规范: `docs/Obsidian/standards/backend/database-migrations.md`
+  - 规范: `docs/Obsidian/standards/backend/hard/database-migrations.md`
 - 初始化/运维 SQL: `sql/**`
 
 ## 5. 配置与运行

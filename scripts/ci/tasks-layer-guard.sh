@@ -25,9 +25,8 @@ if [[ -n "${hits}" ]]; then
   echo "${hits}" >&2
   echo "" >&2
   echo "Tasks 只允许做调度入口与可观测性；查库/写库应下沉到 Service/Repository（tasks 仅可 commit/rollback 作为边界）。" >&2
-  echo "参考：docs/Obsidian/standards/backend/layer/tasks-layer-standards.md" >&2
+  echo "参考：docs/Obsidian/standards/backend/gate/layer/tasks-layer.md" >&2
   exit 1
 fi
 
 echo "✅ Tasks 层门禁通过：未发现 query/execute/add/delete/merge/flush。"
-

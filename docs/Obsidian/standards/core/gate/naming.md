@@ -13,8 +13,8 @@ owner: WhaleFall Team
 scope: 仓库内所有文件/目录/符号命名(Python/Jinja2/JS/CSS/脚本)
 related:
   - "[[standards/README]]"
-  - "[[standards/coding-standards]]"
-  - "[[standards/standards-governance]]"
+  - "[[standards/core/guide/coding]]"
+  - "[[standards/core/hard/governance]]"
 ---
 
 # 命名规范
@@ -52,7 +52,7 @@ related:
 ### 3) 命名守卫(门禁强约束)
 
 - MUST NOT：函数命名包含实现细节后缀 `_optimized`(如需区分实现, 用模块/类分层表达).
-- SHOULD NOT：函数命名包含 `_legacy` 等长期存在的实现细节后缀(如确需保留过渡期, 参考 [[standards/backend/compatibility-and-deprecation]]).
+- SHOULD NOT：函数命名包含 `_legacy` 等长期存在的实现细节后缀(如确需保留过渡期, 参考 [[standards/backend/design/compatibility-and-deprecation]]).
 - MUST：聚合类命名保持单数语义(例如 `get_instance_aggregations`), 禁止“双复数”(例如 `get_instances_aggregations`).
 
 #### 3.1 迁移类重命名目标(门禁)

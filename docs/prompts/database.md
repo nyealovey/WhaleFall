@@ -1,7 +1,7 @@
 通用输出约束（必须遵守）：
 - 最终产出是一份 Markdown 审计报告（不是聊天回复/提纲），可直接保存到 `docs/reports/`。
 - 文件名 MUST 使用英文 `kebab-case.md`，并建议带日期前缀：`YYYY-MM-DD_database-audit-report.md`。
-- 报告结构 MUST 遵守 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 最小结构: 摘要结论(先给结论)/范围与方法/发现清单(按 P0/P1/P2)/建议与后续行动/证据与数据来源(可链接到 `docs/reports/artifacts/`).
+- 报告结构 MUST 遵守 `docs/Obsidian/standards/doc/guide/documentation.md` 的 `reports/*` 最小结构: 摘要结论(先给结论)/范围与方法/发现清单(按 P0/P1/P2)/建议与后续行动/证据与数据来源(可链接到 `docs/reports/artifacts/`).
 - 标题下 MUST 包含元信息块：状态/负责人/创建/更新/范围/关联（用相对路径链接标准文档）。
 - 每条发现 MUST 给出可定位证据（文件:行号/migration id/SQL），并包含修复建议与验证方法。
 
@@ -73,7 +73,7 @@ E. 输出问题清单与路线图：按 P0/P1/P2 排序，给出最小可执行�
 - 是否存在“为了兼容而长期保留”的字段/表，缺少迁移计划与埋点统计命中率？
 - 是否存在“环境回退”导致的隐性差异（例如 Postgres vs SQLite 行为不一致：JSON、约束、事务隔离、LIKE/ILIKE、时间函数等）？
 
-输出格式(严格遵守; 按 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 模板组织):
+输出格式(严格遵守; 按 `docs/Obsidian/standards/doc/guide/documentation.md` 的 `reports/*` 模板组织):
 - 建议报告路径：`docs/reports/YYYY-MM-DD_database-audit-report.md`
 - 标题下必须包含元信息块：状态/负责人/创建/更新/范围/关联
 

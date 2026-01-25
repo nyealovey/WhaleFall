@@ -17,7 +17,7 @@ owner: WhaleFall Team
 scope: app/services/database_sync/adapters/factory.py
 related:
   - "[[reference/service/database-sync-overview|Database Sync 概览(编排 + filters)]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Database Sync Adapters(容量采集适配器差异表)

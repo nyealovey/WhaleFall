@@ -14,8 +14,8 @@ updated: 2026-01-23
 owner: WhaleFall Team
 scope: "`app/templates/**/modals/**`, `app/static/js/modules/views/**/modals/**`, `app/static/js/modules/services/**`, `app/api/v1/namespaces/**`, `app/routes/**`"
 related:
-  - "[[standards/backend/layer/routes-layer-standards]]"
-  - "[[standards/backend/layer/services-layer-standards]]"
+  - "[[standards/backend/gate/layer/routes-layer]]"
+  - "[[standards/backend/gate/layer/services-layer]]"
 ---
 
 # Modal CRUD 表单规范
@@ -140,5 +140,5 @@ rg -n "ResourceFormView|app/forms/|views/form_handlers" app
 
 ## 变更历史
 
-- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/guide/documentation|文档结构与编写规范]] 补齐标准章节.
 - 2026-01-23: 移除 `ResourceFormView` 体系, 更新为 Modal CRUD 标准.

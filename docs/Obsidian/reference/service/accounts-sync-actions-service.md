@@ -21,7 +21,7 @@ related:
   - "[[API/instances-api-contract]]"
   - "[[reference/service/accounts-sync-overview]]"
   - "[[reference/service/sync-session-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Accounts Sync Actions Service(触发后台同步/单实例同步)

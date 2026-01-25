@@ -17,7 +17,7 @@ owner: WhaleFall Team
 scope: app/services/aggregation/aggregation_service.py
 related:
   - "[[reference/service/capacity-current-aggregation-service|Capacity Current Aggregation Service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Aggregation Pipeline(数据库/实例聚合流水线)

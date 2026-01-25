@@ -12,8 +12,8 @@ updated: 2026-01-14
 owner: WhaleFall Team
 scope: 删除/批量/权限/高资源消耗等高风险操作的确认交互与按钮语义
 related:
-  - "[[standards/ui/button-hierarchy-guidelines]]"
-  - "[[standards/ui/async-task-feedback-guidelines]]"
+  - "[[standards/ui/gate/button-hierarchy]]"
+  - "[[standards/ui/guide/async-task-feedback]]"
 ---
 
 # 高风险操作二次确认

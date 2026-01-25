@@ -21,7 +21,7 @@ related:
   - "[[reference/service/account-classification-orchestrator]]"
   - "[[reference/service/accounts-classifications-write-service]]"
   - "[[reference/service/accounts-permissions-facts-builder]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Auto Classify Service(自动分类 action 编排)

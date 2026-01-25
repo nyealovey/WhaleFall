@@ -54,14 +54,14 @@ related:
 - Resource: 用名词表示资源, 用 HTTP method 表达 CRUD.
 - Action: 用 `/actions/<action>` 表达非 CRUD 动作(尤其是 side effect).
 - 标准入口:
-  - [[standards/backend/layer/api-layer-standards#API 命名与路径规范(REST Resource Naming)|API 命名与路径规范]]
-  - [[standards/backend/action-endpoint-failure-semantics|Action endpoint failure semantics]]
+  - [[standards/backend/gate/layer/api-layer#API 命名与路径规范(REST Resource Naming)|API 命名与路径规范]]
+  - [[standards/backend/hard/action-endpoint-failure-semantics|Action endpoint failure semantics]]
 
 ### 1.2 先更新 contract(再写代码)
 
 - 修改或新增 `docs/Obsidian/API/<domain>-api-contract.md` 中的 "Endpoints 总览" 表格.
 - 如新增了新的 contract 文档, 同步更新 [[API/api-v1-api-contract|API v1 contract index]].
-- 标准: [[standards/doc/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
+- 标准: [[standards/doc/guide/api-contract-markdown|API Contract Markdown 标准(SSOT)]]
 
 ### 1.3 落点与分层(代码)
 
@@ -76,9 +76,9 @@ related:
 核心规则:
 
 - 路由保持薄: 入参解析/权限/调用 service/返回封套.
-- 写操作事务边界: [[standards/backend/write-operation-boundary|写操作事务边界]].
-- 入参解析与 schema: [[standards/backend/request-payload-and-schema-validation|request payload and schema validation]].
-- 错误封套与对外口径: [[standards/backend/error-message-schema-unification|error message schema unification]].
+- 写操作事务边界: [[standards/backend/hard/write-operation-boundary|写操作事务边界]].
+- 入参解析与 schema: [[standards/backend/gate/request-payload-and-schema-validation|request payload and schema validation]].
+- 错误封套与对外口径: [[standards/backend/hard/error-message-schema-unification|error message schema unification]].
 
 ### 1.4 最小自检(按改动取子集)
 
@@ -102,9 +102,9 @@ related:
 
 标准入口:
 
-- [[standards/backend/task-and-scheduler|task and scheduler]]
-- [[standards/backend/write-operation-boundary|写操作事务边界]]
-- [[standards/backend/sensitive-data-handling|sensitive data handling]]
+- [[standards/backend/hard/task-and-scheduler|task and scheduler]]
+- [[standards/backend/hard/write-operation-boundary|写操作事务边界]]
+- [[standards/backend/hard/sensitive-data-handling|sensitive data handling]]
 
 ## 3. 新增/修改页面(UI)
 
@@ -118,10 +118,10 @@ related:
 
 ### 3.2 常见场景入口
 
-- Grid 列表页: [[standards/ui/grid-standards|Grid 列表页标准]]
-- modules 分层: [[standards/ui/javascript-module-standards|前端模块化(modules)规范]] + [[standards/ui/layer/README|前端分层(layer)标准索引]]
-- 异步任务反馈: [[standards/ui/async-task-feedback-guidelines|异步任务反馈规范]]
-- 可复用组件 DOM id: [[standards/ui/component-dom-id-scope-guidelines|可复用组件 DOM id 作用域规范]]
+- Grid 列表页: [[standards/ui/gate/grid|Grid 列表页标准]]
+- modules 分层: [[standards/ui/design/javascript-module|前端模块化(modules)规范]] + [[standards/ui/guide/layer/README|前端分层(layer)标准索引]]
+- 异步任务反馈: [[standards/ui/guide/async-task-feedback|异步任务反馈规范]]
+- 可复用组件 DOM id: [[standards/ui/gate/component-dom-id-scope|可复用组件 DOM id 作用域规范]]
 
 ### 3.3 最小自检(按改动取子集)
 
@@ -150,10 +150,10 @@ related:
 
 - 外部数据库账号权限要求: [[reference/database/database-permissions-overview|外部数据库账号权限要求]]
 - 驱动与连接方式: [[reference/database/database-drivers|驱动与连接方式]]
-- 服务层文档标准(补文档时): [[standards/doc/service-layer-documentation-standards|服务层文档标准]]
+- 服务层文档标准(补文档时): [[standards/doc/guide/service-layer-documentation|服务层文档标准]]
 
 ### 4.3 最小自检(按改动取子集)
 
 - 单测: `uv run pytest -m unit`
 - 类型: `make typecheck`
-- 如涉及新依赖/环境变量: 走 `app/settings.py` 并更新 `env.example`(见 [[standards/backend/configuration-and-secrets|configuration and secrets]])
+- 如涉及新依赖/环境变量: 走 `app/settings.py` 并更新 `env.example`(见 [[standards/backend/hard/configuration-and-secrets|configuration and secrets]])

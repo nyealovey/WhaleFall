@@ -11,8 +11,8 @@ updated: 2026-01-10
 owner: WhaleFall Team
 scope: docs/Obsidian/architecture 入口与索引
 related:
-  - "[[standards/doc/documentation-standards]]"
-  - "[[standards/halfwidth-character-standards]]"
+  - "[[standards/doc/guide/documentation]]"
+  - "[[standards/core/guide/halfwidth-characters]]"
   - "[[architecture/adr/README|ADR]]"
 ---
 

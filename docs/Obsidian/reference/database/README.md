@@ -12,7 +12,7 @@ owner: WhaleFall Team
 scope: 数据库相关参考文档索引(驱动/权限/基线/初始化)
 related:
   - "[[reference/README|reference]]"
-  - "[[standards/backend/database-migrations]]"
+  - "[[standards/backend/hard/database-migrations]]"
 ---
 
 # 数据库参考
@@ -21,7 +21,7 @@ related:
 > 本目录维护数据库相关的稳定参考文档(驱动, 权限模型, schema 基线等).
 
 > [!info] Related standards (SSOT)
-> - [[standards/backend/database-migrations|database migrations]]
+> - [[standards/backend/hard/database-migrations|database migrations]]
 
 ## 索引
 

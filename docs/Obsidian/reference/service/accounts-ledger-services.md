@@ -25,7 +25,7 @@ related:
   - "[[reference/service/accounts-permissions-facts-builder]]"
   - "[[reference/service/accounts-sync-permission-manager]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Accounts Ledger Services(台账列表/权限详情/变更历史)

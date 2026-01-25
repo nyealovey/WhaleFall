@@ -12,7 +12,7 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: Bootstrap `btn-close`(Alert/Modal/Toast 等)与所有"仅图标关闭"交互
 related:
-  - "[[standards/terminology]]"
+  - "[[standards/core/guide/terminology]]"
 ---
 
 # 关闭按钮(`btn-close`)可访问名称

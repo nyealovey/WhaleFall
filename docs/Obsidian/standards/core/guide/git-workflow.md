@@ -14,7 +14,7 @@ scope: 本仓库所有代码与文档变更
 related:
   - AGENTS.md
   - "[[reference/development/new-feature-delivery]]"
-  - "[[standards/version-update-guide]]"
+  - "[[standards/core/guide/version-update]]"
 ---
 
 # Git 工作流与分支规范

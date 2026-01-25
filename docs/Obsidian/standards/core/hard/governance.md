@@ -14,7 +14,7 @@ owner: WhaleFall Team
 scope: "`docs/Obsidian/standards/**` 下所有标准文档的编写、分级与执行方式"
 related:
   - "[[standards/README]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # Standards 治理与 enforcement 分级
@@ -82,15 +82,15 @@ related:
 
 ### 正例: hard(契约/安全/一致性)
 
-- `standards/backend/error-message-schema-unification`: 防止 `error/message` 漂移, 下游不再写互兜底链.
+- `standards/backend/hard/error-message-schema-unification`: 防止 `error/message` 漂移, 下游不再写互兜底链.
 
 ### 正例: gate(自动化门禁)
 
-- `standards/ui/layout-sizing-guidelines` + `./scripts/ci/inline-px-style-guard.sh`: 禁止新增 inline px 布局, 用 token/class 替代.
+- `standards/ui/gate/layout-sizing` + `./scripts/ci/inline-px-style-guard.sh`: 禁止新增 inline px 布局, 用 token/class 替代.
 
 ### 正例: design(默认方案 + 取舍)
 
-- `standards/ui/grid-standards`: 属于“页面架构/生态”, 文档应更强调默认入口与插件化, 允许少量例外, 关键底线交给门禁脚本守.
+- `standards/ui/gate/grid`: 属于“页面架构/生态”, 文档应更强调默认入口与插件化, 允许少量例外, 关键底线交给门禁脚本守.
 
 ### 反例: guide 写成 hard
 
@@ -105,4 +105,3 @@ related:
 ## 变更历史
 
 - 2026-01-25: 初始化, 引入 enforcement 分级, 作为 standards 减负与治理入口.
-

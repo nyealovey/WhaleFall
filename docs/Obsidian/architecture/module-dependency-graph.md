@@ -15,7 +15,7 @@ related:
   - "[[architecture/project-structure]]"
   - "[[architecture/spec]]"
   - "[[architecture/developer-entrypoint]]"
-  - "[[standards/backend/layer/README|后端分层标准]]"
+  - "[[standards/backend/guide/layer/README|后端分层标准]]"
 ---
 
 # 模块依赖边界图(layer-first)
@@ -120,6 +120,6 @@ rg -n \"from app\\.services|from app\\.routes|from app\\.api|from app\\.reposito
 
 ## 4. 关联标准与入口
 
-- 分层标准(SSOT): [[standards/backend/layer/README|后端分层标准]]
+- 分层标准(SSOT): [[standards/backend/guide/layer/README|后端分层标准]]
 - 代码地图: [[architecture/project-structure]]
 - 常见开发任务入口: [[architecture/developer-entrypoint]]

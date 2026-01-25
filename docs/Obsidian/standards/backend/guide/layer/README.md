@@ -63,14 +63,14 @@ graph TD
 >   - `app.infra.*` → `app.services.*` / `app.repositories.*`：优先用回调注入或惰性导入；如确需依赖必须在评审说明理由与循环依赖风险。
 
 > [!note]
-> `app/core/**` 为 shared kernel(跨层复用的核心对象),不属于某个业务层; 规范见 [[standards/backend/shared-kernel-standards|Shared Kernel 编写规范]]；异常定义见 `app/core/exceptions.py`, 异常→HTTP status 映射见 `app/infra/error_mapping.py`。
+> `app/core/**` 为 shared kernel(跨层复用的核心对象),不属于某个业务层; 规范见 [[standards/backend/design/shared-kernel|Shared Kernel 编写规范]]；异常定义见 `app/core/exceptions.py`, 异常→HTTP status 映射见 `app/infra/error_mapping.py`。
 
 ## 关键入口(少量)
 
-- [[standards/backend/layer/api-layer-standards|API 层编写规范]]
-- [[standards/backend/layer/services-layer-standards|Services 服务层编写规范]]
-- [[standards/backend/layer/repository-layer-standards|Repository 仓储层编写规范]]
-- [[standards/backend/layer/tasks-layer-standards|Tasks 任务层编写规范]]
+- [[standards/backend/gate/layer/api-layer|API 层编写规范]]
+- [[standards/backend/gate/layer/services-layer|Services 服务层编写规范]]
+- [[standards/backend/gate/layer/repository-layer|Repository 仓储层编写规范]]
+- [[standards/backend/gate/layer/tasks-layer|Tasks 任务层编写规范]]
 
 ## 全量浏览(不维护手工清单)
 

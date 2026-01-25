@@ -20,7 +20,7 @@ related:
   - "[[architecture/flows/tags-bulk]]"
   - "[[API/tags-api-contract]]"
   - "[[reference/service/tags-write-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Tags Bulk Actions Service(实例标签批量分配/移除)

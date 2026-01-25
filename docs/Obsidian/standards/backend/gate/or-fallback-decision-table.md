@@ -12,11 +12,11 @@ updated: 2026-01-16
 owner: WhaleFall Team
 scope: "Python `or`/truthy 兜底的使用边界；兼容/默认值/迁移/规范化的落点决策"
 related:
-  - "[[standards/backend/layer/schemas-layer-standards]]"
-  - "[[standards/backend/request-payload-and-schema-validation]]"
-  - "[[standards/backend/internal-data-contract-and-versioning]]"
-  - "[[standards/backend/compatibility-and-deprecation]]"
-  - "[[standards/backend/resilience-and-fallback-standards]]"
+  - "[[standards/backend/gate/layer/schemas-layer]]"
+  - "[[standards/backend/gate/request-payload-and-schema-validation]]"
+  - "[[standards/backend/gate/internal-data-contract-and-versioning]]"
+  - "[[standards/backend/design/compatibility-and-deprecation]]"
+  - "[[standards/backend/guide/resilience-and-fallback]]"
 ---
 
 # `or`/truthy 兜底决策表（何时允许，何时必须替换）

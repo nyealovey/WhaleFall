@@ -58,9 +58,8 @@ new_hits="$(comm -13 "${baseline_sorted_file}" "${current_file}" || true)"
 if [[ -n "${new_hits}" ]]; then
   echo "检测到新增的 templates inline handler 命中（禁止新增）：" >&2
   echo "${new_hits}" >&2
-  echo "请迁移为 data-action + JS addEventListener/delegation（参考 docs/Obsidian/standards/ui/template-event-binding-standards.md）。" >&2
+  echo "请迁移为 data-action + JS addEventListener/delegation（参考 docs/Obsidian/standards/ui/gate/template-event-binding.md）。" >&2
   exit 1
 fi
 
 echo "检查通过：当前命中数 ${current_count}（允许减少，禁止新增）。"
-

@@ -20,7 +20,7 @@ scope: app/services/instances/instance_write_service.py
 related:
   - "[[reference/service/tags-write-service|Tags Write Service]]"
   - "[[reference/service/credential-write-service|Credential Write Service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Instances Write + Batch(实例写操作/批量创建删除)

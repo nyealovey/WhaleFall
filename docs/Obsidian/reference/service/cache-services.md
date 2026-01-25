@@ -18,7 +18,7 @@ owner: WhaleFall Team
 scope: app/services/cache_service.py
 related:
   - "[[reference/service/account-classification-orchestrator|Account Classification Orchestrator]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Cache Services(缓存服务/清理动作)

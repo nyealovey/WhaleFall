@@ -18,7 +18,7 @@ scope: app/services/account_classification/dsl_v4.py
 related:
   - "[[reference/service/account-classification-orchestrator|Account Classification Orchestrator]]"
   - "[[reference/service/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Account Classification DSL v4(语义 + 校验 + 执行)

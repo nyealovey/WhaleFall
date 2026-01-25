@@ -13,13 +13,13 @@ owner: WhaleFall Team
 scope: 仓库内所有 Python/JS/CSS/Jinja2 代码与脚本
 related:
   - "[[standards/README]]"
-  - "[[standards/halfwidth-character-standards]]"
-  - "[[standards/naming-standards]]"
-  - "[[standards/backend/layer/routes-layer-standards]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
-  - "[[standards/backend/layer/types-layer-standards]]"
-  - "[[standards/backend/layer/schemas-layer-standards]]"
-  - "[[standards/testing-standards]]"
+  - "[[standards/core/guide/halfwidth-characters]]"
+  - "[[standards/core/gate/naming]]"
+  - "[[standards/backend/gate/layer/routes-layer]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
+  - "[[standards/backend/guide/layer/types-layer]]"
+  - "[[standards/backend/gate/layer/schemas-layer]]"
+  - "[[standards/core/guide/testing]]"
   - "[[standards/ui/README]]"
 ---
 
@@ -41,7 +41,7 @@ related:
 
 - MUST：提交前运行 `make format`（black + isort），避免在评审中讨论格式。
 - SHOULD：Python 使用四空格缩进，单行长度建议 ≤120.
-- SHOULD: 避免不可见空白字符与代码相关文本的全角 ASCII 变体, 详见 [[standards/halfwidth-character-standards]].
+- SHOULD: 避免不可见空白字符与代码相关文本的全角 ASCII 变体, 详见 [[standards/core/guide/halfwidth-characters]].
 - SHOULD：导入顺序遵循“标准库 → 第三方 → 本地模块”，并把 `app` 视为一方导入根。
 
 ### 2) 日志与可观测性
@@ -53,8 +53,8 @@ related:
 ### 3) 边界层异常与封套（以分层标准为准）
 
 - SHOULD: Routes/API 的异常处理、事务语义与封套口径, 以分层标准为单一真源:
-  - [[standards/backend/layer/routes-layer-standards|Routes 层编写规范]]
-  - [[standards/backend/layer/api-layer-standards|API 层编写规范]]
+  - [[standards/backend/gate/layer/routes-layer|Routes 层编写规范]]
+  - [[standards/backend/gate/layer/api-layer|API 层编写规范]]
 - SHOULD: 避免在边界层手写 `try/except Exception` + 记录日志 + 返回错误响应的模板(容易造成口径漂移与重复日志)。
 
 ### 4) 类型与 schema（以 types/schemas 标准为准）
@@ -66,11 +66,11 @@ related:
 ### 5) 前端与样式（以 UI 标准为准）
 
 - SHOULD：UI 相关细则以 [[standards/ui/README|UI 标准索引]] 为准(本文件不重复维护 UI 细粒度约束)。
-- SHOULD: 色彩优先使用 design token/CSS variables, 参考 [[standards/ui/design-token-governance-guidelines|设计 Token 治理]].
+- SHOULD: 色彩优先使用 design token/CSS variables, 参考 [[standards/ui/gate/design-token-governance|设计 Token 治理]].
 
 ### 6) 测试（当前仓库基线）
 
-- SHOULD：测试组织、marker 与目录约定以 [[standards/testing-standards|测试规范]] 为准。
+- SHOULD：测试组织、marker 与目录约定以 [[standards/core/guide/testing|测试规范]] 为准。
 - SHOULD：新增测试优先覆盖“服务层/工具函数/规则引擎”等可复用逻辑，而不是在视图层堆集成用例。
 
 ## 正反例

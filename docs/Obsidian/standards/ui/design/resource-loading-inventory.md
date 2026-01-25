@@ -14,14 +14,14 @@ owner: WhaleFall Team
 scope: "`app/templates/base.html` 的全站资源盘点与分类方法(用于指导按需加载)"
 related:
   - "[[standards/ui/README]]"
-  - "[[standards/ui/performance-standards]]"
-  - "[[standards/ui/vendor-library-usage-standards]]"
+  - "[[standards/ui/design/performance]]"
+  - "[[standards/ui/design/vendor-library-usage]]"
 ---
 
 # 资源加载盘点(全站资源 vs 按页资源)
 
 > [!note] 说明
-> 本文用于把"现在 base.html 引入了什么"显式化, 便于按需加载与性能审查. 它不是强制标准, 标准以 [[standards/ui/performance-standards]] 为准.
+> 本文用于把"现在 base.html 引入了什么"显式化, 便于按需加载与性能审查. 它不是强制标准, 标准以 [[standards/ui/design/performance]] 为准.
 
 ## 1) 分类口径
 

@@ -13,9 +13,9 @@ owner: WhaleFall Team
 scope: 生产部署(docker-compose.prod.yml / Dockerfile.prod / .env)与日常运维命令
 related:
   - "[[operations/deployment/README|部署 Runbook 索引]]"
-  - "[[standards/backend/configuration-and-secrets]]"
-  - "[[standards/backend/database-migrations]]"
-  - "[[standards/backend/task-and-scheduler]]"
+  - "[[standards/backend/hard/configuration-and-secrets]]"
+  - "[[standards/backend/hard/database-migrations]]"
+  - "[[standards/backend/hard/task-and-scheduler]]"
   - "[[reference/database/schema-baseline]]"
   - "[[operations/hot-update/hot-update-guide]]"
 ---
@@ -56,14 +56,14 @@ related:
 
 ### 3) 配置与密钥(必须先看标准)
 
-- 按 [[standards/backend/configuration-and-secrets]] 生成并填写生产密钥:
+- 按 [[standards/backend/hard/configuration-and-secrets]] 生成并填写生产密钥:
   - `SECRET_KEY` / `JWT_SECRET_KEY` / `PASSWORD_ENCRYPTION_KEY`
   - `POSTGRES_PASSWORD` / `REDIS_PASSWORD`
 - `.env` 必须为未跟踪文件, 禁止提交到仓库.
 
 ### 4) 数据库初始化/迁移策略(必须二选一)
 
-- 迁移与基线规则见 [[standards/backend/database-migrations]] 与 [[reference/database/schema-baseline]].
+- 迁移与基线规则见 [[standards/backend/hard/database-migrations]] 与 [[reference/database/schema-baseline]].
 - 空库初始化二选一(不要重复执行两条路径):
   - 方案 A: 直接 `flask db upgrade`
   - 方案 B: 执行 `sql/init/postgresql/**` 后 `flask db stamp 20251219161048`
@@ -258,7 +258,7 @@ docker exec -it whalefall_app_prod bash
 
 ### 5) 迁移失败(重复建表 / 基线不一致)
 
-- 按 [[standards/backend/database-migrations]] 与 [[reference/database/schema-baseline]] 执行:
+- 按 [[standards/backend/hard/database-migrations]] 与 [[reference/database/schema-baseline]] 执行:
   - 空库: `upgrade` 或 `SQL init + stamp` 二选一
   - 已有库: 优先 `stamp` 对齐版本, 再 `upgrade`
 

@@ -12,7 +12,7 @@ owner: WhaleFall Team
 scope: 如何运行与编写 WhaleFall 测试
 related:
   - "[[getting-started/local-dev]]"
-  - "[[standards/testing-standards]]"
+  - "[[standards/core/guide/testing]]"
 ---
 
 # 测试指南
@@ -321,7 +321,7 @@ from app.services.xxx import XxxService
 
 ## 7. 进阶阅读
 
-- 完整测试规范: [[standards/testing-standards]]
+- 完整测试规范: [[standards/core/guide/testing]]
 - pytest 官方文档: https://docs.pytest.org/
 - monkeypatch 使用: https://docs.pytest.org/en/stable/how-to/monkeypatch.html
 

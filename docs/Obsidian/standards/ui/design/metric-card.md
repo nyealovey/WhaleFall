@@ -12,8 +12,8 @@ updated: 2026-01-22
 owner: WhaleFall Team
 scope: "`app/templates/**` 中所有顶部指标/统计卡片，以及其组件样式与 JS 更新方式"
 related:
-  - "[[standards/ui/design-token-governance-guidelines]]"
-  - "[[standards/ui/template-event-binding-standards]]"
+  - "[[standards/ui/gate/design-token-governance]]"
+  - "[[standards/ui/gate/template-event-binding]]"
 ---
 
 # MetricCard 指标卡标准

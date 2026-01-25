@@ -266,10 +266,10 @@ graph TD
 
 关键约束(避免架构漂移):
 
-- 写路径事务边界: service 负责事务边界与失败语义, 见 [[standards/backend/write-operation-boundary]].
-- API 错误封套: API v1 必须走统一错误口径, 见 [[standards/backend/error-message-schema-unification]].
-- request payload 与 schema: 写路径入参校验优先用 `app/schemas/**`(Pydantic), 见 [[standards/backend/request-payload-and-schema-validation]].
-- 任务必须在 `app.app_context()` 内运行, 见 [[standards/backend/task-and-scheduler]].
+- 写路径事务边界: service 负责事务边界与失败语义, 见 [[standards/backend/hard/write-operation-boundary]].
+- API 错误封套: API v1 必须走统一错误口径, 见 [[standards/backend/hard/error-message-schema-unification]].
+- request payload 与 schema: 写路径入参校验优先用 `app/schemas/**`(Pydantic), 见 [[standards/backend/gate/request-payload-and-schema-validation]].
+- 任务必须在 `app.app_context()` 内运行, 见 [[standards/backend/hard/task-and-scheduler]].
 
 ## 5. 关键流程(As-built)
 
@@ -566,7 +566,7 @@ flowchart TD
 
 ## 11. 文档 SSOT 与边界
 
-文档边界以 [[standards/doc/document-boundary-standards]] 为准. 简要记忆:
+文档边界以 [[standards/doc/guide/document-boundary]] 为准. 简要记忆:
 
 - standards: `docs/Obsidian/standards/**`(规范 SSOT)
 - reference: `docs/Obsidian/reference/**`(查阅型 SSOT)

@@ -33,7 +33,7 @@ uv run flask --app app:create_app db upgrade
 uv run flask --app app:create_app db downgrade
 ```
 
-迁移硬约束（SSOT）：`docs/Obsidian/standards/backend/database-migrations.md`
+迁移硬约束（SSOT）：`docs/Obsidian/standards/backend/hard/database-migrations.md`
 
 ## 管理员账户管理
 

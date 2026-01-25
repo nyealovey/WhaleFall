@@ -19,9 +19,9 @@ related:
   - "[[reference/service/accounts-sync-overview|Accounts Sync 总览]]"
   - "[[reference/service/accounts-sync-adapters|Accounts Sync Adapters]]"
   - "[[reference/service/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"
-  - "[[standards/doc/documentation-standards]]"
-  - "[[standards/halfwidth-character-standards]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
+  - "[[standards/core/guide/halfwidth-characters]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # AccountPermissionManager 权限同步(泳道图与决策表)

@@ -12,9 +12,9 @@ updated: 2026-01-15
 owner: WhaleFall Team
 scope: 所有管理页面(表格/卡片/详情弹窗/筛选区/标签与状态展示)
 related:
-  - "[[standards/ui/design-token-governance-guidelines]]"
-  - "[[standards/ui/button-hierarchy-guidelines]]"
-  - "[[standards/ui/danger-operation-confirmation-guidelines]]"
+  - "[[standards/ui/gate/design-token-governance]]"
+  - "[[standards/ui/gate/button-hierarchy]]"
+  - "[[standards/ui/gate/danger-operation-confirmation]]"
 ---
 
 # 界面色彩与视觉疲劳控制
@@ -54,8 +54,8 @@ related:
 
 ### 4) 按钮与危险语义
 
-- MUST：触发层面的危险操作按钮优先使用 `btn-outline-danger` 或危险图标按钮(详见 [[standards/ui/button-hierarchy-guidelines|按钮层级与状态]])。
-- MUST：危险操作的“最终确认”按钮使用 `btn-danger`(详见 [[standards/ui/danger-operation-confirmation-guidelines|高风险操作二次确认]])。
+- MUST：触发层面的危险操作按钮优先使用 `btn-outline-danger` 或危险图标按钮(详见 [[standards/ui/gate/button-hierarchy|按钮层级与状态]])。
+- MUST：危险操作的“最终确认”按钮使用 `btn-danger`(详见 [[standards/ui/gate/danger-operation-confirmation|高风险操作二次确认]])。
 
 ### 5) 筛选区（FilterCard）约束
 

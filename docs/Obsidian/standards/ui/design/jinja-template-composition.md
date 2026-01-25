@@ -13,10 +13,10 @@ owner: WhaleFall Team
 scope: "`app/templates/**` 的页面结构, 组件化复用, 数据下发与资源按需加载"
 related:
   - "[[standards/ui/README]]"
-  - "[[standards/ui/performance-standards]]"
-  - "[[standards/ui/template-event-binding-standards]]"
-  - "[[standards/ui/layer/page-entry-layer-standards]]"
-  - "[[standards/ui/component-dom-id-scope-guidelines]]"
+  - "[[standards/ui/design/performance]]"
+  - "[[standards/ui/gate/template-event-binding]]"
+  - "[[standards/ui/design/layer/page-entry-layer]]"
+  - "[[standards/ui/gate/component-dom-id-scope]]"
 ---
 
 # Jinja 模板组织与复用标准
@@ -65,7 +65,7 @@ related:
 
 ### 4) 事件与 hook(模板只声明意图)
 
-- MUST NOT: 模板内联事件处理器(`onclick="..."` 等), 见 [[standards/ui/template-event-binding-standards]].
+- MUST NOT: 模板内联事件处理器(`onclick="..."` 等), 见 [[standards/ui/gate/template-event-binding]].
 - MUST: 通过 `data-action="..."` 等 hook 声明意图, 由 JS 侧绑定事件或事件委托.
 
 ### 5) 模板中的逻辑边界

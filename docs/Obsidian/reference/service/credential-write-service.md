@@ -17,7 +17,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/credentials/credential_write_service.py
 related:
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Credential Write Service(凭据写操作/错误归一化)

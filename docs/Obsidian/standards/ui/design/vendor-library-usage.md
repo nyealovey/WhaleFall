@@ -13,8 +13,8 @@ owner: WhaleFall Team
 scope: "`app/templates/**` 引入的 vendor 库(bootstrap/chartjs/dayjs/lodash/mitt/numeral/umbrella/just-validate/fontawesome 等)及其项目封装(common/core/modules)"
 related:
   - "[[standards/ui/README]]"
-  - "[[standards/ui/layer/README]]"
-  - "[[standards/ui/javascript-module-standards]]"
+  - "[[standards/ui/guide/layer/README]]"
+  - "[[standards/ui/design/javascript-module]]"
 ---
 
 # 第三方库(vendor)使用标准
@@ -29,8 +29,8 @@ related:
 
 - SHOULD: 业务代码优先使用项目封装, 避免直接依赖 vendor global.
 - SHOULD: 若需要补齐能力(新格式/新 helper/新事件规范), 优先扩展封装层, 避免在 view/store/service 内新增零散实现.
-- SHOULD: `window.*` 的访问边界以 [[standards/ui/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
-- SHOULD: vendor 默认按页引入, 只有"全站每页都需要"的资源才进入 `base.html`, 参考 [[standards/ui/performance-standards]].
+- SHOULD: `window.*` 的访问边界以 [[standards/ui/guide/layer/README#全局依赖(window.*) 访问规则(SSOT)|全局依赖(window.*) 访问规则(SSOT)]] 为单一真源.
+- SHOULD: vendor 默认按页引入, 只有"全站每页都需要"的资源才进入 `base.html`, 参考 [[standards/ui/design/performance]].
 - MAY: 如确需直接访问 vendor global, 在评审中说明原因与影响面, 并尽量给出后续收敛计划(什么时候回收).
 
 ## 现有入口(扫描摘要)
@@ -54,7 +54,7 @@ related:
 
 ### Grid.js(列表表格)
 
-- SHOULD: Grid 列表页遵循 [[standards/ui/grid-standards|Grid 列表页标准]](该标准包含门禁, 以门禁为准).
+- SHOULD: Grid 列表页遵循 [[standards/ui/gate/grid|Grid 列表页标准]](该标准包含门禁, 以门禁为准).
 
 ### Bootstrap(交互组件)
 
@@ -127,7 +127,7 @@ related:
 
 事件命名:
 
-- SHOULD: 遵循 `<domain>:<action>` 约定(参考 [[standards/ui/layer/stores-layer-standards#5) 事件命名与释放|Stores: 事件命名与释放]]).
+- SHOULD: 遵循 `<domain>:<action>` 约定(参考 [[standards/ui/design/layer/stores-layer#5) 事件命名与释放|Stores: 事件命名与释放]]).
 
 ### Umbrella.js(DOM/HTTP)
 
@@ -140,7 +140,7 @@ related:
 ### Font Awesome(图标)
 
 - SHOULD: 纯装饰图标加 `aria-hidden="true"`.
-- SHOULD: 图标按钮必须具备可访问名称(如 `aria-label`), 参考 [[standards/ui/close-button-accessible-name-guidelines]].
+- SHOULD: 图标按钮必须具备可访问名称(如 `aria-label`), 参考 [[standards/ui/gate/close-button-accessible-name]].
 
 ## 自查(可选)
 

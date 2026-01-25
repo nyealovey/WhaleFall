@@ -12,7 +12,7 @@ updated: 2026-01-25
 owner: WhaleFall Team
 scope: "`tests/` 目录下所有测试代码"
 related:
-  - "[[standards/coding-standards]]"
+  - "[[standards/core/guide/coding]]"
 ---
 
 # WhaleFall 测试规范

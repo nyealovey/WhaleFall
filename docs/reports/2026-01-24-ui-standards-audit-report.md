@@ -5,15 +5,15 @@
 > Scope: `docs/Obsidian/standards/ui/**/*.md` + `app/static/js/**/*.js`(排除 `app/static/vendor/**`) + `app/templates/**/*.html` + `app/static/css/**/*.css`
 > Related:
 > - `docs/Obsidian/standards/ui/README.md`
-> - `docs/Obsidian/standards/ui/layer/README.md`
-> - `docs/Obsidian/standards/ui/javascript-module-standards.md`
-> - `docs/Obsidian/standards/ui/vendor-library-usage-standards.md`
-> - `docs/Obsidian/standards/ui/template-event-binding-standards.md`
-> - `docs/Obsidian/standards/ui/layout-sizing-guidelines.md`
-> - `docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md`
-> - `docs/Obsidian/standards/ui/metric-card-standards.md`
-> - `docs/Obsidian/standards/ui/design-token-governance-guidelines.md`
-> - `docs/Obsidian/standards/ui/color-guidelines.md`
+> - `docs/Obsidian/standards/ui/guide/layer/README.md`
+> - `docs/Obsidian/standards/ui/design/javascript-module.md`
+> - `docs/Obsidian/standards/ui/design/vendor-library-usage.md`
+> - `docs/Obsidian/standards/ui/gate/template-event-binding.md`
+> - `docs/Obsidian/standards/ui/gate/layout-sizing.md`
+> - `docs/Obsidian/standards/ui/gate/component-dom-id-scope.md`
+> - `docs/Obsidian/standards/ui/design/metric-card.md`
+> - `docs/Obsidian/standards/ui/gate/design-token-governance.md`
+> - `docs/Obsidian/standards/ui/guide/color.md`
 
 # 前端/UI 标准全量审计报告 (2026-01-24)
 
@@ -42,21 +42,21 @@
 - CSS：`var(--token)` 必须有 `--token:` 定义，且除 `variables.css` 外不得硬编码颜色（标准：`design-token-governance-guidelines.md`、`color-guidelines.md`）。
 
 ### 2.4 强约束索引（摘录）
-- 模板禁止内联事件：`docs/Obsidian/standards/ui/template-event-binding-standards.md:34`。
-- 模板必须以 `data-action`/`data-*` 表达意图：`docs/Obsidian/standards/ui/template-event-binding-standards.md:35`。
-- 模板禁止新增 `style="height: Npx"` / `style="width: Npx"`：`docs/Obsidian/standards/ui/layout-sizing-guidelines.md:60`。
-- `btn-close` 必须 `aria-label="关闭"` 且禁止英文 Close：`docs/Obsidian/standards/ui/close-button-accessible-name-guidelines.md:31`、`docs/Obsidian/standards/ui/close-button-accessible-name-guidelines.md:32`。
-- `var(--xxx)` 必须能在 `app/static/css/**` 找到 `--xxx:` 定义：`docs/Obsidian/standards/ui/design-token-governance-guidelines.md:39`。
-- 除 `variables.css` 定义 Token 外，CSS/HTML/JS 禁止硬编码 HEX/RGB/RGBA：`docs/Obsidian/standards/ui/color-guidelines.md:38`。
-- Grid 列表页唯一入口：`docs/Obsidian/standards/ui/grid-standards.md:40`；页面脚本禁止 `new gridjs.Grid(...)`：`docs/Obsidian/standards/ui/grid-standards.md:42`。
-- vendor 使用总原则：业务代码优先使用封装、不得直接调用 vendor global：`docs/Obsidian/standards/ui/vendor-library-usage-standards.md:29`。
-- 可复用组件内部禁止固定全局 id：`docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md:33`。
-- 可复用组件必须提供 scope 容器（`data-wf-scope` 或 `id="<scope>-container"`）：`docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md:42`。
-- MetricCard：必须使用组件/macro：`docs/Obsidian/standards/ui/metric-card-standards.md:33`；视觉只能由组件 CSS 提供且页面 CSS 禁止新增 `*.stat-card`：`docs/Obsidian/standards/ui/metric-card-standards.md:41`、`docs/Obsidian/standards/ui/metric-card-standards.md:42`。
+- 模板禁止内联事件：`docs/Obsidian/standards/ui/gate/template-event-binding.md:34`。
+- 模板必须以 `data-action`/`data-*` 表达意图：`docs/Obsidian/standards/ui/gate/template-event-binding.md:35`。
+- 模板禁止新增 `style="height: Npx"` / `style="width: Npx"`：`docs/Obsidian/standards/ui/gate/layout-sizing.md:60`。
+- `btn-close` 必须 `aria-label="关闭"` 且禁止英文 Close：`docs/Obsidian/standards/ui/gate/close-button-accessible-name.md:31`、`docs/Obsidian/standards/ui/gate/close-button-accessible-name.md:32`。
+- `var(--xxx)` 必须能在 `app/static/css/**` 找到 `--xxx:` 定义：`docs/Obsidian/standards/ui/gate/design-token-governance.md:39`。
+- 除 `variables.css` 定义 Token 外，CSS/HTML/JS 禁止硬编码 HEX/RGB/RGBA：`docs/Obsidian/standards/ui/guide/color.md:38`。
+- Grid 列表页唯一入口：`docs/Obsidian/standards/ui/gate/grid.md:40`；页面脚本禁止 `new gridjs.Grid(...)`：`docs/Obsidian/standards/ui/gate/grid.md:42`。
+- vendor 使用总原则：业务代码优先使用封装、不得直接调用 vendor global：`docs/Obsidian/standards/ui/design/vendor-library-usage.md:29`。
+- 可复用组件内部禁止固定全局 id：`docs/Obsidian/standards/ui/gate/component-dom-id-scope.md:33`。
+- 可复用组件必须提供 scope 容器（`data-wf-scope` 或 `id="<scope>-container"`）：`docs/Obsidian/standards/ui/gate/component-dom-id-scope.md:42`。
+- MetricCard：必须使用组件/macro：`docs/Obsidian/standards/ui/design/metric-card.md:33`；视觉只能由组件 CSS 提供且页面 CSS 禁止新增 `*.stat-card`：`docs/Obsidian/standards/ui/design/metric-card.md:41`、`docs/Obsidian/standards/ui/design/metric-card.md:42`。
 
 ## 3. 标准冲突或歧义
 ### 3.1 `window.*` allowlist 的“全局”定义不够可执行
-- 证据：`docs/Obsidian/standards/ui/layer/README.md:68`~`docs/Obsidian/standards/ui/layer/README.md:70` 提到“仅允许访问 allowlist 内的全局/除 allowlist 外禁止读取 `window.*`”。
+- 证据：`docs/Obsidian/standards/ui/guide/layer/README.md:68`~`docs/Obsidian/standards/ui/guide/layer/README.md:70` 提到“仅允许访问 allowlist 内的全局/除 allowlist 外禁止读取 `window.*`”。
 - 歧义点：allowlist 列举的是项目封装与 vendor global（如 `window.DOMHelpers/window.UI/window.toast/bootstrap/Chart`），但文本未明确“浏览器原生 `window.location/window.setTimeout/...` 是否在约束范围内”。
 - 可能导致实现分裂：
   - 一派按字面理解，开始为原生 API 也造 wrapper/注入，增加复杂度与 `||` 兼容链。
@@ -64,7 +64,7 @@
 - 建议口径收敛：明确 allowlist 仅约束“项目/业务全局（含 vendor global）”，原生 Web API 不在此表内；或在文档中新增“原生 global 白名单/豁免规则”。
 
 ### 3.2 DOM id scope 标准缺少“单例组件/Portal 组件”例外说明
-- 证据：`docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md:33` 明确禁止组件内固定 id；同时 `docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md:42` 将容器定位方式限定为 `data-wf-scope` 或 `id="<scope>-container"`。
+- 证据：`docs/Obsidian/standards/ui/gate/component-dom-id-scope.md:33` 明确禁止组件内固定 id；同时 `docs/Obsidian/standards/ui/gate/component-dom-id-scope.md:42` 将容器定位方式限定为 `data-wf-scope` 或 `id="<scope>-container"`。
 - 现状信号：仓库内存在“全站复用但页面通常只会引入一次”的 modal 组件实现（例如 `danger_confirm_modal.html`），天然倾向固定 id 以适配 Bootstrap modal 触发方式。
 - 可能导致实现分裂：
   - 一派对所有 modal 强制 scope 派生 id，带来 `data-bs-target`/JS 选择器的迁移成本。
@@ -72,7 +72,7 @@
 - 建议口径收敛：为“单例/Portal 组件”补充明确例外（例如：允许固定 id，但必须约定唯一注入点与禁止重复 include），或提供统一的 modal scope 派生模板/宏。
 
 ### 3.3 Grid 标准对“非列表页 Grid 表格（如 modal 内表格）”覆盖范围不够明确
-- 证据：`docs/Obsidian/standards/ui/grid-standards.md:42` 禁止页面脚本直接 `new gridjs.Grid(...)`；`docs/Obsidian/standards/ui/vendor-library-usage-standards.md:55` 同样禁止绕过 `Views.GridPage`。
+- 证据：`docs/Obsidian/standards/ui/gate/grid.md:42` 禁止页面脚本直接 `new gridjs.Grid(...)`；`docs/Obsidian/standards/ui/design/vendor-library-usage.md:55` 同样禁止绕过 `Views.GridPage`。
 - 歧义点：标准标题/目的强调“列表页”，但规则文本使用“页面脚本”措辞，容易被理解为“任何 gridjs.Grid 的直接创建都禁止”。
 - 可能导致实现分裂：
   - 一派将 modal 内小表格也强行迁入 `Views.GridPage`/plugins，增加复杂度。
@@ -80,7 +80,7 @@
 - 建议口径收敛：明确“允许/禁止的 Grid.js 使用场景清单”，并给出 modal/table 的官方封装入口（例如 `Views.GridTable`/`UI.createGridTable`）。
 
 ### 3.4 颜色硬编码禁令与“缺 Token/缺 ColorTokens 的降级策略”未对齐
-- 证据：`docs/Obsidian/standards/ui/color-guidelines.md:38` 禁止在 JS 中硬编码 HEX/RGB/RGBA。
+- 证据：`docs/Obsidian/standards/ui/guide/color.md:38` 禁止在 JS 中硬编码 HEX/RGB/RGBA。
 - 歧义点：当 `window.ColorTokens`/CSS token 缺失或加载时序异常时，标准没有定义“fail-fast vs graceful degradation”的统一策略（允许什么级别的兜底）。
 - 可能导致实现分裂：fail-fast 直接报错/不渲染 vs 私有 HEX 兜底（违背标准）并导致兼容链增长。
 - 建议口径收敛：把兜底收敛到 Token 层（`variables.css` 兼容别名/缺省）或约定统一的 `ColorTokens` fail-fast 行为 + 告警。
@@ -89,10 +89,10 @@
 ### 4.1 MetricCard 未按组件标准落地（存在页面私有 `*-stat-card` 体系）
 - 结论：`instances/detail` 页面使用 `instance-stat-card` 页面私有结构与 CSS，而非 `MetricCard` 组件，违反“统一组件 + 统一 CSS”约束。
 - 标准依据：
-  - `docs/Obsidian/standards/ui/metric-card-standards.md:33`（MUST 使用 `MetricCard` 组件或 macro）。
-  - `docs/Obsidian/standards/ui/metric-card-standards.md:41`（MUST 卡片视觉只能由组件 CSS 定义）。
-  - `docs/Obsidian/standards/ui/metric-card-standards.md:42`（MUST NOT 页面 CSS 新增/恢复 `.xxx-stat-card { border/shadow/padding/... }`）。
-  - `docs/Obsidian/standards/ui/metric-card-standards.md:53`（MUST NOT 为更新值引入页面私有 value class）。
+  - `docs/Obsidian/standards/ui/design/metric-card.md:33`（MUST 使用 `MetricCard` 组件或 macro）。
+  - `docs/Obsidian/standards/ui/design/metric-card.md:41`（MUST 卡片视觉只能由组件 CSS 定义）。
+  - `docs/Obsidian/standards/ui/design/metric-card.md:42`（MUST NOT 页面 CSS 新增/恢复 `.xxx-stat-card { border/shadow/padding/... }`）。
+  - `docs/Obsidian/standards/ui/design/metric-card.md:53`（MUST NOT 为更新值引入页面私有 value class）。
 - 代码证据：
   - 模板：`app/templates/instances/detail.html:207`（`instance-stat-card`）/ `app/templates/instances/detail.html:209`（`instance-stat-card__value`）。
   - 模板：`app/templates/instances/detail.html:270`（第二处 `instance-stat-card`）。
@@ -111,9 +111,9 @@
 ### 4.2 可复用组件内部存在固定全局 `id`（多实例冲突风险）
 - 结论：`components/filters/macros.html` 的宏内部使用固定 `id="instance"/id="database"`；`components/ui/danger_confirm_modal.html` 使用固定 modal id。按标准“可复用组件不得固定 id”，该实现存在多实例冲突风险。
 - 标准依据：
-  - `docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md:33`（MUST NOT 在可复用组件内部写死固定 id）。
-  - `docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md:42`（MUST 为组件最外层提供 scope 容器：`data-wf-scope` 或 `id="<scope>-container"`）。
-  - `docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md:45`（MUST: `<scope>` 使用 `kebab-case` 且页面唯一）。
+  - `docs/Obsidian/standards/ui/gate/component-dom-id-scope.md:33`（MUST NOT 在可复用组件内部写死固定 id）。
+  - `docs/Obsidian/standards/ui/gate/component-dom-id-scope.md:42`（MUST 为组件最外层提供 scope 容器：`data-wf-scope` 或 `id="<scope>-container"`）。
+  - `docs/Obsidian/standards/ui/gate/component-dom-id-scope.md:45`（MUST: `<scope>` 使用 `kebab-case` 且页面唯一）。
 - 代码证据：
   - `app/templates/components/filters/macros.html:117`（`id="instance"`）。
   - `app/templates/components/filters/macros.html:136`（`id="database"`）。
@@ -135,8 +135,8 @@
 ### 4.3 在 Views 代码中直接 `new gridjs.Grid(...)`（绕过 GridPage/封装入口）
 - 结论：存在在视图代码中直接实例化 `gridjs.Grid` 的实现点，违反 Grid 单一入口/封装收敛规则。
 - 标准依据：
-  - `docs/Obsidian/standards/ui/grid-standards.md:42`（MUST NOT 页面脚本直接 `new gridjs.Grid(...)`）。
-  - `docs/Obsidian/standards/ui/vendor-library-usage-standards.md:55`（禁止在页面脚本直接 `new gridjs.Grid(...)` 或绕过 `Views.GridPage`）。
+  - `docs/Obsidian/standards/ui/gate/grid.md:42`（MUST NOT 页面脚本直接 `new gridjs.Grid(...)`）。
+  - `docs/Obsidian/standards/ui/design/vendor-library-usage.md:55`（禁止在页面脚本直接 `new gridjs.Grid(...)` 或绕过 `Views.GridPage`）。
 - 代码证据：
   - `app/static/js/modules/views/instances/modals/database-table-sizes-modal.js:176`（`new gridjs.Grid({ ... })`）。
 - 影响：
@@ -150,7 +150,7 @@
 ### 4.4 JS 中存在硬编码 HEX 颜色（违反 Token 化输出）
 - 结论：存在 JS 侧硬编码颜色值的 fallback，违反“除 `variables.css` 外禁止硬编码颜色”约束。
 - 标准依据：
-  - `docs/Obsidian/standards/ui/color-guidelines.md:38`（除 `variables.css` 定义 Token 的颜色字面量外，其余 CSS/HTML/JS 禁止硬编码 HEX/RGB/RGBA）。
+  - `docs/Obsidian/standards/ui/guide/color.md:38`（除 `variables.css` 定义 Token 的颜色字面量外，其余 CSS/HTML/JS 禁止硬编码 HEX/RGB/RGBA）。
 - 代码证据：
   - `app/static/js/modules/views/accounts/classification_statistics.js:994`（`"#3498db"`）。
 - 影响：主题/配色体系被绕开，出现“局部颜色不随 Token 调整而变”的漂移。
@@ -158,13 +158,13 @@
 - 验证方式：JS 内不再出现 `#RRGGBB` 字面量（允许存在于 `app/static/css/variables.css`）。
 
 ## 5. 符合标准的关键点(通过项摘要)
-- 模板事件绑定：未发现任何 `on*="..."` 内联事件处理器（扫描范围 `app/templates/**/*.html`），符合 `docs/Obsidian/standards/ui/template-event-binding-standards.md:34`。
+- 模板事件绑定：未发现任何 `on*="..."` 内联事件处理器（扫描范围 `app/templates/**/*.html`），符合 `docs/Obsidian/standards/ui/gate/template-event-binding.md:34`。
 - 关闭按钮可访问名称：未发现 `aria-label="Close"`，且模板宏 `btn_close` 默认输出 `aria-label="关闭"`（`app/templates/components/ui/macros.html:29`~`app/templates/components/ui/macros.html:31`）。
-- Inline px layout sizing：未发现模板新增 `style="height/width: Npx"`，符合 `docs/Obsidian/standards/ui/layout-sizing-guidelines.md:60`。
-- CSS Token 治理：未发现 `var(--token)` 引用但缺少 `--token:` 定义，符合 `docs/Obsidian/standards/ui/design-token-governance-guidelines.md:39`。
-- CSS 颜色硬编码：除 `app/static/css/variables.css` 外未发现硬编码颜色字面量，符合 `docs/Obsidian/standards/ui/color-guidelines.md:38`（但 JS 侧存在 1 处违规，见 4.4）。
-- 危险操作确认：JS AST 未发现 `confirm()` 调用，符合 `docs/Obsidian/standards/ui/danger-operation-confirmation-guidelines.md:37`。
-- vendor 直接调用：在 `app/static/js/modules/**` 内未发现 `dayjs()/numeral()/window._/new JustValidate()` 等直连 vendor global 的实现点（封装文件除外），符合 `docs/Obsidian/standards/ui/vendor-library-usage-standards.md:29` 及各库级 MUST NOT 约束。
+- Inline px layout sizing：未发现模板新增 `style="height/width: Npx"`，符合 `docs/Obsidian/standards/ui/gate/layout-sizing.md:60`。
+- CSS Token 治理：未发现 `var(--token)` 引用但缺少 `--token:` 定义，符合 `docs/Obsidian/standards/ui/gate/design-token-governance.md:39`。
+- CSS 颜色硬编码：除 `app/static/css/variables.css` 外未发现硬编码颜色字面量，符合 `docs/Obsidian/standards/ui/guide/color.md:38`（但 JS 侧存在 1 处违规，见 4.4）。
+- 危险操作确认：JS AST 未发现 `confirm()` 调用，符合 `docs/Obsidian/standards/ui/gate/danger-operation-confirmation.md:37`。
+- vendor 直接调用：在 `app/static/js/modules/**` 内未发现 `dayjs()/numeral()/window._/new JustValidate()` 等直连 vendor global 的实现点（封装文件除外），符合 `docs/Obsidian/standards/ui/design/vendor-library-usage.md:29` 及各库级 MUST NOT 约束。
 
 ## 6. 防御/兼容/回退/适配逻辑清单(重点: ||/or 兜底)
 > 说明：JS 的 `||` 数量非常大。本清单优先收录“高信号”兜底：`??`（nullish 兜底）与多段 `||` 链（`chainLen >= 3`）。模板侧则全量列出 `or/default`。

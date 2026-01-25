@@ -14,7 +14,7 @@ scope: 核心表字段含义, 关键索引/唯一性, 保留策略与常用自�
 related:
   - "[[reference/database/README|database reference]]"
   - "[[operations/observability-ops]]"
-  - "[[standards/backend/database-migrations]]"
+  - "[[standards/backend/hard/database-migrations]]"
 ---
 
 # 核心表数据字典(core tables)

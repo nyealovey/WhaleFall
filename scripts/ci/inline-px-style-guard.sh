@@ -56,7 +56,7 @@ new_hits="$(comm -13 "${baseline_sorted_file}" "${current_file}" || true)"
 if [[ -n "${new_hits}" ]]; then
   echo "检测到新增的 templates inline px style 命中（禁止新增）：" >&2
   echo "${new_hits}" >&2
-  echo "请迁移为 Token + class（参考 docs/Obsidian/standards/ui/layout-sizing-guidelines.md）。" >&2
+  echo "请迁移为 Token + class（参考 docs/Obsidian/standards/ui/gate/layout-sizing.md）。" >&2
   exit 1
 fi
 

@@ -12,7 +12,7 @@ owner: WhaleFall Team
 scope: TaskRun Center 的 summary_json 写入结构约定、容量控制与数据清理操作
 related:
   - "[[operations/README|operations]]"
-  - "[[standards/backend/task-and-scheduler]]"
+  - "[[standards/backend/hard/task-and-scheduler]]"
 ---
 
 # TaskRun summary_json 口径（v1）

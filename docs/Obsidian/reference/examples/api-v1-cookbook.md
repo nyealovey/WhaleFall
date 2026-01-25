@@ -19,7 +19,7 @@ related:
   - "[[API/tags-api-contract]]"
   - "[[reference/security/permissions-catalog]]"
   - "[[reference/errors/message-code-catalog]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
 ---
 
 # API v1 调用 cookbook(curl)

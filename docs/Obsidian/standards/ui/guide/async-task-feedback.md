@@ -12,8 +12,8 @@ updated: 2026-01-14
 owner: WhaleFall Team
 scope: 所有触发异步任务/批量同步/批量操作的前端入口
 related:
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]"
+  - "[[standards/backend/hard/error-message-schema-unification]]"
+  - "[[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)]]"
 ---
 
 # 异步任务反馈规范(Sync/Batch)
@@ -42,7 +42,7 @@ related:
 ### 2) 统一使用 outcome helper（边界层一次规范化）
 
 - MUST：统一使用 `UI.resolveAsyncActionOutcome(response, options)` 解析结果（`app/static/js/modules/ui/async-action-feedback.js`）。
-- MUST NOT：在各调用点扩散 `message || error`、`success || Boolean(message)` 等互兜底链(对齐 [[standards/backend/error-message-schema-unification]])。
+- MUST NOT：在各调用点扩散 `message || error`、`success || Boolean(message)` 等互兜底链(对齐 [[standards/backend/hard/error-message-schema-unification]])。
 - SHOULD：unknown 分支必须记录一次可观测事件，推动后端契约收敛（当前默认 `EventBus.emit("async-action:unknown-response")` + `console.warn`）。
 
 ### 3) started / failed / unknown 的默认口径
@@ -66,8 +66,8 @@ related:
 
 > [!info] SSOT
 > 后端响应封套与错误字段以以下标准为准:
-> - [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API Layer: 响应封套(JSON Envelope)]]
-> - [[standards/backend/error-message-schema-unification|错误消息字段统一]]
+> - [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)|API Layer: 响应封套(JSON Envelope)]]
+> - [[standards/backend/hard/error-message-schema-unification|错误消息字段统一]]
 >
 > UI 侧依赖的字段摘要:
 > - `message`: 用户可见摘要(用于 started/failed 的默认文案).

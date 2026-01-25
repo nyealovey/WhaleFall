@@ -21,7 +21,7 @@ related:
   - "[[API/partition-api-contract]]"
   - "[[reference/service/partition-services]]"
   - "[[reference/service/aggregation-pipeline]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Partition Read/Statistics Services(分区 info/list/core-metrics)
