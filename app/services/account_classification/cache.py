@@ -4,8 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from app.services.cache_service import CacheService, cache_service
+from flask import current_app, has_app_context
+
+from app.schemas.cache_actions import CLASSIFICATION_DB_TYPES
+from app.settings import DEFAULT_CACHE_RULE_TTL_SECONDS
+from app.utils.cache_utils import CacheManager, CacheManagerRegistry
 from app.utils.structlog_config import log_error
+from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -13,43 +18,67 @@ if TYPE_CHECKING:
     from app.core.types import JsonDict, JsonValue
 
 
+_CLASSIFICATION_RULES_ALL_KEY = "classification_rules:all"
+
+
+def _classification_rules_key_by_db_type(db_type: str) -> str:
+    return f"classification_rules:{db_type}"
+
+
 class ClassificationCache:
     """针对分类业务封装的缓存访问器."""
 
-    def __init__(self, manager: CacheService | None = None) -> None:
+    def __init__(self, manager: CacheManager | None = None) -> None:
         """构造缓存访问器.
 
         Args:
-            manager: 注入的缓存管理器,缺省使用全局 `cache_service`.
+            manager: 注入的缓存管理器；缺省时尝试使用 `CacheManagerRegistry`。
 
         """
-        self.manager = manager or cache_service
+        self.manager = manager
+
+    def _get_manager(self) -> CacheManager | None:
+        if self.manager is not None:
+            return self.manager
+        try:
+            return CacheManagerRegistry.get()
+        except RuntimeError:
+            # 允许在 app 初始化前被构造（例如单元测试），此时视为“未启用缓存”。
+            return None
+
+    @staticmethod
+    def _get_rule_ttl_seconds() -> int:
+        if has_app_context():
+            ttl_raw = current_app.config.get("CACHE_RULE_TTL")
+            if isinstance(ttl_raw, int) and ttl_raw >= 0:
+                return ttl_raw
+        return DEFAULT_CACHE_RULE_TTL_SECONDS
 
     # ---- Rules cache -----------------------------------------------------
-    def get_rules(self) -> list[JsonDict] | None:
+    def get_rules(self) -> list["JsonDict"] | None:
         """返回缓存中的分类规则数据.
 
         Returns:
             list[dict[str, Any]] | None: 命中缓存时返回规则列表,否则返回 None.
 
         """
-        if not self.manager:
+        manager = self._get_manager()
+        if not manager:
             return None
-        cached_raw = cast(
-            "dict[str, object] | list[JsonDict] | None",
-            self.manager.get_classification_rules_cache(),
-        )
-        cached = cached_raw
-        if not cached:
+
+        cached_raw = cast("dict[str, object] | list[JsonDict] | None", manager.get(_CLASSIFICATION_RULES_ALL_KEY))
+        if not cached_raw:
             return None
-        if isinstance(cached, dict) and "rules" in cached:
-            rules = cached.get("rules")
+
+        if isinstance(cached_raw, dict) and "rules" in cached_raw:
+            rules = cached_raw.get("rules")
             if isinstance(rules, list):
                 return [cast("JsonDict", rule) for rule in rules]
+
         log_error("分类规则缓存格式无效", module="account_classification_cache")
         return None
 
-    def set_rules(self, rules_data: Iterable[Mapping[str, JsonValue]]) -> bool:
+    def set_rules(self, rules_data: "Iterable[Mapping[str, JsonValue]]") -> bool:
         """写入分类规则缓存.
 
         Args:
@@ -59,15 +88,23 @@ class ClassificationCache:
             bool: 写入成功返回 True,数据为空或写入失败返回 False.
 
         """
-        if not self.manager:
+        manager = self._get_manager()
+        if not manager:
             return False
+
         payload = [dict(rule) for rule in rules_data]
         if not payload:
             return False
-        return self.manager.set_classification_rules_cache(payload)
+
+        cache_data = {
+            "rules": payload,
+            "cached_at": time_utils.now().isoformat(),
+            "count": len(payload),
+        }
+        return manager.set(_CLASSIFICATION_RULES_ALL_KEY, cache_data, timeout=self._get_rule_ttl_seconds())
 
     # ---- Rules cache (per db type) --------------------------------------
-    def set_rules_by_db_type(self, db_type: str, rules: Iterable[Mapping[str, JsonValue]]) -> bool:
+    def set_rules_by_db_type(self, db_type: str, rules: "Iterable[Mapping[str, JsonValue]]") -> bool:
         """写入指定数据库类型的分类规则缓存.
 
         Args:
@@ -78,12 +115,25 @@ class ClassificationCache:
             bool: 写入成功返回 True,失败返回 False.
 
         """
-        if not self.manager:
+        manager = self._get_manager()
+        if not manager:
             return False
+
         normalized_rules = [dict(rule) for rule in rules]
         if not normalized_rules:
             return False
-        return self.manager.set_classification_rules_by_db_type_cache(db_type, normalized_rules)
+
+        cache_data = {
+            "rules": normalized_rules,
+            "cached_at": time_utils.now().isoformat(),
+            "count": len(normalized_rules),
+            "db_type": db_type,
+        }
+        return manager.set(
+            _classification_rules_key_by_db_type(db_type),
+            cache_data,
+            timeout=self._get_rule_ttl_seconds(),
+        )
 
     # ---- Invalidation helpers -------------------------------------------
     def invalidate_all(self) -> bool:
@@ -93,11 +143,14 @@ class ClassificationCache:
             bool: 成功执行失效操作时为 True,否则 False.
 
         """
-        if not self.manager:
+        manager = self._get_manager()
+        if not manager:
             return False
-        self.manager.invalidate_classification_cache()
-        self.manager.invalidate_all_db_type_cache()
-        return True
+
+        ok = manager.delete(_CLASSIFICATION_RULES_ALL_KEY)
+        for db_type in CLASSIFICATION_DB_TYPES:
+            ok = manager.delete(_classification_rules_key_by_db_type(db_type)) and ok
+        return ok
 
     def invalidate_db_type(self, db_type: str) -> bool:
         """按数据库类型清空规则缓存.
@@ -109,7 +162,8 @@ class ClassificationCache:
             bool: 缓存存在且成功失效时为 True.
 
         """
-        if not self.manager:
+        manager = self._get_manager()
+        if not manager:
             return False
-        self.manager.invalidate_db_type_cache(db_type)
-        return True
+        return manager.delete(_classification_rules_key_by_db_type(db_type))
+
