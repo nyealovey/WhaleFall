@@ -40,13 +40,13 @@ def test_api_v1_accounts_classifications_requires_auth(client) -> None:
 @pytest.mark.unit
 def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, monkeypatch) -> None:
     class _DummyAutoClassifyService:
-        def prepare_background_auto_classify(self, *, instance_id, created_by):  # noqa: ANN001
+        def prepare_background_auto_classify(self, *, instance_id, created_by):
             del instance_id, created_by
             from types import SimpleNamespace
 
             return SimpleNamespace(run_id="test-run-id")
 
-        def launch_background_auto_classify(self, *, created_by, prepared):  # noqa: ANN001
+        def launch_background_auto_classify(self, *, created_by, prepared):
             del created_by, prepared
             from types import SimpleNamespace
 

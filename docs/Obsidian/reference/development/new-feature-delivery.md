@@ -28,7 +28,7 @@ related:
 
 ## 适用范围
 
-- 新增/扩展路由与页面: `app/routes/`, `app/views/`, `app/templates/`, `app/static/`
+- 新增/扩展路由与页面: `app/routes/`, `app/templates/`, `app/static/`
 - 新增/扩展服务与任务: `app/services/`, `app/tasks/`, `app/scheduler.py`
 - 新增/扩展协议与类型: `app/core/types/`, `docs/Obsidian/reference/`
 

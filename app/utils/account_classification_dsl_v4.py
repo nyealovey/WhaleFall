@@ -63,9 +63,6 @@ def collect_dsl_v4_validation_errors(expression: object) -> list[str]:  # noqa: 
         errors.append("rule_expression.expr 必须为对象")
         return errors
 
-    def _path(parent: str, key: str) -> str:
-        return f"{parent}.{key}" if parent else key
-
     def _validate_node(node: object, *, path: str) -> None:  # noqa: PLR0911, PLR0912
         if not isinstance(node, Mapping):
             errors.append(f"{path} 必须为对象")

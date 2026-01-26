@@ -13,7 +13,7 @@ status: draft
 created: 2026-01-10
 updated: 2026-01-10
 owner: WhaleFall Team
-scope: app/services/dashboard/dashboard_activities_service.py
+scope: app/api/v1/namespaces/dashboard.py
 related:
   - "[[API/dashboard-api-contract]]"
   - "[[architecture/domain/dashboard-domain]]"
@@ -29,11 +29,11 @@ related:
 
 覆盖文件:
 
-- `app/services/dashboard/dashboard_activities_service.py`
+- `app/api/v1/namespaces/dashboard.py`
 
 核心入口:
 
-- `DashboardActivitiesService.list_activities() -> list[dict[str, object]]` (当前恒为 `[]`)
+- `DashboardActivitiesResource.get()` (当前恒返回 `data=[]`)
 
 ## 2. 事务与失败语义(Transaction + Failure Semantics)
 
@@ -44,15 +44,14 @@ related:
 
 ```mermaid
 flowchart TB
-    A["GET /api/v1/dashboard/activities"] --> S["DashboardActivitiesService.list_activities()"]
-    S --> R["return []"]
+    A["GET /api/v1/dashboard/activities"] --> R["return data=[] (placeholder)"]
 ```
 
 ## 4. 兼容/防御/回退/适配逻辑
 
 | 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
 | --- | --- | --- | --- | --- |
-| `app/services/dashboard/dashboard_activities_service.py:14` | 兼容 | 返回空数组占位 | 功能未实现 | 若接入真实活动源, 用新数据源替换并补测试 |
+| `app/api/v1/namespaces/dashboard.py` | 兼容 | 返回空数组占位 | 功能未实现 | 若接入真实活动源, 替换占位返回并补测试 |
 
 ## 5. 测试与验证(Tests)
 

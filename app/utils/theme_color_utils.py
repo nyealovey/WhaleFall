@@ -36,12 +36,3 @@ def get_theme_color_name(color_key: str) -> str:
 def get_theme_color_css_class(color_key: str) -> str:
     """获取颜色对应的 CSS class."""
     return get_theme_color_info(color_key).get("css_class", ThemeColors.COLOR_MAP[_DEFAULT_COLOR_KEY]["css_class"])
-
-
-def get_theme_color_choices() -> list[tuple[str, str]]:
-    """获取颜色选项列表(供下拉选择使用)."""
-    return [
-        (key, f"{info['name']} - {info['description']}")
-        for key, info in ThemeColors.COLOR_MAP.items()
-        if "name" in info and "description" in info
-    ]

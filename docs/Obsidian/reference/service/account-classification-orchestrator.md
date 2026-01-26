@@ -163,4 +163,3 @@ sequenceDiagram
 ## 9. 测试与验证(Tests)
 
 - `uv run pytest -m unit tests/unit/services/test_account_classification_orchestrator_dsl_guard.py`
-- `uv run pytest -m unit tests/unit/services/test_account_classification_facts_and_cache_guards.py`

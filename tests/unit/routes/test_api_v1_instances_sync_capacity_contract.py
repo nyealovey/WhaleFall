@@ -68,16 +68,16 @@ def test_api_v1_instances_sync_capacity_contract(app, auth_client, monkeypatch) 
         instance_id = instance.id
 
     class _DummyCapacitySyncCoordinator:
-        def __init__(self, instance):  # noqa: ANN001
+        def __init__(self, instance):
             self.instance = instance
 
         def connect(self) -> bool:
             return True
 
-        def synchronize_inventory(self) -> dict:  # noqa: PLR6301
+        def synchronize_inventory(self) -> dict:
             return {"active_databases": ["db1"]}
 
-        def collect_capacity(self, target_databases=None):  # noqa: ANN001
+        def collect_capacity(self, target_databases=None):
             del target_databases
             return [
                 {
@@ -88,14 +88,14 @@ def test_api_v1_instances_sync_capacity_contract(app, auth_client, monkeypatch) 
                 },
             ]
 
-        def save_database_stats(self, data):  # noqa: ANN001
+        def save_database_stats(self, data):
             del data
             return 1
 
-        def update_instance_total_size(self) -> bool:  # noqa: PLR6301
+        def update_instance_total_size(self) -> bool:
             return True
 
-        def disconnect(self) -> None:  # noqa: PLR6301
+        def disconnect(self) -> None:
             return None
 
     class _DummyAggregationService:
@@ -155,21 +155,21 @@ def test_api_v1_instances_sync_capacity_failure_keeps_inventory(app, auth_client
         instance_id = instance.id
 
     class _DummyCapacitySyncCoordinator:
-        def __init__(self, instance):  # noqa: ANN001
+        def __init__(self, instance):
             self.instance = instance
 
         def connect(self) -> bool:
             return True
 
-        def synchronize_inventory(self) -> dict:  # noqa: PLR6301
+        def synchronize_inventory(self) -> dict:
             db.session.add(InstanceDatabase(instance_id=self.instance.id, database_name="db1"))
             return {"active_databases": ["db1"]}
 
-        def collect_capacity(self, target_databases=None):  # noqa: ANN001
+        def collect_capacity(self, target_databases=None):
             del target_databases
             return []
 
-        def disconnect(self) -> None:  # noqa: PLR6301
+        def disconnect(self) -> None:
             return None
 
     import app.services.database_sync as database_sync_module
@@ -221,22 +221,22 @@ def test_api_v1_instances_sync_capacity_exception_returns_sync_error_and_keeps_i
         instance_id = instance.id
 
     class _DummyCapacitySyncCoordinator:
-        def __init__(self, instance):  # noqa: ANN001
+        def __init__(self, instance):
             self.instance = instance
 
         def connect(self) -> bool:
             return True
 
-        def synchronize_inventory(self) -> dict:  # noqa: PLR6301
+        def synchronize_inventory(self) -> dict:
             db.session.add(InstanceDatabase(instance_id=self.instance.id, database_name="db1"))
             return {"active_databases": ["db1"]}
 
-        def collect_capacity(self, target_databases=None):  # noqa: ANN001
+        def collect_capacity(self, target_databases=None):
             del target_databases
             msg = "capacity collection failed"
             raise RuntimeError(msg)
 
-        def disconnect(self) -> None:  # noqa: PLR6301
+        def disconnect(self) -> None:
             return None
 
     import app.services.database_sync as database_sync_module
@@ -285,13 +285,13 @@ def test_api_v1_instances_sync_capacity_connect_failure_returns_connection_error
         instance_id = instance.id
 
     class _DummyCapacitySyncCoordinator:
-        def __init__(self, instance):  # noqa: ANN001
+        def __init__(self, instance):
             self.instance = instance
 
         def connect(self) -> bool:
             return False
 
-        def disconnect(self) -> None:  # noqa: PLR6301
+        def disconnect(self) -> None:
             return None
 
     import app.services.database_sync as database_sync_module

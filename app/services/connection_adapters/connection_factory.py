@@ -103,32 +103,3 @@ class ConnectionFactory:
                 "error": f"不支持的数据库类型: {instance.db_type}",
             }
         return connection.test_connection()
-
-    @staticmethod
-    def get_supported_types() -> list[str]:
-        """获取支持的数据库类型列表.
-
-        Returns:
-            支持的数据库类型列表,如 ['mysql', 'postgresql', 'oracle', 'sqlserver'].
-
-        """
-        return list(ConnectionFactory.CONNECTION_CLASSES.keys())
-
-    @staticmethod
-    def is_type_supported(db_type: str) -> bool:
-        """检查数据库类型是否支持.
-
-        Args:
-            db_type: 数据库类型字符串.
-
-        Returns:
-            如果支持该数据库类型返回 True,否则返回 False.
-
-        Example:
-            >>> ConnectionFactory.is_type_supported('mysql')
-            True
-            >>> ConnectionFactory.is_type_supported('mongodb')
-            False
-
-        """
-        return normalize_database_type(db_type) in ConnectionFactory.CONNECTION_CLASSES

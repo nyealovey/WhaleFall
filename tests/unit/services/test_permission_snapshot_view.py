@@ -3,7 +3,7 @@ from typing import Any, cast
 import pytest
 
 from app.core.exceptions import AppError
-from app.models.account_permission import AccountPermission  # noqa: E402
+from app.models.account_permission import AccountPermission
 from app.services.accounts_permissions import snapshot_view
 
 

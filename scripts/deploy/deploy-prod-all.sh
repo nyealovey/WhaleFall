@@ -456,94 +456,88 @@ wait_for_services() {
 initialize_database() {
     log_step "初始化PostgreSQL数据库..."
 
-    # 检查数据库是否已初始化
+    # 迁移策略：统一使用 Alembic 迁移链建库/升级（避免 SQL 初始化脚本与 head 漂移导致缺表缺列）。
+    # 说明：/api/v1/health/basic 不依赖 DB，因此容器可能在迁移前已处于 healthy；这里负责把 DB 对齐到最新版本。
+
+    # 检查数据库是否为空（排除 alembic_version）
     local table_count
-    table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    table_count=$(
+        docker compose -f docker-compose.prod.yml exec -T postgres \
+            psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c \
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name <> 'alembic_version';" \
+            2>/dev/null | tr -d ' \n' || echo "0"
+    )
 
-    local skip_schema_init="false"
-    if [ "$table_count" -gt 0 ]; then
-        log_warning "数据库已包含 $table_count 个表，跳过基础结构初始化（将尝试补齐分区表）"
-        skip_schema_init="true"
+    local is_fresh_db="false"
+    if [ "${table_count:-0}" -eq 0 ]; then
+        is_fresh_db="true"
+        log_info "检测到空库，准备执行迁移初始化（flask db upgrade）..."
     else
-        log_info "开始初始化数据库结构..."
-        log_info "使用数据库: ${POSTGRES_DB}"
-        log_info "使用用户: ${POSTGRES_USER}"
+        log_warning "数据库已包含 ${table_count} 个表，准备执行迁移对齐到最新版本（flask db upgrade）..."
+    fi
 
-        # 执行PostgreSQL初始化脚本
-        if [ -f "sql/init/postgresql/init_postgresql.sql" ]; then
-            log_info "执行PostgreSQL初始化脚本..."
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init/postgresql/init_postgresql.sql
+    # 非空库但缺少 alembic_version 时，直接 upgrade 可能会重跑 baseline DDL（对象已存在）。
+    # deploy-prod-all.sh 为“完全重建”脚本：此场景建议先清空卷再重试，避免在未知基线下盲目迁移。
+    if [ "$is_fresh_db" != "true" ]; then
+        local alembic_version_exists
+        alembic_version_exists=$(
+            docker compose -f docker-compose.prod.yml exec -T postgres \
+                psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -Atc "SELECT to_regclass('public.alembic_version') IS NOT NULL;" \
+                2>/dev/null | tr -d ' \n' || echo "f"
+        )
 
-            if [ $? -eq 0 ]; then
-                log_success "PostgreSQL初始化脚本执行成功"
-            else
-                log_error "PostgreSQL初始化脚本执行失败"
-                exit 1
-            fi
-        else
-            log_warning "未找到 sql/init/postgresql/init_postgresql.sql 文件，跳过数据库初始化"
+        if [ "${alembic_version_exists:-f}" != "t" ]; then
+            log_error "检测到数据库非空但缺少 alembic_version，无法安全执行迁移。"
+            log_error "请先清空持久化卷后重试，或使用热更新脚本先对齐版本（stamp）再升级。"
+            exit 1
         fi
+    fi
+
+    log_info "执行数据库迁移：flask db upgrade..."
+    if docker compose -f docker-compose.prod.yml exec -T whalefall bash -lc "cd /app && /app/.venv/bin/flask --app app:create_app db upgrade"; then
+        log_success "数据库迁移执行成功"
+    else
+        log_error "数据库迁移执行失败"
+        docker compose -f docker-compose.prod.yml logs whalefall --tail 200 || true
+        exit 1
     fi
 
     # 分区表初始化（已停用）
     # 说明：当前生产部署不再执行 sql/init/postgresql/partitions 下的分区脚本，避免重复创建导致报错。
     log_info "跳过分区表初始化（已停用）"
 
-    if [ "$skip_schema_init" = "true" ]; then
-        return 0
-    fi
-
-	# 执行权限配置脚本
-		if [ -f "sql/seed/postgresql/permission_configs.sql" ]; then
-		    log_info "导入权限配置数据..."
-		    docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/seed/postgresql/permission_configs.sql
-
-        if [ $? -eq 0 ]; then
-            log_success "权限配置数据导入成功"
+    if [ "$is_fresh_db" = "true" ]; then
+        # 执行权限配置脚本（仅空库时导入，避免重复插入触发唯一约束）
+        if [ -f "sql/seed/postgresql/permission_configs.sql" ]; then
+            log_info "导入权限配置数据..."
+            if docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/seed/postgresql/permission_configs.sql; then
+                log_success "权限配置数据导入成功"
+            else
+                log_warning "权限配置数据导入失败，但不影响系统运行"
+            fi
         else
-            log_warning "权限配置数据导入失败，但不影响系统运行"
+            log_warning "未找到 sql/seed/postgresql/permission_configs.sql 文件，跳过权限配置导入"
         fi
-	    else
-	        log_warning "未找到 sql/seed/postgresql/permission_configs.sql 文件，跳过权限配置导入"
-	    fi
-
-    # 执行调度器任务初始化脚本
-    if [ -f "sql/init_scheduler_tasks.sql" ]; then
-        log_info "初始化调度器任务..."
-        docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_scheduler_tasks.sql
-
-        if [ $? -eq 0 ]; then
-            log_success "调度器任务初始化成功"
-        else
-            log_warning "调度器任务初始化失败，但不影响系统运行"
-        fi
-    else
-        log_warning "未找到sql/init_scheduler_tasks.sql文件，跳过调度器任务初始化"
     fi
 
     # 验证数据库初始化结果
-    log_info "验证数据库初始化结果..."
+    log_info "验证数据库迁移结果..."
     local final_table_count
-    final_table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    final_table_count=$(
+        docker compose -f docker-compose.prod.yml exec -T postgres \
+            psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c \
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name <> 'alembic_version';" \
+            2>/dev/null | tr -d ' \n' || echo "0"
+    )
 
     if [ "$final_table_count" -gt 0 ]; then
         log_success "数据库初始化完成，共创建 $final_table_count 个表"
-
-	        # 防御：deploy-prod-all.sh 使用 init_postgresql.sql（sql/init/postgresql/init_postgresql.sql）直接建库，但不会自动写入 alembic_version。
-	        # 若不 stamp，后续执行热更新脚本时 `flask db upgrade` 可能从 baseline 重新执行全量 DDL，导致重复对象报错。
-        log_info "写入 Alembic 版本标记（stamp head）..."
-	        if docker compose -f docker-compose.prod.yml exec -T whalefall bash -c "cd /app && /app/.venv/bin/flask db stamp head"; then
-	            log_success "Alembic 版本标记写入完成"
-	        else
-	            log_warning "Alembic 版本标记写入失败，建议进入容器手工执行：/app/.venv/bin/flask db stamp head"
-	        fi
-
-	        # 初始化管理员账号（随机密码）
-	        initialize_admin_account
-	    else
-	        log_error "数据库初始化失败，未创建任何表"
-	        exit 1
-	    fi
+        # 初始化管理员账号（随机密码）
+        initialize_admin_account
+    else
+        log_error "数据库初始化失败，未创建任何表"
+        exit 1
+    fi
 }
 
 # 测试容器间连接

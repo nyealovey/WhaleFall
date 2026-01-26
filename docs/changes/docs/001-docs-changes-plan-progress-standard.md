@@ -5,7 +5,7 @@
 > 创建：2025-12-25
 > 更新：2025-12-25
 > 范围：`docs/changes/**`、`docs/Obsidian/standards/**`
-> 关联：`docs/changes/refactor/001-backend-repository-serializer-boundary-progress.md`、`docs/changes/refactor/002-backend-write-operation-boundary-plan.md`
+> 关联：`docs/changes/refactor/001-scheduler-job-naming-progress.md`、`docs/changes/refactor/002-remove-resource-form-view-plan.md`
 
 ---
 
@@ -40,8 +40,8 @@
 - 检查 `docs/changes/` 下存在 `docs/` 目录与 `README.md`。
 - 检查 `docs/Obsidian/standards/README.md` 可定位到 `docs/Obsidian/standards/doc/guide/changes.md`.
 - 人工抽查 2 份既有文档，确认 `plan/progress` 写法与规范一致：
-  - `docs/changes/refactor/001-backend-repository-serializer-boundary-progress.md`
-  - `docs/changes/refactor/002-backend-write-operation-boundary-plan.md`
+  - `docs/changes/refactor/001-scheduler-job-naming-progress.md`
+  - `docs/changes/refactor/002-remove-resource-form-view-plan.md`
 
 ## 回滚策略
 

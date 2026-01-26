@@ -500,87 +500,6 @@ class AggregationService:
 
         return results
 
-    def calculate_all_aggregations(self) -> dict[str, Any]:
-        """计算所有实例的统计聚合数据.
-
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-
-        """
-        log_info("开始计算所有实例的统计聚合数据", module=MODULE)
-
-        period_results = {
-            "daily": self.calculate_daily_aggregations(),
-            "weekly": self.calculate_weekly_aggregations(),
-            "monthly": self.calculate_monthly_aggregations(),
-            "quarterly": self.calculate_quarterly_aggregations(),
-        }
-
-        instance_results = {
-            "daily": self.calculate_daily_instance_aggregations(),
-            "weekly": self.calculate_weekly_instance_aggregations(),
-            "monthly": self.calculate_monthly_instance_aggregations(),
-            "quarterly": self.calculate_quarterly_instance_aggregations(),
-        }
-
-        total_processed = sum(r.get("processed_instances", 0) for r in period_results.values())
-        total_failures = sum(r.get("failed_instances", 0) for r in period_results.values())
-        total_records = sum(r.get("processed_records", 0) for r in period_results.values())
-
-        total_instance_processed = sum(r.get("processed_instances", 0) for r in instance_results.values())
-        total_instance_failures = sum(r.get("failed_instances", 0) for r in instance_results.values())
-        total_instance_records = sum(r.get("processed_records", 0) for r in instance_results.values())
-
-        failed_periods = [
-            period
-            for period, result in period_results.items()
-            if result.get("status") == AggregationStatus.FAILED.value
-        ]
-        failed_instance_periods = [
-            period
-            for period, result in instance_results.items()
-            if result.get("status") == AggregationStatus.FAILED.value
-        ]
-
-        overall_status = (
-            AggregationStatus.FAILED if failed_periods or failed_instance_periods else AggregationStatus.COMPLETED
-        )
-
-        message = (
-            "统计聚合执行完成" if overall_status is AggregationStatus.COMPLETED else "统计聚合执行完成,但存在失败的周期"
-        )
-
-        log_info(
-            "统计聚合计算完成",
-            module=MODULE,
-            status=overall_status.value,
-            total_processed=total_processed,
-            total_failures=total_failures,
-            processed_records=total_records,
-            instance_processed=total_instance_processed,
-            instance_failures=total_instance_failures,
-            instance_processed_records=total_instance_records,
-        )
-
-        return {
-            "status": overall_status.value,
-            "message": message,
-            "period_summaries": period_results,
-            "instance_summaries": instance_results,
-            "metrics": {
-                "database": {
-                    "processed_instances": total_processed,
-                    "failed_instances": total_failures,
-                    "processed_records": total_records,
-                },
-                "instance": {
-                    "processed_instances": total_instance_processed,
-                    "failed_instances": total_instance_failures,
-                    "processed_records": total_instance_records,
-                },
-            },
-        }
-
     def calculate_daily_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每日统计聚合(处理今日数据).
 
@@ -724,48 +643,6 @@ class AggregationService:
         return self._aggregate_database_for_instance(
             instance_id,
             "daily",
-            use_current_period=resolved,
-        )
-
-    def calculate_weekly_database_aggregations_for_instance(
-        self,
-        instance_id: int,
-        *,
-        use_current_period: bool | None = None,
-    ) -> dict[str, Any]:
-        """为指定实例计算周数据库聚合."""
-        resolved = self._resolve_use_current_period("weekly", override=use_current_period)
-        return self._aggregate_database_for_instance(
-            instance_id,
-            "weekly",
-            use_current_period=resolved,
-        )
-
-    def calculate_monthly_database_aggregations_for_instance(
-        self,
-        instance_id: int,
-        *,
-        use_current_period: bool | None = None,
-    ) -> dict[str, Any]:
-        """为指定实例计算月数据库聚合."""
-        resolved = self._resolve_use_current_period("monthly", override=use_current_period)
-        return self._aggregate_database_for_instance(
-            instance_id,
-            "monthly",
-            use_current_period=resolved,
-        )
-
-    def calculate_quarterly_database_aggregations_for_instance(
-        self,
-        instance_id: int,
-        *,
-        use_current_period: bool | None = None,
-    ) -> dict[str, Any]:
-        """为指定实例计算季度数据库聚合."""
-        resolved = self._resolve_use_current_period("quarterly", override=use_current_period)
-        return self._aggregate_database_for_instance(
-            instance_id,
-            "quarterly",
             use_current_period=resolved,
         )
 
@@ -935,68 +812,6 @@ class AggregationService:
             instance_id,
             "quarterly",
             use_current_period=resolved,
-        )
-
-    def calculate_period_aggregations(self, period_type: str, start_date: date, end_date: date) -> dict[str, Any]:
-        """计算指定时间范围的聚合数据.
-
-        Args:
-            period_type: 周期类型.
-            start_date: 起始日期.
-            end_date: 结束日期.
-
-        Returns:
-            dict[str, Any]: 聚合执行结果.
-
-        """
-        normalized = period_type.lower()
-        if normalized not in self.period_types:
-            raise ValidationError(
-                message="不支持的聚合周期",
-                extra={"period_type": period_type},
-            )
-        if start_date > end_date:
-            raise ValidationError(
-                message="开始日期不能晚于结束日期",
-                extra={"start_date": start_date.isoformat(), "end_date": end_date.isoformat()},
-            )
-
-        log_info(
-            "执行指定时间范围的统计聚合",
-            module=MODULE,
-            period_type=normalized,
-            start_date=start_date.isoformat(),
-            end_date=end_date.isoformat(),
-        )
-        return self.database_runner.aggregate_period(normalized, start_date, end_date)
-
-    def get_aggregations(
-        self,
-        instance_id: int,
-        period_type: str,
-        start_date: date | None = None,
-        end_date: date | None = None,
-        database_name: str | None = None,
-    ) -> list[dict[str, Any]]:
-        """获取数据库级聚合数据.
-
-        Args:
-            instance_id: 实例 ID.
-            period_type: 周期类型.
-            start_date: 起始日期,可选.
-            end_date: 结束日期,可选.
-            database_name: 数据库名称筛选,可选.
-
-        Returns:
-            list[dict[str, Any]]: 聚合结果列表.
-
-        """
-        return self.query_service.get_database_aggregations(
-            instance_id=instance_id,
-            period_type=period_type,
-            start_date=start_date,
-            end_date=end_date,
-            database_name=database_name,
         )
 
     def get_instance_aggregations(

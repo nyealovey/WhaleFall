@@ -5,16 +5,14 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import TypeAlias, cast
+from typing import TypeAlias
 
 import yaml
 from pydantic import ValidationError as PydanticValidationError
 
 from app.schemas.yaml_configs import AccountFiltersConfigFile
-from app.utils.safe_query_builder import build_safe_filter_conditions
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
@@ -82,45 +80,6 @@ class DatabaseFilterManager:
         else:
             return filter_rules
 
-    def get_safe_sql_filter_conditions(
-        self,
-        db_type: str,
-        username_field: str = "username",
-    ) -> tuple[str, list[str]] | tuple[str, dict[str, str]]:
-        """获取安全的 SQL 过滤条件(参数化查询).
-
-        Args:
-            db_type: 数据库类型 (mysql, postgresql, sqlserver, oracle)。
-            username_field: 用户名字段名,默认为 'username'。
-
-        Returns:
-            tuple[str, list[str]] | tuple[str, dict[str, str]]: WHERE 子句和参数列表/字典.
-
-        """
-        where_clause, params = build_safe_filter_conditions(db_type, username_field, self.filter_rules)
-        if isinstance(params, Mapping):
-            return where_clause, cast("dict[str, str]", dict(params))
-        return where_clause, cast("list[str]", list(params))
-
-    def _match_pattern(self, text: str, pattern: str) -> bool:
-        """模式匹配(支持 SQL LIKE 语法).
-
-        Args:
-            text: 要匹配的文本.
-            pattern: SQL LIKE 模式.
-
-        Returns:
-            bool: 是否匹配.
-
-        """
-        try:
-            regex_pattern = pattern.replace("%", ".*").replace("_", ".")
-            regex_pattern = f"^{regex_pattern}$"
-            return bool(re.match(regex_pattern, text, re.IGNORECASE))
-        except re.error:
-            logger.exception("模式匹配失败", pattern=pattern, text=text)
-            return False
-
     def get_filter_rules(self, db_type: str | None = None) -> Mapping[str, Sequence[str]] | DatabaseFilterRules:
         """获取过滤规则.
 
@@ -134,7 +93,3 @@ class DatabaseFilterManager:
         if db_type:
             return self.filter_rules.get(db_type, {})
         return self.filter_rules
-
-
-# 全局实例
-database_filter_manager = DatabaseFilterManager()
