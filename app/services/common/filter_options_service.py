@@ -9,22 +9,14 @@ from __future__ import annotations
 
 from typing import cast
 
-from app.core.constants import DatabaseType
 from app.core.types.common_filter_options import (
     CommonDatabaseOptionItem,
     CommonDatabasesOptionsFilters,
     CommonDatabasesOptionsResult,
-    CommonDatabaseTypeOptionItem,
-    CommonDatabaseTypesOptionsResult,
     CommonInstanceOptionItem,
     CommonInstancesOptionsResult,
 )
 from app.repositories.filter_options_repository import FilterOptionsRepository
-from app.utils.database_type_utils import (
-    get_database_type_color,
-    get_database_type_display_name,
-    get_database_type_icon,
-)
 from app.utils.query_filter_utils import (
     build_classification_options,
     build_database_select_options,
@@ -211,17 +203,3 @@ class FilterOptionsService:
             limit=filters.limit,
             offset=filters.offset,
         )
-
-    def get_common_database_types_options(self) -> CommonDatabaseTypesOptionsResult:
-        """构建 Common API 的数据库类型选项."""
-        options: list[CommonDatabaseTypeOptionItem] = []
-        for db_type in DatabaseType.RELATIONAL:
-            options.append(
-                CommonDatabaseTypeOptionItem(
-                    value=db_type,
-                    text=get_database_type_display_name(db_type),
-                    icon=get_database_type_icon(db_type),
-                    color=get_database_type_color(db_type),
-                ),
-            )
-        return CommonDatabaseTypesOptionsResult(options=options)

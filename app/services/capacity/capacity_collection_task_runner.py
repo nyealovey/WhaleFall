@@ -19,7 +19,6 @@ from app.core.exceptions import AppError
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
-from app.services.aggregation.aggregation_service import AggregationService
 from app.services.capacity.capacity_tasks_read_service import CapacityTasksReadService
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.database_sync import CapacitySyncCoordinator
@@ -432,62 +431,3 @@ class CapacityCollectionTaskRunner:
                 "inventory": inventory_result,
             },
         )
-
-    @staticmethod
-    def _refresh_instance_aggregations(instance_id: int, logger: structlog.BoundLogger) -> None:
-        try:
-            aggregation_service = AggregationService()
-            aggregation_service.calculate_daily_database_aggregations_for_instance(instance_id)
-            aggregation_service.calculate_daily_aggregations_for_instance(instance_id)
-        except CAPACITY_TASK_EXCEPTIONS as agg_exc:  # pragma: no cover
-            logger.exception(
-                "实例容量聚合刷新失败",
-                module="capacity_sync",
-                instance_id=instance_id,
-                error=str(agg_exc),
-            )
-
-    def collect_instance_database_sizes(
-        self,
-        *,
-        instance_id: int,
-        logger: structlog.BoundLogger,
-    ) -> dict[str, object]:
-        """采集指定实例的数据库大小并返回结果."""
-        instance = self._load_active_instance(instance_id)
-        collector = CapacitySyncCoordinator(instance)
-        if not collector.connect():
-            return _build_failure(f"无法连接到实例 {instance.name}")
-
-        try:
-            inventory_result, active_databases = self._sync_inventory_for_single_instance(
-                collector=collector,
-                instance=instance,
-                logger=logger,
-            )
-
-            if not active_databases:
-                return _build_success(
-                    "未发现活跃数据库,已仅同步数据库列表",
-                    {
-                        "databases": [],
-                        "database_count": 0,
-                        "total_size_mb": 0,
-                        "saved_count": 0,
-                        "instance_stat_updated": False,
-                        "inventory": inventory_result,
-                    },
-                )
-
-            result = self._save_instance_sizes(
-                collector=collector,
-                instance=instance,
-                inventory_result=inventory_result,
-                active_databases=active_databases,
-                logger=logger,
-            )
-            if bool(result.get("success")):
-                self._refresh_instance_aggregations(instance.id, logger)
-            return result
-        finally:
-            collector.disconnect()

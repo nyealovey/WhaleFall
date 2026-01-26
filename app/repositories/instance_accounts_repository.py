@@ -33,11 +33,6 @@ class InstanceAccountsRepository:
         ).first_or_404()
 
     @staticmethod
-    def get_account(*, instance_id: int, account_id: int) -> AccountPermission:
-        """获取实例账户权限记录."""
-        return AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
-
-    @staticmethod
     def fetch_summary(instance_id: int) -> InstanceAccountSummary:
         """获取实例账户汇总统计."""
         summary_row = (
