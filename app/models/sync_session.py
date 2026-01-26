@@ -167,41 +167,6 @@ class SyncSession(db.Model):
         completed = self.successful_instances + self.failed_instances
         return round((completed / self.total_instances) * 100, 2)
 
-    @staticmethod
-    def get_sessions_by_type(sync_type: str, limit: int = 50) -> list["SyncSession"]:
-        """根据类型获取会话列表.
-
-        Args:
-            sync_type: 会话类型过滤条件.
-            limit: 返回的最大记录数.
-
-        Returns:
-            list[SyncSession]: 满足条件的会话集合,按创建时间倒序.
-
-        """
-        return (
-            SyncSession.query.filter_by(sync_type=sync_type).order_by(SyncSession.created_at.desc()).limit(limit).all()
-        )
-
-    @staticmethod
-    def get_sessions_by_category(sync_category: str, limit: int = 50) -> list["SyncSession"]:
-        """根据分类获取会话列表.
-
-        Args:
-            sync_category: 会话分类过滤条件.
-            limit: 返回的最大记录数.
-
-        Returns:
-            list[SyncSession]: 满足条件的会话集合,按创建时间倒序.
-
-        """
-        return (
-            SyncSession.query.filter_by(sync_category=sync_category)
-            .order_by(SyncSession.created_at.desc())
-            .limit(limit)
-            .all()
-        )
-
     def __repr__(self) -> str:
         """返回同步会话的调试字符串.
 
