@@ -37,4 +37,3 @@ def test_apply_filters_uses_period_start_bounds_for_partition_pruning() -> None:
     assert "database_size_aggregations.period_start <= '2026-01-26'" in sql
     assert "database_size_aggregations.period_end <= '2026-01-26'" in sql
     assert "database_size_aggregations.period_end >= '2026-01-20'" not in sql
-

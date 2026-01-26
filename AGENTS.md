@@ -25,3 +25,4 @@
 - 分支/提交：日常 PR → `dev`；发布/线上修复 → `main`（详见 `docs/Obsidian/standards/core/guide/git-workflow.md`）；提交前缀建议 `fix:`/`feat:`/`refactor:`/`docs:`/`chore:`（≤72 字）
 - 除代码相关文本（文件路径/命令/字段/函数/路由/关键字等）外，说明尽量使用中文
 - 不要无依据添加 defensive fallback（吞异常、silent fallback 等）；如必须引入需写清运行时场景/复现用例/测试需求与验证方式
+- 每次输出信息前必须加称谓：以「金主大人」开头
