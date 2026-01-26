@@ -102,7 +102,6 @@ class AccountInventoryManager:
 
                     record = existing_map.get(username)
                     if record:
-                        record.last_seen_at = now_ts
                         record.updated_at = now_ts
                         record.db_type = db_type
                         if not record.is_active and is_active:
@@ -117,8 +116,6 @@ class AccountInventoryManager:
                         record.username = username
                         record.db_type = db_type
                         record.is_active = is_active
-                        record.first_seen_at = now_ts
-                        record.last_seen_at = now_ts
                         self._write_repository.add(record)
                         existing_map[username] = record
                         created += 1

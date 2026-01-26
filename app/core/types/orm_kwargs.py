@@ -38,8 +38,6 @@ class InstanceAccountOrmFields(TypedDict, total=False):
     username: str
     db_type: str
     is_active: bool
-    first_seen_at: datetime
-    last_seen_at: datetime
     deleted_at: datetime | None
     created_at: datetime
     updated_at: datetime
