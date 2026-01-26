@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # API 层门禁：禁止 API 端点直依赖 models/routes 或直接触 DB/query
+#
+# 参考：
+# - docs/Obsidian/standards/backend/gate/layer/api-layer.md
 
 set -euo pipefail
 
@@ -25,7 +28,7 @@ if [[ -n "${hits}" ]]; then
   echo "${hits}" >&2
   echo "" >&2
   echo "API 层仅负责参数解析/校验与调用 Service，不应 import models/routes，也不应直接触碰 db.session/Model.query。" >&2
-  echo "参考：docs/Obsidian/standards/backend/layer/api-layer-standards.md" >&2
+  echo "参考：docs/Obsidian/standards/backend/gate/layer/api-layer.md" >&2
   exit 1
 fi
 

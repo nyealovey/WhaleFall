@@ -12,8 +12,8 @@ owner: WhaleFall Team
 scope: `standards/scripts-standards` 引用的脚本模板集合(非规则 SSOT)
 related:
   - "[[reference/examples/README]]"
-  - "[[standards/scripts-standards]]"
-  - "[[standards/doc/document-boundary-standards]]"
+  - "[[standards/core/guide/scripts]]"
+  - "[[standards/doc/guide/document-boundary]]"
 ---
 
 # Scripts 模板(长示例)

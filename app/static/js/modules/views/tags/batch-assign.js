@@ -1,1049 +1,707 @@
 /**
- * 批量分配标签页面逻辑
+ * 标签批量分配页面入口。
+ *
+ * 约束:
+ * - 页面不直连 TagManagementService：所有业务动作通过 TagBatchStore actions。
+ * - 页面不维护业务 state：渲染以 store.getState() 快照为准。
  */
+(function (global) {
+  "use strict";
 
-const LodashUtils = window.LodashUtils;
-if (!LodashUtils) {
-    throw new Error('LodashUtils 未初始化');
-}
+  const UNSAFE_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 
-const TagManagementService = window.TagManagementService;
-if (!TagManagementService) {
-    throw new Error('TagManagementService 未初始化');
-}
+  function isSafeKey(key) {
+    return typeof key === "string" && key && !UNSAFE_KEYS.has(key);
+  }
 
-const FormValidator = window.FormValidator || null;
-const ValidationRules = window.ValidationRules || null;
-const toast = window.toast || {
-    success: console.info,
-    error: console.error,
-    info: console.info,
-};
+  function toDomIdFragment(value) {
+    const raw = typeof value === "string" ? value : "unknown";
+    const normalized = raw.trim() || "unknown";
+    const cleaned = normalized.replace(/[^a-zA-Z0-9_-]/g, "_");
+    return cleaned && isSafeKey(cleaned) ? cleaned : "unknown";
+  }
 
-const tagService = new TagManagementService();
-const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
-const isSafeKey = (key) => {
-    const normalized = typeof key === 'number' ? String(key) : key;
-    return typeof normalized === 'string' && !UNSAFE_KEYS.includes(normalized);
-};
-const getSafe = (obj, key, fallback = undefined) => {
-    if (!obj || !isSafeKey(key)) {
-        return fallback;
+  function normalizeId(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
     }
-    const safeEntries = Object.entries(obj).filter(([k]) => isSafeKey(k));
-    const safeMap = new Map(safeEntries);
-    return safeMap.has(key) ? safeMap.get(key) : fallback;
-};
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  }
 
-/**
- * 批量分配/移除标签的控制器。
- */
-class BatchAssignManager {
-    constructor() {
-        this.selectedInstances = new Set();
-        this.selectedTags = new Set();
-        this.currentMode = 'assign'; // assign | remove
-        this.instances = [];
-        this.tags = [];
-        this.instanceLookup = {};
-        this.tagLookup = {};
-        this.instancesByDbType = {};
-        this.tagsByCategory = {};
-        this.form = document.getElementById('batchAssignForm');
-        this.validator = null;
-        this.instancesContainer = null;
-        this.tagsContainer = null;
-        this.instanceDelegationBound = false;
-        this.tagDelegationBound = false;
-
-        this.init();
+  function mountTagsBatchAssignPage(globalRef = global, documentRef = document) {
+    const escapeHtml = globalRef.UI?.escapeHtml;
+    if (typeof escapeHtml !== "function") {
+      console.error("UI.escapeHtml 未初始化，批量分配页面无法安全渲染");
+      return;
     }
 
-    init() {
-        this.bindEvents();
-        this.initializeValidator();
-        this.loadData();
-        this.updateModeDisplay();
-        this.syncModeToggleState();
-        this.updateHiddenFields();
+    const toast = globalRef.toast || {
+      success: (message) => console.info(message),
+      error: (message) => console.error(message),
+      warning: (message) => console.warn(message),
+      info: (message) => console.info(message),
+    };
+
+    const TagManagementService = globalRef.TagManagementService;
+    if (!TagManagementService) {
+      console.error("TagManagementService 未初始化，批量分配页面无法加载");
+      return;
     }
 
-   bindEvents() {
-        // 模式切换
-        document.querySelectorAll('input[name="batchMode"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                this.currentMode = e.target.value;
-                this.updateModeDisplay();
-                this.syncModeToggleState();
-                this.updateUI();
-            });
+    const createTagBatchStore = globalRef.createTagBatchStore;
+    if (typeof createTagBatchStore !== "function") {
+      console.error("createTagBatchStore 未加载，批量分配页面无法加载");
+      return;
+    }
+
+    const service = new TagManagementService();
+    const store = createTagBatchStore({ service });
+
+    const dom = {
+      instancesLoading: documentRef.getElementById("instancesLoading"),
+      instancesContainer: documentRef.getElementById("instancesContainer"),
+      tagsLoading: documentRef.getElementById("tagsLoading"),
+      tagsContainer: documentRef.getElementById("tagsContainer"),
+      form: documentRef.getElementById("batchAssignForm"),
+      batchModeField: documentRef.getElementById("batchModeField"),
+      selectedInstancesInput: documentRef.getElementById("selectedInstancesInput"),
+      selectedTagsInput: documentRef.getElementById("selectedTagsInput"),
+      clearAllSelections: documentRef.getElementById("clearAllSelections"),
+      executeBatchOperation: documentRef.getElementById("executeBatchOperation"),
+      removeModeInfo: documentRef.getElementById("removeModeInfo"),
+      tagSelectionPanel: documentRef.getElementById("tagSelectionPanel"),
+      batchLayoutGrid: documentRef.getElementById("batchLayoutGrid"),
+      selectedTagsSection: documentRef.getElementById("selectedTagsSection"),
+      selectedInstancesCount: documentRef.getElementById("selectedInstancesCount"),
+      selectedTagsCount: documentRef.getElementById("selectedTagsCount"),
+      totalSelectedInstances: documentRef.getElementById("totalSelectedInstances"),
+      totalSelectedTags: documentRef.getElementById("totalSelectedTags"),
+      summaryTagCount: documentRef.getElementById("summaryTagCount"),
+      selectedInstancesList: documentRef.getElementById("selectedInstancesList"),
+      selectedTagsList: documentRef.getElementById("selectedTagsList"),
+      progressContainer: documentRef.getElementById("progressContainer"),
+      progressText: documentRef.getElementById("progressText"),
+    };
+
+    if (!dom.instancesContainer || !dom.tagsContainer || !dom.form) {
+      console.error("批量分配页面 DOM 结构缺失，无法初始化");
+      return;
+    }
+
+    let validator = null;
+    if (globalRef.FormValidator && globalRef.ValidationRules) {
+      validator = globalRef.FormValidator.create("#batchAssignForm");
+      validator
+        ?.useRules("#selectedInstancesInput", globalRef.ValidationRules.batchAssign.instances)
+        ?.useRules("#selectedTagsInput", globalRef.ValidationRules.batchAssign.tags)
+        ?.onSuccess((event) => {
+          event.preventDefault();
+          executeOperation();
+        })
+        ?.onFail(() => {
+          toast.error("请检查实例和标签选择后再执行操作");
         });
-
-        // 清空选择
-        document.getElementById('clearAllSelections').addEventListener('click', () => {
-            this.clearAllSelections();
-        });
-
-        if (this.form) {
-            this.form.addEventListener('submit', (event) => {
-                event.preventDefault();
-                if (this.validator && this.validator.instance && typeof this.validator.instance.revalidate === 'function') {
-                    this.validator.instance.revalidate();
-                } else {
-                    this.executeBatchOperation();
-                }
-            });
-        }
     }
 
-    initializeValidator() {
-        if (!FormValidator || !ValidationRules) {
-            console.warn('FormValidator 或 ValidationRules 未加载，批量分配表单跳过校验初始化');
-            return;
-        }
+    let instanceById = new Map();
+    let tagById = new Map();
+    let progressTimer = null;
 
-        if (!this.form) {
-            return;
-        }
+    function rebuildLookups(state) {
+      instanceById = new Map();
+      tagById = new Map();
 
-        this.validator = FormValidator.create('#batchAssignForm');
-        if (!this.validator) {
-            return;
-        }
+      Object.values(state.instancesByDbType || {}).forEach((items) => {
+        if (!Array.isArray(items)) return;
+        items.forEach((item) => {
+          const id = normalizeId(item?.id);
+          if (id !== null) {
+            instanceById.set(id, item);
+          }
+        });
+      });
 
-        this.validator
-            .useRules('#selectedInstancesInput', ValidationRules.batchAssign.instances)
-            .useRules('#selectedTagsInput', ValidationRules.batchAssign.tags)
-            .onSuccess((event) => {
-                event.preventDefault();
-                this.executeBatchOperation();
+      Object.values(state.tagsByCategory || {}).forEach((items) => {
+        if (!Array.isArray(items)) return;
+        items.forEach((item) => {
+          const id = normalizeId(item?.id);
+          if (id !== null) {
+            tagById.set(id, item);
+          }
+        });
+      });
+    }
+
+    function getDbTypeDisplayName(dbType) {
+      const normalized = typeof dbType === "string" ? dbType.toLowerCase() : "";
+      switch (normalized) {
+        case "mysql":
+          return "MySQL";
+        case "postgresql":
+          return "PostgreSQL";
+        case "sqlserver":
+          return "SQL Server";
+        case "oracle":
+          return "Oracle";
+        case "redis":
+          return "Redis";
+        default:
+          return dbType || "Unknown";
+      }
+    }
+
+    function buildEmptyState(text, iconClass) {
+      return `
+        <div class="empty-state">
+          <i class="${iconClass || "fas fa-box-open"}"></i>
+          <p>${escapeHtml(text || "")}</p>
+        </div>
+      `;
+    }
+
+    function buildLedgerChipHtml(content, muted) {
+      const classes = ["ledger-chip"];
+      if (muted) {
+        classes.push("ledger-chip--muted");
+      }
+      return `<span class="${classes.join(" ")}">${content}</span>`;
+    }
+
+    function renderInstances(state) {
+      const groups = state.instancesByDbType || {};
+      const keys = Object.keys(groups).filter(isSafeKey).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+
+      if (!keys.length) {
+        dom.instancesContainer.innerHTML = buildEmptyState("暂无实例数据", "fas fa-database");
+        return;
+      }
+
+      const selected = new Set(state.selectedInstanceIds || []);
+      const html = keys
+        .map((dbType) => {
+          const domKey = toDomIdFragment(dbType);
+          // eslint-disable-next-line security/detect-object-injection
+          const instances = Array.isArray(groups[dbType]) ? groups[dbType] : [];
+
+          const dbTypeDisplay = getDbTypeDisplayName(dbType);
+          const rowsHtml = instances
+            .map((instance) => {
+              const id = normalizeId(instance?.id);
+              const checked = id !== null && selected.has(id);
+              const name = escapeHtml(instance?.name || (id !== null ? `实例 ${id}` : "未知实例"));
+              const host = escapeHtml(instance?.host || "-");
+              const port = escapeHtml(instance?.port ?? "-");
+              const rowId = id !== null ? id : "";
+              return `
+                <label class="ledger-row${checked ? " ledger-row--selected" : ""}" data-instance-row="${rowId}" for="instance_${rowId}">
+                  <input class="form-check-input" type="checkbox"
+                         id="instance_${rowId}"
+                         ${checked ? "checked" : ""}
+                         data-action="toggle-instance-selection"
+                         data-instance-id="${rowId}">
+                  <div class="ledger-row__body">
+                    <div class="ledger-row__title">${name}</div>
+                    <div class="ledger-row__meta">${host}:${port}</div>
+                  </div>
+                  <div class="ledger-row__badge">
+                    <span class="chip-outline chip-outline--muted">${escapeHtml(getDbTypeDisplayName(instance?.db_type))}</span>
+                  </div>
+                </label>
+              `;
             })
-            .onFail(() => {
-                toast.error('请检查实例和标签选择后再执行操作');
-            });
-    }
+            .join("");
 
-   async loadData() {
-        try {
-            await Promise.all([
-                this.loadInstances(),
-                this.loadTags()
-            ]);
-            this.renderInstances();
-            this.renderTags();
-        } catch (error) {
-            this.showError('加载数据失败', error.message);
-        }
-    }
-
-   async loadInstances() {
-        try {
-            const response = await tagService.listInstances();
-            const payload = response?.data ?? response;
-            this.instances = Array.isArray(payload?.instances) ? payload.instances : [];
-            this.instanceLookup = LodashUtils.keyBy(this.instances, 'id');
-            this.instancesByDbType = this.groupInstancesByDbType(this.instances);
-        } catch (error) {
-            console.error('加载实例失败:', error);
-            throw error;
-        }
-    }
-
-   async loadTags() {
-        try {
-            const response = await tagService.listAllTags();
-            const payload = response?.data ?? response;
-            this.tags = Array.isArray(payload?.tags) ? payload.tags : [];
-            this.tagLookup = LodashUtils.keyBy(this.tags, 'id');
-            this.tagsByCategory = this.groupTagsByCategory(this.tags);
-
-        } catch (error) {
-            console.error('加载标签失败:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * 按数据库类型分组实例
-     */
-    groupInstancesByDbType(instances) {
-        const grouped = LodashUtils.groupBy(instances || [], (instance) => instance?.db_type || 'unknown');
-        return LodashUtils.mapValues(grouped, (items) =>
-            LodashUtils.orderBy(
-                items,
-                [
-                    (instance) => this.normalizeText(instance?.name),
-                ],
-                ['asc']
-            )
-        );
-    }
-
-    /**
-     * 按分类分组标签
-     */
-    groupTagsByCategory(tags) {
-        const grouped = LodashUtils.groupBy(tags || [], (tag) => tag?.category || '未分类');
-        return LodashUtils.mapValues(grouped, (items) =>
-            LodashUtils.orderBy(
-                items,
-                [
-                    (tag) => this.normalizeText(tag?.display_name || tag?.name),
-                ],
-                ['asc']
-            )
-        );
-    }
-
-    /**
-     * 渲染实例列表
-     */
-    renderInstances() {
-        const container = document.getElementById('instancesContainer');
-        const loading = document.getElementById('instancesLoading');
-        this.instancesContainer = container;
-
-        if (this.instances.length === 0) {
-            container.innerHTML = this.getEmptyState('实例', 'fas fa-database');
-            loading.style.display = 'none';
-            container.style.display = 'block';
-            return;
-        }
-
-        let html = '';
-        this.getSortedKeys(this.instancesByDbType).forEach((dbType) => {
-            const instances = getSafe(this.instancesByDbType, dbType, []);
-            const dbTypeDisplay = this.getDbTypeDisplayName(dbType);
-
-            html += `
-                <div class="instance-group">
-                    <div class="instance-group-header" data-action="toggle-instance-group" data-db-type="${dbType}">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="fas fa-chevron-right instance-group-icon"></i>
-                                <span class="chip-outline chip-outline--muted">${dbTypeDisplay}</span>
-                                <span class="text-muted small">${instances.length} 个</span>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox"
-                                       id="instanceGroup_${dbType}"
-                                       data-action="toggle-instance-group-selection"
-                                       data-db-type="${dbType}">
-                                <label class="form-check-label" for="instanceGroup_${dbType}">
-                                    全选
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="instance-group-content" id="instanceGroupContent_${dbType}">
-                        ${instances.map(instance => `
-                            <label class="ledger-row" data-instance-row="${instance.id}" for="instance_${instance.id}">
-                                <input class="form-check-input" type="checkbox"
-                                       id="instance_${instance.id}"
-                                       value="${instance.id}"
-                                       data-action="toggle-instance-selection"
-                                       data-instance-id="${instance.id}">
-                                <div class="ledger-row__body">
-                                    <div class="ledger-row__title">${instance.name}</div>
-                                    <div class="ledger-row__meta">${instance.host}:${instance.port}</div>
-                                </div>
-                                <div class="ledger-row__badge">
-                                    <span class="chip-outline chip-outline--muted">${this.getDbTypeDisplayName(instance.db_type)}</span>
-                                </div>
-                            </label>
-                        `).join('')}
-                    </div>
+          return `
+            <div class="instance-group">
+              <div class="instance-group-header" data-action="toggle-instance-group" data-db-type="${escapeHtml(dbType)}">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-chevron-right instance-group-icon"></i>
+                    <span class="chip-outline chip-outline--muted">${escapeHtml(dbTypeDisplay)}</span>
+                    <span class="text-muted small">${instances.length} 个</span>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox"
+                           id="instanceGroup_${domKey}"
+                           data-action="toggle-instance-group-selection"
+                           data-db-type="${escapeHtml(dbType)}">
+                    <label class="form-check-label" for="instanceGroup_${domKey}">全选</label>
+                  </div>
                 </div>
-            `;
-        });
-
-        container.innerHTML = html;
-        loading.style.display = 'none';
-        container.style.display = 'block';
-
-        this.bindInstanceDelegation();
-        this.bindTagDelegation();
-        this.initializeScrollAreas();
-    }
-
-    /**
-     * 渲染标签列表
-     */
-    renderTags() {
-        const container = document.getElementById('tagsContainer');
-        const loading = document.getElementById('tagsLoading');
-        this.tagsContainer = container;
-
-        if (this.tags.length === 0) {
-            container.innerHTML = this.getEmptyState('标签', 'fas fa-tags');
-            loading.style.display = 'none';
-            container.style.display = 'block';
-            return;
-        }
-
-        let html = '';
-        this.getSortedKeys(this.tagsByCategory).forEach((category) => {
-            const tags = getSafe(this.tagsByCategory, category, []);
-
-            html += `
-                <div class="tag-group">
-                    <div class="tag-group-header" data-action="toggle-tag-group" data-category="${category}">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="fas fa-chevron-right tag-group-icon"></i>
-                                <span class="chip-outline chip-outline--muted">${category}</span>
-                                <span class="text-muted small">${tags.length} 个</span>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox"
-                                       id="tagGroup_${category}"
-                                       data-action="toggle-tag-group-selection"
-                                       data-category="${category}">
-                                <label class="form-check-label" for="tagGroup_${category}">
-                                    全选
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tag-group-content" id="tagGroupContent_${category}">
-                        ${tags.map(tag => `
-                            <label class="ledger-row" data-tag-row="${tag.id}" for="tag_${tag.id}">
-                                <input class="form-check-input" type="checkbox"
-                                       id="tag_${tag.id}"
-                                       value="${tag.id}"
-                                       data-action="toggle-tag-selection"
-                                       data-tag-id="${tag.id}">
-                                <div class="ledger-row__body">
-                                    <div class="ledger-row__title">${tag.display_name || tag.name}</div>
-                                    ${tag.category ? `<div class="ledger-row__meta">分类：${tag.category}</div>` : ''}
-                                </div>
-                                <div class="ledger-row__badge">
-                                    <span class="status-pill ${tag.is_active ? 'status-pill--info' : 'status-pill--muted'}">
-                                        ${tag.is_active ? '启用' : '停用'}
-                                    </span>
-                                </div>
-                            </label>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
-        loading.style.display = 'none';
-        container.style.display = 'block';
-
-        // 初始化滚动功能
-        this.initializeScrollAreas();
-        this.bindTagDelegation();
-    }
-
-    /**
-     * 切换实例分组展开/收起
-     */
-    toggleInstanceGroup(dbType) {
-        const content = document.getElementById(`instanceGroupContent_${dbType}`);
-        const header = content.previousElementSibling;
-        const icon = header.querySelector('.instance-group-icon');
-
-        if (content.classList.contains('show')) {
-            // 如果当前分组是展开的，则收起
-            content.classList.remove('show');
-            if (icon) icon.style.transform = 'rotate(0deg)';
-        } else {
-            // 先收起所有其他分组（手风琴效果）
-            this.collapseAllInstanceGroups();
-
-            // 展开当前分组
-            content.classList.add('show');
-            if (icon) icon.style.transform = 'rotate(90deg)';
-
-            // 确保内容区域可以滚动
-            setTimeout(() => {
-                if (content.scrollHeight > content.clientHeight) {
-                    content.style.overflowY = 'auto';
-                }
-            }, 300);
-        }
-    }
-
-    /**
-     * 收起所有实例分组
-     */
-    collapseAllInstanceGroups() {
-        this.getSortedKeys(this.instancesByDbType).forEach(dbType => {
-            const content = document.getElementById(`instanceGroupContent_${dbType}`);
-            if (content && content.classList.contains('show')) {
-                content.classList.remove('show');
-                const header = content.previousElementSibling;
-                const icon = header?.querySelector('.instance-group-icon');
-                if (icon) {
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            }
-        });
-    }
-
-    /**
-     * 收起所有标签分组
-     */
-    collapseAllTagGroups() {
-        this.getSortedKeys(this.tagsByCategory).forEach(category => {
-            const content = document.getElementById(`tagGroupContent_${category}`);
-            if (content && content.classList.contains('show')) {
-                content.classList.remove('show');
-                const header = content.previousElementSibling;
-                const icon = header?.querySelector('.tag-group-icon');
-                if (icon) {
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            }
-        });
-    }
-
-    /**
-     * 切换标签分组展开/收起
-     */
-    toggleTagGroup(category) {
-        const content = document.getElementById(`tagGroupContent_${category}`);
-        const header = content.previousElementSibling;
-        const icon = header.querySelector('.tag-group-icon');
-
-        if (content.classList.contains('show')) {
-            // 如果当前分组是展开的，则收起
-            content.classList.remove('show');
-            if (icon) icon.style.transform = 'rotate(0deg)';
-        } else {
-            // 先收起所有其他分组（手风琴效果）
-            this.collapseAllTagGroups();
-
-            // 展开当前分组
-            content.classList.add('show');
-            if (icon) icon.style.transform = 'rotate(90deg)';
-
-            // 确保内容区域可以滚动
-            setTimeout(() => {
-                if (content.scrollHeight > content.clientHeight) {
-                    content.style.overflowY = 'auto';
-                }
-            }, 300);
-        }
-    }
-
-    /**
-     * 切换实例分组全选
-     */
-    toggleInstanceGroupSelection(dbType) {
-        const groupCheckbox = document.getElementById(`instanceGroup_${dbType}`);
-        const instanceCheckboxes = document.querySelectorAll(`#instanceGroupContent_${dbType} input[type="checkbox"]`);
-
-        instanceCheckboxes.forEach(checkbox => {
-            checkbox.checked = groupCheckbox.checked;
-            const instanceId = parseInt(checkbox.value);
-            if (groupCheckbox.checked) {
-                this.selectedInstances.add(instanceId);
-            } else {
-                this.selectedInstances.delete(instanceId);
-            }
-            this.updateRowSelectedState('instance', instanceId, checkbox.checked);
-        });
-
-        this.updateUI();
-    }
-
-    /**
-     * 切换标签分组全选
-     */
-    toggleTagGroupSelection(category) {
-        const groupCheckbox = document.getElementById(`tagGroup_${category}`);
-        const tagCheckboxes = document.querySelectorAll(`#tagGroupContent_${category} input[type="checkbox"]`);
-
-        tagCheckboxes.forEach(checkbox => {
-            checkbox.checked = groupCheckbox.checked;
-            const tagId = parseInt(checkbox.value);
-            if (groupCheckbox.checked) {
-                this.selectedTags.add(tagId);
-            } else {
-                this.selectedTags.delete(tagId);
-            }
-            this.updateRowSelectedState('tag', tagId, checkbox.checked);
-        });
-
-        this.updateUI();
-    }
-
-    /**
-     * 切换单个实例选择
-     */
-    toggleInstanceSelection(instanceId) {
-        const checkbox = document.getElementById(`instance_${instanceId}`);
-
-        if (checkbox.checked) {
-            this.selectedInstances.add(instanceId);
-        } else {
-            this.selectedInstances.delete(instanceId);
-        }
-        this.updateRowSelectedState('instance', instanceId, checkbox.checked);
-
-        this.updateGroupCheckboxState('instance');
-        this.updateUI();
-    }
-
-    /**
-     * 切换单个标签选择
-     */
-    toggleTagSelection(tagId) {
-        const checkbox = document.getElementById(`tag_${tagId}`);
-
-        if (checkbox.checked) {
-            this.selectedTags.add(tagId);
-        } else {
-            this.selectedTags.delete(tagId);
-        }
-        this.updateRowSelectedState('tag', tagId, checkbox.checked);
-
-        this.updateGroupCheckboxState('tag');
-        this.updateUI();
-    }
-
-    /**
-     * 绑定实例列表事件委托，替代内联 onclick/onchange。
-     *
-     * @return {void}
-     */
-    bindInstanceDelegation() {
-        if (this.instanceDelegationBound || !this.instancesContainer) {
-            return;
-        }
-        this.instancesContainer.addEventListener('click', (event) => {
-            const actionEl = event.target.closest('[data-action]');
-            if (!actionEl || !this.instancesContainer.contains(actionEl)) {
-                return;
-            }
-            const action = actionEl.getAttribute('data-action');
-            if (action === 'toggle-instance-group') {
-                event.preventDefault();
-                const dbType = actionEl.getAttribute('data-db-type');
-                this.toggleInstanceGroup(dbType);
-            }
-        });
-        this.instancesContainer.addEventListener('change', (event) => {
-            const actionEl = event.target.closest('[data-action]');
-            if (!actionEl || !this.instancesContainer.contains(actionEl)) {
-                return;
-            }
-            const action = actionEl.getAttribute('data-action');
-            switch (action) {
-                case 'toggle-instance-group-selection':
-                    this.toggleInstanceGroupSelection(actionEl.getAttribute('data-db-type'));
-                    break;
-                case 'toggle-instance-selection':
-                    this.toggleInstanceSelection(actionEl.getAttribute('data-instance-id'));
-                    break;
-                default:
-                    break;
-            }
-        });
-        this.instanceDelegationBound = true;
-    }
-
-    /**
-     * 绑定标签列表事件委托，替代内联 onclick/onchange。
-     *
-     * @return {void}
-     */
-    bindTagDelegation() {
-        if (this.tagDelegationBound || !this.tagsContainer) {
-            return;
-        }
-        this.tagsContainer.addEventListener('click', (event) => {
-            const actionEl = event.target.closest('[data-action]');
-            if (!actionEl || !this.tagsContainer.contains(actionEl)) {
-                return;
-            }
-            const action = actionEl.getAttribute('data-action');
-            if (action === 'toggle-tag-group') {
-                event.preventDefault();
-                this.toggleTagGroup(actionEl.getAttribute('data-category'));
-            }
-        });
-        this.tagsContainer.addEventListener('change', (event) => {
-            const actionEl = event.target.closest('[data-action]');
-            if (!actionEl || !this.tagsContainer.contains(actionEl)) {
-                return;
-            }
-            const action = actionEl.getAttribute('data-action');
-            switch (action) {
-                case 'toggle-tag-group-selection':
-                    this.toggleTagGroupSelection(actionEl.getAttribute('data-category'));
-                    break;
-                case 'toggle-tag-selection':
-                    this.toggleTagSelection(actionEl.getAttribute('data-tag-id'));
-                    break;
-                default:
-                    break;
-            }
-        });
-        this.tagDelegationBound = true;
-    }
-
-    /**
-     * 更新分组复选框状态
-     */
-    updateGroupCheckboxState(type) {
-        if (type === 'instance') {
-            this.getSortedKeys(this.instancesByDbType).forEach(dbType => {
-                const groupCheckbox = document.getElementById(`instanceGroup_${dbType}`);
-                const instanceCheckboxes = document.querySelectorAll(`#instanceGroupContent_${dbType} input[type="checkbox"]`);
-                const checkedCount = Array.from(instanceCheckboxes).filter(cb => cb.checked).length;
-
-                groupCheckbox.checked = checkedCount === instanceCheckboxes.length;
-                groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < instanceCheckboxes.length;
-            });
-        } else if (type === 'tag') {
-            this.getSortedKeys(this.tagsByCategory).forEach(category => {
-                const groupCheckbox = document.getElementById(`tagGroup_${category}`);
-                const tagCheckboxes = document.querySelectorAll(`#tagGroupContent_${category} input[type="checkbox"]`);
-                const checkedCount = Array.from(tagCheckboxes).filter(cb => cb.checked).length;
-
-                groupCheckbox.checked = checkedCount === tagCheckboxes.length;
-                groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < tagCheckboxes.length;
-            });
-        }
-    }
-
-    /**
-     * 更新模式显示
-     */
-    updateModeDisplay() {
-        const removeModeInfo = document.getElementById('removeModeInfo');
-        const tagSelectionPanel = document.getElementById('tagSelectionPanel');
-        const selectedTagsSection = document.getElementById('selectedTagsSection');
-        const layoutGrid = document.getElementById('batchLayoutGrid');
-        const summaryTagCount = document.getElementById('summaryTagCount');
-        const modeField = document.getElementById('batchModeField');
-        const isRemoveMode = this.currentMode === 'remove';
-
-        if (removeModeInfo) {
-            removeModeInfo.style.display = isRemoveMode ? 'flex' : 'none';
-        }
-        if (tagSelectionPanel) {
-            tagSelectionPanel.hidden = isRemoveMode;
-        }
-        if (selectedTagsSection) {
-            selectedTagsSection.hidden = isRemoveMode;
-        }
-        if (summaryTagCount) {
-            summaryTagCount.hidden = isRemoveMode;
-        }
-        if (layoutGrid) {
-            layoutGrid.classList.toggle('is-remove-mode', isRemoveMode);
-            layoutGrid.dataset.mode = this.currentMode;
-        }
-        if (modeField) {
-            modeField.value = this.currentMode;
-        }
-        if (this.validator?.revalidateField) {
-            this.validator.revalidateField('#selectedTagsInput');
-        }
-    }
-
-    /**
-     * 更新UI显示
-     */
-    updateUI() {
-        this.updateCounts();
-        this.updateSelectionSummary();
-        this.updateHiddenFields();
-        this.updateActionButton();
-    }
-
-    updateHiddenFields() {
-        const instancesInput = document.getElementById('selectedInstancesInput');
-        const tagsInput = document.getElementById('selectedTagsInput');
-
-        if (instancesInput) {
-            instancesInput.value = Array.from(this.selectedInstances).join(',');
-        }
-
-        if (tagsInput) {
-            tagsInput.value = Array.from(this.selectedTags).join(',');
-        }
-
-        if (this.validator) {
-            this.validator.revalidateField('#selectedInstancesInput');
-            this.validator.revalidateField('#selectedTagsInput');
-        }
-    }
-
-    /**
-     * 更新计数显示
-     */
-    updateCounts() {
-        document.getElementById('selectedInstancesCount').textContent = this.selectedInstances.size;
-        document.getElementById('selectedTagsCount').textContent = this.selectedTags.size;
-        document.getElementById('totalSelectedInstances').textContent = this.selectedInstances.size;
-        document.getElementById('totalSelectedTags').textContent = this.selectedTags.size;
-    }
-
-    /**
-     * 更新选择摘要
-     */
-    updateSelectionSummary() {
-        const selectedInstancesList = document.getElementById('selectedInstancesList');
-        const selectedTagsList = document.getElementById('selectedTagsList');
-        const summaryTagCount = document.getElementById('summaryTagCount');
-        const isRemoveMode = this.currentMode === 'remove';
-
-        if (!selectedInstancesList || !selectedTagsList) {
-            return;
-        }
-
-        if (this.selectedInstances.size > 0) {
-            const chips = Array.from(this.selectedInstances).map((id) => {
-                const instance = getSafe(this.instanceLookup, id, null);
-                const name = this.escapeHtml(instance?.name || `实例 ${id}`);
-                return this.buildLedgerChipHtml(`<i class="fas fa-database"></i>${name}`);
-            });
-            selectedInstancesList.innerHTML = chips.join('');
-        } else {
-            selectedInstancesList.innerHTML = this.buildSummaryEmptyState('尚未选择实例', 'fas fa-database');
-        }
-
-        if (!isRemoveMode) {
-            if (this.selectedTags.size > 0) {
-                const tagChips = Array.from(this.selectedTags).map((id) => {
-                    const tag = getSafe(this.tagLookup, id, null);
-                    const label = this.escapeHtml(tag?.display_name || tag?.name || `标签 ${id}`);
-                    const isInactive = tag ? !tag.is_active : true;
-                    return this.buildLedgerChipHtml(`<i class="fas fa-tag"></i>${label}`, isInactive);
-                });
-                selectedTagsList.innerHTML = tagChips.join('');
-            } else {
-                selectedTagsList.innerHTML = this.buildSummaryEmptyState('尚未选择标签', 'fas fa-tags');
-            }
-        } else {
-            selectedTagsList.innerHTML = this.buildSummaryEmptyState('移除模式无需选择标签', 'fas fa-tags');
-        }
-
-        if (summaryTagCount) {
-            summaryTagCount.hidden = isRemoveMode;
-        }
-    }
-
-    /**
-     * 更新操作按钮状态
-     */
-    updateActionButton() {
-        const button = document.getElementById('executeBatchOperation');
-        const canExecute = this.selectedInstances.size > 0 &&
-            (this.currentMode === 'remove' || this.selectedTags.size > 0);
-
-        button.disabled = !canExecute;
-
-        if (this.currentMode === 'assign') {
-            button.innerHTML = '<i class="fas fa-plus me-1"></i>分配标签';
-        } else {
-            button.innerHTML = '<i class="fas fa-minus me-1"></i>移除标签';
-        }
-    }
-
-    /**
-     * 清空所有选择
-     */
-    clearAllSelections() {
-        // 清空选择集合
-        this.selectedInstances.clear();
-        this.selectedTags.clear();
-
-        // 取消所有复选框
-        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = false;
-            checkbox.indeterminate = false;
-        });
-
-        document.querySelectorAll('.ledger-row--selected').forEach((row) => row.classList.remove('ledger-row--selected'));
-
-        this.updateGroupCheckboxState('instance');
-        this.updateGroupCheckboxState('tag');
-
-        // 更新UI
-        this.updateUI();
-
-        if (this.validator && this.validator.instance) {
-            this.validator.instance.refresh();
-        }
-    }
-
-    /**
-     * 执行批量操作
-     */
-    async executeBatchOperation() {
-        if (this.selectedInstances.size === 0) {
-            this.showError('请选择至少一个实例');
-            return;
-        }
-
-        if (this.currentMode === 'assign' && this.selectedTags.size === 0) {
-            this.showError('请选择至少一个标签');
-            return;
-        }
-
-        try {
-            this.showProgress();
-
-            if (this.currentMode === 'assign') {
-                await this.performBatchAssign();
-            } else {
-                await this.performBatchRemove();
-            }
-
-            this.hideProgress();
-            this.showSuccess('操作完成');
-            this.clearAllSelections();
-
-        } catch (error) {
-            this.hideProgress();
-            this.showError('操作失败', error.message);
-        }
-    }
-
-    /**
-     * 执行批量分配
-     */
-    async performBatchAssign() {
-        const result = await tagService.batchAssign({
-            instance_ids: Array.from(this.selectedInstances),
-            tag_ids: Array.from(this.selectedTags)
-        });
-        return result;
-    }
-
-    /**
-     * 执行批量移除
-     */
-    async performBatchRemove() {
-        const result = await tagService.batchRemoveAll({
-            instance_ids: Array.from(this.selectedInstances)
-        });
-        if (!result.success) {
-            throw new Error(result.message || '移除失败');
-        }
-        return result;
-    }
-
-    /**
-     * 显示进度
-     */
-    showProgress() {
-        const container = document.getElementById('progressContainer');
-        const progressBar = container.querySelector('.progress-bar');
-        const progressText = document.getElementById('progressText');
-
-        container.style.display = 'block';
-        progressBar.style.width = '0%';
-        progressText.textContent = '准备中...';
-
-        // 模拟进度
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 20;
-            if (progress > 90) progress = 90;
-
-            progressBar.style.width = progress + '%';
-            progressText.textContent = `处理中... ${Math.round(progress)}%`;
-        }, 200);
-
-        this.progressInterval = interval;
-    }
-
-    /**
-     * 隐藏进度
-     */
-    hideProgress() {
-        if (this.progressInterval) {
-            clearInterval(this.progressInterval);
-            this.progressInterval = null;
-        }
-
-        const container = document.getElementById('progressContainer');
-        const progressBar = container.querySelector('.progress-bar');
-        const progressText = document.getElementById('progressText');
-
-        progressBar.style.width = '100%';
-        progressText.textContent = '完成';
-
-        setTimeout(() => {
-            container.style.display = 'none';
-        }, 1000);
-    }
-
-    /**
-     * 显示成功消息
-     */
-    showSuccess(message) {
-        this.showAlert(message, 'success');
-    }
-
-    /**
-     * 显示错误消息
-     */
-    showError(message, details = null) {
-        this.showAlert(message, 'danger', details);
-    }
-
-    /**
-     * 显示警告消息
-     */
-    showAlert(message, type, details = null) {
-        const text = details ? `${message}\n${details}` : message;
-        const normalizedType = type === 'danger' ? 'error' : type;
-        toast.show(normalizedType, text);
-    }
-
-    syncModeToggleState() {
-        document.querySelectorAll('.chip-toggle').forEach((label) => label.classList.remove('chip-toggle--active'));
-        document.querySelectorAll('.chip-toggle-input').forEach((input) => {
-            if (input.checked) {
-                const label = document.querySelector(`label[for="${input.id}"]`);
-                label?.classList.add('chip-toggle--active');
-            }
-        });
-    }
-
-    updateRowSelectedState(type, id, checked) {
-        const selector = type === 'instance' ? `[data-instance-row="${id}"]` : `[data-tag-row="${id}"]`;
-        const row = document.querySelector(selector);
-        if (row) {
-            row.classList.toggle('ledger-row--selected', checked);
-        }
-    }
-
-    buildLedgerChipHtml(content, muted = false) {
-        const classes = ['ledger-chip'];
-        if (muted) {
-            classes.push('ledger-chip--muted');
-        }
-        return `<span class="${classes.join(' ')}">${content}</span>`;
-    }
-
-    buildSummaryEmptyState(text, iconClass) {
-        const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
-        return `<div class="summary-card__empty">${iconHtml}${this.escapeHtml(text)}</div>`;
-    }
-
-    escapeHtml(value) {
-        if (value === undefined || value === null) {
-            return '';
-        }
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    /**
-     * 获取空状态HTML
-     */
-    getEmptyState(type, icon) {
-        return `
-            <div class="empty-state">
-                <i class="${icon}"></i>
-                <p>暂无${type}数据</p>
+              </div>
+              <div class="instance-group-content" id="instanceGroupContent_${domKey}">
+                ${rowsHtml}
+              </div>
             </div>
-        `;
+          `;
+        })
+        .join("");
+
+      dom.instancesContainer.innerHTML = html;
     }
 
-    isSafeKey(key) {
-        return isSafeKey(key);
+    function renderTags(state) {
+      const groups = state.tagsByCategory || {};
+      const keys = Object.keys(groups).filter(isSafeKey).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+
+      if (!keys.length) {
+        dom.tagsContainer.innerHTML = buildEmptyState("暂无标签数据", "fas fa-tags");
+        return;
+      }
+
+      const selected = new Set(state.selectedTagIds || []);
+      const html = keys
+        .map((category) => {
+          const domKey = toDomIdFragment(category);
+          // eslint-disable-next-line security/detect-object-injection
+          const tags = Array.isArray(groups[category]) ? groups[category] : [];
+
+          const rowsHtml = tags
+            .map((tag) => {
+              const id = normalizeId(tag?.id);
+              const checked = id !== null && selected.has(id);
+              const label = escapeHtml(tag?.display_name || tag?.name || (id !== null ? `标签 ${id}` : "未知标签"));
+              const isActive = Boolean(tag?.is_active);
+              const rowId = id !== null ? id : "";
+              return `
+                <label class="ledger-row${checked ? " ledger-row--selected" : ""}" data-tag-row="${rowId}" for="tag_${rowId}">
+                  <input class="form-check-input" type="checkbox"
+                         id="tag_${rowId}"
+                         ${checked ? "checked" : ""}
+                         data-action="toggle-tag-selection"
+                         data-tag-id="${rowId}">
+                  <div class="ledger-row__body">
+                    <div class="ledger-row__title">${label}</div>
+                    <div class="ledger-row__meta">
+                      <span class="status-pill status-pill--${isActive ? "success" : "muted"}">
+                        <i class="fas fa-${isActive ? "check-circle" : "ban"}"></i>${isActive ? "启用" : "停用"}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="ledger-row__badge">
+                    <span class="chip-outline chip-outline--muted">${escapeHtml(category)}</span>
+                  </div>
+                </label>
+              `;
+            })
+            .join("");
+
+          return `
+            <div class="tag-group">
+              <div class="tag-group-header" data-action="toggle-tag-group" data-category="${escapeHtml(category)}">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-chevron-right tag-group-icon"></i>
+                    <span class="chip-outline chip-outline--muted">${escapeHtml(category)}</span>
+                    <span class="text-muted small">${tags.length} 个</span>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox"
+                           id="tagGroup_${domKey}"
+                           data-action="toggle-tag-group-selection"
+                           data-category="${escapeHtml(category)}">
+                    <label class="form-check-label" for="tagGroup_${domKey}">全选</label>
+                  </div>
+                </div>
+              </div>
+              <div class="tag-group-content" id="tagGroupContent_${domKey}">
+                ${rowsHtml}
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      dom.tagsContainer.innerHTML = html;
     }
 
-    getSortedKeys(collection) {
-        const keys = Object.keys(collection || {}).filter((key) => this.isSafeKey(key));
-        if (!keys.length) {
-            return [];
+    function setLoadingState(panel, loading) {
+      if (panel === "instances") {
+        if (dom.instancesLoading) {
+          dom.instancesLoading.style.display = loading ? "block" : "none";
         }
-        return LodashUtils.orderBy(
-            keys,
-            [
-                (key) => this.normalizeText(key),
-            ],
-            ['asc']
-        );
+        dom.instancesContainer.style.display = loading ? "none" : "block";
+      }
+      if (panel === "tags") {
+        if (dom.tagsLoading) {
+          dom.tagsLoading.style.display = loading ? "block" : "none";
+        }
+        dom.tagsContainer.style.display = loading ? "none" : "block";
+      }
     }
 
-    normalizeText(value) {
-        const text = (value || '').toString();
-        if (typeof LodashUtils.toLower === 'function') {
-            return LodashUtils.toLower(text);
+    function syncModeUI(mode) {
+      const isRemoveMode = mode === "remove";
+
+      if (dom.batchLayoutGrid) {
+        dom.batchLayoutGrid.dataset.mode = mode || "assign";
+        dom.batchLayoutGrid.classList.toggle("is-remove-mode", isRemoveMode);
+      }
+      if (dom.removeModeInfo) {
+        dom.removeModeInfo.style.display = isRemoveMode ? "block" : "none";
+      }
+      if (dom.tagSelectionPanel) {
+        dom.tagSelectionPanel.style.display = isRemoveMode ? "none" : "block";
+      }
+      if (dom.selectedTagsSection) {
+        dom.selectedTagsSection.style.display = isRemoveMode ? "none" : "block";
+      }
+      if (dom.summaryTagCount) {
+        dom.summaryTagCount.hidden = isRemoveMode;
+      }
+      if (dom.batchModeField) {
+        dom.batchModeField.value = mode || "assign";
+      }
+
+      documentRef.querySelectorAll(".chip-toggle").forEach((label) => label.classList.remove("chip-toggle--active"));
+      documentRef.querySelectorAll(".chip-toggle-input").forEach((input) => {
+        if (input.checked) {
+          const label = documentRef.querySelector(`label[for="${input.id}"]`);
+          label?.classList.add("chip-toggle--active");
         }
-        return text.toLowerCase();
+      });
+
+      if (dom.executeBatchOperation) {
+        dom.executeBatchOperation.innerHTML = isRemoveMode
+          ? '<i class="fas fa-minus me-1"></i>移除标签'
+          : '<i class="fas fa-plus me-1"></i>分配标签';
+      }
     }
 
-    /**
-     * 获取数据库类型显示名称
-     */
-    getDbTypeDisplayName(dbType) {
-        if (!this.isSafeKey(dbType)) {
-            return dbType;
-        }
-        switch (dbType) {
-            case 'mysql':
-                return 'MySQL';
-            case 'postgresql':
-                return 'PostgreSQL';
-            case 'sqlserver':
-                return 'SQL Server';
-            case 'oracle':
-                return 'Oracle';
-            case 'unknown':
-                return '未知类型';
-            default:
-                return dbType;
-        }
+    function updateHiddenFields(state) {
+      if (dom.selectedInstancesInput) {
+        dom.selectedInstancesInput.value = (state.selectedInstanceIds || []).join(",");
+        validator?.revalidateField?.("#selectedInstancesInput");
+      }
+      if (dom.selectedTagsInput) {
+        dom.selectedTagsInput.value = (state.selectedTagIds || []).join(",");
+        validator?.revalidateField?.("#selectedTagsInput");
+      }
     }
 
-    /**
-     * 初始化滚动区域
-     */
-    initializeScrollAreas() {
-        // 确保所有分组内容区域都能正确滚动
-        const groupContents = document.querySelectorAll('.instance-group-content, .tag-group-content');
-        groupContents.forEach(content => {
-            if (content.scrollHeight > content.clientHeight) {
-                content.style.overflowY = 'auto';
-            }
+    function updateCounts(state) {
+      const instancesCount = Array.isArray(state.selectedInstanceIds) ? state.selectedInstanceIds.length : 0;
+      const tagsCount = Array.isArray(state.selectedTagIds) ? state.selectedTagIds.length : 0;
+
+      if (dom.selectedInstancesCount) dom.selectedInstancesCount.textContent = String(instancesCount);
+      if (dom.selectedTagsCount) dom.selectedTagsCount.textContent = String(tagsCount);
+      if (dom.totalSelectedInstances) dom.totalSelectedInstances.textContent = String(instancesCount);
+      if (dom.totalSelectedTags) dom.totalSelectedTags.textContent = String(tagsCount);
+    }
+
+    function updateActionButton(state) {
+      if (!dom.executeBatchOperation) {
+        return;
+      }
+      const instancesCount = Array.isArray(state.selectedInstanceIds) ? state.selectedInstanceIds.length : 0;
+      const tagsCount = Array.isArray(state.selectedTagIds) ? state.selectedTagIds.length : 0;
+      const canExecute = instancesCount > 0 && (state.mode === "remove" || tagsCount > 0);
+      dom.executeBatchOperation.disabled = !canExecute;
+    }
+
+    function updateSelectionSummary(state) {
+      if (!dom.selectedInstancesList || !dom.selectedTagsList) {
+        return;
+      }
+
+      const instanceIds = Array.isArray(state.selectedInstanceIds) ? state.selectedInstanceIds : [];
+      const tagIds = Array.isArray(state.selectedTagIds) ? state.selectedTagIds : [];
+      const isRemoveMode = state.mode === "remove";
+
+      if (instanceIds.length) {
+        dom.selectedInstancesList.innerHTML = instanceIds
+          .map((id) => {
+            const instance = instanceById.get(id);
+            const label = escapeHtml(instance?.name || `实例 ${id}`);
+            return buildLedgerChipHtml(`<i class="fas fa-database"></i>${label}`, false);
+          })
+          .join("");
+      } else {
+        dom.selectedInstancesList.innerHTML = buildEmptyState("尚未选择实例", "fas fa-database");
+      }
+
+      if (isRemoveMode) {
+        dom.selectedTagsList.innerHTML = buildEmptyState("移除模式无需选择标签", "fas fa-tags");
+        return;
+      }
+
+      if (tagIds.length) {
+        dom.selectedTagsList.innerHTML = tagIds
+          .map((id) => {
+            const tag = tagById.get(id);
+            const label = escapeHtml(tag?.display_name || tag?.name || `标签 ${id}`);
+            const muted = tag ? !tag.is_active : true;
+            return buildLedgerChipHtml(`<i class="fas fa-tag"></i>${label}`, muted);
+          })
+          .join("");
+      } else {
+        dom.selectedTagsList.innerHTML = buildEmptyState("尚未选择标签", "fas fa-tags");
+      }
+    }
+
+    function syncGroupCheckboxes(state) {
+      const selectedInstances = new Set(state.selectedInstanceIds || []);
+      const selectedTags = new Set(state.selectedTagIds || []);
+
+      Object.entries(state.instancesByDbType || {}).forEach(([dbType, items]) => {
+        if (!isSafeKey(dbType) || !Array.isArray(items)) {
+          return;
+        }
+        const domKey = toDomIdFragment(dbType);
+        const checkbox = documentRef.getElementById(`instanceGroup_${domKey}`);
+        if (!checkbox) {
+          return;
+        }
+        const ids = items.map((item) => normalizeId(item?.id)).filter((id) => id !== null);
+        const selectedCount = ids.filter((id) => selectedInstances.has(id)).length;
+        checkbox.indeterminate = selectedCount > 0 && selectedCount < ids.length;
+        checkbox.checked = ids.length > 0 && selectedCount === ids.length;
+      });
+
+      Object.entries(state.tagsByCategory || {}).forEach(([category, items]) => {
+        if (!isSafeKey(category) || !Array.isArray(items)) {
+          return;
+        }
+        const domKey = toDomIdFragment(category);
+        const checkbox = documentRef.getElementById(`tagGroup_${domKey}`);
+        if (!checkbox) {
+          return;
+        }
+        const ids = items.map((item) => normalizeId(item?.id)).filter((id) => id !== null);
+        const selectedCount = ids.filter((id) => selectedTags.has(id)).length;
+        checkbox.indeterminate = selectedCount > 0 && selectedCount < ids.length;
+        checkbox.checked = ids.length > 0 && selectedCount === ids.length;
+      });
+    }
+
+    function syncRowSelectedStates() {
+      dom.instancesContainer.querySelectorAll("input[data-action='toggle-instance-selection']").forEach((checkbox) => {
+        const id = normalizeId(checkbox.getAttribute("data-instance-id"));
+        const row = checkbox.closest(".ledger-row");
+        if (id !== null && row) {
+          row.classList.toggle("ledger-row--selected", checkbox.checked);
+        }
+      });
+      dom.tagsContainer.querySelectorAll("input[data-action='toggle-tag-selection']").forEach((checkbox) => {
+        const id = normalizeId(checkbox.getAttribute("data-tag-id"));
+        const row = checkbox.closest(".ledger-row");
+        if (id !== null && row) {
+          row.classList.toggle("ledger-row--selected", checkbox.checked);
+        }
+      });
+    }
+
+    function showProgress() {
+      if (!dom.progressContainer || !dom.progressText) {
+        return;
+      }
+      const bar = dom.progressContainer.querySelector(".progress-bar");
+      dom.progressContainer.style.display = "block";
+      if (bar) {
+        bar.style.width = "0%";
+      }
+      dom.progressText.textContent = "准备中...";
+
+      let progress = 0;
+      progressTimer = setInterval(() => {
+        progress += Math.random() * 18;
+        if (progress > 90) {
+          progress = 90;
+        }
+        if (bar) {
+          bar.style.width = `${Math.round(progress)}%`;
+        }
+        dom.progressText.textContent = `处理中... ${Math.round(progress)}%`;
+      }, 200);
+    }
+
+    function hideProgress(success) {
+      if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
+      if (!dom.progressContainer || !dom.progressText) {
+        return;
+      }
+      const bar = dom.progressContainer.querySelector(".progress-bar");
+      if (bar) {
+        bar.style.width = "100%";
+      }
+      dom.progressText.textContent = success ? "完成" : "失败";
+      setTimeout(() => {
+        dom.progressContainer.style.display = "none";
+      }, 800);
+    }
+
+    async function executeOperation() {
+      try {
+        showProgress();
+        await store.actions.executeOperation();
+        hideProgress(true);
+        toast.success("操作完成");
+        store.actions.clearSelections();
+      } catch (error) {
+        hideProgress(false);
+        toast.error(error?.message || "操作失败");
+      }
+    }
+
+    function refreshSelectionUI() {
+      const state = store.getState();
+      updateHiddenFields(state);
+      updateCounts(state);
+      updateSelectionSummary(state);
+      updateActionButton(state);
+      syncGroupCheckboxes(state);
+      syncRowSelectedStates();
+    }
+
+    function refreshAllUI() {
+      const state = store.getState();
+      rebuildLookups(state);
+      renderInstances(state);
+      renderTags(state);
+      syncModeUI(state.mode);
+      refreshSelectionUI();
+    }
+
+    // Store subscriptions
+    store.subscribe("tagBatchAssign:loading", (payload) => {
+      const target = payload?.target;
+      const loading = payload?.loading || {};
+      if (target === "data") {
+        setLoadingState("instances", Boolean(loading.data));
+        setLoadingState("tags", Boolean(loading.data));
+      }
+    });
+
+    store.subscribe("tagBatchAssign:updated", () => {
+      setLoadingState("instances", false);
+      setLoadingState("tags", false);
+      refreshAllUI();
+    });
+
+    store.subscribe("tagBatchAssign:modeChanged", () => {
+      const state = store.getState();
+      syncModeUI(state.mode);
+      refreshSelectionUI();
+    });
+
+    store.subscribe("tagBatchAssign:selectionChanged", () => {
+      refreshSelectionUI();
+    });
+
+    store.subscribe("tagBatchAssign:error", (payload) => {
+      const error = payload?.error || payload;
+      toast.error(error?.message || "操作失败");
+    });
+
+    // Event bindings
+    documentRef.querySelectorAll('input[name="batchMode"]').forEach((radio) => {
+      radio.addEventListener("change", (event) => {
+        const mode = event?.target?.value || "assign";
+        store.actions.setMode(mode).catch((error) => {
+          toast.error(error?.message || "切换模式失败");
         });
+      });
+    });
 
-        // 确保主选择区域也能正确滚动
-        const selectionAreas = document.querySelectorAll('.selection-panel__content');
-        selectionAreas.forEach(area => {
-            if (area.scrollHeight > area.clientHeight) {
-                area.style.overflowY = 'auto';
-            }
-        });
-    }
+    dom.clearAllSelections?.addEventListener("click", (event) => {
+      event.preventDefault();
+      store.actions.clearSelections();
+    });
 
-}
+    dom.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (validator?.instance?.revalidate) {
+        validator.instance.revalidate();
+        return;
+      }
+      executeOperation();
+    });
 
-/**
- * 挂载标签批量分配页面。
- *
- * 创建 BatchAssignManager 实例并挂载到全局 window 对象，
- * 用于管理标签的批量分配操作。
- *
- * @return {void}
- *
- * @example
- * // 在页面加载时调用
- * mountBatchAssignPage();
- */
-function mountBatchAssignPage() {
-    window.batchAssignManager = new BatchAssignManager();
-}
+    dom.instancesContainer.addEventListener("change", (event) => {
+      const el = event.target;
+      if (!(el instanceof HTMLElement)) {
+        return;
+      }
+      if (el.matches("input[data-action='toggle-instance-selection']")) {
+        const id = el.getAttribute("data-instance-id");
+        store.actions.setInstanceSelected(id, el.checked);
+      }
+      if (el.matches("input[data-action='toggle-instance-group-selection']")) {
+        const dbType = el.getAttribute("data-db-type") || "";
+        store.actions.setInstancesByDbTypeSelected(dbType, el.checked);
+      }
+    });
 
-window.TagsBatchAssignPage = {
-    mount: mountBatchAssignPage,
-};
+    dom.instancesContainer.addEventListener("click", (event) => {
+      const header = event.target.closest("[data-action='toggle-instance-group']");
+      if (!header) {
+        return;
+      }
+      if (event.target.closest("input[type='checkbox']")) {
+        return;
+      }
+      const dbType = header.getAttribute("data-db-type") || "";
+      const domKey = toDomIdFragment(dbType);
+      const content = documentRef.getElementById(`instanceGroupContent_${domKey}`);
+      if (content) {
+        content.classList.toggle("show");
+      }
+    });
+
+    dom.tagsContainer.addEventListener("change", (event) => {
+      const el = event.target;
+      if (!(el instanceof HTMLElement)) {
+        return;
+      }
+      if (el.matches("input[data-action='toggle-tag-selection']")) {
+        const id = el.getAttribute("data-tag-id");
+        store.actions.setTagSelected(id, el.checked);
+      }
+      if (el.matches("input[data-action='toggle-tag-group-selection']")) {
+        const category = el.getAttribute("data-category") || "";
+        store.actions.setTagsByCategorySelected(category, el.checked);
+      }
+    });
+
+    dom.tagsContainer.addEventListener("click", (event) => {
+      const header = event.target.closest("[data-action='toggle-tag-group']");
+      if (!header) {
+        return;
+      }
+      if (event.target.closest("input[type='checkbox']")) {
+        return;
+      }
+      const category = header.getAttribute("data-category") || "";
+      const domKey = toDomIdFragment(category);
+      const content = documentRef.getElementById(`tagGroupContent_${domKey}`);
+      if (content) {
+        content.classList.toggle("show");
+      }
+    });
+
+    // Initial mode sync
+    const initialMode = documentRef.querySelector('input[name="batchMode"]:checked')?.value || "assign";
+    store.actions.setMode(initialMode).catch((error) => {
+      console.error("初始化批量模式失败:", error);
+      toast.error(error?.message || "初始化批量模式失败");
+    });
+    syncModeUI(initialMode);
+    refreshSelectionUI();
+    setLoadingState("instances", true);
+    setLoadingState("tags", true);
+    store.actions.loadData().catch((error) => {
+      console.error("加载批量分配数据失败:", error);
+    });
+  }
+
+  global.TagsBatchAssignPage = {
+    mount: mountTagsBatchAssignPage,
+  };
+})(window);

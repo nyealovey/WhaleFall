@@ -78,36 +78,33 @@ function ensureSchedulerStore() {
 function mountSchedulerPage() {
 
     const SchedulerService = window.SchedulerService;
-    try {
-        if (!SchedulerService) {
-            throw new Error('SchedulerService 未加载');
-        }
-        schedulerService = new SchedulerService();
-        if (window.createSchedulerStore) {
-            schedulerStore = window.createSchedulerStore({
-                service: schedulerService,
-                emitter: window.mitt ? window.mitt() : null,
-            });
-            bindSchedulerStoreEvents();
-        }
-        if (window.SchedulerModals?.createController) {
-            schedulerModalsController = window.SchedulerModals.createController({
-                FormValidator: window.FormValidator,
-                ValidationRules: window.ValidationRules,
-                toast: window.toast,
-                getJob: getSchedulerJob,
-                ensureStore: ensureSchedulerStore,
-                getStore: function () {
-                    return schedulerStore;
-                },
-                showLoadingState: showLoadingState,
-                hideLoadingState: hideLoadingState,
-            });
-        } else {
-            console.warn('SchedulerModals 未加载，编辑模态将无法使用');
-        }
-    } catch (error) {
-        console.error('初始化 SchedulerService/SchedulerStore 失败:', error);
+    if (!SchedulerService) {
+        console.error('SchedulerService 未加载');
+        return;
+    }
+    if (typeof window.createSchedulerStore !== 'function') {
+        console.error('createSchedulerStore 未加载');
+        return;
+    }
+    schedulerService = new SchedulerService();
+    schedulerStore = window.createSchedulerStore({
+        service: schedulerService,
+        emitter: window.mitt ? window.mitt() : null,
+    });
+    bindSchedulerStoreEvents();
+
+    if (window.SchedulerModals?.createController) {
+        schedulerModalsController = window.SchedulerModals.createController({
+            FormValidator: window.FormValidator,
+            ValidationRules: window.ValidationRules,
+            toast: window.toast,
+            getJob: getSchedulerJob,
+            store: schedulerStore,
+            showLoadingState: showLoadingState,
+            hideLoadingState: hideLoadingState,
+        });
+    } else {
+        console.warn('SchedulerModals 未加载，编辑模态将无法使用');
     }
 
 // 页面加载完成后初始化

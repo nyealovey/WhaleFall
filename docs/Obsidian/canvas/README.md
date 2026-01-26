@@ -13,7 +13,7 @@ scope: docs/Obsidian/canvas 下 .canvas 文件约定与入口
 related:
   - "[[architecture/README]]"
   - "[[architecture/flows/README]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # WhaleFall Canvas

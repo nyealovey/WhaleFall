@@ -11,7 +11,7 @@
 		{"id":"aae6ebf915abfbe3","type":"text","text":"## Auto classify\n\nCode: `app/services/account_classification/auto_classify_service.py`\n\n- 同步执行\n- 调用 orchestrator\n","x":520,"y":520,"width":480,"height":160,"color":"6"},
 		{"id":"1f2e3d4c5b6a7981","type":"text","text":"## Repository (CRUD)\n\nCode: `app/repositories/accounts_classifications_repository.py`\n\n- classifications/rules/assignments CRUD\n","x":520,"y":700,"width":480,"height":160,"color":"1"},
 		{"id":"7df97f9decc9e68d","type":"text","text":"## 规则缓存\n\nCode: `app/services/account_classification/cache.py`\n\n- rules cache\n- per-db-type cache\n","x":1040,"y":0,"width":480,"height":140,"color":"4"},
-		{"id":"f3edd0e2feb8a1ee","type":"text","text":"## Redis\n\n- CacheService backend\n","x":1040,"y":160,"width":480,"height":140,"color":"4"},
+		{"id":"f3edd0e2feb8a1ee","type":"text","text":"## Redis\n\n- Flask-Caching (redis backend)\n- CacheManager (single entry)\n","x":1040,"y":160,"width":480,"height":140,"color":"4"},
 		{"id":"8e7d6c5b4a392817","type":"text","text":"## Repository (Engine)\n\nCode: `app/services/account_classification/repositories.py`\n\n- fetch_active_rules\n- fetch_accounts / hydrate_rules\n","x":1040,"y":320,"width":480,"height":180,"color":"6"},
 		{"id":"360a215b1679cbaf","type":"text","text":"## Orchestrator\n\nCode: `app/services/account_classification/orchestrator.py`\n\n- 读取规则\n- 构建输入\n- 执行 DSL\n- 写入 assignments\n","x":1040,"y":520,"width":480,"height":160,"color":"6"},
 		{"id":"265821edab19ab30","type":"text","text":"## DSL v4\n\nCode: `app/services/account_classification/dsl_v4.py`\n\n- expression parsing/eval\n","x":1040,"y":700,"width":480,"height":200,"color":"6"},

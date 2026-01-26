@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # btn-close 可访问名称门禁：禁止缺失 aria-label 或使用英文 Close
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/close-button-accessible-name.md
 
 set -euo pipefail
 
@@ -28,12 +31,14 @@ ENGLISH_ARIA_LABEL_PATTERN='aria-label=("Close"|'\''Close'\'')'
 if "${RG_BIN}" -n "${ENGLISH_ARIA_LABEL_PATTERN}" "${TARGETS[@]}"; then
   echo "" >&2
   echo "检测到 btn-close 使用英文 aria-label=Close，请统一为中文 aria-label=\"关闭\"。" >&2
+  echo "参考：docs/Obsidian/standards/ui/gate/close-button-accessible-name.md" >&2
   exit 1
 fi
 
 if "${RG_BIN}" -n "${BTN_CLOSE_BUTTON_PATTERN}" "${TARGETS[@]}" | "${RG_BIN}" -n -v "${MISSING_ARIA_LABEL_PATTERN}"; then
   echo "" >&2
   echo "检测到 btn-close 缺失 aria-label，请补充 aria-label=\"关闭\"。" >&2
+  echo "参考：docs/Obsidian/standards/ui/gate/close-button-accessible-name.md" >&2
   exit 1
 fi
 

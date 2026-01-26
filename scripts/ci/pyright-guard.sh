@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # pyright 门禁: 锁定现状 baseline, 禁止新增 diagnostics (允许减少).
+#
+# 参考：
+# - docs/Obsidian/standards/core/gate/pyright-baseline.md
 
 set -euo pipefail
 
@@ -101,6 +104,7 @@ fi
 if [[ ! -f "${BASELINE_FILE}" ]]; then
   echo "未找到 baseline 文件: ${BASELINE_FILE}" >&2
   echo "请先运行: ./scripts/ci/pyright-guard.sh --update-baseline" >&2
+  echo "参考：docs/Obsidian/standards/core/gate/pyright-baseline.md" >&2
   exit 1
 fi
 
@@ -111,6 +115,7 @@ if [[ -n "${new_hits}" ]]; then
   echo "检测到新增的 Pyright diagnostics(禁止新增):" >&2
   echo "${new_hits}" >&2
   echo "如确需更新 baseline, 请运行: ./scripts/ci/pyright-guard.sh --update-baseline" >&2
+  echo "参考：docs/Obsidian/standards/core/gate/pyright-baseline.md" >&2
   exit 1
 fi
 

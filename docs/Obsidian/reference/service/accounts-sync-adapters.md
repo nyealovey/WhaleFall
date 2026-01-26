@@ -17,7 +17,7 @@ owner: WhaleFall Team
 scope: app/services/accounts_sync/adapters/base_adapter.py
 related:
   - "[[reference/service/accounts-sync-overview|Accounts Sync 总览]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Accounts Sync Adapters(SQL 分支 + 异常归一化)

@@ -11,16 +11,16 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: 发布版本号更新时的执行清单(查阅型)与最小回归建议
 related:
-  - "[[standards/version-update-guide]]"
-  - "[[standards/git-workflow-standards]]"
-  - "[[standards/testing-standards]]"
+  - "[[standards/core/guide/version-update]]"
+  - "[[standards/core/guide/git-workflow]]"
+  - "[[standards/core/guide/testing]]"
 ---
 
 # 版本更新 checklist
 
 > [!important] 说明
 > 本文是 checklist(面向执行与查阅), 不是 standards SSOT.
-> 规则与门禁口径以 [[standards/version-update-guide]] 为准.
+> 规则与门禁口径以 [[standards/core/guide/version-update]] 为准.
 
 ## 适用范围
 

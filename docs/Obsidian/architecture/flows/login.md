@@ -17,8 +17,8 @@ related:
   - "[[reference/examples/api-v1-cookbook]]"
   - "[[reference/errors/message-code-catalog]]"
   - "[[reference/service/auth-services]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
-  - "[[standards/backend/error-message-schema-unification]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
   - "[[canvas/auth/web-login-sequence.canvas]]"
   - "[[canvas/auth/api-login-sequence.canvas]]"
 ---

@@ -14,7 +14,7 @@ scope: 架构决策待办清单
 related:
   - "[[architecture/adr/README|ADR]]"
   - "[[architecture/architecture-review|architecture review]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # ADR Backlog

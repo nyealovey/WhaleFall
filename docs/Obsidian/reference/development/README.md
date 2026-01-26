@@ -14,7 +14,7 @@ scope: 开发协作类参考文档(清单/约定/查阅入口)
 related:
   - "[[reference/README]]"
   - "[[standards/README]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # 开发协作参考

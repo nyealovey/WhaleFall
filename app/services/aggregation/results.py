@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+from app.core.constants.status_types import SyncStatus
+
 if TYPE_CHECKING:
     from datetime import date
 
@@ -25,9 +27,9 @@ class AggregationStatus(str, Enum):
 
     """
 
-    COMPLETED = "completed"
+    COMPLETED = SyncStatus.COMPLETED
     SKIPPED = "skipped"
-    FAILED = "failed"
+    FAILED = SyncStatus.FAILED
 
 
 @dataclass(slots=True)

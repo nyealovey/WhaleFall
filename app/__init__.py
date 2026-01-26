@@ -11,27 +11,29 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
-from flask import Blueprint, Flask, g, jsonify, request
+from flask import Blueprint, Flask, flash, g, jsonify, redirect, request, url_for
 from flask.typing import ResponseReturnValue
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.errors import RateLimitExceeded
+from flask_limiter.util import get_remote_address
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
 from app.api import register_api_blueprints
-from app.core.constants import HttpHeaders, HttpStatus
+from app.core.constants import FlashCategory, HttpHeaders, HttpStatus
+from app.core.constants.system_constants import ErrorMessages
 from app.infra.error_mapping import map_exception_to_status
 from app.infra.flask_typing import WhaleFallFlask, WhaleFallLoginManager
 from app.infra.logging.request_middleware import register_request_logging
 from app.scheduler import init_scheduler
-from app.services.cache_service import init_cache_service
 from app.settings import Settings
 from app.utils.cache_utils import init_cache_manager
 from app.utils.proxy_fix_middleware import TrustedProxyFix
-from app.utils.rate_limiter import init_rate_limiter
 from app.utils.response_utils import unified_error_response
 from app.utils.structlog_config import (
     ErrorContext,
@@ -53,6 +55,7 @@ bcrypt = Bcrypt()
 login_manager: WhaleFallLoginManager = WhaleFallLoginManager()
 cors = CORS()
 csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
 # 记录应用启动时间
 app_start_time = time_utils.now_china()
@@ -127,6 +130,27 @@ def create_app(
 
     # 注册增强的错误处理器
     app.enhanced_error_handler = enhanced_error_handler
+
+    @app.errorhandler(RateLimitExceeded)
+    def handle_rate_limit_exceeded(_error: RateLimitExceeded) -> ResponseReturnValue:
+        """限流错误处理.
+
+        - `/api/v1/**`：返回统一 JSON 封套
+        - Web：flash + redirect
+        """
+        if request.path.startswith("/api/v1/") or request.is_json:
+            from app.utils.response_utils import jsonify_unified_error_message  # noqa: PLC0415
+
+            return jsonify_unified_error_message(
+                ErrorMessages.RATE_LIMIT_EXCEEDED,
+                status_code=HttpStatus.TOO_MANY_REQUESTS,
+                message_key="RATE_LIMIT_EXCEEDED",
+            )
+
+        flash(ErrorMessages.RATE_LIMIT_EXCEEDED, FlashCategory.ERROR)
+        response = redirect(url_for("auth.login"))
+        response.status_code = HttpStatus.TOO_MANY_REQUESTS
+        return response
 
     # 注册全局错误处理器
     @app.errorhandler(Exception)
@@ -273,15 +297,8 @@ def initialize_extensions(app: Flask, settings: Settings) -> None:
     # 初始化缓存
     cache.init_app(app)
 
-    # 初始化缓存工具与缓存服务
-    init_cache_manager(cache)
-    init_cache_service(
-        cache,
-        default_ttl=settings.cache_default_ttl_seconds,
-        rule_evaluation_ttl=settings.cache_rule_evaluation_ttl_seconds,
-        rule_ttl=settings.cache_rule_ttl_seconds,
-        account_ttl=settings.cache_account_ttl_seconds,
-    )
+    # 初始化缓存工具
+    init_cache_manager(cache, default_timeout=settings.cache_default_timeout_seconds)
 
     # 初始化CSRF保护
     csrf.init_app(app)
@@ -322,7 +339,7 @@ def initialize_extensions(app: Flask, settings: Settings) -> None:
         },
     )
 
-    init_rate_limiter(cache)
+    limiter.init_app(app)
 
 
 def configure_blueprints(app: Flask) -> None:

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # 全局写操作边界门禁：组合 routes 写门禁 + services commit 漂移门禁 + commit allowlist 门禁
+#
+# 参考：
+# - docs/Obsidian/standards/backend/standard/write-operation-boundary.md
 
 set -euo pipefail
 

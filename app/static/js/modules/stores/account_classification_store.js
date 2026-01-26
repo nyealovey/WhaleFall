@@ -1,66 +1,44 @@
 (function (window) {
   "use strict";
 
-  /**
-   * 校验 service 提供 store 运行所需的方法。
-   *
-   * @param {Object} service - 服务对象
-   * @param {Function} service.listClassifications - 获取分类列表的方法
-   * @param {Function} service.createClassification - 创建分类的方法
-   * @param {Function} service.updateClassification - 更新分类的方法
-   * @param {Function} service.deleteClassification - 删除分类的方法
-   * @param {Function} service.listRules - 获取规则列表的方法
-   * @param {Function} service.createRule - 创建规则的方法
-   * @param {Function} service.updateRule - 更新规则的方法
-   * @param {Function} service.deleteRule - 删除规则的方法
-   * @param {Function} service.ruleStats - 获取规则统计的方法
-   * @param {Function} service.triggerAutomation - 触发自动化的方法
-   * @param {Function} service.fetchPermissions - 获取权限列表的方法
-   * @return {Object} 校验后的服务对象
-   * @throws {Error} 当 service 为空或缺少必需方法时抛出
-   */
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const isSafeKey = (key) => typeof key === "string" && key && !UNSAFE_KEYS.includes(key);
+
+  const EVENT_NAMES = {
+    loading: "accountClassification:loading",
+    classificationsUpdated: "accountClassification:classificationsUpdated",
+    rulesUpdated: "accountClassification:rulesUpdated",
+    error: "accountClassification:error",
+  };
+
   function ensureService(service) {
     if (!service) {
       throw new Error("createAccountClassificationStore: service is required");
     }
-    const requiredMethods = [
+    [
       "listClassifications",
+      "getClassification",
       "createClassification",
       "updateClassification",
       "deleteClassification",
       "listRules",
+      "getRule",
       "createRule",
       "updateRule",
       "deleteRule",
       "ruleStats",
       "triggerAutomation",
       "fetchPermissions",
-    ];
-    requiredMethods.forEach(function (method) {
-      // 方法名来自内部固定白名单，不接受外部输入。
+    ].forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
       // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
-        throw new Error(
-          "createAccountClassificationStore: service." + method + " 未实现",
-        );
+        throw new Error("createAccountClassificationStore: service." + method + " 未实现");
       }
     });
-    if (typeof service.getClassification !== "function") {
-      // 细粒度 detail 调用由页面直接访问，可选
-      console.warn(
-        "AccountClassificationService 缺少 getClassification()，store 将无法提供 detail",
-      );
-    }
     return service;
   }
 
-  /**
-   * 统一获得 mitt 事件总线。
-   *
-   * @param {Object} [emitter] - 可选的 mitt 实例
-   * @return {Object} mitt 事件总线实例
-   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
-   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -71,135 +49,84 @@
     return window.mitt();
   }
 
-  /**
-   * 深拷贝分类数组。
-   *
-   * @param {Array} items - 分类数组
-   * @return {Array} 分类数组的拷贝
-   */
-  function cloneClassifications(items) {
-    return (items || []).map(function (classification) {
-      return Object.assign({}, classification);
+  function ensureSuccess(response, fallbackMessage) {
+    if (response && response.success === false) {
+      const error = new Error(response.message || response.error || fallbackMessage || "操作失败");
+      error.raw = response;
+      throw error;
+    }
+    return response;
+  }
+
+  function cloneClassifications(list) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+    return list.map(function (item) {
+      return item && typeof item === "object" ? Object.assign({}, item) : item;
     });
   }
 
-  /**
-   * 深拷贝规则字典。
-   *
-   * @param {Object} source - 规则字典对象
-   * @return {Object} 规则字典的拷贝
-   */
-  function cloneRulesMap(source) {
-    const result = {};
-    Object.keys(source || {}).forEach(function (key) {
+  function cloneRulesByDbType(rulesByDbType) {
+    const source = rulesByDbType && typeof rulesByDbType === "object" ? rulesByDbType : {};
+    const cloned = {};
+    Object.keys(source).forEach(function (key) {
       if (!isSafeKey(key)) {
         return;
       }
       // eslint-disable-next-line security/detect-object-injection
-      const rules = source[key] || [];
+      const group = source[key];
       // eslint-disable-next-line security/detect-object-injection
-      result[key] = rules.map(function (rule) {
-        return Object.assign({}, rule);
-      });
+      cloned[key] = Array.isArray(group)
+        ? group.map(function (rule) {
+            return rule && typeof rule === "object" ? Object.assign({}, rule) : rule;
+          })
+        : [];
     });
-    return result;
+    return cloned;
   }
 
-  /**
-   * 构造 state 快照，供事件附带。
-   *
-   * @param {Object} state - 状态对象
-   * @return {Object} 状态对象的拷贝
-   */
   function cloneState(state) {
     return {
       classifications: cloneClassifications(state.classifications),
-      rulesByDbType: cloneRulesMap(state.rulesByDbType),
-      permissionsByDbType: Object.assign({}, state.permissionsByDbType),
+      rulesByDbType: cloneRulesByDbType(state.rulesByDbType),
       loading: Object.assign({}, state.loading),
       lastError: state.lastError,
     };
   }
 
-  /**
-   * 保证返回数组。
-   *
-   * @param {*} value - 任意值
-   * @return {Array} 数组
-   */
-  function ensureArray(value) {
-    return Array.isArray(value) ? value : [];
-  }
-
-  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
-  const LOADING_KEYS = new Set(["classifications", "rules", "permissions", "operation"]);
-  function isSafeKey(key) {
-    return typeof key === "string" && !UNSAFE_KEYS.includes(key);
-  }
-
-  function setMapValue(map, key, value, allowedKeys) {
-    if (!isSafeKey(key)) {
-      return;
-    }
-    if (allowedKeys && !allowedKeys.has(key)) {
-      return;
-    }
-    // eslint-disable-next-line security/detect-object-injection
-    map[key] = value;
-  }
-
-  function getMapValue(map, key, fallback) {
-    if (!isSafeKey(key)) {
-      return fallback;
-    }
-    // eslint-disable-next-line security/detect-object-injection
-    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
-  }
-
-  /**
-   * 从响应中提取分类数组。
-   *
-   * @param {Object} response - API 响应对象
-   * @return {Array} 分类数组
-   */
   function extractClassifications(response) {
-    const collection = response?.data?.classifications ?? [];
-    return ensureArray(collection);
+    const list = response?.data?.classifications ?? [];
+    return Array.isArray(list) ? list : [];
   }
 
-  /**
-   * 从响应提取规则 map。
-   *
-   * @param {Object} response - API 响应对象
-   * @return {Object} 规则字典对象
-   */
-  function extractRules(response) {
+  function extractRulesByDbType(response) {
     const raw = response?.data?.rules_by_db_type ?? {};
-    if (typeof raw !== "object" || raw === null) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       return {};
     }
-    const map = {};
-    Object.keys(raw).forEach(function (key) {
-      if (!isSafeKey(key)) {
+    const normalized = {};
+    Object.keys(raw).forEach(function (dbType) {
+      if (!isSafeKey(dbType)) {
         return;
       }
       // eslint-disable-next-line security/detect-object-injection
-      map[key] = ensureArray(raw[key]);
+      const group = raw[dbType];
+      // eslint-disable-next-line security/detect-object-injection
+      normalized[dbType] = Array.isArray(group) ? group : [];
     });
-    return map;
+    return normalized;
   }
 
-  /**
-   * 汇总所有规则 ID，便于请求统计。
-   *
-   * @param {Object} rulesByDbType - 按数据库类型分组的规则字典
-   * @return {Array} 规则 ID 数组
-   */
   function collectRuleIds(rulesByDbType) {
     const ids = [];
-    Object.values(rulesByDbType || {}).forEach(function (rules) {
-      ensureArray(rules).forEach(function (rule) {
-        if (rule && typeof rule.id === "number") {
+    const groups = rulesByDbType && typeof rulesByDbType === "object" ? rulesByDbType : {};
+    Object.values(groups).forEach(function (group) {
+      if (!Array.isArray(group)) {
+        return;
+      }
+      group.forEach(function (rule) {
+        if (rule && typeof rule === "object" && typeof rule.id === "number") {
           ids.push(rule.id);
         }
       });
@@ -207,24 +134,33 @@
     return ids;
   }
 
-  /**
-   * 创建账户分类状态管理 Store。
-   *
-   * 提供账户分类和规则的查询、创建、更新、删除等功能的状态管理。
-   *
-   * @param {Object} options - 配置选项
-   * @param {Object} options.service - 账户分类服务对象
-   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
-   * @return {Object} Store API 对象
-   *
-   * @example
-   * const store = createAccountClassificationStore({
-   *   service: accountClassificationService
-   * });
-   * store.init().then(() => {
-   *   console.log(store.getState());
-   * });
-   */
+  function applyRuleStats(rulesByDbType, response) {
+    const statsList = response?.data?.rule_stats ?? [];
+    if (!Array.isArray(statsList)) {
+      return;
+    }
+
+    const statsMap = {};
+    statsList.forEach(function (item) {
+      if (item && typeof item.rule_id === "number") {
+        statsMap[item.rule_id] = item.matched_accounts_count ?? 0;
+      }
+    });
+
+    const groups = rulesByDbType && typeof rulesByDbType === "object" ? rulesByDbType : {};
+    Object.values(groups).forEach(function (group) {
+      if (!Array.isArray(group)) {
+        return;
+      }
+      group.forEach(function (rule) {
+        if (!rule || typeof rule !== "object" || typeof rule.id !== "number") {
+          return;
+        }
+        rule.matched_accounts_count = statsMap[rule.id] ?? 0;
+      });
+    });
+  }
+
   function createAccountClassificationStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);
@@ -233,325 +169,255 @@
     const state = {
       classifications: [],
       rulesByDbType: {},
-      permissionsByDbType: {},
       loading: {
         classifications: false,
         rules: false,
-        permissions: false,
-        operation: false,
       },
       lastError: null,
     };
 
-    /**
-     * 对外发布 mitt 事件，统一附带状态副本。
-     *
-     * @param {string} eventName 事件名称。
-     * @param {Object} [payload] 附带数据；为空时自动提供 state 快照。
-     * @returns {void}
-     */
     function emit(eventName, payload) {
-      emitter.emit(
-        eventName,
-        payload ??
-          {
-            state: cloneState(state),
-          },
-      );
+      emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
-    /**
-     * 统一处理错误并广播 error 事件。
-     *
-     * @param {Error|Object|string} error 后端或前端错误对象。
-     * @param {Object} meta 附加上下文，用于调试。
-     * @returns {void}
-     */
-    function handleError(error, meta) {
-      state.lastError = error;
-      emit("accountClassification:error", {
-        error,
-        meta,
+    function emitLoading(target) {
+      emit(EVENT_NAMES.loading, {
+        target: target || "unknown",
+        loading: Object.assign({}, state.loading),
         state: cloneState(state),
       });
     }
 
-    /**
-     * 为规则附加匹配统计信息。
-     *
-     * @param {Object} rulesByDbType 按数据库类型分组的规则集合。
-     * @returns {Promise<Object>} 追加统计后的规则映射。
-     */
-    function attachRuleStats(rulesByDbType) {
-      const ids = collectRuleIds(rulesByDbType);
-      if (!ids.length) {
-        return Promise.resolve(rulesByDbType);
-      }
-      return service
-        .ruleStats(ids)
-        .then(function (response) {
-          const stats = response?.data?.rule_stats ?? [];
-          const statsMap = {};
-          ensureArray(stats).forEach(function (item) {
-            if (item && typeof item.rule_id === "number") {
-              statsMap[item.rule_id] = item.matched_accounts_count ?? 0;
-            }
-          });
-          Object.values(rulesByDbType).forEach(function (rules) {
-            ensureArray(rules).forEach(function (rule) {
-              if (rule && typeof rule.id === "number") {
-                rule.matched_accounts_count = statsMap[rule.id] ?? 0;
-              }
-            });
-          });
-          return rulesByDbType;
-        })
-        .catch(function (error) {
-          console.error("AccountClassificationStore: 加载规则统计失败", error);
-          return rulesByDbType;
-        });
-    }
-
-    /**
-     * 包装异步行为并管理 loading 状态。
-     *
-     * @param {string} key loading 标识，决定通知内容。
-     * @param {Function} promiseFactory 返回 Promise 的回调。
-     * @returns {Promise<*>} promiseFactory 的执行结果。
-     */
-  function withLoading(key, promiseFactory) {
-    setMapValue(state.loading, key, true, LOADING_KEYS);
-    emit("accountClassification:loading", {
-      target: key,
-      state: cloneState(state),
-    });
-    return Promise.resolve()
-      .then(promiseFactory)
-      .finally(function () {
-        setMapValue(state.loading, key, false, LOADING_KEYS);
+    function handleError(error, meta) {
+      state.lastError = error;
+      emit(EVENT_NAMES.error, {
+        error: error,
+        meta: meta || {},
+        state: cloneState(state),
       });
-  }
+    }
 
     const actions = {
       loadClassifications: function () {
-        return withLoading("classifications", function () {
-          return service
-            .listClassifications()
-            .then(function (response) {
-              state.classifications = extractClassifications(response);
-              emit("accountClassification:classificationsUpdated", {
-                classifications: cloneClassifications(state.classifications),
-                state: cloneState(state),
-              });
-              state.lastError = null;
-              return state.classifications;
-            })
-            .catch(function (error) {
-              handleError(error, { action: "loadClassifications" });
-              throw error;
+        state.loading.classifications = true;
+        emitLoading("classifications");
+        return service
+          .listClassifications()
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载分类失败");
+            state.classifications = extractClassifications(result);
+            state.lastError = null;
+            emit(EVENT_NAMES.classificationsUpdated, {
+              classifications: cloneClassifications(state.classifications),
+              state: cloneState(state),
             });
-        });
+            return cloneClassifications(state.classifications);
+          })
+          .catch(function (error) {
+            handleError(error, { action: "loadClassifications" });
+            throw error;
+          })
+          .finally(function () {
+            state.loading.classifications = false;
+            emitLoading("classifications");
+          });
       },
+
       loadRules: function () {
-        return withLoading("rules", function () {
-          return service
-            .listRules()
-            .then(function (response) {
-              const rules = extractRules(response);
-              return attachRuleStats(rules);
-            })
-            .then(function (rulesWithStats) {
-              state.rulesByDbType = rulesWithStats;
-              emit("accountClassification:rulesUpdated", {
-                rulesByDbType: cloneRulesMap(state.rulesByDbType),
-                state: cloneState(state),
-              });
-              state.lastError = null;
-              return state.rulesByDbType;
-            })
-            .catch(function (error) {
-              handleError(error, { action: "loadRules" });
-              throw error;
+        state.loading.rules = true;
+        emitLoading("rules");
+
+        // 先更新规则列表，再尝试补齐统计；统计失败也会抛错，但 UI 仍可渲染规则列表。
+        return service
+          .listRules()
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载规则失败");
+            state.rulesByDbType = extractRulesByDbType(result);
+            state.lastError = null;
+            emit(EVENT_NAMES.rulesUpdated, {
+              rulesByDbType: cloneRulesByDbType(state.rulesByDbType),
+              state: cloneState(state),
             });
-        });
-      },
-      loadPermissions: function (dbType) {
-        if (!dbType) {
-          return Promise.resolve([]);
-        }
-        return withLoading("permissions", function () {
-          return service
-            .fetchPermissions(dbType)
-            .then(function (response) {
-              const list = response?.data?.permissions ?? [];
-              setMapValue(state.permissionsByDbType, dbType, ensureArray(list));
-              emit("accountClassification:permissionsUpdated", {
-                dbType,
-                permissions: ensureArray(list).slice(),
-                state: cloneState(state),
+            return collectRuleIds(state.rulesByDbType);
+          })
+          .catch(function (error) {
+            handleError(error, { action: "loadRules" });
+            throw error;
+          })
+          .then(function (ids) {
+            if (!ids || !ids.length) {
+              return null;
+            }
+            return service
+              .ruleStats(ids)
+              .then(function (response) {
+                const result = ensureSuccess(response, "加载规则统计失败");
+                applyRuleStats(state.rulesByDbType, result);
+                emit(EVENT_NAMES.rulesUpdated, {
+                  rulesByDbType: cloneRulesByDbType(state.rulesByDbType),
+                  state: cloneState(state),
+                });
+                return result;
+              })
+              .catch(function (error) {
+                handleError(error, { action: "loadRuleStats" });
+                throw error;
               });
-              return getMapValue(state.permissionsByDbType, dbType, []);
-            })
-            .catch(function (error) {
-              handleError(error, { action: "loadPermissions", dbType });
-              throw error;
-            });
-        });
+          })
+          .finally(function () {
+            state.loading.rules = false;
+            emitLoading("rules");
+          });
       },
+
+      fetchClassificationDetail: function (id) {
+        return service
+          .getClassification(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "获取分类信息失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "fetchClassificationDetail", id: id });
+            throw error;
+          });
+      },
+
       createClassification: function (payload) {
-        return withLoading("operation", function () {
-          return service
-            .createClassification(payload)
-            .then(function (response) {
-              emit("accountClassification:operationSuccess", {
-                action: "createClassification",
-                response,
-                state: cloneState(state),
-              });
-              return actions
-                .loadClassifications()
-                .then(function () {
-                  return response;
-                });
-            })
-            .catch(function (error) {
-              handleError(error, { action: "createClassification" });
-              throw error;
+        return service
+          .createClassification(payload)
+          .then(function (response) {
+            const result = ensureSuccess(response, "创建分类失败");
+            return actions.loadClassifications().then(function () {
+              return result;
             });
-        });
+          })
+          .catch(function (error) {
+            handleError(error, { action: "createClassification" });
+            throw error;
+          });
       },
+
       updateClassification: function (id, payload) {
-        return withLoading("operation", function () {
-          return service
-            .updateClassification(id, payload)
-            .then(function (response) {
-              emit("accountClassification:operationSuccess", {
-                action: "updateClassification",
-                response,
-                state: cloneState(state),
-              });
-              return actions
-                .loadClassifications()
-                .then(function () {
-                  return response;
-                });
-            })
-            .catch(function (error) {
-              handleError(error, { action: "updateClassification" });
-              throw error;
+        return service
+          .updateClassification(id, payload)
+          .then(function (response) {
+            const result = ensureSuccess(response, "更新分类失败");
+            return actions.loadClassifications().then(function () {
+              return result;
             });
-        });
+          })
+          .catch(function (error) {
+            handleError(error, { action: "updateClassification", id: id });
+            throw error;
+          });
       },
+
       deleteClassification: function (id) {
-        return withLoading("operation", function () {
-          return service
-            .deleteClassification(id)
-            .then(function (response) {
-              emit("accountClassification:operationSuccess", {
-                action: "deleteClassification",
-                response,
-                state: cloneState(state),
-              });
-              return Promise.all([
-                actions.loadClassifications(),
-                actions.loadRules(),
-              ]).then(function () {
-                return response;
-              });
-            })
-            .catch(function (error) {
-              handleError(error, { action: "deleteClassification" });
-              throw error;
+        return service
+          .deleteClassification(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "删除分类失败");
+            return Promise.all([actions.loadClassifications(), actions.loadRules()]).then(function () {
+              return result;
             });
-        });
+          })
+          .catch(function (error) {
+            handleError(error, { action: "deleteClassification", id: id });
+            throw error;
+          });
       },
+
+      fetchRuleDetail: function (id) {
+        return service
+          .getRule(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "获取规则信息失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "fetchRuleDetail", id: id });
+            throw error;
+          });
+      },
+
       createRule: function (payload) {
-        return withLoading("operation", function () {
-          return service
-            .createRule(payload)
-            .then(function (response) {
-              emit("accountClassification:operationSuccess", {
-                action: "createRule",
-                response,
-                state: cloneState(state),
-              });
-              return actions.loadRules().then(function () {
-                return response;
-              });
-            })
-            .catch(function (error) {
-              handleError(error, { action: "createRule" });
-              throw error;
+        return service
+          .createRule(payload)
+          .then(function (response) {
+            const result = ensureSuccess(response, "创建规则失败");
+            return Promise.all([actions.loadRules(), actions.loadClassifications()]).then(function () {
+              return result;
             });
-        });
+          })
+          .catch(function (error) {
+            handleError(error, { action: "createRule" });
+            throw error;
+          });
       },
+
       updateRule: function (id, payload) {
-        return withLoading("operation", function () {
-          return service
-            .updateRule(id, payload)
-            .then(function (response) {
-              emit("accountClassification:operationSuccess", {
-                action: "updateRule",
-                response,
-                state: cloneState(state),
-              });
-              return actions.loadRules().then(function () {
-                return response;
-              });
-            })
-            .catch(function (error) {
-              handleError(error, { action: "updateRule" });
-              throw error;
+        return service
+          .updateRule(id, payload)
+          .then(function (response) {
+            const result = ensureSuccess(response, "更新规则失败");
+            return Promise.all([actions.loadRules(), actions.loadClassifications()]).then(function () {
+              return result;
             });
-        });
+          })
+          .catch(function (error) {
+            handleError(error, { action: "updateRule", id: id });
+            throw error;
+          });
       },
+
       deleteRule: function (id) {
-        return withLoading("operation", function () {
-          return service
-            .deleteRule(id)
-            .then(function (response) {
-              emit("accountClassification:operationSuccess", {
-                action: "deleteRule",
-                response,
-                state: cloneState(state),
-              });
-              return actions.loadRules().then(function () {
-                return response;
-              });
-            })
-            .catch(function (error) {
-              handleError(error, { action: "deleteRule" });
-              throw error;
+        return service
+          .deleteRule(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "删除规则失败");
+            return Promise.all([actions.loadRules(), actions.loadClassifications()]).then(function () {
+              return result;
             });
-        });
+          })
+          .catch(function (error) {
+            handleError(error, { action: "deleteRule", id: id });
+            throw error;
+          });
       },
+
       triggerAutomation: function (payload) {
-        return withLoading("operation", function () {
-          return service
-            .triggerAutomation(payload || {})
-            .then(function (response) {
-              emit("accountClassification:operationSuccess", {
-                action: "triggerAutomation",
-                response,
-                state: cloneState(state),
-              });
-              return response;
-            })
-            .catch(function (error) {
-              handleError(error, { action: "triggerAutomation" });
-              throw error;
-            });
-        });
+        return service
+          .triggerAutomation(payload || {})
+          .then(function (response) {
+            const result = ensureSuccess(response, "触发自动分类失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "triggerAutomation" });
+            throw error;
+          });
+      },
+
+      fetchPermissions: function (dbType) {
+        return service
+          .fetchPermissions(dbType)
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载权限配置失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { action: "fetchPermissions", dbType: dbType });
+            throw error;
+          });
       },
     };
 
     const api = {
-      init: function () {
-        return Promise.all([
-          actions.loadClassifications(),
-          actions.loadRules(),
-        ]);
-      },
       getState: function () {
         return cloneState(state);
       },
@@ -568,7 +434,9 @@
         }
         state.classifications = [];
         state.rulesByDbType = {};
-        state.permissionsByDbType = {};
+        state.loading.classifications = false;
+        state.loading.rules = false;
+        state.lastError = null;
       },
     };
 

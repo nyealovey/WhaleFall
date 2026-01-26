@@ -18,7 +18,7 @@ scope: app/services/connections/instance_connection_status_service.py
 related:
   - "[[API/instances-api-contract]]"
   - "[[reference/service/connection-test-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Instance Connection Status Service(连接状态推断)

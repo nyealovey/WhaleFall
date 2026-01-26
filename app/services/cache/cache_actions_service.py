@@ -14,7 +14,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, cast
 
-import app.services.cache_service as cache_service_module
 from app.core.exceptions import ConflictError, NotFoundError, SystemError
 from app.infra.route_safety import log_fallback
 from app.repositories.instances_repository import InstancesRepository
@@ -26,8 +25,11 @@ from app.schemas.cache_actions import (
 )
 from app.schemas.validation import validate_or_raise
 from app.services.account_classification.orchestrator import AccountClassificationService
+from app.utils.cache_utils import CacheManagerRegistry
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
+
+_CLASSIFICATION_RULES_PREFIX = "classification_rules"
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,47 +55,64 @@ class CacheClassificationStatsResult:
     cache_enabled: bool
 
 
-class SupportsCacheService(Protocol):
-    """cache service protocol (for tests & type checking)."""
+class SupportsCacheManager(Protocol):
+    """cache manager protocol (for tests & type checking)."""
 
-    def get_cache_stats(self) -> dict[str, object]:
+    def get_stats(self) -> dict[str, object]:
         """获取缓存统计信息."""
         ...
 
-    def invalidate_user_cache(self, instance_id: int, username: str) -> bool:
-        """清除指定用户在指定实例上的缓存."""
+    def get(self, key: str) -> object | None:
+        """读取缓存."""
         ...
 
-    def invalidate_instance_cache(self, instance_id: int) -> bool:
-        """清除指定实例的缓存."""
-        ...
 
-    def get_classification_rules_by_db_type_cache(self, db_type: str) -> list[object] | None:
-        """获取指定 db_type 的分类规则缓存(不存在返回 None)."""
-        ...
+def _extract_rules_from_cache(value: object | None) -> list[object] | None:
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        rules = value.get("rules")
+        if isinstance(rules, list):
+            return rules
+        return None
+    return None
 
 
 class CacheActionsService:
     """缓存动作编排服务."""
 
     @staticmethod
-    def _require_cache_service() -> SupportsCacheService:
-        manager = cache_service_module.cache_service
-        if manager is None:
-            raise SystemError("缓存服务未初始化")
-        return cast(SupportsCacheService, manager)
+    def _get_cache_manager() -> SupportsCacheManager:
+        try:
+            manager = CacheManagerRegistry.get()
+        except RuntimeError as exc:
+            raise SystemError("缓存管理器未初始化") from exc
+        return cast(SupportsCacheManager, manager)
+
+    @staticmethod
+    def _invalidate_user_cache(instance_id: int, username: str) -> bool:
+        """用户级缓存清理入口（当前不实现 scan/keys 的精确删除）。"""
+        del instance_id, username
+        return True
+
+    @staticmethod
+    def _invalidate_instance_cache(instance_id: int) -> bool:
+        """实例级缓存清理入口（当前不实现 scan/keys 的精确删除）。"""
+        del instance_id
+        return True
 
     def get_cache_stats(self) -> CacheStatsResult:
         """获取缓存统计信息."""
-        manager = self._require_cache_service()
-        stats = manager.get_cache_stats()
+        manager = self._get_cache_manager()
+        stats = manager.get_stats()
         return CacheStatsResult(stats=stats)
 
     def clear_user_cache(self, payload: object | None, *, operator_id: int | None) -> str:
         """清除指定用户在指定实例上的缓存."""
         sanitized = parse_payload(payload)
         params = validate_or_raise(ClearUserCachePayload, sanitized)
-        manager = self._require_cache_service()
         instance_id = params.instance_id
         username = params.username
 
@@ -101,7 +120,7 @@ class CacheActionsService:
         if not instance:
             raise NotFoundError("实例不存在")
 
-        success = manager.invalidate_user_cache(instance_id, username)
+        success = self._invalidate_user_cache(instance_id, username)
         if not success:
             raise ConflictError("用户缓存清除失败")
 
@@ -118,14 +137,13 @@ class CacheActionsService:
         """清除指定实例的缓存."""
         sanitized = parse_payload(payload)
         params = validate_or_raise(ClearInstanceCachePayload, sanitized)
-        manager = self._require_cache_service()
         instance_id = params.instance_id
 
         instance = InstancesRepository.get_instance(instance_id)
         if not instance:
             raise NotFoundError("实例不存在")
 
-        success = manager.invalidate_instance_cache(instance_id)
+        success = self._invalidate_instance_cache(instance_id)
         if not success:
             raise ConflictError("实例缓存清除失败")
 
@@ -139,14 +157,13 @@ class CacheActionsService:
 
     def clear_all_cache(self, *, operator_id: int | None) -> CacheClearAllResult:
         """清除所有活跃实例的缓存."""
-        manager = self._require_cache_service()
         instances = InstancesRepository.list_active_instances()
 
         cleared_count = 0
         failed_count = 0
         for instance in instances:
             try:
-                if not manager.invalidate_instance_cache(instance.id):
+                if not self._invalidate_instance_cache(instance.id):
                     failed_count += 1
                     log_fallback(
                         "warning",
@@ -159,7 +176,7 @@ class CacheActionsService:
                     )
                     continue
                 cleared_count += 1
-            except cache_service_module.CACHE_EXCEPTIONS as exc:
+            except Exception as exc:
                 failed_count += 1
                 log_fallback(
                     "warning",
@@ -216,33 +233,44 @@ class CacheActionsService:
 
     def get_classification_cache_stats(self) -> CacheClassificationStatsResult:
         """获取分类缓存统计信息(总览 + 按 db_type 细分)."""
-        manager = self._require_cache_service()
+        manager = self._get_cache_manager()
 
-        stats = manager.get_cache_stats()
+        stats = manager.get_stats()
         db_type_stats: dict[str, dict[str, object]] = {}
 
+        all_rules: list[object] | None = None
+        try:
+            all_key = f"{_CLASSIFICATION_RULES_PREFIX}:all"
+            all_rules = _extract_rules_from_cache(manager.get(all_key))
+        except Exception as exc:
+            log_fallback(
+                "warning",
+                "获取分类缓存统计失败",
+                module="cache",
+                action="get_classification_cache_stats",
+                fallback_reason="cache_stats_failed",
+                context={},
+                extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
+            )
+
+        grouped_counts: dict[str, int] = {db_type: 0 for db_type in CLASSIFICATION_DB_TYPES}
+        if all_rules is not None:
+            for rule in all_rules:
+                if not isinstance(rule, dict):
+                    continue
+                db_type_raw = rule.get("db_type")
+                if not isinstance(db_type_raw, str):
+                    continue
+                normalized = db_type_raw.strip().lower()
+                if normalized in grouped_counts:
+                    grouped_counts[normalized] += 1
+
+        rules_cached = all_rules is not None
         for db_type in CLASSIFICATION_DB_TYPES:
-            try:
-                rules_cache = manager.get_classification_rules_by_db_type_cache(db_type)
-                db_type_stats[db_type] = {
-                    "rules_cached": rules_cache is not None,
-                    "rules_count": len(rules_cache) if rules_cache else 0,
-                }
-            except cache_service_module.CACHE_EXCEPTIONS as exc:
-                log_fallback(
-                    "warning",
-                    "获取数据库类型缓存统计失败",
-                    module="cache",
-                    action="get_classification_cache_stats",
-                    fallback_reason="cache_stats_failed",
-                    context={"db_type": db_type},
-                    extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
-                )
-                db_type_stats[db_type] = {
-                    "rules_cached": False,
-                    "rules_count": 0,
-                    "error": str(exc),
-                }
+            db_type_stats[db_type] = {
+                "rules_cached": rules_cached,
+                "rules_count": grouped_counts.get(db_type, 0),
+            }
 
         return CacheClassificationStatsResult(
             cache_stats=stats,

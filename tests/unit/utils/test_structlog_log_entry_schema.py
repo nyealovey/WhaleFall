@@ -30,11 +30,11 @@ def test_build_log_entry_returns_minimum_fields_for_non_dict_event() -> None:
 @pytest.mark.unit
 def test_build_log_entry_extracts_module_from_logger_when_missing() -> None:
     """当 module 缺失时应能从 logger 名提取兜底模块名."""
-    payload = _build_log_entry({"level": "INFO", "event": "ok", "logger": "app.services.cache_service"})
+    payload = _build_log_entry({"level": "INFO", "event": "ok", "logger": "app.utils.cache_utils"})
 
     assert isinstance(payload, dict)
     assert payload["level"] == LogLevel.INFO
-    assert payload["module"] == "cache_service"
+    assert payload["module"] == "cache_utils"
     assert payload["message"] == "ok"
 
 

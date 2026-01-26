@@ -22,7 +22,7 @@ related:
   - "[[architecture/flows/tags-bulk]]"
   - "[[reference/service/tags-write-service]]"
   - "[[reference/service/tags-bulk-actions-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Tags Read Services(列表/options/categories)

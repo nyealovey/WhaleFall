@@ -21,7 +21,7 @@ related:
   - "[[API/logs-api-contract]]"
   - "[[operations/observability-ops]]"
   - "[[reference/database/core-tables-data-dictionary]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # History Logs Services(日志列表/统计/模块/详情)

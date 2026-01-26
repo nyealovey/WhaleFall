@@ -19,7 +19,7 @@ related:
   - "[[architecture/flows/sync-session]]"
   - "[[API/sessions-api-contract]]"
   - "[[reference/service/sync-session-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # History Sessions Read Service(会话中心读取)

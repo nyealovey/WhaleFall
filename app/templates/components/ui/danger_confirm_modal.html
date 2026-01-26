@@ -1,15 +1,16 @@
 {% from 'components/ui/macros.html' import btn_close %}
+{% set scope = 'danger-confirm-modal' %}
 <div class="modal fade danger-confirm-modal"
-     id="dangerConfirmModal"
+     data-wf-scope="{{ scope }}"
      tabindex="-1"
-     aria-labelledby="dangerConfirmModalLabel"
+     aria-labelledby="{{ scope }}-label"
      aria-hidden="true"
      data-bs-backdrop="static"
      data-bs-keyboard="false">
   <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="dangerConfirmModalLabel">确认操作</h5>
+        <h5 class="modal-title" id="{{ scope }}-label" data-role="danger-confirm-title">确认操作</h5>
         {{ btn_close('modal') }}
       </div>
       <div class="modal-body">

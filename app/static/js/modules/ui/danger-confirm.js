@@ -13,10 +13,14 @@
     return;
   }
 
-  const MODAL_SELECTOR = '#dangerConfirmModal';
+  const MODAL_SCOPE = 'danger-confirm-modal';
   let controller = null;
   let activeRequest = null;
   let requestCounter = 0;
+
+  function resolveModalElement() {
+    return document.querySelector(`[data-wf-scope="${MODAL_SCOPE}"]`);
+  }
 
   function safeParseJson(raw) {
     if (!raw) {
@@ -54,10 +58,16 @@
       return controller;
     }
 
+    const modalElement = resolveModalElement();
+    if (!modalElement) {
+      console.error('危险确认模态未找到', MODAL_SCOPE);
+      return null;
+    }
+
     controller = ui.createModal({
-      modalSelector: MODAL_SELECTOR,
+      modalSelector: modalElement,
       onOpen: () => {
-        const cancelButton = document.querySelector(`${MODAL_SELECTOR} [data-modal-cancel]`);
+        const cancelButton = modalElement.querySelector('[data-modal-cancel]');
         cancelButton?.focus?.();
       },
       onConfirm: ({ modal, payload }) => {
@@ -95,13 +105,13 @@
   }
 
   function applyOptions(options, modalElement) {
-    const modal = modalElement || document.querySelector(MODAL_SELECTOR);
+    const modal = modalElement || resolveModalElement();
     if (!modal) {
-      console.error('危险确认模态未找到', MODAL_SELECTOR);
+      console.error('危险确认模态未找到', MODAL_SCOPE);
       return;
     }
 
-    const titleEl = modal.querySelector('#dangerConfirmModalLabel');
+    const titleEl = modal.querySelector('[data-role="danger-confirm-title"]');
     const messageEl = modal.querySelector('[data-danger-confirm-message]');
     const detailsEl = modal.querySelector('[data-danger-confirm-details]');
     const resultWrapper = modal.querySelector('[data-danger-confirm-result]');
@@ -185,9 +195,9 @@
    * @returns {Promise<boolean>} 用户确认返回 true，否则 false。
    */
   function confirmDanger(options = {}) {
-    const modalElement = document.querySelector(MODAL_SELECTOR);
+    const modalElement = resolveModalElement();
     if (!modalElement) {
-      console.error('危险确认模态未找到', MODAL_SELECTOR);
+      console.error('危险确认模态未找到', MODAL_SCOPE);
       return Promise.resolve(false);
     }
 

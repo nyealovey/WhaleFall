@@ -2,12 +2,29 @@
   "use strict";
 
   /**
-   * 统一获取 mitt 实例。
-   *
-   * @param {Object} [emitter] - 可选的 mitt 实例
-   * @return {Object} mitt 事件总线实例
-   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
+   * @typedef {Object} TagListService
+   * @property {Function} getGridUrl
+   * @property {Function} getTag
+   * @property {Function} createTag
+   * @property {Function} updateTag
+   * @property {Function} deleteTag
    */
+
+  function ensureService(service) {
+    if (!service) {
+      throw new Error("createTagListStore: service is required");
+    }
+    const required = ["getGridUrl", "getTag", "createTag", "updateTag", "deleteTag"];
+    required.forEach((method) => {
+      // 固定白名单方法名, 避免动态键注入.
+      // eslint-disable-next-line security/detect-object-injection
+      if (typeof service[method] !== "function") {
+        throw new Error(`createTagListStore: service.${method} 未实现`);
+      }
+    });
+    return service;
+  }
+
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -18,101 +35,84 @@
     return window.mitt();
   }
 
-  /**
-   * 将 id 列表转换成数值数组。
-   *
-   * @param {Array} ids - ID 数组
-   * @return {Array} 规范化后的数字 ID 数组
-   */
-  function normalizeIds(ids) {
-    if (!Array.isArray(ids)) {
-      return [];
+  function ensureSuccessResponse(resp, fallbackMessage) {
+    if (resp && resp.success === false) {
+      const error = new Error(resp.message || resp.error || fallbackMessage || "操作失败");
+      error.raw = resp;
+      throw error;
     }
-    return ids
-      .map(function (value) {
-        const numeric = Number(value);
-        return Number.isFinite(numeric) ? numeric : null;
-      })
-      .filter(function (value) {
-        return value !== null;
-      });
+    return resp;
   }
 
-  /**
-   * 拷贝 state，方便事件 payload 传递。
-   *
-   * @param {Object} state - 状态对象
-   * @return {Object} 状态对象的拷贝
-   */
   function cloneState(state) {
     return {
-      allIds: Array.from(state.allIds),
-      selection: Array.from(state.selection),
+      gridUrl: state.gridUrl,
+      stats: state.stats ? { ...state.stats } : null,
+      loading: { ...state.loading },
       lastError: state.lastError,
     };
   }
 
   /**
-   * 创建标签列表状态管理 Store。
+   * TagList Store：承载标签管理页的状态与 actions（统计、读取、创建、更新、删除）。
    *
-   * 提供标签选择管理功能，支持添加、移除、切换、全选等操作。
-   * 适用于需要管理标签选择状态的场景。
-   *
-   * @param {Object} options - 配置选项
-   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
-   * @param {Array} [options.initialTagIds] - 初始可用标签 ID 列表
-   * @param {Array} [options.initialSelection] - 初始选中的标签 ID 列表
-   * @return {Object} Store API 对象
-   *
-   * @example
-   * const store = createTagListStore({
-   *   initialTagIds: [1, 2, 3],
-   *   initialSelection: [1]
-   * });
-   * store.actions.addTag(2);
-   * console.log(store.getState());
+   * @param {Object} options
+   * @param {TagListService} options.service
+   * @param {Object} [options.emitter]
+   * @return {Object} Store API
    */
   function createTagListStore(options) {
     const opts = options || {};
+    const service = ensureService(opts.service);
     const emitter = ensureEmitter(opts.emitter);
 
     const state = {
-      allIds: new Set(normalizeIds(opts.initialTagIds || [])),
-      selection: new Set(normalizeIds(opts.initialSelection || [])),
+      gridUrl: service.getGridUrl(),
+      stats: null,
+      loading: {
+        load: false,
+        create: false,
+        update: false,
+        remove: false,
+      },
       lastError: null,
     };
 
-    /**
-     * 派发事件，默认为调用方提供状态快照。
-     *
-     * @param {string} eventName 事件名称。
-     * @param {Object} [payload] 自定义 payload，默认附带 cloneState。
-     * @returns {void}
-     */
     function emit(eventName, payload) {
-      emitter.emit(
-        eventName,
-        payload ?? {
-          state: cloneState(state),
-        },
-      );
+      emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
-    /**
-     * 广播选择集变化。
-     *
-     * @param {string} [reason="update"] 触发原因，帮助上层区分操作来源。
-     * @returns {void}
-     */
-    function emitSelection(reason) {
-      emit("tagList:selectionChanged", {
-        reason: reason || "update",
-        selection: Array.from(state.selection),
+    function setLoading(key, loading, meta) {
+      const next = Boolean(loading);
+      if (key === "load") {
+        state.loading.load = next;
+      } else if (key === "create") {
+        state.loading.create = next;
+      } else if (key === "update") {
+        state.loading.update = next;
+      } else if (key === "remove") {
+        state.loading.remove = next;
+      } else {
+        return;
+      }
+      emit("tags:loading", {
+        loading: { ...state.loading },
+        meta: meta || {},
+        state: cloneState(state),
+      });
+    }
+
+    function handleError(error, meta) {
+      state.lastError = error;
+      emit("tags:error", {
+        error,
+        meta: meta || {},
         state: cloneState(state),
       });
     }
 
     const api = {
+      gridUrl: state.gridUrl,
       getState: function () {
         return cloneState(state);
       },
@@ -123,67 +123,107 @@
         emitter.off(eventName, handler);
       },
       actions: {
-        setAvailableTagIds: function (ids) {
-          state.allIds = new Set(normalizeIds(ids));
-          emit("tagList:updated", cloneState(state));
+        ingestGridPayload: function (payload) {
+          const raw = payload && typeof payload === "object" ? payload : {};
+          state.stats = raw.stats && typeof raw.stats === "object" ? { ...raw.stats } : null;
+          emit("tags:statsUpdated", { stats: state.stats, state: cloneState(state) });
+          return Array.isArray(raw.items) ? raw.items : [];
         },
-        addTag: function (tagId) {
-          const numericId = Number(tagId);
-          if (!Number.isFinite(numericId)) {
-            return;
+        load: function (tagId) {
+          if (tagId === undefined || tagId === null || tagId === "") {
+            return Promise.reject(new Error("TagListStore: load 需要 tagId"));
           }
-          if (state.selection.has(numericId)) {
-            return;
-          }
-          state.selection.add(numericId);
-          emitSelection("add");
+          setLoading("load", true, { action: "load" });
+          return service
+            .getTag(tagId)
+            .then((resp) => {
+              const resolved = ensureSuccessResponse(resp, "加载标签失败");
+              const payload = resolved?.data || resolved || {};
+              const tag = payload?.tag || payload?.data?.tag || null;
+              if (!tag) {
+                throw new Error(resolved?.message || "加载标签失败");
+              }
+              state.lastError = null;
+              emit("tags:loaded", { tag, state: cloneState(state) });
+              return tag;
+            })
+            .catch((error) => {
+              handleError(error, { action: "load" });
+              throw error;
+            })
+            .finally(() => setLoading("load", false, { action: "load" }));
         },
-        removeTag: function (tagId) {
-          const numericId = Number(tagId);
-          if (!state.selection.has(numericId)) {
-            return;
+        create: function (payload) {
+          if (!payload) {
+            return Promise.reject(new Error("TagListStore: create 需要 payload"));
           }
-          state.selection.delete(numericId);
-          emitSelection("remove");
+          setLoading("create", true, { action: "create" });
+          return service
+            .createTag(payload)
+            .then((resp) => {
+              const resolved = ensureSuccessResponse(resp, "创建标签失败");
+              state.lastError = null;
+              emit("tags:created", { response: resolved, state: cloneState(state) });
+              return resolved;
+            })
+            .catch((error) => {
+              handleError(error, { action: "create" });
+              throw error;
+            })
+            .finally(() => setLoading("create", false, { action: "create" }));
         },
-        toggleTag: function (tagId) {
-          const numericId = Number(tagId);
-          if (!Number.isFinite(numericId)) {
-            return;
+        update: function (tagId, payload) {
+          if (tagId === undefined || tagId === null || tagId === "") {
+            return Promise.reject(new Error("TagListStore: update 需要 tagId"));
           }
-          if (state.selection.has(numericId)) {
-            state.selection.delete(numericId);
-            emitSelection("toggle");
-            return;
+          if (!payload) {
+            return Promise.reject(new Error("TagListStore: update 需要 payload"));
           }
-          state.selection.add(numericId);
-          emitSelection("toggle");
+          setLoading("update", true, { action: "update" });
+          return service
+            .updateTag(tagId, payload)
+            .then((resp) => {
+              const resolved = ensureSuccessResponse(resp, "更新标签失败");
+              state.lastError = null;
+              emit("tags:updated", { response: resolved, state: cloneState(state) });
+              return resolved;
+            })
+            .catch((error) => {
+              handleError(error, { action: "update" });
+              throw error;
+            })
+            .finally(() => setLoading("update", false, { action: "update" }));
         },
-        clearSelection: function () {
-          if (!state.selection.size) {
-            return;
+        remove: function (tagId) {
+          if (tagId === undefined || tagId === null || tagId === "") {
+            return Promise.reject(new Error("TagListStore: remove 需要 tagId"));
           }
-          state.selection.clear();
-          emitSelection("clear");
-        },
-        selectAll: function () {
-          if (!state.allIds.size) {
-            return;
-          }
-          state.selection = new Set(state.allIds);
-          emitSelection("selectAll");
-        },
-        replaceSelection: function (ids) {
-          state.selection = new Set(normalizeIds(ids));
-          emitSelection("replace");
+          setLoading("remove", true, { action: "remove" });
+          return service
+            .deleteTag(tagId)
+            .then((resp) => {
+              const resolved = ensureSuccessResponse(resp, "删除标签失败");
+              state.lastError = null;
+              emit("tags:removed", { response: resolved, state: cloneState(state) });
+              return resolved;
+            })
+            .catch((error) => {
+              handleError(error, { action: "remove" });
+              throw error;
+            })
+            .finally(() => setLoading("remove", false, { action: "remove" }));
         },
       },
       destroy: function () {
         if (emitter.all && typeof emitter.all.clear === "function") {
           emitter.all.clear();
         }
-        state.selection.clear();
-        state.allIds.clear();
+        state.stats = null;
+        state.lastError = null;
+        state.loading.load = false;
+        state.loading.create = false;
+        state.loading.update = false;
+        state.loading.remove = false;
       },
     };
 

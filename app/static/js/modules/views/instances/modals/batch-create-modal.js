@@ -13,9 +13,8 @@
    * @param {string} [options.modalSelector] - 模态框选择器
    * @param {string} [options.fileInputSelector] - 文件输入框选择器
    * @param {string} [options.triggerSelector] - 触发按钮选择器
-   * @param {Object} [options.instanceService] - 实例服务
-   * @param {Object} [options.instanceStore] - 实例状态管理
-   * @param {Function} [options.getInstanceStore] - 获取实例状态管理的函数
+   * @param {Object} options.store - InstanceStore（由 Page Entry 注入）
+   * @param {Function} [options.onSaved] - 批量创建成功后的回调（用于刷新列表等）
    * @param {string} [options.loadingText] - 加载文本
    * @return {Object} 控制器对象，包含 open、submit、handleFileSelect 方法
    * @throws {Error} 当 UI.createModal 未加载或模态框创建失败时抛出
@@ -28,14 +27,16 @@
       modalSelector = '#batchCreateModal',
       fileInputSelector = '#csvFile',
       triggerSelector = '[data-action="create-instance-batch"]',
-      instanceService,
-      instanceStore,
-      getInstanceStore,
+      store = null,
+      onSaved = null,
       loadingText = DEFAULT_LOADING_TEXT,
     } = options;
 
     if (!ui?.createModal) {
       throw new Error('BatchCreateInstanceModal: UI.createModal 未加载');
+    }
+    if (!store?.actions?.batchCreateInstances) {
+      throw new Error('BatchCreateInstanceModal: store 未注入或缺少 batchCreateInstances');
     }
 
     const modal = ui.createModal({
@@ -118,11 +119,6 @@
      * @return {void}
      */
     function handleSubmit() {
-      const currentService = resolveInstanceService();
-      if (!currentService) {
-        toast?.error?.('实例服务未初始化');
-        return;
-      }
       const fileInput = document.querySelector(fileInputSelector);
       const file = fileInput?.files?.[0];
       if (!file) {
@@ -132,13 +128,8 @@
       const formData = new FormData();
       formData.append('file', file);
       modal.setLoading(true, loadingText);
-      const executor = executeBatchCreate(currentService, formData);
-      if (!executor) {
-        modal.setLoading(false);
-        toast?.error?.('批量创建服务未初始化');
-        return;
-      }
-      executor
+      store.actions
+        .batchCreateInstances(formData)
         .then((response) => handleSuccess(response))
         .catch((error) => {
           console.error('批量创建实例失败:', error);
@@ -150,71 +141,23 @@
     }
 
     /**
-     * 执行批量创建操作。
-     *
-     * @param {Object} service - 实例服务对象
-     * @param {FormData} payload - 表单数据
-     * @return {Promise|null} 批量创建 Promise 或 null
-     */
-    function executeBatchCreate(service, payload) {
-      const store = resolveInstanceStore();
-      if (store?.actions?.batchCreateInstances) {
-        return store.actions.batchCreateInstances(payload);
-      }
-      if (service?.batchCreateInstances) {
-        return service.batchCreateInstances(payload);
-      }
-      return null;
-    }
-
-    /**
      * 处理成功响应。
      *
      * @param {Object} response - 响应对象
      * @return {void}
      */
     function handleSuccess(response) {
-      const result = response?.response || response?.data || response;
-      if (response?.success === false && !result) {
-        toast?.error?.(response?.error || '批量创建失败');
-        return;
-      }
-      const message = result?.message || response?.message || '批量创建成功';
+      const payload = response?.data || response || {};
+      const message = response?.message || '批量创建成功';
       toast?.success?.(message);
-      const errors = result?.errors || response?.errors;
+      const errors = payload?.errors || null;
       if (errors && errors.length > 0) {
         toast?.warning?.(`部分实例创建失败：\n${errors.join('\n')}`);
       }
       modal.close();
-      setTimeout(() => global.location.reload(), 1000);
-    }
-
-    /**
-     * 解析实例状态管理对象。
-     *
-     * @return {Object|null} 实例状态管理对象或 null
-     */
-    function resolveInstanceStore() {
-      if (typeof getInstanceStore === 'function') {
-        return getInstanceStore();
+      if (typeof onSaved === 'function') {
+        onSaved({ response });
       }
-      return instanceStore;
-    }
-
-    /**
-     * 解析实例服务对象。
-     *
-     * @return {Object|null} 实例服务对象或 null
-     */
-    function resolveInstanceService() {
-      const store = resolveInstanceStore();
-      if (store?.service) {
-        return store.service;
-      }
-      if (typeof instanceService !== 'undefined' && instanceService) {
-        return instanceService;
-      }
-      return null;
     }
 
     /**

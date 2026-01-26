@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # ESLint 报告脚本：运行 eslint 并将输出保存到 docs/reports
+#
+# 参考：
+# - docs/Obsidian/standards/core/guide/scripts.md
+# - docs/Obsidian/standards/core/guide/coding.md
+# - docs/Obsidian/standards/ui/design/javascript-module.md
 
 set -euo pipefail
 

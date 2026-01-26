@@ -13,8 +13,8 @@ owner: WhaleFall Team
 scope: 错误封套 message_code/message_key 参考入口与索引
 related:
   - "[[reference/README|reference]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
-  - "[[standards/backend/error-message-schema-unification]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
 ---
 
 # 错误码参考

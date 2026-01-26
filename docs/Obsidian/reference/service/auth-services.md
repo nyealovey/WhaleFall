@@ -23,7 +23,7 @@ related:
   - "[[architecture/identity-access]]"
   - "[[API/auth-api-contract]]"
   - "[[reference/examples/api-v1-cookbook]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Auth Services(Login/Change Password/Auth Me)

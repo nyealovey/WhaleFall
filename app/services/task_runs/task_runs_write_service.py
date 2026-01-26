@@ -15,6 +15,7 @@ from typing import Any
 from uuid import uuid4
 
 from app import db
+from app.core.constants.status_types import TaskRunStatus
 from app.core.exceptions import NotFoundError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
@@ -79,7 +80,7 @@ class TaskRunsWriteService:
         run.task_name = task_name
         run.task_category = task_category
         run.trigger_source = trigger_source
-        run.status = "running"
+        run.status = TaskRunStatus.RUNNING
         run.started_at = time_utils.now()
         run.created_by = created_by
         run.summary_json = self._ensure_json_serializable(resolved_summary_json)
@@ -102,7 +103,7 @@ class TaskRunsWriteService:
             row.item_key = item.item_key
             row.item_name = item.item_name
             row.instance_id = item.instance_id
-            row.status = "pending"
+            row.status = TaskRunStatus.PENDING
             to_create.append(row)
 
         if to_create:
@@ -121,9 +122,9 @@ class TaskRunsWriteService:
         """将指定子项标记为 running，并写入 started_at."""
         self._get_run_or_error(run_id)
         item = self._get_item_or_error(run_id=run_id, item_type=item_type, item_key=item_key)
-        if item.status in {"completed", "failed", "cancelled"}:
+        if item.status in TaskRunStatus.TERMINAL:
             return
-        item.status = "running"
+        item.status = TaskRunStatus.RUNNING
         if item.started_at is None:
             item.started_at = time_utils.now()
 
@@ -139,9 +140,9 @@ class TaskRunsWriteService:
         """将指定子项标记为 completed，并写入完成时间与可选详情."""
         self._get_run_or_error(run_id)
         item = self._get_item_or_error(run_id=run_id, item_type=item_type, item_key=item_key)
-        if item.status in {"failed", "cancelled"}:
+        if item.status in {TaskRunStatus.FAILED, TaskRunStatus.CANCELLED}:
             return
-        item.status = "completed"
+        item.status = TaskRunStatus.COMPLETED
         item.completed_at = time_utils.now()
         if metrics_json is not None:
             item.metrics_json = self._ensure_json_serializable(metrics_json)
@@ -160,9 +161,9 @@ class TaskRunsWriteService:
         """将指定子项标记为 failed，并写入错误信息与可选详情."""
         self._get_run_or_error(run_id)
         item = self._get_item_or_error(run_id=run_id, item_type=item_type, item_key=item_key)
-        if item.status == "cancelled":
+        if item.status == TaskRunStatus.CANCELLED:
             return
-        item.status = "failed"
+        item.status = TaskRunStatus.FAILED
         item.completed_at = time_utils.now()
         item.error_message = error_message
         if details_json is not None:
@@ -174,32 +175,32 @@ class TaskRunsWriteService:
 
         items = TaskRunItem.query.filter_by(run_id=run_id).all()
         total = len(items)
-        completed = sum(1 for item in items if item.status == "completed")
-        failed = sum(1 for item in items if item.status in {"failed", "cancelled"})
+        completed = sum(1 for item in items if item.status == TaskRunStatus.COMPLETED)
+        failed = sum(1 for item in items if item.status in {TaskRunStatus.FAILED, TaskRunStatus.CANCELLED})
 
         run.progress_total = total
         run.progress_completed = completed
         run.progress_failed = failed
 
-        if run.status not in {"cancelled", "failed"}:
-            run.status = "failed" if failed > 0 else "completed"
+        if run.status not in {TaskRunStatus.CANCELLED, TaskRunStatus.FAILED}:
+            run.status = TaskRunStatus.FAILED if failed > 0 else TaskRunStatus.COMPLETED
 
         run.completed_at = time_utils.now()
 
     def cancel_run(self, run_id: str) -> bool:
         """取消任务运行(仅 running 可取消)，并将 pending/running 子项标记为 cancelled."""
         run = self._get_run_or_error(run_id)
-        if run.status != "running":
+        if run.status != TaskRunStatus.RUNNING:
             return False
 
         now = time_utils.now()
-        run.status = "cancelled"
+        run.status = TaskRunStatus.CANCELLED
         run.completed_at = now
 
         items = TaskRunItem.query.filter_by(run_id=run_id).all()
         for item in items:
-            if item.status in {"pending", "running"}:
-                item.status = "cancelled"
+            if item.status in TaskRunStatus.IN_PROGRESS:
+                item.status = TaskRunStatus.CANCELLED
                 item.completed_at = now
         return True
 

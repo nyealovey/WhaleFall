@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
-from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
+from typing import Any, cast
+
+from app import db
 from app.models.instance import Instance
 from app.models.tag import Tag
 
@@ -34,6 +36,11 @@ class TagsOptionsRepository:
         return Tag.get_active_tags()
 
     @staticmethod
-    def list_categories() -> list:
-        """列出标签分类."""
-        return TAG_CATEGORY_CHOICES
+    def list_categories() -> list[str]:
+        """列出标签分类.
+
+        标签分类是完全自定义的，因此直接从 tags 表中读取去重后的 category 列表。
+        """
+        category_column = cast(Any, Tag.category)
+        rows = db.session.query(category_column).distinct().order_by(category_column.asc()).all()
+        return [category for (category,) in rows if category]

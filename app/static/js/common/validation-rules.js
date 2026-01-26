@@ -337,11 +337,8 @@
 
     var batchAssignRules = {
         instances: [
-            helpers.custom(function () {
-                if (window.batchAssignManager && window.batchAssignManager.selectedInstances) {
-                    return window.batchAssignManager.selectedInstances.size > 0;
-                }
-                return false;
+            helpers.custom(function (value) {
+                return value != null && String(value).trim().length > 0;
             }, messages.batchAssignInstances),
         ],
         tags: [
@@ -350,9 +347,6 @@
                 var mode = modeField ? modeField.elem.value : 'assign';
                 if (mode === 'remove') {
                     return true;
-                }
-                if (window.batchAssignManager && window.batchAssignManager.selectedTags) {
-                    return window.batchAssignManager.selectedTags.size > 0;
                 }
                 return value != null && String(value).trim().length > 0;
             }, messages.batchAssignTags),

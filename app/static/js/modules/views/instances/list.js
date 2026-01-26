@@ -59,23 +59,26 @@ function mountInstancesListPage() {
     let gridPage = null;
     let instancesGrid = null;
     let instanceStore = null;
+    let instanceCrudStore = null;
     let instanceService = null;
     let managementService = null;
     let instanceModalController = null;
     let batchCreateController = null;
-    let selectedInstanceIds = new Set();
     let checkboxDelegationInitialized = false;
+    let tagManagementStore = null;
 
     ready(() => {
         initializeServices();
         initializeInstanceStore();
+        initializeInstanceCrudStore();
+        initializeTagManagementStore();
         initializeModals();
         initializeGridPage();
         initializeTagFilter();
         bindToolbarActions();
         subscribeToStoreEvents();
         exposeGlobalActions();
-        updateBatchActionState();
+        updateBatchActionState(0);
     });
 
     /**
@@ -121,6 +124,53 @@ function mountInstancesListPage() {
 	        }
 	    }
 
+    function initializeInstanceCrudStore() {
+        const createInstanceCrudStore = global.createInstanceCrudStore;
+        if (typeof createInstanceCrudStore !== 'function') {
+            console.error('createInstanceCrudStore 未加载，实例创建/编辑不可用');
+            instanceCrudStore = null;
+            return null;
+        }
+        if (!instanceService) {
+            console.error('InstanceService 未初始化，实例创建/编辑不可用');
+            instanceCrudStore = null;
+            return null;
+        }
+        try {
+            instanceCrudStore = createInstanceCrudStore({
+                service: instanceService,
+                emitter: global.mitt ? global.mitt() : null,
+            });
+            return instanceCrudStore;
+        } catch (error) {
+            console.error('初始化 InstanceCrudStore 失败:', error);
+            instanceCrudStore = null;
+            return null;
+        }
+    }
+
+    function initializeTagManagementStore() {
+        const TagManagementService = global.TagManagementService;
+        const createTagManagementStore = global.createTagManagementStore;
+        if (!TagManagementService || typeof createTagManagementStore !== 'function') {
+            console.error('TagManagementService/createTagManagementStore 未加载，标签筛选不可用');
+            tagManagementStore = null;
+            return null;
+        }
+        try {
+            const service = new TagManagementService();
+            tagManagementStore = createTagManagementStore({
+                service,
+                emitter: global.mitt ? global.mitt() : null,
+            });
+            return tagManagementStore;
+        } catch (error) {
+            console.error('初始化 TagManagementStore 失败:', error);
+            tagManagementStore = null;
+            return null;
+        }
+    }
+
     /**
      * 初始化实例 Store。
      *
@@ -139,9 +189,6 @@ function mountInstancesListPage() {
             });
             instanceStore
                 .init({})
-                .then((state) => {
-                    selectedInstanceIds = new Set(state?.selection || []);
-                })
                 .catch((error) => {
                     console.warn('InstanceStore 初始化失败', error);
                 });
@@ -159,7 +206,16 @@ function mountInstancesListPage() {
     function initializeModals() {
         if (global.InstanceModals?.createController) {
             try {
-                instanceModalController = global.InstanceModals.createController();
+                instanceModalController = global.InstanceModals.createController({
+                    store: instanceCrudStore,
+                    FormValidator: global.FormValidator,
+                    ValidationRules: global.ValidationRules,
+                    toast: global.toast,
+                    DOMHelpers: global.DOMHelpers,
+                    onSaved: () => {
+                        instancesGrid?.refresh?.();
+                    },
+                });
                 instanceModalController.init?.();
             } catch (error) {
                 console.error('实例模态初始化失败:', error);
@@ -169,8 +225,10 @@ function mountInstancesListPage() {
         if (global.BatchCreateInstanceModal?.createController) {
             try {
                 batchCreateController = global.BatchCreateInstanceModal.createController({
-                    instanceService,
-                    getInstanceStore: () => instanceStore,
+                    store: instanceStore,
+                    onSaved: () => {
+                        instancesGrid?.refresh?.();
+                    },
                 });
                 global.InstanceBatchCreateController = batchCreateController;
             } catch (error) {
@@ -731,6 +789,9 @@ function mountInstancesListPage() {
      * @returns {string} API 地址。
      */
     function buildBaseUrl() {
+        if (instanceCrudStore?.gridUrl) {
+            return instanceCrudStore.gridUrl;
+        }
         if (instanceService?.getGridUrl) {
             return instanceService.getGridUrl();
         }
@@ -748,11 +809,16 @@ function mountInstancesListPage() {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
             return;
         }
+        if (!tagManagementStore) {
+            console.error('TagManagementStore 未初始化，跳过标签筛选初始化');
+            return;
+        }
         const scope = 'instance-tag-selector';
         const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
         const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
         const initialValues = parseInitialTagValues(hiddenInput?.value || null);
         global.TagSelectorHelper.setupForForm({
+            store: tagManagementStore,
             modalSelector: `#${scope}-modal`,
             rootSelector: '[data-tag-selector]',
             scope,
@@ -832,7 +898,8 @@ function mountInstancesListPage() {
         if (!instanceStore?.actions?.batchDeleteSelected) {
             return;
         }
-        if (!selectedInstanceIds.size) {
+        const selectedIds = instanceStore?.getState?.()?.selection || [];
+        if (!selectedIds.length) {
             global.toast?.warning?.('请先选择要移入回收站的实例');
             return;
         }
@@ -843,7 +910,7 @@ function mountInstancesListPage() {
             return;
         }
 
-        const totalSelected = selectedInstanceIds.size;
+        const totalSelected = selectedIds.length;
         const confirmed = await confirmDanger({
             title: '确认移入回收站',
             message: '该操作将把实例移入回收站（可恢复），请确认影响范围后继续。',
@@ -865,7 +932,6 @@ function mountInstancesListPage() {
             button.disabled = true;
         }
 
-        syncStoreSelection();
         instanceStore.actions
             .batchDeleteSelected()
             .then((response) => {
@@ -896,7 +962,8 @@ function mountInstancesListPage() {
      */
     function handleBatchTest(event) {
         event.preventDefault();
-        if (!selectedInstanceIds.size) {
+        const selectedIds = instanceStore?.getState?.()?.selection || [];
+        if (!selectedIds.length) {
             global.toast?.warning?.('请先选择要测试的实例');
             return;
         }
@@ -905,7 +972,7 @@ function mountInstancesListPage() {
             global.toast?.error?.('连接管理服务未初始化');
             return;
         }
-        const ids = Array.from(selectedInstanceIds);
+        const ids = selectedIds.slice();
         connectionManager
             .batchTestConnections(ids)
             .then((result) => {
@@ -931,12 +998,12 @@ function mountInstancesListPage() {
             return;
         }
         instanceStore.subscribe('instances:selectionChanged', ({ selectedIds }) => {
-            selectedInstanceIds = new Set(selectedIds || []);
-            updateSelectionSummary();
-            syncSelectionCheckboxes();
+            const selection = Array.isArray(selectedIds) ? selectedIds : [];
+            const selectedSet = new Set(selection);
+            updateSelectionSummary(selection.length);
+            syncSelectionCheckboxes(selectedSet);
         });
         instanceStore.subscribe('instances:batchDelete:success', () => {
-            selectedInstanceIds.clear();
             instancesGrid?.refresh?.();
         });
     }
@@ -946,16 +1013,16 @@ function mountInstancesListPage() {
      *
      * @returns {void} 更新 UI 提示，无返回值。
      */
-    function updateSelectionSummary() {
+    function updateSelectionSummary(selectedCount) {
         const element = document.getElementById('instances-selection-summary');
         if (!element) {
             return;
         }
-        if (!selectedInstanceIds.size) {
+        if (!selectedCount) {
             element.textContent = '未选择实例';
             return;
         }
-        element.textContent = `已选择 ${selectedInstanceIds.size} 个实例`;
+        element.textContent = `已选择 ${selectedCount} 个实例`;
     }
 
     /**
@@ -963,17 +1030,18 @@ function mountInstancesListPage() {
      *
      * @returns {void} 根据 store 同步勾选状态。
      */
-    function syncSelectionCheckboxes() {
+    function syncSelectionCheckboxes(selectedSet) {
         if (!canManage) {
             return;
         }
+        const selection = selectedSet instanceof Set ? selectedSet : new Set();
         const checkboxes = pageRoot.querySelectorAll('.grid-instance-checkbox');
         checkboxes.forEach((checkbox) => {
             const id = Number(checkbox.value);
-            checkbox.checked = selectedInstanceIds.has(id);
+            checkbox.checked = selection.has(id);
         });
-        updateSelectAllCheckbox(checkboxes);
-        updateBatchActionState();
+        updateSelectAllCheckbox(checkboxes, selection.size);
+        updateBatchActionState(selection.size);
     }
 
     /**
@@ -982,7 +1050,7 @@ function mountInstancesListPage() {
      * @param {NodeListOf<HTMLInputElement>|Array<HTMLInputElement>} [checkboxes] 可选的复选框集合。
      * @returns {void} 更新全选框状态。
      */
-    function updateSelectAllCheckbox(checkboxes) {
+    function updateSelectAllCheckbox(checkboxes, selectedCount) {
         const selectAll = document.getElementById('grid-select-all');
         if (!selectAll) {
             return;
@@ -992,10 +1060,10 @@ function mountInstancesListPage() {
         if (!total) {
             selectAll.checked = false;
             selectAll.indeterminate = false;
-        } else if (selectedInstanceIds.size === total) {
+        } else if (selectedCount === total) {
             selectAll.checked = true;
             selectAll.indeterminate = false;
-        } else if (selectedInstanceIds.size > 0) {
+        } else if (selectedCount > 0) {
             selectAll.checked = false;
             selectAll.indeterminate = true;
         } else {
@@ -1029,10 +1097,10 @@ function mountInstancesListPage() {
      *
      * @returns {void} 更新按钮的 disabled 状态。
      */
-    function updateBatchActionState() {
+    function updateBatchActionState(selectedCount) {
         const batchDeleteBtn = selectOne('[data-action="batch-delete"]').first();
         const batchTestBtn = selectOne('[data-action="batch-test"]').first();
-        const disabled = !selectedInstanceIds.size;
+        const disabled = !selectedCount;
         if (batchDeleteBtn) {
             if (disabled) {
                 batchDeleteBtn.setAttribute('disabled', 'disabled');
@@ -1046,23 +1114,6 @@ function mountInstancesListPage() {
             } else {
                 batchTestBtn.removeAttribute('disabled');
             }
-        }
-    }
-
-    /**
-     * 将当前选中的实例同步到 store。
-     *
-     * @returns {void} 调度 store 的 selection 动作。
-     */
-    function syncStoreSelection() {
-        if (!instanceStore?.actions?.setSelection) {
-            return;
-        }
-        const ids = Array.from(selectedInstanceIds);
-        try {
-            instanceStore.actions.setSelection(ids, { reason: 'manualSync' });
-        } catch (error) {
-            console.warn('同步实例选择状态失败:', error);
         }
     }
 
@@ -1081,15 +1132,14 @@ function mountInstancesListPage() {
         if (!Number.isFinite(id)) {
             return;
         }
+        const current = instanceStore?.getState?.()?.selection || [];
+        const next = new Set(current);
         if (checkbox.checked) {
-            selectedInstanceIds.add(id);
+            next.add(id);
         } else {
-            selectedInstanceIds.delete(id);
+            next.delete(id);
         }
-        syncStoreSelection();
-        updateSelectionSummary();
-        updateBatchActionState();
-        updateSelectAllCheckbox();
+        instanceStore?.actions?.setSelection?.(Array.from(next), { reason: 'ui-row' });
     }
 
     /**
@@ -1104,16 +1154,11 @@ function mountInstancesListPage() {
             return;
         }
         const checked = checkbox.checked;
-        const availableIds = collectAvailableInstanceIds();
         if (checked) {
-            availableIds.forEach((id) => selectedInstanceIds.add(id));
+            instanceStore?.actions?.selectAll?.();
         } else {
-            availableIds.forEach((id) => selectedInstanceIds.delete(id));
+            instanceStore?.actions?.clearSelection?.();
         }
-        syncStoreSelection();
-        updateSelectionSummary();
-        updateBatchActionState();
-        syncSelectionCheckboxes();
     }
 
     /**
@@ -1158,8 +1203,8 @@ function mountInstancesListPage() {
      * @returns {void} 触发恢复请求并刷新表格。
      */
     async function handleRestoreInstance(instanceId, trigger) {
-        if (!managementService?.restoreInstance) {
-            global.toast?.error?.('实例管理服务未初始化');
+        if (!instanceStore?.actions?.restoreInstance) {
+            global.toast?.error?.('InstanceStore 未初始化');
             return;
         }
 
@@ -1188,13 +1233,8 @@ function mountInstancesListPage() {
 
         const original = button ? button.innerHTML : null;
         toggleButtonLoading(button, true, '<i class="fas fa-spinner fa-spin"></i>');
-        managementService
-            .restoreInstance(instanceId)
+        instanceStore.actions.restoreInstance(instanceId)
             .then((result) => {
-                if (result?.success === false) {
-                    global.toast?.error?.(result?.message || '恢复失败');
-                    return;
-                }
                 global.toast?.success?.(result?.message || '实例恢复成功');
                 instancesGrid?.refresh?.();
             })

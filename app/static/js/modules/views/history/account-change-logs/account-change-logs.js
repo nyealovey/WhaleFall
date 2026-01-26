@@ -9,13 +9,12 @@
   const FILTER_FORM_ID = "account-change-logs-filter-form";
 
   let helpers = null;
-  let service = null;
+  let store = null;
   let gridPage = null;
   let GridPage = null;
   let GridPlugins = null;
   let escapeHtml = null;
   let rowMeta = null;
-  const cache = new Map();
 
   let detailModal = null;
   let detailContent = null;
@@ -46,7 +45,19 @@
       console.error("AccountChangeLogsService 未加载");
       return;
     }
-    service = new global.AccountChangeLogsService();
+    if (typeof global.createAccountChangeLogsStore !== "function") {
+      console.error("createAccountChangeLogsStore 未加载");
+      return;
+    }
+    try {
+      store = global.createAccountChangeLogsStore({
+        service: new global.AccountChangeLogsService(),
+        emitter: global.mitt ? global.mitt() : null,
+      });
+    } catch (error) {
+      console.error("初始化 AccountChangeLogsStore 失败:", error);
+      return;
+    }
 
     const pageRoot = document.getElementById("account-change-logs-page-root");
     if (!pageRoot) {
@@ -57,8 +68,25 @@
     helpers.ready(() => {
       setDefaultTimeRange();
       initializeDetailModal();
+      subscribeToStoreEvents();
       initializeGridPage(pageRoot);
-      refreshStats(gridPage?.getFilters?.() || resolveFilters());
+      store?.actions?.loadStats(gridPage?.getFilters?.() || resolveFilters()).catch((error) => {
+        console.error("加载账户变更统计失败:", error);
+      });
+    });
+  }
+
+  function subscribeToStoreEvents() {
+    if (!store?.subscribe) {
+      return;
+    }
+    store.subscribe("accountChangeLogs:statsUpdated", (payload) => {
+      const stats = payload?.stats || payload?.state?.stats || {};
+      const windowHours = payload?.windowHours || payload?.state?.windowHours || 24;
+      updateStats(stats, windowHours);
+    });
+    store.subscribe("accountChangeLogs:statsError", (payload) => {
+      console.error("加载账户变更统计失败:", payload?.error);
     });
   }
 
@@ -72,7 +100,9 @@
     const statsPlugin = {
       name: "accountChangeLogsStats",
       onFiltersChanged: (_ctx, { filters }) => {
-        refreshStats(filters);
+        store?.actions?.loadStats(filters).catch((error) => {
+          console.error("加载账户变更统计失败:", error);
+        });
       },
     };
 
@@ -84,7 +114,7 @@
         sort: false,
         columns: buildColumns(),
         server: {
-          url: service.getGridUrl(),
+          url: store?.gridUrl || "",
           headers: { "X-Requested-With": "XMLHttpRequest" },
           then: handleServerResponse,
           total: (response) => {
@@ -124,10 +154,8 @@
   function handleServerResponse(response) {
     const payload = response?.data || response || {};
     const items = Array.isArray(payload.items) ? payload.items : [];
-    cache.clear();
-    return items.map((item) => {
-      const normalized = normalizeItem(item);
-      cache.set(String(normalized.id), normalized);
+    const normalizedItems = store?.actions?.ingestGridItems ? store.actions.ingestGridItems(items) : [];
+    return normalizedItems.map((normalized) => {
       return [
         normalized.change_time || "-",
         normalized.db_type || "",
@@ -139,24 +167,6 @@
         normalized,
       ];
     });
-  }
-
-  function normalizeItem(item) {
-    return {
-      id: item?.id,
-      account_id: item?.account_id ?? null,
-      instance_id: item?.instance_id ?? null,
-      instance_name: item?.instance_name || "",
-      db_type: item?.db_type || "",
-      username: item?.username || "",
-      change_type: item?.change_type || "",
-      status: item?.status || "",
-      message: item?.message || "",
-      change_time: item?.change_time || "",
-      session_id: item?.session_id ?? null,
-      privilege_diff_count: item?.privilege_diff_count ?? 0,
-      other_diff_count: item?.other_diff_count ?? 0,
-    };
   }
 
   function buildColumns() {
@@ -404,28 +414,7 @@
     return 24;
   }
 
-  function refreshStats(filters) {
-    if (!service) {
-      return;
-    }
-    const hours = filters?.hours;
-    const windowHours = Number(hours);
-    refreshStats.lastWindowHours = Number.isFinite(windowHours) && windowHours > 0 ? windowHours : 24;
-    service
-      .fetchStats({ hours })
-      .then((resp) => {
-        const payload = resp?.data || resp || {};
-        if (resp && resp.success === false) {
-          return;
-        }
-        updateStats(payload);
-      })
-      .catch((error) => {
-        console.error("加载账户变更统计失败:", error);
-      });
-  }
-
-  function updateStats(payload) {
+  function updateStats(payload, windowHoursRaw) {
     if (!payload || typeof payload !== "object") {
       return;
     }
@@ -433,7 +422,7 @@
     const success = Number(payload.success_count ?? 0) || 0;
     const failed = Number(payload.failed_count ?? 0) || 0;
     const affectedAccounts = Number(payload.affected_accounts ?? 0) || 0;
-    const windowHours = refreshStats.lastWindowHours || 24;
+    const windowHours = Number(windowHoursRaw) > 0 ? Number(windowHoursRaw) : 24;
 
     const setText = (id, value) => {
       const element = document.getElementById(id);
@@ -516,7 +505,7 @@
   }
 
   function openDetail(logId) {
-    if (!service) {
+    if (!store?.actions?.loadDetail) {
       return;
     }
     if (!detailModal || typeof detailModal.open !== "function") {
@@ -524,7 +513,7 @@
       return;
     }
     const id = (logId || "").toString();
-    const cached = cache.get(id) || null;
+    const cached = store.getCachedMeta ? store.getCachedMeta(id) : null;
 
     const metaEl = document.getElementById("accountChangeLogDetailMeta");
     if (metaEl) {
@@ -538,20 +527,17 @@
       detailContent.innerHTML = global.ChangeHistoryRenderer.renderHistoryLoading();
     }
 
-    service
-      .fetchDetail(id)
-      .then((resp) => {
+    store.actions
+      .loadDetail(id)
+      .then((log) => {
         if (!detailContent) {
           return;
         }
-        if (!resp || resp.success === false) {
-          const message = resp?.message || resp?.error || "获取详情失败";
-          detailContent.innerHTML = `<div class="change-history-modal__empty"><span class="status-pill status-pill--danger">${escapeHtml(message)}</span></div>`;
+        if (!log) {
+          detailContent.innerHTML = `<div class="change-history-modal__empty"><span class="status-pill status-pill--danger">获取详情失败</span></div>`;
           detailModal.open({ logId: id });
           return;
         }
-        const payload = resp?.data || resp || {};
-        const log = payload?.log || null;
         const renderer = global.ChangeHistoryRenderer?.renderChangeHistoryCard;
         if (typeof renderer !== "function") {
           detailContent.innerHTML = `<pre class="bg-light p-3 rounded">${escapeHtml(JSON.stringify(log, null, 2))}</pre>`;

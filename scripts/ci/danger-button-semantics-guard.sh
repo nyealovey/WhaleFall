@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # 危险按钮语义门禁：禁止用 text-danger 伪装危险按钮（必须使用 btn-outline-danger/btn-danger 等语义按钮）
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/button-hierarchy.md
+# - docs/Obsidian/standards/ui/gate/danger-operation-confirmation.md
 
 set -euo pipefail
 
@@ -49,6 +53,9 @@ if [[ "${FOUND}" -eq 1 ]]; then
   echo "- 删除/不可撤销：触发按钮使用 btn btn-outline-danger（必要时 btn btn-danger）。" >&2
   echo "- 仅图标危险按钮：使用 btn btn-outline-danger btn-icon，并移除 text-danger。" >&2
   echo "- 二次确认统一使用 UI.confirmDanger(options)，删除类 confirmButtonClass 使用 btn-danger。" >&2
+  echo "参考：" >&2
+  echo "- docs/Obsidian/standards/ui/gate/button-hierarchy.md" >&2
+  echo "- docs/Obsidian/standards/ui/gate/danger-operation-confirmation.md" >&2
   exit 1
 fi
 

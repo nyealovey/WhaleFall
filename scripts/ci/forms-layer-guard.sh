@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Forms 层门禁：禁止跨层依赖与 DB/query 访问
+#
+# 参考：
+# - docs/Obsidian/standards/ui/design/modal-crud-forms.md
 
 set -euo pipefail
 
@@ -25,7 +28,7 @@ if [[ -n "${hits}" ]]; then
   echo "${hits}" >&2
   echo "" >&2
   echo "Forms 层只允许字段定义/校验与模板配置，不应依赖 models/services/repositories，也不应触碰 db.session/Model.query。" >&2
-  echo "参考：docs/Obsidian/standards/modal-crud-forms-standards.md" >&2
+  echo "参考：docs/Obsidian/standards/ui/design/modal-crud-forms.md" >&2
   exit 1
 fi
 

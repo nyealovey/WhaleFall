@@ -17,7 +17,7 @@ owner: WhaleFall Team
 scope: app/services/accounts_permissions/facts_builder.py
 related:
   - "[[reference/service/accounts-sync-permission-manager|AccountPermissionManager 权限同步]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Accounts Permissions Facts Builder(事实模型 + 规则表)

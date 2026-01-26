@@ -18,7 +18,7 @@ scope: app/services/health/health_checks_service.py
 related:
   - "[[API/health-api-contract]]"
   - "[[operations/observability-ops]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Health Checks Service(基础探活/基础设施健康)

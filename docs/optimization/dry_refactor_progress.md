@@ -37,7 +37,7 @@
 - [x] internal_contracts: v1 versioned dict payload（`sync_details_v1` / `type_specific_v1`）
 - [x] internal_contracts: permission_snapshot(v4) parse（categories/type_specific）
 - [ ] API: connection test 失败时的统一错误响应构造（`app/api/v1/namespaces/instances_connections.py`）
-- [ ] utils: rate_limiter 两个 decorator 的重复错误响应 + header 设置（`app/utils/rate_limiter.py`）
+- [x] infra: 登录/改密速率限制改用 Flask-Limiter（移除 `app/utils/rate_limiter.py`；新增 `app/infra/rate_limiting.py`）
 
 ## Verification Log（每批一条）
 
@@ -60,4 +60,3 @@ Batch N: 目标/范围 |
 测试新增/调整 |
 运行命令及结果
 ```
-

@@ -157,6 +157,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/tag_batch_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/tags/batch-assign.js') }}"></script>

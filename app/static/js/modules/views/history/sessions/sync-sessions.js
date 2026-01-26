@@ -45,6 +45,11 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     console.error('TaskRunsService 未加载，运行中心无法初始化');
     return;
   }
+  const createTaskRunsStore = global.createTaskRunsStore;
+  if (typeof createTaskRunsStore !== 'function') {
+    console.error('createTaskRunsStore 未加载，运行中心无法初始化');
+    return;
+  }
 
   const pageRoot = documentRef.getElementById('task-runs-page-root');
   if (!pageRoot) {
@@ -64,36 +69,49 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   let gridPage = null;
   let sessionsGrid = null;
-  let taskRunsService = null;
+  let taskRunsStore = null;
   let sessionDetailModalController = null;
   let autoRefreshTimer = null;
 
   ready(() => {
-    if (!initializeService()) {
+    if (!initializeStore()) {
       return;
     }
+    subscribeToStoreEvents();
     initializeModals();
     initializeGridPage();
     setupAutoRefresh();
   });
 
   /**
-   * 初始化同步会话服务。
+   * 初始化运行中心 Store。
    *
-   * 创建 TaskRunsService 实例，用于后续的数据查询操作。
+   * 创建 TaskRunsStore 实例，用于后续的数据查询与动作调用。
    *
    * @param {void} 无参数。直接使用全局依赖。
    * @return {boolean} 初始化是否成功
    */
-	  function initializeService() {
-	    try {
-	      taskRunsService = new TaskRunsService();
-	      return true;
-	    } catch (error) {
-	      console.error('初始化 TaskRunsService 失败:', error);
-	      return false;
-	    }
-	  }
+  function initializeStore() {
+    try {
+      taskRunsStore = createTaskRunsStore({
+        service: new TaskRunsService(),
+        emitter: global.mitt ? global.mitt() : null,
+      });
+      return true;
+    } catch (error) {
+      console.error('初始化 TaskRunsStore 失败:', error);
+      return false;
+    }
+  }
+
+  function subscribeToStoreEvents() {
+    if (!taskRunsStore?.subscribe) {
+      return;
+    }
+    taskRunsStore.subscribe('taskRuns:totalUpdated', (payload) => {
+      updateTotalCount(payload?.total);
+    });
+  }
 
   /**
    * 初始化同步会话详情模态。
@@ -140,7 +158,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: taskRunsService.getGridUrl(),
+          url: taskRunsStore?.gridUrl || '',
           headers: { 'X-Requested-With': 'XMLHttpRequest' },
           then: handleServerResponse,
           total: (response) => {
@@ -282,8 +300,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    */
   function handleServerResponse(response) {
     const payload = response?.data || response || {};
-    const items = payload.items || [];
-    updateTotalCount(payload);
+    const items = taskRunsStore?.actions?.ingestGridPayload
+      ? taskRunsStore.actions.ingestGridPayload(payload)
+      : [];
     return items.map((item) => [
       item.run_id || '-',
       item.status || '-',
@@ -515,7 +534,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   }
 
   function updateTotalCount(payload) {
-    const total = Number(payload?.total) || 0;
+    const total = Number(payload) || 0;
     const element = documentRef.getElementById(TOTAL_COUNT_ID);
     if (!element) {
       return;
@@ -533,14 +552,13 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     if (!runId) {
       return;
     }
-    taskRunsService
-      .detail(runId)
-      .then((response) => {
-        const payload = response?.data || response || {};
-        showSessionDetail({
-          run: payload.run || {},
-          items: Array.isArray(payload.items) ? payload.items : [],
-        });
+    if (!taskRunsStore?.actions?.loadDetail) {
+      return;
+    }
+    taskRunsStore.actions
+      .loadDetail(runId)
+      .then((session) => {
+        showSessionDetail(session);
       })
       .catch((error) => {
         console.error('获取任务详情失败:', error);
@@ -592,12 +610,11 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       if (!confirmed) {
         return;
       }
-      return taskRunsService.cancel(runId, {});
-    }).then((response) => {
-      if (!response) {
+      return taskRunsStore?.actions?.cancelRun ? taskRunsStore.actions.cancelRun(runId) : null;
+    }).then((payload) => {
+      if (!payload) {
         return;
       }
-      const payload = response?.data || response || {};
       notifySuccess(payload?.message || '任务已取消');
       sessionsGrid?.refresh?.();
     }).catch((error) => {

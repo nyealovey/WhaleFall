@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # CSS Token 门禁：防止 var(--xxx) 引用未定义的 CSS 变量，造成样式回退/漂移
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/design-token-governance.md
 
 set -euo pipefail
 
@@ -37,6 +40,7 @@ if [[ -n "${unknown}" ]]; then
   echo "修复建议：" >&2
   echo "- 如果是全站设计 Token，请在 app/static/css/variables.css 中补齐定义。" >&2
   echo "- 如果是局部组件变量，请在对应组件/页面 CSS 中补齐 --xxx: 定义，并确保命名不与全局 Token 冲突。" >&2
+  echo "参考：docs/Obsidian/standards/ui/gate/design-token-governance.md" >&2
   exit 1
 fi
 

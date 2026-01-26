@@ -22,7 +22,7 @@ related:
   - "[[architecture/flows/auto-classify]]"
   - "[[reference/service/accounts-classifications-write-service]]"
   - "[[reference/service/account-classification-dsl-v4]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Accounts Classifications Read Service(分类/规则/分配/权限选项)

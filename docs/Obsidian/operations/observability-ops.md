@@ -16,9 +16,9 @@ scope: 日志字段, 定位路径, 会话/任务排障 SOP, 以及关键自查�
 related:
   - "[[operations/README|operations]]"
   - "[[architecture/developer-entrypoint]]"
-  - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/action-endpoint-failure-semantics]]"
-  - "[[standards/backend/write-operation-boundary]]"
+  - "[[standards/backend/standard/error-message-schema-unification]]"
+  - "[[standards/backend/standard/action-endpoint-failure-semantics]]"
+  - "[[standards/backend/standard/write-operation-boundary]]"
   - "[[reference/service/sync-session-service]]"
 ---
 
@@ -68,7 +68,7 @@ UnifiedLog 的 schema:
 ### 4.1 从 API 错误封套开始
 
 当拿到错误响应(JSON envelope)时:
-- 先记录 `message_code` 与 `message`, 判断是 "业务失败" 还是 "异常"(见 [[standards/backend/action-endpoint-failure-semantics]]).
+- 先记录 `message_code` 与 `message`, 判断是 "业务失败" 还是 "异常"(见 [[standards/backend/standard/action-endpoint-failure-semantics]]).
 - `message_code` 的对外语义与常见触发点见: [[reference/errors/message-code-catalog]].
 - 如果响应包含 `context.session_id`, 直接进入 [[#4.2 会话排障 SOP]].
 - 如果响应包含 `context.request_id`, 在日志中心按 request_id 过滤(如果为空, 走时间窗口 + module/action 搜索).
@@ -85,7 +85,7 @@ UnifiedLog 的 schema:
    - module: 先选 `sync`/`task`/对应业务模块, 再用 `session_id` 关键字检索 `context`.
 5) 回到代码:
    - 入口 service/task: 看 log_with_context 的 `module/action` 与 `context` 填充是否足够.
-   - 数据一致性: 对照 [[standards/backend/write-operation-boundary]] 判断 commit/rollback 预期是否正确.
+   - 数据一致性: 对照 [[standards/backend/standard/write-operation-boundary]] 判断 commit/rollback 预期是否正确.
 
 ### 4.3 后台任务排障 SOP(scheduler)
 
@@ -95,7 +95,7 @@ UnifiedLog 的 schema:
 2) 按时间窗口在日志中心过滤 `module=scheduler`/`module=task`, 检索 `action/task_name`.
 3) 如果出现重复执行/漏执行:
    - 检查是否存在异常导致事务回滚(look for `commit_failed`/`unexpected`).
-   - 检查任务是否在 `app.app_context()` 内运行(见 [[standards/backend/task-and-scheduler]]).
+   - 检查任务是否在 `app.app_context()` 内运行(见 [[standards/backend/standard/task-and-scheduler]]).
 
 ## 5. 关键自查命令(本地/CI)
 
@@ -109,8 +109,8 @@ UnifiedLog 的 schema:
 
 ### 6.1 只看到 "unknown" 或无提示
 
-- 先看前端是否走了 async outcome helper(见 [[standards/ui/async-task-feedback-guidelines]]).
-- 后端是否返回标准 envelope 与 `message_code`(见 [[standards/backend/error-message-schema-unification]]).
+- 先看前端是否走了 async outcome helper(见 [[standards/ui/guide/async-task-feedback]]).
+- 后端是否返回标准 envelope 与 `message_code`(见 [[standards/backend/standard/error-message-schema-unification]]).
 
 ### 6.2 日志中心无记录
 

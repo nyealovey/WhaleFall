@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Ruff 报告生成脚本：依据模式运行 ruff lint，并保存报告到 docs/reports
+#
+# 参考：
+# - docs/Obsidian/standards/core/guide/scripts.md
+# - docs/Obsidian/standards/core/guide/coding.md
 
 set -euo pipefail
 

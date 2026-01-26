@@ -38,6 +38,11 @@
    * @property {Function} syncAllAccounts - 同步所有账户
    * @property {Function} batchDeleteInstances - 批量删除实例
    * @property {Function} batchCreateInstances - 批量创建实例
+   * @property {Function} restoreInstance - 恢复实例
+   * @property {Function} fetchAccountChangeHistory - 获取账户变更历史
+   * @property {Function} fetchDatabaseSizes - 获取数据库容量信息
+   * @property {Function} fetchDatabaseTableSizes - 获取表容量快照
+   * @property {Function} refreshDatabaseTableSizes - 刷新表容量快照
    * @property {Function} fetchStatistics - 获取统计信息
    */
 
@@ -70,6 +75,11 @@
       "syncAllAccounts",
       "batchDeleteInstances",
       "batchCreateInstances",
+      "restoreInstance",
+      "fetchAccountChangeHistory",
+      "fetchDatabaseSizes",
+      "fetchDatabaseTableSizes",
+      "refreshDatabaseTableSizes",
       "fetchStatistics",
     ].forEach(function (method) {
       // 固定白名单方法名，避免动态键注入。
@@ -693,6 +703,91 @@
             emitLoading("batchCreate");
           });
       },
+      restoreInstance: function (instanceId) {
+        const id = toNumericId(instanceId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 instanceId"));
+        }
+        return service
+          .restoreInstance(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "恢复实例失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "restore", instanceId: id });
+            throw error;
+          });
+      },
+      fetchAccountChangeHistory: function (accountId) {
+        const id = toNumericId(accountId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 accountId"));
+        }
+        return service
+          .fetchAccountChangeHistory(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "获取变更历史失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "accountChangeHistory", accountId: id });
+            throw error;
+          });
+      },
+      fetchDatabaseSizes: function (instanceId, params) {
+        const id = toNumericId(instanceId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 instanceId"));
+        }
+        return service
+          .fetchDatabaseSizes(id, params)
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载数据库容量失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "databaseSizes", instanceId: id });
+            throw error;
+          });
+      },
+      fetchDatabaseTableSizes: function (databaseId, params) {
+        const id = toNumericId(databaseId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 databaseId"));
+        }
+        return service
+          .fetchDatabaseTableSizes(id, params)
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载表容量失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "databaseTableSizes", databaseId: id });
+            throw error;
+          });
+      },
+      refreshDatabaseTableSizes: function (databaseId, params) {
+        const id = toNumericId(databaseId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 databaseId"));
+        }
+        return service
+          .refreshDatabaseTableSizes(id, params)
+          .then(function (response) {
+            const result = ensureSuccess(response, "刷新表容量失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "refreshDatabaseTableSizes", databaseId: id });
+            throw error;
+          });
+      },
     };
 
     const api = {
@@ -721,8 +816,25 @@
         if (emitter.all && typeof emitter.all.clear === "function") {
           emitter.all.clear();
         }
-        state.selection.clear();
+        state.filters = {};
         state.instances = [];
+        state.stats = {
+          total_instances: 0,
+          active_instances: 0,
+          inactive_instances: 0,
+          total_accounts: 0,
+          total_databases: 0,
+          db_types_count: 0,
+        };
+        state.loading.stats = false;
+        state.loading.batchDelete = false;
+        state.loading.batchCreate = false;
+        state.operations.syncAccounts.clear();
+        state.operations.syncCapacity.clear();
+        state.operations.syncAllAccounts = false;
+        state.uploadResult = null;
+        state.lastError = null;
+        state.selection.clear();
         state.availableInstanceIds.clear();
       },
     };

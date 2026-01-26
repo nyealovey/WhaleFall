@@ -1,8 +1,6 @@
 (function (window, document) {
   "use strict";
 
-  const CHANGE_PASSWORD_ENDPOINT = "/api/v1/auth/change-password";
-  const LOGOUT_ENDPOINT = "/api/v1/auth/logout";
   const LOGIN_PAGE = "/auth/login";
 
   function resolveErrorMessage(error, fallback) {
@@ -54,9 +52,19 @@
       console.error("ChangePasswordModals: bootstrap.Modal 未加载");
       return;
     }
-    const http = window.httpU;
-    if (!http || typeof http.post !== "function") {
-      console.error("ChangePasswordModals: http 客户端未初始化");
+    const AuthService = window.AuthService;
+    const createAuthStore = window.createAuthStore;
+    if (!AuthService || typeof createAuthStore !== "function") {
+      console.error("ChangePasswordModals: AuthService/AuthStore 未加载");
+      return;
+    }
+    let store = null;
+    try {
+      store = createAuthStore({
+        service: new AuthService(),
+      });
+    } catch (error) {
+      console.error("ChangePasswordModals: 初始化 AuthStore 失败", error);
       return;
     }
 
@@ -169,14 +177,11 @@
       toggleLoading(true);
       try {
         const payload = buildPayload();
-        const resp = await http.post(CHANGE_PASSWORD_ENDPOINT, payload);
-        if (!resp?.success) {
-          throw new Error(resp?.message || "密码修改失败");
-        }
+        const resp = await store.actions.changePassword(payload);
         toast?.success?.(resp?.message || "密码修改成功");
 
         try {
-          await http.post(LOGOUT_ENDPOINT, {});
+          await store.actions.logout();
         } catch (logoutError) {
           console.warn("ChangePasswordModals: 登出失败, 将继续跳转登录页", logoutError);
         }

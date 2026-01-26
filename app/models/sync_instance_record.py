@@ -6,6 +6,7 @@
 from typing import Any
 
 from app import db
+from app.core.constants.status_types import SyncStatus
 from app.utils.time_utils import time_utils
 
 
@@ -57,7 +58,7 @@ class SyncInstanceRecord(db.Model):
     status = db.Column(
         db.String(20),
         nullable=False,
-        default="pending",
+        default=SyncStatus.PENDING,
     )
     started_at = db.Column(db.DateTime(timezone=True))
     completed_at = db.Column(db.DateTime(timezone=True))
@@ -93,7 +94,7 @@ class SyncInstanceRecord(db.Model):
         self.instance_id = instance_id
         self.instance_name = instance_name
         self.sync_category = sync_category
-        self.status = "pending"
+        self.status = SyncStatus.PENDING
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典.
@@ -129,7 +130,7 @@ class SyncInstanceRecord(db.Model):
             None: 状态更新后立即返回.
 
         """
-        self.status = "running"
+        self.status = SyncStatus.RUNNING
         self.started_at = time_utils.now()
 
     def complete_sync(
@@ -155,7 +156,7 @@ class SyncInstanceRecord(db.Model):
             None: 仅更新实例记录状态与统计数据.
 
         """
-        self.status = "completed"
+        self.status = SyncStatus.COMPLETED
         self.completed_at = time_utils.now()
         self.items_synced = items_synced
         self.items_created = items_created
