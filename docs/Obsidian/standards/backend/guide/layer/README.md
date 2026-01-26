@@ -27,20 +27,20 @@ related:
 graph TD
   Routes["Routes(app/routes)"]
   API["API(app/api)"]
-  Tasks["Tasks(app/tasks)"]
-  Services["Services(app/services)"]
-  Schemas["Schemas(app/schemas)"]
-  Repositories["Repositories(app/repositories)"]
-  Models["Models(app/models)"]
-  FormsViews["Forms/Views(app/forms, app/views)"]
-  Infra["Infra(app/infra, app/scheduler.py)"]
-  Utils["Utils(app/utils)"]
-  Settings["Settings(app/settings.py)"]
-  SharedKernel["Shared Kernel(app/core)"]
+	  Tasks["Tasks(app/tasks)"]
+	  Services["Services(app/services)"]
+	  Schemas["Schemas(app/schemas)"]
+	  Repositories["Repositories(app/repositories)"]
+	  Models["Models(app/models)"]
+	  TemplatesStatic["Templates/Static(app/templates, app/static)"]
+	  Infra["Infra(app/infra, app/scheduler.py)"]
+	  Utils["Utils(app/utils)"]
+	  Settings["Settings(app/settings.py)"]
+	  SharedKernel["Shared Kernel(app/core)"]
   Constants["Constants(app/core/constants)"]
   Types["Types(app/core/types)"]
 
-  Routes --> Services & FormsViews & Utils & Infra
+	  Routes --> Services & TemplatesStatic & Utils & Infra
   API --> Services & Utils & Infra
   Tasks --> Services & Utils
   Services --> Repositories & Utils & Schemas

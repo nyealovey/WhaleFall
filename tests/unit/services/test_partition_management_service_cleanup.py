@@ -19,12 +19,12 @@ def test_create_partition_does_not_create_partition_indexes(monkeypatch) -> None
 
     executed_sql: list[str] = []
 
-    def _execute(statement, _params=None):  # noqa: ANN001
+    def _execute(statement, _params=None):
         executed_sql.append(str(statement))
         return None
 
     @contextmanager
-    def _begin_nested():  # noqa: ANN001
+    def _begin_nested():
         yield
 
     monkeypatch.setattr(db.session, "execute", _execute)

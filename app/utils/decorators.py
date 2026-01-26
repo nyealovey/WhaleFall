@@ -383,21 +383,6 @@ def view_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnT
     return permission_required("view")(func)
 
 
-def create_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-    """校验创建权限的装饰器."""
-    return permission_required("create")(func)
-
-
-def update_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-    """校验更新权限的装饰器."""
-    return permission_required("update")(func)
-
-
-def delete_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
-    """校验删除权限的装饰器."""
-    return permission_required("delete")(func)
-
-
 def scheduler_view_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
     """定时任务查看权限装饰器.
 

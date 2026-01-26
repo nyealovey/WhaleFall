@@ -4,7 +4,7 @@
 支持MySQL、PostgreSQL、SQL Server、Oracle等多种数据库.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import cast
 
 from app.core.constants import DatabaseType
@@ -31,7 +31,6 @@ class SafeQueryBuilder:
     Example:
         >>> builder = SafeQueryBuilder('mysql')
         >>> builder.add_condition('username = %s', 'admin')
-        >>> builder.add_in_condition('status', ['active', 'pending'])
         >>> where_clause, params = builder.build_where_clause()
 
     """
@@ -94,46 +93,6 @@ class SafeQueryBuilder:
 
         return self
 
-    def add_in_condition(self, field: str, values: Sequence[str]) -> "SafeQueryBuilder":
-        """添加 IN 条件.
-
-        生成安全的 IN 查询条件,防止 SQL 注入.
-
-        Args:
-            field: 字段名,例如 'status' 或 'user_id'.
-            values: 值列表,例如 ['active', 'pending'] 或 [1, 2, 3].
-                如果列表为空,不添加任何条件.
-
-        Returns:
-            返回自身以支持链式调用.
-
-        Example:
-            >>> builder.add_in_condition('status', ['active', 'pending'])
-            # 生成: status IN (%s, %s)
-
-        """
-        if not values:
-            return self
-
-        if self.db_type == DatabaseType.ORACLE:
-            placeholders = []
-            param_dict = cast(dict[str, JsonValue], self.parameters)
-            for value in values:
-                param_name = f"param_{self._param_counter}"
-                self._param_counter += 1
-                placeholders.append(f":{param_name}")
-                param_dict[param_name] = value
-
-            condition = f"{field} IN ({', '.join(placeholders)})"
-            self.conditions.append(condition)
-            return self
-
-        placeholders = ", ".join(["%s"] * len(values))
-        condition = f"{field} IN ({placeholders})"
-        self.conditions.append(condition)
-        cast(list[JsonValue], self.parameters).extend(values)
-        return self
-
     def add_not_in_condition(self, field: str, values: Sequence[str]) -> "SafeQueryBuilder":
         """添加 NOT IN 条件.
 
@@ -172,36 +131,6 @@ class SafeQueryBuilder:
         condition = f"{field} NOT IN ({placeholders})"
         self.conditions.append(condition)
         cast(list[JsonValue], self.parameters).extend(values)
-        return self
-
-    def add_like_condition(self, field: str, pattern: str) -> "SafeQueryBuilder":
-        """添加 LIKE 条件.
-
-        生成安全的 LIKE 查询条件,防止 SQL 注入.
-
-        Args:
-            field: 字段名,例如 'username' 或 'email'.
-            pattern: 模式字符串,例如 '%admin%' 或 'test_%'.
-                需要包含通配符 % 或 _.
-
-        Returns:
-            返回自身以支持链式调用.
-
-        Example:
-            >>> builder.add_like_condition('username', '%admin%')
-            # 生成: username LIKE %s
-
-        """
-        if self.db_type == DatabaseType.ORACLE:
-            param_name = f"param_{self._param_counter}"
-            self._param_counter += 1
-            condition = f"{field} LIKE :{param_name}"
-            self.conditions.append(condition)
-            cast(dict[str, JsonValue], self.parameters)[param_name] = pattern
-        else:
-            condition = f"{field} LIKE %s"
-            self.conditions.append(condition)
-            cast(list[JsonValue], self.parameters).append(pattern)
         return self
 
     def add_not_like_condition(self, field: str, pattern: str) -> "SafeQueryBuilder":
@@ -326,45 +255,3 @@ class SafeQueryBuilder:
         else:
             self.parameters.clear()
         return self
-
-
-def build_safe_filter_conditions(
-    db_type: str,
-    username_field: str,
-    filter_rules: Mapping[str, Mapping[str, Sequence[str]]],
-) -> tuple[str, list[JsonValue]] | tuple[str, dict[str, JsonValue]]:
-    """构建安全的过滤条件 - 统一入口函数.
-
-    根据数据库类型和过滤规则构建安全的 WHERE 子句.
-
-    Args:
-        db_type: 数据库类型,可选值:'mysql'、'postgresql'、'sqlserver'、'oracle'.
-        username_field: 用户名字段名,例如 'username' 或 'account_name'.
-        filter_rules: 过滤规则字典,格式如下:
-            {
-                'mysql': {
-                    'exclude_users': ['root', 'admin'],
-                    'exclude_patterns': ['test_%']
-                }
-            }
-
-    Returns:
-        根据数据库类型返回不同格式:
-        - MySQL/PostgreSQL/SQL Server: (WHERE 子句, 参数列表)
-        - Oracle: (WHERE 子句, 参数字典)
-
-    Example:
-        >>> rules = {'mysql': {'exclude_users': ['root'], 'exclude_patterns': ['test_%']}}
-        >>> where, params = build_safe_filter_conditions('mysql', 'username', rules)
-
-    """
-    builder = SafeQueryBuilder(db_type)
-    rules = filter_rules.get(db_type, {})
-
-    exclude_users = rules.get("exclude_users", [])
-    exclude_patterns = rules.get("exclude_patterns", [])
-
-    # 使用统一的数据库特定条件构建方法
-    builder.add_database_specific_condition(username_field, exclude_users, exclude_patterns)
-
-    return builder.build_where_clause()

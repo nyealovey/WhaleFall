@@ -31,7 +31,7 @@ def test_api_v1_task_runs_endpoints_contract(auth_client, monkeypatch) -> None:
     from app.services.task_runs.task_runs_read_service import TaskRunsReadService
     from app.services.task_runs.task_runs_write_service import task_runs_write_service
 
-    def _dummy_list_runs(self, filters):  # noqa: ANN001
+    def _dummy_list_runs(self, filters):
         del self, filters
         return PaginatedResult(
             items=[
@@ -62,7 +62,7 @@ def test_api_v1_task_runs_endpoints_contract(auth_client, monkeypatch) -> None:
             limit=20,
         )
 
-    def _dummy_detail(self, run_id: str):  # noqa: ANN001
+    def _dummy_detail(self, run_id: str):
         del self
         run = TaskRunListItem(
             id=1,
@@ -102,7 +102,7 @@ def test_api_v1_task_runs_endpoints_contract(auth_client, monkeypatch) -> None:
         )
         return TaskRunDetailResult(run=run, items=[item])
 
-    def _dummy_errors(self, run_id: str):  # noqa: ANN001
+    def _dummy_errors(self, run_id: str):
         del self
         run = TaskRunListItem(
             id=1,

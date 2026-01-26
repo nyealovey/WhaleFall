@@ -32,10 +32,6 @@ def _echo(message: str = "") -> None:
     sys.stdout.write(f"{message}\n")
 
 
-def _eprint(message: str) -> None:
-    sys.stderr.write(f"{message}\n")
-
-
 @dataclass(frozen=True)
 class OrFallbackHit:
     file: str

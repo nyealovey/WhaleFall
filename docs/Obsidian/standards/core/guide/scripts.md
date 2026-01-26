@@ -149,7 +149,7 @@ exit 0
 **职责**：首次部署时的环境安装、依赖初始化、环境验证。
 
 **命名约定**：
-- 安装类：`install-*.sh`（如 `install-oracle-client.sh`）
+- 安装类：`install-*.sh`
 - 初始化类：`init-*.sh`（如 `init-database.sh`）
 - 验证类：`validate-*.sh`（如 `validate-env.sh`）
 

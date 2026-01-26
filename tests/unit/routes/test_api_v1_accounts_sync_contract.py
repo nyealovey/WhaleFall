@@ -63,7 +63,7 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
 
     class _DummyAccountSyncService:
         @staticmethod
-        def sync_accounts(instance, sync_type):  # noqa: ANN001
+        def sync_accounts(instance, sync_type):
             return {
                 "success": True,
                 "message": "实例账户同步成功",
@@ -127,7 +127,7 @@ def test_api_v1_accounts_sync_failure_contract(app, auth_client, monkeypatch) ->
 
     class _DummyAccountSyncService:
         @staticmethod
-        def sync_accounts(instance, sync_type):  # noqa: ANN001
+        def sync_accounts(instance, sync_type):
             return {"success": False, "message": "实例账户同步失败"}
 
     import app.api.v1.namespaces.instances_accounts_sync as api_module

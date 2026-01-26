@@ -312,24 +312,6 @@ class DatabaseAggregationRunner:
             extra=extra_details,
         )
 
-    def aggregate_daily_for_instance(self, instance: Instance, target_date: date) -> InstanceSummary:
-        """为指定实例计算当天数据库级聚合.
-
-        Args:
-            instance: 数据库实例对象.
-            target_date: 目标日期.
-
-        Returns:
-            实例聚合汇总信息.
-
-        """
-        return self.aggregate_database_period(
-            instance,
-            period_type="daily",
-            start_date=target_date,
-            end_date=target_date,
-        )
-
     def _query_database_period_metrics(
         self,
         *,

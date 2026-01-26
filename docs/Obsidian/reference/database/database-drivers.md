@@ -63,7 +63,7 @@ DATABASE_URL=postgresql+psycopg://user:password@host:5432/whalefall
 
 ### 外部实例连通性验证
 
-- UI/接口入口: `/connections/api/test`(需要登录与 CSRF; 具体请求字段见路由实现 `app/routes/connections.py`).
+- 接口入口: `POST /api/v1/instances/actions/test-connection`(需要登录与 CSRF; 具体请求字段见 `app/api/v1/namespaces/instances_connections.py`).
 - 推荐先通过连接测试确保驱动/网络/凭据可用, 再启用账户同步与容量采集.
 
 ## 版本/兼容性说明

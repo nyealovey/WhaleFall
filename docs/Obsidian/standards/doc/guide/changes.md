@@ -102,9 +102,9 @@ docs/changes/
 
 正例(已有实践):
 
-- `docs/changes/refactor/001-backend-repository-serializer-boundary-plan.md`
-- `docs/changes/refactor/001-backend-repository-serializer-boundary-progress.md`
-- `docs/changes/refactor/002-backend-write-operation-boundary-plan.md`
+- `docs/changes/refactor/001-scheduler-job-naming-plan.md`
+- `docs/changes/refactor/001-scheduler-job-naming-progress.md`
+- `docs/changes/refactor/002-remove-resource-form-view-plan.md`
 
 反例:
 

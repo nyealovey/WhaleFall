@@ -287,7 +287,7 @@ def example_view() -> Response:
 - **module/action**：对应 structlog 的基本维度，便于查询；按“域 + 动作”命名。
 - **context**：传入路由关键参数（如 `instance_id`、`account_id`），避免重复拼接日志。
 - **expected_exceptions**：声明可接受的业务异常（`ValidationError`、`NotFoundError` 等），其余异常将被包装为 `SystemError`。
-- **批量/导入/导出路由**：务必结合 `safe_route_call` 与 `with db.session.begin()` 之类的事务上下文，保证一次性操作失败时自动回滚，并复用同一份结构化日志；`app/routes/files.py`、`app/routes/instances/manage.py` 可作为参考。
+- **批量/导入/导出路由**：务必结合 `safe_route_call` 与 `with db.session.begin()` 之类的事务上下文，保证一次性操作失败时自动回滚，并复用同一份结构化日志；`app/api/v1/namespaces/accounts.py`、`app/api/v1/namespaces/instances.py`、`app/api/v1/namespaces/databases.py` 与 `app/routes/instances/manage.py` 可作为参考。
 
 新增路由默认遵循此模板，增量修改若发现裸 `try/except Exception` 也需优先改造。
 

@@ -37,7 +37,7 @@ def test_api_v1_history_sessions_requires_auth(client) -> None:
 
 @pytest.mark.unit
 def test_api_v1_history_sessions_endpoints_contract(auth_client, monkeypatch) -> None:
-    def _dummy_list_sessions(self, filters):  # noqa: ANN001
+    def _dummy_list_sessions(self, filters):
         del self, filters
         return PaginatedResult(
             items=[
@@ -63,7 +63,7 @@ def test_api_v1_history_sessions_endpoints_contract(auth_client, monkeypatch) ->
             limit=20,
         )
 
-    def _dummy_detail(self, session_id: str):  # noqa: ANN001
+    def _dummy_detail(self, session_id: str):
         del self
         record = SyncInstanceRecordItem(
             id=1,
@@ -101,7 +101,7 @@ def test_api_v1_history_sessions_endpoints_contract(auth_client, monkeypatch) ->
         )
         return SyncSessionDetailResult(session=session)
 
-    def _dummy_errors(self, session_id: str):  # noqa: ANN001
+    def _dummy_errors(self, session_id: str):
         del self
         session = SyncSessionItem(
             id=1,

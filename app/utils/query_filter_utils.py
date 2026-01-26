@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 from typing import Any
 
 
@@ -21,22 +21,6 @@ def build_tag_options(tags: Iterable[Any]) -> list[dict[str, str]]:
                 "label": getattr(tag, "display_name", "") or "",
                 "color": getattr(tag, "color", "") or "",
                 "category": getattr(tag, "category", "") or "",
-            },
-        )
-    return options
-
-
-def build_category_options(categories: Iterable[str], label_mapping: Mapping[str, str]) -> list[dict[str, str]]:
-    """将分类值列表转换为下拉 options 结构."""
-    options: list[dict[str, str]] = []
-    for category in categories:
-        normalized = (category or "").strip()
-        if not normalized:
-            continue
-        options.append(
-            {
-                "value": normalized,
-                "label": label_mapping.get(normalized, normalized),
             },
         )
     return options

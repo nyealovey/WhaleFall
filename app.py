@@ -54,8 +54,8 @@ def _log_startup_instructions(host: str, port: int, *, debug: bool) -> None:
     logger.info("访问入口", url=f"http://{host}:{port}")
     logger.info("管理后台", url=f"http://{host}:{port}/admin")
     logger.info("默认管理员凭据", username="admin", hint="随机密码见脚本输出")
-    logger.info("辅助脚本", show_command="python scripts/show_admin_password.py")
-    logger.info("辅助脚本", reset_command="python scripts/reset_admin_password.py")
+    logger.info("辅助脚本", show_command="python3 scripts/admin/password/show_admin_password.py")
+    logger.info("辅助脚本", reset_command="python3 scripts/admin/password/reset_admin_password.py")
 
 
 def main() -> None:

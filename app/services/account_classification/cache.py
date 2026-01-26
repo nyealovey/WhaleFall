@@ -103,38 +103,6 @@ class ClassificationCache:
         }
         return manager.set(_CLASSIFICATION_RULES_ALL_KEY, cache_data, timeout=self._get_rule_ttl_seconds())
 
-    # ---- Rules cache (per db type) --------------------------------------
-    def set_rules_by_db_type(self, db_type: str, rules: "Iterable[Mapping[str, JsonValue]]") -> bool:
-        """写入指定数据库类型的分类规则缓存.
-
-        Args:
-            db_type: 数据库类型标识,例如 mysql、postgres.
-            rules: 分类规则列表,将持久化到缓存.
-
-        Returns:
-            bool: 写入成功返回 True,失败返回 False.
-
-        """
-        manager = self._get_manager()
-        if not manager:
-            return False
-
-        normalized_rules = [dict(rule) for rule in rules]
-        if not normalized_rules:
-            return False
-
-        cache_data = {
-            "rules": normalized_rules,
-            "cached_at": time_utils.now().isoformat(),
-            "count": len(normalized_rules),
-            "db_type": db_type,
-        }
-        return manager.set(
-            _classification_rules_key_by_db_type(db_type),
-            cache_data,
-            timeout=self._get_rule_ttl_seconds(),
-        )
-
     # ---- Invalidation helpers -------------------------------------------
     def invalidate_all(self) -> bool:
         """清空全部分类缓存数据.

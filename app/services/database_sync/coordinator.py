@@ -75,26 +75,6 @@ class CapacitySyncCoordinator:
         del exc_type, exc_val, exc_tb
         self.disconnect()
 
-    @property
-    def inventory_manager(self) -> InventoryManager:
-        """返回库存同步管理器实例.
-
-        Returns:
-            InventoryManager: 负责实例数据库清单同步的管理器.
-
-        """
-        return self._inventory_manager
-
-    @property
-    def persistence(self) -> CapacityPersistence:
-        """返回容量持久化服务.
-
-        Returns:
-            CapacityPersistence: 处理容量数据写入的服务.
-
-        """
-        return self._persistence
-
     def connect(self) -> bool:
         """建立数据库连接.
 
