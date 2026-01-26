@@ -6,7 +6,7 @@ import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import yaml
 from pydantic import ValidationError as PydanticValidationError
@@ -188,7 +188,7 @@ class DatabaseSyncFilterManager:
             payload: 容量数据行列表.
 
         Returns:
-            tuple[list[dict[str, Any]], list[str]]: (保留的记录, 被排除的数据库名称).
+            tuple[list[dict[str, object]], list[str]]: (保留的记录, 被排除的数据库名称).
 
         """
         kept: list[dict[str, object]] = []

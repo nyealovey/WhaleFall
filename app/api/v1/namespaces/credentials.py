@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, cast
 
-from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 

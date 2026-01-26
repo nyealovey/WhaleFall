@@ -9,7 +9,7 @@ tags:
   - classifications
 status: draft
 created: 2026-01-08
-updated: 2026-01-08
+updated: 2026-01-26
 source_code:
   - app/api/v1/namespaces/accounts.py
   - app/api/v1/namespaces/accounts_classifications.py
@@ -131,7 +131,7 @@ source_code:
 | GET | `/api/v1/accounts/classifications/assignments` | 分配列表 | `AccountClassificationsReadService.list_assignments` | `view` | - | `data.assignments[]` |
 | DELETE | `/api/v1/accounts/classifications/assignments/{assignment_id}` | 移除分配 | `AccountClassificationsWriteService.deactivate_assignment` | `delete` | ✅ | 仅停用 `is_active` |
 | GET | `/api/v1/accounts/classifications/permissions/{db_type}` | 权限选项 | `AccountClassificationsReadService.get_permissions` | `view` | - | 返回权限配置（Raw） |
-| POST | `/api/v1/accounts/classifications/actions/auto-classify` | 自动分类 | `AutoClassifyService.auto_classify` | `update` | ✅ | body：`instance_id?` |
+| POST | `/api/v1/accounts/classifications/actions/auto-classify` | 自动分类（后台执行） | `AutoClassifyActionsService` | `update` | ✅ | body：`instance_id?`（为空表示全量） |
 
 ## Accounts（Ledgers & Statistics）
 

@@ -8,7 +8,7 @@ tags:
   - flow/aggregation
 status: active
 created: 2026-01-10
-updated: 2026-01-10
+updated: 2026-01-26
 owner: WhaleFall Team
 scope: 容量聚合统计的生成(定时 + 手动)与查询(UI/API), 以及常见排障口径
 related:
@@ -49,9 +49,10 @@ related:
 flowchart TD
   Stats["Source stats\\n(database_size_stats, instance_size_stats)"] --> Sched["Scheduler job\\ncalculate_database_aggregations"]
   Sched --> AggSvc["AggregationService\\nselect periods + write"]
-  Manual["Manual action\\nPOST /capacity/aggregations/current"] --> CurAgg["CurrentAggregationService\\naggregate today"]
+  Manual["Manual action\\nPOST /capacity/aggregations/current"] --> CurAction["CapacityCurrentAggregationActionsService\\ncreate TaskRun + start thread"]
+  CurAction --> CurTask["Task\\ncapacity_aggregate_current (daily)"]
+  CurTask --> AggSvc
   AggSvc --> Tables["Aggregation tables\\n*_size_aggregations"]
-  CurAgg --> Tables
   UI["Web UI charts"] --> Read["Read APIs\\nGET /capacity/(instances|databases)"]
   Read --> Tables
 ```
@@ -91,9 +92,10 @@ sequenceDiagram
   - `app/api/v1/namespaces/capacity.py`
 - Tasks:
   - `app/tasks/capacity_aggregation_tasks.py`
+  - `app/tasks/capacity_current_aggregation_tasks.py` (manual current)
 - Services:
   - `app/services/aggregation/aggregation_service.py`
-  - `app/services/capacity/current_aggregation_service.py` (manual current)
+  - `app/services/capacity/capacity_current_aggregation_actions_service.py` (manual current action)
 - Models(tables):
   - `app/models/database_size_aggregation.py` (`database_size_aggregations`)
   - `app/models/instance_size_aggregation.py` (`instance_size_aggregations`)

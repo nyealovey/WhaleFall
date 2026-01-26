@@ -1,14 +1,14 @@
 {
 	"nodes":[
 		{"id":"be72bbb093662553","type":"group","x":-80,"y":-80,"width":2200,"height":1040,"label":"Account Classification Domain - Components","color":"2"},
-		{"id":"176a9406657b166b","type":"text","text":"## 入口(API)\n\nCode: `app/api/v1/namespaces/accounts_classifications.py`\n\n- 分类 CRUD\n- 规则 CRUD\n- 分配(手动/自动)\n- 表达式校验\n- auto-classify(同步执行)\n","x":0,"y":0,"width":500,"height":220,"color":"3"},
-		{"id":"47f44b3d2202fb74","type":"text","text":"## 后台执行\n\nNo dedicated task.\n\n- 当前 auto-classify 为同步执行\n","x":0,"y":240,"width":500,"height":140,"color":"2"},
+		{"id":"176a9406657b166b","type":"text","text":"## 入口(API)\n\nCode: `app/api/v1/namespaces/accounts_classifications.py`\n\n- 分类 CRUD\n- 规则 CRUD\n- 分配(手动/自动)\n- 表达式校验\n- auto-classify(后台任务)\n","x":0,"y":0,"width":500,"height":220,"color":"3"},
+		{"id":"47f44b3d2202fb74","type":"text","text":"## 后台执行\n\nTask:\n- `app/tasks/account_classification_auto_tasks.py:auto_classify_accounts`\n\n- 写入 TaskRun/TaskRunItem\n","x":0,"y":240,"width":500,"height":140,"color":"2"},
 		{"id":"ba17967ce2a8d33c","type":"text","text":"## 会话追踪\n\n- no SyncSession\n- 主要依赖:\n  - account_classification 模块日志\n  - 规则/分配表落库结果\n","x":0,"y":400,"width":500,"height":180,"color":"5"},
 		{"id":"d6c4b2a1908f7e5d","type":"text","text":"## 入口(API): Cache\n\nCode: `app/api/v1/namespaces/cache.py`\n\n- /cache/classification/clear\n- /cache/classification/stats\n","x":0,"y":600,"width":500,"height":140,"color":"3"},
 		{"id":"70d80e50dbde4fe7","type":"text","text":"## 读服务\n\nCode: `app/services/accounts/account_classifications_read_service.py`\n\n- list/detail\n- rules/assignments 查询\n","x":520,"y":0,"width":480,"height":140,"color":"6"},
 		{"id":"92eb5758a2c3974c","type":"text","text":"## 写服务\n\nCode: `app/services/accounts/account_classifications_write_service.py`\n\n- create/update/delete\n- rules/assignments 写入\n- invalidate cache\n","x":520,"y":160,"width":480,"height":140,"color":"6"},
 		{"id":"11ddf09a8d4a4a93","type":"text","text":"## 表达式校验\n\n- DSL v4 validation\n\nCode:\n- `app/services/account_classification/dsl_v4.py`\n","x":520,"y":320,"width":480,"height":140,"color":"1"},
-		{"id":"aae6ebf915abfbe3","type":"text","text":"## Auto classify\n\nCode: `app/services/account_classification/auto_classify_service.py`\n\n- 同步执行\n- 调用 orchestrator\n","x":520,"y":520,"width":480,"height":160,"color":"6"},
+		{"id":"aae6ebf915abfbe3","type":"text","text":"## Auto classify\n\nCode:\n- `app/services/account_classification/auto_classify_actions_service.py`\n- `app/tasks/account_classification_auto_tasks.py`\n\n- create TaskRun + start thread\n- run auto_classify_accounts\n","x":520,"y":520,"width":480,"height":160,"color":"6"},
 		{"id":"1f2e3d4c5b6a7981","type":"text","text":"## Repository (CRUD)\n\nCode: `app/repositories/accounts_classifications_repository.py`\n\n- classifications/rules/assignments CRUD\n","x":520,"y":700,"width":480,"height":160,"color":"1"},
 		{"id":"7df97f9decc9e68d","type":"text","text":"## 规则缓存\n\nCode: `app/services/account_classification/cache.py`\n\n- rules cache\n- per-db-type cache\n","x":1040,"y":0,"width":480,"height":140,"color":"4"},
 		{"id":"f3edd0e2feb8a1ee","type":"text","text":"## Redis\n\n- Flask-Caching (redis backend)\n- CacheManager (single entry)\n","x":1040,"y":160,"width":480,"height":140,"color":"4"},
