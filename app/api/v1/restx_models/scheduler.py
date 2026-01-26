@@ -12,7 +12,7 @@ SCHEDULER_JOB_LIST_ITEM_FIELDS: dict[str, fields.Raw] = {
     "trigger_args": fields.Raw(description="触发器参数", example={}),
     "state": fields.String(description="状态", example="scheduled"),
     "is_builtin": fields.Boolean(description="是否内置任务", example=True),
-    "func": fields.String(description="执行函数", example="app.tasks.scheduler:run"),
+    "func": fields.String(description="执行函数", example="app.tasks.accounts_sync_tasks:sync_accounts"),
     "args": fields.Raw(description="位置参数", example=[]),
     "kwargs": fields.Raw(description="关键字参数", example={}),
 }
@@ -22,7 +22,7 @@ SCHEDULER_JOB_DETAIL_FIELDS: dict[str, fields.Raw] = {
     "name": fields.String(description="Job 名称", example="sync_accounts"),
     "next_run_time": fields.String(description="下次运行时间(ISO8601, 可选)", example="2025-01-01T01:00:00"),
     "trigger": fields.String(description="触发器描述", example="cron[hour='1']"),
-    "func": fields.String(description="执行函数", example="app.tasks.scheduler:run"),
+    "func": fields.String(description="执行函数", example="app.tasks.accounts_sync_tasks:sync_accounts"),
     "args": fields.Raw(description="位置参数", example=[]),
     "kwargs": fields.Raw(description="关键字参数", example={}),
     "misfire_grace_time": fields.Integer(description="misfire 宽限(秒)", example=60),

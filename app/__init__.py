@@ -421,18 +421,6 @@ def configure_logging(app: Flask) -> None:
         app.logger.info("鲸落应用启动")
 
 
-def configure_error_handlers(app: Flask) -> None:
-    """配置错误处理器(保留占位,统一错误处理中使用).
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 当前实现不做额外操作.
-
-    """
-
-
 def configure_template_filters(app: Flask) -> None:
     """注册时间与日期相关的模板过滤器.
 
