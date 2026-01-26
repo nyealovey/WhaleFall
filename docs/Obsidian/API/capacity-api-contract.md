@@ -8,7 +8,7 @@ tags:
   - aggregations
 status: draft
 created: 2026-01-08
-updated: 2026-01-08
+updated: 2026-01-26
 source_code:
   - app/api/v1/namespaces/capacity.py
 ---
@@ -60,7 +60,7 @@ source_code:
 
 | Method | Path                                    | Purpose         | Service | Permission | CSRF | Notes                                                                                                    |
 | ------ | --------------------------------------- | --------------- | ------- | ---------- | ---- | -------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/v1/capacity/aggregations/current` | 触发当前周期聚合（仅聚合今日） | `CurrentAggregationService.aggregate_current` | `admin`    | ✅    | body：`period_type?`（当前仅 daily）/`scope?`（instance/database/all）                                           |
+| POST   | `/api/v1/capacity/aggregations/current` | 触发当前周期聚合（后台执行；当前固定 daily） | `CapacityCurrentAggregationActionsService` | `admin`    | ✅    | body：`scope?`（instance/database/all）；`period_type?`（当前前端固定传 daily，但后端暂不读取该字段）                |
 | GET    | `/api/v1/capacity/databases`            | 数据库容量聚合列表       | `DatabaseAggregationsReadService.list_aggregations` | `view`     | -    | query：`instance_id/db_type/database_name/database_id/period_type/start_date/end_date/get_all/page/limit` |
 | GET    | `/api/v1/capacity/databases/summary`    | 数据库容量聚合汇总       | `DatabaseAggregationsReadService.build_summary` | `view`     | -    | query 同上（不含分页）                                                                                           |
 | GET    | `/api/v1/capacity/instances`            | 实例容量聚合列表        | `InstanceAggregationsReadService.list_aggregations` | `view`     | -    | query：`instance_id/db_type/period_type/start_date/end_date/time_range/get_all/page/limit`                |

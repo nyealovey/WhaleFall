@@ -5,10 +5,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import ClassVar, cast
 from uuid import uuid4
 
-from flask import Response, request
+from flask import request
 from flask_restx import fields
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -16,8 +17,8 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.namespaces.instances import ns
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.core.constants.system_constants import ErrorMessages
-from app.core.exceptions import NotFoundError, ValidationError
+from app.core.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
+from app.core.exceptions import AppError, NotFoundError, ValidationError
 from app.core.types import JsonDict, JsonValue
 from app.infra.route_safety import log_with_context
 from app.schemas.instances_connections import InstanceConnectionTestPayload
@@ -27,7 +28,7 @@ from app.services.connections.instance_connections_write_service import Instance
 from app.services.credentials import CredentialDetailReadService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.utils.decorators import require_csrf
-from app.utils.response_utils import jsonify_unified_error_message
+from app.utils.response_utils import unified_error_response, unified_success_response
 
 ErrorEnvelope = get_error_envelope_model(ns)
 
@@ -139,48 +140,49 @@ def _parse_json_payload() -> JsonDict:
     return cast("JsonDict", raw)
 
 
-def _require_credential(credential_id: int) -> object:
-    return CredentialDetailReadService().get_credential_or_error(credential_id)
-
-
-def _test_existing_instance(connection_test_service: ConnectionTestService, instance_id: int):
-    instance = InstanceDetailReadService().get_instance_by_id(instance_id)
-    if instance is None:
-        raise NotFoundError("实例不存在", extra={"instance_id": instance_id})
-    result = connection_test_service.test_connection(instance)
-    if result.get("success"):
-        return result, 200, "实例连接测试成功"
-
+def _build_connection_test_failed_response(result: Mapping[str, object]) -> tuple[JsonDict, int]:
     extra: JsonDict = {}
     if result.get("error_id"):
         extra["connection_error_id"] = str(result["error_id"])
     if result.get("details"):
         extra["details"] = cast("JsonValue", result["details"])
 
-    response, status = jsonify_unified_error_message(
-        ErrorMessages.DATABASE_CONNECTION_ERROR,
-        status_code=409,
+    error = AppError(
+        message=ErrorMessages.DATABASE_CONNECTION_ERROR,
         message_key="DATABASE_CONNECTION_ERROR",
-        extra=extra,
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.MEDIUM,
     )
-    response.status_code = status
-    return response
+    return unified_error_response(error, status_code=409, extra=extra)
+
+
+def _test_existing_instance(
+    connection_test_service: ConnectionTestService,
+    instance_id: int,
+) -> tuple[JsonDict, int]:
+    instance = InstanceDetailReadService().get_instance_by_id(instance_id)
+    if instance is None:
+        raise NotFoundError("实例不存在", extra={"instance_id": instance_id})
+    result = connection_test_service.test_connection(instance)
+    if result.get("success"):
+        return unified_success_response(data=result, message="实例连接测试成功")
+    return _build_connection_test_failed_response(result)
 
 
 def _test_new_connection(
-    connection_test_service: ConnectionTestService, connection_params: InstanceConnectionTestPayload
-):
-    name = connection_params.name
+    connection_test_service: ConnectionTestService,
+    connection_params: InstanceConnectionTestPayload,
+    *,
+    default_name: str = "temp_test",
+) -> tuple[JsonDict, int]:
     db_type = cast("str", connection_params.db_type)
     host = cast("str", connection_params.host)
     port = cast("int", connection_params.port)
     credential_id = cast("int", connection_params.credential_id)
 
-    resolved_name = "temp_test"
-    if isinstance(name, str) and name.strip():
-        resolved_name = name
+    resolved_name = (connection_params.name or "").strip() or default_name
 
-    credential = _require_credential(credential_id)
+    credential = CredentialDetailReadService().get_credential_or_error(credential_id)
     result = connection_test_service.test_connection_with_params(
         name=resolved_name,
         db_type=db_type,
@@ -189,22 +191,8 @@ def _test_new_connection(
         credential=credential,
     )
     if result.get("success"):
-        return result, 200, "连接测试成功"
-
-    extra: JsonDict = {}
-    if result.get("error_id"):
-        extra["connection_error_id"] = str(result["error_id"])
-    if result.get("details"):
-        extra["details"] = cast("JsonValue", result["details"])
-
-    response, status = jsonify_unified_error_message(
-        ErrorMessages.DATABASE_CONNECTION_ERROR,
-        status_code=409,
-        message_key="DATABASE_CONNECTION_ERROR",
-        extra=extra,
-    )
-    response.status_code = status
-    return response
+        return unified_success_response(data=result, message="连接测试成功")
+    return _build_connection_test_failed_response(result)
 
 
 def _execute_batch_tests(
@@ -279,17 +267,8 @@ class InstancesConnectionsTestResource(BaseResource):
         def _execute():
             parsed = write_service.parse_connection_test_payload(raw)
             if parsed.instance_id is not None:
-                maybe_error = _test_existing_instance(connection_test_service, parsed.instance_id)
-                if isinstance(maybe_error, Response):
-                    return maybe_error
-                success_payload, status_code, message = cast("tuple[JsonDict, int, str]", maybe_error)
-                return self.success(data=success_payload, message=message, status=status_code)
-
-            maybe_error = _test_new_connection(connection_test_service, parsed)
-            if isinstance(maybe_error, Response):
-                return maybe_error
-            success_payload, status_code, message = cast("tuple[JsonDict, int, str]", maybe_error)
-            return self.success(data=success_payload, message=message, status=status_code)
+                return _test_existing_instance(connection_test_service, parsed.instance_id)
+            return _test_new_connection(connection_test_service, parsed)
 
         return self.safe_call(
             _execute,

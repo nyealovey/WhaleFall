@@ -293,8 +293,7 @@ class DashboardActivitiesResource(BaseResource):
         """获取仪表板活动."""
 
         def _execute():
-            activities: list[dict[str, object]] = []
-            return self.success(data=activities, message=SuccessMessages.OPERATION_SUCCESS)
+            return self.success(data=[], message=SuccessMessages.OPERATION_SUCCESS)
 
         return self.safe_call(
             _execute,

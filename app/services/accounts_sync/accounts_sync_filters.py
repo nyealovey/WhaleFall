@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, TypeAlias, cast
+from typing import TypeAlias, cast
 
 import yaml
 from pydantic import ValidationError as PydanticValidationError
