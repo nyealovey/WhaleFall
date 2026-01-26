@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from datetime import datetime
 from typing import ClassVar, cast
 
 from flask_restx import Namespace, fields, marshal
@@ -18,9 +16,7 @@ from app.api.v1.restx_models.history import (
     HISTORY_LOG_STATISTICS_FIELDS,
     HISTORY_LOG_TOP_MODULE_FIELDS,
 )
-from app.core.constants.system_constants import LogLevel
 from app.core.exceptions import ValidationError
-from app.core.types.history_logs import LogSearchFilters
 from app.schemas.history_logs_query import HistoryLogsListQuery, HistoryLogStatisticsQuery
 from app.schemas.validation import validate_or_raise
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
@@ -98,72 +94,6 @@ _history_log_statistics_query_parser = new_parser()
 _history_log_statistics_query_parser.add_argument("hours", type=int, default=24, location="args")
 
 
-def _parse_iso_datetime(raw_value: str | None, *, param_name: str) -> datetime | None:
-    if not raw_value:
-        return None
-    try:
-        return datetime.fromisoformat(raw_value)
-    except ValueError as exc:
-        raise ValidationError(f"{param_name} 参数必须为 ISO 8601 时间字符串") from exc
-
-
-def _resolve_hours_param(raw_hours: int | None) -> int | None:
-    if raw_hours is None:
-        return None
-    hours = int(raw_hours)
-    if hours < 1:
-        raise ValidationError("hours 参数必须为正整数")
-    max_hours = 24 * 90
-    return min(hours, max_hours)
-
-
-def _extract_log_search_filters(parsed: Mapping[str, object]) -> LogSearchFilters:
-    raw_page = parsed.get("page")
-    page = max(int(raw_page) if isinstance(raw_page, int) else 1, 1)
-
-    raw_limit = parsed.get("limit")
-    limit = int(raw_limit) if isinstance(raw_limit, int) else 20
-    limit = max(min(limit, 200), 1)
-    sort_field = str(parsed.get("sort") or "timestamp").lower()
-    sort_order = str(parsed.get("order") or "desc").lower()
-    if sort_order not in {"asc", "desc"}:
-        sort_order = "desc"
-
-    level_param = parsed.get("level")
-    log_level = None
-    if isinstance(level_param, str) and level_param.strip():
-        try:
-            log_level = LogLevel(level_param.strip().upper())
-        except ValueError as exc:
-            raise ValidationError("日志级别参数无效") from exc
-
-    module_value = parsed.get("module")
-    module_param = module_value.strip() if isinstance(module_value, str) and module_value.strip() else None
-    search_term = str(parsed.get("search") or "").strip()
-
-    start_time_raw = parsed.get("start_time")
-    end_time_raw = parsed.get("end_time")
-    start_time = _parse_iso_datetime(
-        start_time_raw if isinstance(start_time_raw, str) else None, param_name="start_time"
-    )
-    end_time = _parse_iso_datetime(end_time_raw if isinstance(end_time_raw, str) else None, param_name="end_time")
-    raw_hours = parsed.get("hours")
-    hours = _resolve_hours_param(raw_hours if isinstance(raw_hours, int) else None)
-
-    return LogSearchFilters(
-        page=page,
-        limit=limit,
-        sort_field=sort_field,
-        sort_order=sort_order,
-        level=log_level,
-        module=module_param,
-        search_term=search_term,
-        start_time=start_time,
-        end_time=end_time,
-        hours=hours,
-    )
-
-
 @ns.route("")
 class HistoryLogsResource(BaseResource):
     """日志列表资源."""
@@ -182,7 +112,7 @@ class HistoryLogsResource(BaseResource):
         def _execute():
             parsed = cast("dict[str, object]", _history_logs_list_query_parser.parse_args())
             query = validate_or_raise(HistoryLogsListQuery, parsed)
-            filters: LogSearchFilters = query.to_filters()
+            filters = query.to_filters()
             result = HistoryLogsListService().list_logs(filters)
             items = marshal(result.items, HISTORY_LOG_ITEM_FIELDS)
             return self.success(
