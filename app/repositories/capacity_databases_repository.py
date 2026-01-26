@@ -94,53 +94,58 @@ class CapacityDatabasesRepository:
         filters: DatabaseAggregationsSummaryFilters,
     ) -> tuple[int, int, int, float, int]:
         """汇总最新周期的容量聚合统计."""
+        row = self._build_latest_aggregations_summary_query(filters).one()
+
+        total_databases = int(getattr(row, "total_databases", 0) or 0)
+        total_instances = int(getattr(row, "total_instances", 0) or 0)
+        total_size_mb = int(getattr(row, "total_size_mb", 0) or 0)
+        avg_size_mb = float(getattr(row, "avg_size_mb", 0) or 0)
+        max_size_mb = int(getattr(row, "max_size_mb", 0) or 0)
+        return total_databases, total_instances, total_size_mb, avg_size_mb, max_size_mb
+
+    def _build_latest_aggregations_summary_query(self, filters: DatabaseAggregationsSummaryFilters) -> Query[Any]:
+        """构造汇总查询(最新周期数据).
+
+        注意:
+        - `database_size_aggregations` 为按 `period_start` 分区的表
+        - 这里使用子查询 + join 的方式获取「每个库的最新周期记录」，避免构造超大的 tuple IN 参数列表
+        """
         resolved_database_name = self._resolve_database_name(filters.database_name, filters.database_id)
         base_query = self._apply_filters(self._base_query(), filters, resolved_database_name=resolved_database_name)
 
-        latest_entries = (
+        latest_subquery = (
             base_query.with_entities(
                 DatabaseSizeAggregation.instance_id.label("instance_id"),
                 DatabaseSizeAggregation.database_name.label("database_name"),
                 DatabaseSizeAggregation.period_type.label("period_type"),
-                func.max(DatabaseSizeAggregation.period_end).label("latest_period_end"),
+                func.max(DatabaseSizeAggregation.period_start).label("latest_period_start"),
             )
             .group_by(
                 DatabaseSizeAggregation.instance_id,
                 DatabaseSizeAggregation.database_name,
                 DatabaseSizeAggregation.period_type,
             )
-            .all()
+            .subquery()
         )
 
-        if not latest_entries:
-            return 0, 0, 0, 0.0, 0
+        join_condition = and_(
+            DatabaseSizeAggregation.instance_id == latest_subquery.c.instance_id,
+            DatabaseSizeAggregation.database_name == latest_subquery.c.database_name,
+            DatabaseSizeAggregation.period_type == latest_subquery.c.period_type,
+            DatabaseSizeAggregation.period_start == latest_subquery.c.latest_period_start,
+        )
 
-        lookup_values = [
-            (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end)
-            for entry in latest_entries
-        ]
-        aggregations = (
-            self._session.query(DatabaseSizeAggregation)
-            .filter(
-                tuple_(
-                    DatabaseSizeAggregation.instance_id,
-                    DatabaseSizeAggregation.database_name,
-                    DatabaseSizeAggregation.period_type,
-                    DatabaseSizeAggregation.period_end,
-                ).in_(lookup_values),
+        return (
+            self._session.query(
+                func.count().label("total_databases"),
+                func.count(func.distinct(latest_subquery.c.instance_id)).label("total_instances"),
+                func.coalesce(func.sum(DatabaseSizeAggregation.avg_size_mb), 0).label("total_size_mb"),
+                func.coalesce(func.avg(DatabaseSizeAggregation.avg_size_mb), 0).label("avg_size_mb"),
+                func.coalesce(func.max(DatabaseSizeAggregation.max_size_mb), 0).label("max_size_mb"),
             )
-            .all()
+            .select_from(DatabaseSizeAggregation)
+            .join(latest_subquery, join_condition)
         )
-
-        def _coalesce_int(value: Any) -> int:
-            return int(value) if value is not None else 0
-
-        total_databases = len({(entry.instance_id, entry.database_name) for entry in latest_entries})
-        total_instances = len({entry.instance_id for entry in latest_entries})
-        total_size_mb = sum(_coalesce_int(getattr(agg, "avg_size_mb", None)) for agg in aggregations)
-        avg_size_mb = total_size_mb / total_databases if total_databases else 0.0
-        max_size_mb = max((_coalesce_int(getattr(agg, "max_size_mb", None)) for agg in aggregations), default=0)
-        return total_databases, total_instances, total_size_mb, float(avg_size_mb), max_size_mb
 
     def _base_query(self) -> Query[Any]:
         join_condition = and_(
