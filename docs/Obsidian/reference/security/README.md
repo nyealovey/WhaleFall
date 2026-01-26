@@ -13,7 +13,7 @@ scope: 安全相关参考文档索引(permission strings, authn/authz, CSRF/JWT)
 related:
   - "[[reference/README|reference]]"
   - "[[architecture/identity-access]]"
-  - "[[standards/backend/layer/api-layer-standards]]"
+  - "[[standards/backend/gate/layer/api-layer]]"
 ---
 
 # 安全参考

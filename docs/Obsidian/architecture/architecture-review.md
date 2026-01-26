@@ -14,7 +14,7 @@ scope: 架构评审入口,覆盖主题清单,输出约定
 related:
   - "[[architecture/README|architecture]]"
   - "[[architecture/adr/README|ADR]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # 架构评审

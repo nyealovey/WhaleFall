@@ -69,6 +69,14 @@ function mountInstanceAggregationsPage(window) {
     }
 
     window.instanceCapacityStatsManager = new window.CapacityStats.Manager({
+      dataSource: (() => {
+        const createDataSource = window.createCapacityStatsDataSource;
+        if (typeof createDataSource !== "function") {
+          throw new Error("createCapacityStatsDataSource 未初始化");
+        }
+        const service = new window.CapacityStatsService();
+        return createDataSource({ service });
+      })(),
       labelExtractor,
       scope: "instance",
       filterFormId: "#instance-aggregations-filter-form",

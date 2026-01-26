@@ -64,3 +64,91 @@ jobs:
           else
             uv run pre-commit run --all-files --show-diff-on-failure
           fi
+
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep unixodbc-dev freetds-dev
+
+      - name: Install uv
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "uv==0.9.21"
+
+      - name: Sync dependencies
+        run: |
+          uv sync --all-groups --frozen
+
+      - name: Run pytest
+        run: |
+          uv run pytest
+
+  gates:
+    name: gates (scripts/ci)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep unixodbc-dev freetds-dev
+
+      - name: Install uv
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "uv==0.9.21"
+
+      - name: Sync dependencies
+        run: |
+          uv sync --all-groups --frozen
+
+      - name: Install node deps
+        run: |
+          npm ci
+
+      - name: Run gates
+        run: |
+          ./scripts/ci/secrets-guard.sh
+          ./scripts/ci/ruff-style-guard.sh
+          ./scripts/ci/pyright-guard.sh
+          ./scripts/ci/or-fallback-pattern-guard.sh
+          ./scripts/ci/db-session-commit-allowlist-guard.sh
+          ./scripts/ci/db-session-write-boundary-guard.sh
+          ./scripts/ci/pagination-param-guard.sh
+          ./scripts/ci/routes-safe-route-call-guard.sh
+          ./scripts/ci/settings-env-read-guard.sh
+          ./scripts/ci/db-session-rollback-allowlist-guard.sh
+          ./scripts/ci/repositories-route-safety-import-guard.sh
+          ./scripts/ci/api-v1-ns-expect-guard.sh
+          ./scripts/ci/account-classification-auto-tasks-guard.sh
+          ./scripts/ci/ops-legacy-guard.sh
+          ./scripts/ci/frontend-contracts-guard.sh
+          ./scripts/ci/ui-standards-audit-guard.sh

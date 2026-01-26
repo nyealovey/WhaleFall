@@ -27,13 +27,13 @@
 - [x] app/core/types（类型定义）
 - [x] app/core/exceptions（统一异常）
 - [x] app/utils/logging + app/utils/structlog_config.py（结构化日志）
-- [x] app/utils/http（decorators/request_payload/response_utils/proxy_fix_middleware/pagination）
-- [x] app/utils/db（safe_query_builder/sqlserver_connection_utils/database_type_utils/query_filter_utils/cache_utils）
-- [x] app/utils/security（rate_limiter/redirect_safety/password_crypto_utils/sensitive_data/spreadsheet_formula_safety）
+- [x] app/utils/http（decorators/request_payload/response_utils/proxy_fix_middleware）
+- [x] app/utils/db（safe_query_builder/database_type_utils/query_filter_utils/cache_utils）
+- [x] app/utils/security（redirect_safety/password_crypto_utils/sensitive_data/spreadsheet_formula_safety）
 - [x] app/utils/misc（time_utils/version_parser/payload_converters/status_type_utils/user_role_utils/theme_color_utils）
 - [x] app/settings.py（配置读取/默认值/校验）
 - [x] app/config/*.yaml（过滤器/调度任务配置）
-- [x] app/infra（logging/route_safety/error_mapping/...）
+- [x] app/infra（logging/route_safety/error_mapping/rate_limiting/...）
 - [x] app/schemas（base/validation/contracts）
 - [x] app/models（ORM）
 - [x] app/repositories（数据访问）

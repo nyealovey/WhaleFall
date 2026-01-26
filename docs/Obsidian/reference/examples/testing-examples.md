@@ -12,8 +12,8 @@ owner: WhaleFall Team
 scope: `standards/testing-standards` 引用的测试示例集合(非规则 SSOT)
 related:
   - "[[reference/examples/README]]"
-  - "[[standards/testing-standards]]"
-  - "[[standards/doc/document-boundary-standards]]"
+  - "[[standards/core/guide/testing]]"
+  - "[[standards/doc/guide/document-boundary]]"
 ---
 
 # Testing 示例(长示例)

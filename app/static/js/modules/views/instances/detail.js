@@ -28,7 +28,7 @@
     const { ready, selectOne, select, from } = DOMHelpers || helpersFallback;
 
     let instanceService = null;
-    let instanceCrudService = null;
+    let instanceCrudStore = null;
     let instanceModals = null;
     let instanceStore = null;
     let historyModal = null;
@@ -105,6 +105,7 @@ function ensureInstanceService() {
 
     // 页面加载完成，不自动测试连接
     ready(() => {
+        configurePermissionViewer();
         bindTemplateActions();
         initializeInstanceStore();
         initializeHistoryModal();
@@ -115,6 +116,37 @@ function ensureInstanceService() {
         initializeDatabaseSizesGrid();
         window.setTimeout(loadDatabaseSizes, 500);
     });
+
+function configurePermissionViewer() {
+    const viewer = window.PermissionViewer;
+    const PermissionService = window.PermissionService;
+    if (!viewer?.configure || typeof PermissionService !== 'function') {
+        console.error('PermissionViewer/PermissionService 未加载，权限查看功能不可用');
+        return;
+    }
+    if (typeof window.showPermissionsModal !== 'function') {
+        console.error('showPermissionsModal 未加载，权限查看功能不可用');
+        return;
+    }
+    let service = null;
+    try {
+        service = new PermissionService();
+    } catch (error) {
+        console.error('初始化 PermissionService 失败:', error);
+        return;
+    }
+    try {
+        viewer.configure({
+            fetchPermissions: ({ accountId, apiUrl }) => {
+                return apiUrl ? service.fetchByUrl(apiUrl) : service.fetchAccountPermissions(accountId);
+            },
+            showPermissionsModal: window.showPermissionsModal,
+            toast: window.toast,
+        });
+    } catch (error) {
+        console.error('配置 PermissionViewer 失败:', error);
+    }
+}
 
 function resetGridFilterForms() {
     ['instance-accounts-filter-form', 'instance-databases-filter-form'].forEach((formId) => {
@@ -262,7 +294,8 @@ function testConnection(event) {
  * @return {void}
  */
 function syncAccounts(event) {
-    if (!ensureInstanceService()) {
+    if (!instanceStore?.actions?.syncInstanceAccounts) {
+        toast.error('InstanceStore 未初始化');
         return;
     }
     const fallbackBtn = selectOne('[data-action="sync-accounts"]').first();
@@ -286,10 +319,7 @@ function syncAccounts(event) {
 
     const customUrl = getSyncAccountsUrl();
     const syncOptions = customUrl ? { customUrl } : undefined;
-    const request = instanceStore
-        ? instanceStore.actions.syncInstanceAccounts(getInstanceId(), syncOptions)
-        : instanceService.syncInstanceAccounts(getInstanceId(), syncOptions);
-    request
+    instanceStore.actions.syncInstanceAccounts(getInstanceId(), syncOptions)
         .then(data => {
             const resolver = window.UI?.resolveAsyncActionOutcome;
             const outcome = typeof resolver === 'function'
@@ -381,8 +411,8 @@ function openEditInstance(event) {
 
 async function confirmDeleteInstance(event) {
     event?.preventDefault?.();
-    if (!ensureInstanceCrudService()) {
-        window.toast?.error?.('实例服务未就绪');
+    if (!ensureInstanceCrudStore()) {
+        window.toast?.error?.('实例状态未就绪');
         return;
     }
     const instanceId = getInstanceId();
@@ -415,12 +445,9 @@ async function confirmDeleteInstance(event) {
         button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>处理中...';
         button.disabled = true;
     }
-    instanceCrudService
+    instanceCrudStore.actions
         .deleteInstance(instanceId)
         .then((resp) => {
-            if (!resp?.success) {
-                throw new Error(resp?.message || '移入回收站失败');
-            }
             window.toast?.success?.(resp?.message || '实例已移入回收站');
             window.location.href = '/instances';
         })
@@ -443,7 +470,8 @@ async function confirmDeleteInstance(event) {
  * @return {void}
  */
 function syncCapacity(instanceId, instanceName, event) {
-    if (!ensureInstanceService()) {
+    if (!instanceStore?.actions?.syncInstanceCapacity) {
+        toast.error('InstanceStore 未初始化');
         return;
     }
     const fallbackBtn = selectOne('[data-action="sync-capacity"]').first();
@@ -465,10 +493,7 @@ function syncCapacity(instanceId, instanceName, event) {
     buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
     buttonWrapper.attr('disabled', 'disabled');
 
-    const request = instanceStore
-        ? instanceStore.actions.syncInstanceCapacity(instanceId)
-        : instanceService.syncInstanceCapacity(instanceId);
-    request
+    instanceStore.actions.syncInstanceCapacity(instanceId)
         .then(data => {
             const resolver = window.UI?.resolveAsyncActionOutcome;
             const outcome = typeof resolver === 'function'
@@ -557,7 +582,12 @@ function syncCapacity(instanceId, instanceName, event) {
  * @return {void}
  */
 function viewInstanceAccountPermissions(accountId) {
-    window.viewAccountPermissions(accountId, { scope: 'instance-permission' });
+    const viewer = window.PermissionViewer?.viewAccountPermissions;
+    if (typeof viewer !== 'function') {
+        console.error('PermissionViewer 未注册');
+        return;
+    }
+    viewer(accountId, { scope: 'instance-permission' });
 }
 
 /**
@@ -1157,18 +1187,18 @@ function openDatabaseTableSizesModal(actionEvent) {
 }
 
 function loadDatabaseSizesSummary() {
-    if (!ensureInstanceService()) {
+    if (!instanceStore?.actions?.fetchDatabaseSizes) {
         return;
     }
     const instanceId = getInstanceId();
-    instanceService.fetchDatabaseSizes(instanceId, {
+    instanceStore.actions.fetchDatabaseSizes(instanceId, {
         latest_only: true,
         include_inactive: true,
         limit: 1,
         page: 1,
     })
-        .then((data) => {
-            const payload = data?.data || data || {};
+        .then((resp) => {
+            const payload = resp?.data || resp || {};
             updateDatabaseSizesSummary(payload);
         })
         .catch((error) => {
@@ -1380,7 +1410,8 @@ function renderOtherDiffEntries(diffEntries) {
  * @return {void}
  */
 function viewAccountChangeHistory(accountId) {
-    if (!ensureInstanceService()) {
+    if (!instanceStore?.actions?.fetchAccountChangeHistory) {
+        toast.error('InstanceStore 未初始化');
         return;
     }
     const historyContentWrapper = selectOne('#historyContent');
@@ -1392,73 +1423,61 @@ function viewAccountChangeHistory(accountId) {
     if (modalMeta.length) {
         modalMeta.text(`账户 #${accountId} · 加载中`);
     }
-    instanceService.fetchAccountChangeHistory(accountId)
-        .then(data => {
-            const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
-                ? data.data
-                : data;
-            const history = Array.isArray(payload?.history) ? payload.history : null;
+    instanceStore.actions.fetchAccountChangeHistory(accountId)
+        .then((resp) => {
+            const payload = resp?.data || resp || {};
+            const history = Array.isArray(payload?.history) ? payload.history : [];
 
-            if (data && data.success) {
-                // 显示变更历史模态框
-                if (!historyContentWrapper.length) {
-                    console.error('未找到历史记录模态框元素');
-                    return;
-                }
-                if (modalMeta.length) {
-                    modalMeta.text(formatHistoryMeta(payload?.account, `账户 #${accountId}`));
-                }
-                const openAllLink = document.getElementById('historyModalOpenAll');
-                if (openAllLink && payload?.account && typeof payload.account === 'object') {
-                    const baseHref = openAllLink.getAttribute('href') || '/history/account-change-logs/';
-                    const params = new URLSearchParams();
-                    const instanceId = getInstanceId();
-                    if (instanceId) {
-                        params.set('instance_id', String(instanceId));
-                    }
-                    if (payload.account.username) {
-                        params.set('search', payload.account.username);
-                    }
-                    if (payload.account.db_type) {
-                        params.set('db_type', payload.account.db_type);
-                    }
-                    const query = params.toString();
-                    openAllLink.setAttribute('href', query ? `${baseHref}?${query}` : baseHref);
-                }
-                if (history && history.length > 0) {
-                    const renderer = window.ChangeHistoryRenderer?.renderChangeHistoryCard;
-                    const cards = history
-                        .map((change, index) =>
-                            typeof renderer === 'function'
-                                ? renderer(change, { collapsible: true, open: index === 0 })
-                                : renderChangeHistoryCard(change),
-                        )
-                        .join('');
-                    historyContentWrapper.html(cards);
-                } else {
-                    historyContentWrapper.html(`
-                        <div class="change-history-modal__empty">
-                            <span class="status-pill status-pill--muted">暂无变更记录</span>
-                        </div>
-                    `);
-                }
-
-                ensureHistoryModal().open();
-            } else {
-                console.error('获取变更历史失败:', data?.error || data?.message);
-                toast.error(data?.error || data?.message || '获取变更历史失败');
-                if (historyContentWrapper.length) {
-                    historyContentWrapper.html(`
-                        <div class="change-history-modal__empty">
-                            <span class="status-pill status-pill--danger">${escapeHtml(data?.error || data?.message || '获取变更历史失败')}</span>
-                        </div>
-                    `);
-                }
+            if (!historyContentWrapper.length) {
+                console.error('未找到历史记录模态框元素');
+                return;
             }
+            if (modalMeta.length) {
+                modalMeta.text(formatHistoryMeta(payload?.account, `账户 #${accountId}`));
+            }
+
+            const openAllLink = document.getElementById('historyModalOpenAll');
+            if (openAllLink && payload?.account && typeof payload.account === 'object') {
+                const baseHref = openAllLink.getAttribute('href') || '/history/account-change-logs/';
+                const params = new URLSearchParams();
+                const instanceId = getInstanceId();
+                if (instanceId) {
+                    params.set('instance_id', String(instanceId));
+                }
+                if (payload.account.username) {
+                    params.set('search', payload.account.username);
+                }
+                if (payload.account.db_type) {
+                    params.set('db_type', payload.account.db_type);
+                }
+                const query = params.toString();
+                openAllLink.setAttribute('href', query ? `${baseHref}?${query}` : baseHref);
+            }
+
+            if (history.length > 0) {
+                const renderer = window.ChangeHistoryRenderer?.renderChangeHistoryCard;
+                const cards = history
+                    .map((change, index) =>
+                        typeof renderer === 'function'
+                            ? renderer(change, { collapsible: true, open: index === 0 })
+                            : renderChangeHistoryCard(change),
+                    )
+                    .join('');
+                historyContentWrapper.html(cards);
+            } else {
+                historyContentWrapper.html(`
+                    <div class="change-history-modal__empty">
+                        <span class="status-pill status-pill--muted">暂无变更记录</span>
+                    </div>
+                `);
+            }
+
+            ensureHistoryModal().open();
         })
-        .catch(error => {
-            console.error('获取变更历史失败:', error.message || error);
+        .catch((error) => {
+            console.error('获取变更历史失败:', error?.message || error);
             const message = error?.message || '获取变更历史失败';
+            toast.error(message);
             if (historyContentWrapper.length) {
                 historyContentWrapper.html(`
                     <div class="change-history-modal__empty">
@@ -1600,7 +1619,8 @@ function formatGbLabelFromMb(mbValue) {
  * @return {void}
  */
 function loadDatabaseSizes() {
-    if (!ensureInstanceService()) {
+    if (!instanceStore?.actions?.fetchDatabaseSizes) {
+        toast.error('InstanceStore 未初始化');
         return;
     }
 
@@ -1625,19 +1645,17 @@ function loadDatabaseSizes() {
         </div>
     `);
 
-    instanceService.fetchDatabaseSizes(instanceId, {
+    instanceStore.actions.fetchDatabaseSizes(instanceId, {
         latest_only: true,
         include_inactive: true
     })
-        .then(data => {
-            const payload = data && typeof data === 'object'
-                ? (data.data && typeof data.data === 'object' ? data.data : data)
-                : {};
+        .then((resp) => {
+            const payload = resp?.data || resp || {};
 
             if (payload && Array.isArray(payload.databases)) {
                 displayDatabaseSizes(payload);
             } else {
-                const errorMsg = data?.error || data?.message || '加载失败';
+                const errorMsg = resp?.error || resp?.message || '加载失败';
                 displayDatabaseSizesError(errorMsg);
             }
         })
@@ -1970,16 +1988,16 @@ function initializeDatabaseTableSizesModal() {
         console.warn('InstanceDatabaseTableSizesModal 未加载，表容量模态不可用');
         return;
     }
-	    try {
-	        tableSizesModal = factory({
-	            ui: window.UI,
-	            service: instanceService,
-	            InstanceManagementService: window.InstanceManagementService,
-	        });
-	    } catch (error) {
-	        console.error('初始化表容量模态失败:', error);
-	        tableSizesModal = null;
-	    }
+    try {
+        tableSizesModal = factory({
+            ui: window.UI,
+            toast,
+            store: instanceStore,
+        });
+    } catch (error) {
+        console.error('初始化表容量模态失败:', error);
+        tableSizesModal = null;
+    }
 }
 
 function ensureTableSizesModal() {
@@ -2013,13 +2031,29 @@ function initializeInstanceModals() {
         console.warn('InstanceModals 未加载，实例编辑不可用');
         return;
     }
+    const createInstanceCrudStore = window.createInstanceCrudStore;
+    if (typeof createInstanceCrudStore !== 'function') {
+        console.error('createInstanceCrudStore 未加载，实例编辑不可用');
+        return;
+    }
+    if (!InstanceService) {
+        console.warn('InstanceService 未注册，实例编辑不可用');
+        return;
+    }
 	    try {
+        if (!instanceCrudStore) {
+            instanceCrudStore = createInstanceCrudStore({
+                service: new InstanceService(),
+                emitter: window.mitt ? window.mitt() : null,
+            });
+        }
 	        instanceModals = window.InstanceModals.createController({
-	            instanceService: InstanceService ? new InstanceService() : null,
+	            store: instanceCrudStore,
 	            FormValidator: window.FormValidator,
 	            ValidationRules: window.ValidationRules,
 	            toast: window.toast,
 	            DOMHelpers: window.DOMHelpers,
+                onSaved: () => window.location.reload(),
         });
         instanceModals.init?.();
     } catch (error) {
@@ -2028,21 +2062,30 @@ function initializeInstanceModals() {
     }
 }
 
-function ensureInstanceCrudService() {
-    if (instanceCrudService) {
+function ensureInstanceCrudStore() {
+    if (instanceCrudStore) {
         return true;
     }
-    if (!InstanceService) {
-        console.warn('InstanceService 未注册，无法执行实例删除');
+    const createInstanceCrudStore = window.createInstanceCrudStore;
+    if (typeof createInstanceCrudStore !== 'function') {
+        console.warn('createInstanceCrudStore 未加载，无法执行实例删除');
         return false;
     }
-	    try {
-	        instanceCrudService = new InstanceService();
-	        return true;
-	    } catch (error) {
-	        console.error('初始化 InstanceService 失败:', error);
-	        return false;
-	    }
+    if (!InstanceService) {
+        console.warn('InstanceService 未注册，无法创建 InstanceCrudStore');
+        return false;
+    }
+    try {
+        instanceCrudStore = createInstanceCrudStore({
+            service: new InstanceService(),
+            emitter: window.mitt ? window.mitt() : null,
+        });
+        return true;
+    } catch (error) {
+        console.error('初始化 InstanceCrudStore 失败:', error);
+        instanceCrudStore = null;
+        return false;
+    }
 }
 
 /**

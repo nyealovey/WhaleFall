@@ -19,7 +19,7 @@
 4. 如需常量/作业配置，按现有约定更新 `app/core/constants/`（若存在）
 5. 补充任务的幂等性/失败处理与可观测性（日志字段/告警留钩子）
 
-参见（SSOT）：`docs/Obsidian/standards/backend/task-and-scheduler.md`
+参见（SSOT）：`docs/Obsidian/standards/backend/standard/task-and-scheduler.md`
 
 ## 新增 Grid.js 列表页（UI）
 
@@ -29,7 +29,7 @@
 4. 需要筛选时复用 FilterCard，并确保防抖与 URLSync 一致
 5. 对照迁移 checklist 自检
 
-- 标准（SSOT）：`docs/Obsidian/standards/ui/grid-standards.md`
+- 标准（SSOT）：`docs/Obsidian/standards/ui/gate/grid.md`
 - Checklist：`docs/Obsidian/reference/development/gridjs-migration-checklist.md`
 
 ## 新增数据库类型（多数据库适配）
@@ -41,4 +41,3 @@
 - 适配器入口：`app/services/connection_adapters/adapters/`
 - 分类相关：`app/services/account_classification/`
 - V2 设计：`docs/Obsidian/architecture/account-classification-v2-design.md`
-

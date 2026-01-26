@@ -46,10 +46,10 @@ class CacheManager:
 
     """
 
-    def __init__(self, cache: Cache) -> None:
+    def __init__(self, cache: Cache, *, default_timeout: int = 300) -> None:
         """初始化缓存管理器,配置缓存实例与默认超时时间."""
         self.cache = cache
-        self.default_timeout = 300  # 5分钟默认超时
+        self.default_timeout = default_timeout
         self.system_logger = get_system_logger()
 
     def build_key(self, prefix: str, *args: object, **kwargs: object) -> str:
@@ -82,7 +82,16 @@ class CacheManager:
         try:
             return self.cache.get(key)
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning("获取缓存失败", module="cache", key=key, error=str(cache_error))
+            self.system_logger.warning(
+                "获取缓存失败",
+                module="cache",
+                action="cache_get",
+                cache_key=key,
+                error=str(cache_error),
+                fallback=True,
+                fallback_reason="cache_get_failed",
+                error_type=cache_error.__class__.__name__,
+            )
             return None
 
     def set(self, key: str, value: object, timeout: int | None = None) -> bool:
@@ -102,9 +111,62 @@ class CacheManager:
                 timeout = self.default_timeout
             self.cache.set(key, value, timeout=timeout)
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning("设置缓存失败", module="cache", key=key, error=str(cache_error))
+            self.system_logger.warning(
+                "设置缓存失败",
+                module="cache",
+                action="cache_set",
+                cache_key=key,
+                error=str(cache_error),
+                fallback=True,
+                fallback_reason="cache_set_failed",
+                error_type=cache_error.__class__.__name__,
+            )
             return False
         return True
+
+    def delete(self, key: str) -> bool:
+        """删除缓存值.
+
+        Args:
+            key: 缓存键.
+
+        Returns:
+            删除成功返回 True,失败返回 False.
+
+        """
+        try:
+            self.cache.delete(key)
+        except CACHE_OPERATION_EXCEPTIONS as cache_error:
+            self.system_logger.warning(
+                "删除缓存失败",
+                module="cache",
+                action="cache_delete",
+                cache_key=key,
+                error=str(cache_error),
+                fallback=True,
+                fallback_reason="cache_delete_failed",
+                error_type=cache_error.__class__.__name__,
+            )
+            return False
+        return True
+
+    def get_stats(self) -> dict[str, object]:
+        """获取缓存统计信息."""
+        try:
+            backend = getattr(self.cache, "cache", None)
+            cache_info = backend.info() if backend and hasattr(backend, "info") else "未获取到缓存详情"
+        except CACHE_OPERATION_EXCEPTIONS as cache_error:
+            self.system_logger.warning(
+                "获取缓存统计失败",
+                module="cache",
+                action="cache_stats",
+                error=str(cache_error),
+                fallback=True,
+                fallback_reason="cache_stats_failed",
+                error_type=cache_error.__class__.__name__,
+            )
+            return {"status": "error", "error": str(cache_error)}
+        return {"status": "connected", "info": cache_info}
 
 
 class CacheManagerRegistry:
@@ -113,9 +175,9 @@ class CacheManagerRegistry:
     _manager: CacheManager | None = None
 
     @classmethod
-    def init(cls, cache: Cache) -> CacheManager:
+    def init(cls, cache: Cache, *, default_timeout: int = 300) -> CacheManager:
         """初始化缓存管理器并写入注册表."""
-        cls._manager = CacheManager(cache)
+        cls._manager = CacheManager(cache, default_timeout=default_timeout)
         cls._manager.system_logger.info("缓存管理器初始化完成", module="cache")
         return cls._manager
 
@@ -128,9 +190,9 @@ class CacheManagerRegistry:
         return cls._manager
 
 
-def init_cache_manager(cache: Cache) -> CacheManager:
+def init_cache_manager(cache: Cache, *, default_timeout: int = 300) -> CacheManager:
     """初始化缓存管理器并返回实例."""
-    return CacheManagerRegistry.init(cache)
+    return CacheManagerRegistry.init(cache, default_timeout=default_timeout)
 
 
 def cached(

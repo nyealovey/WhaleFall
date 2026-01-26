@@ -37,7 +37,22 @@ function mountDashboardOverview(global) {
         console.error('DashboardService 未初始化，无法加载仪表盘数据');
         return;
     }
-    const dashboardService = new DashboardService();
+    const createDashboardStore = global.createDashboardStore;
+    if (typeof createDashboardStore !== 'function') {
+        console.error('createDashboardStore 未初始化，无法加载仪表盘数据');
+        return;
+    }
+
+    let dashboardStore = null;
+    try {
+        dashboardStore = createDashboardStore({
+            service: new DashboardService(),
+            emitter: global.mitt ? global.mitt() : null,
+        });
+    } catch (error) {
+        console.error('初始化 DashboardStore 失败:', error);
+        return;
+    }
 
     ready(() => {
         bindActions();
@@ -101,16 +116,15 @@ function mountDashboardOverview(global) {
         const dangerColor = ColorTokens.getStatusColor('danger');
         const warningColor = ColorTokens.getStatusColor('warning');
 
-        dashboardService
-            .fetchCharts({ type: 'logs' })
-            .then((data) => {
-                const payload = data?.data ?? data ?? {};
-                const logTrend = LodashUtils.get(payload, 'log_trend', []);
-                const labels = LodashUtils.map(logTrend, (item, index) =>
+        dashboardStore.actions
+            .loadLogTrend()
+            .then((logTrend) => {
+                const trend = Array.isArray(logTrend) ? logTrend : [];
+                const labels = LodashUtils.map(trend, (item, index) =>
                     LodashUtils.safeGet(item, 'date', `未知 ${index + 1}`),
                 );
-                const errorSeries = LodashUtils.map(logTrend, (item) => Number(item?.error_count) || 0);
-                const warningSeries = LodashUtils.map(logTrend, (item) => Number(item?.warning_count) || 0);
+                const errorSeries = LodashUtils.map(trend, (item) => Number(item?.error_count) || 0);
+                const warningSeries = LodashUtils.map(trend, (item) => Number(item?.warning_count) || 0);
 
                 new global.Chart(context, {
                     type: 'line',

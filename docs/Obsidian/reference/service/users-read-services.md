@@ -19,7 +19,7 @@ scope: app/services/users/users_list_service.py
 related:
   - "[[API/users-api-contract]]"
   - "[[reference/service/user-write-service]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Users Read Services(用户列表/统计)

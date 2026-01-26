@@ -1,7 +1,6 @@
 """鲸落 - 标签模型."""
 
 from app import db
-from app.core.constants.tag_categories import TAG_CATEGORY_CHOICES
 from app.core.types import ColorHex, ColorName, CssClassName
 from app.utils.theme_color_utils import (
     get_theme_color_css_class,
@@ -153,16 +152,6 @@ class Tag(db.Model):
 
         """
         return Tag.query.filter_by(name=name).first()
-
-    @staticmethod
-    def get_category_choices() -> list:
-        """获取标签分类选项.
-
-        Returns:
-            标签分类的选项列表,每项包含分类代码和显示名称.
-
-        """
-        return TAG_CATEGORY_CHOICES
 
     def __repr__(self) -> str:
         """返回标签的调试字符串.

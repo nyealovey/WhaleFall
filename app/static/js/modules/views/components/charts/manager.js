@@ -1,7 +1,6 @@
 (function (window) {
   "use strict";
 
-  const DataSource = window.CapacityStatsDataSource;
   const Transformers = window.CapacityStatsTransformers;
   const SummaryCards = window.CapacityStatsSummaryCards;
   const Filters = window.CapacityStatsFilters;
@@ -53,6 +52,29 @@
   };
 
   const ENFORCED_MANUAL_PERIOD = "daily";
+
+  function ensureDataSource(dataSource) {
+    if (!dataSource) {
+      throw new Error("CapacityStatsManager: dataSource 未注入");
+    }
+    const required = [
+      "fetchSummary",
+      "fetchTrend",
+      "fetchChange",
+      "fetchPercentChange",
+      "calculateCurrent",
+      "fetchInstances",
+      "fetchDatabases",
+    ];
+    required.forEach((method) => {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
+      if (typeof dataSource[method] !== "function") {
+        throw new Error(`CapacityStatsManager: dataSource.${method} 未实现`);
+      }
+    });
+    return dataSource;
+  }
 
   const PERIOD_TEXT = {
     daily: {
@@ -206,19 +228,34 @@
      *
      * @constructor
      * @param {Object} userConfig - 用户配置对象
+     * @param {Object} userConfig.dataSource - DataSource（必须注入）
      * @param {Function} userConfig.labelExtractor - 标签提取函数（必需）
      * @param {string} [userConfig.filterFormId] - 筛选表单 ID
      * @param {boolean} [userConfig.autoApplyOnFilterChange=true] - 是否自动应用筛选
      * @throws {Error} 当缺少 labelExtractor 配置时抛出
      */
     constructor(userConfig) {
+      const resolvedDataSource = userConfig?.dataSource || null;
       const userOverrides = userConfig ? LodashUtils.cloneDeep(userConfig) : {};
+      // dataSource 不属于 UI config（避免 merge 进 config 干扰后续读取）
+      if (Object.prototype.hasOwnProperty.call(userOverrides, "dataSource")) {
+        delete userOverrides.dataSource;
+      }
       this.config = LodashUtils.merge({}, DEFAULT_CONFIG, userOverrides);
       this.config.autoApplyOnFilterChange =
         userOverrides?.autoApplyOnFilterChange !== undefined
           ? Boolean(userOverrides.autoApplyOnFilterChange)
           : DEFAULT_CONFIG.autoApplyOnFilterChange;
+      this.dataSource = ensureDataSource(resolvedDataSource);
       this.filterFormId = (this.config.filterFormId || "").replace(/^#/, "") || null;
+      this.filterFormEl = this.filterFormId ? selectOne(`#${this.filterFormId}`).first() : null;
+      this.filterElements = {
+        form: this.filterFormEl,
+        dbType: this.filterFormEl ? selectOne("#db_type", this.filterFormEl).first() : null,
+        instance: this.filterFormEl ? selectOne('[data-role="instance-filter"]', this.filterFormEl).first() : null,
+        database: this.filterFormEl ? selectOne('[data-role="database-filter"]', this.filterFormEl).first() : null,
+        periodType: this.filterFormEl ? selectOne("#period_type", this.filterFormEl).first() : null,
+      };
       this.handleFilterEvent = this.handleFilterEvent.bind(this);
       this.eventBusUnsubscribers = [];
       if (EventBus && this.filterFormId) {
@@ -337,6 +374,8 @@
      * 绑定页面交互事件，更新 state 并触发重绘。
      */
     bindEvents() {
+      const filterRoot = this.filterFormEl || null;
+
       this.attach("#refreshData", "click", (event) => {
         event.preventDefault();
         this.refreshAll();
@@ -347,12 +386,12 @@
         this.handleCalculateToday();
       });
 
-      this.attach("#db_type", "change", (event) => this.handleDbTypeChange(event));
-      this.attach("#instance", "change", (event) => this.handleInstanceChange(event));
+      this.attach("#db_type", "change", (event) => this.handleDbTypeChange(event), { root: filterRoot });
+      this.attach('[data-role="instance-filter"]', "change", (event) => this.handleInstanceChange(event), { root: filterRoot });
       if (this.config.supportsDatabaseFilter) {
-        this.attach("#database", "change", (event) => this.handleDatabaseChange(event));
+        this.attach('[data-role="database-filter"]', "change", (event) => this.handleDatabaseChange(event), { root: filterRoot });
       }
-      this.attach("#period_type", "change", (event) => this.handlePeriodTypeChange(event));
+      this.attach("#period_type", "change", (event) => this.handlePeriodTypeChange(event), { root: filterRoot });
 
       this.attachGroup("chartType", (value) => {
         this.state.charts.trend.type = value;
@@ -405,8 +444,9 @@
     /**
      * 工具：按选择器为单个元素绑定事件。
      */
-    attach(selector, eventName, handler) {
-      const element = selectOne(selector);
+    attach(selector, eventName, handler, options = {}) {
+      const root = options?.root || null;
+      const element = root ? selectOne(selector, root) : selectOne(selector);
       if (!element.length) {
         return;
       }
@@ -416,11 +456,12 @@
     /**
      * 工具：为同名 radio/checkbox 组绑定事件。
      */
-    attachGroup(name, handler) {
+    attachGroup(name, handler, options = {}) {
+      const root = options?.root || null;
       if (!name) {
         return;
       }
-      const inputs = select(`input[name="${name}"]`);
+      const inputs = root ? select(`input[name="${name}"]`, root) : select(`input[name="${name}"]`);
       if (!inputs.length) {
         return;
       }
@@ -459,7 +500,7 @@
         );
         params.start_date = range.startDate;
         params.end_date = range.endDate;
-        const summary = await DataSource.fetchSummary(this.config.api, params);
+        const summary = await this.dataSource.fetchSummary(this.config.api, params);
         SummaryCards.updateCards(summary, this.config.summaryCards || []);
       } catch (error) {
         this.notifyError(`加载汇总数据失败: ${error.message}`);
@@ -473,7 +514,7 @@
       this.toggleLoader("trend", true);
       try {
         const params = this.buildTrendParams();
-        const items = await DataSource.fetchTrend(this.config.api, params);
+        const items = await this.dataSource.fetchTrend(this.config.api, params);
         this.dataStore.trend = Array.isArray(items) ? items : [];
         this.renderTrendChart();
       } catch (error) {
@@ -511,7 +552,7 @@
       this.toggleLoader("change", true);
       try {
         const params = this.buildChangeParams();
-        const items = await DataSource.fetchChange(this.config.api, params);
+        const items = await this.dataSource.fetchChange(this.config.api, params);
         this.dataStore.change = Array.isArray(items) ? items : [];
         this.renderChangeChart();
       } catch (error) {
@@ -550,7 +591,7 @@
       this.toggleLoader("percent", true);
       try {
         const params = this.buildPercentParams();
-        const items = await DataSource.fetchPercentChange(this.config.api, params);
+        const items = await this.dataSource.fetchPercentChange(this.config.api, params);
         this.dataStore.percent = Array.isArray(items) ? items : [];
         this.renderChangePercentChart();
       } catch (error) {
@@ -694,7 +735,7 @@
       }
 
       try {
-        await DataSource.calculateCurrent(this.config.api.calculateEndpoint, {
+        await this.dataSource.calculateCurrent(this.config.api.calculateEndpoint, {
           period_type: periodType,
           scope: this.config.scope || "instance",
         });
@@ -711,14 +752,14 @@
       const value = event?.target?.value || "";
       this.state.filters.dbType = value;
       this.state.filters.instanceId = "";
-      Filters.syncSelectValue("#instance", "");
-      Filters.setDisabled("#instance", true);
+      Filters.syncSelectValue(this.filterElements.instance, "");
+      Filters.setDisabled(this.filterElements.instance, true);
 
       if (this.config.supportsDatabaseFilter) {
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
-        Filters.syncSelectValue("#database", "");
-        Filters.setDisabled("#database", true);
+        Filters.syncSelectValue(this.filterElements.database, "");
+        Filters.setDisabled(this.filterElements.database, true);
       }
 
       await this.refreshInstanceOptions({ preserveSelection: false });
@@ -734,8 +775,8 @@
       if (this.config.supportsDatabaseFilter) {
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
-        Filters.syncSelectValue("#database", "");
-        Filters.setDisabled("#database", true);
+        Filters.syncSelectValue(this.filterElements.database, "");
+        Filters.setDisabled(this.filterElements.database, true);
         await this.refreshDatabaseOptions(value, { preserveSelection: false });
       }
       await this.refreshAll();
@@ -772,8 +813,8 @@
         params.db_type = this.state.filters.dbType;
       }
       try {
-        const instances = await DataSource.fetchInstances(endpoint, params);
-        Filters.updateSelectOptions("#instance", {
+        const instances = await this.dataSource.fetchInstances(endpoint, params);
+        Filters.updateSelectOptions(this.filterElements.instance, {
           placeholder: "所有实例",
           items: instances,
           allowEmpty: true,
@@ -788,10 +829,10 @@
             return dbType ? `${name} (${dbType})` : name;
           },
         });
-        Filters.setDisabled("#instance", !this.state.filters.dbType);
+        Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbType);
       } catch (error) {
         this.notifyError(`加载实例列表失败: ${error.message}`);
-        Filters.setDisabled("#instance", true);
+        Filters.setDisabled(this.filterElements.instance, true);
       }
     }
 
@@ -804,12 +845,12 @@
         return;
       }
       if (!instanceId) {
-        Filters.updateSelectOptions("#database", {
+        Filters.updateSelectOptions(this.filterElements.database, {
           placeholder: "所有数据库",
           allowEmpty: true,
           items: [],
         });
-        Filters.setDisabled("#database", true);
+        Filters.setDisabled(this.filterElements.database, true);
         return;
       }
       const params = {
@@ -817,7 +858,7 @@
         limit: 1000,
       };
       try {
-        const databases = await DataSource.fetchDatabases(
+        const databases = await this.dataSource.fetchDatabases(
           endpoint,
           params
         );
@@ -828,7 +869,7 @@
           ],
           ["asc"],
         );
-        Filters.updateSelectOptions("#database", {
+        Filters.updateSelectOptions(this.filterElements.database, {
           placeholder: "所有数据库",
           allowEmpty: true,
           items: sortedDatabases,
@@ -836,10 +877,10 @@
           getOptionValue: (item) => item?.id,
           getOptionLabel: (item) => item?.database_name || "未知数据库",
         });
-        Filters.setDisabled("#database", !instanceId);
+        Filters.setDisabled(this.filterElements.database, !instanceId);
       } catch (error) {
         this.notifyError(`加载数据库列表失败: ${error.message}`);
-        Filters.setDisabled("#database", true);
+        Filters.setDisabled(this.filterElements.database, true);
       }
     }
 
@@ -860,14 +901,14 @@
         databaseName: null,
         periodType: "daily",
       };
-      Filters.syncSelectValue("#db_type", "");
-      Filters.syncSelectValue("#instance", "");
-      Filters.setDisabled("#instance", true);
+      Filters.syncSelectValue(this.filterElements.dbType, "");
+      Filters.syncSelectValue(this.filterElements.instance, "");
+      Filters.setDisabled(this.filterElements.instance, true);
       if (this.config.supportsDatabaseFilter) {
-        Filters.syncSelectValue("#database", "");
-        Filters.setDisabled("#database", true);
+        Filters.syncSelectValue(this.filterElements.database, "");
+        Filters.setDisabled(this.filterElements.database, true);
       }
-      Filters.syncSelectValue("#period_type", "daily");
+      Filters.syncSelectValue(this.filterElements.periodType, "daily");
       this.state.overrides.change = false;
       this.state.overrides.percent = false;
       await this.prepareInitialOptions();
@@ -884,9 +925,9 @@
       this.state.filters.databaseId = latest.databaseId || "";
       this.state.filters.databaseName = latest.databaseName || null;
       this.state.filters.periodType = latest.periodType || "daily";
-      Filters.setDisabled("#instance", !this.state.filters.dbType);
+      Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbType);
       if (this.config.supportsDatabaseFilter) {
-        Filters.setDisabled("#database", !this.state.filters.instanceId);
+        Filters.setDisabled(this.filterElements.database, !this.state.filters.instanceId);
       }
       await this.refreshAll();
     }

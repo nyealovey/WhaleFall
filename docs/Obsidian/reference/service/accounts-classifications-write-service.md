@@ -18,7 +18,7 @@ scope: app/services/accounts/account_classifications_write_service.py
 related:
   - "[[reference/service/account-classification-orchestrator|Account Classification Orchestrator]]"
   - "[[reference/service/account-classification-dsl-v4|Account Classification DSL v4]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Accounts Classifications Write Service(写入边界 + 校验/归一化)

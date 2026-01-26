@@ -18,7 +18,7 @@ scope: app/services/accounts/accounts_statistics_read_service.py
 related:
   - "[[API/accounts-api-contract]]"
   - "[[reference/service/accounts-ledger-services]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Accounts Statistics Read Service(账户统计汇总)

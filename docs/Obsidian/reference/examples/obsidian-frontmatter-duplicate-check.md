@@ -12,7 +12,7 @@ owner: WhaleFall Team
 scope: 检查 `title/aliases` 是否重复, 规避 Obsidian 链接歧义与冲突
 related:
   - "[[reference/examples/README]]"
-  - "[[standards/doc/document-boundary-standards]]"
+  - "[[standards/doc/guide/document-boundary]]"
 ---
 
 # Obsidian frontmatter 重复检查

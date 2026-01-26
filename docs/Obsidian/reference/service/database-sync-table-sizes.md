@@ -18,7 +18,7 @@ owner: WhaleFall Team
 scope: app/services/database_sync/table_size_coordinator.py
 related:
   - "[[reference/service/database-sync-overview|Database Sync 概览(编排 + filters)]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Database Sync Table Sizes(表容量快照采集)

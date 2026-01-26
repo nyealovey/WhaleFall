@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # GridWrapper 日志门禁：禁止在 grid-wrapper.js 内常驻 console.log
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/grid.md
 
 set -euo pipefail
 
@@ -22,7 +25,7 @@ CONSOLE_LOG_PATTERN='\\bconsole\\.log\\b'
 if "${RG_BIN}" -n "${CONSOLE_LOG_PATTERN}" "${TARGET_FILE}"; then
   echo "" >&2
   echo "检测到 GridWrapper 内存在 console.log，请改为受开关控制的 console.debug（或直接删除）。" >&2
-  echo "规范参考：docs/Obsidian/standards/ui/grid-standards.md" >&2
+  echo "规范参考：docs/Obsidian/standards/ui/gate/grid.md" >&2
   exit 1
 fi
 

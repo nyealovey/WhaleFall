@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # 生产环境模板密钥门禁：禁止把真实密钥/口令写入 env.example 并提交到仓库
+#
+# 参考：
+# - docs/Obsidian/standards/backend/standard/configuration-and-secrets.md
+# - docs/Obsidian/standards/backend/standard/sensitive-data-handling.md
 
 set -euo pipefail
 
@@ -30,6 +34,9 @@ if "${MATCH_CMD[@]}"; then
   echo "" >&2
   echo "检测到 env.example 中存在非空敏感值。" >&2
   echo "请将这些变量改为占位符(空值)，并把真实值放入未跟踪的 .env 或通过密钥管理系统注入。" >&2
+  echo "参考：" >&2
+  echo "- docs/Obsidian/standards/backend/standard/configuration-and-secrets.md" >&2
+  echo "- docs/Obsidian/standards/backend/standard/sensitive-data-handling.md" >&2
   exit 1
 fi
 

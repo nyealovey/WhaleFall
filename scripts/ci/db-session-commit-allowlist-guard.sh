@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # db.session.commit 全局门禁：只允许在事务边界入口调用（routes/tasks/worker/scripts）
+#
+# 参考：
+# - docs/Obsidian/standards/backend/standard/write-operation-boundary.md
 
 set -euo pipefail
 
@@ -34,7 +37,7 @@ if [[ -n "${unexpected}" ]]; then
   echo "${unexpected}" >&2
   echo "" >&2
   echo "请将 commit 收敛到事务边界入口（safe_route_call / tasks / worker / scripts），services 仅使用 flush/savepoint。" >&2
-  echo "参考：docs/changes/refactor/002-backend-write-operation-boundary-plan.md" >&2
+  echo "参考：docs/Obsidian/standards/backend/standard/write-operation-boundary.md" >&2
   exit 1
 fi
 

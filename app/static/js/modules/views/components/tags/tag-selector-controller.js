@@ -3,43 +3,14 @@
 
   const TagSelectorView = window.TagSelectorView;
   const TagSelectorModalAdapter = window.TagSelectorModalAdapter;
-  const TagManagementService = window.TagManagementService;
-  const createTagManagementStore = window.createTagManagementStore;
-  const LodashUtils = window.LodashUtils;
 
-  if (!TagSelectorView || !TagSelectorModalAdapter || !TagManagementService || !createTagManagementStore) {
+  if (!TagSelectorView || !TagSelectorModalAdapter) {
     console.error("TagSelectorController 初始化失败: 依赖缺失");
     return;
   }
 
   const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
   const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
-
-  function buildSafeEndpoints(custom = {}) {
-    const source = custom && typeof custom === "object" ? custom : {};
-    const safe = {};
-    if (typeof source.tags === "string") {
-      safe.tags = source.tags;
-    }
-    if (typeof source.categories === "string") {
-      safe.categories = source.categories;
-    }
-    return safe;
-  }
-
-  function hasLodashMethod(methodName) {
-    if (!LodashUtils) {
-      return false;
-    }
-    switch (methodName) {
-      case "orderBy":
-        return typeof LodashUtils.orderBy === "function";
-      case "uniqBy":
-        return typeof LodashUtils.uniqBy === "function";
-      default:
-        return false;
-    }
-  }
 
   function escapeHtml(value) {
     if (value === undefined || value === null) {
@@ -102,29 +73,31 @@
     return null;
   }
 
-  /**
-   * 排序工具，供 controller 和 view 共享。
-   *
-   * 按激活状态和显示名称排序标签。
-   *
-   * @param {Array<Object>} items - 标签数组
-   * @return {Array<Object>} 排序后的标签数组
-   */
-  function orderTags(items) {
-    if (!Array.isArray(items)) {
-      return [];
+  function ensureStore(store) {
+    if (!store) {
+      throw new Error("TagSelectorController: store 未注入");
     }
-    if (hasLodashMethod("orderBy")) {
-      return LodashUtils.orderBy(
-        items,
-        [
-          (tag) => (tag.is_active === false ? 1 : 0),
-          (tag) => (tag.display_name || tag.name || "").toLowerCase(),
-        ],
-        ["asc", "asc"],
-      );
+    const requiredMethods = ["init", "getState", "subscribe"];
+    requiredMethods.forEach((method) => {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
+      if (typeof store[method] !== "function") {
+        throw new Error(`TagSelectorController: store.${method} 未实现`);
+      }
+    });
+    const actions = store.actions;
+    const requiredActions = ["setCategory", "addTag", "removeTag", "selectBy", "clearSelection"];
+    if (!actions || typeof actions !== "object") {
+      throw new Error("TagSelectorController: store.actions 未注入");
     }
-    return items.slice();
+    requiredActions.forEach((method) => {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
+      if (typeof actions[method] !== "function") {
+        throw new Error(`TagSelectorController: store.actions.${method} 未实现`);
+      }
+    });
+    return store;
   }
 
   function pickTagValue(tag, key) {
@@ -157,13 +130,13 @@
    * @class
    */
   class TagSelectorController {
-    /**
+   /**
      * 构造函数。
      *
      * @constructor
      * @param {string|Element} root - 根元素选择器或元素
      * @param {Object} [options] - 配置选项
-     * @param {Object} [options.endpoints] - API 端点配置
+     * @param {Object} options.store - TagManagementStore 实例（必须注入）
      * @param {string} [options.hiddenInputSelector] - 隐藏输入框选择器
      * @param {string} [options.hiddenValueKey] - 隐藏值字段名
      * @param {Array} [options.initialValues] - 初始选中值
@@ -186,7 +159,6 @@
       const hasInitialValues = Object.prototype.hasOwnProperty.call(options, "initialValues");
 
       this.options = {
-        endpoints: buildSafeEndpoints(options.endpoints),
         hiddenInputSelector: hasHiddenInputSelector ? options.hiddenInputSelector : null,
         hiddenValueKey: options.hiddenValueKey || "name",
         initialValues: hasInitialValues ? options.initialValues : [],
@@ -195,20 +167,7 @@
         modalElement:
           options.modalElement || this.root.closest("[data-tag-selector-modal]") || null,
       };
-
-      this.state = {
-        categories: [],
-        tags: [],
-        filteredTags: [],
-        selection: new Set(),
-        stats: { total: 0, selected: 0, active: 0, filtered: 0 },
-      };
-
-      this.service = new TagManagementService(undefined, this.options.endpoints);
-      this.store = createTagManagementStore({
-        service: this.service,
-        emitter: window.mitt ? window.mitt() : null,
-      });
+      this.store = ensureStore(options.store);
 
       this.view = new TagSelectorView(this.root, {
         onCategoryChange: (value) => this.handleCategory(value),
@@ -236,7 +195,6 @@
     async initialize() {
       this.bindStoreEvents();
       await this.store.init();
-      this.syncFromStore();
       if (this.options.initialValues && this.options.initialValues.length) {
         this.store.actions.selectBy(this.options.initialValues, this.options.hiddenValueKey);
       }
@@ -251,22 +209,17 @@
      */
     bindStoreEvents() {
       this.store.subscribe("tagManagement:categoriesUpdated", (payload) => {
-        const categories = (payload && payload.categories) || [];
-        this.state.categories = categories;
-        this.renderCategories();
+        const categories = (payload && payload.categories) || null;
+        this.renderCategories(categories);
       });
       this.store.subscribe("tagManagement:tagsUpdated", (payload) => {
-        const tags = (payload && payload.tags) || [];
-        const filteredTags = (payload && payload.filteredTags) || tags;
-        this.state.tags = orderTags(tags);
-        this.state.filteredTags = orderTags(filteredTags);
-        this.state.stats = (payload && payload.stats) || this.state.stats;
         this.renderTags();
-        this.renderStats();
+        this.renderSelection();
+        this.renderStats(payload?.stats || null);
       });
-      this.store.subscribe("tagManagement:selectionChanged", (payload) => {
-        const selectedIds = (payload && payload.selectedIds) || [];
-        this.state.selection = new Set(selectedIds);
+      this.store.subscribe("tagManagement:selectionChanged", () => {
+        // 选择变更会影响标签列表的 selected 状态与已选 chips。
+        this.renderTags();
         this.renderSelection();
       });
       this.store.subscribe("tagManagement:error", (payload) => {
@@ -278,20 +231,6 @@
           this.view.renderTagList([], new Set(), { error: errorMessage });
         }
       });
-    }
-
-    /**
-     * 将当前 store 状态同步到 controller 内部 state。
-     *
-     * @return {void}
-     */
-    syncFromStore() {
-      const current = this.store.getState();
-      this.state.categories = current.categories || [];
-      this.state.tags = orderTags(current.tags || []);
-      this.state.filteredTags = orderTags(current.filteredTags || current.tags || []);
-      this.state.selection = new Set(current.selection || []);
-      this.state.stats = current.stats || this.state.stats;
     }
 
     /**
@@ -311,8 +250,13 @@
      *
      * @return {void}
      */
-    renderCategories() {
-      this.view.renderCategories(this.state.categories);
+    renderCategories(categories) {
+      if (Array.isArray(categories)) {
+        this.view.renderCategories(categories);
+        return;
+      }
+      const current = this.store.getState() || {};
+      this.view.renderCategories(Array.isArray(current.categories) ? current.categories : []);
     }
 
     /**
@@ -321,7 +265,14 @@
      * @return {void}
      */
     renderTags() {
-      this.view.renderTagList(this.state.filteredTags, this.state.selection);
+      const current = this.store.getState() || {};
+      const tags = Array.isArray(current.filteredTags)
+        ? current.filteredTags
+        : Array.isArray(current.tags)
+        ? current.tags
+        : [];
+      const selection = new Set(Array.isArray(current.selection) ? current.selection : []);
+      this.view.renderTagList(tags, selection);
     }
 
     /**
@@ -340,8 +291,13 @@
      *
      * @return {void}
      */
-    renderStats() {
-      this.view.updateStats(this.state.stats);
+    renderStats(stats) {
+      if (stats && typeof stats === "object") {
+        this.view.updateStats(stats);
+        return;
+      }
+      const current = this.store.getState() || {};
+      this.view.updateStats(current.stats || {});
     }
 
     /**
@@ -365,7 +321,9 @@
       if (!Number.isFinite(numericId)) {
         return;
       }
-      if (this.state.selection.has(numericId)) {
+      const current = this.store.getState() || {};
+      const selection = new Set(Array.isArray(current.selection) ? current.selection : []);
+      if (selection.has(numericId)) {
         this.store.actions.removeTag(numericId);
       } else {
         this.store.actions.addTag(numericId);
@@ -458,11 +416,10 @@
      * @return {Array<Object>} 已选标签数组
      */
     getSelectedTags() {
-      const ids = Array.from(this.state.selection);
-      const tags = ids
-        .map((id) => this.state.tags.find((tag) => tag.id === id))
-        .filter(Boolean);
-      return orderTags(tags);
+      const current = this.store.getState() || {};
+      const tags = Array.isArray(current.tags) ? current.tags : [];
+      const selection = new Set(Array.isArray(current.selection) ? current.selection : []);
+      return tags.filter((tag) => tag && selection.has(tag.id));
     }
 
     /**
@@ -607,6 +564,8 @@
   const TagSelectorHelper = {
     setupForForm(options = {}) {
       const {
+        store = null,
+        getStore = null,
         modalSelector: rawModalSelector = null,
         rootSelector = "[data-tag-selector]",
         scope: rawScope = "",
@@ -628,6 +587,11 @@
 
       // DOM 就绪后再创建实例，保证模态节点已经存在
       manager.whenReady(() => {
+        const resolvedStore = typeof getStore === "function" ? getStore() : store;
+        if (!resolvedStore) {
+          console.error("TagSelectorHelper.setupForForm: 缺少 store 注入，标签选择器无法初始化");
+          return;
+        }
         const modalElement = toElement(modalSelector);
         const modalContainer = modalElement && typeof modalElement.closest === "function"
           ? modalElement.closest("[data-tag-selector-modal]")
@@ -648,6 +612,7 @@
         });
 
         const instance = manager.create(root, {
+          store: resolvedStore,
           modalElement: modalContainer,
           hiddenInputSelector: filterElements.hiddenInputEl || hiddenInputSelector,
           hiddenValueKey,
@@ -685,6 +650,8 @@
 
     setupForFilter(options = {}) {
       const {
+        store = null,
+        getStore = null,
         modalSelector: rawModalSelector = null,
         rootSelector = "[data-tag-selector]",
         scope: rawScope = "",
@@ -705,6 +672,11 @@
 
       // 过滤模式同样等待 DOMReady，确保隐藏域已渲染
       manager.whenReady(() => {
+        const resolvedStore = typeof getStore === "function" ? getStore() : store;
+        if (!resolvedStore) {
+          console.error("TagSelectorHelper.setupForFilter: 缺少 store 注入，标签选择器无法初始化");
+          return;
+        }
         const modalBase = toElement(modalSelector);
         const modalContainer = modalBase && typeof modalBase.closest === "function"
           ? modalBase.closest("[data-tag-selector-modal]")
@@ -725,6 +697,7 @@
         });
 
         const instance = manager.create(root, {
+          store: resolvedStore,
           modalElement: modalContainer,
           hiddenInputSelector: filterElements.hiddenInputEl || hiddenInputSelector,
           hiddenValueKey: valueKey,

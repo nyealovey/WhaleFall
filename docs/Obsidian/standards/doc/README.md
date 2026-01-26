@@ -7,6 +7,7 @@ tags:
   - standards/doc
   - standards/index
 status: active
+enforcement: guide
 created: 2026-01-09
 updated: 2026-01-09
 owner: WhaleFall Team
@@ -17,8 +18,8 @@ related:
 
 # 文档编写标准
 
-- [[standards/doc/documentation-standards|WhaleFall 文档结构与编写规范]]
-- [[standards/doc/document-boundary-standards|文档边界与归类标准(standards vs reference)]]
-- [[standards/doc/changes-standards|WhaleFall 变更文档(docs/changes)规范]]
-- [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
-- [[standards/doc/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
+- [[standards/doc/guide/documentation|WhaleFall 文档结构与编写规范]]
+- [[standards/doc/guide/document-boundary|文档边界与归类标准(standards vs reference)]]
+- [[standards/doc/guide/changes|WhaleFall 变更文档(docs/changes)规范]]
+- [[standards/doc/guide/service-layer-documentation|服务层文档标准(Service Docs)]]
+- [[standards/doc/guide/api-contract-markdown|API Contract Markdown 标准(SSOT)]]

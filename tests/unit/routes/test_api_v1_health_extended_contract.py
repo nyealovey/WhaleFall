@@ -14,12 +14,7 @@ def test_api_v1_health_cache_requires_auth(client) -> None:
 def test_api_v1_health_cache_contract(auth_client, monkeypatch) -> None:
     import app.api.v1.namespaces.health as api_module
 
-    class _DummyCacheService:
-        @staticmethod
-        def health_check() -> bool:
-            return True
-
-    monkeypatch.setattr(api_module, "_get_cache_service", lambda: _DummyCacheService())
+    monkeypatch.setattr(api_module, "check_cache_health", lambda: {"healthy": True, "status": "connected"})
 
     response = auth_client.get("/api/v1/health/cache")
     assert response.status_code == 200

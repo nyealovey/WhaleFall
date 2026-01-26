@@ -1,4 +1,4 @@
-# Module: `app/utils/http`（decorators/request_payload/response_utils/proxy_fix_middleware/pagination）
+# Module: `app/utils/http`（decorators/request_payload/response_utils/proxy_fix_middleware）
 
 ## Simplification Analysis
 
@@ -8,7 +8,6 @@
 - 请求 payload 解析与基础规范化（`app/utils/request_payload.py`）
 - API 响应封套（`app/utils/response_utils.py`）
 - 代理头解析中间件（`app/utils/proxy_fix_middleware.py`）
-- 分页参数解析（`app/utils/pagination_utils.py`）
 
 ### Unnecessary Complexity Found
 
@@ -48,4 +47,3 @@
 Total potential LOC reduction: ~161 LOC（已落地）
 Complexity score: Medium → Low
 Recommended action: 已完成最小必要形态收敛；后续如出现新调用方式需求，优先直接使用 `permission_required()` 而非再次扩展 CRUD wrapper
-

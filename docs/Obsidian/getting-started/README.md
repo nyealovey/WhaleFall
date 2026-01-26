@@ -14,7 +14,7 @@ related:
   - "[[architecture/developer-entrypoint]]"
   - "[[operations/README]]"
   - "[[reference/config/README]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # 快速开始(getting-started)

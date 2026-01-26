@@ -5,7 +5,7 @@
 > 创建: 2026-01-20
 > 更新: 2026-01-20
 > 范围: 调度器内置任务(id/function/task_key), 以及相关 UI/文档/测试
-> 关联: `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`
+> 关联: `docs/Obsidian/standards/doc/guide/changes.md`, `docs/Obsidian/standards/core/guide/halfwidth-characters.md`
 
 ---
 

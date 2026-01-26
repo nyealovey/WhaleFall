@@ -4,6 +4,7 @@
               method="{{ method }}"
               action="{{ action }}"
               class="filter-form"
+              {% if scope %}data-wf-scope="{{ scope }}"{% endif %}
               data-filter-auto="{{ 'true' if auto_register else 'false' }}"
               novalidate>
             <div class="row g-3 align-items-end">

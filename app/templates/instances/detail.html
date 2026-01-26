@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'components/ui/macros.html' import metric_card %}
 {% set page_id = 'InstanceDetailPage' %}
 
 {% block title %}{{ instance.name }} - 实例详情{% endblock %}
@@ -204,21 +205,17 @@
                         <div id="databaseSizesContent">
                             <div class="row g-3 instance-stat-grid mb-3">
                                 <div class="col-12">
-                                    <div class="instance-stat-card">
-                                        <p class="instance-stat-card__label">数据库</p>
-                                        <span class="instance-stat-card__value" data-value-tone="info" id="databaseTotalCount">-</span>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <span class="status-pill status-pill--success" title="在线" aria-label="在线">
-                                                <i class="fas fa-check" aria-hidden="true"></i><span id="databaseOnlineCount" aria-hidden="true">-</span>
-                                            </span>
-                                            <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
-                                                <i class="fas fa-trash" aria-hidden="true"></i><span id="databaseDeletedCount" aria-hidden="true">-</span>
-                                            </span>
-                                            <span class="status-pill status-pill--info" title="总容量" aria-label="总容量">
-                                                <i class="fas fa-hdd" aria-hidden="true"></i><span id="databaseTotalCapacity" aria-hidden="true">-</span>
-                                            </span>
-                                        </div>
-                                    </div>
+                                    {%- call metric_card(label='数据库', value='-', tone='info', value_id='databaseTotalCount') -%}
+                                        <span class="status-pill status-pill--success" title="在线" aria-label="在线">
+                                            <i class="fas fa-check" aria-hidden="true"></i><span id="databaseOnlineCount" aria-hidden="true">-</span>
+                                        </span>
+                                        <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
+                                            <i class="fas fa-trash" aria-hidden="true"></i><span id="databaseDeletedCount" aria-hidden="true">-</span>
+                                        </span>
+                                        <span class="status-pill status-pill--info" title="总容量" aria-label="总容量">
+                                            <i class="fas fa-hdd" aria-hidden="true"></i><span id="databaseTotalCapacity" aria-hidden="true">-</span>
+                                        </span>
+                                    {%- endcall -%}
                                 </div>
                             </div>
 
@@ -267,21 +264,17 @@
                     {% set superuser_accounts = account_summary.superuser or 0 %}
                     {% set total_accounts = active_accounts + deleted_accounts %}
                     <div class="col-12">
-                        <div class="instance-stat-card">
-                            <p class="instance-stat-card__label">账户</p>
-                            <span class="instance-stat-card__value" data-value-tone="info" id="accountTotalCount">{{ total_accounts }}</span>
-                            <div class="d-flex flex-wrap gap-2">
-                                <span class="status-pill status-pill--success" title="活跃" aria-label="活跃">
-                                    <i class="fas fa-user-check" aria-hidden="true"></i><span id="accountActiveCount" aria-hidden="true">{{ active_accounts }}</span>
-                                </span>
-                                <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
-                                    <i class="fas fa-user-slash" aria-hidden="true"></i><span id="accountDeletedCount" aria-hidden="true">{{ deleted_accounts }}</span>
-                                </span>
-                                <span class="status-pill status-pill--info" title="超管" aria-label="超管">
-                                    <i class="fas fa-crown" aria-hidden="true"></i><span id="accountSuperuserCount" aria-hidden="true">{{ superuser_accounts }}</span>
-                                </span>
-                            </div>
-                        </div>
+                        {%- call metric_card(label='账户', value=total_accounts, tone='info', value_id='accountTotalCount') -%}
+                            <span class="status-pill status-pill--success" title="活跃" aria-label="活跃">
+                                <i class="fas fa-user-check" aria-hidden="true"></i><span id="accountActiveCount" aria-hidden="true">{{ active_accounts }}</span>
+                            </span>
+                            <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
+                                <i class="fas fa-user-slash" aria-hidden="true"></i><span id="accountDeletedCount" aria-hidden="true">{{ deleted_accounts }}</span>
+                            </span>
+                            <span class="status-pill status-pill--info" title="超管" aria-label="超管">
+                                <i class="fas fa-crown" aria-hidden="true"></i><span id="accountSuperuserCount" aria-hidden="true">{{ superuser_accounts }}</span>
+                            </span>
+                        {%- endcall -%}
                     </div>
                 </div>
 
@@ -405,10 +398,12 @@
 {% block extra_js %}
 {% if current_user.role == 'admin' %}
 <script src="{{ url_for('static', filename='js/modules/services/instance_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/instance_crud_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/instances/modals/instance-modals.js') }}"></script>
 {% endif %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-table.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>

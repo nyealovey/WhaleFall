@@ -18,11 +18,10 @@ class SyncStatus:
     COMPLETED = "completed"  # 已完成
     FAILED = "failed"  # 失败
     CANCELLED = "cancelled"  # 已取消
-    PAUSED = "paused"  # 已暂停
 
-    ALL: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, PAUSED)
+    ALL: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED)
 
-    ACTIVE: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, PAUSED)
+    ACTIVE: ClassVar[tuple[str, ...]] = (PENDING, RUNNING)
 
     TERMINAL: ClassVar[tuple[str, ...]] = (COMPLETED, FAILED, CANCELLED)
 
@@ -50,57 +49,20 @@ class SyncSessionStatus:
     TERMINAL: ClassVar[tuple[str, ...]] = (COMPLETED, FAILED, CANCELLED)
 
 
-class TaskStatus:
-    """任务执行状态常量.
+class TaskRunStatus:
+    """任务运行状态常量.
 
-    定义后台任务和调度任务的状态值.
+    定义 task_runs 表的状态值.
     """
 
-    # 状态值
-    SUCCESS = "success"  # 成功
-    ERROR = "error"  # 错误
-    WARNING = "warning"  # 警告
-    INFO = "info"  # 信息
     PENDING = "pending"  # 等待中
     RUNNING = "running"  # 运行中
+    COMPLETED = "completed"  # 已完成
+    FAILED = "failed"  # 失败
+    CANCELLED = "cancelled"  # 已取消
 
-    # 所有状态
-    ALL: ClassVar[tuple[str, ...]] = (SUCCESS, ERROR, WARNING, INFO, PENDING, RUNNING)
+    ALL: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED)
 
-    # 完成状态
-    COMPLETED: ClassVar[tuple[str, ...]] = (SUCCESS, ERROR, WARNING)
+    TERMINAL: ClassVar[tuple[str, ...]] = (COMPLETED, FAILED, CANCELLED)
 
-    # 进行中状态
     IN_PROGRESS: ClassVar[tuple[str, ...]] = (PENDING, RUNNING)
-
-
-class InstanceStatus:
-    """实例状态常量.
-
-    定义数据库实例的状态值.
-    """
-
-    # 状态值
-    ACTIVE = "active"  # 活动
-    INACTIVE = "inactive"  # 非活动
-    MAINTENANCE = "maintenance"  # 维护中
-    ERROR = "error"  # 错误
-
-    # 所有状态
-    ALL: ClassVar[tuple[str, ...]] = (ACTIVE, INACTIVE, MAINTENANCE, ERROR)
-
-
-class JobStatus:
-    """作业状态常量.
-
-    定义APScheduler作业的状态值.
-    """
-
-    # 状态值
-    SCHEDULED = "scheduled"  # 已调度
-    RUNNING = "running"  # 运行中
-    PAUSED = "paused"  # 已暂停
-    STOPPED = "stopped"  # 已停止
-
-    # 所有状态
-    ALL: ClassVar[tuple[str, ...]] = (SCHEDULED, RUNNING, PAUSED, STOPPED)

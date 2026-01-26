@@ -13,14 +13,15 @@
    * 工具：支持 selector 或 Element。
    *
    * @param {string|Element} selector - CSS 选择器或 DOM 元素
+   * @param {Element|null} [context=null] - 限定查找上下文（用于多实例组件隔离）
    * @return {Element|null} DOM 元素或 null
    */
-  function getElement(selector) {
+  function getElement(selector, context = null) {
     if (!selector) {
       return null;
     }
     if (typeof selector === "string") {
-      return selectOne(selector).first();
+      return selectOne(selector, context).first();
     }
     if (selector instanceof Element) {
       return selector;
@@ -32,10 +33,11 @@
    * 读取下拉框值，找不到则返回空字符串。
    *
    * @param {string|Element} selector - CSS 选择器或 DOM 元素
+   * @param {Element|null} [context=null] - 限定查找上下文
    * @return {string} 下拉框的值
    */
-  function readSelectValue(selector) {
-    const element = getElement(selector);
+  function readSelectValue(selector, context = null) {
+    const element = getElement(selector, context);
     if (!element) {
       return "";
     }
@@ -60,12 +62,15 @@
   /**
    * 初始化筛选（实例/数据库/周期等）。
    *
+   * @param {Object} [config] 由 CapacityStats.Manager 传入的配置。
    * @return {Object} 筛选条件对象
    */
-  function readInitialFilters() {
-    const dbType = readSelectValue("#db_type");
-    const instanceId = readSelectValue("#instance");
-    const databaseSelect = getElement("#database");
+  function readInitialFilters(config = {}) {
+    const filterForm = getElement(config?.filterFormId || null);
+
+    const dbType = readSelectValue("#db_type", filterForm);
+    const instanceId = readSelectValue('[data-role="instance-filter"]', filterForm);
+    const databaseSelect = getElement('[data-role="database-filter"]', filterForm);
     const databaseId = databaseSelect ? databaseSelect.value || "" : "";
     let databaseName = null;
     if (databaseSelect && databaseId) {
@@ -74,7 +79,7 @@
         databaseName = option.textContent.trim();
       }
     }
-    const periodType = readSelectValue("#period_type") || "daily";
+    const periodType = readSelectValue("#period_type", filterForm) || "daily";
 
     return {
       dbType: dbType || "",

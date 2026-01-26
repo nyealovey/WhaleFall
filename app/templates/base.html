@@ -307,6 +307,8 @@
     <!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
 
     {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='js/modules/services/auth_service.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/stores/auth_store.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/views/auth/modals/change-password-modals.js') }}"></script>
     {% endif %}
     <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>

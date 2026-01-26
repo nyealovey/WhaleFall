@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from flask_login import current_user
 
 from app import db
-from app.core.constants import SyncStatus
+from app.core.constants.status_types import SyncSessionStatus, SyncStatus
 from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import SystemError as AppSystemError, ValidationError
 from app.core.types.capacity_aggregations import CurrentAggregationRequest
@@ -273,7 +273,7 @@ class CurrentAggregationService:
         current_session = sync_session_service.get_session_by_id(state.session.session_id)
         if current_session:
             with db.session.begin_nested():
-                current_session.status = "failed"
+                current_session.status = SyncSessionStatus.FAILED
                 current_session.completed_at = time_utils.now()
                 db.session.flush()
 
@@ -283,7 +283,7 @@ class CurrentAggregationService:
         refreshed_session = sync_session_service.get_session_by_id(state.session.session_id)
         if refreshed_session:
             with db.session.begin_nested():
-                refreshed_session.status = "completed"
+                refreshed_session.status = SyncSessionStatus.COMPLETED
                 refreshed_session.completed_at = time_utils.now()
                 db.session.flush()
 

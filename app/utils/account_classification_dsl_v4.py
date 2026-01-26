@@ -28,9 +28,7 @@ Notes:
 
 from __future__ import annotations
 
-import time
 from collections.abc import Mapping
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import Final
 
@@ -40,47 +38,6 @@ DSL_ERROR_UNKNOWN_FUNCTION = "UNKNOWN_DSL_FUNCTION"
 DSL_ERROR_INVALID_ARGS = "INVALID_DSL_ARGS"
 DSL_ERROR_MISSING_ARGS = "MISSING_DSL_ARGS"
 DSL_V4_VERSION: Final[int] = 4
-
-try:  # pragma: no cover - optional dependency
-    from prometheus_client import Counter as _Counter, Histogram as _Histogram  # type: ignore[import-not-found]
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    _Counter = None
-    _Histogram = None
-
-
-class _NoopMetric:
-    def labels(self, *_args: object, **_kwargs: object) -> _NoopMetric:
-        return self
-
-    def inc(self, *_args: object, **_kwargs: object) -> None:
-        return
-
-    def observe(self, *_args: object, **_kwargs: object) -> None:
-        return
-
-
-def _build_counter(name: str, documentation: str, labelnames: list[str]) -> _NoopMetric:
-    if _Counter is None:  # pragma: no cover
-        return _NoopMetric()
-    return _Counter(name, documentation, labelnames)  # type: ignore[return-value]
-
-
-def _build_histogram(name: str, documentation: str, labelnames: list[str]) -> _NoopMetric:
-    if _Histogram is None:  # pragma: no cover
-        return _NoopMetric()
-    return _Histogram(name, documentation, labelnames)  # type: ignore[return-value]
-
-
-dsl_evaluation_duration = _build_histogram(
-    "account_classification_dsl_evaluation_duration_seconds",
-    "DSL evaluation duration per function",
-    ["function"],
-)
-dsl_evaluation_errors = _build_counter(
-    "account_classification_dsl_evaluation_errors_total",
-    "DSL evaluation errors",
-    ["error_type"],
-)
 
 
 def is_dsl_v4_expression(expression: object) -> bool:
@@ -220,8 +177,6 @@ class DslV4Evaluator:
     # ------------------------------ Internals ------------------------------
     def _record_error(self, error_type: str, **context: object) -> None:
         self._errors.append(error_type)
-        with suppress(ValueError):  # pragma: no cover - defensive: prometheus registry conflicts
-            dsl_evaluation_errors.labels(error_type=error_type).inc()
         exception_value = context.get("exception")
         exception = exception_value if isinstance(exception_value, Exception) else None
         safe_context = {key: str(value) for key, value in context.items() if key != "exception"}
@@ -288,23 +243,18 @@ class DslV4Evaluator:
             return False
         args = dict(raw_args)
 
-        started = time.perf_counter()
-        try:
-            if fn == "db_type_in":
-                return self._fn_db_type_in(args)
-            if fn == "is_superuser":
-                raw_capabilities = self._facts.get("capabilities")
-                capabilities = self._ensure_str_list(raw_capabilities)
-                return "SUPERUSER" in capabilities
-            if fn == "has_capability":
-                return self._fn_has_capability(args)
-            if fn == "has_role":
-                return self._fn_has_role(args)
-            if fn == "has_privilege":
-                return self._fn_has_privilege(args)
-        finally:
-            with suppress(ValueError):  # pragma: no cover - defensive: prometheus registry conflicts
-                dsl_evaluation_duration.labels(function=fn).observe(time.perf_counter() - started)
+        if fn == "db_type_in":
+            return self._fn_db_type_in(args)
+        if fn == "is_superuser":
+            raw_capabilities = self._facts.get("capabilities")
+            capabilities = self._ensure_str_list(raw_capabilities)
+            return "SUPERUSER" in capabilities
+        if fn == "has_capability":
+            return self._fn_has_capability(args)
+        if fn == "has_role":
+            return self._fn_has_role(args)
+        if fn == "has_privilege":
+            return self._fn_has_privilege(args)
 
         self._record_error(DSL_ERROR_UNKNOWN_FUNCTION, fn=fn)
         return False

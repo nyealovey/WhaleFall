@@ -56,34 +56,18 @@ function mountCredentialsListPage(global) {
   const { ready, selectOne } = helpers;
 
   const CredentialsService = global.CredentialsService;
+  if (!CredentialsService) {
+    console.error("CredentialsService 未加载");
+    return;
+  }
   const createCredentialsStore = global.createCredentialsStore;
-  let credentialsStore = null;
-  let credentialsService = null;
-
-  try {
-    if (CredentialsService && typeof createCredentialsStore === "function") {
-      credentialsService = new CredentialsService();
-      credentialsStore = createCredentialsStore({
-        service: credentialsService,
-        emitter: global.mitt ? global.mitt() : null,
-      });
-    }
-  } catch (error) {
-    console.error("初始化 CredentialsService/CredentialsStore 失败:", error);
-    credentialsService = null;
-    credentialsStore = null;
+  if (typeof createCredentialsStore !== "function") {
+    console.error("createCredentialsStore 未加载");
+    return;
   }
 
-  const CredentialModals = global.CredentialModals;
-  const credentialModals = CredentialModals?.createController
-    ? CredentialModals.createController({
-        credentialService: credentialsService,
-        FormValidator: global.FormValidator,
-        ValidationRules: global.ValidationRules,
-        toast: global.toast,
-        DOMHelpers: global.DOMHelpers,
-      })
-    : null;
+  let credentialsStore = null;
+  let credentialModals = null;
 
   const CREDENTIAL_FILTER_FORM_ID = "credential-filter-form";
   let credentialsGrid = null;
@@ -109,12 +93,40 @@ function mountCredentialsListPage(global) {
   ]);
 
   ready(() => {
-    credentialModals?.init?.();
+    try {
+      credentialsStore = createCredentialsStore({
+        service: new CredentialsService(),
+        emitter: global.mitt ? global.mitt() : null,
+      });
+    } catch (error) {
+      console.error("初始化 CredentialsStore 失败:", error);
+      return;
+    }
+
+    credentialModals = initializeCredentialModals();
     initializeGridPage();
     bindCreateCredentialButton();
-    bindCredentialsStoreEvents();
     exposeActions();
   });
+
+  function initializeCredentialModals() {
+    if (!global.CredentialModals?.createController) {
+      console.warn("CredentialModals 未加载，创建/编辑模态不可用");
+      return null;
+    }
+    const controller = global.CredentialModals.createController({
+      store: credentialsStore,
+      FormValidator: global.FormValidator,
+      ValidationRules: global.ValidationRules,
+      toast: global.toast,
+      DOMHelpers: global.DOMHelpers,
+      onSaved: () => {
+        credentialsGrid?.refresh?.();
+      },
+    });
+    controller.init?.();
+    return controller;
+  }
 
   function initializeGridPage() {
     const container = pageRoot.querySelector("#credentials-grid");
@@ -131,7 +143,7 @@ function mountCredentialsListPage(global) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: credentialsService.getGridUrl(),
+          url: credentialsStore?.gridUrl || "",
           headers: { "X-Requested-With": "XMLHttpRequest" },
           then: handleServerResponse,
           total: (response) => {
@@ -428,9 +440,12 @@ function mountCredentialsListPage(global) {
     }
 
     try {
-      await credentialsStore.actions.deleteCredential(credentialId);
+      const resp = await credentialsStore.actions.deleteCredential(credentialId);
+      global.toast?.success?.(resp?.message || "凭据已删除");
+      credentialsGrid?.refresh?.();
     } catch (error) {
       console.error("删除凭据失败:", error);
+      global.toast?.error?.(resolveErrorMessage(error, "删除凭据失败"));
     } finally {
       if (hasLoadingApi) {
         clearButtonLoading(trigger);
@@ -449,20 +464,6 @@ function mountCredentialsListPage(global) {
       return;
     }
     credentialModals.openEdit(credentialId);
-  }
-
-  function bindCredentialsStoreEvents() {
-    if (!credentialsStore) {
-      return;
-    }
-    credentialsStore.subscribe("credentials:deleted", ({ response }) => {
-      const message = response?.message || "凭据已删除";
-      global.toast?.success?.(message);
-      credentialsGrid?.refresh?.();
-    });
-    credentialsStore.subscribe("credentials:error", (payload) => {
-      global.toast?.error?.(resolveErrorMessage(payload?.error, "凭据操作失败"));
-    });
   }
 
   function exposeActions() {

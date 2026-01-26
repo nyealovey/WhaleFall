@@ -574,7 +574,23 @@
         if (emitter.all && typeof emitter.all.clear === "function") {
           emitter.all.clear();
         }
+        state.categories = [];
+        state.tags = [];
+        state.filteredTags = [];
+        state.filters = normalizeFilters(DEFAULT_FILTERS);
         state.selection.clear();
+        state.stats = {
+          total: 0,
+          selected: 0,
+          active: 0,
+          filtered: 0,
+        };
+        state.loading = {
+          categories: false,
+          tags: false,
+          operation: false,
+        };
+        state.lastError = null;
         pendingSelection = null;
       },
     };

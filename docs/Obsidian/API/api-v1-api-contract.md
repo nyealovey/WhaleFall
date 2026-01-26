@@ -14,7 +14,7 @@ updated: 2026-01-08
 
 > [!note]
 > 本文档仅作为 `/api/v1/**` contract 文档索引.
-> - SSOT: [[standards/doc/api-contract-markdown-standards|API Contract Markdown 标准]]
+> - SSOT: [[standards/doc/guide/api-contract-markdown|API Contract Markdown 标准]]
 > - Schema: `/api/v1/openapi.json`
 
 ## Contracts

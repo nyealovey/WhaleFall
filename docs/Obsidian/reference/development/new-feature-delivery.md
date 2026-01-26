@@ -12,10 +12,10 @@ owner: WhaleFall Team
 scope: 新增功能(API/页面/异步任务/脚本/配置)的最小交付清单(面向提交/评审)
 related:
   - "[[standards/README]]"
-  - "[[standards/doc/changes-standards]]"
-  - "[[standards/coding-standards]]"
-  - "[[standards/naming-standards]]"
-  - "[[standards/testing-standards]]"
+  - "[[standards/doc/guide/changes]]"
+  - "[[standards/core/guide/coding]]"
+  - "[[standards/core/gate/naming]]"
+  - "[[standards/core/guide/testing]]"
   - "[[standards/backend/README]]"
   - "[[standards/ui/README]]"
 ---
@@ -38,40 +38,40 @@ related:
 
 - [ ] 全仓检索(例如 `rg`)确认已有同类能力可复用/可扩展
 - [ ] 新增代码按业务域落位, 避免跨目录散落(路由/服务/模板/静态资源同域归类)
-- [ ] 命名与目录符合 [[standards/naming-standards]] 与相关域约定
+- [ ] 命名与目录符合 [[standards/core/gate/naming]] 与相关域约定
 
 ### B. 后端(如涉及)
 
-- [ ] 路由/API 保持薄, 编排下沉到 service: [[standards/backend/layer/README]]
-- [ ] 写路径事务边界遵循 [[standards/backend/write-operation-boundary]]
+- [ ] 路由/API 保持薄, 编排下沉到 service: [[standards/backend/guide/layer/README]]
+- [ ] 写路径事务边界遵循 [[standards/backend/standard/write-operation-boundary]]
 - [ ] 对外错误口径与封套遵循:
-  - [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]
-  - [[standards/backend/error-message-schema-unification]]
-- [ ] 新增/变更 payload 解析与 schema 校验遵循 [[standards/backend/request-payload-and-schema-validation]]
-- [ ] 新增/变更配置项走 `app/settings.py` 并更新 `env.example`: [[standards/backend/configuration-and-secrets]]
-- [ ] 涉及迁移时遵循 [[standards/backend/database-migrations]]
-- [ ] 涉及任务/调度时遵循 [[standards/backend/task-and-scheduler]]
+  - [[standards/backend/gate/layer/api-layer#响应封套(JSON Envelope)]]
+  - [[standards/backend/standard/error-message-schema-unification]]
+- [ ] 新增/变更 payload 解析与 schema 校验遵循 [[standards/backend/gate/request-payload-and-schema-validation]]
+- [ ] 新增/变更配置项走 `app/settings.py` 并更新 `env.example`: [[standards/backend/standard/configuration-and-secrets]]
+- [ ] 涉及迁移时遵循 [[standards/backend/standard/database-migrations]]
+- [ ] 涉及任务/调度时遵循 [[standards/backend/standard/task-and-scheduler]]
 
 ### C. 前端/UI(如涉及)
 
 - [ ] modules 分层(services/stores/views/ui)遵循:
-  - [[standards/ui/layer/README]]
-  - [[standards/ui/javascript-module-standards]]
-- [ ] Grid 列表页: [[standards/ui/grid-standards]]
-- [ ] 危险操作二次确认: [[standards/ui/danger-operation-confirmation-guidelines]]
-- [ ] 异步任务反馈: [[standards/ui/async-task-feedback-guidelines]]
-- [ ] 设计 Token 与颜色治理: [[standards/ui/design-token-governance-guidelines]] / [[standards/ui/color-guidelines]]
+  - [[standards/ui/guide/layer/README]]
+  - [[standards/ui/design/javascript-module]]
+- [ ] Grid 列表页: [[standards/ui/gate/grid]]
+- [ ] 危险操作二次确认: [[standards/ui/gate/danger-operation-confirmation]]
+- [ ] 异步任务反馈: [[standards/ui/guide/async-task-feedback]]
+- [ ] 设计 Token 与颜色治理: [[standards/ui/gate/design-token-governance]] / [[standards/ui/guide/color]]
 
 ### D. 文档与变更记录
 
-- [ ] `docs/changes/**` 新增/更新变更文档, 且 PR 描述链接到该文档: [[standards/doc/changes-standards]]
+- [ ] `docs/changes/**` 新增/更新变更文档, 且 PR 描述链接到该文档: [[standards/doc/guide/changes]]
 - [ ] 对外接口/配置/行为变化同步更新 `docs/Obsidian/reference/**`(如适用): [[reference/README]]
 - [ ] 如新增了可复用约束, 评估是否需要上升为 standards(并补齐门禁/检查方式)
 
 ### E. 自检与门禁(按改动取子集)
 
 > [!note] 说明
-> 具体命令以 [[standards/coding-standards]] 与各领域标准为准.
+> 具体命令以 [[standards/core/guide/coding]] 与各领域标准为准.
 
 - [ ] `make format`
 - [ ] `ruff check <paths>`

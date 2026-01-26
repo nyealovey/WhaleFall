@@ -21,7 +21,7 @@ related:
   - "[[API/capacity-api-contract]]"
   - "[[architecture/flows/aggregation-stats]]"
   - "[[reference/service/aggregation-pipeline]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Capacity Aggregations Read Services(聚合查询/summary)

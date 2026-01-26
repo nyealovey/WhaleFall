@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # db.session.commit 漂移门禁（services）：锁定 baseline，禁止新增命中（允许减少）
+#
+# 参考：
+# - docs/Obsidian/standards/backend/standard/write-operation-boundary.md
 
 set -euo pipefail
 
@@ -55,7 +58,7 @@ if [[ -n "${new_hits}" ]]; then
   echo "${new_hits}" >&2
   echo "" >&2
   echo "请将事务提交收敛到事务边界入口（safe_route_call / tasks / worker / scripts），services 仅使用 flush。" >&2
-  echo "参考：docs/changes/refactor/002-backend-write-operation-boundary-plan.md" >&2
+  echo "参考：docs/Obsidian/standards/backend/standard/write-operation-boundary.md" >&2
   exit 1
 fi
 

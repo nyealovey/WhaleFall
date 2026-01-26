@@ -43,21 +43,3 @@ class SyncConstants:
         SyncCategory.AGGREGATION: "聚合统计",
         SyncCategory.OTHER: "其他",
     }
-
-    OPERATION_TYPE_DESCRIPTIONS: ClassVar[dict[SyncOperationType, str]] = {
-        SyncOperationType.MANUAL_SINGLE: "Manual Single Instance Operation",
-        SyncOperationType.MANUAL_BATCH: "Manual Batch Operation",
-        SyncOperationType.MANUAL_TASK: "Manual Task Operation",
-        SyncOperationType.SCHEDULED_TASK: "Scheduled Task Operation",
-    }
-
-    CATEGORY_DESCRIPTIONS: ClassVar[dict[SyncCategory, str]] = {
-        SyncCategory.ACCOUNT: "Account Synchronization",
-        SyncCategory.CAPACITY: "Capacity Synchronization",
-        SyncCategory.CONFIG: "Configuration Synchronization",
-        SyncCategory.AGGREGATION: "Aggregation Statistics",
-        SyncCategory.OTHER: "Other Operations",
-    }
-
-    OPERATION_TYPE_VALUES: ClassVar[tuple[str, ...]] = tuple(t.value for t in SyncOperationType)
-    CATEGORY_VALUES: ClassVar[tuple[str, ...]] = tuple(c.value for c in SyncCategory)

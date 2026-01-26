@@ -20,7 +20,7 @@ related:
   - "[[API/instances-api-contract]]"
   - "[[reference/service/database-sync-overview]]"
   - "[[reference/service/aggregation-pipeline]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Instance Capacity Sync Actions Service(单实例容量同步)

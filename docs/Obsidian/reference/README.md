@@ -11,8 +11,8 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: docs/Obsidian/reference 入口与索引
 related:
-  - "[[standards/doc/documentation-standards]]"
-  - "[[standards/halfwidth-character-standards]]"
+  - "[[standards/doc/guide/documentation]]"
+  - "[[standards/core/guide/halfwidth-characters]]"
 ---
 
 # 参考手册
@@ -22,7 +22,7 @@ related:
 > 与之相对, 方案推进与一次性记录放到 `docs/changes/`.
 
 > [!note] Standards
-> 编写规范与结构约束见 [[standards/doc/documentation-standards]].
+> 编写规范与结构约束见 [[standards/doc/guide/documentation]].
 
 ## 索引
 

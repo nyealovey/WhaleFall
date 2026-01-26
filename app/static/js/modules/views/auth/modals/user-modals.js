@@ -5,9 +5,8 @@
    * 创建用户新建/编辑模态控制器。
    *
    * @param {Object} [options] - 配置选项
-   * @param {Object} [options.userService] - 用户服务(推荐注入)
-   * @param {Object} [options.http] - HTTP 客户端(兼容旧调用方；仅用于构造 UserService)
-   * @param {Object} [options.UserService] - UserService 类(兼容注入)
+   * @param {Object} options.store - UsersStore（由 Page Entry 注入）
+   * @param {Function} [options.onSaved] - 保存成功后的回调（用于刷新列表等）
    * @param {Object} [options.FormValidator] - 表单验证器
    * @param {Object} [options.ValidationRules] - 验证规则
    * @param {Object} [options.toast] - Toast 通知工具
@@ -17,9 +16,8 @@
    */
   function createController(options) {
     const {
-      userService: injectedUserService = null,
-      http = null,
-      UserService = window.UserService,
+      store = null,
+      onSaved = null,
       FormValidator = window.FormValidator,
       ValidationRules = window.ValidationRules,
       toast = window.toast,
@@ -31,20 +29,14 @@
     }
     const { selectOne } = DOMHelpers;
 
-    let userService = injectedUserService;
-    if (!userService) {
-      if (!UserService) {
-        throw new Error('UserModals: UserService 未加载');
-      }
-      userService = new UserService(http);
-    }
     if (
-      !userService ||
-      typeof userService.getUser !== 'function' ||
-      typeof userService.createUser !== 'function' ||
-      typeof userService.updateUser !== 'function'
+      !store ||
+      !store.actions ||
+      typeof store.actions.load !== 'function' ||
+      typeof store.actions.create !== 'function' ||
+      typeof store.actions.update !== 'function'
     ) {
-      throw new Error('UserModals: userService 未初始化');
+      throw new Error('UserModals: users store 未初始化');
     }
 
     const modalEl = document.getElementById('userModal');
@@ -165,12 +157,11 @@
         submitBtn.textContent = '保存';
         updateModeMeta('edit');
 
-        const payload = await userService.getUser(userId);
-        if (!payload?.success || !payload?.data?.user) {
-          toast?.error?.(payload?.message || '获取用户信息失败');
+        const user = await store.actions.load(userId);
+        if (!user) {
+          toast?.error?.('获取用户信息失败');
           return;
         }
-        const user = payload.data.user;
         form.user_id.value = user.id;
         form.username.value = user.username;
         form.role.value = user.role;
@@ -278,15 +269,14 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      userService
-        .createUser(payload)
+      store.actions
+        .create(payload)
         .then((resp) => {
-          if (!resp?.success) {
-            throw new Error(resp?.message || '创建用户失败');
-          }
           toast?.success?.(resp?.message || '用户创建成功');
           bootstrapModal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'create', response: resp });
+          }
         })
         .catch((error) => {
           console.error('创建用户失败', error);
@@ -308,15 +298,14 @@
         toggleLoading(false);
         return;
       }
-      userService
-        .updateUser(userId, payload)
+      store.actions
+        .update(userId, payload)
         .then((resp) => {
-          if (!resp?.success) {
-            throw new Error(resp?.message || '更新用户失败');
-          }
           toast?.success?.(resp?.message || '用户更新成功');
           bootstrapModal.hide();
-          window.location.reload();
+          if (typeof onSaved === 'function') {
+            onSaved({ mode: 'edit', response: resp });
+          }
         })
         .catch((error) => {
           console.error('更新用户失败', error);

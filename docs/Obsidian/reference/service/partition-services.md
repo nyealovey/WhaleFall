@@ -18,7 +18,7 @@ owner: WhaleFall Team
 scope: app/services/partition_management_service.py
 related:
   - "[[reference/service/aggregation-pipeline|Aggregation Pipeline(SSOT)]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Partition Services(容量表分区管理)

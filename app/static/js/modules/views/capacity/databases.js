@@ -72,7 +72,23 @@ function mountCapacityDatabasesPage(window) {
       return;
     }
 
+    const createDataSource = window.createCapacityStatsDataSource;
+    if (typeof createDataSource !== "function") {
+      console.error("createCapacityStatsDataSource 未初始化，无法加载容量统计页面");
+      return;
+    }
+
+    let dataSource = null;
+    try {
+      const service = new window.CapacityStatsService();
+      dataSource = createDataSource({ service });
+    } catch (error) {
+      console.error("初始化 CapacityStatsDataSource 失败:", error);
+      return;
+    }
+
     window.databaseCapacityStatsManager = new window.CapacityStats.Manager({
+      dataSource: dataSource,
       labelExtractor,
       supportsDatabaseFilter: true,
       includeDatabaseName: true,

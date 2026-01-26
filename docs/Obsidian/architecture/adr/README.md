@@ -13,7 +13,7 @@ scope: ADR (Architecture Decision Record)使用说明与模板入口
 related:
   - "[[architecture/README|architecture]]"
   - "[[architecture/architecture-review|architecture review]]"
-  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/doc/guide/documentation]]"
 ---
 
 # ADR

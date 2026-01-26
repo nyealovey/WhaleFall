@@ -18,7 +18,7 @@ scope: app/services/account_classification/orchestrator.py
 related:
   - "[[reference/service/accounts-classifications-write-service|Accounts Classifications Write Service]]"
   - "[[reference/service/account-classification-dsl-v4|Account Classification DSL v4]]"
-  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/doc/guide/service-layer-documentation]]"
 ---
 
 # Account Classification Orchestrator(规则加载 + 按 DB 类型编排)

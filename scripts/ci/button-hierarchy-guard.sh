@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # 按钮层级门禁：防止通过全局 border 覆盖破坏 Bootstrap outline 按钮语义
+#
+# 参考：
+# - docs/Obsidian/standards/ui/gate/button-hierarchy.md
 
 set -euo pipefail
 
@@ -30,6 +33,7 @@ if "${RG_BIN}" -n -U "${BTN_BORDER_KILL_PATTERN}" "${TARGET_DIR}"; then
   echo "修复建议：" >&2
   echo "- 不要在 .btn 上禁用 border；如需特殊外观请使用更具体的容器/组件类。" >&2
   echo "- 如确需对某一类按钮移除边框，请限定到语义类（例如 .btn-primary）或容器作用域，并确保不影响 btn-outline-*。" >&2
+  echo "参考：docs/Obsidian/standards/ui/gate/button-hierarchy.md" >&2
   exit 1
 fi
 

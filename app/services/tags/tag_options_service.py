@@ -44,10 +44,10 @@ class TagOptionsService:
     def list_all_tags(self) -> TagsBulkTagsResult:
         """列出全部标签及分类映射."""
         tags = self._repository.list_all_tags()
-        category_names = dict(self._repository.list_categories())
+        categories = sorted({tag.category for tag in tags if tag.category})
         return TagsBulkTagsResult(
             tags=[self._to_tag(tag) for tag in tags],
-            category_names=cast("dict[str, str]", category_names),
+            category_names={category: category for category in categories},
         )
 
     def list_tag_options(self, category: str | None) -> TagOptionsResult:
@@ -63,7 +63,7 @@ class TagOptionsService:
             category=normalized_category,
         )
 
-    def list_categories(self) -> list:
+    def list_categories(self) -> list[str]:
         """列出标签分类."""
         return self._repository.list_categories()
 

@@ -46,41 +46,6 @@
     --card-gap: 1rem;
 }
 
-.instance-stat-card {
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 30%, transparent);
-    border-radius: var(--border-radius-lg);
-    background: var(--surface-elevated);
-    box-shadow: var(--shadow-sm);
-    padding: 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.instance-stat-card__label {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    text-transform: none;
-}
-
-.instance-stat-card__value {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.instance-stat-card__value[data-value-tone="success"] {
-    color: var(--status-success);
-}
-
-.instance-stat-card__value[data-value-tone="danger"] {
-    color: var(--status-danger);
-}
-
-.instance-stat-card__value[data-value-tone="info"] {
-    color: var(--status-info);
-}
-
 .instance-quick-actions .btn {
     font-weight: 600;
 }

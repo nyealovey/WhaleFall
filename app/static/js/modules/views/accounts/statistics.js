@@ -27,11 +27,20 @@ function mountAccountsStatisticsPage(global) {
     return;
   }
 
-  let service = null;
+  const createAccountsStatisticsStore = global.createAccountsStatisticsStore;
+  if (typeof createAccountsStatisticsStore !== "function") {
+    console.error("createAccountsStatisticsStore 未初始化");
+    return;
+  }
+
+  let store = null;
   try {
-    service = new AccountsStatisticsService();
+    store = createAccountsStatisticsStore({
+      service: new AccountsStatisticsService(),
+      emitter: global.mitt ? global.mitt() : null,
+    });
   } catch (error) {
-    console.error("初始化 AccountsStatisticsService 失败:", error);
+    console.error("初始化 AccountsStatisticsStore 失败:", error);
     return;
   }
 
@@ -43,16 +52,9 @@ function mountAccountsStatisticsPage(global) {
     const button = event.currentTarget;
     toggleLoading(button, true);
 
-    if (!service?.fetchStatistics) {
-      notify("统计服务未初始化", "error");
-      toggleLoading(button, false);
-      return;
-    }
-
-    service
-      .fetchStatistics()
-      .then((payload) => {
-        const stats = payload?.data?.stats ?? payload?.stats ?? {};
+    store.actions
+      .refresh()
+      .then((stats) => {
         applyStats(stats);
         notify("统计数据已刷新", "success");
       })

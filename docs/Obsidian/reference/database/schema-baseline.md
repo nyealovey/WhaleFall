@@ -12,7 +12,7 @@ owner: WhaleFall Team
 scope: "`sql/init/postgresql/**`, `migrations/**`, 新环境建库与基线对齐"
 related:
   - "[[reference/database/README|数据库参考]]"
-  - "[[standards/backend/database-migrations]]"
+  - "[[standards/backend/standard/database-migrations]]"
 ---
 
 # PostgreSQL schema 基线与初始化口径
@@ -24,7 +24,7 @@ related:
 > 不要对同一个空库重复执行两条路径.
 
 > [!info] Related standards (SSOT)
-> - [[standards/backend/database-migrations|database migrations]]
+> - [[standards/backend/standard/database-migrations|database migrations]]
 
 ## 初始化路径
 
@@ -41,7 +41,7 @@ related:
 
 ## 默认值与约束
 
-- 必须遵循 [[standards/backend/database-migrations]] 的 "初始化二选一" 规则: 禁止对同一个空库同时执行 SQL 初始化与 `flask db upgrade`.
+- 必须遵循 [[standards/backend/standard/database-migrations]] 的 "初始化二选一" 规则: 禁止对同一个空库同时执行 SQL 初始化与 `flask db upgrade`.
 - 基线之后的迁移以 `migrations/versions/` 为准; 当前仓库已存在多个基线后的迁移文件(例如 `20251224120000_*`, `20251224134000_*` 等).
 - 分区脚本按月份拆分: 目前仓库内包含:
   - `sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql`

@@ -3,7 +3,7 @@
 
 Deprecated:
 - API contract SSOT 已迁移到 Obsidian Markdown: `docs/Obsidian/API/**-api-contract.md`
-- 标准: `docs/Obsidian/standards/doc/api-contract-markdown-standards.md`
+- 标准: `docs/Obsidian/standards/doc/guide/api-contract-markdown.md`
 
 本脚本仅用于历史遗留的 `.canvas` contract 维护与审计.
 
@@ -262,7 +262,7 @@ def _generate_index_canvas(
                 "- (Legacy) 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py "
                 f"--output {CANVAS_ROOT.as_posix()}/{INDEX_CANVAS_FILENAME}`\n"
                 "- (Legacy) 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\n"
-                "Source: `docs/Obsidian/standards/doc/api-contract-markdown-standards.md`\n"
+                "Source: `docs/Obsidian/standards/doc/guide/api-contract-markdown.md`\n"
             ),
         },
         {

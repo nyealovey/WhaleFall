@@ -8,24 +8,20 @@
 function mountAccountClassificationStatisticsPage(global) {
   "use strict";
 
-  const DEFAULT_PERIODS = 7;
-
   const document = global.document;
   if (!document) {
     return;
   }
 
-  const ServiceCtor = global.AccountClassificationStatisticsService;
-  if (typeof ServiceCtor !== "function") {
-    console.error("AccountClassificationStatisticsService 未初始化");
-    return;
-  }
-
-  let service = null;
-  try {
-    service = new ServiceCtor();
-  } catch (error) {
-    console.error("初始化 AccountClassificationStatisticsService 失败:", error);
+  const StatsServiceCtor = global.AccountClassificationStatisticsService;
+  const InstanceManagementService = global.InstanceManagementService;
+  const createAccountClassificationStatisticsStore = global.createAccountClassificationStatisticsStore;
+  if (
+    typeof StatsServiceCtor !== "function" ||
+    typeof InstanceManagementService !== "function" ||
+    typeof createAccountClassificationStatisticsStore !== "function"
+  ) {
+    console.error("AccountClassificationStatisticsService/InstanceManagementService/Store 未初始化");
     return;
   }
 
@@ -55,11 +51,33 @@ function mountAccountClassificationStatisticsPage(global) {
     secondaryCanvas: document.getElementById("acs-rule-secondary"),
   };
 
-  const state = readStateFromForm(elements);
+  let store = null;
+  try {
+    store = createAccountClassificationStatisticsStore({
+      service: new StatsServiceCtor(),
+      instanceService: new InstanceManagementService(),
+      emitter: global.mitt ? global.mitt() : null,
+    });
+  } catch (error) {
+    console.error("初始化 AccountClassificationStatisticsStore 失败:", error);
+    return;
+  }
+
+  let state = store.actions.setFilters(readStateFromForm(elements));
   let rulesCache = [];
   let selectedRuleMeta = null;
   let classificationChart = null;
   let secondaryChart = null;
+
+  function syncFromStore() {
+    const snapshot = store.getState();
+    state = snapshot.filters;
+    rulesCache = snapshot.rules;
+    selectedRuleMeta = snapshot.selectedRuleMeta;
+    return snapshot;
+  }
+
+  syncFromStore();
 
   bindEvents();
   refreshAll({ silent: true });
@@ -86,9 +104,10 @@ function mountAccountClassificationStatisticsPage(global) {
     });
 
     elements.classificationId?.addEventListener("change", () => {
-      state.classificationId = normalizeInt(elements.classificationId.value);
-      // 切换分类默认清空选中规则，避免跨分类 rule_id 误导
-      state.ruleId = null;
+      store.actions.patchFilters({
+        classificationId: normalizeInt(elements.classificationId.value),
+      });
+      syncFromStore();
       if (elements.ruleId) {
         elements.ruleId.value = "";
       }
@@ -97,14 +116,19 @@ function mountAccountClassificationStatisticsPage(global) {
     });
 
     elements.periodType?.addEventListener("change", () => {
-      state.periodType = normalizePeriodType(elements.periodType.value);
+      store.actions.patchFilters({
+        periodType: normalizePeriodType(elements.periodType.value),
+      });
+      syncFromStore();
       syncUrl();
       refreshAll({ silent: true });
     });
 
     elements.dbType?.addEventListener("change", () => {
-      state.dbType = normalizeString(elements.dbType.value);
-      state.instanceId = null;
+      store.actions.patchFilters({
+        dbType: normalizeString(elements.dbType.value),
+      });
+      syncFromStore();
       if (elements.instanceId) {
         elements.instanceId.value = "";
       }
@@ -113,13 +137,19 @@ function mountAccountClassificationStatisticsPage(global) {
     });
 
     elements.instanceId?.addEventListener("change", () => {
-      state.instanceId = normalizeInt(elements.instanceId.value);
+      store.actions.patchFilters({
+        instanceId: normalizeInt(elements.instanceId.value),
+      });
+      syncFromStore();
       syncUrl();
       refreshAll({ silent: true });
     });
 
     elements.ruleStatus?.addEventListener("change", () => {
-      state.ruleStatus = normalizeRuleStatus(elements.ruleStatus.value);
+      store.actions.patchFilters({
+        ruleStatus: normalizeRuleStatus(elements.ruleStatus.value),
+      });
+      syncFromStore();
       syncUrl();
       refreshRulesList({ silent: true });
     });
@@ -131,12 +161,8 @@ function mountAccountClassificationStatisticsPage(global) {
 
   function applyFilters() {
     const next = readStateFromForm(elements);
-    state.classificationId = next.classificationId;
-    state.periodType = next.periodType;
-    state.dbType = next.dbType;
-    state.instanceId = next.instanceId;
-    state.ruleId = next.ruleId;
-    state.ruleStatus = next.ruleStatus;
+    store.actions.setFilters(next);
+    syncFromStore();
 
     syncUrl();
     refreshAll({ silent: false });
@@ -144,12 +170,8 @@ function mountAccountClassificationStatisticsPage(global) {
 
   function resetFilters() {
     form.reset();
-    state.classificationId = null;
-    state.periodType = "daily";
-    state.dbType = null;
-    state.instanceId = null;
-    state.ruleId = null;
-    state.ruleStatus = "active";
+    store.actions.resetFilters();
+    syncFromStore();
 
     if (elements.ruleId) {
       elements.ruleId.value = "";
@@ -190,103 +212,46 @@ function mountAccountClassificationStatisticsPage(global) {
   }
 
   function refreshRulesList({ silent }) {
-    if (!state.classificationId) {
-      rulesCache = [];
-      renderRulesList([]);
-      return Promise.resolve();
-    }
-
     setRulesLoading(true);
-    return service
-      .fetchRulesOverview({
-        classificationId: state.classificationId,
-        periodType: state.periodType,
-        periods: DEFAULT_PERIODS,
-        dbType: state.dbType,
-        instanceId: state.instanceId,
-        status: state.ruleStatus,
-      })
-      .then((payload) => {
-        const data = payload?.data ?? payload ?? {};
-        const rules = Array.isArray(data.rules) ? data.rules : data.data?.rules || [];
-        const windowStart = data.window_start || data.data?.window_start || null;
-        const windowEnd = data.window_end || data.data?.window_end || null;
-        const latestStart = data.latest_period_start || data.data?.latest_period_start || null;
-        const latestEnd = data.latest_period_end || data.data?.latest_period_end || null;
-        rulesCache = Array.isArray(rules) ? rules : [];
-        selectedRuleMeta = resolveSelectedRule(rulesCache, state.ruleId);
-        renderRulesWindowLabel(latestStart || windowStart, latestEnd || windowEnd);
+    return store.actions
+      .refreshRulesList({ silent })
+      .then(() => {
+        const snapshot = syncFromStore();
+        const windowStart = snapshot.rulesWindow?.latestStart || snapshot.rulesWindow?.windowStart || null;
+        const windowEnd = snapshot.rulesWindow?.latestEnd || snapshot.rulesWindow?.windowEnd || null;
+        renderRulesWindowLabel(windowStart, windowEnd);
         renderRulesList(rulesCache);
         applyRuleSearch();
       })
       .catch((error) => {
         console.error("加载规则列表失败:", error);
-        rulesCache = [];
+        syncFromStore();
+        renderRulesWindowLabel(null, null);
         renderRulesList([]);
         notify("规则列表加载失败", "error", { silent });
       })
-      .finally(() => setRulesLoading(false));
+      .finally(() => {
+        setRulesLoading(false);
+      });
   }
 
   function refreshCharts({ silent }) {
-    if (!state.classificationId) {
-      renderSecondaryEmptyState();
-      return service
-        .fetchAllClassificationsTrends({
-          periodType: state.periodType,
-          periods: DEFAULT_PERIODS,
-          dbType: state.dbType,
-          instanceId: state.instanceId,
-        })
-        .then((payload) => {
-          const data = payload?.data ?? payload ?? {};
-          renderAllClassificationsTrend(data);
-        })
-        .catch((error) => {
-          console.error("加载全分类趋势失败:", error);
-          notify("趋势数据加载失败", "error", { silent });
-        });
-    }
-
-    return service
-      .fetchClassificationTrend({
-        classificationId: state.classificationId,
-        periodType: state.periodType,
-        periods: DEFAULT_PERIODS,
-        dbType: state.dbType,
-        instanceId: state.instanceId,
-      })
-      .then((payload) => {
-        const trend = payload?.data?.trend ?? payload?.trend ?? [];
-        renderClassificationTrend(trend);
-      })
+    return store.actions
+      .refreshCharts({ silent })
       .then(() => {
-        if (state.ruleId) {
-          return service
-            .fetchRuleTrend({
-              ruleId: state.ruleId,
-              periodType: state.periodType,
-              periods: DEFAULT_PERIODS,
-              dbType: state.dbType,
-              instanceId: state.instanceId,
-            })
-            .then((payload) => {
-              const trend = payload?.data?.trend ?? payload?.trend ?? [];
-              renderRuleTrend(trend);
-            });
+        const snapshot = syncFromStore();
+        if (!state.classificationId) {
+          renderSecondaryEmptyState();
+          renderAllClassificationsTrend(snapshot.allClassificationsTrend || {});
+          return;
         }
-        return service
-          .fetchRuleContributions({
-            classificationId: state.classificationId,
-            periodType: state.periodType,
-            dbType: state.dbType,
-            instanceId: state.instanceId,
-            limit: 10,
-          })
-          .then((payload) => {
-            const data = payload?.data ?? payload ?? {};
-            renderRuleContributions(data);
-          });
+
+        renderClassificationTrend(snapshot.classificationTrend);
+        if (state.ruleId) {
+          renderRuleTrend(snapshot.ruleTrend);
+          return;
+        }
+        renderRuleContributions(snapshot.ruleContributions || {});
       })
       .catch((error) => {
         console.error("加载趋势失败:", error);
@@ -307,20 +272,11 @@ function mountAccountClassificationStatisticsPage(global) {
     elements.instanceId.removeAttribute("disabled");
     elements.instanceId.innerHTML = '<option value="">加载中...</option>';
 
-    const http = global.httpU || global.http;
-    if (!http || typeof http.get !== "function") {
-      return Promise.resolve();
-    }
-
-    return http
-      .get("/api/v1/instances/options", {
-        params: { db_type: state.dbType },
-        headers: { Accept: "application/json" },
-      })
-      .then((payload) => {
-        const items = payload?.data?.instances ?? payload?.instances ?? [];
-        const options = Array.isArray(items) ? items : [];
-        renderInstanceOptions(options);
+    return store.actions
+      .loadInstanceOptions({ silent: true })
+      .then(() => {
+        const snapshot = syncFromStore();
+        renderInstanceOptions(snapshot.instanceOptions);
       })
       .catch((error) => {
         console.error("加载实例选项失败:", error);
@@ -436,11 +392,11 @@ function mountAccountClassificationStatisticsPage(global) {
     if (!nextRuleId) {
       return;
     }
-    state.ruleId = nextRuleId;
+    store.actions.patchFilters({ ruleId: nextRuleId });
+    syncFromStore();
     if (elements.ruleId) {
       elements.ruleId.value = String(nextRuleId);
     }
-    selectedRuleMeta = resolveSelectedRule(rulesCache, nextRuleId);
     syncUrl();
     highlightSelectedRule(nextRuleId);
     refreshCharts({ silent: true });
@@ -809,14 +765,6 @@ function mountAccountClassificationStatisticsPage(global) {
     });
   }
 
-  function resolveSelectedRule(rules, ruleId) {
-    if (!ruleId) {
-      return null;
-    }
-    const id = String(ruleId);
-    return (rules || []).find((rule) => String(rule?.rule_id) === id) || null;
-  }
-
   function resolveRuleTitle(ruleMeta, ruleId) {
     if (!ruleId) {
       return "规则趋势（命中账号数）";
@@ -1043,8 +991,8 @@ function mountAccountClassificationStatisticsPage(global) {
     if (global.ColorTokens?.getChartColor) {
       return global.ColorTokens.getChartColor(index, alpha);
     }
-    const fallback = resolveCssVar("--status-info") || "#3498db";
-    return withAlpha(fallback, alpha);
+    const resolved = resolveCssVar("--status-info");
+    return withAlpha(resolved, alpha);
   }
 
   function renderEmptyChart(ctx, title) {
