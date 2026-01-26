@@ -36,7 +36,7 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
         name = "job-1"
 
         @staticmethod
-        def func(*args, **kwargs):  # noqa: ANN001
+        def func(*args, **kwargs):
             del args, kwargs
 
         args = ()
@@ -46,11 +46,11 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
         running = True
 
         @staticmethod
-        def get_jobs():  # noqa: ANN001
+        def get_jobs():
             return [_DummyJob()]
 
         @staticmethod
-        def get_job(job_id: str):  # noqa: ANN001
+        def get_job(job_id: str):
             return _DummyJob() if job_id == "job-1" else None
 
         @staticmethod
@@ -65,7 +65,7 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
         def remove_job(job_id: str) -> None:
             del job_id
 
-    def _dummy_list_jobs(self):  # noqa: ANN001
+    def _dummy_list_jobs(self):
         del self
         return [
             SchedulerJobListItem(
@@ -84,7 +84,7 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
             ),
         ]
 
-    def _dummy_get_job(self, job_id: str):  # noqa: ANN001
+    def _dummy_get_job(self, job_id: str):
         del self, job_id
         return SchedulerJobDetail(
             id="job-1",

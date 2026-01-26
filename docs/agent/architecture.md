@@ -60,7 +60,7 @@ def example_view() -> Response:
 
 ## 数据库适配器（多数据库支持）
 
-- 基础适配器：`app/services/connection_adapters/adapters/base_adapter.py`
+- 基础适配器：`app/services/connection_adapters/adapters/base.py`
 - 数据库专用适配器：PostgreSQL/MySQL/SQL Server/Oracle
 - 一般通过工厂模式实例化适配器（根据实例类型选择实现）
 
@@ -74,7 +74,7 @@ def example_view() -> Response:
 
 - 分类器：`app/services/account_classification/classifiers/`
 - 编排器：`app/services/account_classification/orchestrator.py`
-- 设计文档（V2）：`docs/Obsidian/architecture/account-classification-v2-design.md`
+- 设计文档：`docs/Obsidian/architecture/domain/classification-domain.md`、`docs/Obsidian/architecture/flows/auto-classify.md`
 
 ## 容量聚合 / 时序数据
 
@@ -120,7 +120,7 @@ def example_view() -> Response:
 
 关键前端组件（按现有封装）：
 
-- `FilterCard`：`app/static/js/common/filter-card.js`（统一筛选 UI，带防抖）
+- `FilterCard`：`app/static/js/modules/ui/filter-card.js`（统一筛选 UI，带防抖）
 - `ActionDelegation`：批量操作与行动作（按各页封装位置复用）
 - `URLSync`：筛选/分页状态与 URL 同步（按各页封装位置复用）
 - `ExportButton`：CSV/Excel 导出（按各页封装位置复用）

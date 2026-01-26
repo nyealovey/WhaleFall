@@ -34,8 +34,8 @@ description: WhaleFall(鲸落) 全局版本更新/发版同步工作流. 用于 
 
 ## 验证与自检
 
-1. 运行版本一致性自检脚本(本 skill 自带): `python3 scripts/check_version_sync.py --root <repo_root> --expected X.Y.Z`.
-   - 不传 `--expected` 时,脚本会从 `app/settings.py` 的 `APP_VERSION` 推导并作为期望值.
+1. 运行版本一致性自检(最小集): 确认 `app/settings.py`/`pyproject.toml`/`env.example`/`uv.lock` 的版本号一致.
+   - 可用 `rg -n \"X\\.Y\\.Z\"` 辅助核对是否还有遗漏.
 2. 运行质量/检查命令(按需选择): `make quality` 或 `ruff check <files>`.
 3. 核对 `git status`/`git diff`,避免仅为版本号而改动 `docs/Obsidian/architecture/*`、`docs/reports/*` 等大文档.
 
@@ -48,7 +48,7 @@ description: WhaleFall(鲸落) 全局版本更新/发版同步工作流. 用于 
   - [ ] `/admin/api/app-info` 的 `app_version` 已同步
   - [ ] 页脚/错误页/README 已同步
   - [ ] `CHANGELOG.md` 与 About 时间轴已补充
-  - [ ] `python3 scripts/check_version_sync.py --root <repo_root>` 通过
+  - [ ] 已确认 `app/settings.py`/`pyproject.toml`/`env.example`/`uv.lock` 版本一致
 
 ## 兼容与回退
 

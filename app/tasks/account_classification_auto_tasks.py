@@ -243,7 +243,7 @@ def auto_classify_accounts(
                     },
                 )
                 db.session.commit()
-            except Exception as rule_exc:  # noqa: BLE001 - task boundary + fail-fast
+            except Exception as rule_exc:
                 task_runs_service.fail_item(
                     resolved_run_id,
                     item_type="rule",

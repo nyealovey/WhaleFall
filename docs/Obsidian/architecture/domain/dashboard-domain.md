@@ -58,7 +58,7 @@ Services:
 
 - overview/status: `app/services/dashboard/dashboard_overview_service.py`
 - charts: `app/services/dashboard/dashboard_charts_service.py`
-- activities: `app/services/dashboard/dashboard_activities_service.py`
+- activities: 当前在 `app/api/v1/namespaces/dashboard.py` 内联返回空数组(占位)
 
 Repositories(统计查询):
 
@@ -115,4 +115,3 @@ graph TB
 - 如果返回错误封套:
   - 先用 `message_code` 去 [[reference/errors/message-code-catalog]] 对齐语义
   - 再用 `context.request_id` 去日志中心过滤(见 [[operations/observability-ops]])
-

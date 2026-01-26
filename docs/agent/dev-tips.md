@@ -39,8 +39,8 @@ uv run flask --app app:create_app db downgrade
 
 ```bash
 # 显示管理员密码
-python scripts/show_admin_password.py
+python3 scripts/admin/password/show_admin_password.py
 
 # 重置管理员密码
-python scripts/reset_admin_password.py
+python3 scripts/admin/password/reset_admin_password.py
 ```

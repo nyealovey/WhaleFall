@@ -246,7 +246,7 @@ def calculate_account_classification(
                         },
                     )
                     db.session.commit()
-                except Exception as rule_exc:  # noqa: BLE001 - task boundary + fail-fast
+                except Exception as rule_exc:
                     task_runs_service.fail_item(
                         resolved_run_id,
                         item_type="rule",
@@ -327,7 +327,7 @@ def calculate_account_classification(
                 "rule_match_rows": len(rule_records),
                 "classification_match_rows": len(classification_records),
             }
-        except Exception as exc:  # noqa: BLE001 - scheduler task boundary
+        except Exception as exc:
             db.session.rollback()
             sync_logger.exception(
                 "账户分类每日统计计算失败",

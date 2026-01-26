@@ -19,7 +19,6 @@ os.environ.setdefault("FLASK_ENV", "testing")
 # ============================================================
 # 以下是 import 和 fixtures
 # ============================================================
-import pytest
 
 
 def pytest_configure(config):

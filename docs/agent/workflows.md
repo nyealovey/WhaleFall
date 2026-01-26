@@ -40,4 +40,4 @@
 
 - 适配器入口：`app/services/connection_adapters/adapters/`
 - 分类相关：`app/services/account_classification/`
-- V2 设计：`docs/Obsidian/architecture/account-classification-v2-design.md`
+- V2 设计：`docs/Obsidian/architecture/domain/classification-domain.md`、`docs/Obsidian/architecture/flows/auto-classify.md`

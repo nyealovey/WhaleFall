@@ -35,7 +35,6 @@ def _ensure_task_run_tables(app) -> None:
 def test_task_runs_write_service_start_run_creates_task_run(app) -> None:
     try:
         from app.models.task_run import TaskRun
-        from app.models.task_run_item import TaskRunItem
         from app.schemas.task_run_summary import TaskRunSummaryFactory
         from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
     except ModuleNotFoundError as exc:

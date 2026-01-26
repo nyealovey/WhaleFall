@@ -14,7 +14,7 @@ def test_api_v1_instances_statistics_requires_auth(client) -> None:
 def test_api_v1_instances_statistics_contract(auth_client, monkeypatch) -> None:
     import app.api.v1.namespaces.instances as api_module
 
-    def _dummy_build_statistics():  # noqa: ANN001
+    def _dummy_build_statistics():
         return {
             "total_instances": 1,
             "active_instances": 1,

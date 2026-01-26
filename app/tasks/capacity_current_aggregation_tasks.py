@@ -125,12 +125,12 @@ def capacity_aggregate_current(
                 raise TaskRunCancelledError()
 
         def _build_callback_group(kind: str) -> dict[str, Any]:
-            def _on_start(instance) -> None:  # noqa: ANN001
+            def _on_start(instance) -> None:
                 _ensure_not_cancelled()
                 task_runs_service.start_item(resolved_run_id, item_type="instance", item_key=str(instance.id))
                 db.session.commit()
 
-            def _on_complete(instance, payload: dict[str, Any]) -> None:  # noqa: ANN001
+            def _on_complete(instance, payload: dict[str, Any]) -> None:
                 _ensure_not_cancelled()
                 status = str(payload.get("status") or AggregationStatus.FAILED.value).lower()
                 processed_value = payload.get("processed_records")
@@ -160,7 +160,7 @@ def capacity_aggregate_current(
                     )
                 db.session.commit()
 
-            def _on_error(instance, payload: dict[str, Any]) -> None:  # noqa: ANN001
+            def _on_error(instance, payload: dict[str, Any]) -> None:
                 _ensure_not_cancelled()
                 details = dict(payload)
                 task_runs_service.fail_item(
@@ -197,7 +197,7 @@ def capacity_aggregate_current(
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
             return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
-        except Exception as exc:  # noqa: BLE001 - task boundary
+        except Exception as exc:
             db.session.rollback()
             sync_logger.exception(
                 "当前周期聚合失败",

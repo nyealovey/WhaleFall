@@ -76,7 +76,7 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
             return {"keys": 1}
 
         @staticmethod
-        def get(_key: str):  # noqa: ANN001
+        def get(_key: str):
             return {"rules": [{"id": 1}]}
 
     monkeypatch.setattr(

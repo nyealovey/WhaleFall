@@ -30,7 +30,7 @@ def test_api_v1_databases_ledgers_endpoints_contract(auth_client, monkeypatch) -
         page = 1
         limit = 20
 
-    def _dummy_get_ledger(self, **kwargs):  # noqa: ANN001
+    def _dummy_get_ledger(self, **kwargs):
         del self, kwargs
         return _DummyLedgerResult()
 

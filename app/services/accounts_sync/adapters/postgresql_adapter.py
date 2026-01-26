@@ -212,15 +212,12 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         self,
         connection: object,
         username: str,
-        *,
-        is_superuser: bool,
     ) -> PermissionSnapshot:
         """聚合指定角色的权限信息.
 
         Args:
             connection: PostgreSQL 数据库连接.
             username: 角色名/用户名.
-            is_superuser: 该用户是否具备超级权限.
 
         Returns:
             PermissionSnapshot: 包含角色属性、预定义角色、数据库权限等信息.
@@ -303,7 +300,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 permissions = self._get_role_permissions(
                     connection,
                     username,
-                    is_superuser=bool(account.get("is_superuser")),
                 )
                 self._merge_seed_permissions(permissions, existing_permissions)
                 account["permissions"] = permissions

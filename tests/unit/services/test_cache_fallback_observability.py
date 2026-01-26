@@ -23,7 +23,7 @@ def test_cache_manager_get_failure_logs_fallback() -> None:
 
     class _DummyCache:
         @staticmethod
-        def get(_key: str):  # noqa: ANN001
+        def get(_key: str):
             raise RuntimeError("boom")
 
     dummy_logger = _DummyLogger()
@@ -48,7 +48,7 @@ def test_cache_manager_set_failure_logs_fallback() -> None:
 
     class _DummyCache:
         @staticmethod
-        def set(_key: str, _value: object, *, timeout: int):  # noqa: ANN001
+        def set(_key: str, _value: object, *, timeout: int):
             raise RuntimeError("boom")
 
     dummy_logger = _DummyLogger()
@@ -73,7 +73,7 @@ def test_cache_manager_delete_failure_logs_fallback() -> None:
 
     class _DummyCache:
         @staticmethod
-        def delete(_key: str):  # noqa: ANN001
+        def delete(_key: str):
             raise RuntimeError("boom")
 
     manager = CacheManager(cache=cast(Cache, _DummyCache()))
@@ -102,7 +102,7 @@ def test_cache_manager_set_ttl_zero_is_preserved() -> None:
         def __init__(self) -> None:
             self.calls: list[int] = []
 
-        def set(self, _key: str, _value: object, *, timeout: int) -> None:  # noqa: ANN001
+        def set(self, _key: str, _value: object, *, timeout: int) -> None:
             self.calls.append(timeout)
 
     dummy_cache = _DummyCache()
@@ -134,13 +134,13 @@ def test_cache_actions_clear_all_cache_logs_fallback_and_counts(monkeypatch) -> 
     fallback_calls: list[dict[str, object]] = []
 
     def _fake_log_fallback(  # type: ignore[no-untyped-def]
-        level,  # noqa: ANN001
-        event,  # noqa: ANN001
+        level,
+        event,
         *,
-        module,  # noqa: ANN001
-        action,  # noqa: ANN001
-        fallback_reason,  # noqa: ANN001
-        **options,  # noqa: ANN001
+        module,
+        action,
+        fallback_reason,
+        **options,
     ) -> None:
         fallback_calls.append(
             {
@@ -180,7 +180,7 @@ def test_cache_actions_classification_stats_are_derived_from_all_rules_cache(mon
         def get_stats(self) -> dict[str, object]:
             return {"keys": 1}
 
-        def get(self, key: str):  # noqa: ANN001
+        def get(self, key: str):
             self.keys.append(key)
             return {
                 "rules": [

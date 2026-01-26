@@ -69,8 +69,6 @@ related:
 | `app/tasks/**` | 后台任务入口(由 scheduler 调用) |
 | `app/scheduler.py` | APScheduler 封装 + SQLite jobstore(`userdata/scheduler.db`) |
 | `app/config/*.yaml` | 业务规则配置(account_filters/database_filters/scheduler_tasks) |
-| `app/forms/**` | Flask-WTF 表单定义(主要用于 Web UI) |
-| `app/views/**` | 表单/资源视图封装(Web UI 复用) |
 | `app/templates/**` | Jinja2 模板 |
 | `app/static/**` | 静态资源与前端模块(含 vendor) |
 | `app/utils/**` | 可复用工具(纯函数优先), 不承载业务规则 |
