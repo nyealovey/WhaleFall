@@ -40,7 +40,8 @@ related:
   - `app/models/instance_database.py`
 - Services:
   - `app/services/instances/instance_write_service.py`
-  - `app/services/instances/instance_read_service.py`
+  - `app/services/instances/instance_list_service.py`
+  - `app/services/instances/instance_detail_read_service.py`
 - API v1:
   - `app/api/v1/namespaces/instances.py`
 - Web UI:

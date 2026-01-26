@@ -8,10 +8,10 @@ from app.services.database_sync.table_size_adapters.oracle_adapter import Oracle
 
 
 class _DummyOracleConnection:
-    def __init__(self, handler):  # noqa: ANN001
+    def __init__(self, handler):
         self._handler = handler
 
-    def execute_query(self, query, params=None):  # noqa: ANN001
+    def execute_query(self, query, params=None):
         return self._handler(query, params)
 
 
@@ -24,7 +24,7 @@ def test_oracle_table_size_adapter_fallback_to_sys_dba_segments() -> None:
     adapter = OracleTableSizeAdapter()
     instance: Any = SimpleNamespace(name="instance-1", credential=SimpleNamespace(username="app_user"))
 
-    def handler(query: str, params):  # noqa: ANN001
+    def handler(query: str, params):
         del params
         normalized = " ".join(query.lower().split())
         if "from dba_tablespaces" in normalized:
@@ -56,7 +56,7 @@ def test_oracle_table_size_adapter_missing_privileges_raises_value_error() -> No
     adapter = OracleTableSizeAdapter()
     instance: Any = SimpleNamespace(name="instance-1", credential=SimpleNamespace(username="app_user"))
 
-    def handler(query: str, params):  # noqa: ANN001
+    def handler(query: str, params):
         del query, params
         raise _oracle_error("ORA-00942")
 
@@ -70,7 +70,7 @@ def test_oracle_table_size_adapter_empty_result_without_tablespace_check_raises_
     adapter = OracleTableSizeAdapter()
     instance: Any = SimpleNamespace(name="instance-1", credential=SimpleNamespace(username="app_user"))
 
-    def handler(query: str, params):  # noqa: ANN001
+    def handler(query: str, params):
         del params
         normalized = " ".join(query.lower().split())
         if "from dba_tablespaces" in normalized:

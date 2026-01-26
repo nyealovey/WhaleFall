@@ -32,12 +32,12 @@ graph TD
     ApiV1["API v1(app/api/v1/**)"]
   end
 
-  subgraph Domain["Domain layer"]
-    Tasks["Tasks(app/tasks/**)"]
-    Services["Services(app/services/**)"]
-    Schemas["Schemas(app/schemas/**)"]
-    FormsViews["Forms/Views(app/forms/**, app/views/**)"]
-  end
+	  subgraph Domain["Domain layer"]
+	    Tasks["Tasks(app/tasks/**)"]
+	    Services["Services(app/services/**)"]
+	    Schemas["Schemas(app/schemas/**)"]
+	    TemplatesStatic["Templates/Static(app/templates/**, app/static/**)"]
+	  end
 
   subgraph Data["Data layer"]
     Repos["Repositories(app/repositories/**)"]
@@ -53,10 +53,10 @@ graph TD
   end
 
   Routes --> Services
-  Routes --> FormsViews
-  Routes --> Utils
-  Routes --> Constants
-  Routes --> Types
+	  Routes --> TemplatesStatic
+	  Routes --> Utils
+	  Routes --> Constants
+	  Routes --> Types
 
   ApiV1 --> Services
   ApiV1 --> Schemas

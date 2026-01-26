@@ -36,7 +36,7 @@ def test_has_aggregation_for_period_requires_all_active_instances(monkeypatch: p
 def test_has_aggregation_for_period_returns_true_when_fully_covered(monkeypatch: pytest.MonkeyPatch) -> None:
     service = AggregationTasksReadService()
 
-    def _unexpected(**_kwargs):  # noqa: ANN001
+    def _unexpected(**_kwargs):
         raise AssertionError("legacy has_aggregation_for_period should not be called")
 
     monkeypatch.setattr(service._aggregation_repository, "has_aggregation_for_period", _unexpected)

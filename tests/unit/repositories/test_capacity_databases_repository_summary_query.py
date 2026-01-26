@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from typing import Any, cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -44,7 +45,7 @@ def test_build_summary_query_avoids_tuple_in_and_uses_period_start_partition_key
 def test_summarize_latest_aggregations_returns_latest_values_within_range() -> None:
     engine = create_engine("sqlite:///:memory:")
     for model in (Instance, InstanceDatabase, DatabaseSizeAggregation):
-        model.__table__.create(engine)
+        cast(Any, model).__table__.create(engine)
 
     session = sessionmaker(bind=engine)()
 
@@ -137,4 +138,3 @@ def test_summarize_latest_aggregations_returns_latest_values_within_range() -> N
     )
 
     assert result == (2, 1, 160, 80.0, 130)
-

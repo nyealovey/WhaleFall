@@ -101,7 +101,7 @@ def test_complete_instance_sync_raises_on_write_error(monkeypatch) -> None:
         records = service.add_instance_records(session.session_id, [instance.id])
         record = records[0]
 
-        def _boom_complete_sync(self, **_kwargs):  # noqa: ANN001
+        def _boom_complete_sync(self, **_kwargs):
             raise RuntimeError("boom")
 
         monkeypatch.setattr(SyncInstanceRecord, "complete_sync", _boom_complete_sync)
@@ -141,7 +141,7 @@ def test_fail_instance_sync_raises_on_write_error(monkeypatch) -> None:
         records = service.add_instance_records(session.session_id, [instance.id])
         record = records[0]
 
-        def _boom_fail_sync(self, **_kwargs):  # noqa: ANN001
+        def _boom_fail_sync(self, **_kwargs):
             raise RuntimeError("boom")
 
         monkeypatch.setattr(SyncInstanceRecord, "fail_sync", _boom_fail_sync)
@@ -172,7 +172,7 @@ def test_get_session_by_id_raises_on_query_error(monkeypatch) -> None:
         service = SyncSessionService()
 
         class _BoomQuery:
-            def filter_by(self, **_kwargs):  # noqa: ANN001
+            def filter_by(self, **_kwargs):
                 raise RuntimeError("boom")
 
         monkeypatch.setattr(SyncSession, "query", _BoomQuery())
@@ -249,7 +249,7 @@ def test_start_instance_sync_raises_on_write_error(monkeypatch) -> None:
         session = service.create_session(sync_type="manual_task", sync_category="account", created_by=None)
         record = service.add_instance_records(session.session_id, [instance.id])[0]
 
-        def _boom_start_sync(self):  # noqa: ANN001
+        def _boom_start_sync(self):
             raise RuntimeError("boom")
 
         monkeypatch.setattr(SyncInstanceRecord, "start_sync", _boom_start_sync)

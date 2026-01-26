@@ -23,7 +23,7 @@ def test_api_v1_history_logs_requires_auth(client) -> None:
 
 @pytest.mark.unit
 def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> None:
-    def _dummy_list_logs(self, filters):  # noqa: ANN001
+    def _dummy_list_logs(self, filters):
         del self, filters
         return PaginatedResult(
             items=[
@@ -44,11 +44,11 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
             limit=20,
         )
 
-    def _dummy_list_modules(self):  # noqa: ANN001
+    def _dummy_list_modules(self):
         del self
         return ["unit-test"]
 
-    def _dummy_get_statistics(self, *, hours):  # noqa: ANN001
+    def _dummy_get_statistics(self, *, hours):
         del self, hours
         return HistoryLogStatistics(
             total_logs=1,
@@ -62,7 +62,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
             error_rate=0.0,
         )
 
-    def _dummy_get_log_detail(self, log_id):  # noqa: ANN001
+    def _dummy_get_log_detail(self, log_id):
         del self, log_id
         return HistoryLogListItem(
             id=1,

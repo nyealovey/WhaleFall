@@ -40,7 +40,7 @@
 1. **批量搜索**：更新前运行 `rg -n "1\.2\.x"` 定位当前版本号出现位置，逐一甄别属于“必需列表”还是“可忽略项/依赖版本”。
 2. **逐项替换**：按照上表替换版本号，并在 CHANGELOG/About 中写入简短中文描述。
 3. **自检脚本**：
-   - `python3 scripts/check_missing_docs_smart.py`（确保注释规范仍通过）。
+   - `make quality`（作为通用门禁基线）。
    - 如有数据库变更或部署脚本修改，可额外运行针对性的单元/集成测试。
 4. **验证差异**：`git status` 应只包含指南列出的文件（以及与本次功能直接相关的内容）。若出现 `docs/Obsidian/architecture/*`、`docs/reports/*` 等大文档，请确认是否确有内容更新，避免仅为版本号而修改。
 5. **提交信息**：建议使用 `chore: bump version to x.y.z` 或 `chore: release vX.Y.Z`，并在 PR 描述中列出验证步骤（脚本、手测等）。
@@ -63,7 +63,7 @@
 ### 6.1 版本范围
 - **UI**：实例、凭据、标签新增/编辑模态统一为 `modal-lg`，描述字段移到“基础信息”区，启用开关与按钮同排。
 - **标签**：移除颜色/排序字段，新增父分类(`infra_domain`、`org_domain`、`external_domain`)及其校验逻辑。
-- **说明文档**：`docs/changes/refactor/ui/tag-management-cleanup.md`、`docs/changes/refactor/ui/crud-modal-refactor.md` 等需补充最新 UI 规范截图。
+- **说明文档**：以 `docs/changes/refactor/002-remove-resource-form-view-plan.md`（SSOT）与 `docs/plans/2026-01-23-remove-resourceformview-modal-crud.md` 为准，按需补充最新 UI 规范截图。
 
 ### 6.2 操作清单
 1. **版本号替换**：以 `1.3.1 -> 1.3.2` 为例，按照第 2 节表格更新所有必需文件，并在 `CHANGELOG.md` 写入“UI 统一”条目。

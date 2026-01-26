@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
 
 import pytest
 
@@ -28,12 +27,12 @@ class _StubUsersRepository:
     def get_by_id(self, user_id: int) -> object | None:  # noqa: ARG002
         return self._user
 
-    def get_by_username(self, username: str) -> object | None:  # noqa: ARG002
+    def get_by_username(self, username: str) -> object | None:
         if not self._username_exists:
             return None
         return _StubUser(username=username, role=UserRole.USER, id=999)
 
-    def add(self, user: object) -> object:  # noqa: ARG002
+    def add(self, user: object) -> object:
         return user
 
 

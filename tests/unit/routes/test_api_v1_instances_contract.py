@@ -868,14 +868,14 @@ def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client
         database_id = instance_database.id
 
     class _DummyTableSizeCoordinator:
-        def __init__(self, instance):  # noqa: ANN001
+        def __init__(self, instance):
             self.instance = instance
 
         def connect(self, database_name: str) -> bool:
             del database_name
             return True
 
-        def refresh_snapshot(self, database_name: str):  # noqa: ANN001
+        def refresh_snapshot(self, database_name: str):
             del database_name
             db.session.add(
                 DatabaseTableSizeStat(
@@ -897,7 +897,7 @@ def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client
                 {"saved_count": 1, "deleted_count": 0, "elapsed_ms": 1},
             )()
 
-        def disconnect(self) -> None:  # noqa: PLR6301
+        def disconnect(self) -> None:
             return None
 
     import app.services.database_sync as database_sync_module
@@ -959,18 +959,18 @@ def test_api_v1_instances_database_table_sizes_refresh_conflict_returns_reason(a
         database_id = instance_database.id
 
     class _FailingTableSizeCoordinator:
-        def __init__(self, instance):  # noqa: ANN001
+        def __init__(self, instance):
             self.instance = instance
 
         def connect(self, database_name: str) -> bool:
             del database_name
             return True
 
-        def refresh_snapshot(self, database_name: str):  # noqa: ANN001
+        def refresh_snapshot(self, database_name: str):
             del database_name
             raise ValueError("Oracle 当前账号缺少读取表段信息的权限")
 
-        def disconnect(self) -> None:  # noqa: PLR6301
+        def disconnect(self) -> None:
             return None
 
     import app.services.database_sync as database_sync_module

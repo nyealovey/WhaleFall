@@ -40,7 +40,7 @@ def test_api_v1_instances_batch_requires_auth(client) -> None:
 
 @pytest.mark.unit
 def test_api_v1_instances_batch_endpoints_contract(auth_client, monkeypatch) -> None:
-    def _dummy_create_instances(self, instances_data, *, operator_id=None):  # noqa: ANN001
+    def _dummy_create_instances(self, instances_data, *, operator_id=None):
         del self, instances_data, operator_id
         return {
             "created_count": 1,
@@ -50,7 +50,7 @@ def test_api_v1_instances_batch_endpoints_contract(auth_client, monkeypatch) -> 
             "message": "成功创建 1 个实例",
         }
 
-    def _dummy_delete_instances(self, instance_ids, *, operator_id=None, deletion_mode=None):  # noqa: ANN001
+    def _dummy_delete_instances(self, instance_ids, *, operator_id=None, deletion_mode=None):
         del self, instance_ids, operator_id, deletion_mode
         return {"deleted_count": 1, "instance_ids": [1]}
 
