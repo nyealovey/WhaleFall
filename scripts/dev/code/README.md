@@ -1,39 +1,26 @@
 # 代码统计脚本
 
-本目录包含用于统计项目代码的工具脚本.
+本目录包含用于统计项目代码的工具脚本。
 
 ## 文件说明
 
-- `analyze_code.py` - Python统计脚本(功能完整)
-- `quick_stats.sh` - Shell快速统计脚本
+- `analyze_code.py` - 代码统计脚本（支持输出 JSON/Markdown）
 - `README.md` - 本说明文档
 
 ## 快速开始
 
-### 1. Python脚本(推荐)
-
 ```bash
-# 基础统计
-python3 scripts/analyze_code.py
+# 基础统计（默认统计 app/）
+python3 scripts/dev/code/analyze_code.py
 
 # 分析指定目录
-python3 scripts/analyze_code.py app
+python3 scripts/dev/code/analyze_code.py app
 
-# 生成完整报告
-python3 scripts/analyze_code.py app \
+# 生成报告
+python3 scripts/dev/code/analyze_code.py app \
     --json docs/reports/stats.json \
     --markdown docs/reports/code_stats.md \
     --top 30
-```
-
-### 2. Shell脚本(快速)
-
-```bash
-# 快速统计
-./scripts/quick_stats.sh
-
-# 指定目录
-./scripts/quick_stats.sh app
 ```
 
 ## 使用示例
@@ -41,7 +28,7 @@ python3 scripts/analyze_code.py app \
 ### 基础统计
 
 ```bash
-$ python3 scripts/analyze_code.py app
+$ python3 scripts/dev/code/analyze_code.py app
 正在分析目录: app
 排除模式: vendor, __pycache__, .git
 
@@ -64,19 +51,19 @@ $ python3 scripts/analyze_code.py app
 
 ```bash
 # 导出JSON
-python3 scripts/analyze_code.py app --json stats.json
+python3 scripts/dev/code/analyze_code.py app --json stats.json
 
 # 导出Markdown
-python3 scripts/analyze_code.py app --markdown report.md
+python3 scripts/dev/code/analyze_code.py app --markdown report.md
 
 # 同时导出
-python3 scripts/analyze_code.py app --json stats.json --markdown report.md
+python3 scripts/dev/code/analyze_code.py app --json stats.json --markdown report.md
 ```
 
 ### 自定义排除目录
 
 ```bash
-python3 scripts/analyze_code.py app \
+python3 scripts/dev/code/analyze_code.py app \
     --exclude vendor __pycache__ .git node_modules migrations
 ```
 
@@ -84,7 +71,7 @@ python3 scripts/analyze_code.py app \
 
 ```bash
 # 显示前50个最大文件
-python3 scripts/analyze_code.py app --top 50
+python3 scripts/dev/code/analyze_code.py app --top 50
 ```
 
 ## 参数说明
@@ -104,45 +91,30 @@ usage: analyze_code.py [-h] [--exclude EXCLUDE [EXCLUDE ...]]
   --top TOP            显示前N个最大文件 (默认: 20)
 ```
 
-### quick_stats.sh
-
-```bash
-./scripts/quick_stats.sh [目录]
-
-参数:
-  目录    要分析的目录 (默认: app)
-```
-
 ## 常见用法
 
-### 1. 日常快速查看
+### 1. 生成详细报告
 
 ```bash
-./scripts/quick_stats.sh
-```
-
-### 2. 生成详细报告
-
-```bash
-python3 scripts/analyze_code.py app \
+python3 scripts/dev/code/analyze_code.py app \
     --markdown docs/reports/code_analysis_$(date +%Y%m%d).md \
     --top 50
 ```
 
-### 3. 定期统计(添加到crontab)
+### 2. 定期统计(添加到crontab)
 
 ```bash
 # 每天凌晨2点生成报告
-0 2 * * * cd /path/to/project && python3 scripts/analyze_code.py app --markdown docs/reports/daily_stats.md
+0 2 * * * cd /path/to/project && python3 scripts/dev/code/analyze_code.py app --markdown docs/reports/daily_stats.md
 ```
 
-### 4. Git提交前统计
+### 3. Git提交前统计
 
 在 `.git/hooks/pre-commit` 中添加:
 
 ```bash
 #!/bin/bash
-python3 scripts/analyze_code.py app --markdown docs/reports/code_stats.md
+python3 scripts/dev/code/analyze_code.py app --markdown docs/reports/code_stats.md
 git add docs/reports/code_stats.md
 ```
 
@@ -192,8 +164,7 @@ git add docs/reports/code_stats.md
 
 ```bash
 # 赋予执行权限
-chmod +x scripts/analyze_code.py
-chmod +x scripts/quick_stats.sh
+chmod +x scripts/dev/code/analyze_code.py
 ```
 
 ### 问题:统计结果不准确
@@ -201,7 +172,7 @@ chmod +x scripts/quick_stats.sh
 检查是否正确排除了第三方库目录:
 
 ```bash
-python3 scripts/analyze_code.py app --exclude vendor node_modules __pycache__
+python3 scripts/dev/code/analyze_code.py app --exclude vendor node_modules __pycache__
 ```
 
 ### 问题:找不到某些文件
@@ -210,4 +181,4 @@ python3 scripts/analyze_code.py app --exclude vendor node_modules __pycache__
 
 ## 更多信息
 
-详细文档请参考:`docs/scripts/code_statistics_guide.md`
+（暂无更详细的文档索引，以脚本参数说明为准。）

@@ -8,7 +8,7 @@
 		{"id":"c106000000000021","type":"text","text":"## AggregationService\\n\\n- select periods\\n- write aggregations\\n","x":560,"y":220,"width":520,"height":160,"color":"6"},
 
 		{"id":"c106000000000030","type":"text","text":"## Manual action\\n\\n- `POST /api/v1/capacity/aggregations/current`\\n","x":0,"y":400,"width":520,"height":160,"color":"3"},
-		{"id":"c106000000000031","type":"text","text":"## CurrentAggregationService\\n\\n- aggregate today\\n","x":560,"y":420,"width":520,"height":140,"color":"6"},
+		{"id":"c106000000000031","type":"text","text":"## CapacityCurrentAggregationActionsService\\n\\n- create TaskRun\\n- start capacity_aggregate_current\\n","x":560,"y":420,"width":520,"height":140,"color":"6"},
 
 		{"id":"c106000000000040","type":"text","text":"## Aggregation tables\\n\\n- `database_size_aggregations`\\n- `instance_size_aggregations`\\n","x":1120,"y":300,"width":520,"height":180,"color":"4"},
 
