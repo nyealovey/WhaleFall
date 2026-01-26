@@ -54,6 +54,6 @@ def db_session(app):
 
 
 @pytest.fixture(scope="function")
-def client(app, db_session):
+def client(app, _db_session):
     """测试客户端，每个测试函数独立."""
     return app.test_client()
