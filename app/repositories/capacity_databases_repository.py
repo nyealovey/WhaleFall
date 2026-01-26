@@ -182,7 +182,11 @@ class CapacityDatabasesRepository:
         if filters.period_type:
             query = query.filter(DatabaseSizeAggregation.period_type == filters.period_type)
         if filters.start_date:
-            query = query.filter(DatabaseSizeAggregation.period_end >= filters.start_date)
+            # `database_size_aggregations` 为按 `period_start` 分区的表，必须尽量使用分区键做范围过滤，
+            # 否则容易触发全分区扫描(在生产数据量较大时可能导致数据库连接被中断)。
+            query = query.filter(DatabaseSizeAggregation.period_start >= filters.start_date)
         if filters.end_date:
             query = query.filter(DatabaseSizeAggregation.period_end <= filters.end_date)
+            # 补充分区键上界，帮助 PostgreSQL 做 partition pruning。
+            query = query.filter(DatabaseSizeAggregation.period_start <= filters.end_date)
         return query
