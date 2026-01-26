@@ -388,8 +388,6 @@ CREATE TABLE "public"."instance_accounts" (
   "username" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "db_type" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
   "is_active" bool NOT NULL DEFAULT true,
-  "first_seen_at" timestamptz(6) NOT NULL DEFAULT now(),
-  "last_seen_at" timestamptz(6) NOT NULL DEFAULT now(),
   "deleted_at" timestamptz(6),
   "created_at" timestamptz(6) NOT NULL DEFAULT now(),
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
@@ -1379,9 +1377,6 @@ ALTER TABLE "public"."database_type_configs" ADD CONSTRAINT "database_type_confi
 -- ----------------------------
 CREATE INDEX "ix_instance_accounts_active" ON "public"."instance_accounts" USING btree (
   "is_active" "pg_catalog"."bool_ops" ASC NULLS LAST
-);
-CREATE INDEX "ix_instance_accounts_last_seen" ON "public"."instance_accounts" USING btree (
-  "last_seen_at" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
 );
 CREATE INDEX "ix_instance_accounts_username" ON "public"."instance_accounts" USING btree (
   "username" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST

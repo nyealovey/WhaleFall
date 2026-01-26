@@ -140,23 +140,14 @@ health:
 
 # 数据库初始化
 init-db:
-	@echo "🗄️ 初始化数据库..."
-	@if [ -z "$$DB_PASSWORD" ]; then \
-		echo "❌ 错误: 请设置环境变量 DB_PASSWORD"; \
-		echo "示例: DB_PASSWORD=mypassword make init-db"; \
-		exit 1; \
-	fi
-	@./scripts/database/init_database.sh
+	@echo "🗄️ 初始化数据库（运行迁移）..."
+	@./scripts/setup/validate-env.sh
+	@docker-compose -f docker-compose.prod.yml up -d postgres redis whalefall
+	@docker-compose -f docker-compose.prod.yml exec -T whalefall bash -lc "cd /app && /app/.venv/bin/flask --app app:create_app db upgrade"
+	@echo "✅ 数据库迁移完成"
 
 # 快速数据库初始化
-init-db-quick:
-	@echo "⚡ 快速初始化数据库..."
-	@if [ -z "$$DB_PASSWORD" ]; then \
-		echo "❌ 错误: 请设置环境变量 DB_PASSWORD"; \
-		echo "示例: DB_PASSWORD=mypassword make init-db-quick"; \
-		exit 1; \
-	fi
-	@./scripts/database/quick_init.sh
+init-db-quick: init-db
 
 # 备份数据
 backup:
@@ -244,7 +235,7 @@ check-permissions:
 	@echo "用户ID: $$(id -u)"
 	@echo "Docker权限: $$(docker info >/dev/null 2>&1 && echo "✅ 有Docker权限" || echo "❌ 无Docker权限")"
 	@echo "脚本权限:"
-	@for script in scripts/setup/validate-env.sh scripts/database/init_database.sh scripts/database/quick_init.sh; do \
+	@for script in scripts/setup/validate-env.sh; do \
 		if [ -f "$$script" ]; then \
 			if [ -x "$$script" ]; then \
 				echo "  ✅ $$script - 可执行"; \
