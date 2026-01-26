@@ -14,7 +14,6 @@ from app.core.constants import (
 )
 from app.infra.route_safety import safe_route_call
 from app.services.common.filter_options_service import FilterOptionsService
-from app.services.credentials.credential_detail_read_service import CredentialDetailReadService
 from app.utils.decorators import (
     view_required,
 )
@@ -103,32 +102,5 @@ def index() -> str:
     )
 
 
-@credentials_bp.route("/<int:credential_id>")
-@login_required
-@view_required
-def detail(credential_id: int) -> str:
-    """查看凭据详情.
-
-    Args:
-        credential_id: 凭据 ID.
-
-    Returns:
-        str: 渲染后的详情页面.
-
-    """
-
-    def _render() -> str:
-        credential = CredentialDetailReadService().get_credential_or_error(credential_id)
-        return render_template("credentials/detail.html", credential=credential)
-
-    return safe_route_call(
-        _render,
-        module="credentials",
-        action="detail",
-        public_error="加载凭据详情失败",
-        context={"credential_id": credential_id},
-    )
-
-
 # ---------------------------------------------------------------------------
-# 表单路由已由前端模态替代,不再暴露独立页面入口
+# 表单/详情页面已由前端模态替代,不再暴露独立页面入口
