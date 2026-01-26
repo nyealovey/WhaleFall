@@ -19,7 +19,6 @@ if TYPE_CHECKING:
         CollectionSummary,
         InventorySummary,
         RemoteAccount,
-        RemoteAccountMap,
         SyncConnection,
         SyncStagesSummary,
     )

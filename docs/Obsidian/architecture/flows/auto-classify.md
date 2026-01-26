@@ -8,7 +8,7 @@ tags:
   - flow/classification
 status: active
 created: 2026-01-10
-updated: 2026-01-10
+updated: 2026-01-26
 owner: WhaleFall Team
 scope: 自动分类 action 的触发入口, 规则/DSL v4, permission facts 依赖, 以及常见排障点
 related:
@@ -66,7 +66,8 @@ flowchart TD
 - API:
   - `app/api/v1/namespaces/accounts_classifications.py`
 - Services:
-  - `app/services/account_classification/auto_classify_service.py`
+  - `app/services/account_classification/auto_classify_actions_service.py` (manual action -> TaskRun + thread)
+  - `app/tasks/account_classification_auto_tasks.py` (background task)
   - `app/services/account_classification/orchestrator.py`
 - Web UI:
   - route: `app/routes/accounts/classifications.py`

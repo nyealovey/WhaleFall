@@ -14,7 +14,7 @@ from app.utils.structlog_config import get_sync_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from app.core.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.core.types import PermissionSnapshot, RawAccount, RemoteAccount
     from app.models.instance import Instance
 
 import oracledb  # type: ignore[import-not-found]

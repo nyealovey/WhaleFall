@@ -7,7 +7,7 @@
 ## Unnecessary Complexity Found
 
 - （已落地）`app/services/database_type_service.py:1`：该 Service 在仓库内无任何引用（`rg -n "DatabaseTypeService"` 仅命中本文件），属于死代码。
-  - 它只是薄封装转发到 Repository/Model（`DatabaseTypeRepository`/`DatabaseTypeConfig`），额外引入一层概念与维护面。
+  - 它只是薄封装转发到 Model（`DatabaseTypeConfig`），额外引入一层概念与维护面（相关 Repository 亦已移除）。
 
 ## Code to Remove
 
@@ -27,4 +27,3 @@
 - 可删 LOC 估算：~77（已落地）
 - Complexity: Lower (dead code removed)
 - Recommended action: Done（确认无引用后直接删除）。
-

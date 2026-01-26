@@ -5,20 +5,17 @@
 - 提供账户分类能力：
   - 规则加载/缓存（ClassificationCache）
   - DSL v4 规则校验与执行（re-export 到 `app/utils/account_classification_dsl_v4.py`）
-  - 自动分类编排（AccountClassificationService / AutoClassifyService）
+  - 自动分类编排（AccountClassificationService / AutoClassifyActionsService + TaskRun）
 
 ## Unnecessary Complexity Found
 
-- （已落地）`app/services/account_classification/auto_classify_service.py:1`：
-  - `TYPE_CHECKING ... else ...` 仅为切换 `ClassificationEngineResult` 的导入路径，属于无收益的分支样板。
-  - 该类型在运行时可直接从 `app.core.types.classification` 导入，避免条件分支与重复 import。
+- （已落地）历史 `auto_classify_service.py` 仅单测引用、无运行时调用点，已整体删除，避免为了“可能复用”引入额外维护面。
 
 - （已落地）`app/services/account_classification/orchestrator.py:21`：
   - `CLASSIFICATION_RUNTIME_EXCEPTIONS/CACHE_INVALIDATION_EXCEPTIONS` 使用 `BaseException` 类型标注，但集合实际都是 `Exception` 子类，边界过宽且易误导。
 
 ## Code to Remove
 
-- `app/services/account_classification/auto_classify_service.py:1`：移除条件导入分支（可删/可减复杂度 LOC 估算：~4-10）。
 - `app/services/account_classification/orchestrator.py:21`：异常集合类型标注收敛为 `Exception`（可删/可减复杂度 LOC 估算：~0-4）。
 
 ## Simplification Recommendations
@@ -40,4 +37,3 @@
 - 可删/可减复杂度估算：~4-14（已落地，主要是删条件分支与收敛类型边界）
 - Complexity: Medium -> Lower
 - Recommended action: Proceed（本轮不改 DSL 执行与分类行为，仅做等价简化）
-

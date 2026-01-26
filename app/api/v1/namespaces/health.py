@@ -16,6 +16,7 @@ from app.services.health.health_checks_service import (
     check_cache_health as check_cache_health_service,
     check_database_health as check_database_health_service,
     check_ping,
+    check_system_health as check_system_health_service,
     get_basic_health,
     get_system_uptime,
 )
@@ -203,7 +204,7 @@ class HealthCheckResource(BaseResource):
 
 def check_system_health() -> dict[str, object]:
     """检查系统健康状态."""
-    return {"healthy": True, "status": "ok"}
+    return check_system_health_service()
 
 
 @ns.route("/cache")
