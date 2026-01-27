@@ -129,6 +129,5 @@
     };
   }
 
-  global.UI = global.UI || {};
   global.UI.resolveAsyncActionOutcome = resolveAsyncActionOutcome;
 })(window);

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, SystemError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.repositories.accounts_sync_repository import AccountsSyncRepository
@@ -449,26 +449,25 @@ class AccountPermissionManager:
                 record=record,
                 snapshot=getattr(record, "permission_snapshot", None),
             )
-        except Exception as exc:  # pragma: no cover - 防御性
+        except Exception as exc:
             self.logger.exception(
                 "account_permission_facts_build_failed",
                 module="accounts_sync",
                 phase="collection",
-                fallback=True,
-                fallback_reason="FACTS_BUILD_FAILED",
+                instance_id=getattr(record, "instance_id", None),
+                username=getattr(record, "username", None),
+                db_type=getattr(record, "db_type", None),
                 error=str(exc),
                 error_type=type(exc).__name__,
             )
-            record.permission_facts = {
-                "version": 2,
-                "db_type": ("" if record.db_type is None else str(record.db_type).lower()),
-                "capabilities": [],
-                "capability_reasons": {},
-                "roles": [],
-                "privileges": {},
-                "errors": ["FACTS_BUILD_FAILED"],
-                "meta": {"source": "error", "error_type": type(exc).__name__},
-            }
+            raise SystemError(
+                "权限事实构建失败",
+                extra={
+                    "instance_id": getattr(record, "instance_id", None),
+                    "username": getattr(record, "username", None),
+                    "db_type": getattr(record, "db_type", None),
+                },
+            ) from exc
 
     @staticmethod
     def _sanitize_type_specific(type_specific: object) -> tuple[JsonDict | None, list[str]]:

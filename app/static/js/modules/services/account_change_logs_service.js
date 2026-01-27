@@ -4,7 +4,7 @@
   const BASE_PATH = "/api/v1/account-change-logs";
 
   function ensureHttpClient(client) {
-    const resolved = client || global.httpU || global.http || null;
+    const resolved = client || global.httpU;
     if (!resolved || typeof resolved.get !== "function") {
       throw new Error("AccountChangeLogsService: httpClient 未初始化");
     }
@@ -73,4 +73,3 @@
 
   global.AccountChangeLogsService = AccountChangeLogsService;
 })(window);
-

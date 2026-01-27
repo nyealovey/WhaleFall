@@ -997,7 +997,7 @@ function mountAccountClassificationStatisticsPage(global) {
 
   function renderEmptyChart(ctx, title) {
     const contrast = resolveCssVar("--surface-contrast") || "var(--surface-contrast)";
-    const ColorTokens = global.ColorTokens || null;
+    const ColorTokens = global.ColorTokens;
     const background = ColorTokens?.getOrangeColor?.({ tone: "muted", alpha: 0.2 })
       || getChartColor(0, 0.12)
       || withAlpha(contrast, 0.08);

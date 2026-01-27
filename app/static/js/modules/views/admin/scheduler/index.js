@@ -8,11 +8,10 @@ if (!DOMHelpers) {
     throw new Error('DOMHelpers 未初始化');
 }
 const { ready, select, selectOne, value, from } = DOMHelpers;
-const toast = window.toast || {
-    success: console.info,
-    error: console.error,
-    info: console.info,
-};
+const toast = window.toast;
+if (!toast?.success || !toast?.error || !toast?.info) {
+    throw new Error('toast 未初始化');
+}
 const timeUtils = window.timeUtils;
 if (!timeUtils) {
     throw new Error('timeUtils 未初始化');

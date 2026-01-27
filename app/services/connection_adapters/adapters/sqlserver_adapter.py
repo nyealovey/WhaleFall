@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 import pymssql  # type: ignore[import-not-found]
 
 from app.core.types import DBAPICursor
+from app.utils.structlog_config import log_fallback
 
 from .base import (
     ConnectionAdapterError,
@@ -222,16 +223,16 @@ class SQLServerConnection(DatabaseConnection):
         try:
             result = self.execute_query("SELECT @@VERSION")
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
-            self.db_logger.warning(
+            log_fallback(
+                "warning",
                 "SQL Server版本查询失败",
                 module="connection",
                 action="get_version",
                 instance_id=self.instance.id,
                 db_type="SQLServer",
-                fallback=True,
                 fallback_reason="DB_VERSION_QUERY_FAILED",
-                error_type=type(exc).__name__,
-                error=str(exc),
+                logger=self.db_logger,
+                exception=exc,
             )
             return None
         if result:

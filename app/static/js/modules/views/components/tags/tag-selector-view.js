@@ -117,10 +117,22 @@
       if (!this.root) {
         throw new Error("TagSelectorView: root 未找到");
       }
+      const onCategoryChange = handlers.onCategoryChange;
+      const onTagToggle = handlers.onTagToggle;
+      const onSelectedRemove = handlers.onSelectedRemove;
+      if (typeof onCategoryChange !== "function") {
+        throw new Error("TagSelectorView: handlers.onCategoryChange 未注入");
+      }
+      if (typeof onTagToggle !== "function") {
+        throw new Error("TagSelectorView: handlers.onTagToggle 未注入");
+      }
+      if (typeof onSelectedRemove !== "function") {
+        throw new Error("TagSelectorView: handlers.onSelectedRemove 未注入");
+      }
       this.handlers = {
-        onCategoryChange: handlers.onCategoryChange || (() => {}),
-        onTagToggle: handlers.onTagToggle || (() => {}),
-        onSelectedRemove: handlers.onSelectedRemove || (() => {}),
+        onCategoryChange,
+        onTagToggle,
+        onSelectedRemove,
       };
       this.elements = this.cacheElements();
       this.activeCategory = DEFAULT_CATEGORY;

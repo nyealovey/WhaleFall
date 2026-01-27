@@ -55,7 +55,7 @@ class ClassificationCache:
         return DEFAULT_CACHE_RULE_TTL_SECONDS
 
     # ---- Rules cache -----------------------------------------------------
-    def get_rules(self) -> list["JsonDict"] | None:
+    def get_rules(self) -> list[JsonDict] | None:
         """返回缓存中的分类规则数据.
 
         Returns:
@@ -78,7 +78,7 @@ class ClassificationCache:
         log_error("分类规则缓存格式无效", module="account_classification_cache")
         return None
 
-    def set_rules(self, rules_data: "Iterable[Mapping[str, JsonValue]]") -> bool:
+    def set_rules(self, rules_data: Iterable[Mapping[str, JsonValue]]) -> bool:
         """写入分类规则缓存.
 
         Args:

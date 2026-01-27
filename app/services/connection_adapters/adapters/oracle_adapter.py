@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, cast
 import oracledb  # type: ignore[import-not-found]
 
 from app.core.types import DBAPIConnection, DBAPICursor
+from app.utils.structlog_config import log_fallback
 
 from .base import ConnectionAdapterError, DatabaseConnection, QueryResult
 
@@ -72,16 +73,16 @@ class OracleConnection(DatabaseConnection):
             if hasattr(oracledb, "is_thin"):
                 try:
                     is_thin = bool(oracledb.is_thin())  # type: ignore[call-arg]
-                except Exception as exc:  # pragma: no cover - 防御性
-                    self.db_logger.warning(
+                except Exception as exc:
+                    log_fallback(
+                        "warning",
                         "oracle_is_thin_check_failed_fallback",
                         module="connection",
                         action="connect",
                         instance_id=self.instance.id,
-                        fallback=True,
                         fallback_reason="oracledb_is_thin_check_failed",
-                        error_type=type(exc).__name__,
-                        error=str(exc),
+                        logger=self.db_logger,
+                        exception=exc,
                     )
                     is_thin = False
             if not is_thin:
@@ -231,16 +232,16 @@ class OracleConnection(DatabaseConnection):
         try:
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
         except ORACLE_CONNECTION_EXCEPTIONS as exc:
-            self.db_logger.warning(
+            log_fallback(
+                "warning",
                 "Oracle版本查询失败",
                 module="connection",
                 action="get_version",
                 instance_id=self.instance.id,
                 db_type="Oracle",
-                fallback=True,
                 fallback_reason="DB_VERSION_QUERY_FAILED",
-                error_type=type(exc).__name__,
-                error=str(exc),
+                logger=self.db_logger,
+                exception=exc,
             )
             return None
         if result:

@@ -14,7 +14,7 @@
    * @throws {Error} 当客户端未初始化时抛出
    */
   function ensureHttpClient(client) {
-    const resolved = client || global.httpU || global.http || null;
+    const resolved = client || global.httpU;
     if (!resolved || typeof resolved.post !== "function") {
       throw new Error("AuthService: httpClient 未初始化");
     }
@@ -51,4 +51,3 @@
 
   global.AuthService = AuthService;
 })(window);
-

@@ -65,7 +65,7 @@ def _launch_background_auto_classify(
                 run_id=captured_run_id,
                 instance_id=captured_instance_id,
             )
-        except BACKGROUND_EXCEPTIONS as exc:  # pragma: no cover
+        except BACKGROUND_EXCEPTIONS as exc:
             log_with_context(
                 "error",
                 "后台自动分类失败",

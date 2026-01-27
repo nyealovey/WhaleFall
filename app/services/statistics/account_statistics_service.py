@@ -8,6 +8,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.core.exceptions import SystemError
 from app.repositories.account_statistics_repository import AccountStatisticsRepository
 from app.utils.structlog_config import log_error
@@ -44,7 +46,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
     """
     try:
         return AccountStatisticsRepository.fetch_summary(instance_id=instance_id, db_type=db_type)
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log_error("获取账户统计汇总失败", module="account_statistics", exception=exc)
         msg = "获取账户统计汇总失败"
         raise SystemError(msg) from exc
@@ -73,7 +75,7 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
     """
     try:
         return AccountStatisticsRepository.fetch_db_type_stats()
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log_error("获取数据库类型统计失败", module="account_statistics", exception=exc)
         msg = "获取数据库类型统计失败"
         raise SystemError(msg) from exc
@@ -100,7 +102,7 @@ def fetch_classification_stats() -> dict[str, dict[str, Any]]:
     """
     try:
         return AccountStatisticsRepository.fetch_classification_stats()
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log_error("获取账户分类统计失败", module="account_statistics", exception=exc)
         msg = "获取账户分类统计失败"
         raise SystemError(msg) from exc
@@ -123,7 +125,7 @@ def fetch_classification_overview() -> dict[str, Any]:
     """
     try:
         return AccountStatisticsRepository.fetch_classification_overview()
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log_error("获取账户分类概览失败", module="account_statistics", exception=exc)
         msg = "获取账户分类概览失败"
         raise SystemError(msg) from exc
@@ -149,7 +151,7 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
     """
     try:
         return AccountStatisticsRepository.fetch_rule_match_stats(rule_ids)
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log_error("获取规则匹配统计失败", module="account_statistics", exception=exc)
         msg = "获取规则匹配统计失败"
         raise SystemError(msg) from exc

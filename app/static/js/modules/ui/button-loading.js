@@ -146,7 +146,6 @@
     });
   }
 
-  global.UI = global.UI || {};
   global.UI.setButtonLoading = setButtonLoading;
   global.UI.clearButtonLoading = clearButtonLoading;
 })(window);

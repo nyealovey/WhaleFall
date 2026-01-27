@@ -20,7 +20,7 @@ from app.core.constants import HttpStatus
 from app.core.exceptions import NotFoundError
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
-from app.utils.structlog_config import log_warning
+from app.utils.structlog_config import log_fallback
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,14 +117,14 @@ class InstanceCapacitySyncActionsService:
                 aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
                 aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
             except Exception as exc:
-                log_warning(
+                log_fallback(
+                    "warning",
                     "容量同步后触发聚合失败",
                     module="databases_capacity",
-                    exception=exc,
-                    fallback=True,
-                    fallback_reason="aggregation_calculation_failed",
                     action="sync_instance_capacity",
+                    fallback_reason="aggregation_calculation_failed",
                     instance_id=instance.id,
+                    exception=exc,
                 )
 
             normalized = {

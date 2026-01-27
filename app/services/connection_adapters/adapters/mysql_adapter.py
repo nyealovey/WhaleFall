@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pymysql  # type: ignore[import-not-found]
 
+from app.utils.structlog_config import log_fallback
+
 if TYPE_CHECKING:
     from app.core.types import JsonValue
 else:
@@ -183,16 +185,16 @@ class MySQLConnection(DatabaseConnection):
         try:
             result = self.execute_query("SELECT VERSION()")
         except MYSQL_CONNECTION_EXCEPTIONS as exc:
-            self.db_logger.warning(
+            log_fallback(
+                "warning",
                 "MySQL版本查询失败",
                 module="connection",
                 action="get_version",
+                fallback_reason="DB_VERSION_QUERY_FAILED",
+                logger=self.db_logger,
                 instance_id=self.instance.id,
                 db_type="MySQL",
-                fallback=True,
-                fallback_reason="DB_VERSION_QUERY_FAILED",
-                error_type=type(exc).__name__,
-                error=str(exc),
+                exception=exc,
             )
             return None
         if result:

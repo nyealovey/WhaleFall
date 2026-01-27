@@ -163,19 +163,7 @@ class CacheActionsService:
         failed_count = 0
         for instance in instances:
             try:
-                if not self._invalidate_instance_cache(instance.id):
-                    failed_count += 1
-                    log_fallback(
-                        "warning",
-                        "清除实例缓存失败",
-                        module="cache",
-                        action="clear_all_cache",
-                        fallback_reason="cache_invalidate_failed",
-                        context={"instance_id": instance.id},
-                        extra={"operator_id": operator_id, "error_type": "invalidate_failed"},
-                    )
-                    continue
-                cleared_count += 1
+                invalidated = self._invalidate_instance_cache(instance.id)
             except Exception as exc:
                 failed_count += 1
                 log_fallback(
@@ -191,6 +179,21 @@ class CacheActionsService:
                         "error_message": str(exc),
                     },
                 )
+                continue
+
+            if not invalidated:
+                failed_count += 1
+                log_fallback(
+                    "warning",
+                    "清除实例缓存失败",
+                    module="cache",
+                    action="clear_all_cache",
+                    fallback_reason="cache_invalidate_failed",
+                    context={"instance_id": instance.id},
+                    extra={"operator_id": operator_id, "error_type": "invalidate_failed"},
+                )
+                continue
+            cleared_count += 1
 
         log_info(
             "批量清除缓存完成",
@@ -238,22 +241,10 @@ class CacheActionsService:
         stats = manager.get_stats()
         db_type_stats: dict[str, dict[str, object]] = {}
 
-        all_rules: list[object] | None = None
-        try:
-            all_key = f"{_CLASSIFICATION_RULES_PREFIX}:all"
-            all_rules = _extract_rules_from_cache(manager.get(all_key))
-        except Exception as exc:
-            log_fallback(
-                "warning",
-                "获取分类缓存统计失败",
-                module="cache",
-                action="get_classification_cache_stats",
-                fallback_reason="cache_stats_failed",
-                context={},
-                extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
-            )
+        all_key = f"{_CLASSIFICATION_RULES_PREFIX}:all"
+        all_rules = _extract_rules_from_cache(manager.get(all_key))
 
-        grouped_counts: dict[str, int] = {db_type: 0 for db_type in CLASSIFICATION_DB_TYPES}
+        grouped_counts: dict[str, int] = dict.fromkeys(CLASSIFICATION_DB_TYPES, 0)
         if all_rules is not None:
             for rule in all_rules:
                 if not isinstance(rule, dict):

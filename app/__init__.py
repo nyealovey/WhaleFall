@@ -175,16 +175,15 @@ def create_app(
         try:
             init_scheduler(app, resolved_settings)
         except Exception as exc:
-            # 调度器初始化失败不影响应用启动
             scheduler_logger = get_system_logger()
             scheduler_logger.exception(
-                "调度器初始化失败,应用将继续启动",
+                "调度器初始化失败,应用启动中止",
                 module="scheduler",
                 action="init_scheduler",
-                fallback=True,
-                fallback_reason="scheduler_init_failed",
-                exception_type=exc.__class__.__name__,
+                error_type=exc.__class__.__name__,
+                error=str(exc),
             )
+            raise
 
     return app
 

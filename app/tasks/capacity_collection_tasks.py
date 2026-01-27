@@ -15,7 +15,7 @@ from app.services.capacity.capacity_collection_task_runner import (
 )
 from app.services.task_runs.task_run_summary_builders import build_sync_databases_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
-from app.utils.structlog_config import get_sync_logger
+from app.utils.structlog_config import get_sync_logger, log_fallback
 from app.utils.time_utils import time_utils
 
 
@@ -80,10 +80,11 @@ def _process_instance_with_fallback(
             instance=instance,
             sync_logger=sync_logger,
         )
-    except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
+    except Exception as exc:
         db.session.rollback()
         error_msg = f"实例同步异常: {exc!s}"
-        sync_logger.exception(
+        log_fallback(
+            "exception",
             "实例同步异常(未分类)",
             module="capacity_sync",
             task="sync_databases",
@@ -91,10 +92,9 @@ def _process_instance_with_fallback(
             session_id=session_obj.session_id,
             instance_id=instance.id,
             instance_name=instance.name,
-            fallback=True,
             fallback_reason="capacity_instance_sync_failed",
-            error=str(exc),
-            error_type=type(exc).__name__,
+            logger=sync_logger,
+            exception=exc,
         )
         runner.fail_instance_sync(record.id, error_msg)
         db.session.commit()
@@ -109,6 +109,158 @@ def _process_instance_with_fallback(
         db.session.commit()
 
     return payload, delta
+
+
+def _finalize_no_active_instances(
+    *,
+    runner: CapacityCollectionTaskRunner,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    manual_run: bool,
+) -> dict[str, Any]:
+    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+    if current_run is not None and current_run.status != "cancelled":
+        current_run.summary_json = build_sync_databases_summary(
+            task_key="sync_databases",
+            inputs={"manual_run": manual_run},
+            instances_total=0,
+            instances_successful=0,
+            instances_failed=0,
+            total_size_mb=0,
+            session_id=None,
+            skipped=True,
+            skip_reason="没有找到活跃的数据库实例",
+        )
+    task_runs_service.finalize_run(run_id)
+    db.session.commit()
+    return {"run_id": run_id, **runner.no_active_instances_result()}
+
+
+def _sync_instances(
+    *,
+    runner: CapacityCollectionTaskRunner,
+    task_runs_service: TaskRunsWriteService,
+    sync_logger: Any,
+    run_id: str,
+    session_obj: Any,
+    active_instances: list[Any],
+    records: list[Any],
+    is_cancelled: Any,
+) -> tuple[CapacitySyncTotals, list[dict[str, object]]]:
+    totals = CapacitySyncTotals()
+    results: list[dict[str, object]] = []
+
+    for instance, record in zip(active_instances, records, strict=False):
+        if bool(is_cancelled and is_cancelled()):
+            sync_logger.info(
+                "任务已取消,提前退出实例循环",
+                module="capacity_sync",
+                task="sync_databases",
+                run_id=run_id,
+            )
+            break
+
+        task_runs_service.start_item(
+            run_id,
+            item_type="instance",
+            item_key=str(instance.id),
+        )
+        db.session.commit()
+
+        payload, delta = _process_instance_with_fallback(
+            runner=runner,
+            session_obj=session_obj,
+            record=record,
+            instance=instance,
+            sync_logger=sync_logger,
+        )
+
+        totals.total_synced += delta.total_synced
+        totals.total_failed += delta.total_failed
+        totals.total_collected_size_mb += delta.total_collected_size_mb
+        results.append(payload)
+
+        payload_success = bool(payload.get("success"))
+        metrics = {
+            "database_count": payload.get("database_count", 0),
+            "size_mb": payload.get("size_mb", 0),
+            "saved_count": payload.get("saved_count", 0),
+        }
+        if payload_success:
+            task_runs_service.complete_item(
+                run_id,
+                item_type="instance",
+                item_key=str(instance.id),
+                metrics_json=metrics,
+                details_json=dict(payload),
+            )
+        else:
+            error_message = str(payload.get("error") or payload.get("message") or "实例容量同步失败")
+            task_runs_service.fail_item(
+                run_id,
+                item_type="instance",
+                item_key=str(instance.id),
+                error_message=error_message,
+                details_json=dict(payload),
+            )
+        db.session.commit()
+
+    return totals, results
+
+
+def _finalize_capacity_session(*, session_obj: Any | None, totals: CapacitySyncTotals) -> None:
+    if session_obj is None:
+        return
+
+    session_obj.successful_instances = totals.total_synced
+    session_obj.failed_instances = totals.total_failed
+    session_obj.status = "completed" if totals.total_failed == 0 else "failed"
+    session_obj.completed_at = time_utils.now()
+    db.session.commit()
+
+
+def _finalize_task_run_success(
+    *,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    manual_run: bool,
+    active_instances: list[Any],
+    totals: CapacitySyncTotals,
+    session_obj: Any | None,
+) -> None:
+    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+    if current_run is not None and current_run.status != "cancelled":
+        current_run.summary_json = build_sync_databases_summary(
+            task_key="sync_databases",
+            inputs={"manual_run": manual_run},
+            instances_total=len(active_instances),
+            instances_successful=totals.total_synced,
+            instances_failed=totals.total_failed,
+            total_size_mb=totals.total_collected_size_mb,
+            session_id=getattr(session_obj, "session_id", None),
+        )
+
+    task_runs_service.finalize_run(run_id)
+    db.session.commit()
+
+
+def _build_sync_databases_result(
+    *,
+    run_id: str,
+    session_obj: Any | None,
+    totals: CapacitySyncTotals,
+    details: list[dict[str, object]],
+) -> dict[str, Any]:
+    message = f"数据库同步完成: 成功 {totals.total_synced} 个,失败 {totals.total_failed} 个"
+    return {
+        "success": totals.total_failed == 0,
+        "message": message,
+        "instances_processed": totals.total_synced,
+        "total_size_mb": totals.total_collected_size_mb,
+        "run_id": run_id,
+        "session_id": getattr(session_obj, "session_id", None),
+        "details": details,
+    }
 
 
 def sync_databases(
@@ -176,22 +328,12 @@ def sync_databases(
                     task="sync_databases",
                     run_id=resolved_run_id,
                 )
-                current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-                if current_run is not None and current_run.status != "cancelled":
-                    current_run.summary_json = build_sync_databases_summary(
-                        task_key="sync_databases",
-                        inputs={"manual_run": manual_run},
-                        instances_total=0,
-                        instances_successful=0,
-                        instances_failed=0,
-                        total_size_mb=0,
-                        session_id=None,
-                        skipped=True,
-                        skip_reason="没有找到活跃的数据库实例",
-                    )
-                task_runs_service.finalize_run(resolved_run_id)
-                db.session.commit()
-                return {"run_id": resolved_run_id, **runner.no_active_instances_result()}
+                return _finalize_no_active_instances(
+                    runner=runner,
+                    task_runs_service=task_runs_service,
+                    run_id=resolved_run_id,
+                    manual_run=manual_run,
+                )
 
             sync_logger.info(
                 "找到活跃实例,开始数据库同步",
@@ -220,96 +362,34 @@ def sync_databases(
             session_obj, records = runner.create_capacity_session(active_instances)
             db.session.commit()
 
-            totals = CapacitySyncTotals()
-            results: list[dict[str, object]] = []
+            totals, results = _sync_instances(
+                runner=runner,
+                task_runs_service=task_runs_service,
+                sync_logger=sync_logger,
+                run_id=resolved_run_id,
+                session_obj=session_obj,
+                active_instances=active_instances,
+                records=records,
+                is_cancelled=_is_cancelled,
+            )
 
-            for instance, record in zip(active_instances, records, strict=False):
-                if _is_cancelled():
-                    sync_logger.info(
-                        "任务已取消,提前退出实例循环",
-                        module="capacity_sync",
-                        task="sync_databases",
-                        run_id=resolved_run_id,
-                    )
-                    break
+            _finalize_capacity_session(session_obj=session_obj, totals=totals)
 
-                task_runs_service.start_item(
-                    resolved_run_id,
-                    item_type="instance",
-                    item_key=str(instance.id),
-                )
-                db.session.commit()
+            _finalize_task_run_success(
+                task_runs_service=task_runs_service,
+                run_id=resolved_run_id,
+                manual_run=manual_run,
+                active_instances=active_instances,
+                totals=totals,
+                session_obj=session_obj,
+            )
 
-                payload, delta = _process_instance_with_fallback(
-                    runner=runner,
-                    session_obj=session_obj,
-                    record=record,
-                    instance=instance,
-                    sync_logger=sync_logger,
-                )
-
-                totals.total_synced += delta.total_synced
-                totals.total_failed += delta.total_failed
-                totals.total_collected_size_mb += delta.total_collected_size_mb
-                results.append(payload)
-
-                payload_success = bool(payload.get("success"))
-                metrics = {
-                    "database_count": payload.get("database_count", 0),
-                    "size_mb": payload.get("size_mb", 0),
-                    "saved_count": payload.get("saved_count", 0),
-                }
-                if payload_success:
-                    task_runs_service.complete_item(
-                        resolved_run_id,
-                        item_type="instance",
-                        item_key=str(instance.id),
-                        metrics_json=metrics,
-                        details_json=dict(payload),
-                    )
-                else:
-                    error_message = str(payload.get("error") or payload.get("message") or "实例容量同步失败")
-                    task_runs_service.fail_item(
-                        resolved_run_id,
-                        item_type="instance",
-                        item_key=str(instance.id),
-                        error_message=error_message,
-                        details_json=dict(payload),
-                    )
-                db.session.commit()
-
-            if session_obj is not None:
-                session_obj.successful_instances = totals.total_synced
-                session_obj.failed_instances = totals.total_failed
-                session_obj.status = "completed" if totals.total_failed == 0 else "failed"
-                session_obj.completed_at = time_utils.now()
-                db.session.commit()
-
-            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if current_run is not None and current_run.status != "cancelled":
-                current_run.summary_json = build_sync_databases_summary(
-                    task_key="sync_databases",
-                    inputs={"manual_run": manual_run},
-                    instances_total=len(active_instances),
-                    instances_successful=totals.total_synced,
-                    instances_failed=totals.total_failed,
-                    total_size_mb=totals.total_collected_size_mb,
-                    session_id=getattr(session_obj, "session_id", None),
-                )
-
-            task_runs_service.finalize_run(resolved_run_id)
-            db.session.commit()
-
-            message = f"数据库同步完成: 成功 {totals.total_synced} 个,失败 {totals.total_failed} 个"
-            result = {
-                "success": totals.total_failed == 0,
-                "message": message,
-                "instances_processed": totals.total_synced,
-                "total_size_mb": totals.total_collected_size_mb,
-                "run_id": resolved_run_id,
-                "session_id": getattr(session_obj, "session_id", None),
-                "details": results,
-            }
+            result = _build_sync_databases_result(
+                run_id=resolved_run_id,
+                session_obj=session_obj,
+                totals=totals,
+                details=results,
+            )
 
             sync_logger.info(
                 "数据库同步任务完成",
@@ -323,8 +403,6 @@ def sync_databases(
                 total_size_mb=totals.total_collected_size_mb,
             )
 
-            return result
-
         except CAPACITY_TASK_EXCEPTIONS as exc:
             db.session.rollback()
             return _finalize_task_failed(
@@ -336,7 +414,7 @@ def sync_databases(
                 message="数据库同步任务执行失败",
                 exc=exc,
             )
-        except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
+        except Exception as exc:
             db.session.rollback()
             return _finalize_task_failed(
                 sync_logger=sync_logger,
@@ -347,3 +425,5 @@ def sync_databases(
                 message="数据库同步任务执行失败(未分类)",
                 exc=exc,
             )
+        else:
+            return result

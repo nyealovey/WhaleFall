@@ -3,13 +3,14 @@
 from functools import lru_cache
 from typing import TYPE_CHECKING, Unpack
 
-import structlog
 from sqlalchemy import cast, func
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.exc import UnboundExecutionError
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from app import db
 from app.models.base_sync_data import BaseSyncData
+from app.utils.structlog_config import log_fallback
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
@@ -18,11 +19,11 @@ if TYPE_CHECKING:
 
 @lru_cache(maxsize=8)
 def _log_dialect_detection_fallback(fallback_reason: str) -> None:
-    structlog.get_logger("app").warning(
+    log_fallback(
+        "warning",
         "account_permission_dialect_detection_fallback",
         module="account_permission",
         action="capability_expression",
-        fallback=True,
         fallback_reason=fallback_reason,
     )
 
@@ -101,7 +102,7 @@ class AccountPermission(BaseSyncData):
         try:
             bind = db.session.get_bind()
             dialect_name = str(getattr(getattr(bind, "dialect", None), "name", "") or "")
-        except Exception as exc:  # pragma: no cover - defensive: fallback when session not bound
+        except (RuntimeError, UnboundExecutionError) as exc:
             _log_dialect_detection_fallback(exc.__class__.__name__)
             dialect_name = ""
 

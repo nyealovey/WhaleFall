@@ -3,29 +3,23 @@
 
     const LodashUtils = window.LodashUtils;
     const DOMHelpers = window.DOMHelpers;
+    if (!DOMHelpers) {
+        throw new Error('DOMHelpers 未初始化');
+    }
     const InstanceManagementService = window.InstanceManagementService;
     const InstanceService = window.InstanceService;
     const gridjs = window.gridjs;
     const gridHtml = gridjs ? gridjs.html : null;
-    const connectionManager = window.connectionManager || null;
-    const toast = window.toast || {
-        success: console.info,
-        error: console.error,
-        info: console.info,
-        warning: console.warn,
-    };
+    const connectionManager = window.connectionManager;
+    const toast = window.toast;
+    if (!toast?.success || !toast?.error) {
+        throw new Error('toast 未初始化');
+    }
     const timeUtils = window.timeUtils;
     if (!timeUtils) {
         throw new Error('timeUtils 未初始化');
     }
-    const helpersFallback = {
-        ready: (fn) => fn?.(),
-        selectOne: () => ({ length: 0, first: () => null, text: () => '', html: () => {}, attr: () => {}, on: () => {}, off: () => {} }),
-        select: () => ({ length: 0, each: () => {} }),
-        from: () => ({ html: () => {}, attr: () => {}, first: () => null })
-    };
-
-    const { ready, selectOne, select, from } = DOMHelpers || helpersFallback;
+    const { ready, selectOne, select, from } = DOMHelpers;
 
     let instanceService = null;
     let instanceCrudStore = null;
@@ -76,15 +70,15 @@ if (typeof getRowMeta !== 'function') {
     return;
 }
 
-	try {
-	    if (InstanceManagementService) {
-	        instanceService = new InstanceManagementService();
-	    } else {
-	        throw new Error('InstanceManagementService 未加载');
-	    }
-	} catch (error) {
-	    console.error('初始化 InstanceManagementService 失败:', error);
-	}
+    try {
+        if (InstanceManagementService) {
+            instanceService = new InstanceManagementService();
+        } else {
+            throw new Error('InstanceManagementService 未加载');
+        }
+    } catch (error) {
+        console.error('初始化 InstanceManagementService 失败:', error);
+    }
 
 /**
  * 确保实例服务已初始化。
@@ -2040,19 +2034,19 @@ function initializeInstanceModals() {
         console.warn('InstanceService 未注册，实例编辑不可用');
         return;
     }
-	    try {
+        try {
         if (!instanceCrudStore) {
             instanceCrudStore = createInstanceCrudStore({
                 service: new InstanceService(),
                 emitter: window.mitt ? window.mitt() : null,
             });
         }
-	        instanceModals = window.InstanceModals.createController({
-	            store: instanceCrudStore,
-	            FormValidator: window.FormValidator,
-	            ValidationRules: window.ValidationRules,
-	            toast: window.toast,
-	            DOMHelpers: window.DOMHelpers,
+            instanceModals = window.InstanceModals.createController({
+                store: instanceCrudStore,
+                FormValidator: window.FormValidator,
+                ValidationRules: window.ValidationRules,
+                toast: window.toast,
+                DOMHelpers: window.DOMHelpers,
                 onSaved: () => window.location.reload(),
         });
         instanceModals.init?.();

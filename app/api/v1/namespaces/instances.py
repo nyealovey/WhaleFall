@@ -403,12 +403,13 @@ def _parse_import_csv(file_bytes: bytes) -> list[dict[str, object]]:
         csv_input = csv.DictReader(stream)
         csv_fieldnames = list(csv_input.fieldnames) if csv_input.fieldnames is not None else None
         _validate_import_csv_headers(csv_fieldnames)
+
+        instances_data = [normalized_row for row in csv_input if (normalized_row := _normalize_import_csv_row(row))]
     except ValidationError:
         raise
-    except Exception as exc:
+    except (UnicodeDecodeError, csv.Error) as exc:
         raise ValidationError(f"CSV文件处理失败: {exc}") from exc
 
-    instances_data = [normalized_row for row in csv_input if (normalized_row := _normalize_import_csv_row(row))]
     if not instances_data:
         raise ValidationError("CSV文件为空或未包含有效数据")
     return instances_data

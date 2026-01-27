@@ -20,8 +20,8 @@ EXPORTED_BLUEPRINTS: tuple[Blueprint, ...] = (
 
 __all__ = [
     "EXPORTED_BLUEPRINTS",
-    "accounts_classifications_bp",
     "accounts_classification_statistics_bp",
+    "accounts_classifications_bp",
     "accounts_ledgers_bp",
     "accounts_statistics_bp",
 ]

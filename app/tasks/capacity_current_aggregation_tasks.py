@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import time
 from typing import Any
 
@@ -37,6 +38,241 @@ def _validate_scope(scope: str) -> str:
     return cleaned
 
 
+def _resolve_run_id(
+    *,
+    task_runs_service: TaskRunsWriteService,
+    created_by: int | None,
+    run_id: str | None,
+    resolved_scope: str,
+) -> str:
+    resolved_run_id = run_id
+    if resolved_run_id:
+        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+        if existing_run is None:
+            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
+        return resolved_run_id
+
+    resolved_run_id = task_runs_service.start_run(
+        task_key="capacity_aggregate_current",
+        task_name="容量统计(当前周期)",
+        task_category="aggregation",
+        trigger_source="manual",
+        created_by=created_by,
+        summary_json=TaskRunSummaryFactory.base(
+            task_key="capacity_aggregate_current",
+            inputs={"scope": resolved_scope},
+        ),
+        result_url=("/capacity/databases" if resolved_scope == "database" else "/capacity/instances"),
+    )
+    db.session.commit()
+    return resolved_run_id
+
+
+def _is_cancelled(run_id: str) -> bool:
+    current = TaskRun.query.filter_by(run_id=run_id).first()
+    return bool(current and current.status == "cancelled")
+
+
+def _init_items(*, task_runs_service: TaskRunsWriteService, run_id: str, active_instances: list[Any]) -> None:
+    task_runs_service.init_items(
+        run_id,
+        items=[
+            TaskRunItemInit(
+                item_type="instance",
+                item_key=str(instance.id),
+                item_name=instance.name,
+                instance_id=instance.id,
+            )
+            for instance in active_instances
+        ],
+    )
+    db.session.commit()
+
+
+def _write_summary(
+    *,
+    run_id: str,
+    resolved_scope: str,
+    period_type: str,
+    period_start_date: Any,
+    period_end_date: Any,
+    status: str | None,
+    message: str | None,
+) -> None:
+    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+    if current_run is None or current_run.status == "cancelled":
+        return
+
+    current_run.summary_json = build_capacity_aggregate_current_summary(
+        task_key="capacity_aggregate_current",
+        inputs={"scope": resolved_scope},
+        scope=resolved_scope,
+        requested_period_type=period_type,
+        effective_period_type=period_type,
+        period_start=period_start_date,
+        period_end=period_end_date,
+        status=status,
+        message=message,
+    )
+    db.session.commit()
+
+
+def _finalize_cancelled(
+    *,
+    sync_logger,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    resolved_scope: str,
+) -> dict[str, Any]:
+    sync_logger.info(
+        "任务已取消,提前终止聚合",
+        module="capacity_aggregations",
+        task="capacity_aggregate_current",
+        run_id=run_id,
+        scope=resolved_scope,
+    )
+    task_runs_service.finalize_run(run_id)
+    db.session.commit()
+    return {"success": True, "message": "任务已取消", "run_id": run_id}
+
+
+def _finalize_error(
+    *,
+    sync_logger,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    resolved_scope: str,
+    exc: Exception,
+) -> dict[str, Any]:
+    db.session.rollback()
+    sync_logger.exception(
+        "当前周期聚合失败",
+        module="capacity_aggregations",
+        task="capacity_aggregate_current",
+        run_id=run_id,
+        scope=resolved_scope,
+        error=str(exc),
+    )
+
+    now = time_utils.now()
+    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+    if current_run is not None and current_run.status != "cancelled":
+        current_run.status = "failed"
+        current_run.error_message = str(exc)
+        current_run.completed_at = now
+        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+            if item.status in {"pending", "running"}:
+                item.status = "failed"
+                item.error_message = str(exc)
+                item.completed_at = now
+        task_runs_service.finalize_run(run_id)
+        db.session.commit()
+
+    return {
+        "success": False,
+        "message": f"当前周期聚合失败: {exc!s}",
+        "error": str(exc),
+        "run_id": run_id,
+    }
+
+
+@dataclass(slots=True)
+class _AggregationCallbacks:
+    kind: str
+    run_id: str
+    resolved_scope: str
+    period_type: str
+    task_runs_service: TaskRunsWriteService
+
+    def _ensure_not_cancelled(self) -> None:
+        if _is_cancelled(self.run_id):
+            raise TaskRunCancelledError()
+
+    def on_start(self, instance) -> None:
+        self._ensure_not_cancelled()
+        self.task_runs_service.start_item(self.run_id, item_type="instance", item_key=str(instance.id))
+        db.session.commit()
+
+    def on_complete(self, instance, payload: dict[str, Any]) -> None:
+        self._ensure_not_cancelled()
+        status = str(payload.get("status") or AggregationStatus.FAILED.value).lower()
+        processed_value = payload.get("processed_records")
+        processed = int(processed_value) if processed_value is not None else 0
+        details = dict(payload)
+        metrics = {
+            "processed_records": processed,
+            "runner": self.kind,
+            "scope": self.resolved_scope,
+            "period_type": self.period_type,
+        }
+        if status == AggregationStatus.FAILED.value:
+            self.task_runs_service.fail_item(
+                self.run_id,
+                item_type="instance",
+                item_key=str(instance.id),
+                error_message=str(payload.get("message") or "聚合失败"),
+                details_json=details,
+            )
+        else:
+            self.task_runs_service.complete_item(
+                self.run_id,
+                item_type="instance",
+                item_key=str(instance.id),
+                metrics_json=metrics,
+                details_json=details,
+            )
+        db.session.commit()
+
+    def on_error(self, instance, payload: dict[str, Any]) -> None:
+        self._ensure_not_cancelled()
+        details = dict(payload)
+        self.task_runs_service.fail_item(
+            self.run_id,
+            item_type="instance",
+            item_key=str(instance.id),
+            error_message=str(payload.get("message") or payload.get("error") or "聚合失败"),
+            details_json=details,
+        )
+        db.session.commit()
+
+
+def _build_progress_callbacks(
+    *,
+    run_id: str,
+    resolved_scope: str,
+    period_type: str,
+    task_runs_service: TaskRunsWriteService,
+) -> dict[str, dict[str, Any]]:
+    progress_callbacks: dict[str, dict[str, Any]] = {}
+    if resolved_scope in {"database", "all"}:
+        group = _AggregationCallbacks(
+            kind="database",
+            run_id=run_id,
+            resolved_scope=resolved_scope,
+            period_type=period_type,
+            task_runs_service=task_runs_service,
+        )
+        progress_callbacks["database"] = {
+            "on_start": group.on_start,
+            "on_complete": group.on_complete,
+            "on_error": group.on_error,
+        }
+    if resolved_scope in {"instance", "all"}:
+        group = _AggregationCallbacks(
+            kind="instance",
+            run_id=run_id,
+            resolved_scope=resolved_scope,
+            period_type=period_type,
+            task_runs_service=task_runs_service,
+        )
+        progress_callbacks["instance"] = {
+            "on_start": group.on_start,
+            "on_complete": group.on_complete,
+            "on_error": group.on_error,
+        }
+    return progress_callbacks
+
+
 def capacity_aggregate_current(
     *,
     scope: str = "all",
@@ -51,31 +287,14 @@ def capacity_aggregate_current(
         task_runs_service = TaskRunsWriteService()
 
         resolved_scope = _validate_scope(scope)
-        resolved_run_id = run_id
-        if resolved_run_id:
-            existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if existing_run is None:
-                raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
-        else:
-            resolved_run_id = task_runs_service.start_run(
-                task_key="capacity_aggregate_current",
-                task_name="容量统计(当前周期)",
-                task_category="aggregation",
-                trigger_source="manual",
-                created_by=created_by,
-                summary_json=TaskRunSummaryFactory.base(
-                    task_key="capacity_aggregate_current",
-                    inputs={"scope": resolved_scope},
-                ),
-                result_url=("/capacity/databases" if resolved_scope == "database" else "/capacity/instances"),
-            )
-            db.session.commit()
+        resolved_run_id = _resolve_run_id(
+            task_runs_service=task_runs_service,
+            created_by=created_by,
+            run_id=run_id,
+            resolved_scope=resolved_scope,
+        )
 
-        def _is_cancelled() -> bool:
-            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            return bool(current and current.status == "cancelled")
-
-        if _is_cancelled():
+        if _is_cancelled(resolved_run_id):
             sync_logger.info(
                 "任务已取消,跳过执行",
                 module="capacity_aggregations",
@@ -91,94 +310,22 @@ def capacity_aggregate_current(
         period_start_date, period_end_date = service.period_calculator.get_current_period(period_type)
 
         active_instances = InstancesRepository.list_active_instances()
-        task_runs_service.init_items(
-            resolved_run_id,
-            items=[
-                TaskRunItemInit(
-                    item_type="instance",
-                    item_key=str(instance.id),
-                    item_name=instance.name,
-                    instance_id=instance.id,
-                )
-                for instance in active_instances
-            ],
+        _init_items(task_runs_service=task_runs_service, run_id=resolved_run_id, active_instances=active_instances)
+        _write_summary(
+            run_id=resolved_run_id,
+            resolved_scope=resolved_scope,
+            period_type=period_type,
+            period_start_date=period_start_date,
+            period_end_date=period_end_date,
+            status=None,
+            message=None,
         )
-        db.session.commit()
-
-        current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-        if current_run is not None and current_run.status != "cancelled":
-            current_run.summary_json = build_capacity_aggregate_current_summary(
-                task_key="capacity_aggregate_current",
-                inputs={"scope": resolved_scope},
-                scope=resolved_scope,
-                requested_period_type=period_type,
-                effective_period_type=period_type,
-                period_start=period_start_date,
-                period_end=period_end_date,
-                status=None,
-                message=None,
-            )
-        db.session.commit()
-
-        def _ensure_not_cancelled() -> None:
-            if _is_cancelled():
-                raise TaskRunCancelledError()
-
-        def _build_callback_group(kind: str) -> dict[str, Any]:
-            def _on_start(instance) -> None:
-                _ensure_not_cancelled()
-                task_runs_service.start_item(resolved_run_id, item_type="instance", item_key=str(instance.id))
-                db.session.commit()
-
-            def _on_complete(instance, payload: dict[str, Any]) -> None:
-                _ensure_not_cancelled()
-                status = str(payload.get("status") or AggregationStatus.FAILED.value).lower()
-                processed_value = payload.get("processed_records")
-                processed = int(processed_value) if processed_value is not None else 0
-                details = dict(payload)
-                metrics = {
-                    "processed_records": processed,
-                    "runner": kind,
-                    "scope": resolved_scope,
-                    "period_type": period_type,
-                }
-                if status == AggregationStatus.FAILED.value:
-                    task_runs_service.fail_item(
-                        resolved_run_id,
-                        item_type="instance",
-                        item_key=str(instance.id),
-                        error_message=str(payload.get("message") or "聚合失败"),
-                        details_json=details,
-                    )
-                else:
-                    task_runs_service.complete_item(
-                        resolved_run_id,
-                        item_type="instance",
-                        item_key=str(instance.id),
-                        metrics_json=metrics,
-                        details_json=details,
-                    )
-                db.session.commit()
-
-            def _on_error(instance, payload: dict[str, Any]) -> None:
-                _ensure_not_cancelled()
-                details = dict(payload)
-                task_runs_service.fail_item(
-                    resolved_run_id,
-                    item_type="instance",
-                    item_key=str(instance.id),
-                    error_message=str(payload.get("message") or payload.get("error") or "聚合失败"),
-                    details_json=details,
-                )
-                db.session.commit()
-
-            return {"on_start": _on_start, "on_complete": _on_complete, "on_error": _on_error}
-
-        progress_callbacks: dict[str, dict[str, Any]] = {}
-        if resolved_scope in {"database", "all"}:
-            progress_callbacks["database"] = _build_callback_group("database")
-        if resolved_scope in {"instance", "all"}:
-            progress_callbacks["instance"] = _build_callback_group("instance")
+        progress_callbacks = _build_progress_callbacks(
+            run_id=resolved_run_id,
+            resolved_scope=resolved_scope,
+            period_type=period_type,
+            task_runs_service=task_runs_service,
+        )
 
         try:
             result = service.aggregate_current_period(
@@ -187,63 +334,32 @@ def capacity_aggregate_current(
                 progress_callbacks=progress_callbacks,
             )
         except TaskRunCancelledError:
-            sync_logger.info(
-                "任务已取消,提前终止聚合",
-                module="capacity_aggregations",
-                task="capacity_aggregate_current",
+            return _finalize_cancelled(
+                sync_logger=sync_logger,
+                task_runs_service=task_runs_service,
                 run_id=resolved_run_id,
-                scope=resolved_scope,
+                resolved_scope=resolved_scope,
             )
-            task_runs_service.finalize_run(resolved_run_id)
-            db.session.commit()
-            return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
         except Exception as exc:
-            db.session.rollback()
-            sync_logger.exception(
-                "当前周期聚合失败",
-                module="capacity_aggregations",
-                task="capacity_aggregate_current",
+            return _finalize_error(
+                sync_logger=sync_logger,
+                task_runs_service=task_runs_service,
                 run_id=resolved_run_id,
-                scope=resolved_scope,
-                error=str(exc),
+                resolved_scope=resolved_scope,
+                exc=exc,
             )
 
-            now = time_utils.now()
-            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if current_run is not None and current_run.status != "cancelled":
-                current_run.status = "failed"
-                current_run.error_message = str(exc)
-                current_run.completed_at = now
-                for item in TaskRunItem.query.filter_by(run_id=resolved_run_id).all():
-                    if item.status in {"pending", "running"}:
-                        item.status = "failed"
-                        item.error_message = str(exc)
-                        item.completed_at = now
-                task_runs_service.finalize_run(resolved_run_id)
-                db.session.commit()
-
-            return {
-                "success": False,
-                "message": f"当前周期聚合失败: {exc!s}",
-                "error": str(exc),
-                "run_id": resolved_run_id,
-            }
-
-        current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-        if current_run is not None and current_run.status != "cancelled":
-            status_value = result.get("status")
-            message_value = result.get("message")
-            current_run.summary_json = build_capacity_aggregate_current_summary(
-                task_key="capacity_aggregate_current",
-                inputs={"scope": resolved_scope},
-                scope=resolved_scope,
-                requested_period_type=period_type,
-                effective_period_type=period_type,
-                period_start=period_start_date,
-                period_end=period_end_date,
-                status=str(status_value) if status_value is not None else None,
-                message=str(message_value) if message_value is not None else None,
-            )
+        status_value = result.get("status")
+        message_value = result.get("message")
+        _write_summary(
+            run_id=resolved_run_id,
+            resolved_scope=resolved_scope,
+            period_type=period_type,
+            period_start_date=period_start_date,
+            period_end_date=period_end_date,
+            status=str(status_value) if status_value is not None else None,
+            message=str(message_value) if message_value is not None else None,
+        )
 
         task_runs_service.finalize_run(resolved_run_id)
         db.session.commit()

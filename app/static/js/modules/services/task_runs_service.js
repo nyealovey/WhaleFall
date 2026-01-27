@@ -4,7 +4,7 @@
   const BASE_PATH = "/api/v1/task-runs";
 
   function ensureHttpClient(client) {
-    const resolved = client || global.httpU || global.http || null;
+    const resolved = client || global.httpU;
     if (!resolved || typeof resolved.get !== "function") {
       throw new Error("TaskRunsService: httpClient 未初始化");
     }
@@ -82,4 +82,3 @@
 
   global.TaskRunsService = TaskRunsService;
 })(window);
-

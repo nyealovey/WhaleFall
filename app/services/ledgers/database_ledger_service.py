@@ -8,6 +8,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app import db
 from app.core.constants import SyncStatus
 from app.core.exceptions import SystemError
@@ -87,7 +89,7 @@ class DatabaseLedgerService:
             repository = DatabaseLedgerRepository(session=self.session)
             page_result = repository.list_ledger(filters)
             items = [self._build_item(projection) for projection in page_result.items]
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error(
                 "获取数据库台账失败",
                 module="ledgers_database_service",
@@ -138,7 +140,7 @@ class DatabaseLedgerService:
             projections = repository.iterate_all(filters)
             for projection in projections:
                 yield self._build_item(projection)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error(
                 "遍历数据库台账失败",
                 module="ledgers_database_service",

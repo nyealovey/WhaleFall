@@ -89,7 +89,6 @@
     return gridHtml(`<div class="${wrapperClass}">${chips.join("")}</div>`);
   }
 
-  global.UI = global.UI || {};
   global.UI.escapeHtml = escapeHtml;
   global.UI.resolveErrorMessage = resolveErrorMessage;
   global.UI.renderChipStack = renderChipStack;

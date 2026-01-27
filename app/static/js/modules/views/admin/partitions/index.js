@@ -344,7 +344,11 @@ function mountAdminPartitionsPage(global) {
      */
     function handleCreateSuccess(payload) {
         const message = payload?.message || '分区创建成功';
-        global.toast?.success?.(message) || global.alert(message);
+        if (global.toast?.success) {
+            global.toast.success(message);
+        } else {
+            global.alert(message);
+        }
         refreshPartitionData();
     }
 
@@ -356,7 +360,11 @@ function mountAdminPartitionsPage(global) {
      */
     function handleCleanupSuccess(payload) {
         const message = payload?.message || '分区清理成功';
-        global.toast?.success?.(message) || global.alert(message);
+        if (global.toast?.success) {
+            global.toast.success(message);
+        } else {
+            global.alert(message);
+        }
         refreshPartitionData();
     }
 
