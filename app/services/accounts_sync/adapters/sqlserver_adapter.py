@@ -31,11 +31,8 @@ SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[Exception], ...] = (pymssql.Error,)
 SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[Exception], ...] = (
     ConnectionAdapterError,
     RuntimeError,
-    LookupError,
     ValueError,
     TypeError,
-    KeyError,
-    AttributeError,
     ConnectionError,
     TimeoutError,
     OSError,
@@ -129,7 +126,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 instance=instance.name,
                 error=str(exc),
             )
-            return []
+            raise
         else:
             accounts: list[RawAccount] = []
             for user in users:

@@ -40,12 +40,9 @@ class PartitionCreatePayload(PayloadSchema):
         if isinstance(value, datetime):
             return value.date()
 
-        try:
-            parsed_dt = time_utils.to_china(str(value) + "T00:00:00")
-        except Exception as exc:
-            raise ValueError("日期格式错误,请使用 YYYY-MM-DD 格式") from exc
+        parsed_dt = time_utils.to_china(str(value) + "T00:00:00")
         if parsed_dt is None:
-            raise ValueError("无法解析日期")
+            raise ValueError("日期格式错误,请使用 YYYY-MM-DD 格式")
         return parsed_dt.date()
 
 

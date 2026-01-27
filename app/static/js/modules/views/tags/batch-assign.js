@@ -39,12 +39,11 @@
       return;
     }
 
-    const toast = globalRef.toast || {
-      success: (message) => console.info(message),
-      error: (message) => console.error(message),
-      warning: (message) => console.warn(message),
-      info: (message) => console.info(message),
-    };
+    const toast = globalRef.toast;
+    if (!toast?.success || !toast?.error) {
+      console.error("toast 未初始化，批量分配页面无法提示");
+      return;
+    }
 
     const TagManagementService = globalRef.TagManagementService;
     if (!TagManagementService) {

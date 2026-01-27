@@ -80,7 +80,7 @@ class OptionsCache:
         return f"{_OPTIONS_KEY_PREFIX}:instances-common:{normalized}"
 
     @staticmethod
-    def _key_common_databases_options(filters: "CommonDatabasesOptionsFilters") -> str:
+    def _key_common_databases_options(filters: CommonDatabasesOptionsFilters) -> str:
         return f"{_OPTIONS_KEY_PREFIX}:databases-common:{filters.instance_id}:{filters.limit}:{filters.offset}"
 
     # ---- Get/Set helpers ------------------------------------------------
@@ -162,14 +162,14 @@ class OptionsCache:
             return False
         return manager.set(self._key_common_instances_options(db_type), items, timeout=self._get_ttl_seconds())
 
-    def get_common_databases_options(self, filters: "CommonDatabasesOptionsFilters") -> dict[str, Any] | None:
+    def get_common_databases_options(self, filters: CommonDatabasesOptionsFilters) -> dict[str, Any] | None:
         manager = self._get_manager()
         if not manager:
             return None
         cached = manager.get(self._key_common_databases_options(filters))
         return cast("dict[str, Any] | None", cached) if isinstance(cached, dict) else None
 
-    def set_common_databases_options(self, filters: "CommonDatabasesOptionsFilters", payload: dict[str, Any]) -> bool:
+    def set_common_databases_options(self, filters: CommonDatabasesOptionsFilters, payload: dict[str, Any]) -> bool:
         manager = self._get_manager()
         if not manager:
             return False

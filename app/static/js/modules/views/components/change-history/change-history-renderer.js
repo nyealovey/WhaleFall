@@ -1,7 +1,10 @@
 (function (global) {
   "use strict";
 
-  const escapeHtml = global.UI?.escapeHtml || ((value) => String(value ?? ""));
+  const escapeHtml = global.UI?.escapeHtml;
+  if (typeof escapeHtml !== "function") {
+    throw new Error("ChangeHistoryRenderer: UI.escapeHtml 未初始化");
+  }
 
   function normalizeText(value) {
     if (value === undefined || value === null) {

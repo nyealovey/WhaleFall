@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Final
 import oracledb  # type: ignore[import-not-found]
 
 from app.services.database_sync.table_size_adapters.base_adapter import BaseTableSizeAdapter
+from app.utils.structlog_config import log_fallback
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
@@ -78,14 +79,15 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
         try:
             result = connection.execute_query("SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM dual")
         except Exception as exc:
-            self.logger.warning(
+            log_fallback(
+                "warning",
                 "oracle_current_schema_resolve_fallback",
                 module="database_sync",
                 action="oracle_table_size.resolve_current_schema",
-                instance=getattr(instance, "name", None),
-                fallback=True,
                 fallback_reason="oracle_current_schema_query_failed",
-                exception_type=exc.__class__.__name__,
+                logger=self.logger,
+                exception=exc,
+                instance=getattr(instance, "name", None),
             )
             result = []
 

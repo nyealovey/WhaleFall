@@ -107,8 +107,8 @@
       gridEl,
       filterFormEl,
       helpers,
-      UI: global.UI || null,
-      toast: global.toast || null,
+      UI: global.UI,
+      toast: global.toast,
       gridWrapper: null,
       filterCard: null,
       state,
@@ -283,7 +283,5 @@
     return createGridPageController(config);
   }
 
-  global.Views = global.Views || {};
-  global.Views.GridPage = global.Views.GridPage || {};
   global.Views.GridPage.mount = mount;
 })(window);

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 import pytest
+import yaml
 
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.database_sync.database_filters import DatabaseSyncFilterManager
@@ -86,3 +87,14 @@ def test_database_filters_yaml_invalid_schema_raises_value_error(tmp_path) -> No
 
     with pytest.raises(ValueError):
         DatabaseSyncFilterManager(config_path=config_path)
+
+
+@pytest.mark.unit
+def test_database_filters_yaml_invalid_syntax_raises_value_error(tmp_path) -> None:
+    config_path = tmp_path / "database_filters.yaml"
+    config_path.write_text("database_filters: [\n", encoding="utf-8")
+
+    with pytest.raises(ValueError) as exc_info:
+        DatabaseSyncFilterManager(config_path=config_path)
+
+    assert isinstance(exc_info.value.__cause__, yaml.YAMLError)

@@ -121,7 +121,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         try:
             tablespace_stats = self._collect_tablespace_sizes(connection, instance)
-        except self.MYSQL_CAPACITY_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
+        except self.MYSQL_CAPACITY_EXCEPTIONS as exc:
             self.logger.exception(
                 "mysql_tablespace_collection_failed",
                 instance=instance.name,

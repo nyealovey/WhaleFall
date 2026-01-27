@@ -43,7 +43,5 @@
     };
   }
 
-  global.Views = global.Views || {};
-  global.Views.GridPlugins = global.Views.GridPlugins || {};
   global.Views.GridPlugins.actionDelegation = createPlugin;
 })(window);

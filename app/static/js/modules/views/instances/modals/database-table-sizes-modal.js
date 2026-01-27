@@ -1,17 +1,12 @@
 (function (window, document) {
   'use strict';
 
-  const GridTable = window.GridTable || null;
+  const GridTable = window.GridTable;
 
   function ensureDeps(options) {
     const ui = options?.ui || window.UI;
     const store = options?.store || null;
-    const toast = options?.toast || window.toast || {
-      success: console.info,
-      error: console.error,
-      info: console.info,
-      warning: console.warn,
-    };
+    const toast = options?.toast || window.toast;
 
     if (!ui?.createModal) {
       throw new Error('DatabaseTableSizesModal: UI.createModal 未初始化');
@@ -21,6 +16,9 @@
     }
     if (!GridTable?.create) {
       throw new Error('DatabaseTableSizesModal: GridTable 未加载');
+    }
+    if (!toast?.success || !toast?.error) {
+      throw new Error('DatabaseTableSizesModal: toast 未初始化');
     }
     if (
       !store ||
@@ -287,6 +285,5 @@
     };
   }
 
-  window.InstanceDatabaseTableSizesModal = window.InstanceDatabaseTableSizesModal || {};
-  window.InstanceDatabaseTableSizesModal.createController = createController;
+  window.InstanceDatabaseTableSizesModal = Object.freeze({ createController });
 })(window, document);

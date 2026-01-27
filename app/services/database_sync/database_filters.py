@@ -66,7 +66,7 @@ class DatabaseSyncFilterManager:
         try:
             with self._config_path.open(encoding="utf-8") as buffer:
                 raw_config = yaml.safe_load(buffer)
-        except yaml.YAMLError as exc:  # pragma: no cover - defensive
+        except yaml.YAMLError as exc:
             logger.exception("解析数据库过滤配置失败", error=str(exc))
             msg = f"解析数据库过滤配置失败: {exc}"
             raise ValueError(msg) from exc

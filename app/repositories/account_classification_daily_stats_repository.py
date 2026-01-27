@@ -42,7 +42,7 @@ class AccountClassificationDailyStatsRepository:
         if not records:
             return
 
-        table = cast(Table, getattr(AccountClassificationDailyRuleMatchStat, "__table__"))
+        table = cast(Table, AccountClassificationDailyRuleMatchStat.__table__)  # type: ignore[attr-defined]
         insert_stmt = cls._resolve_insert_stmt(table).values(records)
         stmt = insert_stmt.on_conflict_do_update(
             index_elements=[
@@ -68,7 +68,7 @@ class AccountClassificationDailyStatsRepository:
         if not records:
             return
 
-        table = cast(Table, getattr(AccountClassificationDailyClassificationMatchStat, "__table__"))
+        table = cast(Table, AccountClassificationDailyClassificationMatchStat.__table__)  # type: ignore[attr-defined]
         insert_stmt = cls._resolve_insert_stmt(table).values(records)
         stmt = insert_stmt.on_conflict_do_update(
             index_elements=[

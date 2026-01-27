@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import NoReturn
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.core.exceptions import NotFoundError, SystemError
 from app.core.types.accounts_classifications import (
     AccountClassificationAssignmentItem,
@@ -39,14 +41,14 @@ class AccountClassificationsReadService:
         """按 ID 获取账户分类(可为空)."""
         try:
             return self._repository.get_classification_by_id(classification_id)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取账户分类失败", exc)
 
     def get_rule_by_id(self, rule_id: int) -> ClassificationRule | None:
         """按 ID 获取分类规则(可为空)."""
         try:
             return self._repository.get_rule_by_id(rule_id)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取分类规则失败", exc)
 
     def get_classification_or_error(self, classification_id: int) -> AccountClassification:
@@ -69,7 +71,7 @@ class AccountClassificationsReadService:
         """统计分类的规则/分配使用情况."""
         try:
             return self._repository.fetch_classification_usage(classification_id)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取分类使用情况失败", exc)
 
     def list_classifications(self) -> list[AccountClassificationListItem]:
@@ -77,7 +79,7 @@ class AccountClassificationsReadService:
         try:
             classifications = self._repository.fetch_active_classifications()
             rules_count_map = self._repository.fetch_rule_counts([item.id for item in classifications])
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取账户分类失败", exc)
 
         items: list[AccountClassificationListItem] = []
@@ -105,7 +107,7 @@ class AccountClassificationsReadService:
         """构建账户分类详情."""
         try:
             rules_count_map = self._repository.fetch_rule_counts([classification.id])
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取账户分类详情失败", exc)
 
         rules_count = rules_count_map.get(classification.id, 0)
@@ -129,7 +131,7 @@ class AccountClassificationsReadService:
         """获取分类规则列表."""
         try:
             rules = self._repository.fetch_active_rules()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取规则列表失败", exc)
 
         items: list[AccountClassificationRuleListItem] = []
@@ -165,7 +167,7 @@ class AccountClassificationsReadService:
         """筛选分类规则."""
         try:
             rules = self._repository.fetch_active_rules(classification_id=classification_id, db_type=db_type)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取分类规则失败", exc)
 
         items: list[AccountClassificationRuleFilterItem] = []
@@ -195,7 +197,7 @@ class AccountClassificationsReadService:
         """获取账户分类分配列表."""
         try:
             assignments = self._repository.fetch_active_assignments()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取账户分类分配失败", exc)
 
         items: list[AccountClassificationAssignmentItem] = []
@@ -217,7 +219,7 @@ class AccountClassificationsReadService:
         """获取规则命中统计."""
         try:
             stats_map = self._repository.fetch_rule_match_stats(rule_ids)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取规则命中统计失败", exc)
 
         return [
@@ -229,5 +231,5 @@ class AccountClassificationsReadService:
         """获取数据库权限配置."""
         try:
             return self._repository.fetch_permissions_by_db_type(db_type)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             self._raise_system_error("获取数据库权限失败", exc)

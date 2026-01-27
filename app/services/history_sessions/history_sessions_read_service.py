@@ -22,6 +22,7 @@ from app.models.sync_session import SyncSession
 from app.repositories.history_sessions_repository import HistorySessionsRepository
 from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
 from app.utils.structlog_config import get_system_logger
+from app.utils.structlog_config import log_fallback
 
 
 class HistorySessionsReadService:
@@ -109,11 +110,13 @@ class HistorySessionsReadService:
         if isinstance(raw_sync_details, dict):
             raw_version = raw_sync_details.get("version")
             if type(raw_version) is not int:
-                self._logger.info(
+                log_fallback(
+                    "info",
                     "sync_details legacy payload normalized",
                     module="history_sessions",
-                    fallback=True,
+                    action="_to_record_item",
                     fallback_reason="SYNC_DETAILS_LEGACY_MISSING_VERSION",
+                    logger=self._logger,
                     session_id=record.session_id,
                     record_id=record_id,
                     raw_version=raw_version,

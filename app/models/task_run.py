@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy.dialects import postgresql
 
 from app import db
+from app.core.constants.status_types import TaskRunStatus
 from app.utils.time_utils import time_utils
 
 
@@ -29,7 +30,7 @@ class TaskRun(db.Model):
     task_category = db.Column(db.String(50), nullable=False, index=True)
     trigger_source = db.Column(db.String(20), nullable=False, index=True)
 
-    status = db.Column(db.String(20), nullable=False, default="running", index=True)
+    status = db.Column(db.String(20), nullable=False, default=TaskRunStatus.RUNNING, index=True)
 
     started_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
     completed_at = db.Column(db.DateTime(timezone=True), nullable=True)

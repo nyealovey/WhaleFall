@@ -105,24 +105,24 @@ function mountInstancesListPage() {
      *
      * @return {void}
      */
-	    function initializeServices() {
-	        if (global.InstanceService) {
-	            try {
-	                instanceService = new global.InstanceService();
-	            } catch (error) {
-	                console.error('初始化 InstanceService 失败:', error);
-	                instanceService = null;
-	            }
-	        }
-	        if (global.InstanceManagementService) {
-	            try {
-	                managementService = new global.InstanceManagementService();
-	            } catch (error) {
-	                console.error('初始化 InstanceManagementService 失败:', error);
-	                managementService = null;
-	            }
-	        }
-	    }
+        function initializeServices() {
+            if (global.InstanceService) {
+                try {
+                    instanceService = new global.InstanceService();
+                } catch (error) {
+                    console.error('初始化 InstanceService 失败:', error);
+                    instanceService = null;
+                }
+            }
+            if (global.InstanceManagementService) {
+                try {
+                    managementService = new global.InstanceManagementService();
+                } catch (error) {
+                    console.error('初始化 InstanceManagementService 失败:', error);
+                    managementService = null;
+                }
+            }
+        }
 
     function initializeInstanceCrudStore() {
         const createInstanceCrudStore = global.createInstanceCrudStore;

@@ -178,7 +178,7 @@ def _handle_aggregation_task_exception(
         duration_seconds=round(time.perf_counter() - task_started_at, 2),
     )
     if session is not None:
-        with suppress(*AGGREGATION_TASK_EXCEPTIONS):  # pragma: no cover
+        with suppress(*AGGREGATION_TASK_EXCEPTIONS):
             db.session.rollback()
 
         leftover_ids = started_record_ids - finalized_record_ids
@@ -196,6 +196,108 @@ def _handle_aggregation_task_exception(
         "error": str(exc),
         "periods_executed": selected_periods,
     }
+
+
+def _resolve_task_run_id(
+    *,
+    task_runs_service: TaskRunsWriteService,
+    manual_run: bool,
+    created_by: int | None,
+    run_id: str | None,
+    periods: list[str] | None,
+) -> str:
+    trigger_source = "manual" if manual_run else "scheduled"
+    resolved_run_id = run_id
+    if resolved_run_id:
+        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+        if existing_run is None:
+            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
+        return resolved_run_id
+
+    resolved_run_id = task_runs_service.start_run(
+        task_key="calculate_database_aggregations",
+        task_name="统计数据库聚合",
+        task_category="aggregation",
+        trigger_source=trigger_source,
+        created_by=created_by,
+        summary_json=TaskRunSummaryFactory.base(
+            task_key="calculate_database_aggregations",
+            inputs={"requested_periods": periods},
+        ),
+        result_url="/capacity/instances",
+    )
+    db.session.commit()
+    return resolved_run_id
+
+
+def _finalize_skip_run(
+    *,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    periods: list[str] | None,
+    response: dict[str, Any],
+) -> dict[str, Any]:
+    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+    if current_run is not None and current_run.status != "cancelled":
+        current_run.summary_json = build_calculate_database_aggregations_summary(
+            task_key="calculate_database_aggregations",
+            inputs={"requested_periods": periods},
+            periods_executed=[],
+            instances_total=0,
+            instances_successful=0,
+            instances_failed=0,
+            record_instance=0,
+            record_database=0,
+            session_id=None,
+            skipped=True,
+            skip_reason=str(response.get("message") or ""),
+        )
+    task_runs_service.finalize_run(run_id)
+    db.session.commit()
+    return {"run_id": run_id, **response}
+
+
+def _handle_aggregation_task_failure(
+    *,
+    exc: Exception,
+    runner: CapacityAggregationTaskRunner,
+    sync_logger: Any,
+    task_started_at: float,
+    session: Any | None,
+    started_record_ids: set[int],
+    finalized_record_ids: set[int],
+    selected_periods: list[str] | None,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+) -> dict[str, Any]:
+    db.session.rollback()
+
+    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+    if current_run is not None and current_run.status != "cancelled":
+        now = time_utils.now()
+        current_run.status = "failed"
+        current_run.error_message = str(exc)
+        current_run.completed_at = now
+        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+            if item.status in {"pending", "running"}:
+                item.status = "failed"
+                item.error_message = str(exc)
+                item.completed_at = now
+        task_runs_service.finalize_run(run_id)
+        db.session.commit()
+
+    result = _handle_aggregation_task_exception(
+        exc=exc,
+        runner=runner,
+        sync_logger=sync_logger,
+        task_started_at=task_started_at,
+        session=session,
+        started_record_ids=started_record_ids,
+        finalized_record_ids=finalized_record_ids,
+        selected_periods=selected_periods,
+    )
+    result["run_id"] = run_id
+    return result
 
 
 def calculate_database_aggregations(
@@ -218,26 +320,13 @@ def calculate_database_aggregations(
         finalized_record_ids: set[int] = set()
         selected_periods: list[str] | None = None
 
-        trigger_source = "manual" if manual_run else "scheduled"
-        resolved_run_id = run_id
-        if resolved_run_id:
-            existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if existing_run is None:
-                raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
-        else:
-            resolved_run_id = task_runs_service.start_run(
-                task_key="calculate_database_aggregations",
-                task_name="统计数据库聚合",
-                task_category="aggregation",
-                trigger_source=trigger_source,
-                created_by=created_by,
-                summary_json=TaskRunSummaryFactory.base(
-                    task_key="calculate_database_aggregations",
-                    inputs={"requested_periods": periods},
-                ),
-                result_url="/capacity/instances",
-            )
-            db.session.commit()
+        resolved_run_id = _resolve_task_run_id(
+            task_runs_service=task_runs_service,
+            manual_run=manual_run,
+            created_by=created_by,
+            run_id=run_id,
+            periods=periods,
+        )
 
         def _is_cancelled() -> bool:
             current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
@@ -268,24 +357,12 @@ def calculate_database_aggregations(
                 periods=periods,
             )
             if isinstance(prepared, dict):
-                current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-                if current_run is not None and current_run.status != "cancelled":
-                    current_run.summary_json = build_calculate_database_aggregations_summary(
-                        task_key="calculate_database_aggregations",
-                        inputs={"requested_periods": periods},
-                        periods_executed=[],
-                        instances_total=0,
-                        instances_successful=0,
-                        instances_failed=0,
-                        record_instance=0,
-                        record_database=0,
-                        session_id=None,
-                        skipped=True,
-                        skip_reason=str(prepared.get("message") or ""),
-                    )
-                task_runs_service.finalize_run(resolved_run_id)
-                db.session.commit()
-                return {"run_id": resolved_run_id, **prepared}
+                return _finalize_skip_run(
+                    task_runs_service=task_runs_service,
+                    run_id=resolved_run_id,
+                    periods=periods,
+                    response=prepared,
+                )
             service, active_instances, selected_periods = prepared
 
             sync_logger.info(
@@ -421,23 +498,7 @@ def calculate_database_aggregations(
                 },
             }
         except AGGREGATION_TASK_EXCEPTIONS as exc:
-            db.session.rollback()
-
-            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if current_run is not None and current_run.status != "cancelled":
-                now = time_utils.now()
-                current_run.status = "failed"
-                current_run.error_message = str(exc)
-                current_run.completed_at = now
-                for item in TaskRunItem.query.filter_by(run_id=resolved_run_id).all():
-                    if item.status in {"pending", "running"}:
-                        item.status = "failed"
-                        item.error_message = str(exc)
-                        item.completed_at = now
-                task_runs_service.finalize_run(resolved_run_id)
-                db.session.commit()
-
-            result = _handle_aggregation_task_exception(
+            return _handle_aggregation_task_failure(
                 exc=exc,
                 runner=runner,
                 sync_logger=sync_logger,
@@ -446,6 +507,6 @@ def calculate_database_aggregations(
                 started_record_ids=started_record_ids,
                 finalized_record_ids=finalized_record_ids,
                 selected_periods=selected_periods,
+                task_runs_service=task_runs_service,
+                run_id=resolved_run_id,
             )
-            result["run_id"] = resolved_run_id
-            return result

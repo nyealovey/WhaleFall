@@ -4,7 +4,7 @@
   const BASE_PATH = "/api/v1/accounts/statistics";
 
   function ensureHttpClient(client) {
-    const resolved = client || global.httpU || global.http || null;
+    const resolved = client || global.httpU;
     if (!resolved || typeof resolved.get !== "function") {
       throw new Error("AccountClassificationStatisticsService: httpClient 未初始化");
     }

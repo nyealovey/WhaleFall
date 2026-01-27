@@ -191,7 +191,7 @@ class PartitionManagementService:
                         exception=exc,
                     )
                     continue
-                except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
+                except PARTITION_SERVICE_EXCEPTIONS as exc:
                     failures.append(
                         {
                             "table": table_key,
@@ -323,7 +323,7 @@ class PartitionManagementService:
                             exception=exc,
                         )
                         continue
-                    except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
+                    except PARTITION_SERVICE_EXCEPTIONS as exc:
                         failures.append(
                             {
                                 "table": table_key,
@@ -444,7 +444,7 @@ class PartitionManagementService:
                         "status": status,
                     },
                 )
-            except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 单条记录失败不影响总体
+            except PARTITION_SERVICE_EXCEPTIONS as exc:
                 log_warning(
                     "处理单个分区信息失败",
                     module=MODULE,

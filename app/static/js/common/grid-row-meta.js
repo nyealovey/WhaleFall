@@ -8,6 +8,5 @@
     return row.cells[row.cells.length - 1]?.data || {};
   }
 
-  global.GridRowMeta = global.GridRowMeta || {};
-  global.GridRowMeta.get = get;
+  global.GridRowMeta = Object.freeze({ get });
 })(window);

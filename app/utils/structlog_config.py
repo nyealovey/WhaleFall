@@ -349,6 +349,40 @@ def log_warning(
         logger.warning(message, module=module, **kwargs)
 
 
+def log_fallback(
+    level: str,
+    message: str,
+    *,
+    module: str,
+    action: str,
+    fallback_reason: str,
+    logger: structlog.BoundLogger | None = None,
+    logger_name: str = "app",
+    exception: BaseException | None = None,
+    **kwargs: LogField,
+) -> None:
+    """记录降级/回退/Workaround 日志(强制 `fallback=true`).
+
+    说明:
+    - 统一 fallback 字段口径,避免散落的自定义 key 导致不可检索.
+    - 当 `exception` 不为空时,默认补充 `error_type/error_message`.
+    """
+    resolved_logger = logger or get_logger(logger_name)
+    payload: dict[str, LogField] = {
+        "module": module,
+        "action": action,
+        "fallback": True,
+        "fallback_reason": fallback_reason,
+        **kwargs,
+    }
+    if exception is not None:
+        payload.setdefault("error_type", exception.__class__.__name__)
+        payload.setdefault("error_message", str(exception))
+
+    log_method = getattr(resolved_logger, level, resolved_logger.warning)
+    log_method(message, **payload)
+
+
 def log_error(
     message: str,
     module: str = "app",
@@ -612,6 +646,7 @@ __all__ = [
     "log_critical",
     "log_debug",
     "log_error",
+    "log_fallback",
     "log_info",
     "log_warning",
     "should_log_debug",

@@ -14,8 +14,8 @@
   if (!LodashUtils) {
     throw new Error("LodashUtils 未初始化");
   }
-  const toast = window.toast || null;
-  const EventBus = window.EventBus || null;
+  const toast = window.toast;
+  const EventBus = window.EventBus;
 
   const DEFAULT_CONFIG = {
     selectors: {
@@ -977,6 +977,5 @@
     }
   }
 
-  window.CapacityStats = window.CapacityStats || {};
-  window.CapacityStats.Manager = CapacityStatsManager;
+  window.CapacityStats = { Manager: CapacityStatsManager };
 })(window, document);
