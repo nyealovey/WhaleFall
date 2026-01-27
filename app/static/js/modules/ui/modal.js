@@ -201,6 +201,5 @@
     return api;
   }
 
-  global.UI = global.UI || {};
   global.UI.createModal = createModal;
 })(window);

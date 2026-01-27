@@ -24,7 +24,7 @@ from app.utils.structlog_config import log_error, log_info
 if TYPE_CHECKING:
     from apscheduler.job import Job
     from apscheduler.schedulers.base import BaseScheduler
-else:  # pragma: no cover - 避免运行时导入开销
+else:  # 避免运行时导入开销
     Job = BaseScheduler = object  # type: ignore[assignment]
 
 CRON_PARTS_WITH_YEAR = 7

@@ -49,15 +49,12 @@ def _parse_tags(value: Any) -> list[str]:
     return output
 
 
-def _parse_optional_date_compat(value: Any, *, field: str) -> date | None:
+def _parse_optional_date_compat(value: Any) -> date | None:
     """Parse YYYY-MM-DD as china date. COMPAT: non-parsable values return None."""
     if not isinstance(value, str) or not value:
         return None
-    try:
-        parsed_dt = time_utils.to_china(value + "T00:00:00")
-        return parsed_dt.date() if parsed_dt else None
-    except Exception as exc:
-        raise ValueError(f"{field} 格式错误,应为 YYYY-MM-DD") from exc
+    parsed_dt = time_utils.to_china(value + "T00:00:00")
+    return parsed_dt.date() if parsed_dt else None
 
 
 class DatabasesOptionsQuery(PayloadSchema):
@@ -205,12 +202,12 @@ class DatabasesSizesQuery(PayloadSchema):
     @field_validator("start_date", mode="before")
     @classmethod
     def _parse_start_date(cls, value: Any) -> date | None:
-        return _parse_optional_date_compat(value, field="start_date")
+        return _parse_optional_date_compat(value)
 
     @field_validator("end_date", mode="before")
     @classmethod
     def _parse_end_date(cls, value: Any) -> date | None:
-        return _parse_optional_date_compat(value, field="end_date")
+        return _parse_optional_date_compat(value)
 
     @field_validator("database_name", mode="before")
     @classmethod

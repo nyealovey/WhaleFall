@@ -39,6 +39,22 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
+def _normalize_expression(raw: str) -> str:
+    """用于判断表达式/权限配置是否真实变化：忽略 key 顺序与空白差异."""
+    parsed_json = json.loads(raw)
+    if not isinstance(parsed_json, dict):
+        return raw
+    return json.dumps(parsed_json, ensure_ascii=False, sort_keys=True)
+
+
+def _permission_config_changed(effective_expression: str, current_expression: str) -> bool:
+    try:
+        return _normalize_expression(effective_expression) != _normalize_expression(current_expression)
+    except (TypeError, ValueError):
+        # DB 中 rule_expression 理论上应当是合法 JSON；若异常，保守处理为“有变化”以避免误判。
+        return True
+
+
 @dataclass(slots=True)
 class AccountClassificationDeleteOutcome:
     """账户分类删除结果."""
@@ -280,22 +296,7 @@ class AccountClassificationsWriteService:
             resource=rule,
         ):
             raise ValidationError("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
-
-        def _normalize_expression(raw: str) -> str:
-            # 用于对比权限配置是否真实变化：忽略 key 顺序与空白差异
-            parsed_json = json.loads(raw)
-            if not isinstance(parsed_json, dict):
-                return raw
-            return json.dumps(parsed_json, ensure_ascii=False, sort_keys=True)
-
-        permission_config_changed = False
-        try:
-            permission_config_changed = _normalize_expression(effective_expression) != _normalize_expression(
-                rule.rule_expression
-            )
-        except (TypeError, ValueError):
-            # DB 中 rule_expression 理论上应当是合法 JSON；若异常，保守处理为“有变化”以避免误判。
-            permission_config_changed = True
+        permission_config_changed = _permission_config_changed(effective_expression, rule.rule_expression)
 
         # 仅当“匹配逻辑 / 权限配置”发生变化时才创建新版本；规则名称允许原地更新
         if not permission_config_changed:

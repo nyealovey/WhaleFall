@@ -308,7 +308,7 @@ class CapacityAggregationTaskRunner:
             )
             raw_periods = summary.get("periods")
             period_results = raw_periods if isinstance(raw_periods, dict) else {}
-        except AGGREGATION_TASK_EXCEPTIONS as period_exc:  # pragma: no cover
+        except AGGREGATION_TASK_EXCEPTIONS as period_exc:
             logger.exception(
                 "实例聚合执行异常",
                 module="aggregation_sync",

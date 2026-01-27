@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,8 +18,6 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.core.types import (
-        CollectionSummary,
-        InventorySummary,
         StructlogEventDict,
         SyncOperationResult,
         SyncStagesSummary,
@@ -42,7 +40,7 @@ ACCOUNT_SYNC_EXCEPTIONS: tuple[type[Exception], ...] = (
 )
 
 
-def _build_failure_result(message: str) -> "SyncOperationResult":
+def _build_failure_result(message: str) -> SyncOperationResult:
     return {
         "success": False,
         "message": message,
@@ -243,6 +241,20 @@ class AccountSyncService:
         record: Any | None = None
         result: SyncOperationResult
         try:
+            def _get_summary_dict(value: object, *, field: str) -> dict[str, Any]:
+                if value is None:
+                    return {}
+                if isinstance(value, dict):
+                    return dict(value)
+                raise ValueError(f"sync result.details.{field} must be a dict")
+
+            def _get_error_payload(value: object) -> dict[str, Any] | None:
+                if isinstance(value, dict):
+                    return dict(value)
+                if value is None:
+                    return None
+                return {"raw_details": str(value)}
+
             # 创建同步会话
             session = sync_session_service.create_session(
                 sync_type=sync_type,
@@ -270,25 +282,12 @@ class AccountSyncService:
 
             # 更新实例同步状态
             if result.get("success", False):
-                details = cast("SyncStagesSummary | None", result.get("details"))
+                details = result.get("details")
                 if not isinstance(details, dict):
                     raise ValueError("sync result.details must be a dict when success=true")
 
-                inventory_value = details.get("inventory")
-                if inventory_value is None:
-                    inventory = cast("InventorySummary", {})
-                elif isinstance(inventory_value, dict):
-                    inventory = cast("InventorySummary", inventory_value)
-                else:
-                    raise ValueError("sync result.details.inventory must be a dict")
-
-                collection_value = details.get("collection")
-                if collection_value is None:
-                    collection = cast("CollectionSummary", {})
-                elif isinstance(collection_value, dict):
-                    collection = cast("CollectionSummary", collection_value)
-                else:
-                    raise ValueError("sync result.details.collection must be a dict")
+                inventory = _get_summary_dict(details.get("inventory"), field="inventory")
+                collection = _get_summary_dict(details.get("collection"), field="collection")
                 sync_session_service.complete_instance_sync(
                     record.id,
                     stats=SyncItemStats(
@@ -302,24 +301,17 @@ class AccountSyncService:
                     sync_details=dict(details),
                 )
             else:
-                error_details = result.get("details")
-                if isinstance(error_details, dict):
-                    error_payload = dict(error_details)
-                elif error_details is None:
-                    error_payload = None
-                else:
-                    error_payload = {"raw_details": str(error_details)}
                 sync_session_service.fail_instance_sync(
                     record.id,
                     error_message=result.get("message") or "同步失败",
-                    sync_details=error_payload,
+                    sync_details=_get_error_payload(result.get("details")),
                 )
 
         except ACCOUNT_SYNC_EXCEPTIONS as exc:
             if record is not None:
                 try:
                     sync_session_service.fail_instance_sync(record.id, error_message=str(exc))
-                except Exception as fail_exc:  # pragma: no cover - defensive
+                except Exception as fail_exc:
                     self.sync_logger.exception(
                         "标记实例同步失败时出错",
                         module="accounts_sync",

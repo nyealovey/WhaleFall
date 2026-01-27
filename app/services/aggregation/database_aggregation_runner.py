@@ -102,7 +102,7 @@ class DatabaseAggregationRunner:
             return
         try:
             callback(*args)
-        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性处理
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:
             log_warning(
                 "聚合回调执行失败",
                 module=self._module,
@@ -202,7 +202,7 @@ class DatabaseAggregationRunner:
                     "instance_name": instance.name,
                 }
                 self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
-            except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
+            except AGGREGATION_RUNNER_EXCEPTIONS as exc:
                 summary.failed_instances += 1
                 summary.errors.append(f"实例 {instance.name} 聚合失败: {exc}")
                 log_error(
@@ -509,7 +509,7 @@ class DatabaseAggregationRunner:
             agg_any.log_size_change_mb = None
             agg_any.log_size_change_percent = None
             agg_any.growth_rate = agg_any.size_change_percent
-        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:
             log_error(
                 "计算数据库增量统计失败,使用默认值",
                 module=self._module,

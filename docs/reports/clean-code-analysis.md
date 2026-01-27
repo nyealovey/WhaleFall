@@ -49,7 +49,7 @@ app/
 │   ├── scheduler/                 # 调度服务
 │   ├── statistics/                # 统计服务
 │   └── users/                     # 用户服务
-├── tasks/                     # 异步任务（Celery）
+├── tasks/                     # 后台任务（APScheduler，无 Celery）
 ├── types/                     # 共享类型定义
 ├── utils/                     # 工具模块
 │   └── logging/                   # 日志工具
@@ -158,7 +158,7 @@ app/
 | services/sync_session_service.py | 542 |  |
 | services/accounts_sync/adapters/postgresql_adapter.py | 542 |  |
 | services/accounts_sync/adapters/mysql_adapter.py | 538 |  |
-| services/cache_service.py | 514 |  |
+| services/cache/cache_actions_service.py | 279 |  |
 | services/accounts_sync/accounts_sync_service.py | 488 |  |
 | services/accounts_sync/coordinator.py | 477 |  |
 | services/ledgers/database_ledger_service.py | 473 |  |
@@ -338,7 +338,7 @@ app/
 **其他核心服务**：
 - `partition_management_service.py`: 807行 - 分区管理
 - `sync_session_service.py`: 542行 - 同步会话
-- `cache_service.py`: 514行 - 缓存服务
+- `cache/cache_actions_service.py`: 279行 - 缓存服务
 
 #### 3.2.3 Tasks（异步任务层）- 4个文件，733行
 - `capacity_collection_tasks.py`: 150行 - 容量数据采集
@@ -690,8 +690,8 @@ app/static/css/
 ### 7.1 后端架构
 - **框架**: Flask (蓝图模式)
 - **ORM**: SQLAlchemy
-- **任务队列**: Celery + Redis
-- **调度器**: APScheduler
+- **后台任务**: APScheduler
+- **任务队列**: 未引入 Celery
 - **日志**: structlog (结构化日志)
 - **缓存**: Redis
 - **数据库**: PostgreSQL (主库)

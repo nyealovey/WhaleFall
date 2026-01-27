@@ -125,7 +125,7 @@ class SchedulerActionsService:
                     job_id=job_id,
                     job_name=getattr(job, "name", None),
                 )
-            except BACKGROUND_EXECUTION_EXCEPTIONS as func_error:  # pragma: no cover - defensive log
+            except BACKGROUND_EXECUTION_EXCEPTIONS as func_error:
                 log_with_context(
                     "error",
                     "任务函数执行失败",

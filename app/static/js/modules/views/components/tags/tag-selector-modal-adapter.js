@@ -38,19 +38,34 @@
       console.error("TagSelectorModalAdapter: UI.createModal 未加载");
       return null;
     }
-    const modal = factory({
-      modalSelector: modalElement,
-      confirmSelector: '[data-tag-selector-action="confirm"]',
-      cancelSelector: '[data-tag-selector-action="cancel"]',
-      onOpen: hooks.onOpen,
-      onClose: hooks.onClose,
-      onConfirm: hooks.onConfirm,
-      onCancel: hooks.onCancel,
-    });
+    let modal = null;
+    try {
+      modal = factory({
+        modalSelector: modalElement,
+        confirmSelector: '[data-tag-selector-action="confirm"]',
+        cancelSelector: '[data-tag-selector-action="cancel"]',
+        onOpen: hooks.onOpen,
+        onClose: hooks.onClose,
+        onConfirm: hooks.onConfirm,
+        onCancel: hooks.onCancel,
+      });
+    } catch (error) {
+      console.error("TagSelectorModalAdapter: 初始化 modal 失败:", error);
+      return null;
+    }
+    if (
+      !modal ||
+      typeof modal.open !== "function" ||
+      typeof modal.close !== "function" ||
+      typeof modal.setLoading !== "function"
+    ) {
+      console.error("TagSelectorModalAdapter: modal 实例未就绪");
+      return null;
+    }
     return {
-      open: modal?.open?.bind(modal) || (() => {}),
-      close: modal?.close?.bind(modal) || (() => {}),
-      setLoading: modal?.setLoading?.bind(modal) || (() => {}),
+      open: modal.open.bind(modal),
+      close: modal.close.bind(modal),
+      setLoading: modal.setLoading.bind(modal),
       instance: modal,
     };
   }

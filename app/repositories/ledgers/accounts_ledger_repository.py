@@ -186,7 +186,7 @@ class AccountsLedgerRepository:
                 .join(Tag, Tag.id == instance_tags.c.tag_id)
                 .filter(tag_name_column.in_(tags))
             )
-        except SQLAlchemyError as exc:  # pragma: no cover - 日志用于排查
+        except SQLAlchemyError as exc:
             log_warning(
                 "标签过滤失败",
                 module="accounts_ledgers",

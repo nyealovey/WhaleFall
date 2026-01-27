@@ -29,14 +29,14 @@
       console.error("Grid.js 或 GridWrapper 未加载");
       return;
     }
-    GridPage = global.Views?.GridPage || null;
-    GridPlugins = global.Views?.GridPlugins || null;
+    GridPage = global.Views?.GridPage;
+    GridPlugins = global.Views?.GridPlugins;
     if (!GridPage?.mount || !GridPlugins) {
       console.error("Views.GridPage 或 Views.GridPlugins 未加载");
       return;
     }
-    escapeHtml = global.UI?.escapeHtml || null;
-    rowMeta = global.GridRowMeta || null;
+    escapeHtml = global.UI?.escapeHtml;
+    rowMeta = global.GridRowMeta;
     if (typeof escapeHtml !== "function" || typeof rowMeta?.get !== "function") {
       console.error("UI helpers 或 GridRowMeta 未加载");
       return;

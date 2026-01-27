@@ -101,8 +101,8 @@ class AccountStatisticsRepository:
         active_instances = active_instance_query.filter(Instance.is_active.is_(True)).count()
         disabled_instances = active_instance_query.filter(Instance.is_active.is_(False)).count()
         deleted_instances = deleted_query.filter(Instance.deleted_at.isnot(None)).count()
-        total_instances = active_instances
-        normal_instances = max(active_instances - disabled_instances, 0)
+        total_instances = active_instances + disabled_instances
+        normal_instances = active_instances
 
         return {
             "total_accounts": total_accounts,
@@ -120,37 +120,60 @@ class AccountStatisticsRepository:
     @staticmethod
     def fetch_db_type_stats() -> dict[str, dict[str, int]]:
         """获取按数据库类型统计."""
-        db_type_stats: dict[str, dict[str, int]] = {}
-        for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
-            accounts = (
-                AccountPermission.query.join(
-                    InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id
-                )
-                .join(Instance, Instance.id == AccountPermission.instance_id)
-                .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
-                .filter(AccountPermission.db_type == db_type)
-                .all()
+        target_db_types = ["mysql", "postgresql", "oracle", "sqlserver"]
+
+        stats_query = (
+            db.session.query(
+                AccountPermission.db_type.label("db_type"),
+                func.count(AccountPermission.id).label("total"),
+                func.coalesce(
+                    func.sum(case((InstanceAccount.is_active.is_(True), 1), else_=0)),
+                    0,
+                ).label("active"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    InstanceAccount.is_active.is_(True),
+                                    AccountPermission.is_locked.is_(True),
+                                ),
+                                1,
+                            ),
+                            else_=0,
+                        ),
+                    ),
+                    0,
+                ).label("locked"),
             )
-            total_count = len(accounts)
-            active_count = 0
-            locked_count = 0
-            for account in accounts:
-                instance_account = account.instance_account
-                if instance_account and instance_account.is_active:
-                    active_count += 1
-                    if AccountStatisticsRepository._is_account_locked(account):
-                        locked_count += 1
+            .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
+            .join(Instance, Instance.id == AccountPermission.instance_id)
+            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+            .group_by(AccountPermission.db_type)
+        )
 
-            deleted_count = total_count - active_count
-            normal_count = max(active_count - locked_count, 0)
+        db_type_stats: dict[str, dict[str, int]] = {
+            db_type: {"total": 0, "active": 0, "normal": 0, "locked": 0, "deleted": 0}
+            for db_type in target_db_types
+        }
 
+        for row in stats_query.all():
+            db_type = getattr(row, "db_type", None)
+            if db_type not in db_type_stats:
+                continue
+            total = int(getattr(row, "total", 0) or 0)
+            active = int(getattr(row, "active", 0) or 0)
+            locked = int(getattr(row, "locked", 0) or 0)
+            deleted = max(total - active, 0)
+            normal = max(active - locked, 0)
             db_type_stats[db_type] = {
-                "total": total_count,
-                "active": active_count,
-                "normal": normal_count,
-                "locked": locked_count,
-                "deleted": deleted_count,
+                "total": total,
+                "active": active,
+                "normal": normal,
+                "locked": locked,
+                "deleted": deleted,
             }
+
         return db_type_stats
 
     @staticmethod
@@ -189,10 +212,6 @@ class AccountStatisticsRepository:
         assignment_rows = assignment_query.group_by(AccountClassificationAssignment.rule_id).all()
         assignment_map = {row.rule_id: row.count for row in assignment_rows if row.rule_id is not None}
         return {rule.id: int(assignment_map.get(rule.id, 0)) for rule in rules}
-
-    @staticmethod
-    def _is_account_locked(account: AccountPermission) -> bool:
-        return bool(getattr(account, "is_locked", False))
 
     @staticmethod
     def _query_classification_rows() -> list[dict[str, Any]]:

@@ -88,26 +88,11 @@ function mountAccountClassificationPage(window, document) {
         },
     };
 
-    const toast = window.toast || {
-        success: message => console.info(message),
-        error: message => console.error(message),
-        warning: message => console.warn(message),
-        info: message => console.info(message),
-    };
-
-    const logError =
-        window.logErrorWithContext ||
-        /**
-         * 默认错误记录器，控制台兜底输出。
-         *
-         * @param {Error|Object|string} error 捕获的错误。
-         * @param {string} context 错误发生场景。
-         * @param {Object} [extras] 附加信息。
-         * @returns {void}
-         */
-        function fallbackLogger(error, context, extras) {
-            console.error(`[AccountClassificationPage] ${context}`, error, extras || {});
-        };
+    const toast = window.toast;
+    if (!toast?.success || !toast?.error) {
+        console.error('toast 未初始化，账户分类页面无法提示');
+        return;
+    }
 
     const permissionView = window.AccountClassificationPermissionView
         ? window.AccountClassificationPermissionView.createView({
@@ -760,7 +745,7 @@ function mountAccountClassificationPage(window, document) {
      * @returns {string} 最终展示的错误消息文本。
      */
     function handleRequestError(error, fallbackMessage, context) {
-        logError(error, context || 'account_classification', {
+        console.error(`[AccountClassificationPage] ${context || 'account_classification'}`, error, {
             fallbackMessage,
         });
         const message = error?.response?.error || error?.message || fallbackMessage || '操作失败';

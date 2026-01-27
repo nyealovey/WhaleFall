@@ -10,8 +10,9 @@ from app.core.constants import DatabaseType
 from app.schemas.external_contracts.mysql_account import MySQLRawAccountSchema
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.utils.safe_query_builder import SafeQueryBuilder
-from app.utils.structlog_config import get_sync_logger
+from app.utils.structlog_config import get_sync_logger, log_fallback
 
 if TYPE_CHECKING:
     from app.core.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
@@ -50,15 +51,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    MYSQL_ADAPTER_EXCEPTIONS: tuple[type[Exception], ...] = (
-        RuntimeError,
-        ValueError,
-        TypeError,
-        KeyError,
-        AttributeError,
-        ConnectionError,
-    )
-
     # ------------------------------------------------------------------
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
@@ -71,15 +63,17 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         """
         try:
             rows = conn.execute_query("SHOW COLUMNS FROM mysql.user LIKE %s", (column_name,))
-        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+        except ConnectionAdapterError as exc:
             # 探测失败时按"不存在"处理,避免产生预期内的错误日志,并保证同步可继续。
-            self.logger.warning(
+            log_fallback(
+                "warning",
                 "detect_mysql_user_column_failed",
                 module="mysql_account_adapter",
+                action="_has_mysql_user_column",
                 column=column_name,
-                fallback=True,
                 fallback_reason="SHOW_COLUMNS_FAILED",
-                error=str(exc),
+                logger=self.logger,
+                exception=exc,
             )
             return False
         return bool(rows)
@@ -208,7 +202,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     },
                 )
 
-        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+        except Exception as exc:
             # 采集失败时必须抛异常,避免上游误判为 "远端 0 账号" 从而清空清单。
             self.logger.exception(
                 "fetch_mysql_accounts_failed",
@@ -245,12 +239,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         version_value = getattr(instance, "main_version", None) or getattr(instance, "detailed_version", None)
         if not isinstance(version_value, str) or not version_value.strip():
-            self.logger.warning(
+            log_fallback(
+                "warning",
                 "detect_mysql_roles_support_missing_version",
                 module="mysql_account_adapter",
-                instance=instance.name,
-                fallback=True,
+                action="_supports_roles",
                 fallback_reason="instance.main_version/detailed_version missing",
+                logger=self.logger,
+                instance=getattr(instance, "name", None),
             )
             return False
 
@@ -428,7 +424,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         )
         try:
             rows = conn.execute_query(direct_sql)
-        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+        except ConnectionAdapterError as exc:
             self.logger.warning(
                 "fetch_mysql_role_edges_failed",
                 module="mysql_account_adapter",
@@ -454,7 +450,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         )
         try:
             rows = conn.execute_query(default_sql)
-        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+        except ConnectionAdapterError as exc:
             self.logger.warning(
                 "fetch_mysql_default_roles_failed",
                 module="mysql_account_adapter",
@@ -635,7 +631,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "mysql_database_privileges": database_privileges,
                 "type_specific": type_specific,
             }
-        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+        except ConnectionAdapterError as exc:
             self.logger.exception(
                 "fetch_mysql_permissions_failed",
                 module="mysql_account_adapter",
@@ -730,7 +726,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                         "default": role_members_default_map.get(username, []),
                     }
                 account["permissions"] = permissions
-            except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+            except ConnectionAdapterError as exc:
                 self.logger.exception(
                     "fetch_mysql_permissions_failed",
                     module="mysql_account_adapter",
@@ -802,7 +798,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 if has_grant_option and "GRANT OPTION" not in existing:
                     existing.append("GRANT OPTION")
                 return
-        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
+        except Exception as exc:
             self.logger.warning(
                 "mysql_parse_grant_failed",
                 module="mysql_account_adapter",

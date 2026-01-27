@@ -75,7 +75,7 @@ def _launch_background_aggregation(
                 created_by=captured_created_by,
                 run_id=captured_run_id,
             )
-        except BACKGROUND_EXCEPTIONS as exc:  # pragma: no cover
+        except BACKGROUND_EXCEPTIONS as exc:
             log_with_context(
                 "error",
                 "后台统计当前周期失败",

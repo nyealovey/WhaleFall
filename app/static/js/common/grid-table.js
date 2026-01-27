@@ -25,8 +25,12 @@
 
   function mergeObjects(base, override) {
     const result = { ...(base || {}) };
+    const forbiddenKeys = new Set(["__proto__", "prototype", "constructor"]);
     Object.entries(override || {}).forEach(([key, value]) => {
-      const baseValue = result[key];
+      if (forbiddenKeys.has(key)) {
+        return;
+      }
+      const baseValue = Reflect.get(result, key);
       const canMerge =
         baseValue &&
         typeof baseValue === "object" &&
@@ -36,7 +40,7 @@
         !Array.isArray(value);
 
       // Merge one level deep for plain objects (className/language/style/pagination 等足够).
-      result[key] = canMerge ? { ...baseValue, ...value } : value;
+      Reflect.set(result, key, canMerge ? { ...baseValue, ...value } : value);
     });
     return result;
   }
@@ -127,4 +131,3 @@
     create,
   });
 })(window);
-

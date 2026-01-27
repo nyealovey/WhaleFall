@@ -105,7 +105,7 @@ class InstanceAggregationRunner:
             return
         try:
             callback(*args)
-        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:
             log_warning(
                 "聚合回调执行失败",
                 module=self._module,
@@ -209,7 +209,7 @@ class InstanceAggregationRunner:
                     "instance_name": instance.name,
                 }
                 self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
-            except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
+            except AGGREGATION_RUNNER_EXCEPTIONS as exc:
                 summary.failed_instances += 1
                 summary.errors.append(f"实例 {instance.name} 聚合失败: {exc}")
                 log_error(
@@ -419,7 +419,7 @@ class InstanceAggregationRunner:
             )
         except DatabaseError:
             raise
-        except SQLAlchemyError as exc:  # pragma: no cover - defensive logging
+        except SQLAlchemyError as exc:
             log_error(
                 "实例聚合失败",
                 module=self._module,
@@ -437,7 +437,7 @@ class InstanceAggregationRunner:
                     "end_date": context.end_date.isoformat(),
                 },
             ) from exc
-        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:
             log_error(
                 "实例聚合出现未知异常",
                 module=self._module,
@@ -529,7 +529,7 @@ class InstanceAggregationRunner:
                 agg_any.trend_direction = "shrinking"
             else:
                 agg_any.trend_direction = "stable"
-        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:
             log_error(
                 "计算实例增量统计失败,使用默认值",
                 module=self._module,

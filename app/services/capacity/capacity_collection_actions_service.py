@@ -61,7 +61,7 @@ def _launch_background_collection(
     def _run_task(captured_created_by: int | None, captured_run_id: str) -> None:
         try:
             task(manual_run=True, created_by=captured_created_by, run_id=captured_run_id)
-        except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover
+        except BACKGROUND_SYNC_EXCEPTIONS as exc:
             log_with_context(
                 "error",
                 "后台数据库同步失败",

@@ -44,7 +44,5 @@
     };
   }
 
-  global.Views = global.Views || {};
-  global.Views.GridPlugins = global.Views.GridPlugins || {};
   global.Views.GridPlugins.filterCard = createPlugin;
 })(window);

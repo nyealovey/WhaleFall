@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, Unpack, cast
+from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar, Unpack, cast
 
 from flask_login import current_user
 from werkzeug.exceptions import HTTPException
@@ -107,24 +107,20 @@ def log_fallback(
 
 
 def safe_route_call(
-    func: Callable[..., R],
+    func: Callable[[], R],
     *,
     module: str,
     action: str,
     public_error: str,
-    func_args: tuple[Any, ...] | None = None,
-    func_kwargs: dict[str, Any] | None = None,
     **options: Unpack[RouteSafetyOptions],
 ) -> R:
     """安全执行视图逻辑,集中处理日志与异常转换.
 
     Args:
         func: 真实的业务函数,建议为局部闭包以捕获参数.
-        func_args: 传入业务函数的位置参数元组.
         module: 记录日志用的模块名称.
         action: 业务动作名称,例如 "get_account_permissions".
         public_error: 暴露给客户端的统一错误文案.
-        func_kwargs: 传入业务函数的命名参数字典.
         **options: 安全包装配置,支持 context, extra, expected_exceptions,
             fallback_exception, log_event, include_actor 等键.
 
@@ -147,9 +143,7 @@ def safe_route_call(
     extra_payload: LoggerExtra = dict(cast("LoggerExtra | None", options.get("extra")) or {})
 
     try:
-        call_kwargs = func_kwargs or {}
-        call_args = func_args or ()
-        result = func(*call_args, **call_kwargs)
+        result = func()
     except handled_exceptions as exc:
         db.session.rollback()
         log_with_context(

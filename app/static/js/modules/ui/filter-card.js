@@ -349,7 +349,6 @@
     };
   }
 
-  global.UI = global.UI || {};
   global.UI.createFilterCard = createFilterCard;
   global.UI.serializeForm = serializeForm;
 })(window);
