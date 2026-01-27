@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.core.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.core.exceptions import NotFoundError, SystemError
 from app.core.types.scheduler import SchedulerJobDetail, SchedulerJobListItem
@@ -42,7 +44,7 @@ class SchedulerJobsReadService:
         try:
             scheduler = self._repository.ensure_scheduler_running()
             jobs = cast("list[Job]", scheduler.get_jobs())
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error("获取任务列表失败", module="scheduler_jobs_read_service", exception=exc)
             raise SystemError("获取任务列表失败") from exc
 
@@ -55,7 +57,7 @@ class SchedulerJobsReadService:
         try:
             scheduler = self._repository.ensure_scheduler_running()
             job = scheduler.get_job(job_id)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error("获取任务详情失败", module="scheduler_jobs_read_service", exception=exc)
             raise SystemError("获取任务详情失败") from exc
 

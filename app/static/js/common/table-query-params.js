@@ -100,9 +100,10 @@
     return params;
   }
 
-  global.TableQueryParams = global.TableQueryParams || {};
-  global.TableQueryParams.resolvePage = resolvePage;
-  global.TableQueryParams.resolvePageSize = resolvePageSize;
-  global.TableQueryParams.normalizePaginationFilters = normalizePaginationFilters;
-  global.TableQueryParams.buildSearchParams = buildSearchParams;
+  global.TableQueryParams = Object.freeze({
+    resolvePage,
+    resolvePageSize,
+    normalizePaginationFilters,
+    buildSearchParams,
+  });
 })(window);

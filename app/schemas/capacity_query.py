@@ -33,12 +33,9 @@ def _parse_optional_date(value: Any, *, field: str) -> date | None:
     cleaned = _parse_optional_str(value)
     if cleaned is None:
         return None
-    try:
-        parsed_dt = time_utils.to_china(cleaned + "T00:00:00")
-    except Exception as exc:
-        raise ValueError(f"{field} 格式错误,应为 YYYY-MM-DD") from exc
+    parsed_dt = time_utils.to_china(cleaned + "T00:00:00")
     if parsed_dt is None:
-        raise ValueError("无法解析日期")
+        raise ValueError(f"{field} 格式错误,应为 YYYY-MM-DD")
     return parsed_dt.date()
 
 

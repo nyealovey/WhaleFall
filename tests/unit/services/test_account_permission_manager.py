@@ -3,8 +3,9 @@ from typing import Any, cast
 
 import pytest
 
-from app.core.exceptions import AppError
+from app.core.exceptions import AppError, SystemError
 from app.models.account_permission import AccountPermission
+from app.services.accounts_sync import permission_manager as permission_module
 from app.services.accounts_sync.permission_manager import AccountPermissionManager, SyncContext
 
 
@@ -24,6 +25,23 @@ def test_apply_permissions_writes_snapshot() -> None:
     assert record.permission_facts.get("version") == 2
     assert record.permission_facts.get("db_type") == "mysql"
     assert record.permission_facts.get("meta", {}).get("source") == "snapshot"
+
+
+@pytest.mark.unit
+def test_apply_permissions_raises_when_facts_builder_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _boom(*_: object, **__: object) -> object:
+        raise ValueError("boom")
+
+    monkeypatch.setattr(permission_module, "build_permission_facts", _boom)
+
+    manager = AccountPermissionManager()
+    record: Any = SimpleNamespace(instance_id=1, username="demo", db_type="mysql", permission_snapshot=None)
+
+    with pytest.raises(SystemError):
+        manager._apply_permissions(record, {"mysql_global_privileges": []})
+
+    assert isinstance(record.permission_snapshot, dict)
+    assert record.permission_snapshot.get("version") == 4
 
 
 @pytest.mark.unit

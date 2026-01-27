@@ -12,6 +12,8 @@ from collections.abc import Iterable
 from datetime import date, timedelta
 from typing import Any, cast
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.core.exceptions import SystemError, ValidationError
 from app.core.types.listing import PaginatedResult
 from app.core.types.partition import (
@@ -47,7 +49,7 @@ class PartitionReadService:
         """获取分区信息快照."""
         try:
             info = PartitionStatisticsService().get_partition_info()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error("获取分区信息失败", module="partition_read_service", exception=exc)
             raise SystemError("获取分区信息失败") from exc
 
@@ -71,7 +73,7 @@ class PartitionReadService:
         """获取分区状态快照."""
         try:
             info = PartitionStatisticsService().get_partition_info()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error("获取分区状态失败", module="partition_read_service", exception=exc)
             raise SystemError("获取分区状态失败") from exc
 
@@ -152,7 +154,7 @@ class PartitionReadService:
                 period_type=normalized_type,
                 window=window,
             )
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error("获取核心聚合指标失败", module="partition_read_service", exception=exc)
             raise SystemError("获取核心聚合指标失败") from exc
 

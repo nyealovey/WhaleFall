@@ -52,7 +52,5 @@
     };
   }
 
-  global.Views = global.Views || {};
-  global.Views.GridPlugins = global.Views.GridPlugins || {};
   global.Views.GridPlugins.exportButton = createPlugin;
 })(window);

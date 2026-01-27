@@ -219,7 +219,7 @@ def _execute_batch_tests(
             else:
                 fail_count += 1
             results.append(result)
-        except BATCH_TEST_EXCEPTIONS as exc:  # pragma: no cover
+        except BATCH_TEST_EXCEPTIONS as exc:
             error_id = uuid4().hex
             results.append(
                 {

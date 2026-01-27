@@ -145,7 +145,7 @@ make init-db
 python app.py
 ```
 
-访问 http://localhost:5000 即可使用。
+访问 http://127.0.0.1:5001 即可使用。
 
 API 文档（OpenAPI/Swagger）：
 

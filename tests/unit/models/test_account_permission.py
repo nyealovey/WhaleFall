@@ -3,7 +3,8 @@ from sqlalchemy import cast, func, select
 from sqlalchemy.dialects import postgresql
 
 from app import db
-from app.models.account_permission import AccountPermission  # noqa: F401
+from app.models import account_permission as account_permission_module
+from app.models.account_permission import AccountPermission
 
 
 @pytest.mark.unit
@@ -44,3 +45,21 @@ def test_account_permission_capability_expression_uses_jsonb_contains_operator()
     compiled = str(stmt.compile(dialect=postgresql.dialect()))
     assert "LIKE" not in compiled
     assert "@>" in compiled
+
+
+@pytest.mark.unit
+def test_account_permission_capability_expression_logs_fallback_when_bind_unavailable(monkeypatch) -> None:
+    captured: list[str] = []
+
+    def _capture(reason: str) -> None:
+        captured.append(reason)
+
+    def _raise_no_bind():
+        raise RuntimeError("no bind")
+
+    monkeypatch.setattr(account_permission_module, "_log_dialect_detection_fallback", _capture)
+    monkeypatch.setattr(db.session, "get_bind", _raise_no_bind)
+
+    expr = AccountPermission._capability_expression("SUPERUSER")
+    assert captured == ["RuntimeError"]
+    assert expr is not None

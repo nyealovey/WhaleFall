@@ -154,7 +154,7 @@ class AggregationService:
                 message="提交聚合结果失败",
                 extra={"start_date": start_date.isoformat(), "error": message},
             ) from exc
-        except AGGREGATION_COMMIT_EXCEPTIONS as exc:  # pragma: no cover - 防御性捕获
+        except AGGREGATION_COMMIT_EXCEPTIONS as exc:
             log_error(
                 "提交聚合结果出现未知异常",
                 module=MODULE,
@@ -414,7 +414,7 @@ class AggregationService:
         use_current = self._resolve_use_current_period_from_map(period, use_current_periods)
         try:
             result = executor(instance.id, use_current_period=use_current)
-        except AGGREGATION_EXECUTION_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
+        except AGGREGATION_EXECUTION_EXCEPTIONS as exc:
             log_error(
                 "实例周期聚合执行失败",
                 module=MODULE,
@@ -481,7 +481,7 @@ class AggregationService:
             use_current = self._resolve_use_current_period_from_map(period, overrides)
             try:
                 period_result = method(use_current_period=use_current)
-            except AGGREGATION_EXECUTION_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
+            except AGGREGATION_EXECUTION_EXCEPTIONS as exc:
                 log_error(
                     "数据库级聚合执行失败",
                     module=MODULE,

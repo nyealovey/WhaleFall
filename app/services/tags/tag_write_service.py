@@ -163,7 +163,7 @@ class TagWriteService:
                     db.session.flush()
                     self._log_delete(tag, operator_id=operator_id)
                 results.append({"tag_id": tag_id, "status": "deleted"})
-            except SQLAlchemyError as exc:  # pragma: no cover - 逐条记录方便排查
+            except SQLAlchemyError as exc:
                 has_failure = True
                 log_with_context(
                     "warning",

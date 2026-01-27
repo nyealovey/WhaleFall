@@ -55,14 +55,14 @@ class TaskRunStatus:
     定义 task_runs 表的状态值.
     """
 
-    PENDING = "pending"  # 等待中
-    RUNNING = "running"  # 运行中
-    COMPLETED = "completed"  # 已完成
-    FAILED = "failed"  # 失败
-    CANCELLED = "cancelled"  # 已取消
+    PENDING = SyncStatus.PENDING  # 等待中
+    RUNNING = SyncStatus.RUNNING  # 运行中
+    COMPLETED = SyncStatus.COMPLETED  # 已完成
+    FAILED = SyncStatus.FAILED  # 失败
+    CANCELLED = SyncStatus.CANCELLED  # 已取消
 
-    ALL: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED)
+    ALL: ClassVar[tuple[str, ...]] = SyncStatus.ALL
 
-    TERMINAL: ClassVar[tuple[str, ...]] = (COMPLETED, FAILED, CANCELLED)
+    TERMINAL: ClassVar[tuple[str, ...]] = SyncStatus.TERMINAL
 
-    IN_PROGRESS: ClassVar[tuple[str, ...]] = (PENDING, RUNNING)
+    IN_PROGRESS: ClassVar[tuple[str, ...]] = SyncStatus.ACTIVE

@@ -38,7 +38,7 @@
   }
 
   function ensureLodash(lodash) {
-    const resolved = lodash || window.LodashUtils || null;
+    const resolved = lodash || window.LodashUtils;
     if (!resolved) {
       throw new Error("createTagBatchStore: 需要 LodashUtils");
     }

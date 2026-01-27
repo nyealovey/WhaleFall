@@ -11,7 +11,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from app.utils.structlog_config import get_system_logger
+from app.utils.structlog_config import get_system_logger, log_fallback
 
 if TYPE_CHECKING:
     from flask_caching import Cache
@@ -82,15 +82,16 @@ class CacheManager:
         try:
             return self.cache.get(key)
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning(
+            log_fallback(
+                "warning",
                 "获取缓存失败",
                 module="cache",
                 action="cache_get",
+                fallback_reason="cache_get_failed",
+                logger=self.system_logger,
                 cache_key=key,
                 error=str(cache_error),
-                fallback=True,
-                fallback_reason="cache_get_failed",
-                error_type=cache_error.__class__.__name__,
+                exception=cache_error,
             )
             return None
 
@@ -111,15 +112,16 @@ class CacheManager:
                 timeout = self.default_timeout
             self.cache.set(key, value, timeout=timeout)
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning(
+            log_fallback(
+                "warning",
                 "设置缓存失败",
                 module="cache",
                 action="cache_set",
+                fallback_reason="cache_set_failed",
+                logger=self.system_logger,
                 cache_key=key,
                 error=str(cache_error),
-                fallback=True,
-                fallback_reason="cache_set_failed",
-                error_type=cache_error.__class__.__name__,
+                exception=cache_error,
             )
             return False
         return True
@@ -137,15 +139,16 @@ class CacheManager:
         try:
             self.cache.delete(key)
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning(
+            log_fallback(
+                "warning",
                 "删除缓存失败",
                 module="cache",
                 action="cache_delete",
+                fallback_reason="cache_delete_failed",
+                logger=self.system_logger,
                 cache_key=key,
                 error=str(cache_error),
-                fallback=True,
-                fallback_reason="cache_delete_failed",
-                error_type=cache_error.__class__.__name__,
+                exception=cache_error,
             )
             return False
         return True
@@ -156,14 +159,15 @@ class CacheManager:
             backend = getattr(self.cache, "cache", None)
             cache_info = backend.info() if backend and hasattr(backend, "info") else "未获取到缓存详情"
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning(
+            log_fallback(
+                "warning",
                 "获取缓存统计失败",
                 module="cache",
                 action="cache_stats",
-                error=str(cache_error),
-                fallback=True,
                 fallback_reason="cache_stats_failed",
-                error_type=cache_error.__class__.__name__,
+                logger=self.system_logger,
+                error=str(cache_error),
+                exception=cache_error,
             )
             return {"status": "error", "error": str(cache_error)}
         return {"status": "connected", "info": cache_info}

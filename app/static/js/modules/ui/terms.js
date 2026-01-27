@@ -88,13 +88,13 @@
     }
   }
 
-  global.UI = global.UI || {};
-  global.UI.Terms = global.UI.Terms || {};
-  global.UI.Terms.resolveActiveStatusText = resolveActiveStatusText;
-  global.UI.Terms.resolveDeletionStatusText = resolveDeletionStatusText;
-  global.UI.Terms.resolveLockStatusText = resolveLockStatusText;
-  global.UI.Terms.resolveRunStatusText = resolveRunStatusText;
-  global.UI.Terms.resolveTaskStatusText = resolveTaskStatusText;
-  global.UI.Terms.resolvePeriodTypeText = resolvePeriodTypeText;
-  global.UI.Terms.resolveCapacitySourceText = resolveCapacitySourceText;
+  global.UI.Terms = Object.freeze({
+    resolveActiveStatusText,
+    resolveDeletionStatusText,
+    resolveLockStatusText,
+    resolveRunStatusText,
+    resolveTaskStatusText,
+    resolvePeriodTypeText,
+    resolveCapacitySourceText,
+  });
 })(window);

@@ -9,7 +9,7 @@
    * @throws {Error} 当客户端未初始化时抛出
    */
   function ensureHttpClient(client) {
-    const resolved = client || global.httpU || global.http || null;
+    const resolved = client || global.httpU;
     if (!resolved || typeof resolved.get !== "function") {
       throw new Error("DashboardService: httpClient 未初始化");
     }

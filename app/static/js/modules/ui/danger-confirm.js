@@ -220,6 +220,5 @@
     });
   }
 
-  global.UI = global.UI || {};
   global.UI.confirmDanger = confirmDanger;
 })(window);
