@@ -116,49 +116,56 @@ app/tasks/capacity_current_aggregation_tasks.py:163
 - tasks 只做“调度入口 + 可观测性”，查库/写库下沉到 repository/service。
 - 统一 `TaskRun/TaskRunItem` 的读取/写入入口（减少重复样板与语义漂移）。
 
-#### 4) Service 层直查库：门禁明确禁止（且当前已命中）
+#### 4) Service 层直查库：门禁明确禁止（已修复）
 
-`scripts/ci/services-repository-enforcement-guard.sh` 失败（见 `docs/reports/artifacts/ci-guards_2026-01-28_134740_stderr.txt`）：
+状态：
+- ✅ `./scripts/ci/services-repository-enforcement-guard.sh` 已通过（当前命中数 0）
 
-- `app/services/accounts/account_classification_daily_stats_read_service.py:137`（`AccountClassification.query...`）
-- `app/services/accounts/account_classification_daily_stats_read_service.py:320`（`ClassificationRule.query...`）
-- `app/services/accounts/account_classification_daily_stats_read_service.py:454`（`ClassificationRule.query...`）
-- `app/services/task_runs/task_runs_write_service.py:52`
-- `app/services/task_runs/task_runs_write_service.py:116`
-- `app/services/task_runs/task_runs_write_service.py:176`
-- `app/services/task_runs/task_runs_write_service.py:200`
+修复方式（最小化）：
+- 将 services 内的 `.query` 全部下沉到 repository：
+  - `app/services/accounts/account_classification_daily_stats_read_service.py`：改为通过 `AccountsClassificationsRepository` 读取分类/规则
+  - `app/services/task_runs/task_runs_write_service.py`：改为通过 `TaskRunsRepository` 读取 run/item
+- 补齐 repository 入口（避免 service 直查库）：
+  - `app/repositories/accounts_classifications_repository.py`：新增 `fetch_rules_for_overview` / `fetch_rules_by_ids`
+  - `app/repositories/task_runs_repository.py`：新增 `get_item`
 
-建议：
-- 所有 `*.query` 下沉到 repository（或新增 write-repository），service 只负责业务编排。
+#### 5) Error/message 互兜底链：典型“防御式复杂度”（已修复）
 
-#### 5) Error/message 互兜底链：典型“防御式复杂度”，且已触发门禁
+状态：
+- ✅ `./scripts/ci/error-message-drift-guard.sh` 已通过（当前命中数 0）
 
-`scripts/ci/error-message-drift-guard.sh` 失败：
+修复方式（最小化）：
+- Producer 侧保证返回结构总是包含 `message`（canonical）：`app/services/capacity/capacity_collection_task_runner.py`
+- Consumer 侧不再写 `payload.get("error") or payload.get("message")` 互兜底链：
+  - `app/tasks/capacity_collection_tasks.py`：失败时只读 `payload["message"]`（缺失则给固定默认）
+  - `app/tasks/capacity_current_aggregation_tasks.py`：`on_error` 只读 `payload["message"]`
 
-- `app/tasks/capacity_collection_tasks.py:198`：`payload.get("error") or payload.get("message") or "实例容量同步失败"`
-- `app/tasks/capacity_current_aggregation_tasks.py:233`：`payload.get("message") or payload.get("error") or "聚合失败"`
+#### 6) Lint 噪音：中文 docstring 与 D400/D415 的冲突（已处置）
 
-问题：
-- 读端写互兜底链会把“字段漂移”永久化；每新增一个来源就多一个 `or`，长期只会更乱。
+状态：
+- ✅ `./scripts/ci/ruff-style-guard.sh` 已通过（violations 0）
+- 已在 `pyproject.toml` 全局 ignore `D400/D415`（避免中文 `。` 被误判为“不以 period 结尾”）
+- 顺手修复 1 处 `I001 import` 排序问题（否则会阻断 ruff-style 门禁）
 
-建议（最小化）：
-- 统一 payload/error schema：只认一个字段（例如 `error_message`），在单一入口做映射/报错，不允许各处散落 `or` 链。
+备注（最小化）：
+- 保持“少写无意义 docstring”，优先通过收敛 public API 来减少 `D102/D107` 类噪音（而不是为了 lint 堆文字）
 
-#### 6) Lint 噪音：中文 docstring 与 D400/D415 的冲突，会逼着你“为了 lint 写文字”
+#### 7) 明显的 YAGNI/假实现：对外宣称“清缓存”，实际是 no-op（已删除）
 
-- `app/services/cache/cache_actions_service.py:96`、`app/services/cache/cache_actions_service.py:102`：中文句号 `。` 被判定为“不以 period 结尾”。
-- `app/services/common/options_cache.py:34` + 大量 `D102/D107`：对一堆机械 get/set 要求补 docstring，明显是在制造“文档负担”。
+状态：
+- ✅ 已删除用户/实例/全量清理的 no-op 实现与 API 入口，避免出现“成功但没做事”的假承诺。
 
-建议（最小化）：
-- 优先减少 public API 面积（把机械 get/set 收敛成少量入口），而不是补一堆 docstring。
-- 或调整 Ruff 规则：对中文项目禁用/放宽 D400/D415、对特定目录/文件放宽 D102（否则只会产出无意义 docstring）。
-
-#### 7) 明显的 YAGNI/假实现：对外宣称“清缓存”，实际是 no-op
-
-- `app/services/cache/cache_actions_service.py:95-104`
-  - `_invalidate_user_cache/_invalidate_instance_cache` 直接 `del ...` 然后 `return True`
-  - 风险：对用户而言是“成功但没做事”，属于最难排查的行为。
-  - 建议：要么实现，要么移除该能力/显式返回 `409/501`（避免默默成功）。
+变更：
+- 删除 `CacheActionsService` 中的：
+  - `clear_user_cache/clear_instance_cache/clear_all_cache`
+  - `_invalidate_user_cache/_invalidate_instance_cache`
+- 删除 API endpoints：
+  - `/api/v1/cache/actions/clear-user`
+  - `/api/v1/cache/actions/clear-instance`
+  - `/api/v1/cache/actions/clear-all`
+- 更新契约与参考文档：
+  - `docs/Obsidian/API/cache-api-contract.md`
+  - `docs/Obsidian/reference/service/cache-services.md`
 
 #### 8) 安全扫描误报：需要抑制，否则会把注意力从真问题上拉走
 
@@ -172,7 +179,6 @@ app/tasks/capacity_current_aggregation_tasks.py:163
 > 下面是“删了不影响业务、还能减少维护负担”的候选（按风险从低到高排序）。
 
 - `app/schemas/databases_query.py:13` - 删除未使用 import：`model_validator`（Estimated LOC reduction: 1）
-- `app/services/cache/cache_actions_service.py:95` / `app/services/cache/cache_actions_service.py:101` - 若确认短期不做精准清理：删除/下线 no-op 清理入口或改为显式不支持（Estimated LOC reduction: 10-30，取决于接口策略）
 - `tests/unit/routes/**` 中重复的 CSRF header 组装逻辑（建议提取 fixture/helper） - 主要收益是“删重复样板”，减少未来改动面（Estimated LOC reduction: 100+）
 - `scripts/dev/openapi/export_api_contract_canvas.py`（文件标记 Deprecated） - 若确认迁移完成且不再需要 `.canvas` 审计：可归档/删除（Estimated LOC reduction: 300+）
 
@@ -219,4 +225,3 @@ app/tasks/capacity_current_aggregation_tasks.py:163
 - Total potential LOC reduction: 5% ~ 15%（主要来自：task/query 下沉去重 + 测试样板提取 + 删除 legacy/Deprecated 代码）
 - Complexity score: **High**（不是因为业务逻辑复杂，而是“分层漂移 + 兼容链 + 样板重复”叠加）
 - Recommended action: **先修复测试/门禁，后做结构性删减**（否则简化会变成“越改越不敢动”）
-

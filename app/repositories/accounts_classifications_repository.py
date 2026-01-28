@@ -142,6 +142,29 @@ class AccountsClassificationsRepository:
 
         return query.order_by(ClassificationRule.created_at.desc()).all()
 
+    def fetch_rules_for_overview(
+        self,
+        *,
+        classification_id: int,
+        db_type: str | None,
+        is_active: bool | None,
+    ) -> list[ClassificationRule]:
+        """按条件获取规则列表(支持 active/archived/all)."""
+        query = ClassificationRule.query.filter(ClassificationRule.classification_id == classification_id)
+        if db_type:
+            query = query.filter(ClassificationRule.db_type == db_type)
+        if is_active is True:
+            query = query.filter(ClassificationRule.is_active.is_(True))
+        elif is_active is False:
+            query = query.filter(ClassificationRule.is_active.is_(False))
+        return query.order_by(ClassificationRule.created_at.desc()).all()
+
+    def fetch_rules_by_ids(self, rule_ids: Sequence[int]) -> list[ClassificationRule]:
+        """按规则 ID 批量获取规则."""
+        if not rule_ids:
+            return []
+        return ClassificationRule.query.filter(ClassificationRule.id.in_(list(rule_ids))).all()
+
     def fetch_active_assignments(self) -> list[tuple[AccountClassificationAssignment, AccountClassification]]:
         """查询启用的分类分配."""
         query = db.session.query(AccountClassificationAssignment, AccountClassification)
