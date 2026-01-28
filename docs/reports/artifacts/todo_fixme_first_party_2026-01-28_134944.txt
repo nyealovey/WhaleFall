@@ -1,0 +1,4 @@
+./docs/Obsidian/standards/doc/guide/api-contract-markdown.md:72:  - 若当前仍为路由内实现(未下沉): 填 `-`, 并在 `Notes` 标注 `TODO: move to ...`.
+./docs/changes/refactor/layer/state-layer-inventory.md:19:- `TODO`：缺 store，或页面仍直连 service/httpU，需要迁移。
+./docs/plans/2026-01-28-code-simplicity-progress.md:44:- `TODO`：未开始
+./docs/plans/2026-01-28-code-simplicity-progress.md:74:| P2-004 | TODO | `app/**` | 事务边界收敛：评估 `db.session.commit()`（69 处）与 `begin_nested()`（29 处）是否可集中到少数入口（例如 `safe_route_call` / task runner），减少散落样板与语义漂移。 | `uv run pyright` |  |
