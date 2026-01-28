@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v1.4.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.5.0-blue.svg)](CHANGELOG.md)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 [![Code Quality](https://img.shields.io/badge/Code%20Quality-B+-success.svg)](docs/reports/clean-code-analysis.md)
 
@@ -405,4 +405,4 @@ def example_view() -> Response:
 
 ---
 
-**最后更新**: 2026-01-09 | **版本**: v1.4.0 | **维护团队**: WhaleFall Team
+**最后更新**: 2026-01-28 | **版本**: v1.5.0 | **维护团队**: WhaleFall Team
