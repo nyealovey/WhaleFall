@@ -22,7 +22,6 @@ from app.models.sync_session import SyncSession
 from app.repositories.history_sessions_repository import HistorySessionsRepository
 from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
 from app.utils.structlog_config import get_system_logger
-from app.utils.structlog_config import log_fallback
 
 
 class HistorySessionsReadService:
@@ -104,23 +103,6 @@ class HistorySessionsReadService:
     def _to_record_item(self, record: SyncInstanceRecord) -> SyncInstanceRecordItem:
         raw_sync_details = record.sync_details
         record_id = 0 if record.id is None else record.id
-
-        # COMPAT: 历史数据可能缺失 `sync_details.version`；统一在读入口补齐并记录命中。
-        # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
-        if isinstance(raw_sync_details, dict):
-            raw_version = raw_sync_details.get("version")
-            if type(raw_version) is not int:
-                log_fallback(
-                    "info",
-                    "sync_details legacy payload normalized",
-                    module="history_sessions",
-                    action="_to_record_item",
-                    fallback_reason="SYNC_DETAILS_LEGACY_MISSING_VERSION",
-                    logger=self._logger,
-                    session_id=record.session_id,
-                    record_id=record_id,
-                    raw_version=raw_version,
-                )
 
         try:
             sync_details = normalize_sync_details_v1(raw_sync_details)

@@ -3,47 +3,15 @@
 
   const BASE_PATH = "/api/v1/task-runs";
 
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("TaskRunsService: httpClient 未初始化");
-    }
-    return resolved;
-  }
-
-  function toQueryString(filters) {
-    if (!filters) {
-      return "";
-    }
-    if (typeof filters === "string") {
-      return filters ? `?${filters.replace(/^\?/, "")}` : "";
-    }
-    if (filters instanceof URLSearchParams) {
-      const serialized = filters.toString();
-      return serialized ? `?${serialized}` : "";
-    }
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") {
-        return;
-      }
-      if (Array.isArray(value)) {
-        value.forEach((item) => {
-          if (item !== undefined && item !== null && item !== "") {
-            params.append(key, item);
-          }
-        });
-      } else {
-        params.append(key, value);
-      }
-    });
-    const query = params.toString();
-    return query ? `?${query}` : "";
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  const toQueryString = global.ServiceUtils?.toQueryString;
+  if (typeof ensureHttpClient !== "function" || typeof toQueryString !== "function") {
+    throw new Error("TaskRunsService: ServiceUtils 未初始化");
   }
 
   class TaskRunsService {
     constructor(httpClient) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "TaskRunsService");
     }
 
     list(filters) {

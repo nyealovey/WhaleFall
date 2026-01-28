@@ -4,55 +4,10 @@
   const BASE_PATH = "/api/v1/accounts/classifications";
   const STATISTICS_PATH = "/api/v1/accounts/statistics";
 
-  /**
-   * 选用 http 客户端，默认使用 httpU。
-   *
-   * @param {Object} client - HTTP 客户端实例
-   * @return {Object} HTTP 客户端实例
-   * @throws {Error} 当客户端未初始化时抛出
-   */
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("AccountClassificationService: httpClient 未初始化");
-    }
-    return resolved;
-  }
-
-  /**
-   * 将对象或字符串拼接为 query string。
-   *
-   * @param {Object|URLSearchParams|string} params - 查询参数
-   * @return {string} 查询字符串，以 ? 开头，如果为空则返回空字符串
-   */
-  function buildQueryString(params) {
-    if (!params) {
-      return "";
-    }
-    if (params instanceof URLSearchParams) {
-      const serialized = params.toString();
-      return serialized ? `?${serialized}` : "";
-    }
-    if (typeof params === "string") {
-      return params ? `?${params.replace(/^\?/, "")}` : "";
-    }
-    const search = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") {
-        return;
-      }
-      if (Array.isArray(value)) {
-        value.forEach((item) => {
-          if (item !== undefined && item !== null && item !== "") {
-            search.append(key, item);
-          }
-        });
-      } else {
-        search.append(key, value);
-      }
-    });
-    const serialized = search.toString();
-    return serialized ? `?${serialized}` : "";
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  const toQueryString = global.ServiceUtils?.toQueryString;
+  if (typeof ensureHttpClient !== "function" || typeof toQueryString !== "function") {
+    throw new Error("AccountClassificationService: ServiceUtils 未初始化");
   }
 
   /**
@@ -70,7 +25,7 @@
      * @param {Object} httpClient - HTTP 客户端实例
      */
     constructor(httpClient) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "AccountClassificationService");
     }
 
     /**
@@ -163,7 +118,7 @@
       if (!Array.isArray(ruleIds) || ruleIds.length === 0) {
         return Promise.resolve({ success: true, data: { rule_stats: [] } });
       }
-      const query = buildQueryString({ rule_ids: ruleIds.join(",") });
+      const query = toQueryString({ rule_ids: ruleIds.join(",") });
       return this.httpClient.get(`${STATISTICS_PATH}/rules${query}`);
     }
 

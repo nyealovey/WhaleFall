@@ -5,16 +5,17 @@ from __future__ import annotations
 import atexit
 import json
 import sys
+from collections.abc import Mapping
 from contextlib import suppress
-from functools import partial, wraps
-from typing import TYPE_CHECKING, ParamSpec, cast
+from functools import partial
+from typing import TYPE_CHECKING, cast
 
 import structlog
-from flask import Flask, current_app, g, has_app_context, has_request_context, jsonify
+from flask import Flask, current_app, g, has_app_context, has_request_context
 from flask_login import current_user
 
 from app.core.constants.system_constants import ErrorSeverity
-from app.core.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
+from app.core.types import ContextDict, ContextValue, JsonValue, LoggerExtra, StructlogEventDict
 from app.infra.logging.queue_worker import LogQueueWorker
 from app.settings import APP_VERSION
 from app.utils.logging.context_vars import request_id_var, user_id_var
@@ -28,13 +29,9 @@ from app.utils.logging.error_adapter import (
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from flask.typing import ResponseReturnValue
     from structlog.typing import BindableLogger, Processor
 
-P = ParamSpec("P")
-LogField = JsonValue | ContextDict | LoggerExtra
+LogField = JsonValue | ContextValue | ContextDict | LoggerExtra
 ErrorPayload = dict[str, LogField]
 
 
@@ -359,6 +356,7 @@ def log_fallback(
     logger: structlog.BoundLogger | None = None,
     logger_name: str = "app",
     exception: BaseException | None = None,
+    fields: Mapping[str, LogField] | None = None,
     **kwargs: LogField,
 ) -> None:
     """记录降级/回退/Workaround 日志(强制 `fallback=true`).
@@ -369,11 +367,13 @@ def log_fallback(
     """
     resolved_logger = logger or get_logger(logger_name)
     payload: dict[str, LogField] = {
+        **(fields or {}),
+        **kwargs,
+        # Canonical fields should not be overrideable by callers.
         "module": module,
         "action": action,
         "fallback": True,
         "fallback_reason": fallback_reason,
-        **kwargs,
     }
     if exception is not None:
         payload.setdefault("error_type", exception.__class__.__name__)
@@ -587,7 +587,7 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: Erro
         None.
 
     """
-    log_kwargs: dict[str, JsonValue | ContextDict | LoggerExtra] = {
+    log_kwargs: dict[str, LogField] = {
         "error_id": payload["error_id"],
         "category": payload["category"],
         "severity": payload["severity"],
@@ -607,36 +607,11 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: Erro
         log_warning(message_text, module="error_handler", exception=error, **log_kwargs)
 
 
-def error_handler(func: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
-    """Flask 视图装饰器,统一捕获异常并输出结构化日志.
-
-    Args:
-        func: 原始视图函数.
-
-    Returns:
-        包含 try/except 的包装函数.
-
-    """
-
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
-        try:
-            return func(*args, **kwargs)
-        except Exception as error:
-            context = ErrorContext(error)
-            payload = enhanced_error_handler(error, context)
-            status_code = derive_error_metadata(error).status_code
-            return jsonify(payload), status_code
-
-    return wrapper
-
-
 __all__ = [
     "ErrorContext",
     "ErrorMetadata",
     "configure_structlog",
     "enhanced_error_handler",
-    "error_handler",
     "get_auth_logger",
     "get_db_logger",
     "get_logger",

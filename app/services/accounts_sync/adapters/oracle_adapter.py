@@ -79,7 +79,8 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 instance=instance.name,
                 error=str(exc),
             )
-            return []
+            # 采集失败时必须抛异常,避免上游误判为 "远端 0 账号" 从而清空清单。
+            raise
         else:
             accounts: list[RawAccount] = []
             for user in users:

@@ -12,9 +12,10 @@ from app.services.sync_session_service import SyncItemStats, SyncSessionService
 
 
 @pytest.mark.unit
-def test_clean_sync_details_injects_version_for_empty_dict() -> None:
+def test_clean_sync_details_rejects_missing_version() -> None:
     service = SyncSessionService()
-    assert service._clean_sync_details({}) == {"version": 1}
+    with pytest.raises(ValueError):
+        service._clean_sync_details({})
 
 
 @pytest.mark.unit
@@ -101,13 +102,13 @@ def test_complete_instance_sync_raises_on_write_error(monkeypatch) -> None:
         records = service.add_instance_records(session.session_id, [instance.id])
         record = records[0]
 
-        def _boom_complete_sync(self, **_kwargs):
+        def _boom_complete_sync(_self, **_kwargs):
             raise RuntimeError("boom")
 
         monkeypatch.setattr(SyncInstanceRecord, "complete_sync", _boom_complete_sync)
 
         with pytest.raises(RuntimeError, match="boom"):
-            service.complete_instance_sync(record.id, stats=SyncItemStats(), sync_details={})
+            service.complete_instance_sync(record.id, stats=SyncItemStats(), sync_details={"version": 1})
 
 
 @pytest.mark.unit
@@ -141,13 +142,13 @@ def test_fail_instance_sync_raises_on_write_error(monkeypatch) -> None:
         records = service.add_instance_records(session.session_id, [instance.id])
         record = records[0]
 
-        def _boom_fail_sync(self, **_kwargs):
+        def _boom_fail_sync(_self, **_kwargs):
             raise RuntimeError("boom")
 
         monkeypatch.setattr(SyncInstanceRecord, "fail_sync", _boom_fail_sync)
 
         with pytest.raises(RuntimeError, match="boom"):
-            service.fail_instance_sync(record.id, error_message="x", sync_details={})
+            service.fail_instance_sync(record.id, error_message="x", sync_details={"version": 1})
 
 
 @pytest.mark.unit
@@ -249,7 +250,7 @@ def test_start_instance_sync_raises_on_write_error(monkeypatch) -> None:
         session = service.create_session(sync_type="manual_task", sync_category="account", created_by=None)
         record = service.add_instance_records(session.session_id, [instance.id])[0]
 
-        def _boom_start_sync(self):
+        def _boom_start_sync(_self):
             raise RuntimeError("boom")
 
         monkeypatch.setattr(SyncInstanceRecord, "start_sync", _boom_start_sync)

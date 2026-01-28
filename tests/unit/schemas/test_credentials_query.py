@@ -1,5 +1,6 @@
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.schemas.credentials_query import CredentialListFiltersQuery
 from app.schemas.validation import validate_or_raise
 
@@ -25,8 +26,8 @@ def test_credential_list_filters_query_normalizes_and_clamps() -> None:
     query = validate_or_raise(
         CredentialListFiltersQuery,
         {
-            "page": 0,
-            "limit": 999,
+            "page": 1,
+            "limit": 200,
             "search": "  foo  ",
             "credential_type": " password ",
             "db_type": " mysql ",
@@ -65,5 +66,5 @@ def test_credential_list_filters_query_choice_all_and_blank_to_none() -> None:
 
 @pytest.mark.unit
 def test_credential_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
-    query = validate_or_raise(CredentialListFiltersQuery, {"order": "weird"})
-    assert query.to_filters().sort_order == "desc"
+    with pytest.raises(ValidationError):
+        validate_or_raise(CredentialListFiltersQuery, {"order": "weird"})

@@ -12,55 +12,10 @@
   };
   const CRUD_BASE_PATH = "/api/v1/tags";
 
-  /**
-   * 选择一个可用的 http 客户端，若调用方未传递则退回全局 httpU/http。
-   *
-   * @param {Object} client - 可能注入的 http 客户端
-   * @return {Object} HTTP 客户端实例
-   * @throws {Error} 当客户端未初始化时抛出
-   */
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("TagManagementService: httpClient 未初始化");
-    }
-    return resolved;
-  }
-
-  /**
-   * 将对象、字符串或 URLSearchParams 统一转换成查询字符串。
-   *
-   * @param {Object|string|URLSearchParams} params - 要拼接的查询参数
-   * @return {string} 格式化的查询字符串
-   */
-  function buildQueryString(params) {
-    if (!params) {
-      return "";
-    }
-    if (params instanceof URLSearchParams) {
-      const serialized = params.toString();
-      return serialized ? `?${serialized}` : "";
-    }
-    if (typeof params === "string") {
-      return params ? `?${params.replace(/^\?/, "")}` : "";
-    }
-    const search = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") {
-        return;
-      }
-      if (Array.isArray(value)) {
-        value.forEach((item) => {
-          if (item !== undefined && item !== null && item !== "") {
-            search.append(key, item);
-          }
-        });
-      } else {
-        search.append(key, value);
-      }
-    });
-    const serialized = search.toString();
-    return serialized ? `?${serialized}` : "";
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  const toQueryString = global.ServiceUtils?.toQueryString;
+  if (typeof ensureHttpClient !== "function" || typeof toQueryString !== "function") {
+    throw new Error("TagManagementService: ServiceUtils 未初始化");
   }
 
   /**
@@ -77,7 +32,7 @@
      * @param {Object} [endpoints] - 可选的端点配置，用于覆盖默认端点
      */
     constructor(httpClient, endpoints) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "TagManagementService");
       this.endpoints = { ...DEFAULT_ENDPOINTS, ...(endpoints || {}) };
     }
 
@@ -89,7 +44,7 @@
      */
     listTags(params) {
       return this.httpClient.get(
-        `${this.endpoints.tags}${buildQueryString(params)}`,
+        `${this.endpoints.tags}${toQueryString(params)}`,
       );
     }
 
@@ -101,7 +56,7 @@
      */
     listCategories(params) {
       return this.httpClient.get(
-        `${this.endpoints.categories}${buildQueryString(params)}`,
+        `${this.endpoints.categories}${toQueryString(params)}`,
       );
     }
 
@@ -113,7 +68,7 @@
      */
     listInstances(params) {
       return this.httpClient.get(
-        `${this.endpoints.instances}${buildQueryString(params)}`,
+        `${this.endpoints.instances}${toQueryString(params)}`,
       );
     }
 
@@ -125,7 +80,7 @@
      */
     listAllTags(params) {
       return this.httpClient.get(
-        `${this.endpoints.allTags}${buildQueryString(params)}`,
+        `${this.endpoints.allTags}${toQueryString(params)}`,
       );
     }
 

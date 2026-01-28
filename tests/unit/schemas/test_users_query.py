@@ -1,5 +1,6 @@
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.schemas.users_query import UserListFiltersQuery
 from app.schemas.validation import validate_or_raise
 
@@ -23,8 +24,8 @@ def test_user_list_filters_query_normalizes_and_clamps() -> None:
     query = validate_or_raise(
         UserListFiltersQuery,
         {
-            "page": 0,
-            "limit": 999,
+            "page": 1,
+            "limit": 200,
             "search": " foo ",
             "role": "admin",
             "status": "inactive",
@@ -36,7 +37,7 @@ def test_user_list_filters_query_normalizes_and_clamps() -> None:
 
     assert filters.page == 1
     assert filters.limit == 200
-    # COMPAT: search/role/status 不做 strip()；repository/service 自行处理。
+    # 说明: search/role/status 不做 strip()；repository/service 自行处理。
     assert filters.search == " foo "
     assert filters.role == "admin"
     assert filters.status == "inactive"
@@ -46,8 +47,8 @@ def test_user_list_filters_query_normalizes_and_clamps() -> None:
 
 @pytest.mark.unit
 def test_user_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
-    query = validate_or_raise(UserListFiltersQuery, {"order": "weird"})
-    assert query.to_filters().sort_order == "desc"
+    with pytest.raises(ValidationError):
+        validate_or_raise(UserListFiltersQuery, {"order": "weird"})
 
 
 @pytest.mark.unit
