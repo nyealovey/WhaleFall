@@ -250,10 +250,10 @@ class AccountSyncService:
 
             def _get_error_payload(value: object) -> dict[str, Any] | None:
                 if isinstance(value, dict):
-                    return dict(value)
+                    return {"version": 1, **dict(value)}
                 if value is None:
                     return None
-                return {"raw_details": str(value)}
+                return {"version": 1, "raw_details": str(value)}
 
             # 创建同步会话
             session = sync_session_service.create_session(
@@ -298,7 +298,7 @@ class AccountSyncService:
                         items_updated=collection.get("updated", 0),
                         items_deleted=inventory.get("deactivated", 0),
                     ),
-                    sync_details=dict(details),
+                    sync_details={"version": 1, **dict(details)},
                 )
             else:
                 sync_session_service.fail_instance_sync(

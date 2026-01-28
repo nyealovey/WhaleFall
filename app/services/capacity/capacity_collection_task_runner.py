@@ -143,7 +143,7 @@ class CapacityCollectionTaskRunner:
                 items_updated=_to_int(inventory_result.get("reactivated", 0)),
                 items_deleted=_to_int(inventory_result.get("deactivated", 0)),
             ),
-            sync_details={"inventory": inventory_result},
+            sync_details={"version": 1, "inventory": inventory_result},
         )
         active_databases = set(inventory_result.get("active_databases", []))
         if not active_databases:
@@ -163,7 +163,7 @@ class CapacityCollectionTaskRunner:
             sync_session_service.complete_instance_sync(
                 record.id,
                 stats=empty_stats,
-                sync_details={"inventory": inventory_result},
+                sync_details={"version": 1, "inventory": inventory_result},
             )
             return {
                 "instance_id": instance.id,
@@ -220,6 +220,7 @@ class CapacityCollectionTaskRunner:
                 items_deleted=_to_int(inventory_result.get("deactivated", 0)),
             ),
             sync_details={
+                "version": 1,
                 "total_size_mb": instance_total_size_mb,
                 "database_count": database_count,
                 "saved_count": saved_count,
