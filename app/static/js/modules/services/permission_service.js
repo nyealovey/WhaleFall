@@ -1,19 +1,9 @@
-(function (global) {
-  "use strict";
+  (function (global) {
+    "use strict";
 
-  /**
-   * 选用 http 客户端，默认 httpU。
-   *
-   * @param {Object} client - HTTP 客户端实例
-   * @return {Object} HTTP 客户端实例
-   * @throws {Error} 当客户端未初始化时抛出
-   */
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("PermissionService: httpClient 未初始化");
-    }
-    return resolved;
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  if (typeof ensureHttpClient !== "function") {
+    throw new Error("PermissionService: ServiceUtils 未初始化");
   }
 
   /**
@@ -31,7 +21,7 @@
      * @param {Object} httpClient - HTTP 客户端实例
      */
     constructor(httpClient) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "PermissionService");
     }
 
     /**

@@ -4,9 +4,10 @@ from app.schemas.internal_contracts.account_change_log_diff_v1 import extract_di
 
 
 @pytest.mark.unit
-def test_extract_diff_entries_supports_legacy_list_shape() -> None:
+def test_extract_diff_entries_rejects_legacy_list_shape() -> None:
     raw = [{"action": "GRANT", "object": "db"}]
-    assert extract_diff_entries(raw) == raw
+    with pytest.raises(TypeError):
+        extract_diff_entries(raw)
 
 
 @pytest.mark.unit

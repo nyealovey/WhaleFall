@@ -40,7 +40,9 @@ def _resolve_hours(value: Any) -> int | None:
     hours = parse_int(value, default=0)
     if hours < 1:
         raise ValueError("hours 参数必须为正整数")
-    return min(hours, _MAX_HOURS)
+    if hours > _MAX_HOURS:
+        raise ValueError(f"hours 最大为 {_MAX_HOURS}")
+    return hours
 
 
 class HistoryLogsListQuery(PayloadSchema):
@@ -61,13 +63,19 @@ class HistoryLogsListQuery(PayloadSchema):
     @classmethod
     def _parse_page(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_PAGE)
-        return max(parsed, 1)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_LIMIT)
-        return max(min(parsed, _MAX_LIMIT), 1)
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        if parsed > _MAX_LIMIT:
+            raise ValueError(f"limit 最大为 {_MAX_LIMIT}")
+        return parsed
 
     @field_validator("sort_field", mode="before")
     @classmethod
@@ -83,8 +91,7 @@ class HistoryLogsListQuery(PayloadSchema):
             return "desc"
         if cleaned in _ALLOWED_SORT_ORDERS:
             return cleaned
-        # COMPAT: 非法值降级为默认 desc.
-        return "desc"
+        raise ValueError("sort_order 参数必须为 asc 或 desc")
 
     @field_validator("level", mode="before")
     @classmethod

@@ -14,7 +14,7 @@ from werkzeug.exceptions import HTTPException
 
 from app import db
 from app.core.exceptions import AppError, SystemError
-from app.utils.structlog_config import get_logger
+from app.utils.structlog_config import get_logger, log_fallback as _structlog_log_fallback
 
 if TYPE_CHECKING:
     from app.core.types import ContextDict, ContextMapping, LoggerExtra, RouteSafetyOptions
@@ -87,22 +87,41 @@ def log_fallback(
     """记录降级/回退/Workaround 的结构化日志(强制 `fallback=true`).
 
     说明：
-    - 该 helper 用于统一回退口径字段，避免各处自定义 key 导致不可检索。
-    - 调用方仍需在 `context/extra` 中补充关键维度（instance_id/task/...）。
+    - 该 helper 的对外签名保留在 route_safety(便于在 Web/路由层使用统一入口)。
+    - 实际 payload 生成与写日志逻辑委托给 `app.utils.structlog_config.log_fallback`，
+      以避免“同名函数双实现”造成字段口径漂移。
     """
-    extra_opt = dict(cast("LoggerExtra | None", options.get("extra")) or {})
-    extra_opt["fallback"] = True
-    extra_opt["fallback_reason"] = fallback_reason
+    logger_name = options.get("logger_name", "app")
+    include_actor = options.get("include_actor", True)
 
-    log_with_context(
+    payload: ContextDict = {}
+    context_opt = cast("ContextMapping | None", options.get("context"))
+    extra_opt = cast("LoggerExtra | None", options.get("extra"))
+    if context_opt:
+        payload.update(context_opt)
+    if extra_opt:
+        payload.update(extra_opt)
+
+    if include_actor:
+        try:
+            actor_id = getattr(current_user, "id", None)
+        except RuntimeError:
+            actor_id = None
+        if actor_id is not None:
+            payload.setdefault("actor_id", actor_id)
+
+    # Avoid accidental override of canonical fields.
+    for key in ("module", "action", "fallback", "fallback_reason"):
+        payload.pop(key, None)
+
+    _structlog_log_fallback(
         level,
         event,
         module=module,
         action=action,
-        context=cast("ContextMapping | None", options.get("context")),
-        extra=extra_opt,
-        include_actor=options.get("include_actor", True),
-        logger_name=options.get("logger_name", "app"),
+        fallback_reason=fallback_reason,
+        logger_name=logger_name,
+        fields=payload,
     )
 
 

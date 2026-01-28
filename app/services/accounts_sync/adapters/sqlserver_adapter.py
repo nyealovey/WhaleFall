@@ -737,7 +737,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 module="sqlserver_account_adapter",
                 error=str(exc),
             )
-            return {}
+            raise
         else:
             elapsed = time.perf_counter() - start_time
             self.logger.info(

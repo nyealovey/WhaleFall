@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import Field, field_validator, model_validator
@@ -49,12 +49,31 @@ def _parse_tags(value: Any) -> list[str]:
     return output
 
 
-def _parse_optional_date_compat(value: Any) -> date | None:
-    """Parse YYYY-MM-DD as china date. COMPAT: non-parsable values return None."""
-    if not isinstance(value, str) or not value:
+def _parse_optional_date(value: Any, *, param_name: str) -> date | None:
+    """Parse YYYY-MM-DD as China date (strict)."""
+    if value is None:
         return None
-    parsed_dt = time_utils.to_china(value + "T00:00:00")
-    return parsed_dt.date() if parsed_dt else None
+
+    if isinstance(value, datetime):
+        parsed_dt = time_utils.to_china(value)
+        if not parsed_dt:
+            raise ValueError(f"{param_name} 参数必须为 YYYY-MM-DD")
+        return parsed_dt.date()
+
+    if isinstance(value, date):
+        return value
+
+    if not isinstance(value, str):
+        raise TypeError(f"{param_name} 参数必须为 YYYY-MM-DD")
+
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+
+    parsed_dt = time_utils.to_china(cleaned + "T00:00:00")
+    if not parsed_dt:
+        raise ValueError(f"{param_name} 参数必须为 YYYY-MM-DD")
+    return parsed_dt.date()
 
 
 class DatabasesOptionsQuery(PayloadSchema):
@@ -83,13 +102,19 @@ class DatabasesOptionsQuery(PayloadSchema):
     @classmethod
     def _parse_page(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_PAGE)
-        return max(parsed, 1)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
         parsed = parse_int(value, default=100)
-        return max(min(parsed, 1000), 1)
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        if parsed > 1000:
+            raise ValueError("limit 最大为 1000")
+        return parsed
 
     def to_filters(self, *, resolved_instance_id: int | None = None) -> CommonDatabasesOptionsFilters:
         """转换为通用 databases options filters 对象."""
@@ -133,13 +158,19 @@ class DatabaseLedgersQuery(PayloadSchema):
     @classmethod
     def _parse_page(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_PAGE)
-        return max(parsed, 1)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
         parsed = parse_int(value, default=20)
-        return max(min(parsed, 200), 1)
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        if parsed > 200:
+            raise ValueError("limit 最大为 200")
+        return parsed
 
 
 class DatabaseLedgersExportQuery(PayloadSchema):
@@ -202,12 +233,12 @@ class DatabasesSizesQuery(PayloadSchema):
     @field_validator("start_date", mode="before")
     @classmethod
     def _parse_start_date(cls, value: Any) -> date | None:
-        return _parse_optional_date_compat(value)
+        return _parse_optional_date(value, param_name="start_date")
 
     @field_validator("end_date", mode="before")
     @classmethod
     def _parse_end_date(cls, value: Any) -> date | None:
-        return _parse_optional_date_compat(value)
+        return _parse_optional_date(value, param_name="end_date")
 
     @field_validator("database_name", mode="before")
     @classmethod
@@ -228,14 +259,17 @@ class DatabasesSizesQuery(PayloadSchema):
     @classmethod
     def _parse_page(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_PAGE)
-        return max(parsed, 1)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
         parsed = parse_int(value, default=100)
-        # COMPAT: 旧行为 - 非法/过小 limit 重置为 100,不做最大值限制。
-        return 100 if parsed < 1 else parsed
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        return parsed
 
     def to_options(self, *, resolved_instance_id: int | None = None) -> InstanceDatabaseSizesQuery:
         """转换为实例数据库容量 options 对象."""
@@ -276,7 +310,9 @@ class DatabaseTableSizesQuery(PayloadSchema):
     @classmethod
     def _parse_page(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_PAGE)
-        return max(parsed, 1)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
 
     @field_validator("limit", mode="before")
     @classmethod
@@ -284,8 +320,9 @@ class DatabaseTableSizesQuery(PayloadSchema):
         parsed = parse_int(value, default=200)
         if parsed > DATABASE_TABLE_SIZES_LIMIT_MAX:
             raise ValueError(f"limit 最大为 {DATABASE_TABLE_SIZES_LIMIT_MAX}")
-        # COMPAT: limit 小于 1 时回退为默认值(200)
-        return 200 if parsed < 1 else parsed
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        return parsed
 
     def to_options(
         self,

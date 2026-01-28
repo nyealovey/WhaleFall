@@ -3,47 +3,15 @@
 
   const BASE_PATH = "/api/v1/account-change-logs";
 
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("AccountChangeLogsService: httpClient 未初始化");
-    }
-    return resolved;
-  }
-
-  function toQueryString(params) {
-    if (!params) {
-      return "";
-    }
-    if (params instanceof URLSearchParams) {
-      const serialized = params.toString();
-      return serialized ? `?${serialized}` : "";
-    }
-    if (typeof params === "string") {
-      return params ? `?${params.replace(/^\\?/, "")}` : "";
-    }
-    const search = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") {
-        return;
-      }
-      if (Array.isArray(value)) {
-        value.forEach((item) => {
-          if (item !== undefined && item !== null && item !== "") {
-            search.append(key, item);
-          }
-        });
-      } else {
-        search.append(key, value);
-      }
-    });
-    const serialized = search.toString();
-    return serialized ? `?${serialized}` : "";
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  const toQueryString = global.ServiceUtils?.toQueryString;
+  if (typeof ensureHttpClient !== "function" || typeof toQueryString !== "function") {
+    throw new Error("AccountChangeLogsService: ServiceUtils 未初始化");
   }
 
   class AccountChangeLogsService {
     constructor(httpClient) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "AccountChangeLogsService");
     }
 
     getGridUrl() {

@@ -16,7 +16,6 @@ from app.core.types.instance_accounts import (
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
 from app.schemas.internal_contracts.account_change_log_diff_v1 import extract_diff_entries
 from app.utils.structlog_config import get_system_logger
-from app.utils.structlog_config import log_fallback
 from app.utils.time_utils import time_utils
 
 
@@ -61,20 +60,6 @@ class AccountsLedgerChangeHistoryService:
                 privilege_diff = []
                 other_diff = []
             else:
-                # COMPAT: 历史数据为 legacy list 形状；读入口统一收敛为 list 并记录命中。
-                # EXIT: 在 backfill 迁移全量执行且观测窗口内无命中后，移除此兼容分支。
-                if isinstance(raw_privilege_diff, list) or isinstance(raw_other_diff, list):
-                    log_fallback(
-                        "info",
-                        "account_change_log diff legacy list normalized",
-                        module="accounts_ledger_change_history_service",
-                        action="get_change_history",
-                        fallback_reason="ACCOUNT_CHANGE_LOG_DIFF_LEGACY_LIST",
-                        logger=self._logger,
-                        account_id=account_id,
-                        instance_id=instance_id,
-                    )
-
                 try:
                     privilege_diff = extract_diff_entries(raw_privilege_diff)
                     other_diff = extract_diff_entries(raw_other_diff)

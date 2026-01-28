@@ -2,7 +2,7 @@
 
 目的：
 - 写入口：统一写入 v1 dict 形状，避免继续持久化 legacy list。
-- 读入口：兼容读取 legacy list / v1 dict，并对外输出稳定的 `list[entry]` 形状。
+    - 读入口：仅接受 v1 dict，并对外输出稳定的 `list[entry]` 形状。
 """
 
 from __future__ import annotations
@@ -23,9 +23,6 @@ def extract_diff_entries(value: object) -> list[object]:
     if value is None:
         return []
 
-    if isinstance(value, list):
-        return value
-
     if isinstance(value, dict):
         raw_version = value.get("version")
         if raw_version != DIFF_VERSION_V1:
@@ -36,7 +33,7 @@ def extract_diff_entries(value: object) -> list[object]:
             raise TypeError("account_change_log_diff.entries must be a list")
         return entries
 
-    raise TypeError("account_change_log_diff must be a list, dict(v1), or None")
+    raise TypeError("account_change_log_diff must be dict(v1) or None")
 
 
 __all__ = [

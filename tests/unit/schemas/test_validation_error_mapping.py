@@ -42,7 +42,7 @@ class _MessageKeySchema(PayloadSchema):
 
     @field_validator("password")
     @classmethod
-    def _validate_password(cls, value: str) -> str:
+    def _validate_password(cls, _value: str) -> str:
         raise SchemaMessageKeyError("密码不符合规则", message_key="PASSWORD_INVALID")
 
 

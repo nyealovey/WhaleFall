@@ -1,5 +1,6 @@
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.schemas.account_change_logs_query import AccountChangeLogsListQuery
 from app.schemas.validation import validate_or_raise
 
@@ -26,8 +27,8 @@ def test_account_change_logs_list_query_normalizes_and_clamps() -> None:
     query = validate_or_raise(
         AccountChangeLogsListQuery,
         {
-            "page": 0,
-            "limit": 999,
+            "page": 1,
+            "limit": 200,
             "sort": " CHANGE_TIME ",
             "order": "ASC",
             "search": "  alice  ",
@@ -35,7 +36,7 @@ def test_account_change_logs_list_query_normalizes_and_clamps() -> None:
             "db_type": " MySQL ",
             "change_type": " MODIFY_PRIVILEGE ",
             "status": " SUCCESS ",
-            "hours": 999999,
+            "hours": 24 * 90,
         },
     )
     filters = query.to_filters()
@@ -49,13 +50,13 @@ def test_account_change_logs_list_query_normalizes_and_clamps() -> None:
     assert filters.db_type == "mysql"
     assert filters.change_type == "modify_privilege"
     assert filters.status == "success"
-    assert filters.hours == 2160
+    assert filters.hours == 24 * 90
 
 
 @pytest.mark.unit
 def test_account_change_logs_list_query_fallbacks_invalid_sort_order_to_default() -> None:
-    query = validate_or_raise(AccountChangeLogsListQuery, {"order": "weird"})
-    assert query.to_filters().sort_order == "desc"
+    with pytest.raises(ValidationError):
+        validate_or_raise(AccountChangeLogsListQuery, {"order": "weird"})
 
 
 @pytest.mark.unit

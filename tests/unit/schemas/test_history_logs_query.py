@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.schemas.history_logs_query import HistoryLogsListQuery, HistoryLogStatisticsQuery
 from app.schemas.validation import validate_or_raise
 
@@ -28,8 +29,8 @@ def test_history_logs_list_query_normalizes() -> None:
     query = validate_or_raise(
         HistoryLogsListQuery,
         {
-            "page": 0,
-            "limit": 999,
+            "page": 1,
+            "limit": 200,
             "sort": " TIMESTAMP ",
             "order": "ASC",
             "level": "error",
@@ -37,7 +38,7 @@ def test_history_logs_list_query_normalizes() -> None:
             "search": "  foo  ",
             "start_time": "2026-01-01T00:00:00",
             "end_time": "2026-01-02T00:00:00",
-            "hours": 99999,
+            "hours": 24 * 90,
         },
     )
     filters = query.to_filters()
@@ -51,6 +52,18 @@ def test_history_logs_list_query_normalizes() -> None:
     assert isinstance(filters.start_time, datetime)
     assert isinstance(filters.end_time, datetime)
     assert filters.hours == 24 * 90
+
+
+@pytest.mark.unit
+def test_history_logs_list_query_rejects_invalid_sort_order() -> None:
+    with pytest.raises(ValidationError):
+        validate_or_raise(HistoryLogsListQuery, {"order": "weird"})
+
+
+@pytest.mark.unit
+def test_history_logs_list_query_rejects_out_of_range_hours() -> None:
+    with pytest.raises(ValidationError):
+        validate_or_raise(HistoryLogsListQuery, {"hours": 24 * 90 + 1})
 
 
 @pytest.mark.unit

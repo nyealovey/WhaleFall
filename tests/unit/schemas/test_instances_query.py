@@ -1,5 +1,6 @@
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.schemas.instances_query import InstanceListFiltersQuery, InstancesExportQuery, InstancesOptionsQuery
 from app.schemas.validation import validate_or_raise
 
@@ -25,8 +26,8 @@ def test_instance_list_filters_query_normalizes_and_clamps() -> None:
     query = validate_or_raise(
         InstanceListFiltersQuery,
         {
-            "page": 0,
-            "limit": 999,
+            "page": 1,
+            "limit": 100,
             "sort": " NAME ",
             "order": "ASC",
             "search": "  foo  ",
@@ -51,10 +52,8 @@ def test_instance_list_filters_query_normalizes_and_clamps() -> None:
 
 @pytest.mark.unit
 def test_instance_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
-    query = validate_or_raise(InstanceListFiltersQuery, {"order": "weird"})
-    filters = query.to_filters()
-
-    assert filters.sort_order == "desc"
+    with pytest.raises(ValidationError):
+        validate_or_raise(InstanceListFiltersQuery, {"order": "weird"})
 
 
 @pytest.mark.unit
