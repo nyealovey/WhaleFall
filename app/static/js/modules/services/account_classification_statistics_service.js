@@ -3,17 +3,14 @@
 
   const BASE_PATH = "/api/v1/accounts/statistics";
 
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("AccountClassificationStatisticsService: httpClient 未初始化");
-    }
-    return resolved;
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  if (typeof ensureHttpClient !== "function") {
+    throw new Error("AccountClassificationStatisticsService: ServiceUtils 未初始化");
   }
 
   class AccountClassificationStatisticsService {
     constructor(httpClient) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "AccountClassificationStatisticsService");
     }
 
     fetchClassificationTrend({

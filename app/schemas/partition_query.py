@@ -44,22 +44,30 @@ class PartitionsListQuery(PayloadSchema):
     @field_validator("sort_order", mode="before")
     @classmethod
     def _parse_sort_order(cls, value: Any) -> str:
-        cleaned = parse_text(value)
-        return cleaned or "asc"
+        cleaned = parse_text(value).lower()
+        if not cleaned:
+            return "asc"
+        if cleaned in {"asc", "desc"}:
+            return cleaned
+        raise ValueError("sort_order 参数必须为 asc 或 desc")
 
     @field_validator("page", mode="before")
     @classmethod
     def _parse_page(cls, value: Any) -> int:
-        # COMPAT: page=0 时沿用旧逻辑降级到默认 1.
         parsed = parse_int(value, default=_DEFAULT_PAGE)
-        return max(parsed, 1)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
-        # COMPAT: limit=0 时沿用旧逻辑降级到默认 20.
         parsed = parse_int(value, default=_DEFAULT_LIMIT)
-        return max(min(parsed, _MAX_LIMIT), 1)
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        if parsed > _MAX_LIMIT:
+            raise ValueError(f"limit 最大为 {_MAX_LIMIT}")
+        return parsed
 
 
 class PartitionCoreMetricsQuery(PayloadSchema):
@@ -77,7 +85,7 @@ class PartitionCoreMetricsQuery(PayloadSchema):
     @field_validator("days", mode="before")
     @classmethod
     def _parse_days(cls, value: Any) -> int:
-        # COMPAT: days=0 时沿用旧逻辑降级到默认 7.
-        if value == 0:
-            return 7
-        return parse_int(value, default=7)
+        parsed = parse_int(value, default=7)
+        if parsed < 1:
+            raise ValueError("days 参数必须为正整数")
+        return parsed

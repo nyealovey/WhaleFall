@@ -76,29 +76,6 @@
     return dataSource;
   }
 
-  const PERIOD_TEXT = {
-    daily: {
-      title: "统计今日数据",
-      message: "正在聚合今日容量，请稍候...",
-    },
-    weekly: {
-      title: "统计当前周",
-      message: "正在统计当前周容量，请稍候...",
-    },
-    monthly: {
-      title: "统计当前月",
-      message: "正在统计当前月容量，请稍候...",
-    },
-    quarterly: {
-      title: "统计当前季度",
-      message: "正在统计当前季度容量，请稍候...",
-    },
-    default: {
-      title: "统计当前周期",
-      message: "正在统计当前周期，请稍候...",
-    },
-  };
-
   /**
    * 统一日期格式化工具，封装 window.formatDate。
    *
@@ -290,30 +267,9 @@
         change: null,
         percent: null,
       };
-      this.calculationModal = null;
-
       this.initialize();
 
       window.addEventListener("beforeunload", () => this.destroy(), { once: true });
-    }
-
-    /**
-     * 初始化计算提示模态。
-     */
-    initializeModals() {
-      const factory = window.UI?.createModal;
-      if (!factory) {
-        throw new Error("UI.createModal 未加载，容量统计模态无法初始化");
-      }
-      const modalElement = selectOne("#calculationModal");
-      if (!modalElement.length) {
-        return;
-      }
-      this.calculationModal = factory({
-        modalSelector: modalElement.first(),
-        confirmSelector: null,
-        cancelSelector: null,
-      });
     }
 
     /**
@@ -321,7 +277,6 @@
      */
     async initialize() {
       this.bindEvents();
-      this.initializeModals();
       try {
         await this.prepareInitialOptions();
       } catch (error) {
@@ -716,23 +671,7 @@
     }
 
     async handleCalculateToday() {
-      const modalElement = selectOne("#calculationModal").first();
-      const modalInstance = this.calculationModal;
       const periodType = ENFORCED_MANUAL_PERIOD;
-      const textConfig = PERIOD_TEXT.daily || PERIOD_TEXT.default;
-
-      if (modalElement) {
-        const titleNode = modalElement.querySelector(".calculation-modal-title-text");
-        if (titleNode) {
-          titleNode.textContent = textConfig.title;
-        }
-        const messageNode = modalElement.querySelector(".calculation-modal-message");
-        if (messageNode) {
-          messageNode.textContent = textConfig.message;
-        }
-
-        modalInstance?.open();
-      }
 
       try {
         await this.dataSource.calculateCurrent(this.config.api.calculateEndpoint, {
@@ -743,8 +682,6 @@
         await this.refreshAll();
       } catch (error) {
         this.notifyError(`今日容量聚合失败: ${error.message}`);
-      } finally {
-        modalInstance?.close();
       }
     }
 

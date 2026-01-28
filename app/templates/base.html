@@ -305,12 +305,13 @@
     <script src="{{ url_for('static', filename='js/modules/ui/button-loading.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/ui/danger-confirm.js') }}"></script>
 
-    <!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
-
-    {% if current_user.is_authenticated %}
-    <script src="{{ url_for('static', filename='js/modules/services/auth_service.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modules/stores/auth_store.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modules/views/auth/modals/change-password-modals.js') }}"></script>
+	    <!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
+	    <script src="{{ url_for('static', filename='js/modules/services/service_utils.js') }}"></script>
+	
+	    {% if current_user.is_authenticated %}
+	    <script src="{{ url_for('static', filename='js/modules/services/auth_service.js') }}"></script>
+	    <script src="{{ url_for('static', filename='js/modules/stores/auth_store.js') }}"></script>
+	    <script src="{{ url_for('static', filename='js/modules/views/auth/modals/change-password-modals.js') }}"></script>
     {% endif %}
     <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>
     {% block extra_js %}{% endblock %}

@@ -27,8 +27,7 @@ def _parse_sort_order(value: Any, *, default: str) -> str:
         return default
     if cleaned in _ALLOWED_SORT_ORDERS:
         return cleaned
-    # COMPAT: 维持旧行为 - 非法 sort_order 降级为默认值,避免接口行为变更为 400.
-    return default
+    raise ValueError("sort_order 参数必须为 asc 或 desc")
 
 
 class HistorySessionsListFiltersQuery(PayloadSchema):
@@ -54,13 +53,19 @@ class HistorySessionsListFiltersQuery(PayloadSchema):
     @classmethod
     def _parse_page(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_PAGE)
-        return max(parsed, 1)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
 
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> int:
         parsed = parse_int(value, default=_DEFAULT_LIMIT)
-        return max(min(parsed, _MAX_LIMIT), 1)
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        if parsed > _MAX_LIMIT:
+            raise ValueError(f"limit 最大为 {_MAX_LIMIT}")
+        return parsed
 
     @field_validator("sort_field", mode="before")
     @classmethod

@@ -1,55 +1,10 @@
-(function (global) {
-  "use strict";
+  (function (global) {
+    "use strict";
 
-  /**
-   * 选用 http 客户端，默认使用全局 httpU。
-   *
-   * @param {Object} client - HTTP 客户端实例
-   * @return {Object} HTTP 客户端实例
-   * @throws {Error} 当客户端未初始化时抛出
-   */
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("InstanceManagementService: httpClient 未初始化");
-    }
-    return resolved;
-  }
-
-  /**
-   * 构造查询字符串，兼容对象/URLSearchParams/字符串。
-   *
-   * @param {Object|URLSearchParams|string} params - 查询参数
-   * @return {string} 查询字符串，以 ? 开头，如果为空则返回空字符串
-   */
-  function toQueryString(params) {
-    if (!params) {
-      return "";
-    }
-    if (params instanceof URLSearchParams) {
-      const serialized = params.toString();
-      return serialized ? `?${serialized}` : "";
-    }
-    if (typeof params === "string") {
-      return params ? `?${params.replace(/^\?/, "")}` : "";
-    }
-    const search = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") {
-        return;
-      }
-      if (Array.isArray(value)) {
-        value.forEach((item) => {
-          if (item !== undefined && item !== null && item !== "") {
-            search.append(key, item);
-          }
-        });
-      } else {
-        search.append(key, value);
-      }
-    });
-    const serialized = search.toString();
-    return serialized ? `?${serialized}` : "";
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  const toQueryString = global.ServiceUtils?.toQueryString;
+  if (typeof ensureHttpClient !== "function" || typeof toQueryString !== "function") {
+    throw new Error("InstanceManagementService: ServiceUtils 未初始化");
   }
 
   /**
@@ -61,7 +16,7 @@
    */
   class InstanceManagementService {
     constructor(httpClient) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "InstanceManagementService");
     }
 
     syncInstanceAccounts(instanceId, options = {}) {
