@@ -196,7 +196,6 @@ _databases_options_query_parser = new_parser()
 _databases_options_query_parser.add_argument("instance_id", type=int, location="args")
 _databases_options_query_parser.add_argument("page", type=int, default=1, location="args")
 _databases_options_query_parser.add_argument("limit", type=int, default=100, location="args")
-_databases_options_query_parser.add_argument("offset", type=str, location="args")
 
 _database_ledgers_query_parser = new_parser()
 _database_ledgers_query_parser.add_argument("search", type=str, default="", location="args")
@@ -226,14 +225,12 @@ _databases_sizes_query_parser.add_argument(
 )
 _databases_sizes_query_parser.add_argument("page", type=int, default=1, location="args")
 _databases_sizes_query_parser.add_argument("limit", type=int, default=100, location="args")
-_databases_sizes_query_parser.add_argument("offset", type=str, location="args")
 
 _database_table_sizes_query_parser = new_parser()
 _database_table_sizes_query_parser.add_argument("schema_name", type=str, location="args")
 _database_table_sizes_query_parser.add_argument("table_name", type=str, location="args")
 _database_table_sizes_query_parser.add_argument("page", type=int, default=1, location="args")
 _database_table_sizes_query_parser.add_argument("limit", type=int, default=200, location="args")
-_database_table_sizes_query_parser.add_argument("offset", type=str, location="args")
 
 
 @ns.route("/options")

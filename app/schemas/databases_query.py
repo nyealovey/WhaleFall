@@ -10,13 +10,13 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 
 from app.core.constants.validation_limits import DATABASE_TABLE_SIZES_LIMIT_MAX
 from app.core.types.common_filter_options import CommonDatabasesOptionsFilters
 from app.core.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.core.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
-from app.schemas.base import PayloadSchema
+from app.schemas.base import QuerySchema
 from app.schemas.query_parsers import parse_int, parse_optional_int, parse_text
 from app.utils.payload_converters import as_bool
 from app.utils.time_utils import time_utils
@@ -76,7 +76,7 @@ def _parse_optional_date(value: Any, *, param_name: str) -> date | None:
     return parsed_dt.date()
 
 
-class DatabaseLedgersBaseQuery(PayloadSchema):
+class DatabaseLedgersBaseQuery(QuerySchema):
     """`/databases/ledgers` 相关 query 的公共字段与解析."""
 
     search: str = ""
@@ -106,7 +106,7 @@ class DatabaseLedgersBaseQuery(PayloadSchema):
         return _parse_tags(value)
 
 
-class DatabasesOptionsQuery(PayloadSchema):
+class DatabasesOptionsQuery(QuerySchema):
     """`/databases/options` query 参数 schema."""
 
     instance_id: int
@@ -175,7 +175,7 @@ class DatabaseLedgersExportQuery(DatabaseLedgersBaseQuery):
     """`/databases/ledgers/exports` query 参数 schema."""
 
 
-class DatabasesSizesQuery(PayloadSchema):
+class DatabasesSizesQuery(QuerySchema):
     """`/databases/sizes` query 参数 schema."""
 
     instance_id: int
@@ -251,7 +251,7 @@ class DatabasesSizesQuery(PayloadSchema):
         )
 
 
-class DatabaseTableSizesQuery(PayloadSchema):
+class DatabaseTableSizesQuery(QuerySchema):
     """`/databases/<id>/tables/sizes` query 参数 schema."""
 
     schema_name: str | None = None

@@ -11,7 +11,7 @@ from flask_restx import Namespace, fields
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, ValidationError
 from app.core.types import ContextDict
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.utils.decorators import require_csrf
@@ -28,15 +28,6 @@ CacheStatsData = ns.model(
 )
 
 CacheStatsSuccessEnvelope = make_success_envelope_model(ns, "CacheStatsSuccessEnvelope", CacheStatsData)
-
-CacheClearAllData = ns.model(
-    "CacheClearAllData",
-    {
-        "cleared_count": fields.Integer(required=True),
-    },
-)
-
-CacheClearAllSuccessEnvelope = make_success_envelope_model(ns, "CacheClearAllSuccessEnvelope", CacheClearAllData)
 
 CacheClassificationStatsData = ns.model(
     "CacheClassificationStatsData",
@@ -77,131 +68,6 @@ class CacheStatsResource(BaseResource):
             action="get_cache_stats",
             public_error="获取缓存统计失败",
             context={"endpoint": "stats"},
-        )
-
-
-ClearUserCachePayload = ns.model(
-    "ClearUserCachePayload",
-    {
-        "instance_id": fields.Integer(required=True),
-        "username": fields.String(required=True),
-    },
-)
-
-
-@ns.route("/actions/clear-user")
-class CacheClearUserResource(BaseResource):
-    """用户缓存清除资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
-
-    @ns.expect(ClearUserCachePayload, validate=False)
-    @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearUserSuccessEnvelope"))
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(409, "Conflict", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @require_csrf
-    def post(self):
-        """清除用户缓存."""
-        parsed_json = request.get_json(silent=True)
-        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
-        operator_id = getattr(current_user, "id", None)
-
-        def _execute():
-            message = CacheActionsService().clear_user_cache(raw, operator_id=operator_id)
-            return self.success(message=message)
-
-        return self.safe_call(
-            _execute,
-            module="cache",
-            action="clear_user_cache",
-            public_error="清除用户缓存失败",
-            context=cast(
-                ContextDict,
-                {
-                    "instance_id": raw.get("instance_id"),
-                    "username": raw.get("username"),
-                },
-            ),
-            expected_exceptions=(ValidationError, NotFoundError, ConflictError),
-        )
-
-
-ClearInstanceCachePayload = ns.model(
-    "ClearInstanceCachePayload",
-    {
-        "instance_id": fields.Integer(required=True),
-    },
-)
-
-
-@ns.route("/actions/clear-instance")
-class CacheClearInstanceResource(BaseResource):
-    """实例缓存清除资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
-
-    @ns.expect(ClearInstanceCachePayload, validate=False)
-    @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearInstanceSuccessEnvelope"))
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(409, "Conflict", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @require_csrf
-    def post(self):
-        """清除实例缓存."""
-        parsed_json = request.get_json(silent=True)
-        raw: dict[str, object] = parsed_json if isinstance(parsed_json, dict) else {}
-        operator_id = getattr(current_user, "id", None)
-
-        def _execute():
-            message = CacheActionsService().clear_instance_cache(raw, operator_id=operator_id)
-            return self.success(message=message)
-
-        return self.safe_call(
-            _execute,
-            module="cache",
-            action="clear_instance_cache",
-            public_error="清除实例缓存失败",
-            context=cast(ContextDict, {"instance_id": raw.get("instance_id")}),
-            expected_exceptions=(ValidationError, NotFoundError, ConflictError),
-        )
-
-
-@ns.route("/actions/clear-all")
-class CacheClearAllResource(BaseResource):
-    """全量缓存清除资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
-
-    @ns.response(200, "OK", CacheClearAllSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @require_csrf
-    def post(self):
-        """清除所有缓存."""
-        operator_id = getattr(current_user, "id", None)
-
-        def _execute():
-            result = CacheActionsService().clear_all_cache(operator_id=operator_id)
-            cleared_count = result.cleared_count
-            return self.success(
-                data={"cleared_count": cleared_count},
-                message=f"已清除 {cleared_count} 个实例的缓存",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="cache",
-            action="clear_all_cache",
-            public_error="清除所有缓存失败",
-            context={"scope": "all_instances"},
         )
 
 

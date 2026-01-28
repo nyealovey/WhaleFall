@@ -24,7 +24,12 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-PY_BIN="${PY_BIN:-python3}"
+DEFAULT_PY_BIN="python3"
+if [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
+  # CI 默认会通过 uv 创建 .venv；优先使用项目虚拟环境，避免本机 python 版本不一致。
+  DEFAULT_PY_BIN="${ROOT_DIR}/.venv/bin/python"
+fi
+PY_BIN="${PY_BIN:-${DEFAULT_PY_BIN}}"
 if ! command -v "${PY_BIN}" >/dev/null 2>&1; then
   echo "未检测到 python3，无法执行 rollback allowlist 门禁检查。" >&2
   exit 1

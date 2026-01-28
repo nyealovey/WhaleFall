@@ -201,6 +201,7 @@ class CapacityCollectionTaskRunner:
                 "instance_id": context.instance.id,
                 "instance_name": context.instance.name,
                 "success": False,
+                "message": error_msg,
                 "error": error_msg,
                 "inventory": inventory_result,
             }, False
@@ -230,6 +231,7 @@ class CapacityCollectionTaskRunner:
             "instance_id": context.instance.id,
             "instance_name": context.instance.name,
             "success": True,
+            "message": f"成功采集并保存 {database_count} 个数据库的容量信息",
             "size_mb": instance_total_size_mb,
             "database_count": database_count,
             "saved_count": saved_count,
@@ -278,6 +280,7 @@ class CapacityCollectionTaskRunner:
                     "instance_id": instance.id,
                     "instance_name": instance.name,
                     "success": False,
+                    "message": error_msg,
                     "error": error_msg,
                 }, totals
 
@@ -329,6 +332,7 @@ class CapacityCollectionTaskRunner:
                 "instance_id": instance.id,
                 "instance_name": instance.name,
                 "success": False,
+                "message": error_msg,
                 "error": str(exc),
             }, totals
         else:

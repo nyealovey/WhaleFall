@@ -1,7 +1,6 @@
 import pytest
 
 from app import db
-from app.models.instance import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.services.cache.cache_actions_service import CacheActionsService
 
@@ -26,37 +25,20 @@ def test_api_v1_cache_requires_auth(client) -> None:
 
     headers = {"X-CSRFToken": _get_csrf_token(client)}
 
-    clear_all_response = client.post("/api/v1/cache/actions/clear-all", json={}, headers=headers)
-    assert clear_all_response.status_code == 401
-    payload = clear_all_response.get_json()
+    clear_classification_response = client.post(
+        "/api/v1/cache/actions/clear-classification",
+        json={},
+        headers=headers,
+    )
+    assert clear_classification_response.status_code == 401
+    payload = clear_classification_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
 
 @pytest.mark.unit
-def test_api_v1_cache_actions_missing_payload_contract(auth_client) -> None:
+def test_api_v1_cache_actions_invalid_payload_contract(auth_client) -> None:
     headers = {"X-CSRFToken": _get_csrf_token(auth_client)}
-
-    clear_user_response = auth_client.post(
-        "/api/v1/cache/actions/clear-user",
-        json={},
-        headers=headers,
-    )
-    assert clear_user_response.status_code == 400
-    payload = clear_user_response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("message_code") == "VALIDATION_ERROR"
-
-    clear_instance_response = auth_client.post(
-        "/api/v1/cache/actions/clear-instance",
-        json={},
-        headers=headers,
-    )
-    assert clear_instance_response.status_code == 400
-    payload = clear_instance_response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("message_code") == "VALIDATION_ERROR"
-
     clear_classification_response = auth_client.post(
         "/api/v1/cache/actions/clear-classification",
         json={"db_type": "not-supported"},
@@ -85,27 +67,16 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
         staticmethod(lambda: _DummyCacheManager()),
         raising=False,
     )
-    monkeypatch.setattr(AccountClassificationService, "invalidate_cache", lambda self: True)
-    monkeypatch.setattr(AccountClassificationService, "invalidate_db_type_cache", lambda self, db_type: True)
+    monkeypatch.setattr(AccountClassificationService, "invalidate_cache", lambda _self: True)
+    monkeypatch.setattr(AccountClassificationService, "invalidate_db_type_cache", lambda _self, _db_type: True)
 
     with app.app_context():
         db.metadata.create_all(
             bind=db.engine,
             tables=[
-                db.metadata.tables["instances"],
                 db.metadata.tables["unified_logs"],
             ],
         )
-        instance = Instance(
-            name="instance-1",
-            db_type="mysql",
-            host="127.0.0.1",
-            port=3306,
-            is_active=True,
-        )
-        db.session.add(instance)
-        db.session.commit()
-        instance_id = instance.id
 
     headers = {"X-CSRFToken": _get_csrf_token(auth_client)}
 
@@ -126,39 +97,6 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
     data = payload.get("data")
     assert isinstance(data, dict)
     assert {"cache_stats", "db_type_stats", "cache_enabled"}.issubset(data.keys())
-
-    clear_user_response = auth_client.post(
-        "/api/v1/cache/actions/clear-user",
-        json={"instance_id": instance_id, "username": "u1"},
-        headers=headers,
-    )
-    assert clear_user_response.status_code == 200
-    payload = clear_user_response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("success") is True
-
-    clear_instance_response = auth_client.post(
-        "/api/v1/cache/actions/clear-instance",
-        json={"instance_id": instance_id},
-        headers=headers,
-    )
-    assert clear_instance_response.status_code == 200
-    payload = clear_instance_response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("success") is True
-
-    clear_all_response = auth_client.post(
-        "/api/v1/cache/actions/clear-all",
-        json={},
-        headers=headers,
-    )
-    assert clear_all_response.status_code == 200
-    payload = clear_all_response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("success") is True
-    data = payload.get("data")
-    assert isinstance(data, dict)
-    assert "cleared_count" in data
 
     classification_clear_response = auth_client.post(
         "/api/v1/cache/actions/clear-classification",

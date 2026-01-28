@@ -102,6 +102,7 @@ def _process_instance_with_fallback(
             "instance_id": instance.id,
             "instance_name": instance.name,
             "success": False,
+            "message": error_msg,
             "error": str(exc),
         }
         delta = CapacitySyncTotals(total_failed=1)
@@ -195,7 +196,7 @@ def _sync_instances(
                 details_json=dict(payload),
             )
         else:
-            error_message = str(payload.get("error") or payload.get("message") or "实例容量同步失败")
+            error_message = str(payload.get("message") or "实例容量同步失败")
             task_runs_service.fail_item(
                 run_id,
                 item_type="instance",

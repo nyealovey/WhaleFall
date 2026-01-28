@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 from typing import Any
 
 from app import create_app, db
@@ -230,7 +230,7 @@ class _AggregationCallbacks:
             self.run_id,
             item_type="instance",
             item_key=str(instance.id),
-            error_message=str(payload.get("message") or payload.get("error") or "聚合失败"),
+            error_message=str(payload.get("message") or "聚合失败"),
             details_json=details,
         )
         db.session.commit()
