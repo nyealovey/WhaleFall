@@ -157,13 +157,13 @@ class CapacityAggregationTaskRunner:
             sync_session_service.complete_instance_sync(
                 record_id,
                 stats=stats,
-                sync_details=details,
+                sync_details={"version": 1, **details},
             )
             return
         sync_session_service.fail_instance_sync(
             record_id,
             error_message=error_message or "聚合失败",
-            sync_details=details,
+            sync_details={"version": 1, **details},
         )
 
     @staticmethod
