@@ -126,21 +126,11 @@ class AccountClassificationCreatePayload(PayloadSchema):
         mapping = _ensure_mapping(data)
         mutable = dict(mapping)
 
-        raw_code = mutable.get("code")
-        raw_display_name = mutable.get("display_name")
-        raw_name = mutable.get("name")  # legacy
+        code_value = _parse_optional_string(mutable.get("code"))
+        display_value = _parse_optional_string(mutable.get("display_name"))
 
-        def _as_non_empty(value: Any) -> str | None:
-            if value is None:
-                return None
-            if isinstance(value, str):
-                cleaned = value.strip()
-                return cleaned or None
-            cleaned = str(value).strip()
-            return cleaned or None
-
-        code_value = _as_non_empty(raw_code) or _as_non_empty(raw_name) or _as_non_empty(raw_display_name)
-        display_value = _as_non_empty(raw_display_name) or _as_non_empty(raw_name) or (code_value or None)
+        code_value = code_value or display_value
+        display_value = display_value or code_value
 
         if not code_value:
             raise ValueError("分类标识(code)不能为空")
@@ -232,12 +222,6 @@ class AccountClassificationUpdatePayload(PayloadSchema):
         # code 创建后不可改（拒绝写入端尝试修改）
         if "code" in mapping:
             raise SchemaMessageKeyError("分类标识(code)创建后不可修改", message_key="FORBIDDEN")
-
-        # legacy: name -> display_name
-        if "name" in mapping and "display_name" not in mapping:
-            mutable = dict(mapping)
-            mutable["display_name"] = mutable.get("name")
-            return mutable
 
         return data
 
