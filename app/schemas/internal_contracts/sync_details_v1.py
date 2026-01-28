@@ -18,7 +18,7 @@ def normalize_sync_details_v1(value: object) -> dict[str, Any] | None:
     Rules:
     - None -> None
     - Must be a dict, otherwise fail-fast (TypeError)
-    - If version is missing/invalid -> inject version=1
+    - If version is missing/invalid -> fail-fast
     - If version is an int but not 1 -> fail-fast (ValueError)
     """
     if value is None:
@@ -30,13 +30,12 @@ def normalize_sync_details_v1(value: object) -> dict[str, Any] | None:
     normalized: dict[str, Any] = dict(value)
 
     raw_version = normalized.get("version")
-    if raw_version == SYNC_DETAILS_VERSION_V1:
-        return normalized
-
-    if type(raw_version) is int and raw_version != SYNC_DETAILS_VERSION_V1:
+    if raw_version is None:
+        raise ValueError("sync_details.version is required")
+    if type(raw_version) is not int:
+        raise TypeError("sync_details.version must be int")
+    if raw_version != SYNC_DETAILS_VERSION_V1:
         raise ValueError(f"sync_details.version={raw_version} is not supported")
-
-    normalized["version"] = SYNC_DETAILS_VERSION_V1
     return normalized
 
 

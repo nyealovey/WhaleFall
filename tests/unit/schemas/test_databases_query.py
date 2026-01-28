@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from app.core.constants.validation_limits import DATABASE_TABLE_SIZES_LIMIT_MAX
@@ -21,7 +23,7 @@ def test_databases_options_query_rejects_offset() -> None:
 
 @pytest.mark.unit
 def test_databases_options_query_clamps_limit_and_computes_offset() -> None:
-    query = validate_or_raise(DatabasesOptionsQuery, {"instance_id": 5, "page": 2, "limit": 99999})
+    query = validate_or_raise(DatabasesOptionsQuery, {"instance_id": 5, "page": 2, "limit": 1000})
 
     assert query.page == 2
     assert query.limit == 1000
@@ -33,6 +35,12 @@ def test_databases_options_query_clamps_limit_and_computes_offset() -> None:
 
 
 @pytest.mark.unit
+def test_databases_options_query_rejects_limit_out_of_range() -> None:
+    with pytest.raises(ValidationError):
+        validate_or_raise(DatabasesOptionsQuery, {"instance_id": 5, "limit": 1001})
+
+
+@pytest.mark.unit
 def test_database_ledgers_query_normalizes_values_and_splits_tags() -> None:
     query = validate_or_raise(
         DatabaseLedgersQuery,
@@ -40,8 +48,8 @@ def test_database_ledgers_query_normalizes_values_and_splits_tags() -> None:
             "search": "  foo  ",
             "db_type": "   ",
             "tags": ["a", "b,c", "  ", ",d"],
-            "page": 0,
-            "limit": 999,
+            "page": 1,
+            "limit": 200,
         },
     )
 
@@ -69,24 +77,36 @@ def test_databases_sizes_query_rejects_offset() -> None:
 
 
 @pytest.mark.unit
-def test_databases_sizes_query_resets_limit_when_non_positive_and_parses_dates_compat() -> None:
+def test_databases_sizes_query_parses_dates_and_pagination() -> None:
     query = validate_or_raise(
         DatabasesSizesQuery,
         {
             "instance_id": 1,
-            "limit": 0,
+            "limit": 100,
             "page": 2,
-            "start_date": "not-a-date",
+            "start_date": "2026-01-01",
         },
     )
 
     assert query.limit == 100
     assert query.page == 2
-    assert query.start_date is None
+    assert query.start_date == date(2026, 1, 1)
 
     options = query.to_options()
     assert options.limit == 100
     assert options.offset == 100
+
+
+@pytest.mark.unit
+def test_databases_sizes_query_rejects_non_positive_limit() -> None:
+    with pytest.raises(ValidationError):
+        validate_or_raise(DatabasesSizesQuery, {"instance_id": 1, "limit": 0})
+
+
+@pytest.mark.unit
+def test_databases_sizes_query_rejects_invalid_dates() -> None:
+    with pytest.raises(ValidationError):
+        validate_or_raise(DatabasesSizesQuery, {"instance_id": 1, "start_date": "not-a-date"})
 
 
 @pytest.mark.unit
@@ -97,3 +117,6 @@ def test_database_table_sizes_query_validates_limit_max_and_rejects_offset() -> 
     with pytest.raises(ValidationError) as excinfo:
         validate_or_raise(DatabaseTableSizesQuery, {"offset": "10"})
     assert "不支持 offset" in str(excinfo.value)
+
+    with pytest.raises(ValidationError):
+        validate_or_raise(DatabaseTableSizesQuery, {"limit": 0})

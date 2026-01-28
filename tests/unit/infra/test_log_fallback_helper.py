@@ -1,6 +1,7 @@
 import pytest
 
 from app.infra import route_safety
+from app.utils import structlog_config
 
 
 @pytest.mark.unit
@@ -16,7 +17,7 @@ def test_log_fallback_always_sets_fallback_fields(monkeypatch) -> None:
             captured["event"] = event
             captured["kwargs"] = kwargs
 
-    monkeypatch.setattr(route_safety, "get_logger", lambda _name: _Logger())
+    monkeypatch.setattr(structlog_config, "get_logger", lambda _name: _Logger())
 
     route_safety.log_fallback(
         "warning",

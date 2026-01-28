@@ -3,55 +3,10 @@
 
   const BASE_PATH = "/api/v1/instances";
 
-  /**
-   * 统一选择 http 客户端。
-   *
-   * @param {Object} client - HTTP 客户端实例
-   * @return {Object} HTTP 客户端实例
-   * @throws {Error} 当客户端未初始化时抛出
-   */
-  function ensureHttpClient(client) {
-    const resolved = client || global.httpU;
-    if (!resolved || typeof resolved.get !== "function") {
-      throw new Error("InstanceService: httpClient 未初始化");
-    }
-    return resolved;
-  }
-
-  /**
-   * 构造 query string。
-   *
-   * @param {Object|URLSearchParams|string} params - 查询参数
-   * @return {string} 格式化的查询字符串，如 '?key=value'
-   */
-  function toQueryString(params) {
-    if (!params) {
-      return "";
-    }
-    if (params instanceof URLSearchParams) {
-      const serialized = params.toString();
-      return serialized ? `?${serialized}` : "";
-    }
-    if (typeof params === "string") {
-      return params ? `?${params.replace(/^\?/, "")}` : "";
-    }
-    const search = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") {
-        return;
-      }
-      if (Array.isArray(value)) {
-        value.forEach((item) => {
-          if (item !== undefined && item !== null && item !== "") {
-            search.append(key, item);
-          }
-        });
-      } else {
-        search.append(key, value);
-      }
-    });
-    const serialized = search.toString();
-    return serialized ? `?${serialized}` : "";
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  const toQueryString = global.ServiceUtils?.toQueryString;
+  if (typeof ensureHttpClient !== "function" || typeof toQueryString !== "function") {
+    throw new Error("InstanceService: ServiceUtils 未初始化");
   }
 
   /**
@@ -69,7 +24,7 @@
      * @param {Object} httpClient - HTTP 客户端实例
      */
     constructor(httpClient) {
-      this.httpClient = ensureHttpClient(httpClient);
+      this.httpClient = ensureHttpClient(httpClient, "InstanceService");
     }
 
     /**

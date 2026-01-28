@@ -1,5 +1,6 @@
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.schemas.partition_query import PartitionCoreMetricsQuery, PartitionsListQuery
 from app.schemas.validation import validate_or_raise
 
@@ -26,8 +27,8 @@ def test_partitions_list_query_normalizes_and_clamps() -> None:
             "status": "  active  ",
             "sort": "  NAME  ",
             "order": "  desc  ",
-            "page": 0,
-            "limit": 999,
+            "page": 1,
+            "limit": 200,
         },
     )
     assert query.search == "foo"
@@ -48,6 +49,5 @@ def test_partition_core_metrics_query_defaults() -> None:
 
 @pytest.mark.unit
 def test_partition_core_metrics_query_normalizes_and_compat_days_zero() -> None:
-    query = validate_or_raise(PartitionCoreMetricsQuery, {"period_type": " WEEKLY ", "days": 0})
-    assert query.period_type == "weekly"
-    assert query.days == 7
+    with pytest.raises(ValidationError):
+        validate_or_raise(PartitionCoreMetricsQuery, {"period_type": " WEEKLY ", "days": 0})
