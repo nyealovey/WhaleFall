@@ -13,7 +13,7 @@ tags:
   - decision-table
 status: draft
 created: 2026-01-09
-updated: 2026-01-25
+updated: 2026-01-28
 owner: WhaleFall Team
 scope: app/utils/cache_utils.py
 related:
@@ -26,12 +26,12 @@ related:
 > [!note] 本文目标
 > 覆盖缓存域的“基础设施抽象 + 动作编排 + 业务缓存访问器”三层实现：
 > - `CacheManager`/`CacheManagerRegistry`：对 Flask-Caching 的薄封装（get/set/delete/stats + 容错 + 日志）
-> - `CacheActionsService`：面向 route 的动作编排（stats/clear-* / 分类缓存统计）
+> - `CacheActionsService`：面向 route 的动作编排（stats/clear-classification/分类缓存统计）
 > - 业务缓存访问器：
 >   - `ClassificationCache`：分类规则缓存（固定 key + TTL + 显式失效）
 >   - `OptionsCache`：下拉/筛选项缓存（固定 key + 短 TTL，最终一致）
 >
-> 重点：当前“按用户/按实例清理”不做模式匹配删除（不引入 Redis scan/keys），因此属于 no-op（返回 True）。必须显式文档化，避免调用方误以为一定被清理。
+> 重点：仓库不引入 Redis scan/keys，因此不提供“按用户/按实例/全量”这类无法保证语义正确的清理动作；避免出现“返回成功但实际没清理”的假实现。
 
 ## 1. 概览(Overview)
 
@@ -66,29 +66,12 @@ related:
 
 ## 3. 事务与失败语义(Transaction + Failure Semantics)
 
-- 缓存链路不涉及 DB 事务（除 `CacheActionsService` 查询活跃实例列表）。
+- 缓存链路不涉及 DB 事务。
 - **显式降级**：
   - `CacheManager.get/set/delete/get_stats`：捕获缓存后端异常，记录 `fallback=True/fallback_reason`，并返回 `None/False`（保证业务链路不因缓存波动而中断）。
-  - `CacheActionsService.clear_all_cache`：逐实例清理，单实例失败吞并并继续（记录 fallback），返回 `cleared_count`。
-  - `CacheActionsService.clear_user_cache/clear_instance_cache`：不引入 scan/keys，目前不做精确删除（返回 True）。
+  - `CacheActionsService.clear_classification_cache`：分类缓存失效失败会抛 `ConflictError`，由 route 层封套为 409。
 
-## 4. 主流程图(Flow)
-
-```mermaid
-flowchart TB
-    A["CacheActionsService.clear_all_cache()"] --> B["_get_cache_manager()"]
-    B --> C["instances = InstancesRepository.list_active_instances()"]
-    C --> D["for each instance"]
-    D --> E["try _invalidate_instance_cache(instance.id)"]
-    E --> F{success?}
-    F -- yes --> G["cleared_count += 1"]
-    F -- no --> H["log_fallback(...); continue"]
-    E --> I{exception?}
-    I -- yes --> J["log_fallback(...); continue"]
-    D --> K["return {cleared_count}"]
-```
-
-## 5. 时序图(Sequence)
+## 4. 时序图(Sequence)
 
 ```mermaid
 sequenceDiagram
@@ -106,7 +89,7 @@ sequenceDiagram
         Classify->>Cache: invalidate_db_type(db_type)
         Cache->>Manager: delete(classification_rules:all + classification_rules:{db_type})
         Manager->>Backend: delete(key)
-    else clear all
+    else clear all classification rules
         Actions->>Classify: invalidate_cache()
         Classify->>Cache: invalidate_all()
         Cache->>Manager: delete(classification_rules:all + classification_rules:{db_type})
@@ -124,8 +107,8 @@ sequenceDiagram
   - 兼容/清理用：`classification_rules:{db_type}`（不再作为核心读路径依赖）
 - TTL：`CACHE_RULE_TTL`（默认 2h）
 - 失效：
-  - clear-all：删除 all + 逐 db_type key
-  - clear-db_type：删除 `{db_type}`，并同步删除 all key（保证对外语义有效）
+  - clear-classification(all)：删除 all + 逐 db_type key
+  - clear-classification(db_type)：删除 `{db_type}`，并同步删除 all key（保证对外语义有效）
 
 ### 6.2 OptionsCache（下拉/筛选项短 TTL 缓存）
 
@@ -156,6 +139,4 @@ sequenceDiagram
 
 - 未初始化 `CacheManagerRegistry`：路由返回 `SystemError`
 - 分类规则缓存：仅接受 wrapped schema（legacy list 视为 miss）
-- clear_all_cache：单实例异常不会阻断整体返回（记录 fallback）
 - OptionsCache：短 TTL 缓存 options 读路径（空列表也缓存）
-

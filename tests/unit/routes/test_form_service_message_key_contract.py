@@ -33,7 +33,7 @@ def test_account_classification_name_exists_message_key_contract() -> None:
         csrf_token = csrf_payload["data"]["csrf_token"]
 
         headers = {HttpHeaders.X_CSRF_TOKEN: csrf_token}
-        create_payload = {"name": "dup_classification"}
+        create_payload = {"code": "dup_classification", "display_name": "dup_classification"}
 
         response = client.post(
             "/api/v1/accounts/classifications",

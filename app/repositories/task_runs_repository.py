@@ -64,6 +64,14 @@ class TaskRunsRepository:
         return run
 
     @staticmethod
+    def get_item(*, run_id: str, item_type: str, item_key: str) -> TaskRunItem:
+        """按 (run_id, item_type, item_key) 获取任务子项."""
+        item = TaskRunItem.query.filter_by(run_id=run_id, item_type=item_type, item_key=item_key).first()
+        if not item:
+            raise NotFoundError("任务子项不存在")
+        return item
+
+    @staticmethod
     def list_run_items(run_id: str) -> list[TaskRunItem]:
         """列出某次任务运行的子项列表."""
         return TaskRunItem.query.filter_by(run_id=run_id).order_by(TaskRunItem.id.asc()).all()

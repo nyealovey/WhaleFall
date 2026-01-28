@@ -29,7 +29,7 @@ def test_api_v1_task_runs_endpoints_contract(auth_client, monkeypatch) -> None:
     from app.core.types.listing import PaginatedResult
     from app.core.types.task_runs import TaskRunDetailResult, TaskRunErrorLogsResult, TaskRunItemItem, TaskRunListItem
     from app.services.task_runs.task_runs_read_service import TaskRunsReadService
-    from app.services.task_runs.task_runs_write_service import task_runs_write_service
+    from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
 
     def _dummy_list_runs(self, filters):
         del self, filters
@@ -145,7 +145,7 @@ def test_api_v1_task_runs_endpoints_contract(auth_client, monkeypatch) -> None:
     monkeypatch.setattr(TaskRunsReadService, "list_runs", _dummy_list_runs)
     monkeypatch.setattr(TaskRunsReadService, "get_run_detail", _dummy_detail)
     monkeypatch.setattr(TaskRunsReadService, "get_run_error_logs", _dummy_errors)
-    monkeypatch.setattr(task_runs_write_service, "cancel_run", lambda run_id: True)
+    monkeypatch.setattr(TaskRunsWriteService, "cancel_run", lambda _self, run_id: True)
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()

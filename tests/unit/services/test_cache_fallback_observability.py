@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import cast
 
 import pytest
 from flask_caching import Cache
 
 import app.services.cache.cache_actions_service as cache_actions_service_module
-from app.repositories.instances_repository import InstancesRepository
 from app.services.cache.cache_actions_service import CacheActionsService
 from app.utils.cache_utils import CacheManager
 
@@ -48,7 +46,7 @@ def test_cache_manager_set_failure_logs_fallback() -> None:
 
     class _DummyCache:
         @staticmethod
-        def set(_key: str, _value: object, *, timeout: int):
+        def set(_key: str, _value: object, *, _timeout: int):
             raise RuntimeError("boom")
 
     dummy_logger = _DummyLogger()
@@ -111,64 +109,6 @@ def test_cache_manager_set_ttl_zero_is_preserved() -> None:
 
     assert manager.set("k1", "v1", timeout=0) is True
     assert dummy_cache.calls == [0]
-
-
-@pytest.mark.unit
-def test_cache_actions_clear_all_cache_logs_fallback_and_counts(monkeypatch) -> None:
-    def _fake_invalidate_instance_cache(instance_id: int) -> bool:
-        if instance_id == 1:
-            return True
-        if instance_id == 2:
-            return False
-        raise RuntimeError("boom")
-
-    monkeypatch.setattr(
-        CacheActionsService, "_invalidate_instance_cache", staticmethod(_fake_invalidate_instance_cache)
-    )
-    monkeypatch.setattr(
-        InstancesRepository,
-        "list_active_instances",
-        lambda: [SimpleNamespace(id=1), SimpleNamespace(id=2), SimpleNamespace(id=3)],
-    )
-
-    fallback_calls: list[dict[str, object]] = []
-
-    def _fake_log_fallback(  # type: ignore[no-untyped-def]
-        level,
-        event,
-        *,
-        module,
-        action,
-        fallback_reason,
-        **options,
-    ) -> None:
-        fallback_calls.append(
-            {
-                "level": level,
-                "event": event,
-                "module": module,
-                "action": action,
-                "fallback_reason": fallback_reason,
-                "options": options,
-            }
-        )
-
-    info_calls: list[dict[str, object]] = []
-    monkeypatch.setattr(cache_actions_service_module, "log_fallback", _fake_log_fallback)
-    monkeypatch.setattr(
-        cache_actions_service_module, "log_info", lambda _msg, *, module="app", **kw: info_calls.append(kw)
-    )
-
-    result = CacheActionsService().clear_all_cache(operator_id=10)
-    assert result.cleared_count == 1
-
-    assert len(fallback_calls) == 2
-    assert {call["fallback_reason"] for call in fallback_calls} == {"cache_invalidate_failed"}
-
-    assert info_calls
-    summary = info_calls[-1]
-    assert summary.get("failed_count") == 2
-    assert summary.get("fallback_count") == 2
 
 
 @pytest.mark.unit

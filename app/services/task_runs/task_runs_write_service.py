@@ -16,9 +16,9 @@ from uuid import uuid4
 
 from app import db
 from app.core.constants.status_types import TaskRunStatus
-from app.core.exceptions import NotFoundError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.repositories.task_runs_repository import TaskRunsRepository
 from app.schemas.task_run_summary import TaskRunSummaryFactory, TaskRunSummaryV1
 from app.utils.time_utils import time_utils
 
@@ -49,10 +49,7 @@ class TaskRunsWriteService:
 
     @staticmethod
     def _get_run_or_error(run_id: str) -> TaskRun:
-        run = TaskRun.query.filter_by(run_id=run_id).first()
-        if not run:
-            raise NotFoundError("任务运行不存在")
-        return run
+        return TaskRunsRepository.get_run(run_id)
 
     def start_run(
         self,
@@ -113,10 +110,7 @@ class TaskRunsWriteService:
 
     @staticmethod
     def _get_item_or_error(*, run_id: str, item_type: str, item_key: str) -> TaskRunItem:
-        item = TaskRunItem.query.filter_by(run_id=run_id, item_type=item_type, item_key=item_key).first()
-        if not item:
-            raise NotFoundError("任务子项不存在")
-        return item
+        return TaskRunsRepository.get_item(run_id=run_id, item_type=item_type, item_key=item_key)
 
     def start_item(self, run_id: str, *, item_type: str, item_key: str) -> None:
         """将指定子项标记为 running，并写入 started_at."""
@@ -173,7 +167,7 @@ class TaskRunsWriteService:
         """汇总子项状态并更新 run 的进度与完成状态."""
         run = self._get_run_or_error(run_id)
 
-        items = TaskRunItem.query.filter_by(run_id=run_id).all()
+        items = TaskRunsRepository.list_run_items(run_id)
         total = len(items)
         completed = sum(1 for item in items if item.status == TaskRunStatus.COMPLETED)
         failed = sum(1 for item in items if item.status in {TaskRunStatus.FAILED, TaskRunStatus.CANCELLED})
@@ -197,13 +191,9 @@ class TaskRunsWriteService:
         run.status = TaskRunStatus.CANCELLED
         run.completed_at = now
 
-        items = TaskRunItem.query.filter_by(run_id=run_id).all()
+        items = TaskRunsRepository.list_run_items(run_id)
         for item in items:
             if item.status in TaskRunStatus.IN_PROGRESS:
                 item.status = TaskRunStatus.CANCELLED
                 item.completed_at = now
         return True
-
-
-# Backward-compatible alias for call sites
-task_runs_write_service = TaskRunsWriteService()

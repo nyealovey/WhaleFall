@@ -21,7 +21,12 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-PY_BIN="${PY_BIN:-python3}"
+DEFAULT_PY_BIN="python3"
+if [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
+  # CI 默认会通过 uv 创建 .venv；优先使用项目虚拟环境，避免本机 python 版本不一致。
+  DEFAULT_PY_BIN="${ROOT_DIR}/.venv/bin/python"
+fi
+PY_BIN="${PY_BIN:-${DEFAULT_PY_BIN}}"
 if ! command -v "${PY_BIN}" >/dev/null 2>&1; then
   echo "未检测到 python3，无法执行 account classification task 门禁检查。" >&2
   exit 1
@@ -37,9 +42,11 @@ from pathlib import Path
 
 def _is_no_accounts_return(node: ast.Return) -> bool:
     value = node.value
+    if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "_finalize_run_no_accounts":
+        return True
     if not isinstance(value, ast.Dict):
         return False
-    for key, val in zip(value.keys, value.values, strict=False):
+    for key, val in zip(value.keys, value.values):
         if isinstance(key, ast.Constant) and key.value == "message":
             return isinstance(val, ast.Constant) and val.value == "没有需要分类的账户"
     return False
@@ -109,4 +116,3 @@ except AssertionError as exc:
     sys.stderr.write(f"{exc}\n")
     raise SystemExit(1)
 PY
-

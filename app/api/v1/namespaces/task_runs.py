@@ -23,7 +23,7 @@ from app.core.types.task_runs import TaskRunsListFilters
 from app.schemas.task_runs_query import TaskRunsListFiltersQuery
 from app.schemas.validation import validate_or_raise
 from app.services.task_runs.task_runs_read_service import TaskRunsReadService
-from app.services.task_runs.task_runs_write_service import task_runs_write_service
+from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
 from app.utils.decorators import require_csrf
 
 ns = Namespace("task_runs", description="任务运行中心")
@@ -180,7 +180,7 @@ class TaskRunCancelResource(BaseResource):
         """取消任务运行."""
 
         def _execute():
-            success = task_runs_write_service.cancel_run(run_id)
+            success = TaskRunsWriteService().cancel_run(run_id)
             if not success:
                 raise NotFoundError("取消任务失败,任务不存在或已结束")
             return self.success(message="任务已取消")
