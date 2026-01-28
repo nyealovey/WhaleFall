@@ -1,0 +1,6 @@
+docs/plans/2026-01-28-code-simplicity-progress.md:16:- `COMPAT` 兼容分支的永久化风险（补齐退出机制）
+docs/plans/2026-01-28-code-simplicity-progress.md:29:| `COMPAT` 标记数 | 14 | 0 | 0 | 已改为严格校验，并移除历史数据形状兼容 |
+docs/plans/2026-01-28-code-simplicity-progress.md:67:### P2（长期债务治理：COMPAT 退出机制 + 事务边界收敛）
+docs/plans/2026-01-28-code-simplicity-progress.md:71:| P2-001 | DONE | `app/schemas/**`（12 处 `COMPAT`） | 改为严格校验：非法分页/排序/日期直接抛错，不再做默认降级；移除 schema 内 `COMPAT` 分支。 | `uv run ruff check app tests/unit/schemas && uv run pyright` | 2026-01-28：完成并通过单测 |
+docs/plans/2026-01-28-code-simplicity-progress.md:89:  - 完成 P2-001：schema 层去除 `COMPAT` 降级逻辑，非法参数改为直接报错（更新相关单测）
+docs/plans/2026-01-28-code-simplicity-progress.md:99:- `COMPAT` 分支删除需要配合数据迁移/观测窗口：进度应记录“命中次数”或日志查询方式，避免拍脑袋删兼容。

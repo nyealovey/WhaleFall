@@ -1,0 +1,276 @@
+CI Guards Run (with stderr): 2026-01-28_134740
+Repo: /Users/apple/Github/WhaleFall
+
+## scripts/ci/account-classification-auto-tasks-guard.sh
+cmd: scripts/ci/account-classification-auto-tasks-guard.sh
+Traceback (most recent call last):
+  File "<stdin>", line 77, in <module>
+  File "<stdin>", line 57, in main
+  File "<stdin>", line 44, in _find_no_accounts_returns
+  File "<stdin>", line 42, in walk
+  File "<stdin>", line 42, in walk
+  File "<stdin>", line 42, in walk
+  File "<stdin>", line 39, in walk
+  File "<stdin>", line 12, in _is_no_accounts_return
+TypeError: zip() takes no keyword arguments
+status: 1
+
+## scripts/ci/api-layer-guard.sh
+cmd: scripts/ci/api-layer-guard.sh
+✅ API 层门禁通过：未发现 models/routes 依赖或 DB/query。
+status: 0
+
+## scripts/ci/api-v1-ns-expect-guard.sh
+cmd: scripts/ci/api-v1-ns-expect-guard.sh
+✅ api v1 ns.expect 门禁通过。
+status: 0
+
+## scripts/ci/browser-confirm-guard.sh
+cmd: scripts/ci/browser-confirm-guard.sh
+✅ 浏览器 confirm 门禁通过：未发现 confirm 弹窗调用。
+status: 0
+
+## scripts/ci/btn-close-aria-guard.sh
+cmd: scripts/ci/btn-close-aria-guard.sh
+✅ btn-close aria-label 门禁通过：未发现缺失/英文混用。
+status: 0
+
+## scripts/ci/button-hierarchy-guard.sh
+cmd: scripts/ci/button-hierarchy-guard.sh
+✅ 按钮层级门禁通过：未发现 .btn 的 border:none/0 覆盖。
+status: 0
+
+## scripts/ci/component-style-drift-guard.sh
+cmd: scripts/ci/component-style-drift-guard.sh
+✅ 共享组件样式漂移门禁通过：未发现 pages 层重复定义 status-pill / btn-icon。
+status: 0
+
+## scripts/ci/css-token-guard.sh
+cmd: scripts/ci/css-token-guard.sh
+✅ CSS Token 门禁通过：未发现未定义的 CSS var token。
+status: 0
+
+## scripts/ci/danger-button-semantics-guard.sh
+cmd: scripts/ci/danger-button-semantics-guard.sh
+✅ 危险按钮语义门禁通过：未发现 text-danger 伪装危险按钮。
+status: 0
+
+## scripts/ci/db-session-commit-allowlist-guard.sh
+cmd: scripts/ci/db-session-commit-allowlist-guard.sh
+✅ commit allowlist 门禁通过：命中 71（均位于允许位置）。
+status: 0
+
+## scripts/ci/db-session-commit-services-drift-guard.sh
+cmd: scripts/ci/db-session-commit-services-drift-guard.sh
+检查通过：当前命中数 0（允许减少，禁止新增）。
+status: 0
+
+## scripts/ci/db-session-rollback-allowlist-guard.sh
+cmd: scripts/ci/db-session-rollback-allowlist-guard.sh
+Traceback (most recent call last):
+  File "<stdin>", line 174, in <module>
+  File "<stdin>", line 146, in main
+  File "<stdin>", line 130, in _scan_tree
+  File "<stdin>", line 133, in <listcomp>
+  File "<stdin>", line 95, in _find_db_session_rollback_calls
+  File "<stdin>", line 78, in _collect_db_session_aliases
+  File "<stdin>", line 55, in iter_child_bodies
+AttributeError: module 'ast' has no attribute 'Match'
+status: 1
+
+## scripts/ci/db-session-route-write-guard.sh
+cmd: scripts/ci/db-session-route-write-guard.sh
+✅ 写操作边界门禁通过：routes 未直写 db.session 写操作。
+status: 0
+
+## scripts/ci/db-session-write-boundary-guard.sh
+cmd: scripts/ci/db-session-write-boundary-guard.sh
+✅ 写操作边界门禁通过：routes 未直写 db.session 写操作。
+检查通过：当前命中数 0（允许减少，禁止新增）。
+✅ commit allowlist 门禁通过：命中 71（均位于允许位置）。
+✅ 全局写操作边界门禁通过。
+status: 0
+
+## scripts/ci/error-message-drift-guard.sh
+cmd: scripts/ci/error-message-drift-guard.sh
+检测到新增的 error/message 漂移命中（禁止新增）：
+app/tasks/capacity_collection_tasks.py:198:            error_message = str(payload.get("error") or payload.get("message") or "实例容量同步失败")
+app/tasks/capacity_current_aggregation_tasks.py:233:            error_message=str(payload.get("message") or payload.get("error") or "聚合失败"),
+请按 docs/Obsidian/standards/backend/standard/error-message-schema-unification.md 统一结果结构，避免在读端写互兜底链。
+status: 1
+
+## scripts/ci/forms-layer-guard.sh
+cmd: scripts/ci/forms-layer-guard.sh
+未找到 /Users/apple/Github/WhaleFall/app/forms，跳过检查。
+status: 0
+
+## scripts/ci/frontend-contracts-guard.sh
+cmd: scripts/ci/frontend-contracts-guard.sh
+✅ frontend contracts 门禁通过。
+status: 0
+
+## scripts/ci/grid-wrapper-log-guard.sh
+cmd: scripts/ci/grid-wrapper-log-guard.sh
+✅ GridWrapper 日志门禁通过：未发现 console.log。
+status: 0
+
+## scripts/ci/inline-handler-guard.sh
+cmd: scripts/ci/inline-handler-guard.sh
+检查通过：当前命中数 0（允许减少，禁止新增）。
+status: 0
+
+## scripts/ci/inline-px-style-guard.sh
+cmd: scripts/ci/inline-px-style-guard.sh
+检查通过：当前命中数 0（允许减少，禁止新增）。
+status: 0
+
+## scripts/ci/ops-legacy-guard.sh
+cmd: scripts/ci/ops-legacy-guard.sh
+✅ ops legacy 门禁通过。
+status: 0
+
+## scripts/ci/or-fallback-pattern-guard.sh
+cmd: scripts/ci/or-fallback-pattern-guard.sh
+✅ or 兜底高风险形态门禁通过。
+status: 0
+
+## scripts/ci/pagination-param-guard.sh
+cmd: scripts/ci/pagination-param-guard.sh
+✅ 分页参数门禁通过：GridWrapper 使用 limit。
+✅ 分页参数门禁通过：TableQueryParams 使用 limit 且已清理 legacy page_size/pageSize。
+status: 0
+
+## scripts/ci/pyright-guard.sh
+cmd: scripts/ci/pyright-guard.sh
+检测到新增的 Pyright diagnostics(禁止新增):
+tests/unit/routes/test_api_v1_task_runs_contract.py	error	reportAttributeAccessIssue	"task_runs_write_service" is unknown import symbol
+如确需更新 baseline, 请运行: ./scripts/ci/pyright-guard.sh --update-baseline
+参考：docs/Obsidian/standards/core/gate/pyright-baseline.md
+status: 1
+
+## scripts/ci/repositories-route-safety-import-guard.sh
+cmd: scripts/ci/repositories-route-safety-import-guard.sh
+✅ repository route_safety 门禁通过。
+status: 0
+
+## scripts/ci/routes-safe-route-call-guard.sh
+cmd: scripts/ci/routes-safe-route-call-guard.sh
+✅ routes safe_route_call 门禁通过。
+status: 0
+
+## scripts/ci/ruff-style-guard.sh
+cmd: scripts/ci/ruff-style-guard.sh
+warning: `incorrect-blank-line-before-class` (D203) and `no-blank-line-before-class` (D211) are incompatible. Ignoring `incorrect-blank-line-before-class`.
+warning: `multi-line-summary-first-line` (D212) and `multi-line-summary-second-line` (D213) are incompatible. Ignoring `multi-line-summary-second-line`.
+检测到新增的 Ruff(style) violations(禁止新增):
+app/services/cache/cache_actions_service.py	D400	First line should end with a period
+app/services/cache/cache_actions_service.py	D400	First line should end with a period
+app/services/cache/cache_actions_service.py	D415	First line should end with a period, question mark, or exclamation point
+app/services/cache/cache_actions_service.py	D415	First line should end with a period, question mark, or exclamation point
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D102	Missing docstring in public method
+app/services/common/options_cache.py	D107	Missing docstring in `__init__`
+app/services/common/options_cache.py	D400	First line should end with a period
+app/services/common/options_cache.py	D415	First line should end with a period, question mark, or exclamation point
+app/tasks/capacity_current_aggregation_tasks.py	I001	Import block is un-sorted or un-formatted
+如确需更新 baseline, 请运行: ./scripts/ci/ruff-style-guard.sh --update-baseline
+参考：docs/Obsidian/standards/core/gate/ruff-style-baseline.md
+status: 1
+
+## scripts/ci/secrets-guard.sh
+cmd: scripts/ci/secrets-guard.sh
+✅ env.example 模板检查通过：未发现非空敏感值。
+status: 0
+
+## scripts/ci/services-repository-enforcement-guard.sh
+cmd: scripts/ci/services-repository-enforcement-guard.sh
+检测到新增的 services 直查库/query 命中（禁止新增）：
+app/services/accounts/account_classification_daily_stats_read_service.py	AccountClassification.query.filter(AccountClassification.is_active.is_(True))
+app/services/accounts/account_classification_daily_stats_read_service.py	rows = ClassificationRule.query.filter(ClassificationRule.id.in_(rule_ids)).all()
+app/services/accounts/account_classification_daily_stats_read_service.py	rules_query = ClassificationRule.query.filter(ClassificationRule.classification_id == classification_id)
+app/services/task_runs/task_runs_write_service.py	item = TaskRunItem.query.filter_by(run_id=run_id, item_type=item_type, item_key=item_key).first()
+app/services/task_runs/task_runs_write_service.py	items = TaskRunItem.query.filter_by(run_id=run_id).all()
+app/services/task_runs/task_runs_write_service.py	items = TaskRunItem.query.filter_by(run_id=run_id).all()
+app/services/task_runs/task_runs_write_service.py	run = TaskRun.query.filter_by(run_id=run_id).first()
+
+请将查询与数据访问下沉到 Repository，由 Service 负责业务编排。
+参考：
+- docs/Obsidian/standards/backend/gate/layer/services-layer.md
+- docs/Obsidian/standards/backend/gate/layer/repository-layer.md
+status: 1
+
+## scripts/ci/settings-env-read-guard.sh
+cmd: scripts/ci/settings-env-read-guard.sh
+✅ settings env 读取门禁通过：未发现 settings 之外的 os.environ.get/os.getenv。
+status: 0
+
+## scripts/ci/tag-selector-filter-id-guard.sh
+cmd: scripts/ci/tag-selector-filter-id-guard.sh
+✅ TagSelectorFilter id 门禁通过：未发现固定全局 DOM id。
+status: 0
+
+## scripts/ci/tasks-layer-guard.sh
+cmd: scripts/ci/tasks-layer-guard.sh
+检测到 tasks 层直查库/直写库（禁止）：
+/Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:212:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:240:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:275:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:281:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+/Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:332:            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:439:            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:46:        current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:51:            for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:121:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:231:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:283:            existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:299:            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_auto_tasks.py:44:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_auto_tasks.py:66:    current = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_auto_tasks.py:121:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_auto_tasks.py:167:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_auto_tasks.py:233:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_auto_tasks.py:238:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_auto_tasks.py:259:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:69:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:88:    current = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:93:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:256:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:303:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:307:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:38:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:57:    current = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:70:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:98:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:113:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:237:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:242:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:293:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:336:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/account_classification_daily_tasks.py:341:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+/Users/apple/Github/WhaleFall/app/tasks/capacity_current_aggregation_tasks.py:50:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_current_aggregation_tasks.py:72:    current = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_current_aggregation_tasks.py:102:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_current_aggregation_tasks.py:158:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+/Users/apple/Github/WhaleFall/app/tasks/capacity_current_aggregation_tasks.py:163:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+
+Tasks 只允许做调度入口与可观测性；查库/写库应下沉到 Service/Repository（tasks 仅可 commit/rollback 作为边界）。
+参考：docs/Obsidian/standards/backend/gate/layer/tasks-layer.md
+status: 1
+
+## scripts/ci/ui-standards-audit-guard.sh
+cmd: scripts/ci/ui-standards-audit-guard.sh
+✅ UI standards audit 门禁通过。
+status: 0
+

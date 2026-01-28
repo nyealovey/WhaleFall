@@ -1,0 +1,165 @@
+CI Guards Run: 2026-01-28_134703
+Repo: /Users/apple/Github/WhaleFall
+
+## scripts/ci/account-classification-auto-tasks-guard.sh
+cmd: scripts/ci/account-classification-auto-tasks-guard.sh
+status: 1
+
+## scripts/ci/api-layer-guard.sh
+cmd: scripts/ci/api-layer-guard.sh
+✅ API 层门禁通过：未发现 models/routes 依赖或 DB/query。
+status: 0
+
+## scripts/ci/api-v1-ns-expect-guard.sh
+cmd: scripts/ci/api-v1-ns-expect-guard.sh
+✅ api v1 ns.expect 门禁通过。
+status: 0
+
+## scripts/ci/browser-confirm-guard.sh
+cmd: scripts/ci/browser-confirm-guard.sh
+✅ 浏览器 confirm 门禁通过：未发现 confirm 弹窗调用。
+status: 0
+
+## scripts/ci/btn-close-aria-guard.sh
+cmd: scripts/ci/btn-close-aria-guard.sh
+✅ btn-close aria-label 门禁通过：未发现缺失/英文混用。
+status: 0
+
+## scripts/ci/button-hierarchy-guard.sh
+cmd: scripts/ci/button-hierarchy-guard.sh
+✅ 按钮层级门禁通过：未发现 .btn 的 border:none/0 覆盖。
+status: 0
+
+## scripts/ci/component-style-drift-guard.sh
+cmd: scripts/ci/component-style-drift-guard.sh
+✅ 共享组件样式漂移门禁通过：未发现 pages 层重复定义 status-pill / btn-icon。
+status: 0
+
+## scripts/ci/css-token-guard.sh
+cmd: scripts/ci/css-token-guard.sh
+✅ CSS Token 门禁通过：未发现未定义的 CSS var token。
+status: 0
+
+## scripts/ci/danger-button-semantics-guard.sh
+cmd: scripts/ci/danger-button-semantics-guard.sh
+✅ 危险按钮语义门禁通过：未发现 text-danger 伪装危险按钮。
+status: 0
+
+## scripts/ci/db-session-commit-allowlist-guard.sh
+cmd: scripts/ci/db-session-commit-allowlist-guard.sh
+✅ commit allowlist 门禁通过：命中 71（均位于允许位置）。
+status: 0
+
+## scripts/ci/db-session-commit-services-drift-guard.sh
+cmd: scripts/ci/db-session-commit-services-drift-guard.sh
+检查通过：当前命中数 0（允许减少，禁止新增）。
+status: 0
+
+## scripts/ci/db-session-rollback-allowlist-guard.sh
+cmd: scripts/ci/db-session-rollback-allowlist-guard.sh
+status: 1
+
+## scripts/ci/db-session-route-write-guard.sh
+cmd: scripts/ci/db-session-route-write-guard.sh
+✅ 写操作边界门禁通过：routes 未直写 db.session 写操作。
+status: 0
+
+## scripts/ci/db-session-write-boundary-guard.sh
+cmd: scripts/ci/db-session-write-boundary-guard.sh
+✅ 写操作边界门禁通过：routes 未直写 db.session 写操作。
+检查通过：当前命中数 0（允许减少，禁止新增）。
+✅ commit allowlist 门禁通过：命中 71（均位于允许位置）。
+✅ 全局写操作边界门禁通过。
+status: 0
+
+## scripts/ci/error-message-drift-guard.sh
+cmd: scripts/ci/error-message-drift-guard.sh
+status: 1
+
+## scripts/ci/forms-layer-guard.sh
+cmd: scripts/ci/forms-layer-guard.sh
+未找到 /Users/apple/Github/WhaleFall/app/forms，跳过检查。
+status: 0
+
+## scripts/ci/frontend-contracts-guard.sh
+cmd: scripts/ci/frontend-contracts-guard.sh
+✅ frontend contracts 门禁通过。
+status: 0
+
+## scripts/ci/grid-wrapper-log-guard.sh
+cmd: scripts/ci/grid-wrapper-log-guard.sh
+✅ GridWrapper 日志门禁通过：未发现 console.log。
+status: 0
+
+## scripts/ci/inline-handler-guard.sh
+cmd: scripts/ci/inline-handler-guard.sh
+检查通过：当前命中数 0（允许减少，禁止新增）。
+status: 0
+
+## scripts/ci/inline-px-style-guard.sh
+cmd: scripts/ci/inline-px-style-guard.sh
+检查通过：当前命中数 0（允许减少，禁止新增）。
+status: 0
+
+## scripts/ci/ops-legacy-guard.sh
+cmd: scripts/ci/ops-legacy-guard.sh
+✅ ops legacy 门禁通过。
+status: 0
+
+## scripts/ci/or-fallback-pattern-guard.sh
+cmd: scripts/ci/or-fallback-pattern-guard.sh
+✅ or 兜底高风险形态门禁通过。
+status: 0
+
+## scripts/ci/pagination-param-guard.sh
+cmd: scripts/ci/pagination-param-guard.sh
+✅ 分页参数门禁通过：GridWrapper 使用 limit。
+✅ 分页参数门禁通过：TableQueryParams 使用 limit 且已清理 legacy page_size/pageSize。
+status: 0
+
+## scripts/ci/pyright-guard.sh
+cmd: scripts/ci/pyright-guard.sh
+status: 1
+
+## scripts/ci/repositories-route-safety-import-guard.sh
+cmd: scripts/ci/repositories-route-safety-import-guard.sh
+✅ repository route_safety 门禁通过。
+status: 0
+
+## scripts/ci/routes-safe-route-call-guard.sh
+cmd: scripts/ci/routes-safe-route-call-guard.sh
+✅ routes safe_route_call 门禁通过。
+status: 0
+
+## scripts/ci/ruff-style-guard.sh
+cmd: scripts/ci/ruff-style-guard.sh
+status: 1
+
+## scripts/ci/secrets-guard.sh
+cmd: scripts/ci/secrets-guard.sh
+✅ env.example 模板检查通过：未发现非空敏感值。
+status: 0
+
+## scripts/ci/services-repository-enforcement-guard.sh
+cmd: scripts/ci/services-repository-enforcement-guard.sh
+status: 1
+
+## scripts/ci/settings-env-read-guard.sh
+cmd: scripts/ci/settings-env-read-guard.sh
+✅ settings env 读取门禁通过：未发现 settings 之外的 os.environ.get/os.getenv。
+status: 0
+
+## scripts/ci/tag-selector-filter-id-guard.sh
+cmd: scripts/ci/tag-selector-filter-id-guard.sh
+✅ TagSelectorFilter id 门禁通过：未发现固定全局 DOM id。
+status: 0
+
+## scripts/ci/tasks-layer-guard.sh
+cmd: scripts/ci/tasks-layer-guard.sh
+status: 1
+
+## scripts/ci/ui-standards-audit-guard.sh
+cmd: scripts/ci/ui-standards-audit-guard.sh
+✅ UI standards audit 门禁通过。
+status: 0
+

@@ -204,6 +204,3 @@ class TaskRunsWriteService:
                 item.completed_at = now
         return True
 
-
-# Backward-compatible alias for call sites
-task_runs_write_service = TaskRunsWriteService()
