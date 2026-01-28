@@ -56,7 +56,7 @@ BasicData = ns.model(
     {
         "status": fields.String(required=True, description="服务状态", example="healthy"),
         "timestamp": fields.Float(required=True, description="时间戳(秒)"),
-        "version": fields.String(required=True, description="版本号", example="1.4.0"),
+        "version": fields.String(required=True, description="版本号", example="1.5.0"),
     },
 )
 
