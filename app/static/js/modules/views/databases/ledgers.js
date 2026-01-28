@@ -29,7 +29,20 @@
       return;
     }
 
-    const { ready } = helpers;
+    const DatabasesLedgersService = global.DatabasesLedgersService;
+    let databasesLedgersService = null;
+    if (typeof DatabasesLedgersService === "function") {
+      try {
+        databasesLedgersService = new DatabasesLedgersService();
+      } catch (error) {
+        console.error("初始化 DatabasesLedgersService 失败:", error);
+        databasesLedgersService = null;
+      }
+    } else {
+      console.error("DatabasesLedgersService 未加载，同步动作不可用");
+    }
+
+    const { ready, selectOne } = helpers;
     const gridHtml = gridjs.html;
     const CHIP_COLUMN_WIDTH = "220px";
     const TYPE_COLUMN_WIDTH = "110px";
@@ -41,6 +54,7 @@
 
     const apiUrl = root.dataset.apiUrl;
     const exportUrl = root.dataset.exportUrl || "";
+    const syncUrl = root.dataset.syncUrl || "";
     const capacityStatsUrl = root.dataset.capacityStatsUrl || "";
     let currentDbType = root.dataset.currentDbType || "all";
     const FILTER_FORM_ID = "database-ledger-filter-form";
@@ -51,6 +65,7 @@
 
     ready(() => {
       initializeGridPage();
+      bindSyncAllDatabasesAction();
       bindTypeButtons();
       initializeTagManagementStore();
       initializeTagFilter();
@@ -419,6 +434,131 @@
       const target = document.getElementById("database-ledger-total");
       if (target) {
         target.textContent = `共 ${total} 条记录`;
+      }
+    }
+
+    function bindSyncAllDatabasesAction() {
+      const syncButton = selectOne('[data-action="sync-all-databases"]').first();
+      if (!syncButton) {
+        return;
+      }
+      syncButton.addEventListener("click", async (event) => {
+        event?.preventDefault?.();
+
+        const confirmDanger = global.UI?.confirmDanger;
+        if (typeof confirmDanger !== "function") {
+          global.toast?.error?.("确认组件未初始化");
+          return;
+        }
+
+        const confirmed = await confirmDanger({
+          title: "确认同步所有数据库",
+          message: "该操作将触发全量容量同步任务，请确认影响范围与资源消耗后继续。",
+          details: [
+            { label: "影响范围", value: "对全部实例执行容量采集", tone: "warning" },
+            { label: "资源消耗", value: "可能占用较多数据库资源，建议低峰期执行", tone: "warning" },
+          ],
+          confirmText: "开始同步",
+          confirmButtonClass: "btn-warning",
+          resultUrl: "/history/sessions",
+          resultText: "前往运行中心查看同步进度",
+        });
+        if (!confirmed) {
+          return;
+        }
+        await syncAllDatabases(syncButton);
+      });
+    }
+
+    async function syncAllDatabases(trigger) {
+      if (!syncUrl) {
+        global.toast?.error?.("同步接口未配置");
+        return;
+      }
+
+      const request = databasesLedgersService?.syncAllDatabases?.({ customUrl: syncUrl });
+      if (!request) {
+        global.toast?.error?.("同步能力未初始化");
+        return;
+      }
+
+      const setButtonLoading = global.UI?.setButtonLoading;
+      const clearButtonLoading = global.UI?.clearButtonLoading;
+      const hasLoadingApi =
+        typeof setButtonLoading === "function" && typeof clearButtonLoading === "function";
+
+      if (hasLoadingApi) {
+        setButtonLoading(trigger, { loadingText: "同步中..." });
+      } else if (trigger) {
+        trigger.setAttribute("aria-busy", "true");
+        trigger.setAttribute("aria-disabled", "true");
+        trigger.setAttribute("disabled", "disabled");
+      }
+
+      try {
+        const result = await Promise.resolve(request);
+        const resolver = global.UI?.resolveAsyncActionOutcome;
+        const outcome =
+          typeof resolver === "function"
+            ? resolver(result, {
+                action: "databases:syncAllDatabases",
+                startedMessage: "数据库同步任务已启动",
+                failedMessage: "数据库同步失败",
+                unknownMessage: "数据库同步未完成，请稍后在运行中心确认",
+                resultUrl: "/history/sessions",
+                resultText: "前往运行中心查看同步进度",
+              })
+            : null;
+
+        const fallbackStatus =
+          result?.success === true
+            ? "started"
+            : result?.success === false || result?.error === true
+              ? "failed"
+              : "unknown";
+        const fallbackOutcome = {
+          status: fallbackStatus,
+          tone:
+            fallbackStatus === "started"
+              ? "success"
+              : fallbackStatus === "failed"
+                ? "error"
+                : "warning",
+          message:
+            fallbackStatus === "started"
+              ? result?.message || "数据库同步任务已启动"
+              : fallbackStatus === "failed"
+                ? result?.message || "数据库同步失败"
+                : result?.message || "数据库同步未完成，请稍后在运行中心确认",
+        };
+
+        const resolved = outcome || fallbackOutcome;
+        const toast = global.toast;
+        const warnOrInfo = toast?.warning || toast?.info;
+        const notifier =
+          resolved.tone === "success"
+            ? toast?.success
+            : resolved.tone === "error"
+              ? toast?.error
+              : warnOrInfo;
+        notifier?.call(toast, resolved.message);
+
+        if (resolved.status === "started") {
+          global.setTimeout(() => {
+            gridPage?.gridWrapper?.refresh?.();
+          }, 1500);
+        }
+      } catch (error) {
+        console.error("数据库同步失败:", error);
+        global.toast?.error?.("同步失败");
+      } finally {
+        if (hasLoadingApi) {
+          clearButtonLoading(trigger);
+        } else if (trigger) {
+          trigger.removeAttribute("aria-busy");
+          trigger.removeAttribute("aria-disabled");
+          trigger.removeAttribute("disabled");
+        }
       }
     }
   }
