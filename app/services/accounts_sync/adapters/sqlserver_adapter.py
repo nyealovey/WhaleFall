@@ -82,13 +82,6 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return None
 
     @staticmethod
-    def _normalize_str_list(value: object) -> list[str]:
-        """将序列转换为字符串列表,忽略非字符串元素."""
-        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-            return [str(item) for item in value if isinstance(item, (str, bytes, bytearray))]
-        return []
-
-    @staticmethod
     def _normalize_optional_bool(value: object) -> bool | None:
         """将输入转换为 bool 或 None."""
         if value is None:
