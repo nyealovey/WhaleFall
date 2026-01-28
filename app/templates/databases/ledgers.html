@@ -13,7 +13,13 @@
 {% endblock %}
 
 {% block content_outer %}
-{{ page_header('fas fa-database', '数据库台账', '集中管理数据库清单与容量采集状态') }}
+{% call page_header('fas fa-database', '数据库台账', '集中管理数据库清单与容量采集状态') %}
+<div class="btn-group">
+    <button type="button" class="btn btn-primary" data-action="sync-all-databases">
+        <i class="fas fa-sync me-2"></i>同步所有数据库
+    </button>
+</div>
+{% endcall %}
 
 <div id="database-ledger-root"
      data-api-url="/api/v1/databases/ledgers"
@@ -64,11 +70,6 @@
                                         data-export-ledger>
                                     <i class="fas fa-download me-1"></i>导出CSV
                                 </button>
-                                <button type="button"
-                                        class="btn btn-primary btn-sm ms-2"
-                                        data-action="sync-all-databases">
-                                    <i class="fas fa-sync me-1"></i>同步所有数据库
-                                </button>
                             </div>
                             <div class="text-muted" id="database-ledger-total">加载中...</div>
                         </div>
@@ -95,5 +96,6 @@
 <script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/grid-plugins/export-button.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/databases_ledgers_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/databases/ledgers.js') }}"></script>
 {% endblock %}
