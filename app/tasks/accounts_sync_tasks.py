@@ -350,7 +350,7 @@ def _sync_single_instance(
             sync_session_service.fail_instance_sync(
                 record.id,
                 str(permission_error),
-                sync_details=cast(dict[str, Any], permission_error.summary),
+                sync_details={"version": 1, **cast(dict[str, Any], permission_error.summary)},
             )
             sync_logger.exception(
                 "账户同步权限阶段失败",
@@ -408,7 +408,7 @@ def _sync_single_instance(
         sync_session_service.complete_instance_sync(
             record.id,
             stats=stats,
-            sync_details=cast(dict[str, Any], summary_dict),
+            sync_details={"version": 1, **cast(dict[str, Any], summary_dict)},
         )
 
         sync_logger.info(
