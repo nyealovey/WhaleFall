@@ -8,7 +8,7 @@ tags:
   - admin
 status: draft
 created: 2026-01-08
-updated: 2026-01-08
+updated: 2026-01-28
 source_code:
   - app/api/v1/namespaces/cache.py
 ---
@@ -23,7 +23,6 @@ source_code:
 ## Scope
 
 - ✅ Cache Stats
-- ✅ Cache Clear Actions（user/instance/all）
 - ✅ Classification Cache（clear + stats）
 
 ## 快速导航
@@ -45,20 +44,10 @@ source_code:
 | Method | Path | Purpose | Service | Permission | CSRF | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | GET | `/api/v1/cache/stats` | 缓存统计 | `CacheActionsService.get_cache_stats` | - | - | 需要登录；缓存服务未初始化会返回 500 |
-| POST | `/api/v1/cache/actions/clear-user` | 清除用户缓存 | `CacheActionsService.clear_user_cache` | `admin` | ✅ | body：`instance_id/username`；可能返回 404/409 |
-| POST | `/api/v1/cache/actions/clear-instance` | 清除实例缓存 | `CacheActionsService.clear_instance_cache` | `admin` | ✅ | body：`instance_id`；可能返回 404/409 |
-| POST | `/api/v1/cache/actions/clear-all` | 清除所有实例缓存 | `CacheActionsService.clear_all_cache` | `admin` | ✅ | 遍历活跃实例；返回 `data.cleared_count` |
 | POST | `/api/v1/cache/actions/clear-classification` | 清除分类缓存 | `CacheActionsService.clear_classification_cache` | `update` | ✅ | body：`db_type?`（mysql/postgresql/sqlserver/oracle）；为空则清全量分类缓存 |
 | GET | `/api/v1/cache/classification/stats` | 分类缓存统计 | `CacheActionsService.get_classification_cache_stats` | `view` | - | 返回 `cache_stats/db_type_stats/cache_enabled` |
 
 ## Clear Actions
-
-### `POST /api/v1/cache/actions/clear-user`
-
-请求体（JSON）：
-
-- `instance_id: int`（必填）
-- `username: string`（必填）
 
 ### `POST /api/v1/cache/actions/clear-classification`
 

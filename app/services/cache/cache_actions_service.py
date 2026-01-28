@@ -2,7 +2,6 @@
 
 将 cache namespace 的核心逻辑下沉到 service 层：
 - cache stats
-- clear-user / clear-instance / clear-all
 - clear-classification
 - classification stats
 
@@ -14,14 +13,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, cast
 
-from app.core.exceptions import ConflictError, NotFoundError, SystemError
-from app.infra.route_safety import log_fallback
-from app.repositories.instances_repository import InstancesRepository
+from app.core.exceptions import ConflictError, SystemError
 from app.schemas.cache_actions import (
     CLASSIFICATION_DB_TYPES,
     ClearClassificationCachePayload,
-    ClearInstanceCachePayload,
-    ClearUserCachePayload,
 )
 from app.schemas.validation import validate_or_raise
 from app.services.account_classification.orchestrator import AccountClassificationService
@@ -37,13 +32,6 @@ class CacheStatsResult:
     """缓存统计结果."""
 
     stats: dict[str, object]
-
-
-@dataclass(frozen=True, slots=True)
-class CacheClearAllResult:
-    """批量清除缓存结果."""
-
-    cleared_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,119 +79,11 @@ class CacheActionsService:
             raise SystemError("缓存管理器未初始化") from exc
         return cast(SupportsCacheManager, manager)
 
-    @staticmethod
-    def _invalidate_user_cache(instance_id: int, username: str) -> bool:
-        """用户级缓存清理入口（当前不实现 scan/keys 的精确删除）。"""
-        del instance_id, username
-        return True
-
-    @staticmethod
-    def _invalidate_instance_cache(instance_id: int) -> bool:
-        """实例级缓存清理入口（当前不实现 scan/keys 的精确删除）。"""
-        del instance_id
-        return True
-
     def get_cache_stats(self) -> CacheStatsResult:
         """获取缓存统计信息."""
         manager = self._get_cache_manager()
         stats = manager.get_stats()
         return CacheStatsResult(stats=stats)
-
-    def clear_user_cache(self, payload: object | None, *, operator_id: int | None) -> str:
-        """清除指定用户在指定实例上的缓存."""
-        sanitized = parse_payload(payload)
-        params = validate_or_raise(ClearUserCachePayload, sanitized)
-        instance_id = params.instance_id
-        username = params.username
-
-        instance = InstancesRepository.get_instance(instance_id)
-        if not instance:
-            raise NotFoundError("实例不存在")
-
-        success = self._invalidate_user_cache(instance_id, username)
-        if not success:
-            raise ConflictError("用户缓存清除失败")
-
-        log_info(
-            "用户缓存清除成功",
-            module="cache",
-            instance_id=instance_id,
-            username=username,
-            operator_id=operator_id,
-        )
-        return "用户缓存清除成功"
-
-    def clear_instance_cache(self, payload: object | None, *, operator_id: int | None) -> str:
-        """清除指定实例的缓存."""
-        sanitized = parse_payload(payload)
-        params = validate_or_raise(ClearInstanceCachePayload, sanitized)
-        instance_id = params.instance_id
-
-        instance = InstancesRepository.get_instance(instance_id)
-        if not instance:
-            raise NotFoundError("实例不存在")
-
-        success = self._invalidate_instance_cache(instance_id)
-        if not success:
-            raise ConflictError("实例缓存清除失败")
-
-        log_info(
-            "实例缓存清除成功",
-            module="cache",
-            instance_id=instance_id,
-            operator_id=operator_id,
-        )
-        return "实例缓存清除成功"
-
-    def clear_all_cache(self, *, operator_id: int | None) -> CacheClearAllResult:
-        """清除所有活跃实例的缓存."""
-        instances = InstancesRepository.list_active_instances()
-
-        cleared_count = 0
-        failed_count = 0
-        for instance in instances:
-            try:
-                invalidated = self._invalidate_instance_cache(instance.id)
-            except Exception as exc:
-                failed_count += 1
-                log_fallback(
-                    "warning",
-                    "清除实例缓存失败",
-                    module="cache",
-                    action="clear_all_cache",
-                    fallback_reason="cache_invalidate_failed",
-                    context={"instance_id": instance.id},
-                    extra={
-                        "operator_id": operator_id,
-                        "error_type": exc.__class__.__name__,
-                        "error_message": str(exc),
-                    },
-                )
-                continue
-
-            if not invalidated:
-                failed_count += 1
-                log_fallback(
-                    "warning",
-                    "清除实例缓存失败",
-                    module="cache",
-                    action="clear_all_cache",
-                    fallback_reason="cache_invalidate_failed",
-                    context={"instance_id": instance.id},
-                    extra={"operator_id": operator_id, "error_type": "invalidate_failed"},
-                )
-                continue
-            cleared_count += 1
-
-        log_info(
-            "批量清除缓存完成",
-            module="cache",
-            cleared_count=cleared_count,
-            failed_count=failed_count,
-            fallback_count=failed_count,
-            operator_id=operator_id,
-        )
-        return CacheClearAllResult(cleared_count=cleared_count)
 
     def clear_classification_cache(self, payload: object | None, *, operator_id: int | None) -> str:
         """清除分类规则缓存(可按 db_type 定向清除)."""

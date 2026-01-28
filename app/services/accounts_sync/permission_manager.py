@@ -69,21 +69,7 @@ OTHER_FIELD_LABELS: dict[str, str] = {
     "type_specific": "数据库特性",
 }
 
-_PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
-    "mysql_global_privileges": "mysql_global_privileges",
-    "mysql_database_privileges": "mysql_database_privileges",
-    "mysql_granted_roles": "mysql_granted_roles",
-    "mysql_role_members": "mysql_role_members",
-    "postgresql_predefined_roles": "postgresql_predefined_roles",
-    "postgresql_role_attributes": "postgresql_role_attributes",
-    "postgresql_database_privileges": "postgresql_database_privileges",
-    "sqlserver_server_roles": "sqlserver_server_roles",
-    "sqlserver_server_permissions": "sqlserver_server_permissions",
-    "sqlserver_database_roles": "sqlserver_database_roles",
-    "sqlserver_database_permissions": "sqlserver_database_permissions",
-    "oracle_roles": "oracle_roles",
-    "oracle_system_privileges": "oracle_system_privileges",
-}
+PERMISSION_SNAPSHOT_CATEGORY_KEYS: set[str] = set(PRIVILEGE_FIELD_LABELS)
 
 _TYPE_SPECIFIC_FORBIDDEN_KEYS: set[str] = {
     "is_superuser",
@@ -509,9 +495,8 @@ class AccountPermissionManager:
                         type_specific[db_type] = dict(sanitized)
                 continue
 
-            target_key = _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY.get(key)
-            if target_key:
-                categories[target_key] = value
+            if key in PERMISSION_SNAPSHOT_CATEGORY_KEYS:
+                categories[key] = value
                 continue
 
             extra[key] = value

@@ -59,19 +59,6 @@ class CapacityContext:
     sync_logger: structlog.BoundLogger
 
 
-def _build_failure(message: str, extra: dict[str, object] | None = None) -> dict[str, object]:
-    base: dict[str, object] = {"success": False, "message": message}
-    if extra:
-        base.update(extra)
-    return base
-
-
-def _build_success(message: str, payload: dict[str, object]) -> dict[str, object]:
-    base: dict[str, object] = {"success": True, "message": message}
-    base.update(payload)
-    return base
-
-
 def _to_int(value: object) -> int:
     """Best-effort int coercion for task payloads.
 
@@ -214,6 +201,7 @@ class CapacityCollectionTaskRunner:
                 "instance_id": context.instance.id,
                 "instance_name": context.instance.name,
                 "success": False,
+                "message": error_msg,
                 "error": error_msg,
                 "inventory": inventory_result,
             }, False
@@ -243,6 +231,7 @@ class CapacityCollectionTaskRunner:
             "instance_id": context.instance.id,
             "instance_name": context.instance.name,
             "success": True,
+            "message": f"成功采集并保存 {database_count} 个数据库的容量信息",
             "size_mb": instance_total_size_mb,
             "database_count": database_count,
             "saved_count": saved_count,
@@ -291,6 +280,7 @@ class CapacityCollectionTaskRunner:
                     "instance_id": instance.id,
                     "instance_name": instance.name,
                     "success": False,
+                    "message": error_msg,
                     "error": error_msg,
                 }, totals
 
@@ -342,6 +332,7 @@ class CapacityCollectionTaskRunner:
                 "instance_id": instance.id,
                 "instance_name": instance.name,
                 "success": False,
+                "message": error_msg,
                 "error": str(exc),
             }, totals
         else:
@@ -391,7 +382,11 @@ class CapacityCollectionTaskRunner:
     ) -> dict[str, object]:
         databases_data = collector.collect_capacity(list(active_databases))
         if not databases_data:
-            return _build_failure("未采集到任何数据库大小数据", {"inventory": inventory_result})
+            return {
+                "success": False,
+                "message": "未采集到任何数据库大小数据",
+                "inventory": inventory_result,
+            }
 
         database_count = len(databases_data)
         total_size_mb = sum(db.get("size_mb", 0) for db in databases_data)
@@ -406,10 +401,12 @@ class CapacityCollectionTaskRunner:
                 instance_name=instance.name,
                 error=str(save_error),
             )
-            return _build_failure(
-                f"采集成功但保存数据失败: {save_error}",
-                {"error": str(save_error), "inventory": inventory_result},
-            )
+            return {
+                "success": False,
+                "message": f"采集成功但保存数据失败: {save_error}",
+                "error": str(save_error),
+                "inventory": inventory_result,
+            }
 
         instance_stat_updated = collector.update_instance_total_size()
         if not instance_stat_updated:
@@ -420,14 +417,13 @@ class CapacityCollectionTaskRunner:
                 instance_name=instance.name,
             )
 
-        return _build_success(
-            f"成功采集并保存 {database_count} 个数据库的容量信息",
-            {
-                "databases": databases_data,
-                "database_count": database_count,
-                "total_size_mb": total_size_mb,
-                "saved_count": saved_count,
-                "instance_stat_updated": instance_stat_updated,
-                "inventory": inventory_result,
-            },
-        )
+        return {
+            "success": True,
+            "message": f"成功采集并保存 {database_count} 个数据库的容量信息",
+            "databases": databases_data,
+            "database_count": database_count,
+            "total_size_mb": total_size_mb,
+            "saved_count": saved_count,
+            "instance_stat_updated": instance_stat_updated,
+            "inventory": inventory_result,
+        }

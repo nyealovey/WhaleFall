@@ -14,10 +14,11 @@ from datetime import date, timedelta
 from typing import TypedDict
 
 from app.core.exceptions import ValidationError
-from app.models.account_classification import AccountClassification, ClassificationRule
+from app.models.account_classification import ClassificationRule
 from app.repositories.account_classification_daily_stats_read_repository import (
     AccountClassificationDailyStatsReadRepository,
 )
+from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.services.aggregation.calculator import PeriodCalculator
 from app.utils.time_utils import time_utils
 
@@ -70,9 +71,14 @@ class RuleOverviewItem(TypedDict):
 class AccountClassificationDailyStatsReadService:
     """账户分类每日统计读取服务."""
 
-    def __init__(self, repository: AccountClassificationDailyStatsReadRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: AccountClassificationDailyStatsReadRepository | None = None,
+        classifications_repository: AccountsClassificationsRepository | None = None,
+    ) -> None:
         """初始化读取服务."""
         self._repository = repository or AccountClassificationDailyStatsReadRepository()
+        self._classifications_repository = classifications_repository or AccountsClassificationsRepository()
         self._period_calculator = PeriodCalculator(now_func=lambda: time_utils.now_china().date())
 
     def get_classification_trend(
@@ -133,11 +139,7 @@ class AccountClassificationDailyStatsReadService:
             for bucket in buckets
         ]
 
-        classifications = (
-            AccountClassification.query.filter(AccountClassification.is_active.is_(True))
-            .order_by(AccountClassification.priority.desc())
-            .all()
-        )
+        classifications = self._classifications_repository.fetch_active_classifications()
 
         series: list[dict[str, object]] = []
         for classification in classifications:
@@ -317,15 +319,16 @@ class AccountClassificationDailyStatsReadService:
         )
         latest_coverage_days = len(latest_stat_dates)
 
-        rules_query = ClassificationRule.query.filter(ClassificationRule.classification_id == classification_id)
-        if db_type:
-            rules_query = rules_query.filter(ClassificationRule.db_type == db_type)
+        is_active: bool | None = None
         if status == "active":
-            rules_query = rules_query.filter(ClassificationRule.is_active.is_(True))
+            is_active = True
         elif status == "archived":
-            rules_query = rules_query.filter(ClassificationRule.is_active.is_(False))
-
-        rules = rules_query.order_by(ClassificationRule.created_at.desc()).all()
+            is_active = False
+        rules = self._classifications_repository.fetch_rules_for_overview(
+            classification_id=classification_id,
+            db_type=db_type,
+            is_active=is_active,
+        )
 
         items: list[RuleOverviewItem] = []
         for rule in rules:
@@ -447,9 +450,8 @@ class AccountClassificationDailyStatsReadService:
 
         return points
 
-    @staticmethod
-    def _fetch_rules_by_ids(rule_ids: list[int]) -> dict[int, ClassificationRule]:
+    def _fetch_rules_by_ids(self, rule_ids: list[int]) -> dict[int, ClassificationRule]:
         if not rule_ids:
             return {}
-        rows = ClassificationRule.query.filter(ClassificationRule.id.in_(rule_ids)).all()
+        rows = self._classifications_repository.fetch_rules_by_ids(rule_ids)
         return {int(rule.id): rule for rule in rows}

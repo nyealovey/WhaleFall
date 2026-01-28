@@ -16,4 +16,4 @@ class HttpHeaders:
     X_FORWARDED_SSL = "X-Forwarded-Ssl"
 
     # CSRF 头部标识（仅键名，无任何凭据信息）
-    X_CSRF_TOKEN = "X-CSRFToken"
+    X_CSRF_TOKEN = "X-CSRFToken"  # noqa: S105

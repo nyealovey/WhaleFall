@@ -79,7 +79,8 @@ def test_create_classification_rejects_non_integer_priority(monkeypatch) -> None
     with pytest.raises(ValidationError) as exc:
         service.create_classification(
             {
-                "name": "低风险",
+                "code": "low_risk",
+                "display_name": "低风险",
                 "priority": "not-an-int",
             },
         )
@@ -172,8 +173,7 @@ def test_update_classification_allows_display_name_change(monkeypatch) -> None:
     updated = service.update_classification(
         classification,
         {
-            # 兼容旧前端：name 代表展示名
-            "name": "低风险(已改名)",
+            "display_name": "低风险(已改名)",
         },
     )
 

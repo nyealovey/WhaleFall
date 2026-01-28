@@ -10,13 +10,13 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 
 from app.core.constants.validation_limits import DATABASE_TABLE_SIZES_LIMIT_MAX
 from app.core.types.common_filter_options import CommonDatabasesOptionsFilters
 from app.core.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.core.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
-from app.schemas.base import PayloadSchema
+from app.schemas.base import QuerySchema
 from app.schemas.query_parsers import parse_int, parse_optional_int, parse_text
 from app.utils.payload_converters import as_bool
 from app.utils.time_utils import time_utils
@@ -76,19 +76,42 @@ def _parse_optional_date(value: Any, *, param_name: str) -> date | None:
     return parsed_dt.date()
 
 
-class DatabasesOptionsQuery(PayloadSchema):
+class DatabaseLedgersBaseQuery(QuerySchema):
+    """`/databases/ledgers` 相关 query 的公共字段与解析."""
+
+    search: str = ""
+    db_type: str = "all"
+    instance_id: int | None = None
+    tags: list[str] = Field(default_factory=list)
+
+    @field_validator("search", mode="before")
+    @classmethod
+    def _parse_search(cls, value: Any) -> str:
+        return parse_text(value)
+
+    @field_validator("db_type", mode="before")
+    @classmethod
+    def _parse_db_type(cls, value: Any) -> str:
+        cleaned = parse_text(value)
+        return cleaned or "all"
+
+    @field_validator("instance_id", mode="before")
+    @classmethod
+    def _parse_instance_id(cls, value: Any) -> int | None:
+        return parse_optional_int(value)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _parse_tags(cls, value: Any) -> list[str]:
+        return _parse_tags(value)
+
+
+class DatabasesOptionsQuery(QuerySchema):
     """`/databases/options` query 参数 schema."""
 
     instance_id: int
     page: int = 1
     limit: int = 100
-    offset: str | None = None  # legacy param - explicitly rejected
-
-    @model_validator(mode="after")
-    def _reject_offset(self) -> DatabasesOptionsQuery:
-        if self.offset is not None:
-            raise ValueError("分页参数已统一为 page/limit，不支持 offset")
-        return self
 
     @field_validator("instance_id", mode="before")
     @classmethod
@@ -123,36 +146,11 @@ class DatabasesOptionsQuery(PayloadSchema):
         return CommonDatabasesOptionsFilters(instance_id=instance_id, limit=self.limit, offset=offset)
 
 
-class DatabaseLedgersQuery(PayloadSchema):
+class DatabaseLedgersQuery(DatabaseLedgersBaseQuery):
     """`/databases/ledgers` query 参数 schema."""
 
-    search: str = ""
-    db_type: str = "all"
-    instance_id: int | None = None
-    tags: list[str] = Field(default_factory=list)
     page: int = 1
     limit: int = 20
-
-    @field_validator("search", mode="before")
-    @classmethod
-    def _parse_search(cls, value: Any) -> str:
-        return parse_text(value)
-
-    @field_validator("db_type", mode="before")
-    @classmethod
-    def _parse_db_type(cls, value: Any) -> str:
-        cleaned = parse_text(value)
-        return cleaned or "all"
-
-    @field_validator("instance_id", mode="before")
-    @classmethod
-    def _parse_instance_id(cls, value: Any) -> int | None:
-        return parse_optional_int(value)
-
-    @field_validator("tags", mode="before")
-    @classmethod
-    def _parse_tags(cls, value: Any) -> list[str]:
-        return _parse_tags(value)
 
     @field_validator("page", mode="before")
     @classmethod
@@ -173,37 +171,11 @@ class DatabaseLedgersQuery(PayloadSchema):
         return parsed
 
 
-class DatabaseLedgersExportQuery(PayloadSchema):
+class DatabaseLedgersExportQuery(DatabaseLedgersBaseQuery):
     """`/databases/ledgers/exports` query 参数 schema."""
 
-    search: str = ""
-    db_type: str = "all"
-    instance_id: int | None = None
-    tags: list[str] = Field(default_factory=list)
 
-    @field_validator("search", mode="before")
-    @classmethod
-    def _parse_search(cls, value: Any) -> str:
-        return parse_text(value)
-
-    @field_validator("db_type", mode="before")
-    @classmethod
-    def _parse_db_type(cls, value: Any) -> str:
-        cleaned = parse_text(value)
-        return cleaned or "all"
-
-    @field_validator("instance_id", mode="before")
-    @classmethod
-    def _parse_instance_id(cls, value: Any) -> int | None:
-        return parse_optional_int(value)
-
-    @field_validator("tags", mode="before")
-    @classmethod
-    def _parse_tags(cls, value: Any) -> list[str]:
-        return _parse_tags(value)
-
-
-class DatabasesSizesQuery(PayloadSchema):
+class DatabasesSizesQuery(QuerySchema):
     """`/databases/sizes` query 参数 schema."""
 
     instance_id: int
@@ -214,13 +186,6 @@ class DatabasesSizesQuery(PayloadSchema):
     include_inactive: bool = False
     page: int = 1
     limit: int = 100
-    offset: str | None = None  # legacy param - explicitly rejected
-
-    @model_validator(mode="after")
-    def _reject_offset(self) -> DatabasesSizesQuery:
-        if self.offset is not None:
-            raise ValueError("分页参数已统一为 page/limit，不支持 offset")
-        return self
 
     @field_validator("instance_id", mode="before")
     @classmethod
@@ -286,20 +251,13 @@ class DatabasesSizesQuery(PayloadSchema):
         )
 
 
-class DatabaseTableSizesQuery(PayloadSchema):
+class DatabaseTableSizesQuery(QuerySchema):
     """`/databases/<id>/tables/sizes` query 参数 schema."""
 
     schema_name: str | None = None
     table_name: str | None = None
     page: int = 1
     limit: int = 200
-    offset: str | None = None  # legacy param - explicitly rejected
-
-    @model_validator(mode="after")
-    def _reject_offset(self) -> DatabaseTableSizesQuery:
-        if self.offset is not None:
-            raise ValueError("分页参数已统一为 page/limit，不支持 offset")
-        return self
 
     @field_validator("schema_name", "table_name", mode="before")
     @classmethod

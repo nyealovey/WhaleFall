@@ -1,0 +1,54 @@
+app/services/accounts_permissions/snapshot_view.py:4:- 不兼容 legacy 旧数据
+docs/Obsidian/standards/doc/guide/documentation.md:122:- 状态：`Draft | Active | Deprecated | Archived`
+docs/Obsidian/standards/doc/guide/documentation.md:254:- `Deprecated`：仍可参考，但已有替代方案；必须指向替代文档。
+docs/Obsidian/standards/doc/guide/documentation.md:260:- `standards/*`：不轻易归档；如需替换版本，旧文档改为 `Deprecated` 并链接到新标准。
+docs/Obsidian/standards/doc/guide/api-contract-markdown.md:53:  - `status`(draft/active/deprecated)
+scripts/dev/openapi/export_api_contract_canvas.py:2:"""(Deprecated) 生成 `/api/v1` API contract 索引画布, 并校验 contract 覆盖率.
+scripts/dev/openapi/export_api_contract_canvas.py:4:Deprecated:
+scripts/dev/openapi/export_api_contract_canvas.py:259:                f"- (Legacy) 本画布仅作为 `{base_path}/**` contract canvas 的索引\n"
+scripts/dev/openapi/export_api_contract_canvas.py:262:                "- (Legacy) 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py "
+scripts/dev/openapi/export_api_contract_canvas.py:264:                "- (Legacy) 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\n"
+docs/Obsidian/standards/doc/guide/document-boundary.md:93:- MAY: standards 内保留旧文件作为 deprecated stub(仅做跳转), 用于兼容历史链接, 但必须标记 `status: deprecated` 并指向新位置.
+docs/Obsidian/standards/doc/guide/document-boundary.md:115:  - 改为 deprecated stub(保留 alias/跳转), 或
+docs/Obsidian/reference/service/cache-services.md:143:| `list` | legacy schema | `None`（视为 miss） |
+docs/Obsidian/reference/service/cache-services.md:158:- 分类规则缓存：仅接受 wrapped schema（legacy list 视为 miss）
+scripts/ci/ops-legacy-guard.sh:13:  ./scripts/ci/ops-legacy-guard.sh
+scripts/ci/ops-legacy-guard.sh:27:  echo "未检测到 rg 命令，无法执行 ops legacy 门禁检查。" >&2
+scripts/ci/ops-legacy-guard.sh:31:# --- 1) legacy health api paths ---
+scripts/ci/ops-legacy-guard.sh:67:# --- 2) legacy userdata->volume migration remnants ---
+scripts/ci/ops-legacy-guard.sh:106:echo "✅ ops legacy 门禁通过。"
+docs/plans/2026-01-28-code-simplicity-progress.md:16:- `COMPAT` 兼容分支的永久化风险（补齐退出机制）
+docs/plans/2026-01-28-code-simplicity-progress.md:29:| `COMPAT` 标记数 | 14 | 0 | 0 | 已改为严格校验，并移除历史数据形状兼容 |
+docs/plans/2026-01-28-code-simplicity-progress.md:67:### P2（长期债务治理：COMPAT 退出机制 + 事务边界收敛）
+docs/plans/2026-01-28-code-simplicity-progress.md:71:| P2-001 | DONE | `app/schemas/**`（12 处 `COMPAT`） | 改为严格校验：非法分页/排序/日期直接抛错，不再做默认降级；移除 schema 内 `COMPAT` 分支。 | `uv run ruff check app tests/unit/schemas && uv run pyright` | 2026-01-28：完成并通过单测 |
+docs/plans/2026-01-28-code-simplicity-progress.md:73:| P2-003 | DONE | `app/services/ledgers/accounts_ledger_change_history_service.py` / `app/schemas/internal_contracts/account_change_log_diff_v1.py` | 移除 legacy list diff 兼容：只接受 v1 dict 形状，list 直接报错。 | `uv run pytest -m unit` | 2026-01-28：全量单测通过 |
+docs/plans/2026-01-28-code-simplicity-progress.md:89:  - 完成 P2-001：schema 层去除 `COMPAT` 降级逻辑，非法参数改为直接报错（更新相关单测）
+docs/plans/2026-01-28-code-simplicity-progress.md:91:  - 完成 P2-003：账户变更 diff 仅接受 v1 dict，移除 legacy list 兼容（更新相关单测）
+docs/plans/2026-01-28-code-simplicity-progress.md:99:- `COMPAT` 分支删除需要配合数据迁移/观测窗口：进度应记录“命中次数”或日志查询方式，避免拍脑袋删兼容。
+scripts/ci/pagination-param-guard.sh:43:# --- TableQueryParams: 禁止 legacy page_size/pageSize，必须 normalize 为 limit ---
+scripts/ci/pagination-param-guard.sh:55:  'pagination:legacy-page-size-param'
+scripts/ci/pagination-param-guard.sh:61:    echo "检测到 TableQueryParams 仍在解析/输出 legacy page_size/pageSize（禁止）。" >&2
+scripts/ci/pagination-param-guard.sh:83:echo "✅ 分页参数门禁通过：TableQueryParams 使用 limit 且已清理 legacy page_size/pageSize。"
+tests/unit/services/test_aggregation_tasks_read_service_period_completeness.py:40:        raise AssertionError("legacy has_aggregation_for_period should not be called")
+scripts/ci/frontend-contracts-guard.sh:2:# Frontend contracts 门禁：modules 分层/注入/迁移约束（避免页面脚本回退为直连 service 或 legacy token）
+docs/Obsidian/reference/examples/obsidian-frontmatter-duplicate-check.md:35:  - 改为 deprecated stub(保留 alias 并跳转到 SSOT), 或
+docs/Obsidian/standards/backend/design/compatibility-and-deprecation.md:66:- MUST: 迁移完成后必须删除兼容分支，禁止长期保留“看起来无害”的 legacy fallback。
+app/services/capacity/capacity_collection_task_runner.py:65:    该 runner 的外部输入可能来自 legacy/字符串化数据源；这里返回 0 用于统计字段兜底。
+docs/Obsidian/standards/core/guide/new-feature-delivery.md:8:status: deprecated
+docs/Obsidian/standards/core/guide/new-feature-delivery.md:34:- 2026-01-09: 将交付清单迁移到 `docs/Obsidian/reference/development/new-feature-delivery.md`, 本文件标记为 deprecated.
+docs/Obsidian/standards/core/guide/scripts.md:356:| `ops-legacy-guard.sh` | 运维/部署脚本 legacy 回归（旧 health 路径、迁移残留） | `./scripts/ci/ops-legacy-guard.sh` |
+docs/Obsidian/standards/ui/design/layer/page-entry-layer.md:41:- 各页面入口脚本(推荐位于 `app/static/js/modules/pages/**`; legacy 可能位于 `app/static/js/modules/views/**`, 需逐步迁移), 负责挂载 `window.<PageId>`.
+docs/Obsidian/standards/ui/design/layer/page-entry-layer.md:68:- MAY: 迁移期 legacy 代码可临时读取 allowlist 外 `window.*`, 但必须在评审中说明原因, 并给出迁移计划.
+app/routes/auth.py:181:# legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 旧路径不再提供路由.
+docs/Obsidian/standards/ui/guide/layer/README.md:104:> legacy 代码如不满足 allowlist, 必须在评审中说明原因, 并给出迁移计划(例如把依赖上移到 Page Entry 注入).
+docs/Obsidian/architecture/adr/README.md:38:- Deprecated: 已废弃(需写替代方案)
+docs/prompts/architecture.md:98:  - 兼容：backward/forward compatibility, legacy, deprecation, polyfill, shim, wrapper, facade
+docs/Obsidian/architecture/adr/0000-adr-template.md:25:Proposed | Accepted | Deprecated | Superseded
+docs/Obsidian/architecture/developer-entrypoint.md:117:  - legacy/common: `app/static/js/common/**`
+docs/Obsidian/canvas/global-c4-l3-component-layering.canvas:19:		{"id":"g103000000000011","type":"text","text":"## Web routes (legacy)\n\n- `app/routes/*`","x":-1040,"y":-40,"width":360,"height":120,"color":"3"},
+docs/Obsidian/canvas/accounts/accounts-state-machine.canvas:25:		{"id":"a104000000000034","type":"text","text":"Notes:\\n\\n- 读取端不做 legacy fallback\\n- 约束点: `build_permission_snapshot_view`\\n","x":620,"y":540,"width":400,"height":200,"color":"2"},
+app/models/account_permission.py:35:    不再使用按 db_type 固定列的 legacy 权限字段.继承自 BaseSyncData.
+app/schemas/databases_query.py:28:    """Parse optional string without stripping to preserve legacy behavior."""
+app/schemas/internal_contracts/account_change_log_diff_v1.py:4:- 写入口：统一写入 v1 dict 形状，避免继续持久化 legacy list。
+app/schemas/internal_contracts/account_change_log_diff_v1.py:22:    """Extract diff entries from legacy(list) or v1(dict) payload (read entry)."""
+app/schemas/internal_contracts/type_specific_v1.py:5:- 读入口只允许在 schema 单入口补齐 legacy payload，避免业务层散落兼容分支与 `or` 兜底链。

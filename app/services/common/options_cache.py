@@ -31,9 +31,10 @@ def _normalize_optional_str(value: str | None, *, default: str) -> str:
 
 
 class OptionsCache:
-    """Options 缓存访问器（短 TTL + 固定 key）。"""
+    """Options 缓存访问器（短 TTL + 固定 key）."""
 
     def __init__(self, *, manager: CacheManager | None = None) -> None:
+        """构造 OptionsCache（允许注入 CacheManager 便于测试）."""
         self._manager = manager
 
     def _get_manager(self) -> CacheManager | None:
@@ -85,6 +86,7 @@ class OptionsCache:
 
     # ---- Get/Set helpers ------------------------------------------------
     def get_active_tag_options(self) -> list[dict[str, str]] | None:
+        """读取活跃标签 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return None
@@ -92,12 +94,14 @@ class OptionsCache:
         return cast("list[dict[str, str]] | None", cached) if isinstance(cached, list) else None
 
     def set_active_tag_options(self, options: list[dict[str, str]]) -> bool:
+        """写入活跃标签 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return False
         return manager.set(self._key_active_tags(), options, timeout=self._get_ttl_seconds())
 
     def get_tag_categories(self) -> list[dict[str, str]] | None:
+        """读取标签分类 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return None
@@ -105,12 +109,14 @@ class OptionsCache:
         return cast("list[dict[str, str]] | None", cached) if isinstance(cached, list) else None
 
     def set_tag_categories(self, options: list[dict[str, str]]) -> bool:
+        """写入标签分类 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return False
         return manager.set(self._key_tag_categories(), options, timeout=self._get_ttl_seconds())
 
     def get_classification_options(self) -> list[dict[str, str]] | None:
+        """读取账户分类 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return None
@@ -118,12 +124,14 @@ class OptionsCache:
         return cast("list[dict[str, str]] | None", cached) if isinstance(cached, list) else None
 
     def set_classification_options(self, options: list[dict[str, str]]) -> bool:
+        """写入账户分类 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return False
         return manager.set(self._key_classifications(), options, timeout=self._get_ttl_seconds())
 
     def get_instance_select_options(self, db_type: str | None) -> list[dict[str, str]] | None:
+        """读取实例下拉 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return None
@@ -131,12 +139,14 @@ class OptionsCache:
         return cast("list[dict[str, str]] | None", cached) if isinstance(cached, list) else None
 
     def set_instance_select_options(self, db_type: str | None, options: list[dict[str, str]]) -> bool:
+        """写入实例下拉 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return False
         return manager.set(self._key_instance_select_options(db_type), options, timeout=self._get_ttl_seconds())
 
     def get_database_select_options(self, instance_id: int) -> list[dict[str, str]] | None:
+        """读取数据库下拉 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return None
@@ -144,12 +154,14 @@ class OptionsCache:
         return cast("list[dict[str, str]] | None", cached) if isinstance(cached, list) else None
 
     def set_database_select_options(self, instance_id: int, options: list[dict[str, str]]) -> bool:
+        """写入数据库下拉 options 缓存."""
         manager = self._get_manager()
         if not manager:
             return False
         return manager.set(self._key_database_select_options(instance_id), options, timeout=self._get_ttl_seconds())
 
     def get_common_instances_options(self, db_type: str | None) -> list[dict[str, Any]] | None:
+        """读取 Common instances options 缓存."""
         manager = self._get_manager()
         if not manager:
             return None
@@ -157,12 +169,14 @@ class OptionsCache:
         return cast("list[dict[str, Any]] | None", cached) if isinstance(cached, list) else None
 
     def set_common_instances_options(self, db_type: str | None, items: list[dict[str, Any]]) -> bool:
+        """写入 Common instances options 缓存."""
         manager = self._get_manager()
         if not manager:
             return False
         return manager.set(self._key_common_instances_options(db_type), items, timeout=self._get_ttl_seconds())
 
     def get_common_databases_options(self, filters: CommonDatabasesOptionsFilters) -> dict[str, Any] | None:
+        """读取 Common databases options 缓存."""
         manager = self._get_manager()
         if not manager:
             return None
@@ -170,6 +184,7 @@ class OptionsCache:
         return cast("dict[str, Any] | None", cached) if isinstance(cached, dict) else None
 
     def set_common_databases_options(self, filters: CommonDatabasesOptionsFilters, payload: dict[str, Any]) -> bool:
+        """写入 Common databases options 缓存."""
         manager = self._get_manager()
         if not manager:
             return False
