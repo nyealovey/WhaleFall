@@ -245,7 +245,7 @@
         <div class="layout-shell">
             <div class="layout-shell-inner">
             <p class="mb-0">
-                &copy; 2025 <span id="footer-app-name">{{ app_name }}</span>
+                &copy; {{ current_year }} <span id="footer-app-name">{{ app_name }}</span>
                 {{ config.APP_VERSION or 'unknown' }} - 数据同步管理平台 |
                 <a href="{{ url_for('main.about') }}" class="footer-link text-decoration-none">关于</a> |
             </p>

@@ -431,6 +431,14 @@ def configure_template_filters(app: Flask) -> None:
 
     """
 
+    @app.context_processor
+    def inject_common_template_vars() -> dict[str, object]:
+        """注入全站模板通用变量.
+
+        - current_year: 页脚年份等展示使用（避免硬编码年份导致长期不更新）。
+        """
+        return {"current_year": time_utils.now_china().year}
+
     @app.template_filter("china_time")
     def china_time_filter(dt: str | datetime, format_str: str = "%H:%M:%S") -> str:
         """东八区时间格式化过滤器."""
