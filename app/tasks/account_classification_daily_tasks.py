@@ -516,6 +516,10 @@ def calculate_account_classification(
                 run_id=resolved_run_id,
                 exc=exc,
             )
+        finally:
+            # 后台任务尽快释放连接池中的空闲连接，避免占满 Postgres max_connections。
+            db.session.remove()
+            db.engine.dispose()
 
         sync_logger.info(
             "账户分类每日统计计算完成",
