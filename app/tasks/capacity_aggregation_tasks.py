@@ -510,3 +510,7 @@ def calculate_database_aggregations(
                 task_runs_service=task_runs_service,
                 run_id=resolved_run_id,
             )
+        finally:
+            # 后台任务尽快释放连接池中的空闲连接，避免占满 Postgres max_connections。
+            db.session.remove()
+            db.engine.dispose()
