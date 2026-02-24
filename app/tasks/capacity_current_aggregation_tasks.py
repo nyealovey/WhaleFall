@@ -286,90 +286,95 @@ def capacity_aggregate_current(
         sync_logger = get_sync_logger()
         task_runs_service = TaskRunsWriteService()
 
-        resolved_scope = _validate_scope(scope)
-        resolved_run_id = _resolve_run_id(
-            task_runs_service=task_runs_service,
-            created_by=created_by,
-            run_id=run_id,
-            resolved_scope=resolved_scope,
-        )
+        try:
+            resolved_scope = _validate_scope(scope)
+            resolved_run_id = _resolve_run_id(
+                task_runs_service=task_runs_service,
+                created_by=created_by,
+                run_id=run_id,
+                resolved_scope=resolved_scope,
+            )
 
-        if _is_cancelled(resolved_run_id):
+            if _is_cancelled(resolved_run_id):
+                sync_logger.info(
+                    "任务已取消,跳过执行",
+                    module="capacity_aggregations",
+                    task="capacity_aggregate_current",
+                    run_id=resolved_run_id,
+                    scope=resolved_scope,
+                )
+                return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
+
+            started_at = time.perf_counter()
+            service = AggregationService()
+            period_type = "daily"
+            period_start_date, period_end_date = service.period_calculator.get_current_period(period_type)
+
+            active_instances = InstancesRepository.list_active_instances()
+            _init_items(task_runs_service=task_runs_service, run_id=resolved_run_id, active_instances=active_instances)
+            _write_summary(
+                run_id=resolved_run_id,
+                resolved_scope=resolved_scope,
+                period_type=period_type,
+                period_start_date=period_start_date,
+                period_end_date=period_end_date,
+                status=None,
+                message=None,
+            )
+            progress_callbacks = _build_progress_callbacks(
+                run_id=resolved_run_id,
+                resolved_scope=resolved_scope,
+                period_type=period_type,
+                task_runs_service=task_runs_service,
+            )
+
+            try:
+                result = service.aggregate_current_period(
+                    period_type=period_type,
+                    scope=resolved_scope,
+                    progress_callbacks=progress_callbacks,
+                )
+            except TaskRunCancelledError:
+                return _finalize_cancelled(
+                    sync_logger=sync_logger,
+                    task_runs_service=task_runs_service,
+                    run_id=resolved_run_id,
+                    resolved_scope=resolved_scope,
+                )
+            except Exception as exc:
+                return _finalize_error(
+                    sync_logger=sync_logger,
+                    task_runs_service=task_runs_service,
+                    run_id=resolved_run_id,
+                    resolved_scope=resolved_scope,
+                    exc=exc,
+                )
+
+            status_value = result.get("status")
+            message_value = result.get("message")
+            _write_summary(
+                run_id=resolved_run_id,
+                resolved_scope=resolved_scope,
+                period_type=period_type,
+                period_start_date=period_start_date,
+                period_end_date=period_end_date,
+                status=str(status_value) if status_value is not None else None,
+                message=str(message_value) if message_value is not None else None,
+            )
+
+            task_runs_service.finalize_run(resolved_run_id)
+            db.session.commit()
+
             sync_logger.info(
-                "任务已取消,跳过执行",
+                "当前周期聚合完成",
                 module="capacity_aggregations",
                 task="capacity_aggregate_current",
                 run_id=resolved_run_id,
                 scope=resolved_scope,
+                duration_seconds=round(time.perf_counter() - started_at, 2),
             )
-            return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
-
-        started_at = time.perf_counter()
-        service = AggregationService()
-        period_type = "daily"
-        period_start_date, period_end_date = service.period_calculator.get_current_period(period_type)
-
-        active_instances = InstancesRepository.list_active_instances()
-        _init_items(task_runs_service=task_runs_service, run_id=resolved_run_id, active_instances=active_instances)
-        _write_summary(
-            run_id=resolved_run_id,
-            resolved_scope=resolved_scope,
-            period_type=period_type,
-            period_start_date=period_start_date,
-            period_end_date=period_end_date,
-            status=None,
-            message=None,
-        )
-        progress_callbacks = _build_progress_callbacks(
-            run_id=resolved_run_id,
-            resolved_scope=resolved_scope,
-            period_type=period_type,
-            task_runs_service=task_runs_service,
-        )
-
-        try:
-            result = service.aggregate_current_period(
-                period_type=period_type,
-                scope=resolved_scope,
-                progress_callbacks=progress_callbacks,
-            )
-        except TaskRunCancelledError:
-            return _finalize_cancelled(
-                sync_logger=sync_logger,
-                task_runs_service=task_runs_service,
-                run_id=resolved_run_id,
-                resolved_scope=resolved_scope,
-            )
-        except Exception as exc:
-            return _finalize_error(
-                sync_logger=sync_logger,
-                task_runs_service=task_runs_service,
-                run_id=resolved_run_id,
-                resolved_scope=resolved_scope,
-                exc=exc,
-            )
-
-        status_value = result.get("status")
-        message_value = result.get("message")
-        _write_summary(
-            run_id=resolved_run_id,
-            resolved_scope=resolved_scope,
-            period_type=period_type,
-            period_start_date=period_start_date,
-            period_end_date=period_end_date,
-            status=str(status_value) if status_value is not None else None,
-            message=str(message_value) if message_value is not None else None,
-        )
-
-        task_runs_service.finalize_run(resolved_run_id)
-        db.session.commit()
-
-        sync_logger.info(
-            "当前周期聚合完成",
-            module="capacity_aggregations",
-            task="capacity_aggregate_current",
-            run_id=resolved_run_id,
-            scope=resolved_scope,
-            duration_seconds=round(time.perf_counter() - started_at, 2),
-        )
-        return {"success": True, "message": "当前周期聚合完成", "run_id": resolved_run_id}
+            return {"success": True, "message": "当前周期聚合完成", "run_id": resolved_run_id}
+        finally:
+            # 后台任务尽快释放连接池中的空闲连接，避免占满 Postgres max_connections。
+            db.session.remove()
+            db.engine.dispose()

@@ -295,138 +295,143 @@ def auto_classify_accounts(
     with app.app_context():
         sync_logger = get_sync_logger()
         task_runs_service = TaskRunsWriteService()
-        resolved_run_id = _resolve_run_id(
-            task_runs_service=task_runs_service,
-            instance_id=instance_id,
-            created_by=created_by,
-            run_id=run_id,
-        )
-        if _is_cancelled(resolved_run_id):
-            sync_logger.info(
-                "任务已取消,跳过执行",
-                module="account_classification",
-                task="auto_classify_accounts",
-                run_id=resolved_run_id,
-                instance_id=instance_id,
-            )
-            return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
-
-        started_at = time.perf_counter()
-        repository = ClassificationRepository()
-        rules = repository.fetch_active_rules()
-        accounts = repository.fetch_accounts(instance_id=instance_id)
-
-        if not rules:
-            return _finalize_run_no_rules(
+        try:
+            resolved_run_id = _resolve_run_id(
                 task_runs_service=task_runs_service,
-                run_id=resolved_run_id,
                 instance_id=instance_id,
-                started_at=started_at,
-                accounts_count=len(accounts),
+                created_by=created_by,
+                run_id=run_id,
             )
-
-        task_runs_service.init_items(
-            resolved_run_id,
-            items=[
-                TaskRunItemInit(
-                    item_type="rule",
-                    item_key=str(rule.id),
-                    item_name=getattr(rule, "rule_name", None),
-                )
-                for rule in rules
-                if getattr(rule, "id", None) is not None
-            ],
-        )
-        db.session.commit()
-
-        if not accounts:
-            return _finalize_run_no_accounts(
-                task_runs_service=task_runs_service,
-                run_id=resolved_run_id,
-                instance_id=instance_id,
-                started_at=started_at,
-                rules=rules,
-            )
-
-        # 重新分类前清空旧分配
-        repository.cleanup_all_assignments()
-        db.session.commit()
-
-        accounts_by_db_type = _build_accounts_by_db_type(accounts)
-
-        total_matches = 0
-        total_classifications_added = 0
-
-        for rule in rules:
             if _is_cancelled(resolved_run_id):
                 sync_logger.info(
-                    "任务已取消,提前退出规则循环",
+                    "任务已取消,跳过执行",
                     module="account_classification",
                     task="auto_classify_accounts",
                     run_id=resolved_run_id,
                     instance_id=instance_id,
                 )
-                task_runs_service.finalize_run(resolved_run_id)
-                db.session.commit()
                 return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
 
-            rule_id_value = getattr(rule, "id", None)
-            if rule_id_value is None:
-                continue
+            started_at = time.perf_counter()
+            repository = ClassificationRepository()
+            rules = repository.fetch_active_rules()
+            accounts = repository.fetch_accounts(instance_id=instance_id)
 
-            rule_id = int(rule_id_value)
-            rule_key = str(rule_id)
-            db_type = str(getattr(rule, "db_type", "") or "").strip().lower()
-
-            task_runs_service.start_item(resolved_run_id, item_type="rule", item_key=rule_key)
-            db.session.commit()
-
-            try:
-                matched_count, added_count, duration_ms, instances_covered = _process_rule(
-                    rule=rule,
-                    repository=repository,
-                    accounts_by_db_type=accounts_by_db_type,
-                    db_type=db_type,
-                    rule_id=rule_id,
-                )
-                total_matches += matched_count
-                total_classifications_added += added_count
-
-                task_runs_service.complete_item(
-                    resolved_run_id,
-                    item_type="rule",
-                    item_key=rule_key,
-                    metrics_json={
-                        "matched_accounts_total": matched_count,
-                        "classifications_added": added_count,
-                        "duration_ms": duration_ms,
-                        "instances_covered": instances_covered,
-                    },
-                    details_json={
-                        "classification_id": getattr(rule, "classification_id", None),
-                        "db_type": db_type,
-                    },
-                )
-                db.session.commit()
-            except Exception as rule_exc:
-                _finalize_rule_failure(
+            if not rules:
+                return _finalize_run_no_rules(
                     task_runs_service=task_runs_service,
                     run_id=resolved_run_id,
-                    rule_key=rule_key,
-                    rule_id=rule_id,
-                    rule=rule,
-                    exc=rule_exc,
+                    instance_id=instance_id,
+                    started_at=started_at,
+                    accounts_count=len(accounts),
                 )
-                raise
 
-        return _finalize_run_success(
-            task_runs_service=task_runs_service,
-            sync_logger=sync_logger,
-            run_id=resolved_run_id,
-            instance_id=instance_id,
-            started_at=started_at,
-            rules_count=len(rules),
-            accounts_count=len(accounts),
-            total_matches=total_matches,
-            total_classifications_added=total_classifications_added,
-        )
+            task_runs_service.init_items(
+                resolved_run_id,
+                items=[
+                    TaskRunItemInit(
+                        item_type="rule",
+                        item_key=str(rule.id),
+                        item_name=getattr(rule, "rule_name", None),
+                    )
+                    for rule in rules
+                    if getattr(rule, "id", None) is not None
+                ],
+            )
+            db.session.commit()
+
+            if not accounts:
+                return _finalize_run_no_accounts(
+                    task_runs_service=task_runs_service,
+                    run_id=resolved_run_id,
+                    instance_id=instance_id,
+                    started_at=started_at,
+                    rules=rules,
+                )
+
+            # 重新分类前清空旧分配
+            repository.cleanup_all_assignments()
+            db.session.commit()
+
+            accounts_by_db_type = _build_accounts_by_db_type(accounts)
+
+            total_matches = 0
+            total_classifications_added = 0
+
+            for rule in rules:
+                if _is_cancelled(resolved_run_id):
+                    sync_logger.info(
+                        "任务已取消,提前退出规则循环",
+                        module="account_classification",
+                        task="auto_classify_accounts",
+                        run_id=resolved_run_id,
+                        instance_id=instance_id,
+                    )
+                    task_runs_service.finalize_run(resolved_run_id)
+                    db.session.commit()
+                    return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
+
+                rule_id_value = getattr(rule, "id", None)
+                if rule_id_value is None:
+                    continue
+
+                rule_id = int(rule_id_value)
+                rule_key = str(rule_id)
+                db_type = str(getattr(rule, "db_type", "") or "").strip().lower()
+
+                task_runs_service.start_item(resolved_run_id, item_type="rule", item_key=rule_key)
+                db.session.commit()
+
+                try:
+                    matched_count, added_count, duration_ms, instances_covered = _process_rule(
+                        rule=rule,
+                        repository=repository,
+                        accounts_by_db_type=accounts_by_db_type,
+                        db_type=db_type,
+                        rule_id=rule_id,
+                    )
+                    total_matches += matched_count
+                    total_classifications_added += added_count
+
+                    task_runs_service.complete_item(
+                        resolved_run_id,
+                        item_type="rule",
+                        item_key=rule_key,
+                        metrics_json={
+                            "matched_accounts_total": matched_count,
+                            "classifications_added": added_count,
+                            "duration_ms": duration_ms,
+                            "instances_covered": instances_covered,
+                        },
+                        details_json={
+                            "classification_id": getattr(rule, "classification_id", None),
+                            "db_type": db_type,
+                        },
+                    )
+                    db.session.commit()
+                except Exception as rule_exc:
+                    _finalize_rule_failure(
+                        task_runs_service=task_runs_service,
+                        run_id=resolved_run_id,
+                        rule_key=rule_key,
+                        rule_id=rule_id,
+                        rule=rule,
+                        exc=rule_exc,
+                    )
+                    raise
+
+            return _finalize_run_success(
+                task_runs_service=task_runs_service,
+                sync_logger=sync_logger,
+                run_id=resolved_run_id,
+                instance_id=instance_id,
+                started_at=started_at,
+                rules_count=len(rules),
+                accounts_count=len(accounts),
+                total_matches=total_matches,
+                total_classifications_added=total_classifications_added,
+            )
+        finally:
+            # 后台任务尽快释放连接池中的空闲连接，避免占满 Postgres max_connections。
+            db.session.remove()
+            db.engine.dispose()

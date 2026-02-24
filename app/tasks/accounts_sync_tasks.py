@@ -554,3 +554,7 @@ def sync_accounts(
                 exc=exc,
             )
             raise
+        finally:
+            # 后台任务尽快释放连接池中的空闲连接，避免占满 Postgres max_connections。
+            db.session.remove()
+            db.engine.dispose()
