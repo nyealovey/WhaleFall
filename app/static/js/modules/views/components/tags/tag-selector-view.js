@@ -53,6 +53,42 @@
     return undefined;
   }
 
+  function normalizeCategoryItem(item) {
+    if (typeof item === "string") {
+      const normalized = item.trim();
+      if (!normalized) {
+        return null;
+      }
+      return { value: normalized, label: normalized };
+    }
+
+    if (Array.isArray(item)) {
+      const value = firstDefined(item[0], item[1]);
+      if (value === undefined || value === null || value === "") {
+        return null;
+      }
+      return {
+        value,
+        label: firstDefined(item[1], item[0]),
+        count: typeof item[2] === "number" ? item[2] : undefined,
+      };
+    }
+
+    if (!item || typeof item !== "object") {
+      return null;
+    }
+
+    const value = firstDefined(item.value, item.name, item.id);
+    if (value === undefined || value === null || value === "") {
+      return null;
+    }
+    return {
+      value,
+      label: firstDefined(item.label, item.display_name, item.name, item.value, item.id),
+      count: typeof item.count === "number" ? item.count : undefined,
+    };
+  }
+
   function orderCategories(items) {
     const collection = Array.isArray(items) ? items.filter(Boolean) : [];
     const deduped = hasLodashMethod("uniqBy")
@@ -238,10 +274,7 @@
         return;
       }
       const ordered = orderCategories(
-        categories.map((item) => ({
-          value: firstDefined(item.value, item.name, item[0]),
-          label: firstDefined(item.label, item.display_name, item[1]),
-        })),
+        categories.map(normalizeCategoryItem).filter(Boolean),
       );
       const chips = [
         { value: DEFAULT_CATEGORY, label: "全部" },
