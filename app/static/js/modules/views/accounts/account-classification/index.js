@@ -305,25 +305,25 @@ function mountAccountClassificationPage(window, document) {
         const iconHtml = getClassificationIcon(classification.icon_name);
         const priority = typeof classification.priority === 'number' ? classification.priority : '—';
         const rulesCount = typeof classification.rules_count === 'number' ? classification.rules_count : 0;
+        const description = typeof classification?.description === 'string' ? classification.description.trim() : '';
         const chips = [
             renderLedgerChip(`优先级 ${priority}`, 'muted'),
             renderLedgerChip(`规则 ${rulesCount}`, 'muted'),
         ];
+        const code = classification?.code ? `#${escapeHtml(classification.code)}` : '#-';
 
         return `
             <div class="classification-card" data-id="${escapeHtml(classification?.id ?? '')}">
-                <div class="classification-card__header">
-                    <div class="classification-card__title">
+                <div class="classification-card__masthead">
+                    <div class="classification-card__identity">
                         ${iconHtml}
-                        <div>
-                            <div class="classification-card__name-row">
-                                <div class="classification-card__name">${escapeHtml(classification?.name || '未命名分类')}</div>
-                                <div class="classification-card__badges">
-                                    ${renderSystemClassificationPill(classification.is_system)}
-                                    ${renderRiskLevelPill(classification.risk_level)}
-                                </div>
+                        <div class="classification-card__identity-copy">
+                            <div class="classification-card__name">${escapeHtml(classification?.name || '未命名分类')}</div>
+                            <div class="classification-card__signals">
+                                ${renderSystemClassificationPill(classification.is_system)}
+                                ${renderRiskLevelPill(classification.risk_level)}
                             </div>
-                            <div class="small text-muted"><code>${escapeHtml(classification?.code || '-')}</code></div>
+                            <div class="classification-card__code">${code}</div>
                         </div>
                     </div>
                     <div class="classification-card__actions">
@@ -331,11 +331,11 @@ function mountAccountClassificationPage(window, document) {
                     </div>
                 </div>
                 ${
-                    classification.description
-                        ? `<p class="classification-card__desc">${escapeHtml(classification.description)}</p>`
+                    description
+                        ? `<p class="classification-card__note" title="${escapeHtml(description)}">${escapeHtml(description)}</p>`
                         : ''
                 }
-                <div class="ledger-chip-stack">${chips.join('')}</div>
+                <div class="classification-card__meta">${chips.join('')}</div>
             </div>
         `;
     }
@@ -343,21 +343,21 @@ function mountAccountClassificationPage(window, document) {
     function renderClassificationActions(classification) {
         if (window.currentUserRole !== 'admin') {
             return `
-                <span class="btn btn-outline-secondary btn-sm btn-icon disabled" title="只读模式">
+                <span class="btn btn-outline-secondary btn-sm btn-icon disabled" title="只读模式" aria-label="只读模式">
                     <i class="fas fa-lock"></i>
                 </span>
             `;
         }
 
         const editButton = `
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="编辑分类">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="编辑分类" aria-label="编辑分类">
                 <i class="fas fa-edit"></i>
             </button>
         `;
         const deleteButton = classification.is_system
             ? ''
             : `
-                <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="删除分类">
+                <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="删除分类" aria-label="删除分类">
                     <i class="fas fa-trash"></i>
                 </button>
             `;
