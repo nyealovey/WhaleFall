@@ -1,7 +1,8 @@
-/* Modal width tiers - driven by tokens in variables.css */
+/* Modal width tiers and shell */
 
 .modal-dialog {
     --bs-modal-width: var(--modal-width-md);
+    margin-top: 8vh;
 }
 
 .modal-dialog.modal-sm {
@@ -14,4 +15,17 @@
 
 .modal-dialog.modal-xl {
     --bs-modal-width: var(--modal-width-xl);
+}
+
+.modal-backdrop.show {
+    opacity: 0.55;
+}
+
+.modal-body {
+    padding: 1.15rem 1.2rem;
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(22, 29, 38, 0.06);
+    padding: 0.95rem 1.2rem 1.15rem;
 }

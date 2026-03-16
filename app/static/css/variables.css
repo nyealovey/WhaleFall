@@ -1,152 +1,94 @@
-/* CSS变量定义 - 基于Flatly主题的统一设计系统 */
+/* WhaleFall control-console design tokens */
 
 :root {
-    /* 核心色彩体系 */
-    --surface-base: #f4f6fb;
-    --surface-elevated: #ffffff;
-    --surface-muted: #e2e8f0;
-    --surface-contrast: #0f172a;
-    /* 兼容别名: 历史样式中曾使用 surface-default */
-    --surface-default: var(--surface-base);
-    --text-primary: #0f172a;
-    --text-muted: #64748b;
-    /* 兼容别名: 历史样式中曾使用 text-secondary */
+    color-scheme: light;
+
+    /* Core neutrals */
+    --ink-950: #161d26;
+    --ink-900: #22303d;
+    --ink-800: #334252;
+    --ink-700: #49586a;
+    --ink-600: #6f7d8d;
+    --ink-500: #8a97a4;
+    --ink-400: #afb8c2;
+    --ink-300: #d0d6dc;
+    --ink-200: #e4e8ec;
+    --ink-100: #f2f4f6;
+
+    /* Brand / signal */
+    --signal-orange-700: #8f3e09;
+    --signal-orange-600: #b55211;
+    --signal-orange-500: #dd6b20;
+    --signal-orange-400: #f08d37;
+    --signal-orange-300: #f5b56e;
+    --signal-orange-200: #f9d8af;
+    --signal-cyan-500: #2c96c6;
+    --signal-green-500: #288766;
+    --signal-red-500: #cb5d49;
+    --signal-amber-500: #cb8a1f;
+
+    /* Surfaces */
+    --surface-canvas: #eef1f3;
+    --surface-panel: rgba(255, 255, 255, 0.9);
+    --surface-panel-raised: #ffffff;
+    --surface-panel-strong: #f7f5f1;
+    --surface-panel-alt: #f1ede6;
+    --surface-muted: #dde4e8;
+    --surface-contrast: var(--ink-950);
+    --surface-default: var(--surface-canvas);
+    --surface-light: #faf8f5;
+
+    /* Borders */
+    --border-subtle: rgba(36, 47, 59, 0.08);
+    --border-default: rgba(36, 47, 59, 0.12);
+    --border-strong: rgba(25, 34, 44, 0.22);
+
+    /* Text */
+    --text-primary: var(--ink-950);
+    --text-muted: var(--ink-700);
     --text-secondary: var(--text-muted);
-    /* OKLCH 主色 + 不同色阶, 确保橙色体系可用于不同强度场景 */
-    --accent-primary: oklch(0.646 0.222 41.116);
-    --accent-primary-hover: oklch(0.553 0.195 38.402);
-    --accent-primary-ring: oklch(0.75 0.183 55.934 / 0.35);
-    --accent-primary-soft: oklch(0.837 0.128 66.29);
-    --accent-primary-strong: oklch(0.47 0.157 37.304);
-    --accent-primary-muted: oklch(0.705 0.213 47.604 / 0.4);
-    --accent-primary-intense: oklch(0.553 0.195 38.402 / 0.9);
+    --text-inverse: #f7f5f1;
 
-    /* 橙色系扩展, 提供多阶透明与亮度配置 */
-    --orange-base: oklch(0.72 0.18 50);
-    --orange-strong: oklch(0.6 0.2 46);
-    --orange-muted: color-mix(in srgb, var(--orange-base) 35%, var(--surface-elevated));
-    --orange-highlight: color-mix(in srgb, var(--orange-base) 85%, white);
-    --orange-contrast: oklch(0.42 0.12 35);
-    --orange-alpha-20: color-mix(in srgb, var(--orange-base) 20%, transparent);
-    --orange-alpha-40: color-mix(in srgb, var(--orange-base) 40%, transparent);
+    /* Primary aliases for existing components */
+    --accent-primary: var(--signal-orange-500);
+    --accent-primary-hover: var(--signal-orange-600);
+    --accent-primary-ring: rgba(221, 107, 32, 0.22);
+    --accent-primary-soft: var(--signal-orange-200);
+    --accent-primary-strong: var(--signal-orange-700);
+    --accent-primary-muted: rgba(221, 107, 32, 0.35);
+    --accent-primary-intense: rgba(221, 107, 32, 0.92);
 
-    /* 辅助/状态色 */
-    --accent-secondary: #95a5a6;
-    --status-success: #22c55e;
-    --status-danger: #ef4444;
-    --status-warning: #f59e0b;
-    --status-info: #38bdf8;
-    --surface-light: #f8fafc;
+    --orange-base: var(--signal-orange-400);
+    --orange-strong: var(--signal-orange-600);
+    --orange-muted: color-mix(in srgb, var(--signal-orange-300) 35%, var(--surface-panel-raised));
+    --orange-highlight: color-mix(in srgb, var(--signal-orange-200) 74%, white);
+    --orange-contrast: var(--signal-orange-700);
+    --orange-alpha-20: rgba(240, 141, 55, 0.2);
+    --orange-alpha-40: rgba(240, 141, 55, 0.4);
 
-    /* 图表&数据可视化专用色板 (Shadcn/Tailwind 22 色, 均取 300 深度) */
-    --chart-color-1: #cbd5f5;   /* slate-300 */
-    --chart-color-2: #d1d5db;   /* gray-300 */
-    --chart-color-3: #d4d4d8;   /* zinc-300 */
-    --chart-color-4: #d4d4d4;   /* neutral-300 */
-    --chart-color-5: #d6d3d1;   /* stone-300 */
-    --chart-color-6: #fca5a5;   /* red-300 */
-    --chart-color-7: #fdba74;   /* orange-300 */
-    --chart-color-8: #fcd34d;   /* amber-300 */
-    --chart-color-9: #fde047;   /* yellow-300 */
-    --chart-color-10: #bef264;  /* lime-300 */
-    --chart-color-11: #86efac;  /* green-300 */
-    --chart-color-12: #6ee7b7;  /* emerald-300 */
-    --chart-color-13: #5eead4;  /* teal-300 */
-    --chart-color-14: #67e8f9;  /* cyan-300 */
-    --chart-color-15: #7dd3fc;  /* sky-300 */
-    --chart-color-16: #93c5fd;  /* blue-300 */
-    --chart-color-17: #a5b4fc;  /* indigo-300 */
-    --chart-color-18: #c4b5fd;  /* violet-300 */
-    --chart-color-19: #d8b4fe;  /* purple-300 */
-    --chart-color-20: #f0abfc;  /* fuchsia-300 */
-    --chart-color-21: #f9a8d4;  /* pink-300 */
-    --chart-color-22: #fda4af;  /* rose-300 */
+    /* Status */
+    --accent-secondary: #687889;
+    --status-success: var(--signal-green-500);
+    --status-danger: var(--signal-red-500);
+    --status-warning: var(--signal-amber-500);
+    --status-info: var(--signal-cyan-500);
 
-    /* 侧边栏/导航专用色阶, 便于做浅/深配色切换 */
-    --sidebar-surface: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.141 0.005 285.823);
-    --sidebar-accent: var(--accent-primary);
-    --sidebar-accent-foreground: oklch(0.98 0.016 73.684);
-    --sidebar-border: oklch(0.92 0.004 286.32);
-    --sidebar-ring: oklch(0.75 0.183 55.934);
+    /* Nav */
+    --nav-height: 80px;
+    --nav-pill-bg: rgba(22, 29, 38, 0.04);
+    --nav-pill-active: rgba(221, 107, 32, 0.14);
+    --nav-pill-border: rgba(221, 107, 32, 0.26);
 
-    /* 扩展色彩 */
-    --gray-50: #f8f9fa;
-    --gray-100: #f8f9fa;
-    --gray-200: #e9ecef;
-    --gray-300: #dee2e6;
-    --gray-400: #ced4da;
-    --gray-500: #adb5bd;
-    --gray-600: #6c757d;
-    --gray-700: #495057;
-    --gray-800: #343a40;
-    --gray-900: #212529;
-
-    /* 渐变系统 (保留给图标/特殊元素) */
-    --gradient-primary: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
-    --gradient-success: linear-gradient(45deg, var(--status-success), #16a34a);
-    --gradient-danger: linear-gradient(45deg, var(--status-danger), #b91c1c);
-    --gradient-warning: linear-gradient(45deg, var(--status-warning), #d97706);
-    --gradient-info: linear-gradient(45deg, var(--status-info), #0ea5e9);
-    --gradient-secondary: linear-gradient(45deg, var(--accent-secondary), #868e96);
-    --gradient-light: linear-gradient(135deg, var(--surface-elevated), var(--surface-muted));
-
-    /* 阴影系统 */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.08);
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
-    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.1);
-
-    /* 圆角系统 */
-    --border-radius-sm: 0.375rem;
-    --border-radius-md: 0.5rem;
-    --border-radius-lg: 0.75rem;
-    --border-radius-xl: 1rem;
-    --border-radius-xxl: 1.5rem;
-    --border-radius-pill: 999px;
-
-    /* 间距系统 */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
-    --spacing-xxl: 3rem;
-
-    /* 布局栅格变量 */
-    --layout-max-width: 1440px;
-    --layout-max-width-wide: 1920px;
-    --layout-max-width-narrow: 1200px;
-    --layout-navbar-height: 76px;
-    --layout-main-content-offset-top: var(--layout-navbar-height);
-    --layout-main-content-min-height: calc(100vh - var(--layout-navbar-height));
-    --layout-gutter: 1.5rem;
-    --page-spacing-regular: 1.5rem;
-    --page-spacing-tight: 1rem;
-
-    /* 控件尺寸 tier（regular / compact） */
-    --control-height-regular: 2.5rem;
-    --control-height-compact: 2.25rem;
-    --control-padding-y-regular: 0.5rem;
-    --control-padding-x-regular: 1rem;
-    --control-padding-y-compact: 0.375rem;
-    --control-padding-x-compact: 0.875rem;
-
-    /* Modal width tiers */
-    --modal-width-sm: min(92vw, 420px);
-    --modal-width-md: min(96vw, 500px);
-    --modal-width-lg: min(98vw, 800px);
-    --modal-width-xl: min(99vw, 1140px);
-
-    /* 过渡动画系统 */
-    --transition-base: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
-    --transition-fast: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
-    --transition-slow: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, transform 0.5s ease, opacity 0.5s ease;
-
-    /* 字体系统 */
-    --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --font-family-monospace: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    /* Typography */
+    --font-family-display: 'IBM Plex Sans Condensed', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+        'Noto Sans CJK SC', sans-serif;
+    --font-family-body: 'IBM Plex Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+        'Noto Sans CJK SC', sans-serif;
+    --font-family-data: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+    --font-family-base: var(--font-family-body);
+    --font-family-monospace: var(--font-family-data);
+    --letter-spacing-display: 0.04em;
+    --letter-spacing-label: 0.08em;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -154,9 +96,123 @@
     --font-size-xl: 1.25rem;
     --font-size-2xl: 1.5rem;
     --font-size-3xl: 1.875rem;
-    --font-size-4xl: 2.25rem;
+    --font-size-4xl: 2.5rem;
 
-    /* Z-index系统 */
+    /* Chart palette */
+    --chart-color-1: #a9c5d4;
+    --chart-color-2: #d98e4d;
+    --chart-color-3: #739c8d;
+    --chart-color-4: #cf6758;
+    --chart-color-5: #b9985a;
+    --chart-color-6: #7b8aa4;
+    --chart-color-7: #bdb2a1;
+    --chart-color-8: #6fa1ba;
+    --chart-color-9: #dda85e;
+    --chart-color-10: #90b59a;
+    --chart-color-11: #d48574;
+    --chart-color-12: #5d7895;
+    --chart-color-13: #8b7c68;
+    --chart-color-14: #c3d1da;
+    --chart-color-15: #e8c291;
+    --chart-color-16: #b9cdbf;
+    --chart-color-17: #dfb2ab;
+    --chart-color-18: #9aa9bf;
+    --chart-color-19: #ccbfae;
+    --chart-color-20: #d9dee3;
+    --chart-color-21: #f0e3d1;
+    --chart-color-22: #e8ecef;
+
+    /* Sidebar compatibility */
+    --sidebar-surface: #fbfaf8;
+    --sidebar-foreground: var(--ink-950);
+    --sidebar-accent: var(--accent-primary);
+    --sidebar-accent-foreground: #fff8f1;
+    --sidebar-border: var(--border-default);
+    --sidebar-ring: rgba(221, 107, 32, 0.28);
+
+    /* Extended grayscale aliases */
+    --gray-50: #fbfaf8;
+    --gray-100: #f5f1eb;
+    --gray-200: #e5ddd2;
+    --gray-300: #d0c5b8;
+    --gray-400: #b7aa99;
+    --gray-500: #998d7d;
+    --gray-600: #766b5c;
+    --gray-700: #5a5146;
+    --gray-800: #3c372f;
+    --gray-900: #201d1a;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #f3a655 0%, #d5621d 100%);
+    --gradient-primary-soft: linear-gradient(140deg, rgba(243, 166, 85, 0.25) 0%, rgba(221, 107, 32, 0.04) 100%);
+    --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(246, 243, 238, 0.94) 100%);
+    --gradient-mesh: radial-gradient(circle at 15% 20%, rgba(240, 141, 55, 0.18), transparent 34%),
+        radial-gradient(circle at 85% 12%, rgba(44, 150, 198, 0.12), transparent 24%),
+        radial-gradient(circle at 60% 78%, rgba(203, 138, 31, 0.12), transparent 30%);
+    --gradient-success: linear-gradient(45deg, var(--status-success), color-mix(in srgb, var(--status-success) 80%, white));
+    --gradient-danger: linear-gradient(45deg, var(--status-danger), color-mix(in srgb, var(--status-danger) 80%, white));
+    --gradient-warning: linear-gradient(45deg, var(--status-warning), color-mix(in srgb, var(--status-warning) 82%, white));
+    --gradient-info: linear-gradient(45deg, var(--status-info), color-mix(in srgb, var(--status-info) 82%, white));
+    --gradient-secondary: linear-gradient(45deg, var(--accent-secondary), color-mix(in srgb, var(--accent-secondary) 82%, white));
+    --gradient-light: linear-gradient(135deg, var(--surface-panel-raised), var(--surface-panel-alt));
+
+    /* Shadows */
+    --shadow-xs: 0 1px 2px rgba(22, 29, 38, 0.06);
+    --shadow-sm: 0 10px 24px rgba(22, 29, 38, 0.06);
+    --shadow-md: 0 18px 40px rgba(22, 29, 38, 0.08);
+    --shadow-lg: 0 28px 70px rgba(22, 29, 38, 0.12);
+    --shadow-xl: 0 36px 90px rgba(22, 29, 38, 0.16);
+
+    /* Radius */
+    --border-radius-sm: 0.5rem;
+    --border-radius-md: 0.875rem;
+    --border-radius-lg: 1.25rem;
+    --border-radius-xl: 1.75rem;
+    --border-radius-xxl: 2rem;
+    --border-radius-pill: 999px;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-xxl: 3rem;
+
+    /* Layout */
+    --layout-max-width: 1440px;
+    --layout-max-width-wide: 1680px;
+    --layout-max-width-narrow: 1180px;
+    --layout-navbar-height: var(--nav-height);
+    --layout-main-content-offset-top: calc(var(--nav-height) + 1rem);
+    --layout-main-content-min-height: calc(100vh - var(--nav-height));
+    --layout-gutter: 1.75rem;
+    --page-spacing-regular: 1.5rem;
+    --page-spacing-tight: 1rem;
+
+    /* Controls */
+    --control-height-regular: 2.8rem;
+    --control-height-compact: 2.5rem;
+    --control-padding-y-regular: 0.6rem;
+    --control-padding-x-regular: 1rem;
+    --control-padding-y-compact: 0.42rem;
+    --control-padding-x-compact: 0.875rem;
+
+    /* Modals */
+    --modal-width-sm: min(92vw, 420px);
+    --modal-width-md: min(96vw, 560px);
+    --modal-width-lg: min(98vw, 860px);
+    --modal-width-xl: min(99vw, 1180px);
+
+    /* Motion */
+    --transition-base: background-color 0.28s ease, border-color 0.28s ease, color 0.28s ease,
+        box-shadow 0.28s ease, transform 0.28s ease, opacity 0.28s ease;
+    --transition-fast: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+        box-shadow 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+    --transition-slow: background-color 0.45s ease, border-color 0.45s ease, color 0.45s ease,
+        box-shadow 0.45s ease, transform 0.45s ease, opacity 0.45s ease;
+
+    /* Z-index */
     --z-dropdown: 1000;
     --z-sticky: 1020;
     --z-fixed: 1030;
@@ -165,5 +221,3 @@
     --z-popover: 1060;
     --z-tooltip: 1070;
 }
-
-/* 深色模式变量: 在 body 或根元素上添加 .dark/.theme-dark/[data-theme="dark"] 即可启用 */

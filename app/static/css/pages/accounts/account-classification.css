@@ -1,9 +1,22 @@
-/* 账户分类管理页面配色与栅格重构样式 */
+/* Account classification page */
 
 .classification-layout .card {
-    border: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-lg);
-    box-shadow: none;
+    border: 1px solid rgba(22, 29, 38, 0.08);
+}
+
+.classification-panel,
+.rule-panel {
+    position: relative;
+}
+
+.classification-panel::before,
+.rule-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.28rem;
+    border-radius: var(--border-radius-lg) 0 0 var(--border-radius-lg);
+    background: linear-gradient(180deg, var(--signal-orange-500), rgba(221, 107, 32, 0.06));
 }
 
 .classification-list {
@@ -13,16 +26,17 @@
 }
 
 .classification-card {
-    border: 1px solid var(--gray-200);
+    border: 1px solid rgba(22, 29, 38, 0.08);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
-    background: var(--surface-elevated);
-    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+    background: rgba(255, 255, 255, 0.82);
+    transition: var(--transition-fast);
 }
 
 .classification-card:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
+    border-color: rgba(221, 107, 32, 0.2);
 }
 
 .classification-card__header {
@@ -37,18 +51,18 @@
 }
 
 .classification-card__icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: var(--border-radius-md);
-    background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.95rem;
+    background: rgba(221, 107, 32, 0.08);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent-primary);
+    color: var(--accent-primary-strong);
 }
 
 .classification-card__icon i {
-    font-size: 1.1rem;
+    font-size: 1.08rem;
 }
 
 .classification-card__name {
@@ -86,9 +100,9 @@
 }
 
 .rule-group-card {
-    border: 1px solid var(--gray-200);
+    border: 1px solid rgba(22, 29, 38, 0.08);
     border-radius: var(--border-radius-md);
-    background: var(--surface-elevated);
+    background: rgba(255, 255, 255, 0.84);
     padding: var(--spacing-md);
 }
 
@@ -100,7 +114,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid rgba(22, 29, 38, 0.06);
     padding-bottom: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
 }
@@ -109,7 +123,9 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    font-family: var(--font-family-display);
     font-weight: 600;
+    letter-spacing: 0.03em;
 }
 
 .rule-list {
@@ -119,14 +135,14 @@
 }
 
 .rule-card {
-    border: 1px solid var(--gray-200);
+    border: 1px solid rgba(22, 29, 38, 0.08);
     border-radius: var(--border-radius-md);
-    background: color-mix(in srgb, var(--surface-muted) 5%, var(--surface-elevated));
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    background: rgba(255, 255, 255, 0.74);
+    transition: var(--transition-fast);
 }
 
 .rule-card:hover {
-    border-color: var(--accent-primary);
+    border-color: rgba(221, 107, 32, 0.24);
     box-shadow: var(--shadow-sm);
 }
 
@@ -174,16 +190,16 @@
 }
 
 .rule-actions .btn {
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--border-radius-pill);
 }
 
 .empty-state {
-    border: 1px dashed var(--gray-300);
+    border: 1px dashed rgba(22, 29, 38, 0.12);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-lg);
     text-align: center;
     color: var(--text-muted);
-    background: color-mix(in srgb, var(--surface-muted) 15%, transparent);
+    background: rgba(255, 255, 255, 0.62);
 }
 
 .permission-policy-center .permission-policy-item {

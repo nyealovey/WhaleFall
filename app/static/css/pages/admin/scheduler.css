@@ -1,9 +1,12 @@
-/* 定时任务管理页面色彩与组件规范 */
+/* Scheduler page */
 
-/* job cards */
+.scheduler-section > .d-flex {
+    padding: 0.4rem 0 0.8rem;
+}
+
 .scheduler-card {
-    background: var(--surface-elevated);
-    border: 1px solid var(--gray-200);
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(22, 29, 38, 0.08);
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-md);
@@ -18,10 +21,12 @@
 }
 
 .scheduler-card__title {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--text-primary);
     margin: 0 0 var(--spacing-sm);
+    font-family: var(--font-family-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text-primary);
 }
 
 .scheduler-card__description {
@@ -46,7 +51,7 @@
 }
 
 .scheduler-card__meta-item i {
-    color: var(--text-muted);
+    color: var(--accent-primary);
 }
 
 .scheduler-trigger-chips {
@@ -65,10 +70,8 @@
 .job-actions .btn-icon {
     width: 2.3rem;
     height: 2.3rem;
-    border-radius: var(--border-radius-sm);
 }
 
-/* empty/loading */
 .loading-state,
 .empty-state {
     text-align: center;
@@ -78,7 +81,7 @@
 
 .empty-state i {
     font-size: 3rem;
-    color: var(--gray-200);
+    color: rgba(22, 29, 38, 0.14);
     margin-bottom: 1rem;
 }
 

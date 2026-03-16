@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from flask import has_app_context
+
 from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
@@ -430,5 +432,6 @@ def sync_databases(
             return result
         finally:
             # 后台任务尽快释放连接池中的空闲连接，避免占满 Postgres max_connections。
-            db.session.remove()
-            db.engine.dispose()
+            if has_app_context():
+                db.session.remove()
+                db.engine.dispose()

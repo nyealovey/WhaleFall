@@ -11,7 +11,7 @@
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block content_outer %}
-{% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息') %}
+{% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息', eyebrow='System Overview') %}
 <div class="btn-group">
     <button type="button" class="btn btn-primary" data-action="refresh-dashboard">
         <i class="fas fa-sync-alt me-2"></i>刷新数据
@@ -22,7 +22,7 @@
 <section class="page-section">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
+            <div class="dashboard-metrics row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
                 <div class="col">
                     {% call metric_card(
                         '数据库实例',
@@ -94,11 +94,11 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="row g-4">
+            <div class="row g-4 dashboard-layout">
         <!-- 图表区域 -->
         <div class="col-lg-8">
             <!-- 日志趋势图 -->
-            <div class="card mb-4">
+            <div class="card dashboard-panel dashboard-panel--chart mb-4">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-chart-line me-2"></i>错误和告警日志趋势（最近7天）
@@ -116,7 +116,7 @@
         <!-- 侧边栏 -->
         <div class="col-lg-4">
             <!-- 系统状态 -->
-            <div class="card mb-4">
+            <div class="card dashboard-panel dashboard-panel--status mb-4">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-server me-2"></i>系统状态
