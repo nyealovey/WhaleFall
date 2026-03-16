@@ -25,6 +25,7 @@ body {
 
 .app-shell {
     position: relative;
+    isolation: isolate;
 }
 
 .app-shell::before {
@@ -37,7 +38,7 @@ body {
         linear-gradient(90deg, rgba(28, 37, 46, 0.02) 1px, transparent 1px);
     background-size: 28px 28px;
     mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 82%);
-    z-index: 0;
+    z-index: -1;
 }
 
 a {
@@ -244,7 +245,6 @@ a {
 
 .app-main {
     position: relative;
-    z-index: 1;
     min-height: var(--layout-main-content-min-height);
     margin-top: var(--layout-main-content-offset-top);
     padding: var(--page-spacing-regular) 0 var(--spacing-xxl);
