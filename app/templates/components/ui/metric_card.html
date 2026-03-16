@@ -6,6 +6,7 @@
     {% if tone %}data-tone="{{ tone }}"{% endif %}
     {% if data_stat_key %}data-stat-key="{{ data_stat_key }}"{% endif %}
 >
+    <span class="wf-metric-card__signal" aria-hidden="true"></span>
     <div class="wf-metric-card__header">
         <div class="wf-metric-card__main">
             <p class="wf-metric-card__label">{{ label }}</p>
@@ -26,4 +27,3 @@
     {% endif %}
 </article>
 {%- endmacro %}
-

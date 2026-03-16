@@ -16,7 +16,7 @@
 <div id="tags-page-root">
 {% set tag_desc = '管理数据库实例的标签信息' if current_user.role == 'admin' else '查看数据库实例的标签信息（只读模式）' %}
 {% if current_user.role == 'admin' %}
-{% call page_header('fas fa-tags', '标签管理', tag_desc) %}
+{% call page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Tag Registry') %}
 <div class="btn-group">
     <button class="btn btn-primary" type="button" data-action="create-tag">
         <i class="fas fa-plus me-2"></i>添加标签
@@ -27,7 +27,7 @@
 </div>
 {% endcall %}
 {% else %}
-{{ page_header('fas fa-tags', '标签管理', tag_desc) }}
+{{ page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Tag Registry') }}
 {% endif %}
 
 {% set stats = tag_stats or {'total': 0, 'active': 0, 'inactive': 0, 'category_count': 0} %}
@@ -83,7 +83,7 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="card">
+            <div class="card tags-grid-panel">
                 <div class="card-body">
                     <div id="tags-grid" data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"></div>
                 </div>

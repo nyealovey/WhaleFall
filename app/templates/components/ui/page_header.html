@@ -1,4 +1,4 @@
-{% macro page_header(icon=None, title='', description=None, size='lg') -%}
+{% macro page_header(icon=None, title='', description=None, size='lg', eyebrow='Control Surface') -%}
 <header class="page-header page-header--{{ size }}">
     <div class="layout-shell">
         <div class="layout-shell-inner">
@@ -9,11 +9,14 @@
                         <i class="{{ icon }}"></i>
                     </span>
                     {% endif %}
-                    <div class="page-header__title">
+                    <div class="page-header__copy">
+                        <span class="page-header__eyebrow">{{ eyebrow }}</span>
+                        <div class="page-header__title">
                         <h1>{{ title }}</h1>
                         {% if description %}
                         <p>{{ description }}</p>
                         {% endif %}
+                    </div>
                     </div>
                 </div>
                 {% if caller is defined %}
