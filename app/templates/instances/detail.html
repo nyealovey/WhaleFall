@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from 'components/ui/macros.html' import metric_card %}
 {% set page_id = 'InstanceDetailPage' %}
 
 {% block title %}{{ instance.name }} - 实例详情{% endblock %}
@@ -24,109 +23,129 @@
                 </h5>
             </div>
             <div class="card-body basic-info-card">
-                <div class="basic-info-card__identity">
-                    <div class="d-flex align-items-center flex-wrap gap-3">
-                        <h1 class="basic-info-card__title mb-0">
-                            <i class="fas fa-database me-2 text-muted"></i>{{ instance.name }}
-                        </h1>
-                        <span class="chip-outline chip-outline--brand text-nowrap">
-                            {{ instance.db_type.upper() }}
+                <section class="basic-info-card__masthead">
+                    <div class="basic-info-card__title-row">
+                        <span class="basic-info-card__avatar" aria-hidden="true">
+                            <i class="fas fa-database"></i>
                         </span>
-                        {% if instance.main_version %}
-                        <span class="chip-outline chip-outline--muted text-nowrap">
-                            {{ instance.main_version }}
-                        </span>
-                        {% endif %}
-                    </div>
-                    <div class="ledger-chip-stack mt-3 basic-info-card__chip-stack">
-                        <span class="ledger-chip">
-                            <i class="fas fa-server me-1"></i>{{ instance.host }}
-                        </span>
-                        <span class="ledger-chip ledger-chip--muted">
-                            <i class="fas fa-plug me-1"></i>{{ instance.port }}
-                        </span>
-                        <span class="ledger-chip ledger-chip--muted">
-                            <i class="fas fa-hashtag me-1"></i>ID {{ instance.id }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="row g-3 basic-info-card__meta mt-1">
-                    <div class="col-md-6 col-12">
-                        <div class="basic-info-card__field">
-                            <label class="form-label fw-bold">最后连接时间</label>
-                            <p class="form-control-plaintext mb-0">
-                                <span class="status-pill status-pill--muted">
-                                    {% if instance.last_connected %}
-                                        <i class="fas fa-clock me-1"></i>{{ instance.last_connected | china_datetime }}
-                                    {% else %}
-                                        从未连接
-                                    {% endif %}
-                                </span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-12">
-                        <div class="basic-info-card__field">
-                            <label class="form-label fw-bold">上次同步</label>
-                            <p class="form-control-plaintext mb-0">
-                                <span class="status-pill status-pill--muted">
-                                    {% if instance.updated_at %}
-                                        <i class="fas fa-history me-1"></i>{{ instance.updated_at | china_datetime }}
-                                    {% else %}
-                                        尚未同步
-                                    {% endif %}
-                                </span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-3 basic-info-card__supplements">
-                    <div class="col-md-6 col-12">
-                        <div class="basic-info-card__field">
-                            <label class="form-label fw-bold">数据库版本</label>
-                            <div class="form-control-plaintext mb-0">
-                                {% if instance.database_version %}
-                                    <div class="instance-version-snippet">
-                                        <code class="small">{{ instance.database_version }}</code>
-                                    </div>
-                                {% else %}
-                                    <span class="text-muted">未检测到版本信息</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-12">
-                        <div class="basic-info-card__field">
-                            <label class="form-label fw-bold">标签</label>
-                            <div class="form-control-plaintext mb-0">
-                                {% if tags %}
-                                <div class="ledger-chip-stack">
-                                    {% for tag in tags %}
-                                    <span class="ledger-chip">
-                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                        <div class="basic-info-card__title-copy">
+                            <span class="basic-info-card__eyebrow">实例档案</span>
+                            <div class="basic-info-card__heading-row">
+                                <h1 class="basic-info-card__title mb-0">{{ instance.name }}</h1>
+                                <div class="basic-info-card__headline-chips">
+                                    <span class="chip-outline chip-outline--brand text-nowrap">
+                                        {{ instance.db_type.upper() }}
                                     </span>
-                                    {% endfor %}
+                                    {% if instance.main_version %}
+                                    <span class="chip-outline chip-outline--muted text-nowrap">
+                                        {{ instance.main_version }}
+                                    </span>
+                                    {% endif %}
                                 </div>
-                                {% else %}
-                                <span class="text-muted">无标签</span>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="basic-info-card__description">
-                    <label class="form-label fw-bold">实例描述</label>
-                    <p class="form-control-plaintext mb-0">
+                    <div class="basic-info-card__identity-strip">
+                        <article class="basic-info-card__identity-item">
+                            <span class="basic-info-card__identity-icon" aria-hidden="true">
+                                <i class="fas fa-server"></i>
+                            </span>
+                            <div class="basic-info-card__identity-copy">
+                                <span class="basic-info-card__identity-label">主机地址</span>
+                                <strong class="basic-info-card__identity-value">{{ instance.host }}</strong>
+                            </div>
+                        </article>
+                        <article class="basic-info-card__identity-item">
+                            <span class="basic-info-card__identity-icon" aria-hidden="true">
+                                <i class="fas fa-plug"></i>
+                            </span>
+                            <div class="basic-info-card__identity-copy">
+                                <span class="basic-info-card__identity-label">端口</span>
+                                <strong class="basic-info-card__identity-value">{{ instance.port }}</strong>
+                            </div>
+                        </article>
+                        <article class="basic-info-card__identity-item">
+                            <span class="basic-info-card__identity-icon" aria-hidden="true">
+                                <i class="fas fa-hashtag"></i>
+                            </span>
+                            <div class="basic-info-card__identity-copy">
+                                <span class="basic-info-card__identity-label">实例 ID</span>
+                                <strong class="basic-info-card__identity-value">{{ instance.id }}</strong>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="basic-info-card__detail-grid">
+                    <article class="basic-info-card__panel basic-info-card__panel--time">
+                        <header class="basic-info-card__panel-header">运行记录</header>
+                        <div class="basic-info-card__time-grid">
+                            <section class="basic-info-card__time-card">
+                                <span class="basic-info-card__time-label">最后连接时间</span>
+                                <div class="basic-info-card__time-value">
+                                    <i class="fas fa-clock" aria-hidden="true"></i>
+                                    {% if instance.last_connected %}
+                                        <span>{{ instance.last_connected | china_datetime }}</span>
+                                    {% else %}
+                                        <span class="basic-info-card__time-value--muted">从未连接</span>
+                                    {% endif %}
+                                </div>
+                            </section>
+
+                            <section class="basic-info-card__time-card">
+                                <span class="basic-info-card__time-label">上次同步</span>
+                                <div class="basic-info-card__time-value">
+                                    <i class="fas fa-history" aria-hidden="true"></i>
+                                    {% if instance.updated_at %}
+                                        <span>{{ instance.updated_at | china_datetime }}</span>
+                                    {% else %}
+                                        <span class="basic-info-card__time-value--muted">尚未同步</span>
+                                    {% endif %}
+                                </div>
+                            </section>
+                        </div>
+                    </article>
+
+                    <div class="basic-info-card__side-stack">
+                        <article class="basic-info-card__panel basic-info-card__version-card">
+                            <header class="basic-info-card__panel-header">数据库版本</header>
+                            {% if instance.database_version %}
+                                <div class="instance-version-snippet">
+                                    <code>{{ instance.database_version }}</code>
+                                </div>
+                            {% else %}
+                                <span class="chip-outline chip-outline--ghost">未检测到版本信息</span>
+                            {% endif %}
+                        </article>
+
+                        <article class="basic-info-card__panel basic-info-card__tags-card">
+                            <header class="basic-info-card__panel-header">标签</header>
+                            {% if tags %}
+                            <div class="ledger-chip-stack">
+                                {% for tag in tags %}
+                                <span class="ledger-chip">
+                                    <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="chip-outline chip-outline--ghost">暂无标签</span>
+                            {% endif %}
+                        </article>
+                    </div>
+                </section>
+
+                <section class="basic-info-card__description-panel">
+                    <header class="basic-info-card__panel-header">实例描述</header>
+                    <p class="basic-info-card__description-text{% if not instance.description %} basic-info-card__description-text--empty{% endif %}">
                         {% if instance.description %}
                             {{ instance.description }}
                         {% else %}
-                            <span class="text-muted">暂无描述</span>
+                            暂无描述
                         {% endif %}
                     </p>
-                </div>
+                </section>
             </div>
         </div>
     </div>
@@ -183,9 +202,9 @@
 <!-- 数据库信息标签页 -->
 <div class="row">
     <div class="col-12">
-        <div class="card mb-4">
+        <div class="card instance-data-card mb-4">
             <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="databaseInfoTabs" role="tablist">
+                <ul class="nav nav-tabs card-header-tabs instance-data-tabs" id="databaseInfoTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#capacity-pane" type="button" role="tab" aria-controls="capacity-pane" aria-selected="true">
                             <i class="fas fa-chart-pie me-2"></i>数据库容量信息
@@ -198,119 +217,195 @@
                     </li>
                 </ul>
             </div>
-            <div class="card-body">
+            <div class="card-body instance-data-panel">
                 <div class="tab-content" id="databaseInfoTabContent">
                     <!-- 数据库容量信息标签页 -->
-                    <div class="tab-pane fade show active" id="capacity-pane" role="tabpanel" aria-labelledby="capacity-tab">
-                        <div id="databaseSizesContent">
-                            <div class="row g-3 instance-stat-grid mb-3">
-                                <div class="col-12">
-                                    {%- call metric_card(label='数据库', value='-', tone='info', value_id='databaseTotalCount') -%}
-                                        <span class="status-pill status-pill--success" title="在线" aria-label="在线">
-                                            <i class="fas fa-check" aria-hidden="true"></i><span id="databaseOnlineCount" aria-hidden="true">-</span>
-                                        </span>
-                                        <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
-                                            <i class="fas fa-trash" aria-hidden="true"></i><span id="databaseDeletedCount" aria-hidden="true">-</span>
-                                        </span>
-                                        <span class="status-pill status-pill--info" title="总容量" aria-label="总容量">
-                                            <i class="fas fa-hdd" aria-hidden="true"></i><span id="databaseTotalCapacity" aria-hidden="true">-</span>
-                                        </span>
-                                    {%- endcall -%}
-                                </div>
-                            </div>
-
-                            <div class="row mb-3 align-items-center">
-                                <div class="col-md-8 col-12">
-                                    <form id="instance-databases-filter-form" action="#" class="d-flex flex-wrap align-items-center gap-3">
-                                        <input type="hidden" name="latest_only" value="true">
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" role="switch" id="showDeletedDatabases"
-                                                   name="include_inactive"
-                                                   value="true"
-                                                   data-action="toggle-deleted-databases">
-                                            <label class="form-check-label" for="showDeletedDatabases">
-                                                <i class="fas fa-eye me-1"></i>显示已删除数据库
-                                            </label>
+                    <div class="tab-pane fade show active instance-data-pane" id="capacity-pane" role="tabpanel" aria-labelledby="capacity-tab">
+                        <div class="instance-data-pane__stack">
+                            <div id="databaseSizesContent">
+                                <section class="instance-overview-band instance-overview-band--capacity">
+                                    <div class="instance-overview-band__hero">
+                                        <div class="instance-overview-band__hero-copy">
+                                            <span class="instance-overview-band__eyebrow">Capacity Register</span>
+                                            <p class="instance-overview-band__hero-label">数据库</p>
+                                            <div class="instance-overview-band__hero-number" id="databaseTotalCount">-</div>
                                         </div>
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-search"></i>
+                                        <div class="instance-overview-band__hero-emblem" aria-hidden="true">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="instance-overview-band__facts">
+                                        <article class="instance-overview-band__fact" data-tone="success">
+                                            <div class="instance-overview-band__fact-header">
+                                                <span class="instance-overview-band__fact-label">在线数据库</span>
+                                                <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </span>
+                                            </div>
+                                            <strong class="instance-overview-band__fact-value" id="databaseOnlineCount">-</strong>
+                                            <span class="status-pill status-pill--success">
+                                                <i class="fas fa-check" aria-hidden="true"></i>在线
                                             </span>
-                                            <input type="text"
-                                                   class="form-control"
-                                                   id="databaseSearchInput"
-                                                   name="database_name"
-                                                   data-auto-submit
-                                                   placeholder="搜索数据库"
-                                                   autocomplete="off">
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="text-end col-md-4 col-12">
-                                    <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
-                                </div>
-                            </div>
+                                        </article>
 
-                            <div id="instance-databases-grid"></div>
+                                        <article class="instance-overview-band__fact" data-tone="danger">
+                                            <div class="instance-overview-band__fact-header">
+                                                <span class="instance-overview-band__fact-label">已删除数据库</span>
+                                                <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                    <i class="fas fa-trash"></i>
+                                                </span>
+                                            </div>
+                                            <strong class="instance-overview-band__fact-value" id="databaseDeletedCount">-</strong>
+                                            <span class="status-pill status-pill--danger">
+                                                <i class="fas fa-trash" aria-hidden="true"></i>已删除
+                                            </span>
+                                        </article>
+
+                                        <article class="instance-overview-band__fact" data-tone="info">
+                                            <div class="instance-overview-band__fact-header">
+                                                <span class="instance-overview-band__fact-label">总容量</span>
+                                                <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                    <i class="fas fa-hdd"></i>
+                                                </span>
+                                            </div>
+                                            <strong class="instance-overview-band__fact-value" id="databaseTotalCapacity">-</strong>
+                                            <span class="status-pill status-pill--info">
+                                                <i class="fas fa-hdd" aria-hidden="true"></i>容量
+                                            </span>
+                                        </article>
+                                    </div>
+
+                                    <div class="instance-overview-band__controls">
+                                        <form id="instance-databases-filter-form" action="#" class="instance-overview-band__toolbar">
+                                            <input type="hidden" name="latest_only" value="true">
+                                            <div class="form-check form-switch mb-0 instance-overview-band__toggle">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="showDeletedDatabases"
+                                                       name="include_inactive"
+                                                       value="true"
+                                                       data-action="toggle-deleted-databases">
+                                                <label class="form-check-label" for="showDeletedDatabases">
+                                                    <i class="fas fa-eye me-1"></i>显示已删除数据库
+                                                </label>
+                                            </div>
+                                            <div class="input-group input-group-sm instance-overview-band__search">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
+                                                <input type="text"
+                                                       class="form-control"
+                                                       id="databaseSearchInput"
+                                                       name="database_name"
+                                                       data-auto-submit
+                                                       placeholder="搜索数据库"
+                                                       autocomplete="off">
+                                            </div>
+                                        </form>
+                                        <div class="instance-overview-band__realtime">
+                                            <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <div id="instance-databases-grid" class="instance-data-grid"></div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- 数据库账户信息标签页 -->
-                    <div class="tab-pane fade" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
-                <!-- 账户概览标签 -->
-                <div class="row g-3 instance-stat-grid mb-3">
-                    {% set active_accounts = account_summary.active or 0 %}
-                    {% set deleted_accounts = account_summary.deleted or 0 %}
-                    {% set superuser_accounts = account_summary.superuser or 0 %}
-                    {% set total_accounts = active_accounts + deleted_accounts %}
-                    <div class="col-12">
-                        {%- call metric_card(label='账户', value=total_accounts, tone='info', value_id='accountTotalCount') -%}
-                            <span class="status-pill status-pill--success" title="活跃" aria-label="活跃">
-                                <i class="fas fa-user-check" aria-hidden="true"></i><span id="accountActiveCount" aria-hidden="true">{{ active_accounts }}</span>
-                            </span>
-                            <span class="status-pill status-pill--danger" title="已删除" aria-label="已删除">
-                                <i class="fas fa-user-slash" aria-hidden="true"></i><span id="accountDeletedCount" aria-hidden="true">{{ deleted_accounts }}</span>
-                            </span>
-                            <span class="status-pill status-pill--info" title="超管" aria-label="超管">
-                                <i class="fas fa-crown" aria-hidden="true"></i><span id="accountSuperuserCount" aria-hidden="true">{{ superuser_accounts }}</span>
-                            </span>
-                        {%- endcall -%}
-                    </div>
-                </div>
+                    <div class="tab-pane fade instance-data-pane" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
+                        {% set active_accounts = account_summary.active or 0 %}
+                        {% set deleted_accounts = account_summary.deleted or 0 %}
+                        {% set superuser_accounts = account_summary.superuser or 0 %}
+                        {% set total_accounts = active_accounts + deleted_accounts %}
 
-	                <!-- 账户显示控制 -->
-	                <div class="row mb-3 align-items-center">
-	                    <div class="col-md-8 col-12">
-	                        <form id="instance-accounts-filter-form" action="#" class="d-flex flex-wrap align-items-center gap-3">
-	                            <div class="form-check form-switch mb-0">
-	                                <input class="form-check-input" type="checkbox" role="switch" id="showDeletedAccounts"
-	                                       name="include_deleted"
-	                                       value="true"
-	                                       data-action="toggle-deleted-accounts">
-	                                <label class="form-check-label" for="showDeletedAccounts">
-	                                    <i class="fas fa-eye-slash me-1"></i>显示已删除账户
-	                                </label>
-	                            </div>
-	                            <div class="input-group input-group-sm">
-	                                <span class="input-group-text">
-	                                    <i class="fas fa-search"></i>
-	                                </span>
-	                                <input type="text"
-	                                       class="form-control"
-	                                       id="accountSearchInput"
-	                                       name="search"
-	                                       data-auto-submit
-	                                       placeholder="搜索账户"
-	                                       autocomplete="off">
-	                            </div>
-	                        </form>
-	                    </div>
-	                    <div class="text-end col-md-4 col-12">
-	                        <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
-	                    </div>
-	                </div>
+                        <div class="instance-data-pane__stack">
+                            <section class="instance-overview-band instance-overview-band--accounts">
+                                <div class="instance-overview-band__hero">
+                                    <div class="instance-overview-band__hero-copy">
+                                        <span class="instance-overview-band__eyebrow">Account Register</span>
+                                        <p class="instance-overview-band__hero-label">账户</p>
+                                        <div class="instance-overview-band__hero-number" id="accountTotalCount">{{ total_accounts }}</div>
+                                    </div>
+                                    <div class="instance-overview-band__hero-emblem" aria-hidden="true">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                </div>
 
-	                <div id="instance-accounts-grid"></div>
+                                <div class="instance-overview-band__facts">
+                                    <article class="instance-overview-band__fact" data-tone="success">
+                                        <div class="instance-overview-band__fact-header">
+                                            <span class="instance-overview-band__fact-label">活跃账户</span>
+                                            <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                <i class="fas fa-user-check"></i>
+                                            </span>
+                                        </div>
+                                        <strong class="instance-overview-band__fact-value" id="accountActiveCount">{{ active_accounts }}</strong>
+                                        <span class="status-pill status-pill--success">
+                                            <i class="fas fa-user-check" aria-hidden="true"></i>活跃
+                                        </span>
+                                    </article>
+
+                                    <article class="instance-overview-band__fact" data-tone="danger">
+                                        <div class="instance-overview-band__fact-header">
+                                            <span class="instance-overview-band__fact-label">已删除账户</span>
+                                            <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                <i class="fas fa-user-slash"></i>
+                                            </span>
+                                        </div>
+                                        <strong class="instance-overview-band__fact-value" id="accountDeletedCount">{{ deleted_accounts }}</strong>
+                                        <span class="status-pill status-pill--danger">
+                                            <i class="fas fa-user-slash" aria-hidden="true"></i>已删除
+                                        </span>
+                                    </article>
+
+                                    <article class="instance-overview-band__fact" data-tone="info">
+                                        <div class="instance-overview-band__fact-header">
+                                            <span class="instance-overview-band__fact-label">超管账户</span>
+                                            <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                <i class="fas fa-crown"></i>
+                                            </span>
+                                        </div>
+                                        <strong class="instance-overview-band__fact-value" id="accountSuperuserCount">{{ superuser_accounts }}</strong>
+                                        <span class="status-pill status-pill--info">
+                                            <i class="fas fa-crown" aria-hidden="true"></i>超管
+                                        </span>
+                                    </article>
+                                </div>
+
+                                <div class="instance-overview-band__controls">
+	                                <form id="instance-accounts-filter-form" action="#" class="instance-overview-band__toolbar">
+	                                    <div class="form-check form-switch mb-0 instance-overview-band__toggle">
+	                                        <input class="form-check-input" type="checkbox" role="switch" id="showDeletedAccounts"
+	                                               name="include_deleted"
+	                                               value="true"
+	                                               data-action="toggle-deleted-accounts">
+	                                        <label class="form-check-label" for="showDeletedAccounts">
+	                                            <i class="fas fa-eye-slash me-1"></i>显示已删除账户
+	                                        </label>
+	                                    </div>
+	                                    <div class="input-group input-group-sm instance-overview-band__search">
+	                                        <span class="input-group-text">
+	                                            <i class="fas fa-search"></i>
+	                                        </span>
+	                                        <input type="text"
+	                                               class="form-control"
+	                                               id="accountSearchInput"
+	                                               name="search"
+	                                               data-auto-submit
+	                                               placeholder="搜索账户"
+	                                               autocomplete="off">
+	                                    </div>
+	                                </form>
+                                    <div class="instance-overview-band__realtime">
+	                                    <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
+                                    </div>
+                                </div>
+                            </section>
+
+	                            <div id="instance-accounts-grid" class="instance-data-grid"></div>
+                            </div>
+                        </div>
 
                     </div>
                 </div>
