@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from flask import Response, request
 from flask_login import current_user
@@ -14,6 +14,7 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import bool_with_default, new_parser
 from app.api.v1.restx_models.databases import (
+    DATABASE_STATISTICS_FIELDS,
     DATABASE_OPTION_ITEM_FIELDS,
     DATABASES_OPTIONS_RESPONSE_FIELDS,
 )
@@ -43,6 +44,7 @@ from app.services.instances.instance_database_table_sizes_service import (
 )
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+from app.services.statistics.database_statistics_read_service import DatabaseStatisticsReadService
 from app.utils.decorators import require_csrf
 from app.utils.structlog_config import log_info
 
@@ -190,6 +192,17 @@ DatabaseTableSizesSuccessEnvelope = make_success_envelope_model(
     "DatabaseTableSizesSuccessEnvelope",
     DatabaseTableSizesData,
 )
+DatabaseStatisticsData = ns.model(
+    "DatabaseStatisticsData",
+    {
+        "stats": fields.Nested(ns.model("DatabaseStatistics", DATABASE_STATISTICS_FIELDS)),
+    },
+)
+DatabaseStatisticsSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "DatabaseStatisticsSuccessEnvelope",
+    DatabaseStatisticsData,
+)
 
 
 _databases_options_query_parser = new_parser()
@@ -231,6 +244,11 @@ _database_table_sizes_query_parser.add_argument("schema_name", type=str, locatio
 _database_table_sizes_query_parser.add_argument("table_name", type=str, location="args")
 _database_table_sizes_query_parser.add_argument("page", type=int, default=1, location="args")
 _database_table_sizes_query_parser.add_argument("limit", type=int, default=200, location="args")
+
+
+def _build_database_statistics() -> dict[str, object]:
+    result = DatabaseStatisticsReadService().build_statistics()
+    return cast(dict[str, object], marshal(result, DATABASE_STATISTICS_FIELDS))
 
 
 @ns.route("/options")
@@ -333,6 +351,33 @@ class DatabaseLedgersResource(BaseResource):
             context={
                 "query_params": query_snapshot,
             },
+        )
+
+
+@ns.route("/statistics")
+class DatabaseStatisticsResource(BaseResource):
+    """数据库统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", DatabaseStatisticsSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        """获取数据库统计信息."""
+
+        def _execute():
+            return self.success(
+                data={"stats": _build_database_statistics()},
+                message="获取数据库统计信息成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="databases_statistics",
+            action="get_database_statistics",
+            public_error="获取数据库统计信息失败",
         )
 
 
