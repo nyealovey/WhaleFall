@@ -53,6 +53,12 @@
     min-width: 150px;
 }
 
+.instance-count-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
 .tags-name-cell__code {
     display: inline-block;
     margin-top: 0.15rem;

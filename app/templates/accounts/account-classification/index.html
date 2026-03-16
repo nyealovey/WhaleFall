@@ -13,7 +13,7 @@
 
 {% block content_outer %}
 {% set classification_desc = '管理账户分类和规则，包括增删改查和自动分类' if current_user.role == 'admin' else '查看账户分类和规则信息（只读模式）' %}
-{% call page_header('fas fa-tags', '账户分类管理', classification_desc, eyebrow='Classification Rules') %}
+{% call page_header('fas fa-tags', '账户分类管理', classification_desc, eyebrow='Classification Registry') %}
 <div class="btn-group">
     {% if current_user.role == 'admin' %}
     <button class="btn btn-outline-secondary" type="button" data-action="auto-classify-all">

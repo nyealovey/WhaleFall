@@ -156,6 +156,9 @@
       const onCategoryChange = handlers.onCategoryChange;
       const onTagToggle = handlers.onTagToggle;
       const onSelectedRemove = handlers.onSelectedRemove;
+      const onSearchChange = typeof handlers.onSearchChange === "function"
+        ? handlers.onSearchChange
+        : function noop() {};
       if (typeof onCategoryChange !== "function") {
         throw new Error("TagSelectorView: handlers.onCategoryChange 未注入");
       }
@@ -169,6 +172,7 @@
         onCategoryChange,
         onTagToggle,
         onSelectedRemove,
+        onSearchChange,
       };
       this.elements = this.cacheElements();
       this.activeCategory = DEFAULT_CATEGORY;
@@ -182,6 +186,7 @@
      */
     cacheElements() {
       return {
+        searchInput: this.root.querySelector('[data-role="search-input"]'),
         categoryGroup: this.root.querySelector('[data-role="category-group"]'),
         categoryLoading: this.root.querySelector('[data-role="category-loading"]'),
         statsWrapper: this.root.querySelector('[data-role="stats"]'),
@@ -192,6 +197,7 @@
         tagList: this.root.querySelector('[data-role="tag-list"]'),
         selectedList: this.root.querySelector('[data-role="selected-list"]'),
         selectedEmpty: this.root.querySelector('[data-role="selected-empty"]'),
+        selectedCount: this.root.querySelector('[data-role="selected-count"]'),
       };
     }
 
@@ -201,7 +207,12 @@
      * @return {void}
      */
     bindEvents() {
-      const { categoryGroup, tagList, selectedList } = this.elements;
+      const { searchInput, categoryGroup, tagList, selectedList } = this.elements;
+      if (searchInput) {
+        searchInput.addEventListener("input", (event) => {
+          this.handlers.onSearchChange(event.target.value);
+        });
+      }
       if (categoryGroup) {
         categoryGroup.addEventListener("click", (event) => {
           const chip = event.target.closest("[data-category-value]");
@@ -236,6 +247,17 @@
             this.handlers.onSelectedRemove(tagId);
           }
         });
+      }
+    }
+
+    setSearchValue(value) {
+      const searchInput = this.elements.searchInput;
+      if (!searchInput) {
+        return;
+      }
+      const nextValue = value === undefined || value === null ? "" : String(value);
+      if (searchInput.value !== nextValue) {
+        searchInput.value = nextValue;
       }
     }
 
@@ -338,13 +360,19 @@
             .filter(Boolean)
             .join(" ");
           const disabledAttr = tag.is_active === false ? 'aria-disabled="true"' : '';
+          const inactiveChip = tag.is_active === false
+            ? buildChipOutline("停用", "muted", "fas fa-ban")
+            : "";
           return `
             <button type="button" class="${classes}" data-tag-id="${tag.id}" aria-pressed="${isSelected}" ${disabledAttr}>
-              <div class="tag-selector__item-field tag-selector__item-field--name">
+              <div class="tag-selector__item-copy">
                 <div class="tag-selector__item-title">${escapeHtml(tag.display_name || tag.name || "-")}</div>
+                <div class="tag-selector__item-subtitle">${escapeHtml(tag.name || "-")}</div>
+                <div class="tag-selector__item-meta">
+                  ${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}
+                  ${inactiveChip}
+                </div>
               </div>
-              <div class="tag-selector__item-field tag-selector__item-field--slug">${buildChipOutline(tag.name || "-", "muted", "fas fa-tag")}</div>
-              <div class="tag-selector__item-field tag-selector__item-field--category">${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}</div>
               <span class="tag-selector__item-action"><i class="${isSelected ? "fas fa-check" : "fas fa-plus"}"></i></span>
             </button>
           `;
@@ -401,8 +429,12 @@
     updateSelectedDisplay(tags = []) {
       const selectedList = this.elements.selectedList;
       const selectedEmpty = this.elements.selectedEmpty;
+      const selectedCount = this.elements.selectedCount;
       if (!selectedList || !selectedEmpty) {
         return;
+      }
+      if (selectedCount) {
+        selectedCount.textContent = formatNumber(tags.length);
       }
       if (!tags.length) {
         selectedList.innerHTML = "";
@@ -412,12 +444,18 @@
       selectedEmpty.hidden = true;
       const chips = tags
         .map((tag) => `
-          <span class="ledger-chip" data-role="selected-chip" data-tag-id="${tag.id}">
-            <i class="fas fa-tag"></i>${escapeHtml(tag.display_name || tag.name || "")}
-            <button type="button" class="btn-icon btn-icon--sm" aria-label="移除标签" data-role="chip-remove" data-tag-id="${tag.id}">
+          <article class="tag-selector__selected-item" data-role="selected-chip" data-tag-id="${tag.id}">
+            <div class="tag-selector__selected-item-copy">
+              <div class="tag-selector__selected-item-title">${escapeHtml(tag.display_name || tag.name || "")}</div>
+              <div class="tag-selector__selected-item-meta">
+                ${buildChipOutline(tag.name || "-", "muted", "fas fa-tag")}
+                ${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}
+              </div>
+            </div>
+            <button type="button" class="tag-selector__selected-item-remove" aria-label="移除标签" data-role="chip-remove" data-tag-id="${tag.id}">
               <i class="fas fa-times"></i>
             </button>
-          </span>`)
+          </article>`)
         .join("");
       selectedList.innerHTML = chips;
     }
@@ -433,7 +471,13 @@
      * @return {void}
      */
     updateStats(stats = {}) {
-      if (!this.elements.statsWrapper) {
+      if (
+        !this.elements.statsWrapper ||
+        !this.elements.statTotal ||
+        !this.elements.statSelected ||
+        !this.elements.statActive ||
+        !this.elements.statFiltered
+      ) {
         return;
       }
       const resolved = {
