@@ -13,6 +13,7 @@ from flask_login import login_required
 from app.core.constants import DATABASE_TYPES
 from app.infra.route_safety import safe_route_call
 from app.services.common.filter_options_service import FilterOptionsService
+from app.services.statistics.database_statistics_read_service import DatabaseStatisticsReadService
 from app.utils.decorators import view_required
 
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
@@ -73,4 +74,23 @@ def list_databases() -> str:
             "db_type": request.args.get("db_type"),
             "tags_count": len(request.args.getlist("tags")),
         },
+    )
+
+
+@databases_ledgers_bp.route("/statistics")
+@login_required
+@view_required
+def statistics() -> str:
+    """渲染数据库统计页面."""
+
+    def _execute() -> str:
+        stats = DatabaseStatisticsReadService().build_statistics()
+        return render_template("databases/statistics.html", stats=stats)
+
+    return safe_route_call(
+        _execute,
+        module="databases_statistics",
+        action="statistics_page",
+        public_error="加载数据库统计页面失败",
+        context={"endpoint": "databases_statistics_page"},
     )

@@ -34,7 +34,7 @@
 }
 
 .login-shell::before {
-    content: "WhaleFall\A Control Console\A 数据同步 · 任务调度 · 统一台账";
+    content: "WhaleFall\A 数据同步平台";
     white-space: pre-line;
     position: absolute;
     inset: 0 42% 0 0;
@@ -49,7 +49,7 @@
     font-size: clamp(2.1rem, 3vw + 1rem, 4rem);
     line-height: 0.98;
     letter-spacing: 0.04em;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .login-shell::after {
