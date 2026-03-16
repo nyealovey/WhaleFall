@@ -13,15 +13,18 @@
 {% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-database', '数据库台账', '集中管理数据库清单与容量采集状态') %}
-<div class="btn-group">
-    <button type="button" class="btn btn-primary" data-action="sync-all-databases">
-        <i class="fas fa-sync me-2"></i>同步所有数据库
-    </button>
+<div class="console-command-deck">
+    {% call page_header('fas fa-database', '数据库台账', '集中管理数据库清单与容量采集状态') %}
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary" data-action="sync-all-databases">
+            <i class="fas fa-sync me-2"></i>同步所有数据库
+        </button>
+    </div>
+    {% endcall %}
 </div>
-{% endcall %}
 
 <div id="database-ledger-root"
+     class="console-list-page"
      data-api-url="/api/v1/databases/ledgers"
      data-export-url="/api/v1/databases/ledgers/exports"
      data-sync-url="/api/v1/databases/ledgers/actions/sync-all"
@@ -31,11 +34,13 @@
     <section class="page-section page-section--stacked">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-                {% call filter_card(form_id='database-ledger-filter-form', action=url_for('databases_ledgers.list_databases'), auto_register=True) %}
-                    {{ search_input(label='搜索', placeholder='搜索数据库 / 实例', value=search) }}
-                    {{ db_type_filter(database_type_options, current_db_type) }}
-                    {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-2 col-12') }}
-                {% endcall %}
+                <div class="console-filter-shell">
+                    {% call filter_card(form_id='database-ledger-filter-form', action=url_for('databases_ledgers.list_databases'), auto_register=True) %}
+                        {{ search_input(label='搜索', placeholder='搜索数据库 / 实例', value=search) }}
+                        {{ db_type_filter(database_type_options, current_db_type) }}
+                        {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-2 col-12') }}
+                    {% endcall %}
+                </div>
             </div>
         </div>
     </section>
@@ -60,7 +65,7 @@
     <section class="page-section page-section--stacked">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-                <div class="card">
+                <div class="card console-grid-shell">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                             <div class="d-flex align-items-center">
@@ -73,7 +78,9 @@
                             </div>
                             <div class="text-muted" id="database-ledger-total">加载中...</div>
                         </div>
-                        <div id="database-ledger-grid"></div>
+                        <div class="console-grid-stage">
+                            <div id="database-ledger-grid"></div>
+                        </div>
                     </div>
                 </div>
             </div>

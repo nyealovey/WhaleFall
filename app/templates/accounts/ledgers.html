@@ -13,27 +13,31 @@
 {% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-users', '账户台账', '集中查看数据库账户与实例归属') %}
-<div class="btn-group">
-    <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
-        <i class="fas fa-chart-bar me-2"></i>账户统计
-    </a>
-    <button type="button" class="btn btn-primary" data-action="sync-all-accounts">
-        <i class="fas fa-sync me-2"></i>同步所有账户
-    </button>
+<div class="console-command-deck">
+    {% call page_header('fas fa-users', '账户台账', '集中查看数据库账户与实例归属') %}
+    <div class="btn-group">
+        <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
+            <i class="fas fa-chart-bar me-2"></i>账户统计
+        </a>
+        <button type="button" class="btn btn-primary" data-action="sync-all-accounts">
+            <i class="fas fa-sync me-2"></i>同步所有账户
+        </button>
+    </div>
+    {% endcall %}
 </div>
-{% endcall %}
 
-<div id="accounts-page-root" data-current-db-type="{{ current_db_type or 'all' }}" data-export-url="/api/v1/accounts/ledgers/exports">
+<div id="accounts-page-root" class="console-list-page" data-current-db-type="{{ current_db_type or 'all' }}" data-export-url="/api/v1/accounts/ledgers/exports">
 
     <section class="page-section page-section--stacked">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-                {% call filter_card(form_id='account-filter-form', action=url_for('accounts_ledgers.list_accounts'), auto_register=False) %}
-                    {{ search_input(value=search, placeholder='搜索账户 / 实例') }}
-                    {{ classification_filter(classification_options, classification) }}
-                    {{ tag_selector_filter(tag_options, selected_tags, field_id='account-tag-selector', col_class='col-md-3 col-12') }}
-                {% endcall %}
+                <div class="console-filter-shell">
+                    {% call filter_card(form_id='account-filter-form', action=url_for('accounts_ledgers.list_accounts'), auto_register=False) %}
+                        {{ search_input(value=search, placeholder='搜索账户 / 实例') }}
+                        {{ classification_filter(classification_options, classification) }}
+                        {{ tag_selector_filter(tag_options, selected_tags, field_id='account-tag-selector', col_class='col-md-3 col-12') }}
+                    {% endcall %}
+                </div>
             </div>
         </div>
     </section>
@@ -65,7 +69,7 @@
     <section class="page-section page-section--stacked">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-                <div class="card">
+                <div class="card console-grid-shell">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="d-flex align-items-center">
@@ -78,7 +82,9 @@
                             </div>
                             <div class="text-muted" id="accounts-total">加载中...</div>
                         </div>
-                        <div id="accounts-grid"></div>
+                        <div class="console-grid-stage">
+                            <div id="accounts-grid"></div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -11,190 +11,326 @@
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block content_outer %}
-{% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息', eyebrow='System Overview') %}
-<div class="btn-group">
-    <button type="button" class="btn btn-primary" data-action="refresh-dashboard">
-        <i class="fas fa-sync-alt me-2"></i>刷新数据
-    </button>
-</div>
-{% endcall %}
+{% set instance_total = overview.instances.total if overview and overview.instances else 0 %}
+{% set instance_active = overview.instances.active if overview and overview.instances else 0 %}
+{% set instance_inactive = overview.instances.inactive if overview and overview.instances else 0 %}
+{% set instance_deleted = overview.instances.deleted if overview and overview.instances else 0 %}
 
-<section class="page-section">
-    <div class="layout-shell">
-        <div class="layout-shell-inner">
-            <div class="dashboard-metrics row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
-                <div class="col">
+{% set account_total = overview.accounts.total if overview and overview.accounts else 0 %}
+{% set account_active = overview.accounts.active if overview and overview.accounts else 0 %}
+{% set account_locked = overview.accounts.locked if overview and overview.accounts else 0 %}
+{% set account_inactive = account_total - account_active %}
+
+{% set capacity_gb = overview.capacity.total_gb if overview and overview.capacity else 0 %}
+{% set capacity_tb = (capacity_gb / 1024) | round(1) %}
+
+{% set database_total = overview.databases.total if overview and overview.databases else 0 %}
+{% set database_active = overview.databases.active if overview and overview.databases else 0 %}
+{% set database_inactive = overview.databases.inactive if overview and overview.databases else 0 %}
+
+{% set log_trend = charts.log_trend if charts and charts.log_trend else [] %}
+{% set log_points = log_trend|length %}
+{% if log_points %}
+    {% set latest_log_point = log_trend[-1] %}
+    {% set latest_error_count = latest_log_point.error_count | default(0) %}
+    {% set latest_warning_count = latest_log_point.warning_count | default(0) %}
+{% else %}
+    {% set latest_error_count = 0 %}
+    {% set latest_warning_count = 0 %}
+{% endif %}
+{% set activity_total = latest_error_count + latest_warning_count %}
+
+{% set cpu_percent = status.system.cpu if status and status.system else 0 %}
+{% set memory_percent = status.system.memory.percent if status and status.system and status.system.memory else 0 %}
+{% set disk_percent = status.system.disk.percent if status and status.system and status.system.disk else 0 %}
+
+{% set db_healthy = status and status.services and status.services.database == 'healthy' %}
+{% set redis_healthy = status and status.services and status.services.redis == 'healthy' %}
+{% set service_healthy_count = (1 if db_healthy else 0) + (1 if redis_healthy else 0) %}
+
+{% set peak_resource_label = 'CPU' %}
+{% set peak_resource_value = cpu_percent %}
+{% if memory_percent > peak_resource_value %}
+    {% set peak_resource_label = '内存' %}
+    {% set peak_resource_value = memory_percent %}
+{% endif %}
+{% if disk_percent > peak_resource_value %}
+    {% set peak_resource_label = '磁盘' %}
+    {% set peak_resource_value = disk_percent %}
+{% endif %}
+
+{% set pressure_tone = 'success' %}
+{% set pressure_copy = '余量充足，系统处于稳态。' %}
+{% if peak_resource_value >= 80 %}
+    {% set pressure_tone = 'danger' %}
+    {% set pressure_copy = '峰值偏高，建议尽快处理容量或负载。' %}
+{% elif peak_resource_value >= 60 %}
+    {% set pressure_tone = 'warning' %}
+    {% set pressure_copy = '负载进入观察区，建议持续跟踪。' %}
+{% endif %}
+
+<div class="dashboard-overview">
+    <section class="page-section dashboard-hero">
+        <div class="dashboard-command">
+            {% call page_header(
+                'fas fa-tachometer-alt',
+                '系统仪表板',
+                '把容量、账户、日志波动和服务健康压缩到一个可快速扫读的控制台。',
+                eyebrow='Operations Console'
+            ) %}
+            <div class="dashboard-command__actions">
+                <span class="status-pill status-pill--{{ 'info' if log_points else 'muted' }} dashboard-command__status"
+                      data-chart-status="{{ 'ready' if log_points else 'empty' }}">
+                    <i class="fas fa-wave-square"></i>
+                    {{ log_points }} 个采样点
+                </span>
+                <button type="button" class="btn btn-primary" data-action="refresh-dashboard">
+                    <i class="fas fa-sync-alt me-2"></i>刷新数据
+                </button>
+            </div>
+            {% endcall %}
+        </div>
+
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="dashboard-signal-strip">
+                    <article class="dashboard-signal">
+                        <span class="dashboard-signal__label">服务可用性</span>
+                        <strong class="dashboard-signal__value">{{ service_healthy_count }}/2</strong>
+                        <p class="dashboard-signal__meta">数据库与 Redis 运行状态实时汇总。</p>
+                    </article>
+                    <article class="dashboard-signal">
+                        <span class="dashboard-signal__label">资源峰值</span>
+                        <strong class="dashboard-signal__value">{{ peak_resource_label }} {{ "%.1f"|format(peak_resource_value) }}%</strong>
+                        <p class="dashboard-signal__meta">{{ pressure_copy }}</p>
+                    </article>
+                    <article class="dashboard-signal">
+                        <span class="dashboard-signal__label">日志窗口</span>
+                        <strong class="dashboard-signal__value">{{ activity_total }}</strong>
+                        <p class="dashboard-signal__meta">最近一个采样点包含 {{ latest_error_count }} 条错误与 {{ latest_warning_count }} 条告警。</p>
+                    </article>
+                    <article class="dashboard-signal">
+                        <span class="dashboard-signal__label">系统在线时长</span>
+                        <strong class="dashboard-signal__value">{{ status.uptime if status else '未知' }}</strong>
+                        <p class="dashboard-signal__meta">容量采集、任务调度与统一台账共享同一运行面板。</p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="dashboard-primary-metrics">
                     {% call metric_card(
                         '数据库实例',
-                        value=(overview.instances.total if overview and overview.instances else 0),
-                        icon_class='fas fa-server'
+                        value=instance_total,
+                        icon_class='fas fa-server',
+                        tone='success',
+                        card_class='dashboard-metric dashboard-metric--hero'
                     ) %}
                         <span class="status-pill status-pill--success">
-                            <i class="fas fa-check-circle"></i>
-                            {{ overview.instances.active if overview and overview.instances else 0 }} 在线
+                            <i class="fas fa-check-circle"></i>{{ instance_active }} 在线
                         </span>
                         <span class="status-pill status-pill--muted">
-                            <i class="fas fa-ban"></i>
-                            {{ overview.instances.inactive if overview and overview.instances else 0 }} 停用
+                            <i class="fas fa-ban"></i>{{ instance_inactive }} 停用
                         </span>
                         <span class="status-pill status-pill--danger">
-                            <i class="fas fa-trash"></i>
-                            {{ overview.instances.deleted if overview and overview.instances else 0 }} 删除
+                            <i class="fas fa-trash"></i>{{ instance_deleted }} 删除
                         </span>
                     {% endcall %}
-                </div>
-                <div class="col">
+
                     {% call metric_card(
-                        '账户总数',
-                        value=(overview.accounts.total if overview and overview.accounts else 0),
-                        icon_class='fas fa-users'
+                        '账户活跃度',
+                        value=('%.0f'|format((account_active / account_total * 100) if account_total else 0) ~ '%'),
+                        icon_class='fas fa-users',
+                        tone='info',
+                        card_class='dashboard-metric dashboard-metric--service'
                     ) %}
                         <span class="status-pill status-pill--success">
-                            <i class="fas fa-user-check"></i>
-                            {{ overview.accounts.active if overview and overview.accounts else 0 }} 活跃
+                            <i class="fas fa-user-check"></i>{{ account_active }} 活跃
                         </span>
                         <span class="status-pill status-pill--warning">
-                            <i class="fas fa-user-lock"></i>
-                            {{ overview.accounts.locked if overview and overview.accounts else 0 }} 受限
+                            <i class="fas fa-user-lock"></i>{{ account_locked }} 受限
                         </span>
                         <span class="status-pill status-pill--muted">
-                            <i class="fas fa-user-slash"></i>
-                            {{ (overview.accounts.total - overview.accounts.active) if overview and overview.accounts else 0 }} 停用
+                            <i class="fas fa-user-slash"></i>{{ account_inactive }} 停用
                         </span>
                     {% endcall %}
-                </div>
-                <div class="col">
-                    {{ metric_card(
+
+                    {% call metric_card(
                         '总容量',
-                        value=((overview.capacity.total_gb / 1024) | round(0) | int if overview and overview.capacity else 0) ~ ' TB',
-                        icon_class='fas fa-hdd'
-                    ) }}
-                </div>
-                <div class="col">
+                        value=capacity_tb ~ ' TB',
+                        icon_class='fas fa-hdd',
+                        tone=pressure_tone,
+                        card_class='dashboard-metric'
+                    ) %}
+                        <span class="status-pill status-pill--{{ pressure_tone }}">
+                            <i class="fas fa-wave-square"></i>{{ peak_resource_label }} 峰值 {{ "%.1f"|format(peak_resource_value) }}%
+                        </span>
+                    {% endcall %}
+
                     {% call metric_card(
                         '数据库总数',
-                        value=(overview.databases.total if overview and overview.databases else 0),
-                        icon_class='fas fa-database'
+                        value=database_total,
+                        icon_class='fas fa-database',
+                        tone='muted',
+                        card_class='dashboard-metric'
                     ) %}
                         <span class="status-pill status-pill--success">
-                            <i class="fas fa-check"></i>
-                            {{ overview.databases.active if overview and overview.databases else 0 }} 在线
+                            <i class="fas fa-check"></i>{{ database_active }} 在线
                         </span>
                         <span class="status-pill status-pill--danger">
-                            <i class="fas fa-trash"></i>
-                            {{ overview.databases.inactive if overview and overview.databases else 0 }} 已删除
+                            <i class="fas fa-trash"></i>{{ database_inactive }} 已删除
                         </span>
                     {% endcall %}
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="page-section page-section--stacked">
-    <div class="layout-shell">
-        <div class="layout-shell-inner">
-            <div class="row g-4 dashboard-layout">
-        <!-- 图表区域 -->
-        <div class="col-lg-8">
-            <!-- 日志趋势图 -->
-            <div class="card dashboard-panel dashboard-panel--chart mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2"></i>错误和告警日志趋势（最近7天）
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="logTrendChart"></canvas>
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="dashboard-focus-grid">
+                    <article class="card dashboard-chart-panel">
+                        <div class="card-body">
+                            <div class="dashboard-panel__header">
+                                <div class="dashboard-panel__lead">
+                                    <span class="dashboard-panel__eyebrow">Telemetry Window</span>
+                                    <h2 class="dashboard-panel__title">错误与告警趋势</h2>
+                                    <p class="dashboard-panel__desc">把最近 7 天的异常波动拉成一条连续时间线，用于快速识别风险抬头与恢复拐点。</p>
+                                </div>
+                                <div class="dashboard-chart-panel__meta">
+                                    <span class="status-pill status-pill--danger">
+                                        <i class="fas fa-burst"></i>{{ latest_error_count }} 错误
+                                    </span>
+                                    <span class="status-pill status-pill--warning">
+                                        <i class="fas fa-triangle-exclamation"></i>{{ latest_warning_count }} 告警
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-chart-panel__canvas-shell">
+                                <div class="chart-container">
+                                    <canvas id="logTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div class="dashboard-side-stack">
+                        <article class="card dashboard-health-panel">
+                            <div class="card-body">
+                                <div class="dashboard-panel__header">
+                                    <div class="dashboard-panel__lead">
+                                        <span class="dashboard-panel__eyebrow">System Health</span>
+                                        <h2 class="dashboard-panel__title">实时运行状态</h2>
+                                        <p class="dashboard-panel__desc">资源负载与核心服务状态并排展示，减少切换视角的成本。</p>
+                                    </div>
+                                </div>
+
+                                <div class="resource-usage" data-resource="cpu">
+                                    <div class="resource-usage__header">
+                                        <span>CPU 使用率</span>
+                                        <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(cpu_percent) }}%</span>
+                                    </div>
+                                    <div class="progress wf-progress">
+                                        <div class="progress-bar" data-resource-bar style="width: {{ cpu_percent }}%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="resource-usage" data-resource="memory">
+                                    <div class="resource-usage__header">
+                                        <span>内存使用率</span>
+                                        <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(memory_percent) }}%</span>
+                                    </div>
+                                    <div class="progress wf-progress">
+                                        <div class="progress-bar" data-resource-bar style="width: {{ memory_percent }}%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="resource-usage" data-resource="disk">
+                                    <div class="resource-usage__header">
+                                        <span>磁盘使用率</span>
+                                        <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(disk_percent) }}%</span>
+                                    </div>
+                                    <div class="progress wf-progress">
+                                        <div class="progress-bar" data-resource-bar style="width: {{ disk_percent }}%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="system-service-cluster">
+                                    <div class="system-service-status">
+                                        <span class="status-indicator status-{{ status.services.database if status and status.services else 'error' }}"></span>
+                                        <strong>数据库</strong>
+                                        <span class="status-pill status-pill--{{ 'success' if db_healthy else 'danger' }}">
+                                            {{ '正常' if db_healthy else '异常' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="system-service-status">
+                                        <span class="status-indicator status-{{ status.services.redis if status and status.services else 'error' }}"></span>
+                                        <strong>Redis</strong>
+                                        <span class="status-pill status-pill--{{ 'success' if redis_healthy else 'danger' }}">
+                                            {{ '正常' if redis_healthy else '异常' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="card dashboard-risk-panel">
+                            <div class="card-body">
+                                <div class="dashboard-panel__header">
+                                    <div class="dashboard-panel__lead">
+                                        <span class="dashboard-panel__eyebrow">Risk Snapshot</span>
+                                        <h2 class="dashboard-panel__title">风险速览</h2>
+                                        <p class="dashboard-panel__desc">把最需要值班同学立即判断的信息压缩成四个信号块。</p>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-risk-grid">
+                                    <article class="dashboard-risk-item dashboard-risk-item--{{ pressure_tone }}">
+                                        <span class="dashboard-risk-item__label">最高资源压力</span>
+                                        <strong class="dashboard-risk-item__value">{{ peak_resource_label }} {{ "%.1f"|format(peak_resource_value) }}%</strong>
+                                        <p class="dashboard-risk-item__meta">{{ pressure_copy }}</p>
+                                    </article>
+
+                                    <article class="dashboard-risk-item dashboard-risk-item--{{ 'success' if service_healthy_count == 2 else 'danger' }}">
+                                        <span class="dashboard-risk-item__label">服务健康度</span>
+                                        <strong class="dashboard-risk-item__value">{{ service_healthy_count }}/2</strong>
+                                        <p class="dashboard-risk-item__meta">数据库与 Redis 需要同时在线才算完整可用。</p>
+                                    </article>
+
+                                    <article class="dashboard-risk-item dashboard-risk-item--{{ 'warning' if activity_total else 'muted' }}">
+                                        <span class="dashboard-risk-item__label">最新异常窗口</span>
+                                        <strong class="dashboard-risk-item__value" data-dashboard-activity-total>{{ activity_total }}</strong>
+                                        <p class="dashboard-risk-item__meta" data-dashboard-activity-label>
+                                            {{ latest_error_count }} 条错误 / {{ latest_warning_count }} 条告警
+                                        </p>
+                                    </article>
+
+                                    <article class="dashboard-risk-item dashboard-risk-item--info">
+                                        <span class="dashboard-risk-item__label">在线时长</span>
+                                        <strong class="dashboard-risk-item__value">{{ status.uptime if status else '未知' }}</strong>
+                                        <p class="dashboard-risk-item__meta">适合与异常趋势联动判断系统是否处于恢复期。</p>
+                                    </article>
+                                </div>
+                            </div>
+                        </article>
                     </div>
                 </div>
             </div>
-
         </div>
-
-        <!-- 侧边栏 -->
-        <div class="col-lg-4">
-            <!-- 系统状态 -->
-            <div class="card dashboard-panel dashboard-panel--status mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-server me-2"></i>系统状态
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% set cpu_percent = status.system.cpu if status and status.system else 0 %}
-                    {% set memory_percent = status.system.memory.percent if status and status.system and status.system.memory else 0 %}
-                    {% set disk_percent = status.system.disk.percent if status and status.system and status.system.disk else 0 %}
-
-                    <div class="resource-usage" data-resource="cpu">
-                        <div class="resource-usage__header">
-                            <span>CPU 使用率</span>
-                            <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(cpu_percent) }}%</span>
-                        </div>
-                        <div class="progress wf-progress">
-                            <div class="progress-bar" data-resource-bar style="width: {{ cpu_percent }}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="resource-usage" data-resource="memory">
-                        <div class="resource-usage__header">
-                            <span>内存使用率</span>
-                            <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(memory_percent) }}%</span>
-                        </div>
-                        <div class="progress wf-progress">
-                            <div class="progress-bar" data-resource-bar style="width: {{ memory_percent }}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="resource-usage" data-resource="disk">
-                        <div class="resource-usage__header">
-                            <span>磁盘使用率</span>
-                            <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(disk_percent) }}%</span>
-                        </div>
-                        <div class="progress wf-progress">
-                            <div class="progress-bar" data-resource-bar style="width: {{ disk_percent }}%"></div>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <div class="system-service-status">
-                        <span class="status-indicator status-{{ status.services.database if status and status.services else 'error' }}"></span>
-                        <strong>数据库:</strong>
-                        {% set db_healthy = status and status.services and status.services.database == 'healthy' %}
-                        <span class="status-pill status-pill--{{ 'success' if db_healthy else 'danger' }}">
-                            {{ '正常' if db_healthy else '异常' }}
-                        </span>
-                    </div>
-
-                    <div class="system-service-status">
-                        <span class="status-indicator status-{{ status.services.redis if status and status.services else 'error' }}"></span>
-                        <strong>Redis:</strong>
-                        {% set redis_healthy = status and status.services and status.services.redis == 'healthy' %}
-                        <span class="status-pill status-pill--{{ 'success' if redis_healthy else 'danger' }}">
-                            {{ '正常' if redis_healthy else '异常' }}
-                        </span>
-                    </div>
-
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-clock me-1"></i>
-                            系统运行时间: {{ status.uptime if status else '未知' }}
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            </div>
-        </div>
-    </div>
-</section>
+    </section>
+</div>
 {% endblock %}
 
-    {% block extra_js %}
-    <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/dashboard_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/dashboard_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/dashboard/overview.js') }}"></script>
-    {% endblock %}
+{% endblock %}

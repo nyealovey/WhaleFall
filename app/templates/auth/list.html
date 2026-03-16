@@ -12,28 +12,32 @@
 {% endblock %}
 
 {% block content_outer %}
-<div id="auth-list-page-root">
+<div id="auth-list-page-root" class="console-list-page">
 {% set role_options = role_options if role_options else [
     {'value': 'admin', 'label': '管理员'},
     {'value': 'user', 'label': '普通用户'},
     {'value': 'viewer', 'label': '查看者'}
 ] %}
-{% call page_header('fas fa-users', '用户管理', '管理系统用户账户，包括添加、编辑、删除和权限管理') %}
-<div class="btn-group">
-    <button class="btn btn-primary" type="button" data-action="create-user">
-        <i class="fas fa-user-plus me-2"></i>新建用户
-    </button>
+<div class="console-command-deck">
+    {% call page_header('fas fa-users', '用户管理', '管理系统用户账户，包括添加、编辑、删除和权限管理') %}
+    <div class="btn-group">
+        <button class="btn btn-primary" type="button" data-action="create-user">
+            <i class="fas fa-user-plus me-2"></i>新建用户
+        </button>
+    </div>
+    {% endcall %}
 </div>
-{% endcall %}
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            {% call filter_card(form_id='user-filter-form', action='#', auto_register=False) %}
-                {{ search_input(value=search, placeholder='搜索用户名或邮箱', col_class='col-md-2 col-12') }}
-                {{ select_filter('角色', 'userRoleFilter', 'role', role_options, role, '全部角色', allow_empty=True, col_class='col-md-2 col-12') }}
-                {{ status_active_filter(status_options, status, col_class='col-md-2 col-12') }}
-            {% endcall %}
+            <div class="console-filter-shell">
+                {% call filter_card(form_id='user-filter-form', action='#', auto_register=False) %}
+                    {{ search_input(value=search, placeholder='搜索用户名或邮箱', col_class='col-md-2 col-12') }}
+                    {{ select_filter('角色', 'userRoleFilter', 'role', role_options, role, '全部角色', allow_empty=True, col_class='col-md-2 col-12') }}
+                    {{ status_active_filter(status_options, status, col_class='col-md-2 col-12') }}
+                {% endcall %}
+            </div>
         </div>
     </div>
 </section>
@@ -41,11 +45,13 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="card">
+            <div class="card console-grid-shell">
                 <div class="card-body">
-                    <div id="users-grid"
-                         data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
-                         data-current-user="{{ current_user.id if current_user.is_authenticated else '' }}"></div>
+                    <div class="console-grid-stage">
+                        <div id="users-grid"
+                             data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
+                             data-current-user="{{ current_user.id if current_user.is_authenticated else '' }}"></div>
+                    </div>
                 </div>
             </div>
         </div>

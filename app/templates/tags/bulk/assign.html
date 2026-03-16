@@ -10,6 +10,8 @@
 {% endblock %}
 
 {% block content_outer %}
+<div class="console-workbench-page">
+<div class="console-command-deck">
 {% call page_header('fas fa-tasks', '批量分配标签', '批量管理数据库实例的标签分配') %}
 <div class="btn-group">
     <a href="{{ url_for('tags.index') }}" class="btn btn-outline-secondary">
@@ -17,6 +19,7 @@
     </a>
 </div>
 {% endcall %}
+</div>
 
 <section class="page-section">
     <div class="layout-shell">
@@ -45,10 +48,10 @@
 </div>
 
 <!-- 选择区域 -->
-<div class="batch-layout-grid" id="batchLayoutGrid" data-mode="assign">
+<div class="batch-layout-grid console-workbench-grid" id="batchLayoutGrid" data-mode="assign">
     <!-- 实例列 -->
     <div class="batch-layout__column">
-        <article class="batch-selection-card">
+        <article class="batch-selection-card console-stage-card">
             <header class="batch-selection-card__header">
                 <div>
                     <p class="batch-selection-card__eyebrow">实例</p>
@@ -70,7 +73,7 @@
 
     <!-- 标签列 -->
     <div class="batch-layout__column" id="tagSelectionPanel">
-        <article class="batch-selection-card">
+        <article class="batch-selection-card console-stage-card">
             <header class="batch-selection-card__header">
                 <div>
                     <p class="batch-selection-card__eyebrow">标签</p>
@@ -97,7 +100,7 @@
             <input type="hidden" id="selectedTagsInput" name="selected_tags" value="">
             <input type="hidden" id="batchModeField" name="mode" value="assign">
 
-            <article class="batch-summary-card summary-card-sticky" id="selectionSummary">
+            <article class="batch-summary-card summary-card-sticky console-rail-card" id="selectionSummary">
                 <header class="batch-summary-card__header">
                     <div>
                         <p class="batch-summary-card__eyebrow">操作概览</p>
@@ -153,6 +156,7 @@
         </div>
     </div>
 </section>
+ </div>
 
 {% endblock %}
 

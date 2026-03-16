@@ -13,7 +13,8 @@
 {% endblock %}
 
 {% block content_outer %}
-<div class="capacity-page capacity-databases">
+<div class="capacity-page capacity-databases console-stats-page">
+<div class="console-command-deck">
 {% call page_header('fas fa-database', '容量统计(数据库)', '按数据库维度统计容量大小分析') %}
 <div class="btn-group capacity-actions">
     <button class="btn btn-outline-secondary" id="refreshData">
@@ -24,10 +25,12 @@
     </button>
 </div>
 {% endcall %}
+</div>
 
 <section class="page-section">
     <div class="layout-shell">
         <div class="layout-shell-inner">
+    <div class="console-context-strip">
     <!-- 统计概览 -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 capacity-stats mb-4">
         <div class="col">
@@ -62,8 +65,9 @@
             {% endcall %}
         </div>
     </div>
+    </div>
 
-    <div class="page-section page-section--stacked filter-card-wrapper mb-4">
+    <div class="page-section page-section--stacked filter-card-wrapper mb-4 console-filter-shell">
         {% call filter_card(form_id=filter_scope, scope=filter_scope, action=url_for('capacity_databases.list_databases'), auto_register=False) %}
             {{ db_type_filter(database_type_options, db_type, col_class='col-md-2 col-12') }}
             {{ instance_filter(filter_scope, instance_options, instance, disabled=(not db_type), col_class='col-md-2 col-12') }}
@@ -71,6 +75,7 @@
             {{ period_type_filter(period_type_options, period_type, col_class='col-md-2 col-12') }}
         {% endcall %}
     </div>
+    <div class="console-analysis-shell">
     <!-- 容量统计趋势图 -->
     <div class="row mb-4">
         <div class="col-12">
@@ -252,6 +257,7 @@
 	                </div>
             </div>
         </div>
+    </div>
     </div>
 </section>
 

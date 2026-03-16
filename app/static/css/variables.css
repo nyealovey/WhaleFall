@@ -37,6 +37,14 @@
     --surface-contrast: var(--ink-950);
     --surface-default: var(--surface-canvas);
     --surface-light: #faf8f5;
+    --surface-elevated: var(--surface-panel-raised);
+
+    /* Panel surfaces */
+    --panel-backdrop: rgba(251, 248, 243, 0.84);
+    --panel-border-soft: rgba(255, 255, 255, 0.58);
+    --panel-border-strong: rgba(25, 34, 44, 0.14);
+    --panel-highlight: rgba(221, 107, 32, 0.14);
+    --panel-shadow: 0 26px 64px rgba(22, 29, 38, 0.12);
 
     /* Borders */
     --border-subtle: rgba(36, 47, 59, 0.08);
@@ -97,6 +105,11 @@
     --font-size-2xl: 1.5rem;
     --font-size-3xl: 1.875rem;
     --font-size-4xl: 2.5rem;
+
+    /* Metric scale */
+    --metric-hero-value: clamp(2.8rem, 4vw + 0.9rem, 4.4rem);
+    --metric-card-value: clamp(2rem, 2vw + 1rem, 2.9rem);
+    --metric-card-min-height: 12.75rem;
 
     /* Chart palette */
     --chart-color-1: #a9c5d4;
@@ -197,6 +210,9 @@
     --control-padding-x-regular: 1rem;
     --control-padding-y-compact: 0.42rem;
     --control-padding-x-compact: 0.875rem;
+    --density-control-height: var(--control-height-regular);
+    --density-control-padding-y: var(--control-padding-y-regular);
+    --density-control-padding-x: var(--control-padding-x-regular);
 
     /* Modals */
     --modal-width-sm: min(92vw, 420px);

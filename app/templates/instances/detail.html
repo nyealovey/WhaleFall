@@ -9,15 +9,16 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 <div id="instanceDetailContainer"
+     class="console-detail-page"
      data-instance-id="{{ instance.id }}"
      data-instance-name="{{ instance.name }}"
      data-db-type="{{ instance.db_type }}"
      data-sync-accounts-url="/api/v1/instances/{{ instance.id }}/actions/sync-accounts">
 
-<div class="row">
-    <div class="col-8">
+<div class="console-detail-grid">
+    <div class="console-detail-main">
         <!-- 基本信息 -->
-        <div class="card mb-4">
+        <div class="card mb-4 console-detail-hero">
             <div class="card-header">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-info-circle me-2"></i>基本信息
@@ -131,7 +132,7 @@
         </div>
     </div>
 
-    <div class="col-4">
+    <div class="console-detail-rail">
         <!-- 快速操作 -->
         <div class="card mb-4">
             <div class="card-header">

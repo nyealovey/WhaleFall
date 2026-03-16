@@ -59,10 +59,10 @@
     {"version": "1.0.0", "date": "2025-09-19", "summary": "正式版本发布、统一版本号、依赖升级。", "status": "success", "tag": "正式发布"}
 ] %}
 {% set latest_release = version_timeline[0] %}
-<div class="container-fluid about-page">
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <div class="card about-hero mb-4">
+<div class="about-page console-detail-page">
+    <div class="console-detail-grid">
+        <div class="console-detail-main">
+            <div class="card about-hero console-detail-hero">
                 <div class="card-body text-center">
                     <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="200"
                         class="mb-4 about-logo">
@@ -163,7 +163,7 @@
             </div>
         </div>
 
-        <div class="col-lg-6">
+        <div class="console-detail-rail">
             <div class="card about-timeline-card">
                 <div class="card-body">
                     <div class="about-section-heading">

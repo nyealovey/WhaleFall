@@ -13,21 +13,48 @@
 
 {% block content_outer %}
 {% set classification_desc = '管理账户分类和规则，包括增删改查和自动分类' if current_user.role == 'admin' else '查看账户分类和规则信息（只读模式）' %}
-{% call page_header('fas fa-tags', '账户分类管理', classification_desc, eyebrow='Classification Rules') %}
-<div class="btn-group">
-    {% if current_user.role == 'admin' %}
-    <button class="btn btn-outline-secondary" type="button" data-action="auto-classify-all">
-        <i class="fas fa-magic me-2"></i>自动分类
-    </button>
-    {% endif %}
-</div>
-{% endcall %}
+<div class="classification-console">
+    <div class="classification-command-deck">
+        {% call page_header('fas fa-tags', '账户分类管理', classification_desc, eyebrow='Rule Workbench') %}
+        <div class="btn-group">
+            {% if current_user.role == 'admin' %}
+            <button class="btn btn-outline-secondary" type="button" data-action="auto-classify-all">
+                <i class="fas fa-magic me-2"></i>自动分类
+            </button>
+            {% endif %}
+        </div>
+        {% endcall %}
+    </div>
+
+    <section class="page-section page-section--flush">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="classification-context-strip">
+                    <article class="classification-signal">
+                        <span class="classification-signal__label">分类资产</span>
+                        <strong class="classification-signal__value">代码 + 规则</strong>
+                        <p class="classification-signal__meta">分类定义与命名规范集中在左侧资产栏，避免分散配置。</p>
+                    </article>
+                    <article class="classification-signal">
+                        <span class="classification-signal__label">规则引擎</span>
+                        <strong class="classification-signal__value">按 DB 类型分组</strong>
+                        <p class="classification-signal__meta">规则池按照数据库类型分层，减少跨类型误配与认知切换。</p>
+                    </article>
+                    <article class="classification-signal">
+                        <span class="classification-signal__label">自动分类</span>
+                        <strong class="classification-signal__value">一键触发</strong>
+                        <p class="classification-signal__meta">自动分类入口保持在页头动作区，用于批量重算分类命中。</p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="row g-4 classification-layout">
-                <div class="col-xl-4 col-lg-5 col-12">
+            <div class="classification-workbench">
+                <aside class="classification-rail">
                     <div class="card classification-panel">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
@@ -45,9 +72,9 @@
                             <div id="classificationsList" class="classification-list"></div>
                         </div>
                     </div>
-                </div>
-                <div class="col-xl-8 col-lg-7 col-12">
-                    <div class="card rule-panel">
+                </aside>
+                <section class="classification-stage">
+                    <div class="card rule-panel classification-rule-stage">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">
@@ -69,11 +96,12 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     </div>
 </section>
+</div>
 
 <!-- 创建分类模态框 -->
 {% include 'accounts/account-classification/modals/classification-modals.html' %}

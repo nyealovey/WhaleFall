@@ -16,6 +16,8 @@
 {% set avg_per_instance = (total_accounts / total_instances) if total_instances else 0 %}
 {% set active_per_instance = (active_accounts / total_instances) if total_instances else 0 %}
 {% set locked_per_instance = (locked_accounts / total_instances) if total_instances else 0 %}
+<div class="console-stats-page">
+<div class="console-command-deck">
 {% call page_header('fas fa-chart-bar', '账户统计', '概览账户规模、分类与数据库类型分布') %}
 <div class="page-header-actions d-flex gap-2 flex-wrap">
     <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-secondary">
@@ -26,10 +28,12 @@
     </button>
 </div>
 {% endcall %}
+</div>
 
 	<section class="page-section page-section--stacked">
 	    <div class="layout-shell">
 	        <div class="layout-shell-inner">
+                <div class="console-context-strip">
 	            <div class="row g-3 accounts-stats-row">
 	                <div class="col-12 col-sm-6 col-xl-3">
 	                    {% call metric_card('总账户数', value=(stats.total_accounts or 0), icon_class='fas fa-users', data_stat_key='total_accounts') %}
@@ -66,10 +70,12 @@
 	                    {% endcall %}
 	                </div>
 	            </div>
+                </div>
 	        </div>
 	    </div>
 	</section>
 
+<div class="console-analysis-shell">
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
@@ -184,6 +190,8 @@
         </div>
     </div>
 </section>
+ </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}

@@ -1,12 +1,73 @@
 /* Account classification page */
 
-.classification-layout .card {
-    border: 1px solid rgba(22, 29, 38, 0.08);
+.classification-command-deck .page-header__title p {
+    max-width: 46rem;
+}
+
+.classification-context-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-md);
+}
+
+.classification-signal {
+    min-height: 8.4rem;
+    padding: 1rem 1.15rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--panel-border-strong);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(246, 241, 233, 0.9) 100%);
+    box-shadow: var(--shadow-sm);
+}
+
+.classification-signal__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-family-data);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.classification-signal__value {
+    display: block;
+    margin-top: 0.55rem;
+    font-family: var(--font-family-display);
+    font-size: clamp(1.55rem, 1.2vw + 1rem, 2.1rem);
+    line-height: 1;
+}
+
+.classification-signal__meta {
+    margin: 0.55rem 0 0;
+    color: var(--text-muted);
+}
+
+.classification-workbench {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.45fr);
+    gap: var(--spacing-lg);
+    align-items: start;
+}
+
+.classification-rail,
+.classification-stage {
+    min-width: 0;
+}
+
+.classification-stage {
+    display: flex;
+}
+
+.classification-rule-stage {
+    width: 100%;
 }
 
 .classification-panel,
 .rule-panel {
     position: relative;
+    min-height: 100%;
 }
 
 .classification-panel::before,
@@ -227,6 +288,13 @@
 
 .permission-policy-center .permission-policy-item__badge {
     flex: 0 0 auto;
+}
+
+@media (max-width: 1199.98px) {
+    .classification-context-strip,
+    .classification-workbench {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 992px) {

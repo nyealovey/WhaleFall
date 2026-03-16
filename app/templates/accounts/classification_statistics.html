@@ -10,6 +10,8 @@
 {% endblock %}
 
 {% block content_outer %}
+<div class="console-stats-page">
+<div class="console-command-deck">
 {% call page_header('fas fa-tags', '账户分类统计', '按日留痕，支持日/周/月/季聚合（周/月/季=均值；年统计即将支持）') %}
 <div class="page-header-actions d-flex gap-2 flex-wrap">
     <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新">
@@ -17,10 +19,12 @@
     </button>
 </div>
 {% endcall %}
+</div>
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
+            <div class="console-filter-shell">
             {% call filter_card(form_id='account-classification-statistics-filter', action='', method='GET', submit_label='应用', clear_label='重置', auto_register=False, extra_classes='acs-filter-card') %}
                 <div class="col-md-2 col-12">
                     <label for="classification_id" class="form-label">账户分类</label>
@@ -79,6 +83,7 @@
 
                 <input type="hidden" name="rule_id" id="rule_id" value="{{ selected_rule_id or '' }}">
             {% endcall %}
+            </div>
         </div>
     </div>
 </section>
@@ -86,19 +91,19 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="row g-3 acs-grid">
+            <div class="row g-3 acs-grid console-analysis-shell">
                 <div class="col-12 col-lg-4">
-                    <article class="acs-panel acs-panel--rules">
-                        <div class="acs-panel__header">
-                            <div class="acs-panel__title">
+                    <article class="statistics-panel acs-panel acs-panel--rules">
+                        <div class="statistics-panel__header acs-panel__header">
+                            <div class="statistics-panel__title acs-panel__title">
                                 <i class="fas fa-list"></i>
                                 <span>规则列表</span>
                             </div>
-                            <div class="acs-panel__meta">
+                            <div class="statistics-panel__meta acs-panel__meta">
                                 <span class="chip-outline chip-outline--muted" id="acs-rules-window-label">最新周期</span>
                             </div>
                         </div>
-                        <div class="acs-panel__body">
+                        <div class="statistics-panel__body acs-panel__body">
                             <div class="acs-rules-toolbar">
                                 <div class="acs-rules-search">
                                     <input type="search" class="form-control" id="acs-rule-search" placeholder="搜索规则名/备注">
@@ -125,34 +130,34 @@
 
                 <div class="col-12 col-lg-8">
                     <div class="d-flex flex-column gap-3">
-                        <article class="acs-panel">
-                            <div class="acs-panel__header">
-                                <div class="acs-panel__title">
+                        <article class="statistics-panel acs-panel">
+                            <div class="statistics-panel__header acs-panel__header">
+                                <div class="statistics-panel__title acs-panel__title">
                                     <i class="fas fa-chart-line"></i>
                                     <span>分类趋势（去重账号数）</span>
                                 </div>
-                                <div class="acs-panel__meta">
+                                <div class="statistics-panel__meta acs-panel__meta">
                                     <span class="chip-outline chip-outline--muted" id="acs-classification-coverage">覆盖 0/0 天</span>
                                 </div>
                             </div>
-                            <div class="acs-panel__body acs-panel__body--chart">
+                            <div class="statistics-panel__body acs-panel__body acs-panel__body--chart">
                                 <div class="chart-stage chart-stage--md">
                                     <canvas id="acs-classification-trend" class="chart-canvas"></canvas>
                                 </div>
                             </div>
                         </article>
 
-                        <article class="acs-panel">
-                            <div class="acs-panel__header">
-                                <div class="acs-panel__title">
+                        <article class="statistics-panel acs-panel">
+                            <div class="statistics-panel__header acs-panel__header">
+                                <div class="statistics-panel__title acs-panel__title">
                                     <i class="fas fa-layer-group"></i>
                                     <span id="acs-secondary-title">规则贡献（当前周期）</span>
                                 </div>
-                                <div class="acs-panel__meta">
+                                <div class="statistics-panel__meta acs-panel__meta">
                                     <span class="chip-outline chip-outline--muted" id="acs-secondary-coverage">覆盖 0/0 天</span>
                                 </div>
                             </div>
-                            <div class="acs-panel__body acs-panel__body--chart">
+                            <div class="statistics-panel__body acs-panel__body acs-panel__body--chart">
                                 <div class="chart-stage chart-stage--md">
                                     <canvas id="acs-rule-secondary" class="chart-canvas"></canvas>
                                 </div>
@@ -167,6 +172,7 @@
         </div>
     </div>
 </section>
+ </div>
 {% endblock %}
 
 {% block extra_js %}

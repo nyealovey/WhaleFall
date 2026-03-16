@@ -13,22 +13,24 @@
 {% endblock %}
 
 {% block content_outer %}
-<div id="tags-page-root">
+<div id="tags-page-root" class="tags-console">
 {% set tag_desc = '管理数据库实例的标签信息' if current_user.role == 'admin' else '查看数据库实例的标签信息（只读模式）' %}
-{% if current_user.role == 'admin' %}
-{% call page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Tag Registry') %}
-<div class="btn-group">
-    <button class="btn btn-primary" type="button" data-action="create-tag">
-        <i class="fas fa-plus me-2"></i>添加标签
-    </button>
-    <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-tasks me-2"></i>批量分配
-    </a>
+<div class="tags-command-deck">
+    {% if current_user.role == 'admin' %}
+    {% call page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Registry Console') %}
+    <div class="btn-group">
+        <button class="btn btn-primary" type="button" data-action="create-tag">
+            <i class="fas fa-plus me-2"></i>添加标签
+        </button>
+        <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-tasks me-2"></i>批量分配
+        </a>
+    </div>
+    {% endcall %}
+    {% else %}
+    {{ page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Registry Console') }}
+    {% endif %}
 </div>
-{% endcall %}
-{% else %}
-{{ page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Tag Registry') }}
-{% endif %}
 
 {% set stats = tag_stats or {'total': 0, 'active': 0, 'inactive': 0, 'category_count': 0} %}
 {% set total_tags = stats.total or 0 %}
@@ -42,23 +44,51 @@
 <section class="page-section page-section--flush">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="tags-stats-grid" id="tagStatsContainer">
-                {% call metric_card('全部标签', value=total_tags, icon_class='fas fa-tags', tone='info', data_stat_key='total') %}
+            <div class="tags-context-strip" id="tagStatsContainer">
+                {% call metric_card(
+                    '全部标签',
+                    value=total_tags,
+                    icon_class='fas fa-tags',
+                    tone='info',
+                    data_stat_key='total',
+                    card_class='tags-metric tags-metric--hero'
+                ) %}
                     <span class="chip-outline chip-outline--muted" title="均值/分类" aria-label="均值/分类">
                         <i class="fas fa-layer-group" aria-hidden="true"></i><span id="tagsMetaAvgPerCategory" aria-hidden="true">{{ avg_per_category|round(1) }}</span>
                     </span>
                 {% endcall %}
-                {% call metric_card('启用率', value=('%.1f'|format(active_rate) ~ '%'), icon_class='fas fa-check-circle', tone='success', data_stat_key='active_rate') %}
+                {% call metric_card(
+                    '启用率',
+                    value=('%.1f'|format(active_rate) ~ '%'),
+                    icon_class='fas fa-check-circle',
+                    tone='success',
+                    data_stat_key='active_rate',
+                    card_class='tags-metric tags-metric--service'
+                ) %}
                     <span class="chip-outline chip-outline--muted" title="启用" aria-label="启用">
                         <i class="fas fa-check" aria-hidden="true"></i><span id="tagsMetaActiveCount" aria-hidden="true">{{ active_tags }}</span>
                     </span>
                 {% endcall %}
-                {% call metric_card('停用率', value=('%.1f'|format(inactive_rate) ~ '%'), icon_class='fas fa-ban', tone='warning', data_stat_key='inactive_rate') %}
+                {% call metric_card(
+                    '停用率',
+                    value=('%.1f'|format(inactive_rate) ~ '%'),
+                    icon_class='fas fa-ban',
+                    tone='warning',
+                    data_stat_key='inactive_rate',
+                    card_class='tags-metric'
+                ) %}
                     <span class="chip-outline chip-outline--muted" title="停用" aria-label="停用">
                         <i class="fas fa-ban" aria-hidden="true"></i><span id="tagsMetaInactiveCount" aria-hidden="true">{{ inactive_tags }}</span>
                     </span>
                 {% endcall %}
-                {% call metric_card('标签分类', value=tag_categories, icon_class='fas fa-tag', tone='muted', data_stat_key='category_count') %}
+                {% call metric_card(
+                    '标签分类',
+                    value=tag_categories,
+                    icon_class='fas fa-tag',
+                    tone='muted',
+                    data_stat_key='category_count',
+                    card_class='tags-metric'
+                ) %}
                     <span class="chip-outline chip-outline--muted" title="启用/分类" aria-label="启用/分类">
                         <i class="fas fa-user-check" aria-hidden="true"></i><span id="tagsMetaActivePerCategory" aria-hidden="true">{{ active_per_category|round(1) }}</span>
                     </span>
@@ -71,11 +101,13 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
-                {{ search_input(value=search, placeholder='搜索标签名称或分类', col_class='col-md-2 col-12') }}
-                {{ tag_category_filter(category_options, category, col_class='col-md-2 col-12') }}
-                {{ status_active_filter(status_options, status, col_class='col-md-2 col-12') }}
-            {% endcall %}
+            <div class="tags-filter-shell">
+                {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
+                    {{ search_input(value=search, placeholder='搜索标签名称或分类', col_class='col-md-3 col-12') }}
+                    {{ tag_category_filter(category_options, category, col_class='col-md-3 col-12') }}
+                    {{ status_active_filter(status_options, status, col_class='col-md-2 col-12') }}
+                {% endcall %}
+            </div>
         </div>
     </div>
 </section>
@@ -83,9 +115,26 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="card tags-grid-panel">
+            <div class="card tags-grid-shell">
                 <div class="card-body">
+                    <div class="tags-grid-shell__header">
+                        <div class="tags-grid-shell__lead">
+                            <span class="tags-grid-shell__eyebrow">Registry Matrix</span>
+                            <h2 class="tags-grid-shell__title">标签总表</h2>
+                            <p class="tags-grid-shell__desc">把标签、分类、启停状态和绑定关系收拢到一个可快速筛查的操作面板。</p>
+                        </div>
+                        <div class="tags-grid-shell__meta">
+                            <span class="status-pill status-pill--info">
+                                <i class="fas fa-tags"></i>{{ total_tags }} 条记录
+                            </span>
+                            <span class="status-pill status-pill--success">
+                                <i class="fas fa-check-circle"></i>{{ active_tags }} 启用
+                            </span>
+                        </div>
+                    </div>
+                    <div class="tags-grid-stage">
                     <div id="tags-grid" data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"></div>
+                    </div>
                 </div>
             </div>
         </div>

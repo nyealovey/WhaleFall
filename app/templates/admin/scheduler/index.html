@@ -11,75 +11,96 @@
 {% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-clock', '定时任务管理', '管理和监控系统定时任务的执行状态', eyebrow='Scheduler Matrix') %}
-<div class="btn-group">
-    <button id="purgeKeepBuiltinBtn" class="btn btn-outline-secondary" type="button" title="删除所有现有任务，重新从配置文件加载任务">
-        <i class="fas fa-sync-alt me-1"></i>重新初始化任务
-    </button>
+<div class="scheduler-console">
+    <div class="scheduler-command-deck">
+        {% call page_header('fas fa-clock', '定时任务管理', '把运行池、暂停池和调度指令压缩成一个可切换的调度控制台。', eyebrow='Scheduler Console') %}
+        <div class="btn-group">
+            <button id="purgeKeepBuiltinBtn" class="btn btn-outline-secondary" type="button" title="删除所有现有任务，重新从配置文件加载任务">
+                <i class="fas fa-sync-alt me-1"></i>重新初始化任务
+            </button>
+        </div>
+        {% endcall %}
+    </div>
+
+    <section class="page-section page-section--flush">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="scheduler-summary-strip">
+                    <article class="scheduler-summary-card scheduler-summary-card--active">
+                        <span class="scheduler-summary-card__label">运行池</span>
+                        <strong class="scheduler-summary-card__value" id="activeJobsCount">0 项</strong>
+                        <p class="scheduler-summary-card__meta">所有处于执行或待执行状态的任务都集中在这里。</p>
+                    </article>
+                    <article class="scheduler-summary-card scheduler-summary-card--paused">
+                        <span class="scheduler-summary-card__label">暂停池</span>
+                        <strong class="scheduler-summary-card__value" id="pausedJobsCount">0 项</strong>
+                        <p class="scheduler-summary-card__meta">已暂停任务与待恢复任务会留在单独池中，避免误操作。</p>
+                    </article>
+                    <article class="scheduler-summary-card scheduler-summary-card--reload">
+                        <span class="scheduler-summary-card__label">调度策略</span>
+                        <strong class="scheduler-summary-card__value">热重载</strong>
+                        <p class="scheduler-summary-card__meta">支持从配置文件重新装载任务，适合低峰期批量刷新。</p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="scheduler-stage">
+                    <div id="loadingRow" class="scheduler-feedback" style="display: none;">
+                        <div class="loading-state">
+                            <div class="loading-spinner"></div>
+                            <p>加载任务中...</p>
+                        </div>
+                    </div>
+
+                    <div id="emptyRow" class="scheduler-feedback" style="display: none;">
+                        <div class="empty-state">
+                            <i class="fas fa-tasks"></i>
+                            <h4>暂无任务</h4>
+                            <p>还没有任何定时任务</p>
+                        </div>
+                    </div>
+
+                    <div class="scheduler-columns">
+                        <article id="activeJobsSection" class="scheduler-column scheduler-column--active">
+                            <div class="scheduler-column__header">
+                                <div>
+                                    <span class="scheduler-column__eyebrow">Execution Pool</span>
+                                    <h2 class="scheduler-column__title">运行中的任务</h2>
+                                </div>
+                                <span class="status-pill status-pill--success"><i class="fas fa-play"></i>实时执行</span>
+                            </div>
+                            <div class="scheduler-column__body">
+                                <div id="activeJobsContainer" class="row g-3">
+                                    <!-- 运行中的任务卡片将在这里动态生成 -->
+                                </div>
+                            </div>
+                        </article>
+
+                        <article id="pausedJobsSection" class="scheduler-column scheduler-column--paused">
+                            <div class="scheduler-column__header">
+                                <div>
+                                    <span class="scheduler-column__eyebrow">Recovery Pool</span>
+                                    <h2 class="scheduler-column__title">已暂停的任务</h2>
+                                </div>
+                                <span class="status-pill status-pill--muted"><i class="fas fa-pause"></i>待恢复</span>
+                            </div>
+                            <div class="scheduler-column__body">
+                                <div id="pausedJobsContainer" class="row g-3">
+                                    <!-- 已暂停的任务卡片将在这里动态生成 -->
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
-{% endcall %}
-
-<section class="page-section">
-    <div class="layout-shell">
-        <div class="layout-shell-inner">
-
-    <!-- 任务列表 -->
-    <div class="row">
-        <div class="col-12">
-            <!-- 加载状态 -->
-            <div id="loadingRow" class="row" style="display: none;">
-                <div class="col-12">
-                    <div class="loading-state">
-                        <div class="loading-spinner"></div>
-                        <p>加载任务中...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 空状态 -->
-            <div id="emptyRow" class="row" style="display: none;">
-                <div class="col-12">
-                    <div class="empty-state">
-                        <i class="fas fa-tasks"></i>
-                        <h4>暂无任务</h4>
-                        <p>还没有任何定时任务</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 运行中的任务 -->
-            <div id="activeJobsSection" class="scheduler-section mb-4">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="status-pill status-pill--success"><i class="fas fa-play"></i>运行中的任务</span>
-                    </div>
-                    <span id="activeJobsCount" class="text-muted ms-2">0 项</span>
-                </div>
-                <div id="activeJobsContainer" class="row">
-                    <!-- 运行中的任务卡片将在这里动态生成 -->
-                </div>
-            </div>
-
-            <!-- 分割线 -->
-            <div class="border-top my-4"></div>
-
-            <!-- 已暂停的任务 -->
-            <div id="pausedJobsSection" class="scheduler-section mb-4">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="status-pill status-pill--muted"><i class="fas fa-pause"></i>已暂停的任务</span>
-                    </div>
-                    <span id="pausedJobsCount" class="text-muted ms-2">0 项</span>
-                </div>
-                <div id="pausedJobsContainer" class="row">
-                    <!-- 已暂停的任务卡片将在这里动态生成 -->
-                </div>
-            </div>
-        </div>
-    </div>
-        </div>
-    </div>
-</section>
 
 {% include 'admin/scheduler/modals/scheduler-modals.html' %}
 
