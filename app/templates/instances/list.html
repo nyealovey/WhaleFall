@@ -14,7 +14,7 @@
 
 {% block content_outer %}
 {% set instance_desc = '管理数据库实例，包括增删改查和连接测试' if current_user.role == 'admin' else '查看数据库实例信息（只读模式）' %}
-{% call page_header('fas fa-database', '数据库实例管理', instance_desc) %}
+{% call page_header('fas fa-database', '数据库实例管理', instance_desc, eyebrow='Instance Registry') %}
 <div class="btn-group">
     <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-primary">
         <i class="fas fa-chart-bar me-2"></i>实例统计

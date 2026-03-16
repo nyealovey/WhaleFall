@@ -422,15 +422,16 @@ function mountTagsIndexPage(global) {
   function renderBindings(meta) {
     const instanceCount = Number(meta.instance_count) || 0;
     if (!gridHtml) {
-      return instanceCount ? `${instanceCount}` : "-";
+      return `${instanceCount}`;
     }
-    if (!instanceCount) {
-      return gridHtml('<span class="text-muted">-</span>');
-    }
-    const chip = buildLedgerChipHtml(
-      `<span title="关联实例数" aria-label="关联实例数 ${instanceCount}"><i class="fas fa-database" aria-hidden="true"></i><span aria-hidden="true">${instanceCount}</span></span>`,
-    );
-    return gridHtml(`<div class="ledger-chip-stack">${chip}</div>`);
+    const variant = instanceCount ? "info" : "muted";
+    return gridHtml(`
+      <div class="instance-count-stack">
+        <span class="status-pill status-pill--${variant}" title="关联实例数" aria-label="关联实例数 ${instanceCount}">
+          <i class="fas fa-database" aria-hidden="true"></i><span aria-hidden="true">${instanceCount}</span>
+        </span>
+      </div>
+    `);
   }
 
   function renderActionButtons(meta) {

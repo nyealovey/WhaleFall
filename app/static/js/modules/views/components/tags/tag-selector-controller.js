@@ -171,6 +171,7 @@
 
       this.view = new TagSelectorView(this.root, {
         onCategoryChange: (value) => this.handleCategory(value),
+        onSearchChange: (query) => this.handleSearch(query),
         onTagToggle: (id) => this.toggleTag(id),
         onSelectedRemove: (id) => this.removeTag(id),
       });
@@ -221,6 +222,7 @@
         // 选择变更会影响标签列表的 selected 状态与已选 chips。
         this.renderTags();
         this.renderSelection();
+        this.renderStats(this.getDerivedStats());
       });
       this.store.subscribe("tagManagement:error", (payload) => {
         const target = payload && payload.target;
@@ -239,10 +241,11 @@
      * @return {void}
      */
     renderAll() {
+      this.renderSearch();
       this.renderCategories();
       this.renderTags();
       this.renderSelection();
-      this.renderStats();
+      this.renderStats(this.getDerivedStats());
     }
 
     /**
@@ -296,8 +299,13 @@
         this.view.updateStats(stats);
         return;
       }
+      this.view.updateStats(this.getDerivedStats());
+    }
+
+    renderSearch() {
       const current = this.store.getState() || {};
-      this.view.updateStats(current.stats || {});
+      const filters = current.filters || {};
+      this.view.setSearchValue(filters.search || "");
     }
 
     /**
@@ -308,6 +316,10 @@
      */
     handleCategory(value) {
       this.store.actions.setCategory(value || "all");
+    }
+
+    handleSearch(query) {
+      this.store.actions.setSearch(query);
     }
 
     /**
@@ -420,6 +432,19 @@
       const tags = Array.isArray(current.tags) ? current.tags : [];
       const selection = new Set(Array.isArray(current.selection) ? current.selection : []);
       return tags.filter((tag) => tag && selection.has(tag.id));
+    }
+
+    getDerivedStats() {
+      const current = this.store.getState() || {};
+      const tags = Array.isArray(current.tags) ? current.tags : [];
+      const filteredTags = Array.isArray(current.filteredTags) ? current.filteredTags : tags;
+      const selection = Array.isArray(current.selection) ? current.selection : [];
+      return {
+        total: tags.length,
+        selected: selection.length,
+        active: tags.filter((tag) => tag && tag.is_active !== false).length,
+        filtered: filteredTags.length,
+      };
     }
 
     /**

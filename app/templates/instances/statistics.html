@@ -15,7 +15,7 @@
 {% set sorted_db_types = (stats.db_type_stats | sort(attribute='count', reverse=True)) if stats.db_type_stats else [] %}
 {% set top_db_type = sorted_db_types[0] if sorted_db_types else None %}
 {% set top_db_type_share = (top_db_type.count / total_instances * 100) if top_db_type and total_instances else 0 %}
-{% call page_header('fas fa-chart-bar', '实例统计', '查看数据库实例画像与分布') %}
+{% call page_header('fas fa-chart-bar', '实例统计', '查看数据库实例画像与分布', eyebrow='Instance Insights') %}
 <div class="page-header-actions d-flex gap-2 flex-wrap">
     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left me-2"></i>返回实例列表
