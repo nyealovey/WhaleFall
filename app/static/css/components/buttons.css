@@ -1,9 +1,10 @@
-/* 按钮组件样式 - 统一按钮层级与状态（基于 Bootstrap 语义类） */
+/* Button system */
 
 .btn {
-    border-radius: var(--border-radius-md);
+    border-radius: var(--border-radius-pill);
     font-weight: 600;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    letter-spacing: 0.01em;
+    transition: var(--transition-fast);
 }
 
 .main-content .btn:not(.btn-sm):not(.btn-lg):not(.btn-icon) {
@@ -12,13 +13,12 @@
 }
 
 .btn:focus-visible {
-    box-shadow: 0 0 0 0.2rem var(--accent-primary-ring);
+    box-shadow: 0 0 0 0.22rem var(--accent-primary-ring);
 }
 
-/* 图标按钮（btn-icon） */
 .btn-icon {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.35rem;
+    height: 2.35rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -37,17 +37,17 @@
     font-size: 0.8rem;
 }
 
-/* 非 Bootstrap button（例如 chips 内部的小按钮） */
 .btn-icon:not(.btn) {
     border-radius: var(--border-radius-md);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
-    background-color: transparent;
+    border: 1px solid rgba(22, 29, 38, 0.1);
+    background-color: rgba(255, 255, 255, 0.72);
     color: var(--text-muted);
-    transition: background-color 0.2s ease;
+    transition: var(--transition-fast);
 }
 
 .btn-icon:not(.btn):hover {
-    background-color: color-mix(in srgb, var(--surface-muted) 20%, transparent);
+    background-color: rgba(221, 107, 32, 0.08);
+    color: var(--accent-primary-strong);
 }
 
 .btn-icon:not(.btn):focus-visible {
@@ -55,136 +55,120 @@
     box-shadow: 0 0 0 0.2rem var(--accent-primary-ring);
 }
 
-/* 主按钮（品牌色） */
 .btn-primary {
-    --bs-btn-color: var(--surface-elevated);
-    --bs-btn-bg: var(--accent-primary);
-    --bs-btn-border-color: var(--accent-primary);
-    --bs-btn-hover-color: var(--surface-elevated);
-    --bs-btn-hover-bg: var(--accent-primary-hover);
-    --bs-btn-hover-border-color: var(--accent-primary-hover);
-    --bs-btn-active-color: var(--surface-elevated);
-    --bs-btn-active-bg: var(--accent-primary-strong);
-    --bs-btn-active-border-color: var(--accent-primary-strong);
-    --bs-btn-disabled-color: var(--surface-elevated);
-    --bs-btn-disabled-bg: var(--accent-primary-muted);
-    --bs-btn-disabled-border-color: var(--accent-primary-muted);
+    --bs-btn-color: var(--text-inverse);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: var(--text-inverse);
+    --bs-btn-hover-bg: transparent;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: var(--text-inverse);
+    --bs-btn-active-bg: transparent;
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: rgba(255, 248, 241, 0.92);
+    --bs-btn-disabled-bg: rgba(221, 107, 32, 0.48);
+    --bs-btn-disabled-border-color: transparent;
+    background-image: var(--gradient-primary);
+    box-shadow: 0 14px 28px rgba(221, 107, 32, 0.18);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+    transform: translateY(-1px);
+    box-shadow: 0 18px 34px rgba(221, 107, 32, 0.24);
 }
 
 .btn-primary:focus-visible {
-    box-shadow: 0 0 0 0.2rem var(--accent-primary-ring),
-        0 6px 18px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+    box-shadow: 0 0 0 0.2rem var(--accent-primary-ring), 0 18px 34px rgba(221, 107, 32, 0.24);
 }
 
-/* 描边主按钮（品牌色） */
 .btn-outline-primary {
-    --bs-btn-color: var(--accent-primary);
-    --bs-btn-border-color: var(--accent-primary);
-    --bs-btn-hover-color: var(--surface-elevated);
-    --bs-btn-hover-bg: var(--accent-primary);
-    --bs-btn-hover-border-color: var(--accent-primary);
-    --bs-btn-active-color: var(--surface-elevated);
-    --bs-btn-active-bg: var(--accent-primary-strong);
-    --bs-btn-active-border-color: var(--accent-primary-strong);
-    --bs-btn-disabled-color: color-mix(in srgb, var(--accent-primary) 55%, var(--surface-elevated));
-    --bs-btn-disabled-border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--surface-elevated));
+    --bs-btn-color: var(--accent-primary-strong);
+    --bs-btn-border-color: rgba(221, 107, 32, 0.24);
+    --bs-btn-hover-color: var(--accent-primary-strong);
+    --bs-btn-hover-bg: rgba(221, 107, 32, 0.08);
+    --bs-btn-hover-border-color: rgba(221, 107, 32, 0.3);
+    --bs-btn-active-color: var(--accent-primary-strong);
+    --bs-btn-active-bg: rgba(221, 107, 32, 0.12);
+    --bs-btn-active-border-color: rgba(221, 107, 32, 0.34);
+    --bs-btn-disabled-color: color-mix(in srgb, var(--accent-primary-strong) 55%, white);
+    --bs-btn-disabled-border-color: rgba(221, 107, 32, 0.18);
+    background: rgba(255, 255, 255, 0.72);
 }
 
-/* 次按钮（中性） */
-.btn-secondary {
-    --bs-btn-color: var(--surface-elevated);
-    --bs-btn-bg: var(--accent-secondary);
-    --bs-btn-border-color: var(--accent-secondary);
-    --bs-btn-hover-color: var(--surface-elevated);
-    --bs-btn-hover-bg: color-mix(in srgb, var(--accent-secondary) 85%, var(--surface-contrast));
-    --bs-btn-hover-border-color: color-mix(in srgb, var(--accent-secondary) 85%, var(--surface-contrast));
-    --bs-btn-active-color: var(--surface-elevated);
-    --bs-btn-active-bg: color-mix(in srgb, var(--accent-secondary) 75%, var(--surface-contrast));
-    --bs-btn-active-border-color: color-mix(in srgb, var(--accent-secondary) 75%, var(--surface-contrast));
-    --bs-btn-disabled-color: var(--surface-elevated);
-    --bs-btn-disabled-bg: color-mix(in srgb, var(--accent-secondary) 55%, var(--surface-elevated));
-    --bs-btn-disabled-border-color: color-mix(in srgb, var(--accent-secondary) 55%, var(--surface-elevated));
+.btn-secondary,
+.btn-outline-secondary {
+    --bs-btn-color: var(--text-primary);
+    --bs-btn-bg: rgba(255, 255, 255, 0.7);
+    --bs-btn-border-color: rgba(22, 29, 38, 0.1);
+    --bs-btn-hover-color: var(--text-primary);
+    --bs-btn-hover-bg: rgba(255, 255, 255, 0.92);
+    --bs-btn-hover-border-color: rgba(22, 29, 38, 0.16);
+    --bs-btn-active-color: var(--text-primary);
+    --bs-btn-active-bg: rgba(241, 237, 230, 0.95);
+    --bs-btn-active-border-color: rgba(22, 29, 38, 0.16);
+    --bs-btn-disabled-color: var(--ink-500);
+    --bs-btn-disabled-bg: rgba(255, 255, 255, 0.55);
+    --bs-btn-disabled-border-color: rgba(22, 29, 38, 0.08);
 }
 
-/* 危险按钮（语义红） */
 .btn-danger {
-    --bs-btn-color: var(--surface-elevated);
+    --bs-btn-color: var(--text-inverse);
     --bs-btn-bg: var(--status-danger);
     --bs-btn-border-color: var(--status-danger);
-    --bs-btn-hover-color: var(--surface-elevated);
-    --bs-btn-hover-bg: color-mix(in srgb, var(--status-danger) 85%, var(--surface-contrast));
-    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-danger) 85%, var(--surface-contrast));
-    --bs-btn-active-color: var(--surface-elevated);
-    --bs-btn-active-bg: color-mix(in srgb, var(--status-danger) 75%, var(--surface-contrast));
-    --bs-btn-active-border-color: color-mix(in srgb, var(--status-danger) 75%, var(--surface-contrast));
-    --bs-btn-disabled-color: var(--surface-elevated);
-    --bs-btn-disabled-bg: color-mix(in srgb, var(--status-danger) 55%, var(--surface-elevated));
-    --bs-btn-disabled-border-color: color-mix(in srgb, var(--status-danger) 55%, var(--surface-elevated));
+    --bs-btn-hover-color: var(--text-inverse);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--status-danger) 82%, black);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-danger) 82%, black);
+    --bs-btn-active-color: var(--text-inverse);
+    --bs-btn-active-bg: color-mix(in srgb, var(--status-danger) 72%, black);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--status-danger) 72%, black);
+    --bs-btn-disabled-color: var(--text-inverse);
+    --bs-btn-disabled-bg: color-mix(in srgb, var(--status-danger) 55%, white);
+    --bs-btn-disabled-border-color: transparent;
 }
 
-/* 描边危险按钮（语义红） */
 .btn-outline-danger {
     --bs-btn-color: var(--status-danger);
-    --bs-btn-border-color: var(--status-danger);
-    --bs-btn-hover-color: var(--surface-elevated);
-    --bs-btn-hover-bg: var(--status-danger);
-    --bs-btn-hover-border-color: var(--status-danger);
-    --bs-btn-active-color: var(--surface-elevated);
-    --bs-btn-active-bg: color-mix(in srgb, var(--status-danger) 85%, var(--surface-contrast));
-    --bs-btn-active-border-color: color-mix(in srgb, var(--status-danger) 85%, var(--surface-contrast));
-    --bs-btn-disabled-color: color-mix(in srgb, var(--status-danger) 60%, var(--surface-elevated));
-    --bs-btn-disabled-border-color: color-mix(in srgb, var(--status-danger) 55%, var(--surface-elevated));
+    --bs-btn-border-color: color-mix(in srgb, var(--status-danger) 45%, transparent);
+    --bs-btn-hover-color: var(--status-danger);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--status-danger) 10%, white);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-danger) 55%, transparent);
+    --bs-btn-active-color: var(--status-danger);
+    --bs-btn-active-bg: color-mix(in srgb, var(--status-danger) 14%, white);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--status-danger) 55%, transparent);
 }
 
-/* 成功按钮（语义绿） */
 .btn-success {
-    --bs-btn-color: var(--surface-elevated);
+    --bs-btn-color: var(--text-inverse);
     --bs-btn-bg: var(--status-success);
     --bs-btn-border-color: var(--status-success);
-    --bs-btn-hover-color: var(--surface-elevated);
-    --bs-btn-hover-bg: color-mix(in srgb, var(--status-success) 85%, var(--surface-contrast));
-    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-success) 85%, var(--surface-contrast));
-    --bs-btn-active-color: var(--surface-elevated);
-    --bs-btn-active-bg: color-mix(in srgb, var(--status-success) 75%, var(--surface-contrast));
-    --bs-btn-active-border-color: color-mix(in srgb, var(--status-success) 75%, var(--surface-contrast));
-    --bs-btn-disabled-color: var(--surface-elevated);
-    --bs-btn-disabled-bg: color-mix(in srgb, var(--status-success) 55%, var(--surface-elevated));
-    --bs-btn-disabled-border-color: color-mix(in srgb, var(--status-success) 55%, var(--surface-elevated));
+    --bs-btn-hover-color: var(--text-inverse);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--status-success) 82%, black);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-success) 82%, black);
+    --bs-btn-active-color: var(--text-inverse);
+    --bs-btn-active-bg: color-mix(in srgb, var(--status-success) 72%, black);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--status-success) 72%, black);
 }
 
-/* 提示按钮（语义黄） */
 .btn-warning {
-    --bs-btn-color: var(--surface-contrast);
+    --bs-btn-color: var(--text-primary);
     --bs-btn-bg: var(--status-warning);
     --bs-btn-border-color: var(--status-warning);
-    --bs-btn-hover-color: var(--surface-contrast);
-    --bs-btn-hover-bg: color-mix(in srgb, var(--status-warning) 85%, var(--surface-contrast));
-    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-warning) 85%, var(--surface-contrast));
-    --bs-btn-active-color: var(--surface-contrast);
-    --bs-btn-active-bg: color-mix(in srgb, var(--status-warning) 75%, var(--surface-contrast));
-    --bs-btn-active-border-color: color-mix(in srgb, var(--status-warning) 75%, var(--surface-contrast));
-    --bs-btn-disabled-color: var(--surface-contrast);
-    --bs-btn-disabled-bg: color-mix(in srgb, var(--status-warning) 55%, var(--surface-elevated));
-    --bs-btn-disabled-border-color: color-mix(in srgb, var(--status-warning) 55%, var(--surface-elevated));
+    --bs-btn-hover-color: var(--text-primary);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--status-warning) 82%, white);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-warning) 82%, white);
+    --bs-btn-active-color: var(--text-primary);
+    --bs-btn-active-bg: color-mix(in srgb, var(--status-warning) 72%, white);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--status-warning) 72%, white);
 }
 
-/* 信息按钮（语义蓝） */
 .btn-info {
-    --bs-btn-color: var(--surface-contrast);
+    --bs-btn-color: var(--text-inverse);
     --bs-btn-bg: var(--status-info);
     --bs-btn-border-color: var(--status-info);
-    --bs-btn-hover-color: var(--surface-contrast);
-    --bs-btn-hover-bg: color-mix(in srgb, var(--status-info) 85%, var(--surface-contrast));
-    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-info) 85%, var(--surface-contrast));
-    --bs-btn-active-color: var(--surface-contrast);
-    --bs-btn-active-bg: color-mix(in srgb, var(--status-info) 75%, var(--surface-contrast));
-    --bs-btn-active-border-color: color-mix(in srgb, var(--status-info) 75%, var(--surface-contrast));
-    --bs-btn-disabled-color: var(--surface-contrast);
-    --bs-btn-disabled-bg: color-mix(in srgb, var(--status-info) 55%, var(--surface-elevated));
-    --bs-btn-disabled-border-color: color-mix(in srgb, var(--status-info) 55%, var(--surface-elevated));
+    --bs-btn-hover-color: var(--text-inverse);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--status-info) 82%, black);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--status-info) 82%, black);
+    --bs-btn-active-color: var(--text-inverse);
+    --bs-btn-active-bg: color-mix(in srgb, var(--status-info) 72%, black);
+    --bs-btn-active-border-color: color-mix(in srgb, var(--status-info) 72%, black);
 }

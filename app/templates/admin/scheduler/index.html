@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-clock', '定时任务管理', '管理和监控系统定时任务的执行状态') %}
+{% call page_header('fas fa-clock', '定时任务管理', '管理和监控系统定时任务的执行状态', eyebrow='Scheduler Matrix') %}
 <div class="btn-group">
     <button id="purgeKeepBuiltinBtn" class="btn btn-outline-secondary" type="button" title="删除所有现有任务，重新从配置文件加载任务">
         <i class="fas fa-sync-alt me-1"></i>重新初始化任务
@@ -48,7 +48,7 @@
             </div>
 
             <!-- 运行中的任务 -->
-            <div id="activeJobsSection" class="mb-4">
+            <div id="activeJobsSection" class="scheduler-section mb-4">
                 <div class="d-flex align-items-center mb-3">
                     <div class="d-flex align-items-center gap-2">
                         <span class="status-pill status-pill--success"><i class="fas fa-play"></i>运行中的任务</span>
@@ -64,7 +64,7 @@
             <div class="border-top my-4"></div>
 
             <!-- 已暂停的任务 -->
-            <div id="pausedJobsSection" class="mb-4">
+            <div id="pausedJobsSection" class="scheduler-section mb-4">
                 <div class="d-flex align-items-center mb-3">
                     <div class="d-flex align-items-center gap-2">
                         <span class="status-pill status-pill--muted"><i class="fas fa-pause"></i>已暂停的任务</span>

@@ -59,19 +59,25 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body data-page="{{ page_id|default('') }}">
+<body class="app-shell" data-page="{{ page_id|default('') }}">
     <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-light">
+    <nav class="app-nav navbar navbar-expand-lg navbar-light">
         <div class="layout-shell layout-shell--wide">
             <div class="layout-shell-inner">
-                <div class="navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
-                    <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                <div class="app-nav__frame navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
+                    <a class="app-nav__brand navbar-brand" href="{{ url_for('main.index') }}">
                         <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2">
-                        <span id="app-name">{{ app_name }}</span>
+                        <span id="app-name" class="app-nav__brand-text">{{ app_name }}</span>
                     </a>
 
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
+            <button class="navbar-toggler app-nav__toggle" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="切换导航">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="app-nav__menu collapse navbar-collapse justify-content-center" id="navbarNav">
+                <div class="app-nav__menu-group app-nav__menu-group--primary">
+                <ul class="navbar-nav app-nav__list">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard.index') }}">
@@ -83,7 +89,7 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-database me-1"></i>数据管理
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="databaseDropdown">
+                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="databaseDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('instances.index') }}">
                                     <i class="fas fa-server me-2"></i>实例管理
                                 </a></li>
@@ -100,7 +106,7 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-chart-line me-1"></i>数据统计
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="statisticsDropdown">
+                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="statisticsDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('capacity_instances.list_instances') }}">
                                     <i class="fas fa-chart-pie me-2"></i>容量统计(实例)
                                 </a></li>
@@ -117,7 +123,7 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-cog me-1"></i>统一设置
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
+                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="settingsDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('credentials.index') }}">
                                     <i class="fas fa-key me-2"></i>凭据管理
                                 </a></li>
@@ -134,7 +140,7 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-history me-1"></i>历史记录
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="historyDropdown">
+                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="historyDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('history_logs.logs_dashboard') }}">
                                     <i class="fas fa-chart-line me-2"></i>日志中心
                                 </a></li>
@@ -151,7 +157,7 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{% endif %}
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="adminDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('users.index') }}">
                                     <i class="fas fa-users me-2"></i>用户管理{% if current_user.role != 'admin' %}（只读）{%
                                     endif %}
@@ -169,15 +175,17 @@
                     </li>
                     {% endif %}
                 </ul>
+                </div>
 
-                <ul class="navbar-nav ms-auto">
+                <div class="app-nav__menu-group app-nav__menu-group--secondary">
+                <ul class="navbar-nav app-nav__list app-nav__list--secondary ms-auto">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                             data-bs-toggle="dropdown">
                             <i class="fas fa-user me-1"></i>{{ current_user.username }}
                         </a>
-                        <ul class="dropdown-menu">
+                        <ul class="app-nav__dropdown dropdown-menu">
                             <li>
                                 <button type="button" class="dropdown-item" data-action="open-change-password">
                                     <i class="fas fa-key me-2"></i>修改密码
@@ -204,6 +212,7 @@
                     </li>
                     {% endif %}
                 </ul>
+                </div>
             </div>
             </div>
             </div>
@@ -211,7 +220,7 @@
     </nav>
 
     <!-- 主要内容 -->
-    <div class="main-content" data-density="{{ page_density|default('regular') }}">
+    <div class="app-main main-content" data-density="{{ page_density|default('regular') }}">
         <div class="layout-shell">
             <div class="layout-shell-inner">
             <!-- 消息提示 -->
@@ -241,13 +250,13 @@
     </div>
 
     <!-- 页脚 -->
-    <footer class="footer">
+    <footer class="app-footer">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-            <p class="mb-0">
+            <p class="mb-0 app-footer__meta">
                 &copy; {{ current_year }} <span id="footer-app-name">{{ app_name }}</span>
                 {{ config.APP_VERSION or 'unknown' }} - 数据同步管理平台 |
-                <a href="{{ url_for('main.about') }}" class="footer-link text-decoration-none">关于</a> |
+                <a href="{{ url_for('main.about') }}" class="app-footer__link text-decoration-none">关于</a> |
             </p>
         </div>
         </div>
