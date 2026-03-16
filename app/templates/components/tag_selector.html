@@ -3,39 +3,83 @@
 
 {% set tag_selector_modal_body %}
     <div class="tag-selector" data-tag-selector>
-      <section class="tag-selector__selected" data-role="selected-container">
-        <div class="tag-selector__section-header">
-          <span class="status-pill status-pill--muted"><i class="fas fa-check"></i>已选择</span>
+      <section class="tag-selector__topbar">
+        <div class="tag-selector__search-shell">
+          <label class="tag-selector__search" aria-label="搜索标签">
+            <span class="tag-selector__search-icon" aria-hidden="true">
+              <i class="fas fa-search"></i>
+            </span>
+            <input type="search"
+                   class="tag-selector__search-input"
+                   data-role="search-input"
+                   placeholder="搜索标签名称 / 代码 / 分类"
+                   autocomplete="off">
+          </label>
         </div>
-        <div class="ledger-chip-stack" data-role="selected-list"></div>
-        <p class="tag-selector__empty text-muted" data-role="selected-empty">
-          <i class="fas fa-tag me-2"></i>暂无选择的标签
-        </p>
+
+        <div class="tag-selector__stats" data-role="stats" hidden>
+          <article class="tag-selector__stat">
+            <span class="tag-selector__stat-label">总数</span>
+            <strong class="tag-selector__stat-value" data-role="stat-total">0</strong>
+          </article>
+          <article class="tag-selector__stat">
+            <span class="tag-selector__stat-label">筛选后</span>
+            <strong class="tag-selector__stat-value" data-role="stat-filtered">0</strong>
+          </article>
+          <article class="tag-selector__stat">
+            <span class="tag-selector__stat-label">已启用</span>
+            <strong class="tag-selector__stat-value" data-role="stat-active">0</strong>
+          </article>
+          <article class="tag-selector__stat">
+            <span class="tag-selector__stat-label">已选择</span>
+            <strong class="tag-selector__stat-value" data-role="stat-selected">0</strong>
+          </article>
+        </div>
       </section>
 
       <div class="tag-selector__workspace">
-        <section class="tag-selector__filters" aria-label="标签分类">
+        <aside class="tag-selector__categories-pane">
+          <section class="tag-selector__filters" aria-label="标签分类">
+            <div class="tag-selector__section-header">
+              <span class="status-pill status-pill--muted"><i class="fas fa-layer-group"></i>分类导航</span>
+            </div>
+            <div class="tag-selector__categories" data-role="category-group" role="listbox">
+              <div class="tag-selector__categories-loading" data-role="category-loading">
+                <div class="spinner-border spinner-border-sm" role="status">
+                  <span class="visually-hidden">加载中...</span>
+                </div>
+                <span class="text-muted small">正在加载分类</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="tag-selector__results-pane">
           <div class="tag-selector__section-header">
-            <span class="text-muted small">标签分类</span>
+            <span class="status-pill status-pill--muted"><i class="fas fa-tags"></i>可选标签</span>
+            <span class="chip-outline chip-outline--ghost">按分类或搜索筛选</span>
           </div>
-          <div class="tag-selector__categories" data-role="category-group" role="listbox">
-            <div class="tag-selector__categories-loading" data-role="category-loading">
-              <div class="spinner-border spinner-border-sm" role="status">
+          <section class="tag-selector__list" data-role="tag-list" aria-label="标签列表">
+            <div class="tag-selector__placeholder text-muted">
+              <div class="spinner-border text-primary mb-3" role="status">
                 <span class="visually-hidden">加载中...</span>
               </div>
-              <span class="text-muted small">正在加载分类</span>
+              <div>正在加载标签...</div>
             </div>
-          </div>
+          </section>
         </section>
 
-        <section class="tag-selector__list" data-role="tag-list" aria-label="标签列表">
-          <div class="tag-selector__placeholder text-muted">
-            <div class="spinner-border text-primary mb-3" role="status">
-              <span class="visually-hidden">加载中...</span>
-            </div>
-            <div>正在加载标签...</div>
+        <aside class="tag-selector__selection-pane" data-role="selected-container">
+          <div class="tag-selector__section-header">
+            <span class="status-pill status-pill--muted"><i class="fas fa-check"></i>已选择</span>
+            <span class="chip-outline chip-outline--brand"><span data-role="selected-count">0</span> 项</span>
           </div>
-        </section>
+          <p class="tag-selector__selection-hint">右侧托盘会在确认时写回当前页面的标签选择结果。</p>
+          <div class="tag-selector__selected-list" data-role="selected-list"></div>
+          <p class="tag-selector__empty text-muted" data-role="selected-empty">
+            <i class="fas fa-tag me-2"></i>暂无选择的标签
+          </p>
+        </aside>
       </div>
     </div>
 {% endset %}

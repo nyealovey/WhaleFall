@@ -16,7 +16,7 @@
 {% set avg_per_instance = (total_accounts / total_instances) if total_instances else 0 %}
 {% set active_per_instance = (active_accounts / total_instances) if total_instances else 0 %}
 {% set locked_per_instance = (locked_accounts / total_instances) if total_instances else 0 %}
-{% call page_header('fas fa-chart-bar', '账户统计', '概览账户规模、分类与数据库类型分布') %}
+{% call page_header('fas fa-chart-bar', '账户统计', '概览账户规模、分类与数据库类型分布', eyebrow='Account Insights') %}
 <div class="page-header-actions d-flex gap-2 flex-wrap">
     <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-secondary">
         <i class="fas fa-list me-2"></i>账户列表

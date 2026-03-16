@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-users', '账户台账', '集中查看数据库账户与实例归属') %}
+{% call page_header('fas fa-users', '账户台账', '集中查看数据库账户与实例归属', eyebrow='Account Ledger') %}
 <div class="btn-group">
     <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
         <i class="fas fa-chart-bar me-2"></i>账户统计
