@@ -1,10 +1,10 @@
 :root {
     --bs-primary: var(--accent-primary);
-    --bs-primary-rgb: 249, 115, 22;
-    --bs-body-font-family: var(--font-family-base);
-    --bs-border-radius: 0.5rem;
-    --bs-border-radius-lg: 0.75rem;
-    --bs-border-radius-sm: 0.3rem;
+    --bs-primary-rgb: 221, 107, 32;
+    --bs-body-font-family: var(--font-family-body);
+    --bs-border-radius: var(--border-radius-md);
+    --bs-border-radius-lg: var(--border-radius-lg);
+    --bs-border-radius-sm: var(--border-radius-sm);
 }
 
 body {
@@ -13,6 +13,7 @@ body {
 
 .btn-primary {
     font-weight: 600;
+    letter-spacing: 0.01em;
 }
 
 .form-control:focus,
@@ -28,7 +29,7 @@ a {
 
 a:hover {
     color: var(--accent-primary-hover);
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 .badge.bg-primary {

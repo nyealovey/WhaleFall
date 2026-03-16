@@ -1,36 +1,36 @@
-/* Grid.js / Bootstrap 表格密度（regular / compact）- 由 main-content[data-density] 驱动 */
+/* Grid.js / Bootstrap table density */
 
 .main-content {
     --table-font-size: 13px;
-    --table-head-padding-y: 8px;
-    --table-head-padding-x: 12px;
-    --table-cell-padding-y: 6px;
-    --table-cell-padding-x: 12px;
+    --table-head-padding-y: 10px;
+    --table-head-padding-x: 14px;
+    --table-cell-padding-y: 8px;
+    --table-cell-padding-x: 14px;
     --table-action-btn-font-size: 12px;
     --table-action-btn-padding-y: 4px;
     --table-action-btn-padding-x: 8px;
     --table-action-btn-min-width: 32px;
-    --table-action-btn-height: 28px;
+    --table-action-btn-height: 30px;
     --table-pagination-btn-font-size: 13px;
     --table-pagination-btn-padding-y: 4px;
     --table-pagination-btn-padding-x: 10px;
     --table-pagination-btn-min-width: 32px;
-    --table-pagination-btn-height: 32px;
+    --table-pagination-btn-height: 34px;
 }
 
 .main-content[data-density="compact"] {
     --table-font-size: 12px;
-    --table-head-padding-y: 6px;
-    --table-head-padding-x: 10px;
-    --table-cell-padding-y: 4px;
-    --table-cell-padding-x: 10px;
-    --table-action-btn-font-size: 12px;
+    --table-head-padding-y: 8px;
+    --table-head-padding-x: 12px;
+    --table-cell-padding-y: 6px;
+    --table-cell-padding-x: 12px;
+    --table-action-btn-font-size: 11px;
     --table-action-btn-padding-y: 3px;
     --table-action-btn-padding-x: 8px;
     --table-pagination-btn-font-size: 12px;
     --table-pagination-btn-padding-y: 3px;
     --table-pagination-btn-padding-x: 10px;
-    --table-pagination-btn-height: 30px;
+    --table-pagination-btn-height: 31px;
 }
 
 .main-content .table {
@@ -39,53 +39,51 @@
     --bs-table-cell-padding-x: var(--table-cell-padding-x);
 }
 
-/* 基础表格容器 */
 .gridjs-wrapper {
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(22, 29, 38, 0.08);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xs);
     font-size: var(--table-font-size);
     overflow-x: auto;
+    background: rgba(255, 255, 255, 0.88);
     -webkit-overflow-scrolling: touch;
 }
 
-/* 表格主体 */
 .gridjs-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-/* 表头样式 */
 .gridjs-thead {
-    background-color: var(--gray-100);
+    background-color: rgba(22, 29, 38, 0.03);
 }
 
 .gridjs-th {
     padding: var(--table-head-padding-y) var(--table-head-padding-x) !important;
-    font-weight: 600;
-    font-size: var(--table-font-size);
-    color: var(--gray-700);
-    text-transform: none;
-    letter-spacing: 0.3px;
+    font-family: var(--font-family-data);
+    font-weight: 500;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
 }
 
-/* 单元格样式 - 紧凑化核心 */
 .gridjs-td {
     padding: var(--table-cell-padding-y) var(--table-cell-padding-x) !important;
-    line-height: 1.4;
+    line-height: 1.45;
     vertical-align: middle;
+    border-top-color: rgba(22, 29, 38, 0.06) !important;
 }
 
-/* 行样式 */
 .gridjs-tr {
     height: auto;
-    transition: background-color 0.2s ease;
+    transition: var(--transition-fast);
 }
 
 .gridjs-tr:hover {
-    background-color: color-mix(in srgb, var(--status-success) 5%, transparent);
+    background-color: rgba(221, 107, 32, 0.04);
 }
 
-/* 徽章/标签紧凑化 */
 .gridjs-td .badge {
     padding: 2px 8px;
     font-size: 11px;
@@ -94,7 +92,6 @@
     line-height: 1.3;
 }
 
-/* 多标签容器 */
 .badge-container {
     display: flex;
     flex-wrap: wrap;
@@ -107,7 +104,6 @@
     white-space: nowrap;
 }
 
-/* 操作按钮紧凑化 */
 .gridjs-td .btn {
     padding: var(--table-action-btn-padding-y) var(--table-action-btn-padding-x);
     font-size: var(--table-action-btn-font-size);
@@ -124,12 +120,10 @@
     margin: 0;
 }
 
-/* 图标按钮 */
 .gridjs-td .btn i {
     font-size: 13px;
 }
 
-/* 分页器紧凑化 */
 .gridjs-pagination {
     padding: 10px 12px;
 }
@@ -145,7 +139,6 @@
     font-size: var(--table-font-size);
 }
 
-/* 搜索框紧凑化 */
 .gridjs-search {
     padding: 10px 12px;
 }
@@ -155,18 +148,15 @@
     font-size: var(--table-font-size);
 }
 
-/* 加载状态 */
-.gridjs-loading {
+.gridjs-loading,
+.gridjs-notfound {
     font-size: var(--table-font-size);
 }
 
-/* 空状态 */
 .gridjs-notfound {
     padding: 20px;
-    font-size: var(--table-font-size);
 }
 
-/* 固定列宽优化 */
 .gridjs-th[data-column-id="actions"],
 .gridjs-td[data-column-id="actions"] {
     width: 80px;
@@ -174,12 +164,7 @@
 }
 
 .gridjs-th[data-column-id="status"],
-.gridjs-td[data-column-id="status"] {
-    width: 90px;
-    text-align: center;
-}
-
-/* 状态/布尔列：通过“列宽 + pill 填充”实现对齐，避免 min-width 撑开表格导致溢出 */
+.gridjs-td[data-column-id="status"],
 .gridjs-th[data-column-id="is_active"],
 .gridjs-td[data-column-id="is_active"],
 .gridjs-th[data-column-id="is_locked"],
@@ -217,7 +202,6 @@
     text-align: center;
 }
 
-/* 响应式调整 */
 @media (max-width: 768px) {
     .gridjs-wrapper {
         font-size: 12px;
