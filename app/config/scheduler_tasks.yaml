@@ -38,3 +38,13 @@ default_tasks:
       minute: 0
       hour: 4
     description: 每日计算数据库大小的日、周、月、季度统计聚合
+
+  - id: send_email_alert_digest
+    name: 邮件告警汇总
+    function: send_email_alert_digest
+    trigger_type: cron
+    trigger_params:
+      second: 0
+      minute: 0
+      hour: 9
+    description: 每日汇总发送数据库容量、同步异常与高权限账户告警

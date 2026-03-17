@@ -3,6 +3,7 @@ import pytest
 from app import db
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
+from app.utils.time_utils import time_utils
 
 
 @pytest.mark.unit
@@ -48,6 +49,57 @@ def test_api_v1_common_instances_options_contract(app, auth_client) -> None:
 
     filtered = auth_client.get("/api/v1/instances/options?db_type=MYSQL")
     assert filtered.status_code == 200
+
+
+@pytest.mark.unit
+def test_api_v1_common_instances_options_include_disabled_and_exclude_deleted(app, auth_client) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["instances"],
+            ],
+        )
+
+        db.session.add_all(
+            [
+                Instance(
+                    name="instance-active",
+                    db_type="mysql",
+                    host="127.0.0.1",
+                    port=3306,
+                    is_active=True,
+                ),
+                Instance(
+                    name="instance-disabled",
+                    db_type="mysql",
+                    host="127.0.0.2",
+                    port=3307,
+                    is_active=False,
+                ),
+                Instance(
+                    name="instance-deleted",
+                    db_type="mysql",
+                    host="127.0.0.3",
+                    port=3308,
+                    is_active=True,
+                    deleted_at=time_utils.now(),
+                ),
+            ],
+        )
+        db.session.commit()
+
+    response = auth_client.get("/api/v1/instances/options")
+    assert response.status_code == 200
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    instances = payload.get("data", {}).get("instances")
+    assert isinstance(instances, list)
+    names = {item.get("name") for item in instances if isinstance(item, dict)}
+    assert "instance-active" in names
+    assert "instance-disabled" in names
+    assert "instance-deleted" not in names
 
 
 @pytest.mark.unit

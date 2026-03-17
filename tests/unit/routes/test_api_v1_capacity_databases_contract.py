@@ -132,3 +132,68 @@ def test_api_v1_capacity_databases_endpoints_contract(app, auth_client) -> None:
         "max_size_mb",
         "growth_rate",
     }.issubset(summary.keys())
+
+
+@pytest.mark.unit
+def test_api_v1_capacity_databases_include_disabled_instance_in_statistics(app, auth_client) -> None:
+    _ensure_capacity_databases_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="instance-disabled",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=False,
+        )
+        db.session.add(instance)
+        db.session.commit()
+
+        database = InstanceDatabase(
+            instance_id=instance.id,
+            database_name="db1",
+            is_active=True,
+        )
+        db.session.add(database)
+        db.session.commit()
+
+        aggregation_date = date(2025, 12, 24)
+        db.session.add(
+            DatabaseSizeAggregation(
+                id=1,
+                instance_id=instance.id,
+                database_name=database.database_name,
+                period_type="daily",
+                period_start=aggregation_date,
+                period_end=aggregation_date,
+                avg_size_mb=128,
+                max_size_mb=128,
+                min_size_mb=128,
+                data_count=1,
+                size_change_mb=0,
+                size_change_percent=0.0,
+                growth_rate=0.0,
+            ),
+        )
+        db.session.commit()
+
+    response = auth_client.get(
+        "/api/v1/capacity/databases?period_type=daily&start_date=2025-12-24&end_date=2025-12-24",
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    items = payload.get("data", {}).get("items")
+    assert isinstance(items, list)
+    assert len(items) == 1
+
+    summary_response = auth_client.get(
+        "/api/v1/capacity/databases/summary?period_type=daily&start_date=2025-12-24&end_date=2025-12-24",
+    )
+    assert summary_response.status_code == 200
+    summary_payload = summary_response.get_json()
+    assert isinstance(summary_payload, dict)
+    summary = summary_payload.get("data", {}).get("summary")
+    assert isinstance(summary, dict)
+    assert summary.get("total_instances") == 1

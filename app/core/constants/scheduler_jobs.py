@@ -5,4 +5,5 @@ BUILTIN_TASK_IDS: set[str] = {
     "calculate_account_classification",
     "sync_databases",
     "calculate_database_aggregations",
+    "send_email_alert_digest",
 }

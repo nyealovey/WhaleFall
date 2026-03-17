@@ -23,17 +23,15 @@ class InstanceStatisticsRepository:
         if db_type:
             query = query.filter(Instance.db_type == db_type)
 
-        total_instances = query.count()
-
         existing_query = query.filter(Instance.deleted_at.is_(None))
         existing_instances = existing_query.count()
         active_instances = existing_query.filter(Instance.is_active.is_(True)).count()
         disabled_instances = max(existing_instances - active_instances, 0)
-        deleted_instances = max(total_instances - existing_instances, 0)
+        deleted_instances = query.filter(Instance.deleted_at.isnot(None)).count()
         normal_instances = active_instances
 
         return {
-            "total_instances": total_instances,
+            "total_instances": existing_instances,
             "active_instances": active_instances,
             "normal_instances": normal_instances,
             "disabled_instances": disabled_instances,
@@ -45,6 +43,7 @@ class InstanceStatisticsRepository:
         """获取实例按数据库类型统计."""
         return (
             db.session.query(Instance.db_type, db.func.count(Instance.id).label("count"))
+            .filter(Instance.deleted_at.is_(None))
             .group_by(Instance.db_type)
             .all()
         )
@@ -54,6 +53,7 @@ class InstanceStatisticsRepository:
         """获取实例按端口统计."""
         return (
             db.session.query(Instance.port, db.func.count(Instance.id).label("count"))
+            .filter(Instance.deleted_at.is_(None))
             .group_by(Instance.port)
             .order_by(db.func.count(Instance.id).desc())
             .limit(limit)
@@ -69,6 +69,7 @@ class InstanceStatisticsRepository:
                 Instance.main_version,
                 db.func.count(Instance.id).label("count"),
             )
+            .filter(Instance.deleted_at.is_(None))
             .group_by(Instance.db_type, Instance.main_version)
             .all()
         )
