@@ -7,6 +7,8 @@
 
 set -e
 
+FORCE_SYNC_NGINX_SITE_CONFIG="${FORCE_SYNC_NGINX_SITE_CONFIG:-0}"
+
 # 颜色定义
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -36,6 +38,36 @@ log_step() {
     echo -e "${PURPLE}🚀 [STEP]${NC} $1"
 }
 
+show_usage() {
+    cat <<'EOF'
+用法: bash scripts/deploy/update-prod-flask.sh [--sync-nginx-site-config]
+
+可选参数:
+  --sync-nginx-site-config   使用仓库内 nginx/sites-available/whalefall-prod 覆盖容器内现有 Nginx 站点配置
+  -h, --help                 显示帮助
+EOF
+}
+
+parse_args() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --sync-nginx-site-config)
+                FORCE_SYNC_NGINX_SITE_CONFIG="1"
+                ;;
+            -h|--help)
+                show_usage
+                exit 0
+                ;;
+            *)
+                log_error "未知参数: $1"
+                show_usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
 # 显示横幅
 show_banner() {
     echo -e "${PURPLE}"
@@ -47,6 +79,7 @@ show_banner() {
     echo "║                (清理Python缓存和临时文件)                    ║"
     echo "║                (保留数据库和Redis)                          ║"
     echo "║                (自动刷新Nginx缓存)                          ║"
+    echo "║                (默认保留现有Nginx站点配置)                  ║"
     echo "║                (最小化停机时间)                              ║"
     echo "║                (不强制覆盖本地分支)                          ║"
     echo "║                (仅 fetch 远端，需手动合并)                   ║"
@@ -304,17 +337,28 @@ copy_code_to_container() {
         exit 1
     fi
 
-    # 同步 Nginx 站点配置（包含 /api/v1/scheduler/** 路由到 scheduler 进程）
-    log_info "同步 Nginx 站点配置..."
+    # 处理 Nginx 站点配置（默认保留现有配置，显式传参时才覆盖）
+    log_info "处理 Nginx 站点配置..."
     if docker exec "$flask_container_id" bash -c "
         set -e
         src=/app/nginx/sites-available/whalefall-prod
         dest=/etc/nginx/sites-available/whalefall
+        force_sync=${FORCE_SYNC_NGINX_SITE_CONFIG}
         ts=\$(date +%Y%m%d_%H%M%S)
         backup=''
 
         if [ ! -f \"\$src\" ]; then
             echo '错误：未找到 /app/nginx/sites-available/whalefall-prod'
+            exit 1
+        fi
+
+        if [ -f \"\$dest\" ] && [ \"\$force_sync\" != \"1\" ]; then
+            ln -sf /etc/nginx/sites-available/whalefall /etc/nginx/sites-enabled/whalefall
+            if nginx -t; then
+                echo '保留现有 Nginx 站点配置（如需覆盖请使用 --sync-nginx-site-config）'
+                exit 0
+            fi
+            echo '当前 Nginx 配置校验失败，请手动修复或使用 --sync-nginx-site-config 后重试'
             exit 1
         fi
 
@@ -694,6 +738,11 @@ show_update_result() {
     echo "  - 停机时间: 约30-60秒"
     echo "  - 数据保留: 完全保留"
     echo "  - 缓存刷新: Nginx缓存已刷新"
+    if [ "$FORCE_SYNC_NGINX_SITE_CONFIG" = "1" ]; then
+        echo "  - Nginx站点配置: 已按仓库模板强制同步"
+    else
+        echo "  - Nginx站点配置: 默认保留容器内现有配置"
+    fi
     echo ""
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
@@ -723,8 +772,8 @@ show_update_result() {
     echo "  - 仅更新Flask应用代码，不重建容器"
     echo "  - 数据库和Redis服务保持不变"
     echo "  - Nginx和Flask在同一容器，缓存已自动刷新"
-    echo "  - 始终以GitHub上的代码为准，自动强制同步"
-    echo "  - 如果GitHub回滚，本地也会自动回滚"
+    echo "  - 默认不会覆盖容器内现有 Nginx 站点配置"
+    echo "  - 如需覆盖 Nginx 站点配置，请显式传入: --sync-nginx-site-config"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
@@ -733,6 +782,7 @@ show_update_result() {
 
 # 主函数
 main() {
+    parse_args "$@"
     show_banner
 
     log_info "开始热更新Flask应用（代码覆盖更新模式，支持回滚后更新）..."
