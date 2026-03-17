@@ -18,7 +18,12 @@
 <section class="page-section">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div id="email-alert-settings-page" class="card email-alert-settings-page" data-api-url="/api/v1/alerts/email-settings">
+            <div
+                id="email-alert-settings-page"
+                class="card email-alert-settings-page"
+                data-api-url="/api/v1/alerts/email-settings"
+                data-test-api-url="/api/v1/alerts/email-settings/actions/send-test"
+            >
                 <div class="card-body">
                     <div class="email-alert-settings-meta">
                         <div><strong>SMTP状态：</strong><span id="smtpReadyText">加载中...</span></div>
@@ -73,7 +78,10 @@
                             </label>
                         </div>
 
-                        <div class="col-12 d-flex justify-content-end">
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button id="sendTestEmailBtn" class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-paper-plane me-2"></i>发送测试邮件
+                            </button>
                             <button id="saveEmailAlertSettingsBtn" class="btn btn-primary" type="submit">
                                 <i class="fas fa-save me-2"></i>保存配置
                             </button>

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from app import db
+import app.api.v1.namespaces.alerts as alerts_module
 
 
 def _ensure_alert_tables(app) -> None:
@@ -43,6 +44,16 @@ def test_api_v1_alerts_requires_auth(client) -> None:
     update_payload = update_response.get_json()
     assert isinstance(update_payload, dict)
     assert update_payload.get("message_code") == "AUTHENTICATION_REQUIRED"
+
+    test_response = client.post(
+        "/api/v1/alerts/email-settings/actions/send-test",
+        json={"recipients": ["ops@example.com"]},
+        headers=headers,
+    )
+    assert test_response.status_code == 401
+    test_payload = test_response.get_json()
+    assert isinstance(test_payload, dict)
+    assert test_payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
 
 @pytest.mark.unit
@@ -94,3 +105,40 @@ def test_api_v1_alerts_email_settings_contract(app, auth_client) -> None:
     assert updated_settings.get("account_sync_failure_enabled") is True
     assert updated_settings.get("database_sync_failure_enabled") is True
     assert updated_settings.get("privileged_account_enabled") is True
+
+
+@pytest.mark.unit
+def test_api_v1_alerts_send_test_email_contract(app, auth_client, monkeypatch) -> None:
+    _ensure_alert_tables(app)
+
+    sent_payloads: list[dict[str, object]] = []
+
+    class _StubEmailAlertSettingsService:
+        def send_test_email(self, *, recipients: list[str]) -> dict[str, object]:
+            sent_payloads.append({"recipients": list(recipients)})
+            return {
+                "sent": True,
+                "recipient_count": len(recipients),
+                "recipients": list(recipients),
+            }
+
+    monkeypatch.setattr(alerts_module, "EmailAlertSettingsService", _StubEmailAlertSettingsService)
+
+    csrf_token = _get_csrf_token(auth_client)
+    headers = {"X-CSRFToken": csrf_token}
+
+    response = auth_client.post(
+        "/api/v1/alerts/email-settings/actions/send-test",
+        json={"recipients": ["ops@example.com", "dba@example.com"]},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert data.get("sent") is True
+    assert data.get("recipient_count") == 2
+    assert data.get("recipients") == ["ops@example.com", "dba@example.com"]
+    assert sent_payloads == [{"recipients": ["ops@example.com", "dba@example.com"]}]

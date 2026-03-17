@@ -11,3 +11,5 @@ def test_web_email_alert_settings_page_renders(auth_client) -> None:
     html = response.get_data(as_text=True)
     assert "邮件告警配置" in html
     assert "/api/v1/alerts/email-settings" in html
+    assert "发送测试邮件" in html
+    assert "/api/v1/alerts/email-settings/actions/send-test" in html

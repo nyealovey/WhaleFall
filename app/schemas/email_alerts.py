@@ -43,3 +43,21 @@ class EmailAlertSettingsPayload(PayloadSchema):
             if email:
                 normalized.append(email)
         return normalized
+
+
+class EmailAlertTestPayload(PayloadSchema):
+    """测试邮件发送 payload."""
+
+    recipients: list[str] = Field(default_factory=list)
+
+    @field_validator("recipients", mode="before")
+    @classmethod
+    def _normalize_recipients(cls, value: Any) -> Any:
+        return EmailAlertSettingsPayload._normalize_recipients(value)
+
+    @field_validator("recipients")
+    @classmethod
+    def _ensure_non_empty(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("测试邮件至少需要一个收件人")
+        return value
