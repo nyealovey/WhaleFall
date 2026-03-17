@@ -6,8 +6,9 @@
 
     const toast = global.toast;
     const apiUrl = pageRoot.dataset.apiUrl;
+    const testApiUrl = pageRoot.dataset.testApiUrl;
     const csrfToken = document.getElementById('email-alert-csrf-token')?.value || '';
-    const service = new global.EmailAlertSettingsService(apiUrl);
+    const service = new global.EmailAlertSettingsService(apiUrl, testApiUrl);
 
     const elements = {
         smtpReadyText: document.getElementById('smtpReadyText'),
@@ -21,6 +22,7 @@
         accountSyncFailureEnabled: document.getElementById('accountSyncFailureEnabled'),
         databaseSyncFailureEnabled: document.getElementById('databaseSyncFailureEnabled'),
         privilegedAccountEnabled: document.getElementById('privilegedAccountEnabled'),
+        sendTestButton: document.getElementById('sendTestEmailBtn'),
         saveButton: document.getElementById('saveEmailAlertSettingsBtn'),
     };
 
@@ -91,7 +93,32 @@
         }
     }
 
+    async function handleSendTestEmail() {
+        const originalLabel = elements.sendTestButton.innerHTML;
+        elements.sendTestButton.disabled = true;
+        elements.sendTestButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>发送中';
+
+        try {
+            const response = await service.sendTest(
+                {
+                    recipients: linesToRecipients(elements.recipientsInput.value),
+                },
+                csrfToken,
+            );
+            if (!response?.success) {
+                throw new Error(response?.message || '发送测试邮件失败');
+            }
+            toast?.success?.('测试邮件已发送');
+        } catch (error) {
+            toast?.error?.(error?.message || '发送测试邮件失败');
+        } finally {
+            elements.sendTestButton.disabled = false;
+            elements.sendTestButton.innerHTML = originalLabel;
+        }
+    }
+
     elements.form?.addEventListener('submit', handleSubmit);
+    elements.sendTestButton?.addEventListener('click', handleSendTestEmail);
     loadSettings().catch((error) => {
         toast?.error?.(error?.message || '加载邮件告警配置失败');
     });

@@ -7,15 +7,23 @@ from typing import Any, cast
 from flask import current_app
 
 from app import db
+from app.core.exceptions import ValidationError
 from app.models.email_alert_setting import EmailAlertSetting
 from app.repositories.email_alerts_repository import EmailAlertsRepository
+from app.services.alerts.email_sender import EmailSender
+from app.utils.time_utils import time_utils
 
 
 class EmailAlertSettingsService:
     """邮件告警配置服务."""
 
-    def __init__(self, repository: EmailAlertsRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: EmailAlertsRepository | None = None,
+        sender: EmailSender | None = None,
+    ) -> None:
         self._repository = repository or EmailAlertsRepository()
+        self._sender = sender or EmailSender()
 
     @staticmethod
     def _build_default_settings() -> EmailAlertSetting:
@@ -61,6 +69,35 @@ class EmailAlertSettingsService:
             "from_address": current_app.config.get("MAIL_FROM_ADDRESS"),
             "from_name": current_app.config.get("MAIL_FROM_NAME"),
             "settings": settings.to_dict(),
+        }
+
+    def send_test_email(self, *, recipients: list[str]) -> dict[str, object]:
+        normalized_recipients = [item.strip() for item in recipients if item.strip()]
+        if not normalized_recipients:
+            raise ValidationError("测试邮件至少需要一个收件人")
+        if not self._sender.is_ready():
+            raise ValidationError("SMTP 配置未完成，无法发送测试邮件")
+
+        now = time_utils.now_china()
+        subject = f"WhaleFall 测试邮件 - {now.strftime('%Y-%m-%d %H:%M:%S')}"
+        body = "\n".join(
+            [
+                "这是一封来自 WhaleFall 的测试邮件。",
+                "",
+                f"发送时间: {now.strftime('%Y-%m-%d %H:%M:%S')} (Asia/Shanghai)",
+                f"发件人: {current_app.config.get('MAIL_FROM_ADDRESS') or '-'}",
+                f"应用: {current_app.config.get('APP_NAME') or 'WhaleFall'}",
+            ],
+        )
+        self._sender.send_email(
+            recipients=normalized_recipients,
+            subject=subject,
+            text_body=body,
+        )
+        return {
+            "sent": True,
+            "recipient_count": len(normalized_recipients),
+            "recipients": normalized_recipients,
         }
 
     @staticmethod

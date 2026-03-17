@@ -10,7 +10,7 @@ from flask_restx import Namespace, fields
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.schemas.email_alerts import EmailAlertSettingsPayload
+from app.schemas.email_alerts import EmailAlertSettingsPayload, EmailAlertTestPayload
 from app.schemas.validation import validate_or_raise
 from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
 from app.utils.decorators import require_csrf
@@ -28,6 +28,7 @@ AlertSettingsData = ns.model(
     },
 )
 AlertSettingsSuccessEnvelope = make_success_envelope_model(ns, "AlertSettingsSuccessEnvelope", AlertSettingsData)
+AlertTestSuccessEnvelope = make_success_envelope_model(ns, "AlertTestSuccessEnvelope")
 
 AlertSettingsPayloadModel = ns.model(
     "AlertSettingsPayloadModel",
@@ -40,6 +41,13 @@ AlertSettingsPayloadModel = ns.model(
         "account_sync_failure_enabled": fields.Boolean(required=True),
         "database_sync_failure_enabled": fields.Boolean(required=True),
         "privileged_account_enabled": fields.Boolean(required=True),
+    },
+)
+
+AlertTestPayloadModel = ns.model(
+    "AlertTestPayloadModel",
+    {
+        "recipients": fields.List(fields.String, required=True),
     },
 )
 
@@ -91,4 +99,34 @@ class AlertEmailSettingsResource(BaseResource):
             module="alerts",
             action="update_email_settings",
             public_error="更新邮件告警配置失败",
+        )
+
+
+@ns.route("/email-settings/actions/send-test")
+class AlertEmailTestResource(BaseResource):
+    """测试邮件发送资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", AlertTestSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(AlertTestPayloadModel, validate=False)
+    @require_csrf
+    def post(self):
+        """发送测试邮件."""
+
+        def _execute():
+            payload = request.get_json(silent=True)
+            parsed = validate_or_raise(EmailAlertTestPayload, payload or {})
+            data = EmailAlertSettingsService().send_test_email(recipients=parsed.recipients)
+            return self.success(data=data, message="测试邮件发送成功")
+
+        return self.safe_call(
+            _execute,
+            module="alerts",
+            action="send_test_email",
+            public_error="发送测试邮件失败",
         )
