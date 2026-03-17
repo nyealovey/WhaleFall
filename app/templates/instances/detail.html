@@ -79,36 +79,7 @@
                 </section>
 
                 <section class="basic-info-card__detail-grid">
-                    <article class="basic-info-card__panel basic-info-card__panel--time">
-                        <header class="basic-info-card__panel-header">运行记录</header>
-                        <div class="basic-info-card__time-grid">
-                            <section class="basic-info-card__time-card">
-                                <span class="basic-info-card__time-label">最后连接时间</span>
-                                <div class="basic-info-card__time-value">
-                                    <i class="fas fa-clock" aria-hidden="true"></i>
-                                    {% if instance.last_connected %}
-                                        <span>{{ instance.last_connected | china_datetime }}</span>
-                                    {% else %}
-                                        <span class="basic-info-card__time-value--muted">从未连接</span>
-                                    {% endif %}
-                                </div>
-                            </section>
-
-                            <section class="basic-info-card__time-card">
-                                <span class="basic-info-card__time-label">上次同步</span>
-                                <div class="basic-info-card__time-value">
-                                    <i class="fas fa-history" aria-hidden="true"></i>
-                                    {% if instance.updated_at %}
-                                        <span>{{ instance.updated_at | china_datetime }}</span>
-                                    {% else %}
-                                        <span class="basic-info-card__time-value--muted">尚未同步</span>
-                                    {% endif %}
-                                </div>
-                            </section>
-                        </div>
-                    </article>
-
-                    <div class="basic-info-card__side-stack">
+                    <div class="basic-info-card__meta-row">
                         <article class="basic-info-card__panel basic-info-card__version-card">
                             <header class="basic-info-card__panel-header">数据库版本</header>
                             {% if instance.database_version %}
@@ -135,17 +106,17 @@
                             {% endif %}
                         </article>
                     </div>
-                </section>
 
-                <section class="basic-info-card__description-panel">
-                    <header class="basic-info-card__panel-header">实例描述</header>
-                    <p class="basic-info-card__description-text{% if not instance.description %} basic-info-card__description-text--empty{% endif %}">
-                        {% if instance.description %}
-                            {{ instance.description }}
-                        {% else %}
-                            暂无描述
-                        {% endif %}
-                    </p>
+                    <section class="basic-info-card__description-panel">
+                        <header class="basic-info-card__panel-header">实例描述</header>
+                        <p class="basic-info-card__description-text{% if not instance.description %} basic-info-card__description-text--empty{% endif %}">
+                            {% if instance.description %}
+                                {{ instance.description }}
+                            {% else %}
+                                暂无描述
+                            {% endif %}
+                        </p>
+                    </section>
                 </section>
             </div>
         </div>
@@ -231,18 +202,20 @@
                         <div class="instance-data-pane__stack">
                             <div id="databaseSizesContent">
                                 <section class="instance-overview-band instance-overview-band--capacity">
-                                    <div class="instance-overview-band__hero">
-                                        <div class="instance-overview-band__hero-copy">
-                                            <span class="instance-overview-band__eyebrow">Capacity Register</span>
-                                            <p class="instance-overview-band__hero-label">数据库</p>
-                                            <div class="instance-overview-band__hero-number" id="databaseTotalCount">-</div>
-                                        </div>
-                                        <div class="instance-overview-band__hero-emblem" aria-hidden="true">
-                                            <i class="fas fa-chart-pie"></i>
-                                        </div>
-                                    </div>
-
                                     <div class="instance-overview-band__facts">
+                                        <article class="instance-overview-band__fact" data-tone="brand">
+                                            <div class="instance-overview-band__fact-header">
+                                                <span class="instance-overview-band__fact-label">当前数据库</span>
+                                                <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                    <i class="fas fa-database"></i>
+                                                </span>
+                                            </div>
+                                            <strong class="instance-overview-band__fact-value" id="databaseTotalCount">-</strong>
+                                            <span class="status-pill status-pill--muted">
+                                                <i class="fas fa-layer-group" aria-hidden="true"></i>当前结果
+                                            </span>
+                                        </article>
+
                                         <article class="instance-overview-band__fact" data-tone="success">
                                             <div class="instance-overview-band__fact-header">
                                                 <span class="instance-overview-band__fact-label">在线数据库</span>
@@ -328,18 +301,20 @@
 
                         <div class="instance-data-pane__stack">
                             <section class="instance-overview-band instance-overview-band--accounts">
-                                <div class="instance-overview-band__hero">
-                                    <div class="instance-overview-band__hero-copy">
-                                        <span class="instance-overview-band__eyebrow">Account Register</span>
-                                        <p class="instance-overview-band__hero-label">账户</p>
-                                        <div class="instance-overview-band__hero-number" id="accountTotalCount">{{ total_accounts }}</div>
-                                    </div>
-                                    <div class="instance-overview-band__hero-emblem" aria-hidden="true">
-                                        <i class="fas fa-users"></i>
-                                    </div>
-                                </div>
-
                                 <div class="instance-overview-band__facts">
+                                    <article class="instance-overview-band__fact" data-tone="brand">
+                                        <div class="instance-overview-band__fact-header">
+                                            <span class="instance-overview-band__fact-label">当前账户</span>
+                                            <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                                                <i class="fas fa-users"></i>
+                                            </span>
+                                        </div>
+                                        <strong class="instance-overview-band__fact-value" id="accountTotalCount">{{ total_accounts }}</strong>
+                                        <span class="status-pill status-pill--muted">
+                                            <i class="fas fa-layer-group" aria-hidden="true"></i>当前结果
+                                        </span>
+                                    </article>
+
                                     <article class="instance-overview-band__fact" data-tone="success">
                                         <div class="instance-overview-band__fact-header">
                                             <span class="instance-overview-band__fact-label">活跃账户</span>
