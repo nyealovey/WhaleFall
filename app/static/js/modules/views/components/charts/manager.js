@@ -24,6 +24,11 @@
         change: "#instanceChangeChart",
         percent: "#instanceChangePercentChart",
       },
+      legends: {
+        trend: "#instanceChartLegend",
+        change: "#instanceChangeChartLegend",
+        percent: "#instanceChangePercentChartLegend",
+      },
       loaders: {
         trend: "#chartLoading",
         change: "#changeChartLoading",
@@ -487,6 +492,7 @@
     renderTrendChart() {
       this.charts.trend = ChartRenderer.renderTrendChart({
         canvas: this.config.selectors.charts.trend,
+        legendContainer: this.config.selectors.legends?.trend,
         instance: this.charts.trend,
         type: this.state.charts.trend.type,
         data: Transformers.prepareTrendChartData({
@@ -525,6 +531,7 @@
     renderChangeChart() {
       this.charts.change = ChartRenderer.renderChangeChart({
         canvas: this.config.selectors.charts.change,
+        legendContainer: this.config.selectors.legends?.change,
         instance: this.charts.change,
         type: this.state.charts.change.type,
         data: Transformers.prepareChangeChartData({
@@ -564,6 +571,7 @@
     renderChangePercentChart() {
       this.charts.percent = ChartRenderer.renderChangePercentChart({
         canvas: this.config.selectors.charts.percent,
+        legendContainer: this.config.selectors.legends?.percent,
         instance: this.charts.percent,
         type: this.state.charts.percent.type,
         data: Transformers.prepareChangePercentChartData({

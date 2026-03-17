@@ -95,6 +95,94 @@
   }
 
   /**
+   * 统一解析 selector / element。
+   *
+   * @param {string|Element} target 选择器或 DOM 元素。
+   * @return {Element|null} 命中的元素或 null。
+   */
+  function resolveElement(target) {
+    if (!target) {
+      return null;
+    }
+    if (typeof target === "string") {
+      return selectOne(target).first() || null;
+    }
+    return target instanceof Element ? target : null;
+  }
+
+  /**
+   * 解析 dataset 用于图例色标的主色。
+   *
+   * @param {Object} dataset Chart.js dataset。
+   * @return {string} 图例色标颜色。
+   */
+  function resolveLegendColor(dataset) {
+    const borderColor = dataset?.borderColor;
+    if (Array.isArray(borderColor)) {
+      return borderColor[0] || emptyBorder;
+    }
+    if (typeof borderColor === "string" && borderColor) {
+      return borderColor;
+    }
+
+    const backgroundColor = dataset?.backgroundColor;
+    if (Array.isArray(backgroundColor)) {
+      return backgroundColor[0] || emptyBorder;
+    }
+    if (typeof backgroundColor === "string" && backgroundColor) {
+      return backgroundColor;
+    }
+
+    return emptyBorder;
+  }
+
+  /**
+   * 渲染外部单列图例。
+   *
+   * @param {string|Element} legendContainer 图例容器。
+   * @param {Chart|null} chart 图表实例。
+   * @return {void}
+   */
+  function renderExternalLegend(legendContainer, chart) {
+    const container = resolveElement(legendContainer);
+    if (!container) {
+      return;
+    }
+
+    container.replaceChildren();
+
+    const datasets = chart?.data?.datasets;
+    if (!Array.isArray(datasets) || !datasets.length || datasets[0]?.label === DEFAULT_EMPTY_DATASET.label) {
+      container.hidden = true;
+      container.dataset.empty = "true";
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    datasets.forEach((dataset) => {
+      const item = document.createElement("div");
+      item.className = "capacity-chart-legend__item";
+
+      const swatch = document.createElement("span");
+      swatch.className = "capacity-chart-legend__swatch";
+      const color = resolveLegendColor(dataset);
+      swatch.style.setProperty("--legend-color", color);
+
+      const label = document.createElement("span");
+      label.className = "capacity-chart-legend__label";
+      label.textContent = dataset?.label || "未命名系列";
+
+      item.appendChild(swatch);
+      item.appendChild(label);
+      fragment.appendChild(item);
+    });
+
+    container.appendChild(fragment);
+    container.hidden = false;
+    container.dataset.empty = "false";
+  }
+
+  /**
    * 构造 Chart.js 配置，支持不同单位与类型。
    *
    * @param {Object} config - 配置对象
@@ -112,14 +200,24 @@
     return {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          top: 18,
+          right: 8,
+          bottom: 24,
+          left: 6,
+        },
+      },
       plugins: {
         title: {
           display: true,
           text: title,
+          padding: {
+            bottom: 18,
+          },
         },
         legend: {
-          display: true,
-          position: "right",
+          display: false,
         },
         tooltip: {
           mode: "index",
@@ -174,6 +272,9 @@
             display: true,
             text: "时间",
           },
+          ticks: {
+            padding: 10,
+          },
         },
         y: {
           display: true,
@@ -184,6 +285,10 @@
           suggestedMin: range?.suggestedMin,
           suggestedMax: range?.suggestedMax,
           beginAtZero: unit === "size",
+          grace: unit === "size" ? "4%" : "8%",
+          ticks: {
+            padding: 8,
+          },
           grid: {
             color: (context) => {
               if (context.tick?.value === 0) {
@@ -218,16 +323,14 @@
    */
   function renderChart({
     canvasSelector,
+    legendContainer,
     previousChart,
     chartType,
     chartData,
     options,
     unit,
   }) {
-    const canvas =
-      typeof canvasSelector === "string"
-        ? selectOne(canvasSelector).first()
-        : canvasSelector;
+    const canvas = resolveElement(canvasSelector);
     if (!canvas) {
       return previousChart || null;
     }
@@ -245,6 +348,7 @@
       chartData.datasets.length > 0;
 
     if (!hasData) {
+      renderExternalLegend(legendContainer, null);
       return renderEmptyChart(ctx, options?.title);
     }
 
@@ -256,11 +360,13 @@
       range,
     });
 
-    return new window.Chart(ctx, {
+    const instance = new window.Chart(ctx, {
       type: chartType,
       data: chartData,
       options: chartOptions,
     });
+    renderExternalLegend(legendContainer, instance);
+    return instance;
   }
 
   /**
@@ -278,6 +384,7 @@
   function renderTrendChart(config) {
     return renderChart({
       canvasSelector: config.canvas,
+      legendContainer: config.legendContainer,
       previousChart: config.instance,
       chartType: config.type,
       chartData: config.data,
@@ -304,6 +411,7 @@
   function renderChangeChart(config) {
     return renderChart({
       canvasSelector: config.canvas,
+      legendContainer: config.legendContainer,
       previousChart: config.instance,
       chartType: config.type,
       chartData: config.data,
@@ -330,6 +438,7 @@
   function renderChangePercentChart(config) {
     return renderChart({
       canvasSelector: config.canvas,
+      legendContainer: config.legendContainer,
       previousChart: config.instance,
       chartType: config.type,
       chartData: config.data,
