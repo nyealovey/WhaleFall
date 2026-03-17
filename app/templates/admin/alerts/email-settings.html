@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% set page_id = 'EmailAlertSettingsPage' %}
+
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block title %}邮件告警配置 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/email-alert-settings.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+<input type="hidden" id="email-alert-csrf-token" value="{{ csrf_token() }}">
+{% call page_header('fas fa-envelope-open-text', '邮件告警配置', '配置数据库容量、同步异常与高权限账户的每日汇总邮件', eyebrow='Alert Delivery') %}
+<div class="text-muted small">SMTP 与发件人从部署环境读取，页面仅维护业务告警规则。</div>
+{% endcall %}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div id="email-alert-settings-page" class="card email-alert-settings-page" data-api-url="/api/v1/alerts/email-settings">
+                <div class="card-body">
+                    <div class="email-alert-settings-meta">
+                        <div><strong>SMTP状态：</strong><span id="smtpReadyText">加载中...</span></div>
+                        <div><strong>发件人：</strong><span id="fromAddressText">加载中...</span></div>
+                    </div>
+
+                    <form id="email-alert-settings-form" class="row g-3 mt-2">
+                        <div class="col-12">
+                            <label class="form-label d-flex align-items-center gap-2">
+                                <input type="checkbox" id="globalEnabled" class="form-check-input mt-0">
+                                <span>启用邮件告警</span>
+                            </label>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="recipientsInput">收件人</label>
+                            <textarea id="recipientsInput" class="form-control" rows="3" placeholder="每行一个邮箱地址"></textarea>
+                            <div class="form-text">所有告警共享一组收件人。</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label d-flex align-items-center gap-2">
+                                <input type="checkbox" id="databaseCapacityEnabled" class="form-check-input mt-0">
+                                <span>数据库容量异常增长</span>
+                            </label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="databaseCapacityPercentThreshold">增幅阈值(%)</label>
+                            <input id="databaseCapacityPercentThreshold" class="form-control" type="number" min="1" step="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="databaseCapacityAbsoluteGbThreshold">增量阈值(GB)</label>
+                            <input id="databaseCapacityAbsoluteGbThreshold" class="form-control" type="number" min="1" step="1">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label d-flex align-items-center gap-2">
+                                <input type="checkbox" id="accountSyncFailureEnabled" class="form-check-input mt-0">
+                                <span>账户同步异常</span>
+                            </label>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-flex align-items-center gap-2">
+                                <input type="checkbox" id="databaseSyncFailureEnabled" class="form-check-input mt-0">
+                                <span>数据库同步异常</span>
+                            </label>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-flex align-items-center gap-2">
+                                <input type="checkbox" id="privilegedAccountEnabled" class="form-check-input mt-0">
+                                <span>新增高权限账户</span>
+                            </label>
+                        </div>
+
+                        <div class="col-12 d-flex justify-content-end">
+                            <button id="saveEmailAlertSettingsBtn" class="btn btn-primary" type="submit">
+                                <i class="fas fa-save me-2"></i>保存配置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/email_alert_settings_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/admin/alerts/email-settings.js') }}"></script>
+{% endblock %}

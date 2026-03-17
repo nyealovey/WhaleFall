@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from flask import has_app_context
 
@@ -10,6 +10,7 @@ from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.capacity.capacity_collection_task_runner import (
     CAPACITY_TASK_EXCEPTIONS,
     CapacityCollectionTaskRunner,
@@ -143,6 +144,7 @@ def _sync_instances(
     *,
     runner: CapacityCollectionTaskRunner,
     task_runs_service: TaskRunsWriteService,
+    alert_event_service: EmailAlertEventService,
     sync_logger: Any,
     run_id: str,
     session_obj: Any,
@@ -197,6 +199,21 @@ def _sync_instances(
                 metrics_json=metrics,
                 details_json=dict(payload),
             )
+            current_rows = []
+            raw_databases = payload.get("databases", [])
+            for item in cast("list[dict[str, object]]", raw_databases):
+                if not isinstance(item, dict):
+                    continue
+                current_rows.append(
+                    {
+                        "instance_id": instance.id,
+                        "instance_name": instance.name,
+                        "database_name": item.get("database_name"),
+                        "size_mb": item.get("size_mb"),
+                        "collected_date": item.get("collected_date"),
+                    },
+                )
+            alert_event_service.record_database_capacity_events(current_rows=current_rows)
         else:
             error_message = str(payload.get("message") or "实例容量同步失败")
             task_runs_service.fail_item(
@@ -205,6 +222,14 @@ def _sync_instances(
                 item_key=str(instance.id),
                 error_message=error_message,
                 details_json=dict(payload),
+            )
+            alert_event_service.record_sync_failure_event(
+                alert_type="database_sync_failure",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                run_id=run_id,
+                session_id=getattr(session_obj, "session_id", None),
+                error_message=error_message,
             )
         db.session.commit()
 
@@ -279,6 +304,7 @@ def sync_databases(
         sync_logger = get_sync_logger()
         runner = CapacityCollectionTaskRunner()
         task_runs_service = TaskRunsWriteService()
+        alert_event_service = EmailAlertEventService()
 
         trigger_source = "manual" if manual_run else "scheduled"
         resolved_run_id = run_id
@@ -368,6 +394,7 @@ def sync_databases(
             totals, results = _sync_instances(
                 runner=runner,
                 task_runs_service=task_runs_service,
+                alert_event_service=alert_event_service,
                 sync_logger=sync_logger,
                 run_id=resolved_run_id,
                 session_obj=session_obj,

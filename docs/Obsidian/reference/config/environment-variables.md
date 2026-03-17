@@ -154,6 +154,23 @@ CACHE_TYPE=simple
 |---|---:|---|---|
 | `ENABLE_SCHEDULER` | 否 | `true` | 是否启动内置调度器. 若你计划 "Web 与 Scheduler 分进程", 建议在 Web 进程设为 `false`. |
 
+## 邮件告警 SMTP
+
+| 环境变量 | 是否必填(生产) | 默认值 | 说明 |
+|---|---:|---|---|
+| `MAIL_SMTP_HOST` | 条件必填 | 空 | SMTP 主机. 启用邮件告警并需要真实发信时必须配置. |
+| `MAIL_SMTP_PORT` | 否 | `25` | SMTP 端口. |
+| `MAIL_SMTP_USERNAME` | 否 | 空 | SMTP 用户名. 若配置则通常需要同时配置 `MAIL_SMTP_PASSWORD`. |
+| `MAIL_SMTP_PASSWORD` | 否 | 空 | SMTP 密码/口令. 仅放 `.env` 或部署系统注入. |
+| `MAIL_USE_TLS` | 否 | `false` | 是否启用 STARTTLS. 不可与 `MAIL_USE_SSL` 同时启用. |
+| `MAIL_USE_SSL` | 否 | `false` | 是否直接使用 SMTPS. 不可与 `MAIL_USE_TLS` 同时启用. |
+| `MAIL_TIMEOUT_SECONDS` | 否 | `10`(秒) | SMTP 连接与发送超时. |
+| `MAIL_FROM_ADDRESS` | 条件必填 | 空 | 发件人邮箱地址. |
+| `MAIL_FROM_NAME` | 否 | 空 | 发件人展示名称. |
+
+> [!note]
+> 邮件告警的业务配置（总开关、收件人、容量阈值、各类型启停）不走环境变量，统一在系统“邮件告警配置”页面中维护；环境变量仅负责 SMTP 连接与发件人信息。
+
 ## Oracle 客户端库定位(可选)
 
 | 环境变量 | 是否必填 | 默认值 | 说明 |

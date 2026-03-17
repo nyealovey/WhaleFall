@@ -71,6 +71,8 @@ DEFAULT_AGGREGATION_HOUR = 4
 DEFAULT_COLLECT_DB_SIZE_ENABLED = True
 DEFAULT_DB_SIZE_COLLECTION_INTERVAL_HOURS = 24
 DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS = 300
+DEFAULT_MAIL_SMTP_PORT = 25
+DEFAULT_MAIL_TIMEOUT_SECONDS = 10
 
 DEFAULT_PROXY_FIX_TRUSTED_IPS = ("127.0.0.1", "::1")
 
@@ -267,6 +269,15 @@ class Settings(BaseSettings):
         default=DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS,
         validation_alias="DB_SIZE_COLLECTION_TIMEOUT",
     )
+    mail_smtp_host: str | None = Field(default=None, validation_alias="MAIL_SMTP_HOST")
+    mail_smtp_port: int = Field(default=DEFAULT_MAIL_SMTP_PORT, validation_alias="MAIL_SMTP_PORT")
+    mail_smtp_username: str | None = Field(default=None, validation_alias="MAIL_SMTP_USERNAME")
+    mail_smtp_password: str | None = Field(default=None, validation_alias="MAIL_SMTP_PASSWORD")
+    mail_use_tls: bool = Field(default=False, validation_alias="MAIL_USE_TLS")
+    mail_use_ssl: bool = Field(default=False, validation_alias="MAIL_USE_SSL")
+    mail_timeout_seconds: int = Field(default=DEFAULT_MAIL_TIMEOUT_SECONDS, validation_alias="MAIL_TIMEOUT_SECONDS")
+    mail_from_address: str | None = Field(default=None, validation_alias="MAIL_FROM_ADDRESS")
+    mail_from_name: str | None = Field(default=None, validation_alias="MAIL_FROM_NAME")
 
     @field_validator("cache_type")
     @classmethod
@@ -278,7 +289,17 @@ class Settings(BaseSettings):
     def _normalize_http_request_completed_mode(cls, value: str) -> str:
         return value.strip().lower()
 
-    @field_validator("oracle_client_lib_dir", "oracle_home", "cache_redis_url", mode="before")
+    @field_validator(
+        "oracle_client_lib_dir",
+        "oracle_home",
+        "cache_redis_url",
+        "mail_smtp_host",
+        "mail_smtp_username",
+        "mail_smtp_password",
+        "mail_from_address",
+        "mail_from_name",
+        mode="before",
+    )
     @classmethod
     def _strip_blank_to_none(cls, value: object) -> object:
         if value is None:
@@ -386,6 +407,15 @@ class Settings(BaseSettings):
             "DATABASE_SIZE_RETENTION_MONTHS": self.database_size_retention_months,
             "DB_SIZE_COLLECTION_INTERVAL": self.db_size_collection_interval_hours,
             "DB_SIZE_COLLECTION_TIMEOUT": self.db_size_collection_timeout_seconds,
+            "MAIL_SMTP_HOST": self.mail_smtp_host,
+            "MAIL_SMTP_PORT": self.mail_smtp_port,
+            "MAIL_SMTP_USERNAME": self.mail_smtp_username,
+            "MAIL_SMTP_PASSWORD": self.mail_smtp_password,
+            "MAIL_USE_TLS": self.mail_use_tls,
+            "MAIL_USE_SSL": self.mail_use_ssl,
+            "MAIL_TIMEOUT_SECONDS": self.mail_timeout_seconds,
+            "MAIL_FROM_ADDRESS": self.mail_from_address,
+            "MAIL_FROM_NAME": self.mail_from_name,
         }
         payload["RATELIMIT_STORAGE_URI"] = (
             self.cache_redis_url if self.cache_type == "redis" and self.cache_redis_url else "memory://"
@@ -548,10 +578,15 @@ class Settings(BaseSettings):
             ),
             ("DB_SIZE_COLLECTION_INTERVAL 必须为正整数(小时)", self.db_size_collection_interval_hours <= 0),
             ("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)", self.db_size_collection_timeout_seconds <= 0),
+            ("MAIL_SMTP_PORT 必须为正整数", self.mail_smtp_port <= 0),
+            ("MAIL_TIMEOUT_SECONDS 必须为正整数(秒)", self.mail_timeout_seconds <= 0),
         ]
         for message, condition in checks:
             if condition:
                 errors.append(message)
+
+        if self.mail_use_tls and self.mail_use_ssl:
+            errors.append("MAIL_USE_TLS 与 MAIL_USE_SSL 不能同时启用")
 
         if errors:
             joined = "; ".join(errors)
