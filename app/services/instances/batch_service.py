@@ -295,6 +295,7 @@ class InstanceBatchDeletionService:
                 if deletion_mode == "soft":
                     if not instance.deleted_at:
                         instance.deleted_at = now_ts
+                    instance.is_active = False
                     self._repository.save_instance(instance)
                     deleted_count += 1
                     log_info(

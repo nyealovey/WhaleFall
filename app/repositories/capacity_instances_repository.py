@@ -81,7 +81,6 @@ class CapacityInstancesRepository:
             .join(Instance, Instance.id == InstanceSizeStat.instance_id)
             .filter(
                 InstanceSizeStat.is_deleted.is_(False),
-                Instance.is_active.is_(True),
                 Instance.deleted_at.is_(None),
             ),
         )
@@ -122,7 +121,6 @@ class CapacityInstancesRepository:
             self._session.query(InstanceSizeAggregation, Instance)
             .join(Instance, Instance.id == InstanceSizeAggregation.instance_id)
             .filter(
-                Instance.is_active.is_(True),
                 Instance.deleted_at.is_(None),
             )
         )

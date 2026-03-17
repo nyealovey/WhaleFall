@@ -11,6 +11,7 @@
      data-instance-id="{{ instance.id }}"
      data-instance-name="{{ instance.name }}"
      data-db-type="{{ instance.db_type }}"
+     data-instance-active="{{ 'true' if instance.is_active else 'false' }}"
      data-sync-accounts-url="/api/v1/instances/{{ instance.id }}/actions/sync-accounts">
 
 <div class="row">
@@ -163,10 +164,16 @@
                     <button type="button" class="btn btn-primary" data-action="test-connection">
                         <i class="fas fa-plug me-2"></i>测试连接
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" data-action="sync-accounts">
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-action="sync-accounts"
+                            {% if not instance.is_active %}disabled title="实例已停用，无法同步账户"{% endif %}>
                         <i class="fas fa-sync me-2"></i>同步账户
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" data-action="sync-capacity">
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-action="sync-capacity"
+                            {% if not instance.is_active %}disabled title="实例已停用，无法同步容量"{% endif %}>
                         <i class="fas fa-sync-alt me-2"></i>同步容量
                     </button>
                     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">

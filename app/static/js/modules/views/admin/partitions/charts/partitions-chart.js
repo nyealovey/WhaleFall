@@ -77,11 +77,11 @@ class AggregationsChartManager {
         this.handleMetricsUpdated = this.handleMetricsUpdated.bind(this);
         this.handleStoreLoading = this.handleStoreLoading.bind(this);
         this.handleStoreError = this.handleStoreError.bind(this);
-        const typeColorIndex = {
-            '数据库聚合': 0,
-            '实例聚合': 1,
-            '数据库统计': 2,
-            '实例统计': 3,
+        const seriesColors = {
+            '数据库聚合': ColorTokens.getStatusColor('success') || ColorTokens.getChartColor(2),
+            '实例聚合': ColorTokens.getStatusColor('info') || ColorTokens.getChartColor(0),
+            '数据库统计': ColorTokens.getOrangeColor({ tone: 'strong' }) || ColorTokens.getChartColor(1),
+            '实例统计': ColorTokens.getStatusColor('danger') || ColorTokens.getChartColor(3),
         };
 
         // 为不同类型的聚合数据定义颜色和样式
@@ -92,8 +92,7 @@ class AggregationsChartManager {
                 '数据库统计': { borderDash: [10, 5], pointStyle: 'triangle' },
                 '实例统计': { borderDash: [2, 2], pointStyle: 'star' },
             }).map(([name, style]) => {
-                const colorIndex = getSafe(typeColorIndex, name, 0);
-                const color = ColorTokens.getChartColor(colorIndex);
+                const color = getSafe(seriesColors, name, ColorTokens.getChartColor(0));
                 return [name, { ...style, color }];
             })
         );
@@ -210,11 +209,14 @@ class AggregationsChartManager {
         }
 
         const contrastColor = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
-        const surfaceText = ColorTokens.resolveCssVar('--surface-elevated') || 'var(--surface-elevated)';
-        const tooltipBackground = ColorTokens.withAlpha(contrastColor, 0.85);
-        const tooltipText = surfaceText;
+        const axisTextColor = ColorTokens.withAlpha(contrastColor, 0.76);
+        const axisTitleColor = ColorTokens.withAlpha(contrastColor, 0.92);
+        const legendTextColor = ColorTokens.withAlpha(contrastColor, 0.82);
+        const tooltipBackground = ColorTokens.withAlpha(contrastColor, 0.96);
+        const tooltipText = ColorTokens.resolveCssVar('--text-inverse') || '#f7f5f1';
         const tooltipBorder = ColorTokens.getAccentColor();
         const gridColor = ColorTokens.withAlpha(contrastColor, 0.15);
+        const axisBaselineColor = ColorTokens.withAlpha(contrastColor, 0.45);
 
         this.chart = new Chart(ctx, {
             type: this.currentChartType,
@@ -232,20 +234,45 @@ class AggregationsChartManager {
                         labels: {
                             usePointStyle: true,
                             padding: 20,
+                            color: legendTextColor,
+                            boxWidth: 12,
+                            boxHeight: 12,
                             font: {
-                                size: 12
+                                size: 12,
+                                weight: '600'
                             }
                         }
                     },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
+                        displayColors: true,
+                        usePointStyle: true,
                         backgroundColor: tooltipBackground,
                         titleColor: tooltipText,
                         bodyColor: tooltipText,
                         borderColor: tooltipBorder,
                         borderWidth: 1,
+                        padding: 12,
+                        titleFont: {
+                            size: 12,
+                            weight: '700'
+                        },
+                        bodyFont: {
+                            size: 12,
+                            weight: '600'
+                        },
                         callbacks: {
+                            labelColor: function(context) {
+                                const borderColor = context.dataset?.borderColor || tooltipText;
+                                return {
+                                    borderColor,
+                                    backgroundColor: borderColor,
+                                };
+                            },
+                            labelTextColor: function() {
+                                return tooltipText;
+                            },
                             title: function(context) {
                                 return '时间: ' + context[0].label;
                             },
@@ -268,14 +295,25 @@ class AggregationsChartManager {
                         title: {
                             display: true,
                             text: '时间',
+                            color: axisTitleColor,
                             font: {
                                 size: 14,
-                                weight: 'bold'
+                                weight: '700'
                             }
                         },
                         grid: {
                             display: true,
                             color: gridColor
+                        },
+                        border: {
+                            color: axisBaselineColor
+                        },
+                        ticks: {
+                            color: axisTextColor,
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
                         }
                     },
                     y: {
@@ -283,9 +321,10 @@ class AggregationsChartManager {
                         title: {
                             display: true,
                             text: data.yAxisLabel || '聚合数据数量',
+                            color: axisTitleColor,
                             font: {
                                 size: 14,
-                                weight: 'bold'
+                                weight: '700'
                             }
                         },
                         beginAtZero: true,
@@ -293,7 +332,15 @@ class AggregationsChartManager {
                             display: true,
                             color: gridColor
                         },
+                        border: {
+                            color: axisBaselineColor
+                        },
                         ticks: {
+                            color: axisTextColor,
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
                             callback: function(value) {
                                 // 如果是聚合数据数量，直接显示数字
                                 if (data.yAxisLabel && data.yAxisLabel.includes('数量')) {
@@ -390,9 +437,13 @@ class AggregationsChartManager {
                 backgroundColor: ColorTokens.withAlpha(borderColor, 0.2),
                 fill: false,
                 tension: 0.1,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                borderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: borderColor,
+                pointBorderColor: ColorTokens.resolveCssVar('--surface-panel-raised') || '#ffffff',
+                pointBorderWidth: 2,
+                pointHoverBorderWidth: 3,
+                borderWidth: 3,
                 borderDash: style.borderDash,
                 pointStyle: style.pointStyle
             });

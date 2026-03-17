@@ -32,8 +32,8 @@ class AccountsStatisticsPageService:
 
     @staticmethod
     def _fetch_active_instances() -> list[Instance]:
-        """加载所有活跃实例."""
-        return InstancesRepository.list_active_instances()
+        """加载所有未删除实例."""
+        return InstancesRepository.list_existing_instances()
 
     @staticmethod
     def _fetch_recent_syncs(limit: int = 10) -> list[SyncSession]:

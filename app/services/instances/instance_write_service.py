@@ -153,6 +153,7 @@ class InstanceWriteService:
         instance = self._repository.get_instance_or_404(instance_id)
         if not instance.deleted_at:
             instance.deleted_at = time_utils.now()
+        instance.is_active = False
 
         self._repository.add(instance)
         log_info(
@@ -173,6 +174,7 @@ class InstanceWriteService:
             return InstanceRestoreOutcome(instance=instance, restored=False)
 
         instance.deleted_at = None
+        instance.is_active = True
         self._repository.add(instance)
         log_info(
             "恢复数据库实例",

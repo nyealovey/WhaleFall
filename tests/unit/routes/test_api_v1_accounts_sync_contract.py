@@ -1,8 +1,11 @@
 import pytest
 
+import app.api.v1.namespaces.instances_accounts_sync as api_module
+import app.services.accounts_sync.accounts_sync_actions_service as actions_module
 from app import db
 from app.core.constants import DatabaseType
 from app.models.instance import Instance
+from app.utils.time_utils import time_utils
 
 
 def _ensure_accounts_sync_tables(app) -> None:
@@ -64,6 +67,7 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
     class _DummyAccountSyncService:
         @staticmethod
         def sync_accounts(instance, sync_type):
+            del instance, sync_type
             return {
                 "success": True,
                 "message": "实例账户同步成功",
@@ -72,9 +76,6 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
                 "modified_count": 0,
                 "removed_count": 0,
             }
-
-    import app.api.v1.namespaces.instances_accounts_sync as api_module
-    import app.services.accounts_sync.accounts_sync_actions_service as actions_module
 
     monkeypatch.setattr(actions_module, "_launch_background_sync", lambda **_kwargs: _DummyThread())
     monkeypatch.setattr(api_module, "accounts_sync_service", _DummyAccountSyncService())
@@ -128,9 +129,8 @@ def test_api_v1_accounts_sync_failure_contract(app, auth_client, monkeypatch) ->
     class _DummyAccountSyncService:
         @staticmethod
         def sync_accounts(instance, sync_type):
+            del instance, sync_type
             return {"success": False, "message": "实例账户同步失败"}
-
-    import app.api.v1.namespaces.instances_accounts_sync as api_module
 
     monkeypatch.setattr(api_module, "accounts_sync_service", _DummyAccountSyncService())
 
@@ -149,3 +149,101 @@ def test_api_v1_accounts_sync_failure_contract(app, auth_client, monkeypatch) ->
     assert payload.get("success") is False
     assert payload.get("error") is True
     assert payload.get("message_code") == "INVALID_REQUEST"
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_sync_all_excludes_deleted_instances(app, auth_client) -> None:
+    _ensure_accounts_sync_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="instance-deleted",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+            deleted_at=time_utils.now(),
+        )
+        db.session.add(instance)
+        db.session.commit()
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+    headers = {"X-CSRFToken": csrf_token}
+
+    response = auth_client.post("/api/v1/instances/actions/sync-accounts", headers=headers)
+    assert response.status_code == 400
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is False
+    assert payload.get("error") is True
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_sync_rejects_deleted_instance(app, auth_client) -> None:
+    _ensure_accounts_sync_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="instance-deleted",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+            deleted_at=time_utils.now(),
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+    headers = {"X-CSRFToken": csrf_token}
+
+    response = auth_client.post(f"/api/v1/instances/{instance_id}/actions/sync-accounts", headers=headers)
+    assert response.status_code == 404
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_sync_rejects_disabled_instance(app, auth_client) -> None:
+    _ensure_accounts_sync_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="instance-disabled",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=False,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+    headers = {"X-CSRFToken": csrf_token}
+
+    response = auth_client.post(f"/api/v1/instances/{instance_id}/actions/sync-accounts", headers=headers)
+    assert response.status_code == 400
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is False
+    assert payload.get("error") is True
