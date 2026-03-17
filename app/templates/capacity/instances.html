@@ -115,13 +115,22 @@
                     </div>
                 </div>
 	                <div class="card-body">
-	                    <div class="position-relative chart-stage chart-stage--lg">
-	                        <canvas id="instanceChart" class="chart-canvas"></canvas>
-	                        <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
-	                            <div class="spinner-border text-primary" role="status">
-	                                <span class="visually-hidden">加载中...</span>
+	                    <div class="capacity-chart-panel">
+                            <div class="capacity-chart-panel__plot">
+	                            <div class="position-relative chart-stage chart-stage--lg">
+	                                <canvas id="instanceChart" class="chart-canvas"></canvas>
+	                                <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+	                                    <div class="spinner-border text-primary" role="status">
+	                                        <span class="visually-hidden">加载中...</span>
+	                                    </div>
+	                                </div>
 	                            </div>
-	                        </div>
+                            </div>
+                            <aside
+                                id="instanceChartLegend"
+                                class="capacity-chart-panel__legend"
+                                aria-label="容量统计趋势图图例"
+                            ></aside>
 	                    </div>
 	                </div>
             </div>
@@ -176,13 +185,22 @@
                     </div>
                 </div>
 	                <div class="card-body">
-	                    <div class="position-relative chart-stage chart-stage--lg">
-	                        <canvas id="instanceChangeChart" class="chart-canvas"></canvas>
-	                        <div id="changeChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
-	                            <div class="spinner-border text-primary" role="status">
-	                                <span class="visually-hidden">加载中...</span>
+	                    <div class="capacity-chart-panel">
+                            <div class="capacity-chart-panel__plot">
+	                            <div class="position-relative chart-stage chart-stage--lg">
+	                                <canvas id="instanceChangeChart" class="chart-canvas"></canvas>
+	                                <div id="changeChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+	                                    <div class="spinner-border text-primary" role="status">
+	                                        <span class="visually-hidden">加载中...</span>
+	                                    </div>
+	                                </div>
 	                            </div>
-	                        </div>
+                            </div>
+                            <aside
+                                id="instanceChangeChartLegend"
+                                class="capacity-chart-panel__legend"
+                                aria-label="容量变化趋势图图例"
+                            ></aside>
 	                    </div>
 	                </div>
             </div>
@@ -237,13 +255,22 @@
                     </div>
                 </div>
 	                <div class="card-body">
-	                    <div class="position-relative chart-stage chart-stage--lg">
-	                        <canvas id="instanceChangePercentChart" class="chart-canvas"></canvas>
-	                        <div id="changePercentChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
-	                            <div class="spinner-border text-primary" role="status">
-	                                <span class="visually-hidden">加载中...</span>
+	                    <div class="capacity-chart-panel">
+                            <div class="capacity-chart-panel__plot">
+	                            <div class="position-relative chart-stage chart-stage--lg">
+	                                <canvas id="instanceChangePercentChart" class="chart-canvas"></canvas>
+	                                <div id="changePercentChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+	                                    <div class="spinner-border text-primary" role="status">
+	                                        <span class="visually-hidden">加载中...</span>
+	                                    </div>
+	                                </div>
 	                            </div>
-	                        </div>
+                            </div>
+                            <aside
+                                id="instanceChangePercentChartLegend"
+                                class="capacity-chart-panel__legend"
+                                aria-label="容量变化趋势图百分比图例"
+                            ></aside>
 	                    </div>
 	                </div>
             </div>

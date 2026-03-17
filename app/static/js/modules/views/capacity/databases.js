@@ -101,6 +101,11 @@ function mountCapacityDatabasesPage(window) {
           change: "#databaseChangeChart",
           percent: "#databaseChangePercentChart",
         },
+        legends: {
+          trend: "#databaseChartLegend",
+          change: "#databaseChangeChartLegend",
+          percent: "#databaseChangePercentChartLegend",
+        },
         loaders: {
           trend: "#chartLoading",
           change: "#changeChartLoading",
