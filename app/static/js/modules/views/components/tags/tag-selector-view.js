@@ -118,6 +118,14 @@
     return `<span class="${classes.join(" ")}">${icon}${escapeHtml(text)}</span>`;
   }
 
+  function getTagDisplayName(tag) {
+    return tag?.display_name || tag?.name || "-";
+  }
+
+  function getTagCategory(tag) {
+    return tag?.category || "未分类";
+  }
+
   /**
    * 使用统一的数字格式化工具展示统计数。
    *
@@ -360,17 +368,12 @@
             .filter(Boolean)
             .join(" ");
           const disabledAttr = tag.is_active === false ? 'aria-disabled="true"' : '';
-          const inactiveChip = tag.is_active === false
-            ? buildChipOutline("停用", "muted", "fas fa-ban")
-            : "";
           return `
             <button type="button" class="${classes}" data-tag-id="${tag.id}" aria-pressed="${isSelected}" ${disabledAttr}>
               <div class="tag-selector__item-copy">
-                <div class="tag-selector__item-title">${escapeHtml(tag.display_name || tag.name || "-")}</div>
-                <div class="tag-selector__item-subtitle">${escapeHtml(tag.name || "-")}</div>
-                <div class="tag-selector__item-meta">
-                  ${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}
-                  ${inactiveChip}
+                <div class="tag-selector__item-summary">
+                  <div class="tag-selector__item-title">${escapeHtml(getTagDisplayName(tag))}</div>
+                  ${buildChipOutline(getTagCategory(tag), "muted", "fas fa-folder")}
                 </div>
               </div>
               <span class="tag-selector__item-action"><i class="${isSelected ? "fas fa-check" : "fas fa-plus"}"></i></span>
@@ -446,10 +449,9 @@
         .map((tag) => `
           <article class="tag-selector__selected-item" data-role="selected-chip" data-tag-id="${tag.id}">
             <div class="tag-selector__selected-item-copy">
-              <div class="tag-selector__selected-item-title">${escapeHtml(tag.display_name || tag.name || "")}</div>
-              <div class="tag-selector__selected-item-meta">
-                ${buildChipOutline(tag.name || "-", "muted", "fas fa-tag")}
-                ${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}
+              <div class="tag-selector__selected-item-summary">
+                <div class="tag-selector__selected-item-title">${escapeHtml(getTagDisplayName(tag))}</div>
+                ${buildChipOutline(getTagCategory(tag), "muted", "fas fa-folder")}
               </div>
             </div>
             <button type="button" class="tag-selector__selected-item-remove" aria-label="移除标签" data-role="chip-remove" data-tag-id="${tag.id}">

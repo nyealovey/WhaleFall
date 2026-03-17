@@ -166,7 +166,7 @@ CACHE_TYPE=simple
 | `MAIL_USE_SSL` | 否 | `false` | 是否直接使用 SMTPS. 不可与 `MAIL_USE_TLS` 同时启用. |
 | `MAIL_TIMEOUT_SECONDS` | 否 | `10`(秒) | SMTP 连接与发送超时. |
 | `MAIL_FROM_ADDRESS` | 条件必填 | 空 | 发件人邮箱地址. |
-| `MAIL_FROM_NAME` | 否 | 空 | 发件人展示名称. |
+| `MAIL_FROM_NAME` | 否 | 空 | 发件人展示名称. 若值包含空格, 需要写成带引号的 shell 合法形式, 例如 `MAIL_FROM_NAME="WhaleFall Alerts"`. |
 
 > [!note]
 > 邮件告警的业务配置（总开关、收件人、容量阈值、各类型启停）不走环境变量，统一在系统“邮件告警配置”页面中维护；环境变量仅负责 SMTP 连接与发件人信息。

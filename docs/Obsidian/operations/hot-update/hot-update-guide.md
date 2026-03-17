@@ -57,6 +57,7 @@ related:
 - 清理缓存: 删除 `__pycache__/*.pyc`, 并清理 `/var/cache/nginx` 等.
 - 数据库迁移: 尝试执行 `flask db stamp`(必要时)与 `flask db upgrade`(参见脚本的防御逻辑).
 - 重启服务: 重启 `whalefall` 容器并 reload Nginx.
+- 默认保留容器内现有 Nginx 站点配置(不会覆盖 `/etc/nginx/sites-available/whalefall`)；只有显式传 `--sync-nginx-site-config` 才会用仓库模板覆盖.
 
 ## 步骤
 
@@ -73,6 +74,12 @@ git status --porcelain
 
 ```bash
 bash scripts/deploy/update-prod-flask.sh
+```
+
+如需显式覆盖容器内的 Nginx 站点配置:
+
+```bash
+bash scripts/deploy/update-prod-flask.sh --sync-nginx-site-config
 ```
 
 脚本成功后会输出本次部署的 commit (`git rev-parse --short HEAD`) 与健康检查结果.
