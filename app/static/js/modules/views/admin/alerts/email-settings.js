@@ -13,14 +13,6 @@
     const clearButtonLoading = global.UI?.clearButtonLoading;
 
     const elements = {
-        smtpReadyText: document.getElementById('smtpReadyText'),
-        smtpReadyBadge: document.getElementById('smtpReadyBadge'),
-        fromAddressText: document.getElementById('fromAddressText'),
-        globalEnabledBadge: document.getElementById('globalEnabledBadge'),
-        enabledRulesCountText: document.getElementById('enabledRulesCountText'),
-        ruleSummaryText: document.getElementById('ruleSummaryText'),
-        recipientCountText: document.getElementById('recipientCountText'),
-        recipientSummaryText: document.getElementById('recipientSummaryText'),
         form: document.getElementById('email-alert-settings-form'),
         globalEnabled: document.getElementById('globalEnabled'),
         recipientsInput: document.getElementById('recipientsInput'),
@@ -32,11 +24,6 @@
         privilegedAccountEnabled: document.getElementById('privilegedAccountEnabled'),
         sendTestButton: document.getElementById('sendTestEmailBtn'),
         saveButton: document.getElementById('saveEmailAlertSettingsBtn'),
-    };
-
-    const channelState = {
-        smtpReady: false,
-        fromAddress: '-',
     };
 
     const rules = [
@@ -78,6 +65,7 @@
         if (!Array.isArray(recipients)) {
             return '';
         }
+
         return recipients.join('\n');
     }
 
@@ -97,49 +85,10 @@
         node.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i>${text}`;
     }
 
-    function buildRuleSummary(globalEnabled, enabledRulesCount) {
-        if (enabledRulesCount === 0) {
-            return globalEnabled ? '当前没有启用规则' : '总开关关闭，当前无规则待命';
-        }
+    function syncRuleState() {
+        const globalEnabled = Boolean(elements.globalEnabled?.checked);
+        pageRoot.dataset.globalEnabled = globalEnabled ? 'true' : 'false';
 
-        if (!globalEnabled) {
-            return `${enabledRulesCount} 条规则已待命，开启总开关后开始发送`;
-        }
-
-        return `${enabledRulesCount} 条规则正在参与每日汇总`;
-    }
-
-    function buildRecipientSummary(recipientCount, globalEnabled) {
-        if (recipientCount === 0) {
-            return globalEnabled ? '未填写收件人，启用后将无法完成实际发送' : '开启总开关前请先补齐收件人';
-        }
-
-        return `测试邮件与正式汇总将发送给 ${recipientCount} 位收件人`;
-    }
-
-    function readFormState() {
-        const recipients = linesToRecipients(elements.recipientsInput?.value);
-        const enabledRulesCount = rules.filter((rule) => Boolean(rule.input?.checked)).length;
-
-        return {
-            globalEnabled: Boolean(elements.globalEnabled?.checked),
-            recipientCount: recipients.length,
-            enabledRulesCount,
-        };
-    }
-
-    function syncChannelState() {
-        elements.smtpReadyText.textContent = channelState.smtpReady ? '已就绪' : '未就绪';
-        elements.fromAddressText.textContent = channelState.fromAddress || '-';
-
-        setStatusPill(elements.smtpReadyBadge, {
-            tone: channelState.smtpReady ? 'success' : 'warning',
-            iconClass: 'fas fa-satellite-dish',
-            text: channelState.smtpReady ? 'SMTP 已就绪' : 'SMTP 未就绪',
-        });
-    }
-
-    function syncRuleState(globalEnabled) {
         rules.forEach((rule) => {
             const enabled = Boolean(rule.input?.checked);
             if (rule.card) {
@@ -181,30 +130,8 @@
         });
     }
 
-    function syncDerivedState() {
-        const { globalEnabled, recipientCount, enabledRulesCount } = readFormState();
-
-        pageRoot.dataset.globalEnabled = globalEnabled ? 'true' : 'false';
-
-        elements.enabledRulesCountText.textContent = `${enabledRulesCount} / ${rules.length}`;
-        elements.recipientCountText.textContent = String(recipientCount);
-        elements.ruleSummaryText.textContent = buildRuleSummary(globalEnabled, enabledRulesCount);
-        elements.recipientSummaryText.textContent = buildRecipientSummary(recipientCount, globalEnabled);
-
-        setStatusPill(elements.globalEnabledBadge, {
-            tone: globalEnabled ? 'success' : 'muted',
-            iconClass: 'fas fa-power-off',
-            text: globalEnabled ? '总开关已启用' : '总开关关闭',
-        });
-
-        syncRuleState(globalEnabled);
-    }
-
     function fillForm(data) {
         const settings = data?.settings || {};
-
-        channelState.smtpReady = Boolean(data?.smtp_ready);
-        channelState.fromAddress = data?.from_address || '-';
 
         elements.globalEnabled.checked = Boolean(settings.global_enabled);
         elements.recipientsInput.value = recipientsToLines(settings.recipients);
@@ -215,8 +142,7 @@
         elements.databaseSyncFailureEnabled.checked = Boolean(settings.database_sync_failure_enabled);
         elements.privilegedAccountEnabled.checked = Boolean(settings.privileged_account_enabled);
 
-        syncChannelState();
-        syncDerivedState();
+        syncRuleState();
     }
 
     async function loadSettings() {
@@ -302,7 +228,6 @@
     function bindLiveState() {
         const stateInputs = [
             elements.globalEnabled,
-            elements.recipientsInput,
             elements.databaseCapacityEnabled,
             elements.accountSyncFailureEnabled,
             elements.databaseSyncFailureEnabled,
@@ -310,20 +235,14 @@
         ];
 
         stateInputs.forEach((node) => {
-            if (!node) {
-                return;
-            }
-
-            const eventName = node.tagName === 'TEXTAREA' ? 'input' : 'change';
-            node.addEventListener(eventName, syncDerivedState);
+            node?.addEventListener('change', syncRuleState);
         });
     }
 
     elements.form?.addEventListener('submit', handleSubmit);
     elements.sendTestButton?.addEventListener('click', handleSendTestEmail);
     bindLiveState();
-    syncChannelState();
-    syncDerivedState();
+    syncRuleState();
     loadSettings().catch((error) => {
         toast?.error?.(error?.message || '加载邮件告警配置失败');
     });
