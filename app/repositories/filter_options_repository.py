@@ -24,9 +24,22 @@ class FilterOptionsRepository:
 
     @staticmethod
     def list_active_instances(*, db_type: str | None = None) -> list[Instance]:
-        """获取启用的实例列表."""
+        """获取可同步的实例列表(启用且未删除)."""
         active_filter = cast(Any, Instance.is_active).is_(True)
-        query = cast("Query", Instance.query).filter(active_filter)
+        deleted_filter = cast(Any, Instance.deleted_at).is_(None)
+        query = cast("Query", Instance.query).filter(active_filter, deleted_filter)
+
+        normalized_type = db_type.strip() if db_type is not None else ""
+        if normalized_type:
+            query = cast("Query", query).filter(func.lower(Instance.db_type) == normalized_type.lower())
+
+        return cast("Query", query).order_by(Instance.name.asc()).all()
+
+    @staticmethod
+    def list_existing_instances(*, db_type: str | None = None) -> list[Instance]:
+        """获取未删除的实例列表(包含停用实例)."""
+        deleted_filter = cast(Any, Instance.deleted_at).is_(None)
+        query = cast("Query", Instance.query).filter(deleted_filter)
 
         normalized_type = db_type.strip() if db_type is not None else ""
         if normalized_type:

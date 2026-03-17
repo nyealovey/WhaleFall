@@ -2,10 +2,13 @@ from datetime import date, datetime
 
 import pytest
 
+import app.services.aggregation as aggregation_module
+import app.services.database_sync as database_sync_module
 from app import db
 from app.core.constants import DatabaseType
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
+from app.utils.time_utils import time_utils
 
 
 def _ensure_instances_tables(app) -> None:
@@ -105,9 +108,6 @@ def test_api_v1_instances_sync_capacity_contract(app, auth_client, monkeypatch) 
         def calculate_daily_aggregations_for_instance(self, instance_id: int) -> None:
             del instance_id
 
-    import app.services.aggregation as aggregation_module
-    import app.services.database_sync as database_sync_module
-
     monkeypatch.setattr(database_sync_module, "CapacitySyncCoordinator", _DummyCapacitySyncCoordinator)
     monkeypatch.setattr(aggregation_module, "AggregationService", _DummyAggregationService)
 
@@ -171,8 +171,6 @@ def test_api_v1_instances_sync_capacity_failure_keeps_inventory(app, auth_client
 
         def disconnect(self) -> None:
             return None
-
-    import app.services.database_sync as database_sync_module
 
     monkeypatch.setattr(database_sync_module, "CapacitySyncCoordinator", _DummyCapacitySyncCoordinator)
 
@@ -239,8 +237,6 @@ def test_api_v1_instances_sync_capacity_exception_returns_sync_error_and_keeps_i
         def disconnect(self) -> None:
             return None
 
-    import app.services.database_sync as database_sync_module
-
     monkeypatch.setattr(database_sync_module, "CapacitySyncCoordinator", _DummyCapacitySyncCoordinator)
 
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")
@@ -265,6 +261,74 @@ def test_api_v1_instances_sync_capacity_exception_returns_sync_error_and_keeps_i
     with app.app_context():
         records = InstanceDatabase.query.filter_by(instance_id=instance_id).all()
         assert len(records) == 1
+
+
+@pytest.mark.unit
+def test_api_v1_instances_sync_capacity_rejects_deleted_instance(app, auth_client) -> None:
+    _ensure_instances_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="instance-deleted",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+            deleted_at=time_utils.now(),
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+
+    response = auth_client.post(
+        f"/api/v1/instances/{instance_id}/actions/sync-capacity",
+        headers={"X-CSRFToken": csrf_token},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.unit
+def test_api_v1_instances_sync_capacity_rejects_disabled_instance(app, auth_client) -> None:
+    _ensure_instances_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="instance-disabled",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=False,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+
+    response = auth_client.post(
+        f"/api/v1/instances/{instance_id}/actions/sync-capacity",
+        headers={"X-CSRFToken": csrf_token},
+    )
+    assert response.status_code == 400
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is False
+    assert payload.get("error") is True
 
 
 @pytest.mark.unit
@@ -293,8 +357,6 @@ def test_api_v1_instances_sync_capacity_connect_failure_returns_connection_error
 
         def disconnect(self) -> None:
             return None
-
-    import app.services.database_sync as database_sync_module
 
     monkeypatch.setattr(database_sync_module, "CapacitySyncCoordinator", _DummyCapacitySyncCoordinator)
 

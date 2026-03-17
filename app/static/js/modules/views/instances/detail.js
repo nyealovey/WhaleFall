@@ -292,6 +292,10 @@ function syncAccounts(event) {
         toast.error('InstanceStore 未初始化');
         return;
     }
+    if (!isInstanceSyncAvailable()) {
+        toast.warning?.('实例已停用，无法同步账户');
+        return;
+    }
     const fallbackBtn = selectOne('[data-action="sync-accounts"]').first();
     const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!syncBtn) {
@@ -466,6 +470,10 @@ async function confirmDeleteInstance(event) {
 function syncCapacity(instanceId, instanceName, event) {
     if (!instanceStore?.actions?.syncInstanceCapacity) {
         toast.error('InstanceStore 未初始化');
+        return;
+    }
+    if (!isInstanceSyncAvailable()) {
+        toast.warning?.('实例已停用，无法同步容量');
         return;
     }
     const fallbackBtn = selectOne('[data-action="sync-capacity"]').first();
@@ -1572,6 +1580,11 @@ function getSyncAccountsUrl() {
     return getInstanceDatasetValue('syncAccountsUrl');
 }
 
+function isInstanceSyncAvailable() {
+    const datasetValue = getInstanceDatasetValue('instanceActive');
+    return datasetValue !== 'false';
+}
+
 function getInstanceDatasetValue(field) {
     const root = document.getElementById('instanceDetailContainer');
     if (!root) {
@@ -1584,6 +1597,8 @@ function getInstanceDatasetValue(field) {
             return root.dataset?.instanceName || root.getAttribute('data-instance-name') || null;
         case 'dbType':
             return root.dataset?.dbType || root.getAttribute('data-db-type') || null;
+        case 'instanceActive':
+            return root.dataset?.instanceActive || root.getAttribute('data-instance-active') || null;
         case 'syncAccountsUrl':
             return root.dataset?.syncAccountsUrl || root.getAttribute('data-sync-accounts-url') || null;
         default:

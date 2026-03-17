@@ -157,7 +157,6 @@ class CapacityDatabasesRepository:
             .join(Instance, Instance.id == DatabaseSizeAggregation.instance_id)
             .join(InstanceDatabase, join_condition)
             .filter(
-                Instance.is_active.is_(True),
                 Instance.deleted_at.is_(None),
                 InstanceDatabase.is_active.is_(True),
             )

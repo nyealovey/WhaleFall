@@ -9,6 +9,7 @@ from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.repositories.database_statistics_repository import DatabaseStatisticsRepository
 from app.settings import Settings
+from app.utils.time_utils import time_utils
 
 
 @pytest.fixture(scope="function")
@@ -63,3 +64,41 @@ def test_database_statistics_repository_distinguishes_inactive_and_deleted_datab
         assert summary["active_databases"] == 1
         assert summary["inactive_databases"] == 1
         assert summary["deleted_databases"] == 1
+
+
+@pytest.mark.unit
+def test_database_statistics_repository_includes_disabled_instances_and_excludes_deleted_instances(app) -> None:
+    _ensure_database_statistics_tables(app)
+
+    with app.app_context():
+        disabled_instance = Instance(
+            name="disabled-mysql-1",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=False,
+        )
+        deleted_instance = Instance(
+            name="deleted-mysql-1",
+            db_type="mysql",
+            host="127.0.0.2",
+            port=3307,
+            is_active=True,
+            deleted_at=time_utils.now(),
+        )
+        db.session.add_all([disabled_instance, deleted_instance])
+        db.session.flush()
+
+        db.session.add_all(
+            [
+                InstanceDatabase(instance_id=disabled_instance.id, database_name="visible_db", is_active=True),
+                InstanceDatabase(instance_id=deleted_instance.id, database_name="hidden_db", is_active=True),
+            ],
+        )
+        db.session.commit()
+
+        summary = DatabaseStatisticsRepository.fetch_summary()
+
+        assert summary["total_databases"] == 1
+        assert summary["active_databases"] == 1
+        assert summary["total_instances"] == 1
