@@ -20,73 +20,219 @@
         <div class="layout-shell-inner">
             <div
                 id="email-alert-settings-page"
-                class="card email-alert-settings-page"
+                class="email-alert-settings-page"
                 data-api-url="/api/v1/alerts/email-settings"
                 data-test-api-url="/api/v1/alerts/email-settings/actions/send-test"
             >
-                <div class="card-body">
-                    <div class="email-alert-settings-meta">
-                        <div><strong>SMTP状态：</strong><span id="smtpReadyText">加载中...</span></div>
-                        <div><strong>发件人：</strong><span id="fromAddressText">加载中...</span></div>
-                    </div>
+                <div class="email-alert-settings-layout">
+                    <aside class="card email-alert-control-deck">
+                        <div class="card-body">
+                            <div class="email-alert-control-deck__head">
+                                <span class="email-alert-section-kicker">告警控制台</span>
+                                <h2>邮件投递控制台</h2>
+                                <p>集中维护总开关、收件人池与发送动作。所有规则共享一组目标邮箱，右侧矩阵负责决定哪些事件进入每日汇总。</p>
+                            </div>
 
-                    <form id="email-alert-settings-form" class="row g-3 mt-2">
-                        <div class="col-12">
-                            <label class="form-label d-flex align-items-center gap-2">
-                                <input type="checkbox" id="globalEnabled" class="form-check-input mt-0">
-                                <span>启用邮件告警</span>
-                            </label>
+                            <div class="email-alert-overview-grid">
+                                <article class="email-alert-signal-card" data-signal="smtp">
+                                    <span id="smtpReadyBadge" class="status-pill status-pill--muted">
+                                        <i class="fas fa-satellite-dish"></i>等待检测
+                                    </span>
+                                    <div id="smtpReadyText" class="email-alert-signal-card__value">加载中...</div>
+                                    <p class="email-alert-signal-card__label">SMTP 通道状态</p>
+                                    <p class="email-alert-signal-card__meta">发件地址：<span id="fromAddressText">加载中...</span></p>
+                                </article>
+
+                                <article class="email-alert-signal-card" data-signal="switch">
+                                    <span id="globalEnabledBadge" class="status-pill status-pill--muted">
+                                        <i class="fas fa-power-off"></i>总开关关闭
+                                    </span>
+                                    <div id="enabledRulesCountText" class="email-alert-signal-card__value">0 / 4</div>
+                                    <p class="email-alert-signal-card__label">已启用规则</p>
+                                    <p id="ruleSummaryText" class="email-alert-signal-card__meta">规则暂未激活</p>
+                                </article>
+
+                                <article class="email-alert-signal-card" data-signal="recipients">
+                                    <span class="status-pill status-pill--info">
+                                        <i class="fas fa-users"></i>收件人池
+                                    </span>
+                                    <div id="recipientCountText" class="email-alert-signal-card__value">0</div>
+                                    <p class="email-alert-signal-card__label">当前收件人数</p>
+                                    <p id="recipientSummaryText" class="email-alert-signal-card__meta">所有告警共享同一组收件人</p>
+                                </article>
+                            </div>
+
+                            <form id="email-alert-settings-form" class="email-alert-settings-form">
+                                <section class="email-alert-panel-section">
+                                    <div class="email-alert-panel-section__header">
+                                        <span class="email-alert-section-kicker">总控</span>
+                                        <h3>发送开关</h3>
+                                    </div>
+
+                                    <label class="email-alert-master-toggle" for="globalEnabled">
+                                        <input type="checkbox" id="globalEnabled" class="form-check-input mt-0">
+                                        <span class="email-alert-master-toggle__text">
+                                            <strong>启用邮件告警</strong>
+                                            <small>关闭后仅停止汇总邮件发送，规则与阈值仍可继续维护。</small>
+                                        </span>
+                                    </label>
+                                </section>
+
+                                <section class="email-alert-panel-section">
+                                    <div class="email-alert-panel-section__header">
+                                        <span class="email-alert-section-kicker">收件策略</span>
+                                        <h3>共享收件人列表</h3>
+                                    </div>
+
+                                    <label class="form-label" for="recipientsInput">收件人</label>
+                                    <textarea
+                                        id="recipientsInput"
+                                        class="form-control"
+                                        rows="8"
+                                        placeholder="每行一个邮箱地址"
+                                    ></textarea>
+                                    <div class="email-alert-field-note">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>每行一个邮箱地址；测试邮件与正式汇总邮件都会发送到这里。</span>
+                                    </div>
+                                </section>
+
+                                <section class="email-alert-panel-section email-alert-panel-section--actions">
+                                    <div class="email-alert-panel-section__header">
+                                        <span class="email-alert-section-kicker">动作</span>
+                                        <h3>发送与落盘</h3>
+                                    </div>
+
+                                    <div class="email-alert-actions">
+                                        <button id="sendTestEmailBtn" class="btn btn-outline-secondary" type="button">
+                                            <i class="fas fa-paper-plane me-2"></i>发送测试邮件
+                                        </button>
+                                        <button id="saveEmailAlertSettingsBtn" class="btn btn-primary" type="submit">
+                                            <i class="fas fa-save me-2"></i>保存配置
+                                        </button>
+                                    </div>
+                                    <p class="email-alert-panel-section__hint">测试邮件不会修改任何规则，只验证当前 SMTP 与收件人配置。</p>
+                                </section>
+                            </form>
+                        </div>
+                    </aside>
+
+                    <section class="email-alert-rule-matrix" aria-label="规则矩阵">
+                        <div class="email-alert-rule-matrix__head">
+                            <span class="email-alert-section-kicker">规则矩阵</span>
+                            <h2>规则矩阵</h2>
+                            <p>用卡片维护哪些事件会进入每日汇总。总开关闭合后，右侧已启用规则开始产出信号；总开关关闭时，规则仅进入待命状态。</p>
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label" for="recipientsInput">收件人</label>
-                            <textarea id="recipientsInput" class="form-control" rows="3" placeholder="每行一个邮箱地址"></textarea>
-                            <div class="form-text">所有告警共享一组收件人。</div>
-                        </div>
+                        <div class="email-alert-rules-grid">
+                            <article class="card email-alert-rule-card email-alert-rule-card--featured" data-rule-card="databaseCapacity">
+                                <div class="card-body email-alert-rule-card__frame">
+                                    <div class="email-alert-rule-card__head">
+                                        <div>
+                                            <p class="email-alert-rule-card__eyebrow">容量波动</p>
+                                            <h3>数据库容量异常增长</h3>
+                                        </div>
+                                        <label class="email-alert-rule-toggle" for="databaseCapacityEnabled">
+                                            <input type="checkbox" id="databaseCapacityEnabled" class="form-check-input mt-0">
+                                            <span>启用</span>
+                                        </label>
+                                    </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label d-flex align-items-center gap-2">
-                                <input type="checkbox" id="databaseCapacityEnabled" class="form-check-input mt-0">
-                                <span>数据库容量异常增长</span>
-                            </label>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label" for="databaseCapacityPercentThreshold">增幅阈值(%)</label>
-                            <input id="databaseCapacityPercentThreshold" class="form-control" type="number" min="1" step="1">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label" for="databaseCapacityAbsoluteGbThreshold">增量阈值(GB)</label>
-                            <input id="databaseCapacityAbsoluteGbThreshold" class="form-control" type="number" min="1" step="1">
-                        </div>
+                                    <p class="email-alert-rule-card__description">同时满足相对增幅与绝对增量阈值时进入每日汇总，避免单一阈值导致过度告警。</p>
 
-                        <div class="col-md-4">
-                            <label class="form-label d-flex align-items-center gap-2">
-                                <input type="checkbox" id="accountSyncFailureEnabled" class="form-check-input mt-0">
-                                <span>账户同步异常</span>
-                            </label>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label d-flex align-items-center gap-2">
-                                <input type="checkbox" id="databaseSyncFailureEnabled" class="form-check-input mt-0">
-                                <span>数据库同步异常</span>
-                            </label>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label d-flex align-items-center gap-2">
-                                <input type="checkbox" id="privilegedAccountEnabled" class="form-check-input mt-0">
-                                <span>新增高权限账户</span>
-                            </label>
-                        </div>
+                                    <div class="email-alert-rule-card__status">
+                                        <span class="status-pill status-pill--muted" data-role="rule-status">
+                                            <i class="fas fa-wave-square"></i>未启用
+                                        </span>
+                                        <span class="email-alert-rule-card__status-text" data-role="rule-status-text">双阈值联动</span>
+                                    </div>
 
-                        <div class="col-12 d-flex justify-content-end gap-2">
-                            <button id="sendTestEmailBtn" class="btn btn-outline-secondary" type="button">
-                                <i class="fas fa-paper-plane me-2"></i>发送测试邮件
-                            </button>
-                            <button id="saveEmailAlertSettingsBtn" class="btn btn-primary" type="submit">
-                                <i class="fas fa-save me-2"></i>保存配置
-                            </button>
+                                    <div class="email-alert-threshold-grid">
+                                        <div>
+                                            <label class="form-label" for="databaseCapacityPercentThreshold">增幅阈值 (%)</label>
+                                            <input id="databaseCapacityPercentThreshold" class="form-control" type="number" min="1" step="1">
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="databaseCapacityAbsoluteGbThreshold">增量阈值 (GB)</label>
+                                            <input id="databaseCapacityAbsoluteGbThreshold" class="form-control" type="number" min="1" step="1">
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="card email-alert-rule-card" data-rule-card="accountSyncFailure">
+                                <div class="card-body email-alert-rule-card__frame">
+                                    <div class="email-alert-rule-card__head">
+                                        <div>
+                                            <p class="email-alert-rule-card__eyebrow">同步质量</p>
+                                            <h3>账户同步异常</h3>
+                                        </div>
+                                        <label class="email-alert-rule-toggle" for="accountSyncFailureEnabled">
+                                            <input type="checkbox" id="accountSyncFailureEnabled" class="form-check-input mt-0">
+                                            <span>启用</span>
+                                        </label>
+                                    </div>
+
+                                    <p class="email-alert-rule-card__description">当账户同步任务出现失败、异常中断或结果不可信时，将信号纳入次日汇总。</p>
+
+                                    <div class="email-alert-rule-card__status">
+                                        <span class="status-pill status-pill--muted" data-role="rule-status">
+                                            <i class="fas fa-right-left"></i>未启用
+                                        </span>
+                                        <span class="email-alert-rule-card__status-text" data-role="rule-status-text">同步质量信号</span>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="card email-alert-rule-card" data-rule-card="databaseSyncFailure">
+                                <div class="card-body email-alert-rule-card__frame">
+                                    <div class="email-alert-rule-card__head">
+                                        <div>
+                                            <p class="email-alert-rule-card__eyebrow">数据一致性</p>
+                                            <h3>数据库同步异常</h3>
+                                        </div>
+                                        <label class="email-alert-rule-toggle" for="databaseSyncFailureEnabled">
+                                            <input type="checkbox" id="databaseSyncFailureEnabled" class="form-check-input mt-0">
+                                            <span>启用</span>
+                                        </label>
+                                    </div>
+
+                                    <p class="email-alert-rule-card__description">当数据库同步链路发生失败或落后时，向每日汇总追加结构级同步告警。</p>
+
+                                    <div class="email-alert-rule-card__status">
+                                        <span class="status-pill status-pill--muted" data-role="rule-status">
+                                            <i class="fas fa-database"></i>未启用
+                                        </span>
+                                        <span class="email-alert-rule-card__status-text" data-role="rule-status-text">同步链路信号</span>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="card email-alert-rule-card" data-rule-card="privilegedAccount">
+                                <div class="card-body email-alert-rule-card__frame">
+                                    <div class="email-alert-rule-card__head">
+                                        <div>
+                                            <p class="email-alert-rule-card__eyebrow">权限变化</p>
+                                            <h3>新增高权限账户</h3>
+                                        </div>
+                                        <label class="email-alert-rule-toggle" for="privilegedAccountEnabled">
+                                            <input type="checkbox" id="privilegedAccountEnabled" class="form-check-input mt-0">
+                                            <span>启用</span>
+                                        </label>
+                                    </div>
+
+                                    <p class="email-alert-rule-card__description">当发现新增高权限账户时，将事件加入每日汇总，便于管理员集中复核权限变化。</p>
+
+                                    <div class="email-alert-rule-card__status">
+                                        <span class="status-pill status-pill--muted" data-role="rule-status">
+                                            <i class="fas fa-shield-alt"></i>未启用
+                                        </span>
+                                        <span class="email-alert-rule-card__status-text" data-role="rule-status-text">权限变化信号</span>
+                                    </div>
+                                </div>
+                            </article>
                         </div>
-                    </form>
+                    </section>
                 </div>
             </div>
         </div>
