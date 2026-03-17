@@ -155,13 +155,28 @@
     if (!Array.isArray(datasets) || !datasets.length || datasets[0]?.label === DEFAULT_EMPTY_DATASET.label) {
       container.hidden = true;
       container.dataset.empty = "true";
+      container.dataset.seriesCount = "0";
+      container.dataset.density = "default";
       return;
     }
 
+    container.dataset.seriesCount = String(datasets.length);
+    container.dataset.density = datasets.length >= 12 ? "compact" : "default";
+
     const fragment = document.createDocumentFragment();
-    datasets.forEach((dataset) => {
-      const item = document.createElement("div");
+    datasets.forEach((dataset, index) => {
+      const isVisible = typeof chart?.isDatasetVisible === "function"
+        ? chart.isDatasetVisible(index)
+        : true;
+      const item = document.createElement("button");
+      item.type = "button";
       item.className = "capacity-chart-legend__item";
+      if (!isVisible) {
+        item.className += " capacity-chart-legend__item--muted";
+      }
+      item.dataset.datasetIndex = String(index);
+      item.setAttribute("aria-pressed", isVisible ? "true" : "false");
+      item.setAttribute("title", `${isVisible ? "隐藏" : "显示"} ${dataset?.label || "未命名系列"}`);
 
       const swatch = document.createElement("span");
       swatch.className = "capacity-chart-legend__swatch";
@@ -171,6 +186,20 @@
       const label = document.createElement("span");
       label.className = "capacity-chart-legend__label";
       label.textContent = dataset?.label || "未命名系列";
+
+      item.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (typeof chart?.setDatasetVisibility !== "function") {
+          return;
+        }
+        const currentlyVisible = typeof chart?.isDatasetVisible === "function"
+          ? chart.isDatasetVisible(index)
+          : true;
+        const nextVisible = !currentlyVisible;
+        chart.setDatasetVisibility(index, nextVisible);
+        chart.update();
+        renderExternalLegend(container, chart);
+      });
 
       item.appendChild(swatch);
       item.appendChild(label);
