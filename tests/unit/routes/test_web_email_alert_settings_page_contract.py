@@ -12,6 +12,9 @@ def test_web_email_alert_settings_page_renders(auth_client) -> None:
     assert "邮件告警配置" in html
     assert "发送设置" in html
     assert "规则设置" in html
+    assert "email-alert-settings-layout" in html
+    assert "email-alert-settings-column email-alert-settings-column--delivery" in html
+    assert "email-alert-settings-column email-alert-settings-column--rules" in html
     assert "告警控制台" not in html
     assert "规则矩阵" not in html
     assert "邮件投递控制台" not in html

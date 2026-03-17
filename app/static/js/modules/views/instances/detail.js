@@ -1708,6 +1708,7 @@ function displayDatabaseSizes(payload) {
 
     const totalSize = Number(payload?.total_size_mb ?? 0) || 0;
     const totalSizeLabel = formatGbLabelFromMb(totalSize);
+    const currentCount = Number(payload?.total ?? databases.length) || 0;
 
     const filteredCount = Number(payload?.filtered_count ?? 0) || 0;
     const activeCount = Number(payload?.active_count ?? (databases.length - filteredCount));
@@ -1716,40 +1717,66 @@ function displayDatabaseSizes(payload) {
     const onlineCount = activeCount;
 
     let html = `
-        <div class="row g-3 mb-3">
-            <div class="col-lg-4 col-12">
-                <div class="instance-stat-card">
-                    <p class="instance-stat-card__label">在线数据库</p>
-                    <span class="instance-stat-card__value" data-value-tone="success">${onlineCount}</span>
+        <section class="instance-overview-band instance-overview-band--capacity">
+            <div class="instance-overview-band__facts">
+                <article class="instance-overview-band__fact" data-tone="brand">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">当前数据库</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-database"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="databaseTotalCount">${currentCount}</strong>
+                    <span class="status-pill status-pill--muted"><i class="fas fa-layer-group me-1"></i>当前结果</span>
+                </article>
+                <article class="instance-overview-band__fact" data-tone="success">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">在线数据库</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="databaseOnlineCount">${onlineCount}</strong>
                     <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>
-                </div>
-            </div>
-            <div class="col-lg-4 col-12">
-                <div class="instance-stat-card">
-                    <p class="instance-stat-card__label">已删除数据库</p>
-                    <span class="instance-stat-card__value" data-value-tone="danger">${deletedCount}</span>
+                </article>
+                <article class="instance-overview-band__fact" data-tone="danger">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">已删除数据库</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-trash"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="databaseDeletedCount">${deletedCount}</strong>
                     <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
-                </div>
-            </div>
-            <div class="col-lg-4 col-12">
-                <div class="instance-stat-card">
-                    <p class="instance-stat-card__label">总容量</p>
-                    <span class="instance-stat-card__value" data-value-tone="info">${totalSizeLabel}</span>
+                </article>
+                <article class="instance-overview-band__fact" data-tone="info">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">总容量</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-hdd"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="databaseTotalCapacity">${totalSizeLabel}</strong>
                     <span class="status-pill status-pill--info"><i class="fas fa-hdd me-1"></i>容量</span>
+                </article>
+            </div>
+
+            <div class="instance-overview-band__controls">
+                <form class="instance-overview-band__toolbar" action="#">
+                    <div class="form-check form-switch mb-0 instance-overview-band__toggle">
+                        <input class="form-check-input" type="checkbox" id="showDeletedDatabases" data-action="toggle-deleted-databases">
+                        <label class="form-check-label" for="showDeletedDatabases">
+                            <i class="fas fa-eye me-1"></i>显示已删除数据库
+                        </label>
+                    </div>
+                </form>
+                <div class="instance-overview-band__realtime">
+                    <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="mb-3">
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="showDeletedDatabases" data-action="toggle-deleted-databases">
-                <label class="form-check-label" for="showDeletedDatabases">
-                    <i class="fas fa-eye me-1"></i>显示已删除数据库
-                </label>
-            </div>
-        </div>
-
-        <div class="table-responsive">
+        <div class="table-responsive mt-3">
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
