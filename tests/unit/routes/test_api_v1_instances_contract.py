@@ -2,6 +2,7 @@ from datetime import date, datetime
 
 import pytest
 
+import app.services.database_sync as database_sync_module
 from app import create_app, db
 from app.core.constants import DatabaseType
 from app.models.account_change_log import AccountChangeLog
@@ -337,6 +338,10 @@ def test_api_v1_instances_soft_delete_contract() -> None:
         assert data.get("instance_id") == instance.id
         assert data.get("deletion_mode") == "soft"
 
+        db.session.refresh(instance)
+        assert instance.deleted_at is not None
+        assert instance.is_active is False
+
 
 @pytest.mark.unit
 def test_api_v1_instances_restore_contract() -> None:
@@ -403,6 +408,10 @@ def test_api_v1_instances_restore_contract() -> None:
         instance_data = data.get("instance")
         assert isinstance(instance_data, dict)
         assert instance_data.get("id") == instance.id
+
+        db.session.refresh(instance)
+        assert instance.deleted_at is None
+        assert instance.is_active is True
 
 
 @pytest.mark.unit
@@ -900,8 +909,6 @@ def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client
         def disconnect(self) -> None:
             return None
 
-    import app.services.database_sync as database_sync_module
-
     monkeypatch.setattr(database_sync_module, "TableSizeCoordinator", _DummyTableSizeCoordinator)
 
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")
@@ -972,8 +979,6 @@ def test_api_v1_instances_database_table_sizes_refresh_conflict_returns_reason(a
 
         def disconnect(self) -> None:
             return None
-
-    import app.services.database_sync as database_sync_module
 
     monkeypatch.setattr(database_sync_module, "TableSizeCoordinator", _FailingTableSizeCoordinator)
 

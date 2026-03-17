@@ -41,13 +41,22 @@ class InstanceCapacitySyncActionsService:
     @staticmethod
     def _get_instance(instance_id: int) -> Instance:
         instance = InstancesRepository.get_instance(instance_id)
-        if instance is None:
+        if instance is None or instance.deleted_at is not None:
             raise NotFoundError("实例不存在")
         return instance
 
     def sync_instance_capacity(self, *, instance_id: int) -> InstanceCapacitySyncActionResult:
         """同步指定实例的容量信息(包含 inventory + stats + 聚合触发)."""
         instance = self._get_instance(instance_id)
+        if not instance.is_active:
+            return InstanceCapacitySyncActionResult(
+                success=False,
+                message=f"实例 {instance.name} 已停用，无法同步容量",
+                result={},
+                http_status=HttpStatus.BAD_REQUEST,
+                message_key="INVALID_REQUEST",
+                extra={"instance_id": instance.id},
+            )
 
         coordinator = database_sync_module.CapacitySyncCoordinator(instance)
         if not coordinator.connect():

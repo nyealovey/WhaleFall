@@ -28,7 +28,8 @@ def test_filter_options_service_caches_instance_select_options_empty_list(monkey
     calls = {"repo": 0}
 
     class _Repo:
-        def list_active_instances(self, *, db_type=None):
+        def list_existing_instances(self, *, db_type=None):
+            del db_type
             calls["repo"] += 1
             return []
 
@@ -46,7 +47,8 @@ def test_filter_options_service_instance_select_options_cache_key_varies_by_db_t
     calls = {"repo": 0}
 
     class _Repo:
-        def list_active_instances(self, *, db_type=None):
+        def list_existing_instances(self, *, db_type=None):
+            del db_type
             calls["repo"] += 1
             return []
 

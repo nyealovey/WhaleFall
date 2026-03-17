@@ -190,3 +190,76 @@ def test_api_v1_capacity_instances_endpoints_contract(app, auth_client) -> None:
     assert {"total_instances", "total_size_mb", "avg_size_mb", "max_size_mb", "period_type", "source"}.issubset(
         summary.keys(),
     )
+
+
+@pytest.mark.unit
+def test_api_v1_capacity_instances_include_disabled_instance_in_statistics(app, auth_client) -> None:
+    _ensure_capacity_instances_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="instance-disabled",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=False,
+        )
+        db.session.add(instance)
+        db.session.commit()
+
+        aggregation_date = date(2025, 12, 24)
+        db.session.add(
+            InstanceSizeAggregation(
+                id=1,
+                instance_id=instance.id,
+                period_type="daily",
+                period_start=aggregation_date,
+                period_end=aggregation_date,
+                total_size_mb=256,
+                avg_size_mb=256,
+                max_size_mb=256,
+                min_size_mb=256,
+                data_count=1,
+                database_count=2,
+                avg_database_count=2.0,
+                max_database_count=2,
+                min_database_count=2,
+                total_size_change_mb=0,
+                total_size_change_percent=0.0,
+                database_count_change=0,
+                database_count_change_percent=0.0,
+                growth_rate=0.0,
+                trend_direction="stable",
+            ),
+        )
+        db.session.add(
+            InstanceSizeStat(
+                id=1,
+                instance_id=instance.id,
+                total_size_mb=256,
+                database_count=2,
+                collected_date=aggregation_date,
+            ),
+        )
+        db.session.commit()
+
+    response = auth_client.get(
+        "/api/v1/capacity/instances?period_type=daily&start_date=2025-12-24&end_date=2025-12-24",
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    items = payload.get("data", {}).get("items")
+    assert isinstance(items, list)
+    assert len(items) == 1
+
+    summary_response = auth_client.get(
+        "/api/v1/capacity/instances/summary?period_type=daily&start_date=2025-12-24&end_date=2025-12-24",
+    )
+    assert summary_response.status_code == 200
+    summary_payload = summary_response.get_json()
+    assert isinstance(summary_payload, dict)
+    summary = summary_payload.get("data", {}).get("summary")
+    assert isinstance(summary, dict)
+    assert summary.get("total_instances") == 1

@@ -72,12 +72,34 @@ class InstancesRepository:
     @staticmethod
     def list_active_instances() -> list[Instance]:
         """获取启用的实例列表."""
-        return Instance.query.filter_by(is_active=True).order_by(Instance.id.asc()).all()
+        return (
+            Instance.query.filter(
+                Instance.is_active.is_(True),
+                cast(Any, Instance.deleted_at).is_(None),
+            )
+            .order_by(Instance.id.asc())
+            .all()
+        )
 
     @staticmethod
     def count_active_instances() -> int:
         """统计启用实例数量."""
-        return int(Instance.query.filter_by(is_active=True).count())
+        return int(
+            Instance.query.filter(
+                Instance.is_active.is_(True),
+                cast(Any, Instance.deleted_at).is_(None),
+            ).count(),
+        )
+
+    @staticmethod
+    def list_existing_instances() -> list[Instance]:
+        """获取未删除的实例列表(包含停用实例)."""
+        return Instance.query.filter(cast(Any, Instance.deleted_at).is_(None)).order_by(Instance.id.asc()).all()
+
+    @staticmethod
+    def count_existing_instances() -> int:
+        """统计未删除的实例数量(包含停用实例)."""
+        return int(Instance.query.filter(cast(Any, Instance.deleted_at).is_(None)).count())
 
     @staticmethod
     def list_instances_by_ids(instance_ids: list[int]) -> list[Instance]:

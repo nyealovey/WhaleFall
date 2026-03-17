@@ -65,7 +65,7 @@ class AccountStatisticsRepository:
             )
             .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
             .join(Instance, Instance.id == AccountPermission.instance_id)
-            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+            .filter(Instance.deleted_at.is_(None))
         )
 
         if instance_id is not None:
@@ -148,7 +148,7 @@ class AccountStatisticsRepository:
             )
             .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
             .join(Instance, Instance.id == AccountPermission.instance_id)
-            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+            .filter(Instance.deleted_at.is_(None))
             .group_by(AccountPermission.db_type)
         )
 
@@ -247,7 +247,6 @@ class AccountStatisticsRepository:
                 Instance,
                 and_(
                     Instance.id == AccountPermission.instance_id,
-                    Instance.is_active.is_(True),
                     Instance.deleted_at.is_(None),
                 ),
             )
@@ -277,7 +276,6 @@ class AccountStatisticsRepository:
                 Instance,
                 and_(
                     Instance.id == AccountPermission.instance_id,
-                    Instance.is_active.is_(True),
                     Instance.deleted_at.is_(None),
                 ),
             )

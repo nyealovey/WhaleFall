@@ -57,6 +57,7 @@ class AggregationRepository:
             .join(Instance, Instance.id == DatabaseSizeAggregation.instance_id)
             .filter(
                 active_filter,
+                Instance.deleted_at.is_(None),
                 DatabaseSizeAggregation.period_type == period_type,
                 DatabaseSizeAggregation.period_start == period_start,
             )
@@ -73,6 +74,7 @@ class AggregationRepository:
             .join(Instance, Instance.id == InstanceSizeAggregation.instance_id)
             .filter(
                 active_filter,
+                Instance.deleted_at.is_(None),
                 InstanceSizeAggregation.period_type == period_type,
                 InstanceSizeAggregation.period_start == period_start,
             )

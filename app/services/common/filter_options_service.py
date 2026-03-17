@@ -76,7 +76,7 @@ class FilterOptionsService:
         cached = self._options_cache.get_instance_select_options(db_type)
         if cached is not None:
             return cached
-        instances = self._repository.list_active_instances(db_type=db_type)
+        instances = self._repository.list_existing_instances(db_type=db_type)
         options = build_instance_select_options(instances)
         self._options_cache.set_instance_select_options(db_type, options)
         return options
@@ -107,7 +107,7 @@ class FilterOptionsService:
             ]
             return CommonInstancesOptionsResult(instances=items)
 
-        instances = self._repository.list_active_instances(db_type=db_type)
+        instances = self._repository.list_existing_instances(db_type=db_type)
         items = [
             CommonInstanceOptionItem(
                 id=int(instance.id),

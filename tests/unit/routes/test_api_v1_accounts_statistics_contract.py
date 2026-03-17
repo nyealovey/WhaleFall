@@ -1,10 +1,14 @@
 import pytest
 
 from app import db
+from app.models.account_permission import AccountPermission
 from app.models.account_classification_daily_stats import (  # noqa: F401
     AccountClassificationDailyClassificationMatchStat,
     AccountClassificationDailyRuleMatchStat,
 )
+from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
+from app.utils.time_utils import time_utils
 
 
 def _ensure_account_statistics_tables(app) -> None:
@@ -37,7 +41,7 @@ def test_api_v1_accounts_statistics_requires_auth(client) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None:
+def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None:  # noqa: PLR0915
     _ensure_account_statistics_tables(app)
 
     statistics_response = auth_client.get("/api/v1/accounts/statistics")
@@ -154,3 +158,75 @@ def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None
     assert isinstance(all_trends_payload.get("data"), dict)
     assert isinstance(all_trends_payload["data"].get("buckets"), list)
     assert isinstance(all_trends_payload["data"].get("series"), list)
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_statistics_summary_includes_disabled_instances(app, auth_client) -> None:
+    _ensure_account_statistics_tables(app)
+
+    with app.app_context():
+        disabled_instance = Instance(
+            name="instance-disabled",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=False,
+        )
+        deleted_instance = Instance(
+            name="instance-deleted",
+            db_type="mysql",
+            host="127.0.0.2",
+            port=3307,
+            is_active=True,
+            deleted_at=time_utils.now(),
+        )
+        db.session.add_all([disabled_instance, deleted_instance])
+        db.session.flush()
+
+        disabled_account = InstanceAccount(
+            instance_id=disabled_instance.id,
+            username="reader",
+            db_type="mysql",
+            is_active=True,
+        )
+        deleted_account = InstanceAccount(
+            instance_id=deleted_instance.id,
+            username="ghost",
+            db_type="mysql",
+            is_active=True,
+        )
+        db.session.add_all([disabled_account, deleted_account])
+        db.session.flush()
+
+        db.session.add_all(
+            [
+                AccountPermission(
+                    instance_id=disabled_instance.id,
+                    instance_account_id=disabled_account.id,
+                    db_type="mysql",
+                    username="reader",
+                    permission_facts={"capabilities": []},
+                ),
+                AccountPermission(
+                    instance_id=deleted_instance.id,
+                    instance_account_id=deleted_account.id,
+                    db_type="mysql",
+                    username="ghost",
+                    permission_facts={"capabilities": []},
+                ),
+            ],
+        )
+        db.session.commit()
+
+    summary_response = auth_client.get("/api/v1/accounts/statistics/summary")
+    assert summary_response.status_code == 200
+    summary_payload = summary_response.get_json()
+    assert isinstance(summary_payload, dict)
+    summary_data = summary_payload.get("data")
+    assert isinstance(summary_data, dict)
+    assert summary_data.get("total_accounts") == 1
+    assert summary_data.get("active_accounts") == 1
+    assert summary_data.get("total_instances") == 1
+    assert summary_data.get("active_instances") == 0
+    assert summary_data.get("disabled_instances") == 1
+    assert summary_data.get("deleted_instances") == 1
