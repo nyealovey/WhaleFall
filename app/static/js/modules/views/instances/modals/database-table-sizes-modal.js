@@ -75,6 +75,23 @@
     return value ? String(value) : '未刷新';
   }
 
+  function parseModalPayload(payload) {
+    if (!payload) {
+      return null;
+    }
+    if (typeof payload === 'string') {
+      try {
+        return JSON.parse(payload);
+      } catch {
+        return null;
+      }
+    }
+    if (typeof payload === 'object') {
+      return payload;
+    }
+    return null;
+  }
+
   function createController(options) {
     const { ui, toast, store, gridTable } = ensureDeps(options);
     const escapeHtml = ui.escapeHtml;
@@ -245,8 +262,9 @@
     const modal = ui.createModal({
       modalSelector: '#tableSizesModal',
       onOpen: ({ modal: api, payload }) => {
-        currentDatabaseId = payload?.database_id || payload?.databaseId || null;
-        currentDatabaseName = payload?.database_name || payload?.databaseName || null;
+        const resolvedPayload = parseModalPayload(payload);
+        currentDatabaseId = resolvedPayload?.database_id || resolvedPayload?.databaseId || null;
+        currentDatabaseName = resolvedPayload?.database_name || resolvedPayload?.databaseName || null;
         lastSnapshotPayload = null;
         setHeader(currentDatabaseName, null);
         loadSnapshot({ limit: 2000, page: 1 });
