@@ -14,6 +14,7 @@ from app.api.v1.api import WhaleFallApi
 from app.api.v1.namespaces.account_change_logs import ns as account_change_logs_ns
 from app.api.v1.namespaces.accounts import ns as accounts_ns
 from app.api.v1.namespaces.accounts_classifications import ns as accounts_classifications_ns
+from app.api.v1.namespaces.alerts import ns as alerts_ns
 from app.api.v1.namespaces.auth import ns as auth_ns
 from app.api.v1.namespaces.cache import ns as cache_ns
 from app.api.v1.namespaces.capacity import ns as capacity_ns
@@ -55,6 +56,7 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     api.add_namespace(capacity_ns, path="/capacity")
     api.add_namespace(databases_ns, path="/databases")
     api.add_namespace(tags_ns, path="/tags")
+    api.add_namespace(alerts_ns, path="/alerts")
     api.add_namespace(cache_ns, path="/cache")
     api.add_namespace(credentials_ns, path="/credentials")
     api.add_namespace(logs_ns, path="/logs")

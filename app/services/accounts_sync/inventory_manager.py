@@ -41,7 +41,7 @@ class AccountInventoryManager:
         self._repository = repository or AccountsSyncRepository()
         self._write_repository = write_repository or InstanceAccountsWriteRepository()
 
-    def synchronize(
+    def synchronize(  # noqa: PLR0915
         self,
         instance: Instance,
         remote_accounts: Iterable[RemoteAccount],
@@ -86,6 +86,8 @@ class AccountInventoryManager:
 
         seen_usernames: set[str] = set()
         created = reactivated = refreshed = deactivated = 0
+        created_usernames: list[str] = []
+        reactivated_usernames: list[str] = []
 
         active_accounts: list[InstanceAccount] = []
 
@@ -108,6 +110,7 @@ class AccountInventoryManager:
                             record.is_active = True
                             record.deleted_at = None
                             reactivated += 1
+                            reactivated_usernames.append(username)
                         else:
                             refreshed += 1
                     else:
@@ -119,6 +122,7 @@ class AccountInventoryManager:
                         self._write_repository.add(record)
                         existing_map[username] = record
                         created += 1
+                        created_usernames.append(username)
 
                     if is_active:
                         active_accounts.append(record)
@@ -150,6 +154,8 @@ class AccountInventoryManager:
             "active_count": len(active_accounts),
             "total_remote": len(remote_accounts),
             "processed_records": created + refreshed + reactivated,
+            "created_accounts": created_usernames,
+            "reactivated_accounts": reactivated_usernames,
         }
 
         self.logger.info(

@@ -11,9 +11,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import create_app, db
 from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import AppError, ValidationError
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.accounts_sync.accounts_sync_task_service import AccountsSyncTaskService
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
@@ -158,10 +160,44 @@ def _create_records(*, session: SyncSession, instances: list[Instance]) -> list[
     return records
 
 
+def _record_privileged_account_alerts(
+    *,
+    instance: Instance,
+    inventory_summary: InventorySummary,
+    alert_event_service: EmailAlertEventService,
+) -> None:
+    usernames: list[str] = []
+    for field in ("created_accounts", "reactivated_accounts"):
+        raw = inventory_summary.get(field, [])
+        if isinstance(raw, list):
+            usernames.extend([item for item in raw if isinstance(item, str) and item.strip()])
+
+    if not usernames:
+        return
+
+    permissions = (
+        AccountPermission.query.filter(
+            AccountPermission.instance_id == instance.id,
+            AccountPermission.username.in_(sorted(set(usernames))),
+        )
+        .all()
+    )
+    for permission in permissions:
+        if not permission.is_superuser:
+            continue
+        alert_event_service.record_privileged_account_event(
+            instance_id=instance.id,
+            instance_name=instance.name,
+            username=permission.username,
+            reason="inventory_new_or_reactivated",
+        )
+
+
 def _sync_instances(
     *,
     sync_logger: structlog.BoundLogger,
     task_runs_service: TaskRunsWriteService,
+    alert_event_service: EmailAlertEventService,
     run_id: str,
     session: SyncSession,
     instances: list[Instance],
@@ -199,6 +235,7 @@ def _sync_instances(
             record=record,
             instance=instance,
             sync_logger=sync_logger,
+            alert_event_service=alert_event_service,
         )
         db.session.commit()
         totals.instances_synced += synced
@@ -231,6 +268,14 @@ def _sync_instances(
                 item_key=str(instance.id),
                 error_message=record.error_message or "实例同步失败",
                 details_json=details,
+            )
+            alert_event_service.record_sync_failure_event(
+                alert_type="account_sync_failure",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                run_id=run_id,
+                session_id=session.session_id,
+                error_message=record.error_message or "实例同步失败",
             )
         db.session.commit()
 
@@ -328,6 +373,7 @@ def _sync_single_instance(
     record: SyncInstanceRecord,
     instance: Instance,
     sync_logger: structlog.BoundLogger,
+    alert_event_service: EmailAlertEventService | None = None,
 ) -> tuple[int, int]:
     """同步单个实例账户,返回(成功数,失败数)."""
     instance_session_id = f"{session.session_id}_{instance.id}"
@@ -422,6 +468,12 @@ def _sync_single_instance(
             inventory=cast("JsonDict", inventory_summary),
             collection=cast("JsonDict", collection_summary),
         )
+        if alert_event_service is not None:
+            _record_privileged_account_alerts(
+                instance=instance,
+                inventory_summary=inventory_summary,
+                alert_event_service=alert_event_service,
+            )
         result = (1, 0)
     except ACCOUNT_TASK_EXCEPTIONS as exc:
         sync_session_service.fail_instance_sync(record.id, str(exc))
@@ -448,30 +500,12 @@ def sync_accounts(
     session_id: str | None = None,
     **_: object,
 ) -> None:
-    """同步账户任务 - 同步所有实例的账户信息.
-
-    遍历所有启用的数据库实例,同步账户清单和权限信息.
-    创建同步会话记录,跟踪每个实例的同步状态和结果.
-
-    Args:
-        manual_run: 是否为手动触发,默认 False(定时任务).
-        created_by: 触发用户 ID,手动触发时必填.
-        run_id: 可选的 TaskRun.run_id. 传入时复用既有 TaskRun,否则创建新的 TaskRun.
-        session_id: 可选的会话 ID.传入时优先复用该会话.
-        **_: 其他可选参数,由调度器传入但不使用.
-
-    Returns:
-        None
-
-    Raises:
-        Exception: 当任务执行失败时抛出.
-
-    """
-    # 直接创建应用实例,确保后台线程有干净的应用上下文
+    """同步账户任务 - 同步所有实例的账户信息."""
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
         task_runs_service = TaskRunsWriteService()
+        alert_event_service = EmailAlertEventService()
 
         resolved_run_id = _resolve_run_id(
             task_runs_service=task_runs_service,
@@ -528,6 +562,7 @@ def sync_accounts(
             totals = _sync_instances(
                 sync_logger=sync_logger,
                 task_runs_service=task_runs_service,
+                alert_event_service=alert_event_service,
                 run_id=resolved_run_id,
                 session=session,
                 instances=instances,
@@ -555,6 +590,5 @@ def sync_accounts(
             )
             raise
         finally:
-            # 后台任务尽快释放连接池中的空闲连接，避免占满 Postgres max_connections。
             db.session.remove()
             db.engine.dispose()
