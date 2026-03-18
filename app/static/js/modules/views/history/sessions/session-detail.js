@@ -261,6 +261,8 @@
     const statusMeta = getInstanceStatusMeta(record.status);
     // Keep the "type" chip only: do not show item_key or per-item duration here.
     const chips = [renderLedgerChip(getItemTypeText(record.item_type), 'muted', 'fas fa-tag')];
+    const summary = getItemSummary(record);
+    const summaryHtml = summary ? `<div class="text-muted small mt-1">${escapeHtml(summary)}</div>` : '';
     const duration = formatDuration(record.started_at, record.completed_at, timeUtils);
     const durationDisplay = duration || '0 秒';
     const started = formatTime(record.started_at, timeUtils);
@@ -272,6 +274,7 @@
       <div class="ledger-row session-instance-row">
         <div class="session-instance-col session-instance-col--name">
           <div class="session-instance-row__title">${escapeHtml(record.item_name || `执行项 #${record.item_key || '-'}`)}</div>
+          ${summaryHtml}
         </div>
         <div class="session-instance-col session-instance-col--chips">
           <div class="session-instance-row__chips ledger-chip-stack">${chips.join('')}</div>
@@ -478,9 +481,9 @@
   function getTriggerSourceText(source) {
     switch (source) {
       case 'scheduled':
-        return '定时任务';
+        return '定时';
       case 'manual':
-        return '手动触发';
+        return '手动';
       case 'api':
         return 'API';
       default:
@@ -498,11 +501,22 @@
         return '聚合';
       case 'classification':
         return '分类';
+      case 'notification':
+        return '告警';
       case 'other':
         return '其他';
       default:
         return category || '-';
     }
+  }
+
+  function getItemSummary(record) {
+    const details = record?.details_json;
+    if (!details || typeof details !== 'object') {
+      return '';
+    }
+    const summary = typeof details.summary === 'string' ? details.summary.trim() : '';
+    return summary || '';
   }
 
   function getItemTypeText(itemType) {

@@ -19,12 +19,14 @@ def test_web_capacity_instances_page_renders_external_legend_slots(auth_client) 
     assert 'id="instanceChartLegend"' in html
     assert 'id="instanceChangeChartLegend"' in html
     assert 'id="instanceChangePercentChartLegend"' in html
-    assert 'id="db_type"' in html
-    assert 'data-role="checkbox-group"' in html
-    assert 'name="db_type"' in html and 'type="checkbox"' in html
+    assert 'data-role="multiselect"' in html
+    assert 'data-role="multiselect-trigger"' in html
+    assert 'data-role="multiselect-menu"' in html
+    assert 'data-role="multiselect-summary"' in html
+    assert 'data-role="db-type-filter"' in html
     assert 'data-role="instance-filter"' in html
+    assert 'name="db_type"' in html and 'type="checkbox"' in html
     assert 'name="instance"' in html and 'type="checkbox"' in html
-    assert "multiple" not in html
 
 
 @pytest.mark.unit
@@ -52,8 +54,10 @@ def test_web_capacity_databases_page_renders_external_legend_slots(auth_client, 
     assert 'id="databaseChartLegend"' in html
     assert 'id="databaseChangeChartLegend"' in html
     assert 'id="databaseChangePercentChartLegend"' in html
-    assert 'id="db_type"' in html
-    assert 'data-role="checkbox-group"' in html
+    assert 'data-role="multiselect"' in html
+    assert 'data-role="multiselect-trigger"' in html
+    assert 'data-role="multiselect-menu"' in html
+    assert 'data-role="multiselect-summary"' in html
+    assert 'data-role="db-type-filter"' in html
     assert 'data-role="instance-filter"' in html
     assert 'type="checkbox"' in html
-    assert "multiple" not in html
