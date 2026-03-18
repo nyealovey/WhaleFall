@@ -40,6 +40,19 @@ class EmailAlertsRepository:
         )
 
     @staticmethod
+    def get_bucket_event_counts(bucket_date: date) -> dict[str, dict[str, int]]:
+        stats: dict[str, dict[str, int]] = {}
+        events = EmailAlertEvent.query.filter(EmailAlertEvent.bucket_date == bucket_date).all()
+        for event in events:
+            alert_type = str(event.alert_type)
+            bucket = stats.setdefault(alert_type, {"pending_count": 0, "sent_count": 0})
+            if event.digest_sent_at is None:
+                bucket["pending_count"] += 1
+            else:
+                bucket["sent_count"] += 1
+        return stats
+
+    @staticmethod
     def mark_events_digest_sent(event_ids: list[int], sent_at) -> None:
         if not event_ids:
             return

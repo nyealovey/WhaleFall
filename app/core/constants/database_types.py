@@ -27,7 +27,7 @@ class DatabaseType:
         MYSQL: "MySQL",
         POSTGRESQL: "PostgreSQL",
         SQLSERVER: "SQL Server",
-        ORACLE: "Oracle Database",
+        ORACLE: "Oracle",
         SQLITE: "SQLite",
     }
 
