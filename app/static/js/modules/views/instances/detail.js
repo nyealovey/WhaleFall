@@ -1908,10 +1908,28 @@ function renderAuditWarnings(warnings) {
     const items = warnings.map((warning) => `
         <div class="instance-audit-warning">
             <i class="fas fa-triangle-exclamation"></i>
-            <div>${escapeHtml(String(warning))}</div>
+            <div>${escapeHtml(formatAuditWarningMessage(warning))}</div>
         </div>
     `).join('');
     return `<div class="instance-audit-warning-list">${items}</div>`;
+}
+
+function formatAuditWarningMessage(warning) {
+    if (warning && typeof warning === 'object') {
+        const databaseName = warning.database_name || warning.databaseName;
+        const reason = warning.reason || warning.error_code || 'DATABASE_QUERY_FAILED';
+        if (databaseName) {
+            return `数据库 ${databaseName} 审计配置读取失败（${reason}）`;
+        }
+        if (warning.error_message || warning.errorMessage) {
+            return String(warning.error_message || warning.errorMessage);
+        }
+    }
+    if (typeof warning === 'string' && warning.startsWith('DATABASE_AUDIT_SPECIFICATIONS_PARTIAL:')) {
+        const suffix = warning.split(':').slice(1).join(':');
+        return `部分数据库审计配置未读取成功：${suffix}`;
+    }
+    return String(warning);
 }
 
 function renderAuditTargetsSection(audits, totalCount) {
@@ -1922,7 +1940,6 @@ function renderAuditTargetsSection(audits, totalCount) {
                 <td>
                     <div class="instance-audit-name-cell">
                         <strong>${escapeHtml(String(audit.name || '-'))}</strong>
-                        <span class="instance-audit-subtle">${escapeHtml(String(audit.audit_guid || '未提供 GUID'))}</span>
                     </div>
                 </td>
                 <td>${renderAuditStatusPill(audit.enabled)}</td>
@@ -1981,13 +1998,12 @@ function renderAuditSpecificationsSection(specifications, totalCount, scope) {
                     </div>
                 </td>
                 <td>${escapeHtml(String(spec.audit_name || '-'))}</td>
-                <td>${escapeHtml(String(spec.database_name || '-'))}</td>
                 <td>${renderAuditStatusPill(spec.enabled)}</td>
                 <td>${escapeHtml(String(Number(spec.action_count) || 0))}</td>
-                <td>${escapeHtml(renderAuditActionPreview(spec.actions))}</td>
+                <td>${renderAuditActionList(spec.actions)}</td>
             </tr>
         `).join('')
-        : `<tr><td colspan="7"><div class="instance-audit-empty">当前筛选条件下没有审计规范</div></td></tr>`;
+        : `<tr><td colspan="6"><div class="instance-audit-empty">当前筛选条件下没有审计规范</div></td></tr>`;
     return `
         <section class="instance-audit-section">
             <header class="instance-audit-section__header">
@@ -2001,7 +2017,6 @@ function renderAuditSpecificationsSection(specifications, totalCount, scope) {
                             <th>范围</th>
                             <th>名称</th>
                             <th>绑定审计</th>
-                            <th>数据库</th>
                             <th>状态</th>
                             <th>动作数</th>
                             <th>动作预览</th>
@@ -2045,7 +2060,7 @@ function matchAuditSpec(item, options) {
     if (!search) {
         return true;
     }
-    const actionPreview = renderAuditActionPreview(entry.actions);
+    const actionPreview = renderAuditActionSearchText(entry.actions);
     const haystack = [
         entry.name,
         entry.audit_name,
@@ -2072,17 +2087,43 @@ function renderAuditScopePill(scope) {
     return '<span class="chip-outline chip-outline--brand">SERVER</span>';
 }
 
-function renderAuditActionPreview(actions) {
+function renderAuditActionSearchText(actions) {
+    const list = Array.isArray(actions) ? actions : [];
+    return list
+        .map((action) => resolveAuditActionDisplayText(action))
+        .filter(Boolean)
+        .join(' ');
+}
+
+function renderAuditActionList(actions) {
     const list = Array.isArray(actions) ? actions : [];
     const labels = list
-        .map((action) => action && typeof action === 'object' ? action.name : action)
-        .filter(Boolean)
-        .map((value) => String(value));
+        .map((action) => resolveAuditActionDisplayText(action))
+        .filter(Boolean);
     if (!labels.length) {
-        return '无动作';
+        return '<span class="text-muted">无动作</span>';
     }
-    const preview = labels.slice(0, 3).join(', ');
-    return labels.length > 3 ? `${preview} +${labels.length - 3}` : preview;
+    const items = labels
+        .map((value) => `<div class="instance-audit-action-list__item">${escapeHtml(String(value))}</div>`)
+        .join('');
+    return `<div class="instance-audit-action-list">${items}</div>`;
+}
+
+function resolveAuditActionDisplayText(action) {
+    if (action && typeof action === 'object') {
+        const displayText = action.display_text || action.displayText;
+        if (displayText) {
+            return String(displayText);
+        }
+        if (action.name) {
+            return String(action.name);
+        }
+        return '';
+    }
+    if (action === undefined || action === null) {
+        return '';
+    }
+    return String(action);
 }
 
 function formatAuditTimestamp(value) {

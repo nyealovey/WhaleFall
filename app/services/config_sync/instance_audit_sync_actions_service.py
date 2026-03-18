@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from app import db
 from app.core.constants import DatabaseType, HttpStatus
 from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import NotFoundError
@@ -86,8 +87,7 @@ class InstanceAuditSyncActionsService:
             sync_category=SyncCategory.CONFIG.value,
         )
         session.total_instances = 1
-        db_session = __import__("app").db.session
-        db_session.flush()
+        db.session.flush()
         record = records[0]
         sync_session_service.start_instance_sync(record.id)
 
@@ -126,9 +126,15 @@ class InstanceAuditSyncActionsService:
                 extra={"instance_id": instance.id},
             )
 
+        partial_success = bool(summary.get("partial_success"))
+        message = (
+            "审计信息同步部分成功，已保存服务器级结果"
+            if partial_success
+            else "审计信息同步成功"
+        )
         return InstanceAuditSyncActionResult(
             success=True,
-            message="审计信息同步成功",
+            message=message,
             result={
                 "session_id": session.session_id,
                 "summary": dict(summary),
@@ -168,4 +174,3 @@ class InstanceAuditSyncActionsService:
         if instance is None or instance.deleted_at is not None:
             raise NotFoundError("实例不存在")
         return instance
-

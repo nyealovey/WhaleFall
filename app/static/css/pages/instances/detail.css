@@ -644,6 +644,18 @@
     line-height: 1.55;
 }
 
+.instance-audit-action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.instance-audit-action-list__item {
+    line-height: 1.55;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
 .instance-audit-empty {
     padding: 1rem 0.25rem 0.15rem;
     color: var(--text-muted);
