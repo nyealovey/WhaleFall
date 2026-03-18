@@ -347,7 +347,7 @@ _instances_list_query_parser.add_argument(
 )
 
 _instances_options_query_parser = new_parser()
-_instances_options_query_parser.add_argument("db_type", type=str, location="args")
+_instances_options_query_parser.add_argument("db_type", type=str, action="append", location="args")
 
 _instances_export_query_parser = new_parser()
 _instances_export_query_parser.add_argument("search", type=str, default="", location="args")

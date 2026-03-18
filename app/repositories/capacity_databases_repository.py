@@ -177,10 +177,10 @@ class CapacityDatabasesRepository:
         *,
         resolved_database_name: str | None,
     ) -> Query[Any]:
-        if filters.instance_id:
-            query = query.filter(DatabaseSizeAggregation.instance_id == filters.instance_id)
-        if filters.db_type:
-            query = query.filter(Instance.db_type == filters.db_type)
+        if filters.instance_ids:
+            query = query.filter(DatabaseSizeAggregation.instance_id.in_(filters.instance_ids))
+        if filters.db_types:
+            query = query.filter(Instance.db_type.in_(filters.db_types))
         if resolved_database_name:
             query = query.filter(DatabaseSizeAggregation.database_name == resolved_database_name)
         if filters.period_type:

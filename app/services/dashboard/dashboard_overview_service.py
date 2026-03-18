@@ -36,8 +36,8 @@ def get_system_overview() -> dict:
         with db.session.begin_nested():
             _, total_size_mb, _, _ = CapacityInstancesRepository().summarize_latest_stats(
                 InstanceAggregationsSummaryFilters(
-                    instance_id=None,
-                    db_type=None,
+                    instance_ids=[],
+                    db_types=[],
                     period_type=None,
                     start_date=None,
                     end_date=None,

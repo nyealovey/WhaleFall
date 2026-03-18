@@ -20,8 +20,8 @@ _capacity_databases_page_service = CapacityDatabasesPageService()
 @view_required
 def list_databases() -> str:
     """数据库统计聚合页面(数据库统计层面)."""
-    selected_db_type = request.args.get("db_type", "")
-    selected_instance = request.args.get("instance", "")
+    selected_db_types = [item.strip() for item in request.args.getlist("db_type") if item and item.strip()]
+    selected_instances = [item.strip() for item in request.args.getlist("instance") if item and item.strip()]
     selected_database_id = request.args.get("database_id", "")
     selected_database = request.args.get("database", "")
     selected_period_type = request.args.get("period_type", "daily")
@@ -30,8 +30,8 @@ def list_databases() -> str:
 
     def _execute() -> str:
         page_context = _capacity_databases_page_service.build_context(
-            db_type=selected_db_type,
-            instance=selected_instance,
+            db_type=selected_db_types,
+            instance=selected_instances,
             database_id=selected_database_id,
             database=selected_database,
         )
@@ -41,8 +41,8 @@ def list_databases() -> str:
             instance_options=page_context.instance_options,
             database_options=page_context.database_options,
             period_type_options=PERIOD_TYPES,
-            db_type=page_context.db_type,
-            instance=page_context.instance,
+            db_type=page_context.db_types,
+            instance=page_context.instances,
             database_id=page_context.database_id,
             database=page_context.database,
             period_type=selected_period_type,
@@ -56,8 +56,8 @@ def list_databases() -> str:
         action="list_databases",
         public_error="加载数据库容量统计页面失败",
         context={
-            "db_type": selected_db_type,
-            "instance": selected_instance,
+            "db_types": selected_db_types,
+            "instances": selected_instances,
             "database_id": selected_database_id,
             "has_database_name": bool(selected_database),
             "period_type": selected_period_type,

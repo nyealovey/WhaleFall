@@ -8,6 +8,7 @@ from app.schemas.capacity_query import (
     CapacityDatabasesAggregationsQuery,
     CapacityDatabasesSummaryQuery,
     CapacityInstancesAggregationsQuery,
+    CapacityInstancesSummaryQuery,
 )
 from app.schemas.validation import validate_or_raise
 from app.utils.time_utils import time_utils
@@ -36,8 +37,23 @@ def test_capacity_databases_aggregations_query_parses_dates_and_clamps() -> None
     assert filters.page == 1
     assert filters.limit == 200
     assert filters.get_all is True
-    assert filters.db_type is None
+    assert filters.db_types == []
     assert filters.period_type is None
+
+
+@pytest.mark.unit
+def test_capacity_databases_aggregations_query_supports_multiple_db_types_and_instance_ids() -> None:
+    query = validate_or_raise(
+        CapacityDatabasesAggregationsQuery,
+        {
+            "db_type": [" mysql ", "postgresql", ""],
+            "instance_id": ["1", " 2 ", ""],
+        },
+    )
+    filters = query.to_filters()
+
+    assert filters.db_types == ["mysql", "postgresql"]
+    assert filters.instance_ids == [1, 2]
 
 
 @pytest.mark.unit
@@ -51,8 +67,23 @@ def test_capacity_databases_summary_query_parses_ids() -> None:
     )
     filters = query.to_filters()
 
-    assert filters.instance_id == 123
+    assert filters.instance_ids == [123]
     assert filters.database_id == 456
+
+
+@pytest.mark.unit
+def test_capacity_instances_summary_query_supports_multiple_values() -> None:
+    query = validate_or_raise(
+        CapacityInstancesSummaryQuery,
+        {
+            "db_type": [" mysql ", "postgresql"],
+            "instance_id": ["3", "4"],
+        },
+    )
+    filters = query.to_filters()
+
+    assert filters.db_types == ["mysql", "postgresql"]
+    assert filters.instance_ids == [3, 4]
 
 
 @pytest.mark.unit

@@ -22,8 +22,8 @@ def list_instances() -> str:
     """实例统计聚合页面."""
 
     def _execute() -> str:
-        selected_db_type = request.args.get("db_type", "")
-        selected_instance = request.args.get("instance", "")
+        selected_db_types = [item.strip() for item in request.args.getlist("db_type") if item and item.strip()]
+        selected_instances = [item.strip() for item in request.args.getlist("instance") if item and item.strip()]
         selected_period_type = request.args.get("period_type", "daily")
         start_date = request.args.get("start_date", "")
         end_date = request.args.get("end_date", "")
@@ -31,7 +31,7 @@ def list_instances() -> str:
         database_type_options = [{"value": item["name"], "label": item["display_name"]} for item in DATABASE_TYPES]
 
         instance_options = (
-            _filter_options_service.list_instance_select_options(selected_db_type or None) if selected_db_type else []
+            _filter_options_service.list_instance_select_options(selected_db_types) if selected_db_types else []
         )
 
         return render_template(
@@ -39,8 +39,8 @@ def list_instances() -> str:
             instance_options=instance_options,
             database_type_options=database_type_options,
             period_type_options=PERIOD_TYPES,
-            db_type=selected_db_type,
-            instance=selected_instance,
+            db_type=selected_db_types,
+            instance=selected_instances,
             period_type=selected_period_type,
             start_date=start_date,
             end_date=end_date,
@@ -52,8 +52,8 @@ def list_instances() -> str:
         action="list_instances",
         public_error="加载实例容量统计页面失败",
         context={
-            "db_type": request.args.get("db_type"),
-            "instance": request.args.get("instance"),
+            "db_types": request.args.getlist("db_type"),
+            "instances": request.args.getlist("instance"),
             "period_type": request.args.get("period_type"),
         },
     )

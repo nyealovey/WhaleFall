@@ -12,8 +12,8 @@ from app.core.types.capacity_common import CapacityInstanceRef
 class DatabaseAggregationsFilters:
     """数据库容量聚合列表筛选条件."""
 
-    instance_id: int | None
-    db_type: str | None
+    instance_ids: list[int]
+    db_types: list[str]
     database_name: str | None
     database_id: int | None
     period_type: str | None
@@ -78,8 +78,8 @@ class DatabaseAggregationsListResult:
 class DatabaseAggregationsSummaryFilters:
     """数据库容量汇总筛选条件."""
 
-    instance_id: int | None
-    db_type: str | None
+    instance_ids: list[int]
+    db_types: list[str]
     database_name: str | None
     database_id: int | None
     period_type: str | None

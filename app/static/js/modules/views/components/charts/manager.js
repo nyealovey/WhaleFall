@@ -296,7 +296,7 @@
     async prepareInitialOptions() {
       await this.refreshInstanceOptions({ preserveSelection: true });
       if (this.config.supportsDatabaseFilter) {
-        await this.refreshDatabaseOptions(this.state.filters.instanceId, {
+        await this.refreshDatabaseOptions(this.getSingleSelectedInstanceId(), {
           preserveSelection: true,
         });
       }
@@ -593,11 +593,11 @@
       const params = {};
       const filters = this.state.filters;
 
-      if (filters.instanceId) {
-        params.instance_id = filters.instanceId;
+      if (Array.isArray(filters.instanceIds) && filters.instanceIds.length) {
+        params.instance_id = filters.instanceIds;
       }
-      if (filters.dbType) {
-        params.db_type = filters.dbType;
+      if (Array.isArray(filters.dbTypes) && filters.dbTypes.length) {
+        params.db_type = filters.dbTypes;
       }
       if (this.config.supportsDatabaseFilter && filters.databaseId) {
         params.database_id = filters.databaseId;
@@ -694,10 +694,12 @@
     }
 
     async handleDbTypeChange(event) {
-      const value = event?.target?.value || "";
-      this.state.filters.dbType = value;
-      this.state.filters.instanceId = "";
-      Filters.syncSelectValue(this.filterElements.instance, "");
+      const values = Array.from(event?.target?.selectedOptions || [])
+        .map((option) => option?.value || "")
+        .filter(Boolean);
+      this.state.filters.dbTypes = values;
+      this.state.filters.instanceIds = [];
+      Filters.syncSelectValue(this.filterElements.instance, []);
       Filters.setDisabled(this.filterElements.instance, true);
 
       if (this.config.supportsDatabaseFilter) {
@@ -711,20 +713,20 @@
       if (this.config.supportsDatabaseFilter) {
         await this.refreshDatabaseOptions("", { preserveSelection: false });
       }
-      await this.refreshAll();
     }
 
     async handleInstanceChange(event) {
-      const value = event?.target?.value || "";
-      this.state.filters.instanceId = value;
+      const values = Array.from(event?.target?.selectedOptions || [])
+        .map((option) => option?.value || "")
+        .filter(Boolean);
+      this.state.filters.instanceIds = values;
       if (this.config.supportsDatabaseFilter) {
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
         Filters.syncSelectValue(this.filterElements.database, "");
         Filters.setDisabled(this.filterElements.database, true);
-        await this.refreshDatabaseOptions(value, { preserveSelection: false });
+        await this.refreshDatabaseOptions(this.getSingleSelectedInstanceId(), { preserveSelection: false });
       }
-      await this.refreshAll();
     }
 
     async handleDatabaseChange(event) {
@@ -736,13 +738,11 @@
       this.state.filters.databaseId = value;
       const option = select.options[select.selectedIndex];
       this.state.filters.databaseName = option ? option.textContent.trim() : null;
-      await this.refreshAll();
     }
 
     async handlePeriodTypeChange(event) {
       const value = event?.target?.value || "daily";
       this.state.filters.periodType = value;
-      await this.refreshAll();
     }
 
     /**
@@ -754,16 +754,24 @@
         return;
       }
       const params = {};
-      if (this.state.filters.dbType) {
-        params.db_type = this.state.filters.dbType;
+      if (!Array.isArray(this.state.filters.dbTypes) || !this.state.filters.dbTypes.length) {
+        Filters.updateSelectOptions(this.filterElements.instance, {
+          placeholder: "所有实例",
+          items: [],
+          allowEmpty: false,
+          selected: [],
+        });
+        Filters.setDisabled(this.filterElements.instance, true);
+        return;
       }
+      params.db_type = this.state.filters.dbTypes;
       try {
         const instances = await this.dataSource.fetchInstances(endpoint, params);
         Filters.updateSelectOptions(this.filterElements.instance, {
           placeholder: "所有实例",
           items: instances,
-          allowEmpty: true,
-          selected: options?.preserveSelection ? this.state.filters.instanceId : "",
+          allowEmpty: false,
+          selected: options?.preserveSelection ? this.state.filters.instanceIds : [],
           getOptionValue: (item) => item?.id,
           getOptionLabel: (item) => {
             if (!item) {
@@ -774,7 +782,7 @@
             return dbType ? `${name} (${dbType})` : name;
           },
         });
-        Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbType);
+        Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbTypes.length);
       } catch (error) {
         this.notifyError(`加载实例列表失败: ${error.message}`);
         Filters.setDisabled(this.filterElements.instance, true);
@@ -784,6 +792,13 @@
     /**
      * 根据选中的实例加载数据库下拉。
      */
+    getSingleSelectedInstanceId() {
+      const instanceIds = Array.isArray(this.state.filters.instanceIds)
+        ? this.state.filters.instanceIds
+        : [];
+      return instanceIds.length === 1 ? instanceIds[0] : "";
+    }
+
     async refreshDatabaseOptions(instanceId, options) {
       const endpoint = this.config.api.databaseOptionsEndpoint;
       if (!endpoint) {
@@ -840,14 +855,14 @@
      */
     async resetFilters() {
       this.state.filters = {
-        dbType: "",
-        instanceId: "",
+        dbTypes: [],
+        instanceIds: [],
         databaseId: "",
         databaseName: null,
         periodType: "daily",
       };
-      Filters.syncSelectValue(this.filterElements.dbType, "");
-      Filters.syncSelectValue(this.filterElements.instance, "");
+      Filters.syncSelectValue(this.filterElements.dbType, []);
+      Filters.syncSelectValue(this.filterElements.instance, []);
       Filters.setDisabled(this.filterElements.instance, true);
       if (this.config.supportsDatabaseFilter) {
         Filters.syncSelectValue(this.filterElements.database, "");
@@ -865,14 +880,20 @@
      */
     async applyFilters() {
       const latest = Filters.readInitialFilters(this.config);
-      this.state.filters.dbType = latest.dbType || "";
-      this.state.filters.instanceId = latest.instanceId || "";
+      this.state.filters.dbTypes = latest.dbTypes || [];
+      this.state.filters.instanceIds = latest.instanceIds || [];
       this.state.filters.databaseId = latest.databaseId || "";
       this.state.filters.databaseName = latest.databaseName || null;
       this.state.filters.periodType = latest.periodType || "daily";
-      Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbType);
+      Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbTypes.length);
       if (this.config.supportsDatabaseFilter) {
-        Filters.setDisabled(this.filterElements.database, !this.state.filters.instanceId);
+        const singleInstanceId = this.getSingleSelectedInstanceId();
+        if (!singleInstanceId) {
+          this.state.filters.databaseId = "";
+          this.state.filters.databaseName = null;
+          Filters.syncSelectValue(this.filterElements.database, "");
+        }
+        Filters.setDisabled(this.filterElements.database, !singleInstanceId);
       }
       await this.refreshAll();
     }
