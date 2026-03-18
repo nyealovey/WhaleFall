@@ -10,6 +10,7 @@ from app.models.account_classification import (
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.tag import Tag
 from app.models.user import User
 
 
@@ -75,6 +76,14 @@ def test_api_v1_accounts_ledgers_contract() -> None:
         )
         db.session.add(permission)
 
+        tag = Tag(
+            name="ledger_tag",
+            display_name="台账标签",
+            category="other",
+            is_active=True,
+        )
+        instance.tags.append(tag)
+
         assert AccountClassification.__tablename__ == "account_classifications"
         assert ClassificationRule.__tablename__ == "classification_rules"
         assert AccountClassificationAssignment.__tablename__ == "account_classification_assignments"
@@ -123,7 +132,10 @@ def test_api_v1_accounts_ledgers_contract() -> None:
             "classifications",
         }
         assert expected_keys.issubset(item.keys())
-        assert isinstance(item.get("tags"), list)
+        tags = item.get("tags")
+        assert isinstance(tags, list)
+        assert len(tags) == 1
+        assert tags[0] == {"name": "ledger_tag", "display_name": "台账标签"}
         assert isinstance(item.get("classifications"), list)
 
 

@@ -341,12 +341,6 @@ function mountTagsIndexPage(global) {
         formatter: (cell, row) => renderCategoryChip(resolveRowMeta(row)),
       },
       {
-        name: "颜色",
-        id: "color",
-        width: "110px",
-        formatter: (cell, row) => renderColorChip(resolveRowMeta(row)),
-      },
-      {
         name: "状态",
         id: "is_active",
         width: "90px",
@@ -376,7 +370,6 @@ function mountTagsIndexPage(global) {
     return items.map((item) => [
       item.display_name || item.name || "-",
       item.category || "-",
-      item.color_name || item.color || "-",
       item.is_active,
       item.instance_count || 0,
       null,
@@ -408,15 +401,6 @@ function mountTagsIndexPage(global) {
       return category;
     }
     return gridHtml(buildChipOutlineHtml(category, "muted", "fas fa-bookmark"));
-  }
-
-  function renderColorChip(meta) {
-    const colorName = meta.color_name || meta.color || "-";
-    if (!gridHtml) {
-      return colorName;
-    }
-    const tone = meta.color ? "brand" : "muted";
-    return gridHtml(buildChipOutlineHtml(colorName, tone, "fas fa-fill-drip"));
   }
 
   function renderBindings(meta) {

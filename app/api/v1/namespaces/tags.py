@@ -36,7 +36,6 @@ TagWritePayload = ns.model(
         "name": fields.String(required=True, description="标签代码", example="prod"),
         "display_name": fields.String(required=True, description="标签展示名", example="生产"),
         "category": fields.String(required=True, description="分类", example="env"),
-        "color": fields.String(required=False, description="颜色 key(可选)", example="red"),
         "is_active": fields.Boolean(required=False, description="是否启用(可选)", example=True),
     },
 )
