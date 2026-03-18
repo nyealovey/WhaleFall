@@ -33,6 +33,7 @@ __all__ = [
     "EmailAlertSetting",
     "Instance",
     "InstanceAccount",
+    "InstanceConfigSnapshot",
     "InstanceDatabase",
     "InstanceSizeAggregation",
     "InstanceSizeStat",
@@ -56,6 +57,7 @@ _MODEL_MODULE_MAP: dict[str, str] = {
     "EmailAlertSetting": "app.models.email_alert_setting",
     "Instance": "app.models.instance",
     "InstanceAccount": "app.models.instance_account",
+    "InstanceConfigSnapshot": "app.models.instance_config_snapshot",
     "InstanceDatabase": "app.models.instance_database",
     "InstanceSizeAggregation": "app.models.instance_size_aggregation",
     "InstanceSizeStat": "app.models.instance_size_stat",
@@ -83,6 +85,7 @@ if TYPE_CHECKING:
     from app.models.email_alert_setting import EmailAlertSetting
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
+    from app.models.instance_config_snapshot import InstanceConfigSnapshot
     from app.models.instance_database import InstanceDatabase
     from app.models.instance_size_aggregation import InstanceSizeAggregation
     from app.models.instance_size_stat import InstanceSizeStat

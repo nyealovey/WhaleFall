@@ -30,6 +30,16 @@
     let accountsGrid = null;
     let databaseSizesGrid = null;
     let tableSizesModal = null;
+    const auditInfoState = {
+        loaded: false,
+        loading: false,
+        payload: null,
+        filters: {
+            includeDisabled: false,
+            scope: 'all',
+            search: '',
+        },
+    };
 
 /**
  * 挂载实例详情页面。
@@ -105,11 +115,24 @@ function ensureInstanceService() {
         initializeHistoryModal();
         initializeDatabaseTableSizesModal();
         initializeInstanceModals();
+        initializeAuditTab();
         resetGridFilterForms();
         initializeAccountsGrid();
         initializeDatabaseSizesGrid();
         window.setTimeout(loadDatabaseSizes, 500);
     });
+
+function initializeAuditTab() {
+    const auditTab = document.getElementById('audit-tab');
+    if (!auditTab) {
+        return;
+    }
+    auditTab.addEventListener('shown.bs.tab', () => {
+        if (!auditInfoState.loaded && !auditInfoState.loading) {
+            loadAuditInfo();
+        }
+    });
+}
 
 function configurePermissionViewer() {
     const viewer = window.PermissionViewer;
@@ -573,6 +596,50 @@ function syncCapacity(instanceId, instanceName, event) {
         })
         .finally(() => {
             buttonWrapper.html(originalText || '同步容量');
+            buttonWrapper.attr('disabled', null);
+        });
+}
+
+function syncAuditInfo(event) {
+    if (!instanceStore?.actions?.syncInstanceAuditInfo) {
+        toast.error('InstanceStore 未初始化');
+        return;
+    }
+    const dbType = String(getInstanceDbType() || '').toLowerCase();
+    if (dbType !== 'sqlserver') {
+        toast.warning?.('当前仅支持 SQL Server 审计信息采集');
+        return;
+    }
+    if (!isInstanceSyncAvailable()) {
+        toast.warning?.('实例已停用，无法同步审计信息');
+        return;
+    }
+
+    const fallbackBtn = selectOne('[data-action="sync-audit-info"]').first();
+    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+    if (!syncBtn) {
+        return;
+    }
+    const buttonWrapper = from(syncBtn);
+    const originalText = buttonWrapper.html();
+
+    buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
+    buttonWrapper.attr('disabled', 'disabled');
+
+    instanceStore.actions.syncInstanceAuditInfo(getInstanceId())
+        .then((response) => {
+            const payload = response?.data || response || {};
+            const summary = payload.summary || {};
+            const auditCount = Number(summary.audit_count) || 0;
+            toast.success(`审计信息同步成功，已刷新 ${auditCount} 个审计目标`);
+            showAuditTab();
+            loadAuditInfo(true);
+        })
+        .catch((error) => {
+            toast.error('同步审计信息失败: ' + (error?.message || '未知错误'));
+        })
+        .finally(() => {
+            buttonWrapper.html(originalText || '同步审计');
             buttonWrapper.attr('disabled', null);
         });
 }
@@ -1622,6 +1689,424 @@ function formatGbLabelFromMb(mbValue) {
     });
 }
 
+function showAuditTab() {
+    const auditTab = document.getElementById('audit-tab');
+    const bootstrapTab = window.bootstrap?.Tab;
+    if (!auditTab || !bootstrapTab?.getOrCreateInstance) {
+        return;
+    }
+    bootstrapTab.getOrCreateInstance(auditTab).show();
+}
+
+function loadAuditInfo(forceRefresh = false) {
+    if (!instanceStore?.actions?.fetchInstanceAuditInfo) {
+        toast.error('InstanceStore 未初始化');
+        return;
+    }
+    if (auditInfoState.loading) {
+        return;
+    }
+    if (auditInfoState.loaded && !forceRefresh) {
+        renderAuditInfo(auditInfoState.payload);
+        return;
+    }
+
+    auditInfoState.loading = true;
+    renderAuditLoading();
+
+    instanceStore.actions.fetchInstanceAuditInfo(getInstanceId())
+        .then((response) => {
+            auditInfoState.payload = response?.data || response || null;
+            auditInfoState.loaded = true;
+            renderAuditInfo(auditInfoState.payload);
+        })
+        .catch((error) => {
+            renderAuditError(error?.message || '加载审计信息失败');
+        })
+        .finally(() => {
+            auditInfoState.loading = false;
+        });
+}
+
+function renderAuditLoading() {
+    const contentDiv = selectOne('#auditInfoContent');
+    if (!contentDiv.length) {
+        return;
+    }
+    contentDiv.html(`
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">正在加载审计信息...</p>
+        </div>
+    `);
+}
+
+function renderAuditError(message) {
+    const contentDiv = selectOne('#auditInfoContent');
+    if (!contentDiv.length) {
+        return;
+    }
+    contentDiv.html(`
+        <section class="instance-audit-placeholder instance-audit-placeholder--muted">
+            <div class="instance-audit-placeholder__icon">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="instance-audit-placeholder__content">
+                <span class="chip-outline chip-outline--muted">错误</span>
+                <h3 class="instance-audit-placeholder__title">审计信息加载失败</h3>
+                <p class="instance-audit-placeholder__text">${escapeHtml(message || '请稍后重试')}</p>
+            </div>
+        </section>
+    `);
+}
+
+function renderAuditInfo(payload) {
+    const contentDiv = selectOne('#auditInfoContent');
+    if (!contentDiv.length) {
+        return;
+    }
+    const data = payload && typeof payload === 'object' ? payload : {};
+    const dbType = String(data.db_type || getInstanceDbType() || '').toLowerCase();
+    if (data.supported === false) {
+        contentDiv.html(renderUnsupportedAuditPlaceholder(dbType));
+        return;
+    }
+    if (!data.available || !data.snapshot) {
+        contentDiv.html(renderAuditEmptyState(data));
+        return;
+    }
+
+    const snapshot = data.snapshot || {};
+    const facts = data.facts || {};
+    const serverAudits = Array.isArray(snapshot.server_audits) ? snapshot.server_audits : [];
+    const serverSpecs = Array.isArray(snapshot.audit_specifications) ? snapshot.audit_specifications : [];
+    const databaseSpecs = Array.isArray(snapshot.database_audit_specifications)
+        ? snapshot.database_audit_specifications
+        : [];
+    const warnings = [
+        ...(Array.isArray(facts.warnings) ? facts.warnings : []),
+        ...(Array.isArray(snapshot.errors) ? snapshot.errors : []),
+    ];
+    const scope = auditInfoState.filters.scope || 'all';
+    const search = (auditInfoState.filters.search || '').trim().toLowerCase();
+    const includeDisabled = auditInfoState.filters.includeDisabled === true;
+
+    const filteredAudits = serverAudits.filter((item) => matchAuditTarget(item, { search, includeDisabled }));
+    const filteredServerSpecs = serverSpecs.filter((item) => matchAuditSpec(item, { search, includeDisabled }));
+    const filteredDatabaseSpecs = databaseSpecs.filter((item) => matchAuditSpec(item, { search, includeDisabled }));
+
+    const showAudits = scope === 'all' || scope === 'audit_targets';
+    const showSpecs = scope === 'all' || scope === 'server_specs' || scope === 'database_specs';
+    const visibleSpecs = scope === 'server_specs'
+        ? filteredServerSpecs
+        : scope === 'database_specs'
+            ? filteredDatabaseSpecs
+            : [...filteredServerSpecs, ...filteredDatabaseSpecs];
+
+    contentDiv.html(`
+        <section class="instance-overview-band instance-overview-band--audit">
+            <div class="instance-overview-band__facts">
+                <article class="instance-overview-band__fact" data-tone="brand">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">审计目标数</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value">${escapeHtml(String(Number(facts.audit_count) || 0))}</strong>
+                    <span class="status-pill status-pill--muted"><i class="fas fa-layer-group me-1"></i>catalog</span>
+                </article>
+                <article class="instance-overview-band__fact" data-tone="success">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">已启用审计</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-toggle-on"></i></span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value">${escapeHtml(String(Number(facts.enabled_audit_count) || 0))}</strong>
+                    <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>启用</span>
+                </article>
+                <article class="instance-overview-band__fact" data-tone="info">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">规范总数</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-list-check"></i></span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value">${escapeHtml(String(Number(facts.specification_count) || 0))}</strong>
+                    <span class="status-pill status-pill--info"><i class="fas fa-list me-1"></i>规范</span>
+                </article>
+                <article class="instance-overview-band__fact" data-tone="danger">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">覆盖数据库数</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-database"></i></span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value">${escapeHtml(String(Number(facts.covered_database_count) || 0))}</strong>
+                    <span class="status-pill status-pill--danger"><i class="fas fa-database me-1"></i>数据库</span>
+                </article>
+            </div>
+            <div class="instance-overview-band__controls">
+                <form class="instance-overview-band__toolbar" action="#">
+                    <div class="form-check form-switch mb-0 instance-overview-band__toggle">
+                        <input class="form-check-input" type="checkbox" role="switch" id="showDisabledAudits" data-action="toggle-audit-disabled" ${includeDisabled ? 'checked' : ''}>
+                        <label class="form-check-label" for="showDisabledAudits">
+                            <i class="fas fa-eye me-1"></i>显示未启用项
+                        </label>
+                    </div>
+                    <select class="form-select form-select-sm" data-action="filter-audit-scope" style="max-width: 13rem;">
+                        <option value="all" ${scope === 'all' ? 'selected' : ''}>全部范围</option>
+                        <option value="audit_targets" ${scope === 'audit_targets' ? 'selected' : ''}>仅审计目标</option>
+                        <option value="server_specs" ${scope === 'server_specs' ? 'selected' : ''}>仅服务规范</option>
+                        <option value="database_specs" ${scope === 'database_specs' ? 'selected' : ''}>仅数据库规范</option>
+                    </select>
+                    <div class="input-group input-group-sm instance-overview-band__search">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" placeholder="搜索名称 / 数据库 / 目标" data-action="filter-audit-search" value="${escapeHtml(auditInfoState.filters.search || '')}" autocomplete="off">
+                    </div>
+                </form>
+                <div class="instance-overview-band__realtime">
+                    <span class="chip-outline chip-outline--muted"><i class="fas fa-clock me-1"></i>${escapeHtml(formatAuditSyncTime(data.last_sync_time))}</span>
+                </div>
+            </div>
+        </section>
+        ${renderAuditWarnings(warnings)}
+        ${showAudits ? renderAuditTargetsSection(filteredAudits, serverAudits.length) : ''}
+        ${showSpecs ? renderAuditSpecificationsSection(visibleSpecs, serverSpecs.length + databaseSpecs.length, scope) : ''}
+    `);
+}
+
+function renderUnsupportedAuditPlaceholder(dbType) {
+    const label = (dbType || 'unknown').toUpperCase();
+    return `
+        <section class="instance-audit-placeholder instance-audit-placeholder--muted">
+            <div class="instance-audit-placeholder__icon">
+                <i class="fas fa-circle-info"></i>
+            </div>
+            <div class="instance-audit-placeholder__content">
+                <span class="chip-outline chip-outline--muted">${escapeHtml(label)}</span>
+                <h3 class="instance-audit-placeholder__title">当前实例暂不支持审计采集</h3>
+                <p class="instance-audit-placeholder__text">统一入口已经就位。首期仅支持 SQL Server，后续可以在同一标签下继续扩展其他数据库的审计与安全基线。</p>
+            </div>
+        </section>
+    `;
+}
+
+function renderAuditEmptyState(data) {
+    const dbType = String(data.db_type || getInstanceDbType() || '').toUpperCase();
+    return `
+        <section class="instance-audit-placeholder">
+            <div class="instance-audit-placeholder__icon">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <div class="instance-audit-placeholder__content">
+                <span class="chip-outline chip-outline--brand">${escapeHtml(dbType)}</span>
+                <h3 class="instance-audit-placeholder__title">尚未采集审计信息</h3>
+                <p class="instance-audit-placeholder__text">${escapeHtml(data.message || '点击“同步审计”后，此处会展示审计目标、审计规范和覆盖范围。')}</p>
+            </div>
+        </section>
+    `;
+}
+
+function renderAuditWarnings(warnings) {
+    if (!Array.isArray(warnings) || !warnings.length) {
+        return '';
+    }
+    const items = warnings.map((warning) => `
+        <div class="instance-audit-warning">
+            <i class="fas fa-triangle-exclamation"></i>
+            <div>${escapeHtml(String(warning))}</div>
+        </div>
+    `).join('');
+    return `<div class="instance-audit-warning-list">${items}</div>`;
+}
+
+function renderAuditTargetsSection(audits, totalCount) {
+    const rows = Array.isArray(audits) ? audits : [];
+    const body = rows.length
+        ? rows.map((audit) => `
+            <tr>
+                <td>
+                    <div class="instance-audit-name-cell">
+                        <strong>${escapeHtml(String(audit.name || '-'))}</strong>
+                        <span class="instance-audit-subtle">${escapeHtml(String(audit.audit_guid || '未提供 GUID'))}</span>
+                    </div>
+                </td>
+                <td>${renderAuditStatusPill(audit.enabled)}</td>
+                <td>${escapeHtml(String(audit.target_type || '-'))}</td>
+                <td>
+                    <div class="instance-audit-name-cell">
+                        <strong>${escapeHtml(String(audit.target_summary || audit.file_path || audit.target_type || '-'))}</strong>
+                        <span class="instance-audit-subtle">Queue delay: ${escapeHtml(formatAuditQueueDelay(audit.queue_delay))}</span>
+                    </div>
+                </td>
+                <td>${escapeHtml(String(audit.on_failure || '-'))}</td>
+                <td>${escapeHtml(formatAuditTimestamp(audit.updated_at || audit.created_at))}</td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="6"><div class="instance-audit-empty">当前筛选条件下没有审计目标</div></td></tr>`;
+    return `
+        <section class="instance-audit-section">
+            <header class="instance-audit-section__header">
+                <h3 class="instance-audit-section__title"><i class="fas fa-shield-halved"></i>审计目标</h3>
+                <span class="instance-audit-section__meta">显示 ${escapeHtml(String(rows.length))} / ${escapeHtml(String(totalCount || 0))}</span>
+            </header>
+            <div class="table-responsive">
+                <table class="table table-hover instance-audit-table">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>状态</th>
+                            <th>目标类型</th>
+                            <th>目标摘要</th>
+                            <th>失败策略</th>
+                            <th>更新时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>${body}</tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderAuditSpecificationsSection(specifications, totalCount, scope) {
+    const rows = Array.isArray(specifications) ? specifications : [];
+    const title = scope === 'server_specs'
+        ? '服务审计规范'
+        : scope === 'database_specs'
+            ? '数据库审计规范'
+            : '审计规范';
+    const body = rows.length
+        ? rows.map((spec) => `
+            <tr>
+                <td>${renderAuditScopePill(spec.scope)}</td>
+                <td>
+                    <div class="instance-audit-name-cell">
+                        <strong>${escapeHtml(String(spec.name || '-'))}</strong>
+                        <span class="instance-audit-subtle">${escapeHtml(String(spec.database_name || '实例级'))}</span>
+                    </div>
+                </td>
+                <td>${escapeHtml(String(spec.audit_name || '-'))}</td>
+                <td>${escapeHtml(String(spec.database_name || '-'))}</td>
+                <td>${renderAuditStatusPill(spec.enabled)}</td>
+                <td>${escapeHtml(String(Number(spec.action_count) || 0))}</td>
+                <td>${escapeHtml(renderAuditActionPreview(spec.actions))}</td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="7"><div class="instance-audit-empty">当前筛选条件下没有审计规范</div></td></tr>`;
+    return `
+        <section class="instance-audit-section">
+            <header class="instance-audit-section__header">
+                <h3 class="instance-audit-section__title"><i class="fas fa-list-check"></i>${escapeHtml(title)}</h3>
+                <span class="instance-audit-section__meta">显示 ${escapeHtml(String(rows.length))} / ${escapeHtml(String(totalCount || 0))}</span>
+            </header>
+            <div class="table-responsive">
+                <table class="table table-hover instance-audit-table">
+                    <thead>
+                        <tr>
+                            <th>范围</th>
+                            <th>名称</th>
+                            <th>绑定审计</th>
+                            <th>数据库</th>
+                            <th>状态</th>
+                            <th>动作数</th>
+                            <th>动作预览</th>
+                        </tr>
+                    </thead>
+                    <tbody>${body}</tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function matchAuditTarget(item, options) {
+    const entry = item && typeof item === 'object' ? item : {};
+    const search = options?.search || '';
+    if (!options?.includeDisabled && entry.enabled !== true) {
+        return false;
+    }
+    if (!search) {
+        return true;
+    }
+    const haystack = [
+        entry.name,
+        entry.target_type,
+        entry.target_summary,
+        entry.file_path,
+        entry.on_failure,
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+    return haystack.includes(search);
+}
+
+function matchAuditSpec(item, options) {
+    const entry = item && typeof item === 'object' ? item : {};
+    const search = options?.search || '';
+    if (!options?.includeDisabled && entry.enabled !== true) {
+        return false;
+    }
+    if (!search) {
+        return true;
+    }
+    const actionPreview = renderAuditActionPreview(entry.actions);
+    const haystack = [
+        entry.name,
+        entry.audit_name,
+        entry.database_name,
+        entry.scope,
+        actionPreview,
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+    return haystack.includes(search);
+}
+
+function renderAuditStatusPill(enabled) {
+    return enabled
+        ? '<span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>启用</span>'
+        : '<span class="status-pill status-pill--muted"><i class="fas fa-pause me-1"></i>未启用</span>';
+}
+
+function renderAuditScopePill(scope) {
+    if (String(scope || '').toLowerCase() === 'database') {
+        return '<span class="chip-outline chip-outline--info">DATABASE</span>';
+    }
+    return '<span class="chip-outline chip-outline--brand">SERVER</span>';
+}
+
+function renderAuditActionPreview(actions) {
+    const list = Array.isArray(actions) ? actions : [];
+    const labels = list
+        .map((action) => action && typeof action === 'object' ? action.name : action)
+        .filter(Boolean)
+        .map((value) => String(value));
+    if (!labels.length) {
+        return '无动作';
+    }
+    const preview = labels.slice(0, 3).join(', ');
+    return labels.length > 3 ? `${preview} +${labels.length - 3}` : preview;
+}
+
+function formatAuditTimestamp(value) {
+    if (!value) {
+        return '未记录';
+    }
+    return timeUtils.formatDateTime(value);
+}
+
+function formatAuditQueueDelay(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return '未配置';
+    }
+    return `${numeric} ms`;
+}
+
+function formatAuditSyncTime(value) {
+    if (!value) {
+        return '未同步';
+    }
+    return `最近同步 ${timeUtils.formatDateTime(value)}`;
+}
+
 /**
  * 加载数据库容量数据。
  *
@@ -1948,6 +2433,10 @@ function bindTemplateActions() {
                 event.preventDefault();
                 syncCapacity(getInstanceId(), getInstanceName(), actionEvent);
                 break;
+            case 'sync-audit-info':
+                event.preventDefault();
+                syncAuditInfo(actionEvent);
+                break;
             case 'edit-instance':
                 event.preventDefault();
                 openEditInstance(actionEvent);
@@ -1982,8 +2471,28 @@ function bindTemplateActions() {
             case 'toggle-deleted-databases':
                 toggleDeletedDatabases();
                 break;
+            case 'toggle-audit-disabled':
+                auditInfoState.filters.includeDisabled = Boolean(actionEl.checked);
+                renderAuditInfo(auditInfoState.payload);
+                break;
+            case 'filter-audit-scope':
+                auditInfoState.filters.scope = actionEl.value || 'all';
+                renderAuditInfo(auditInfoState.payload);
+                break;
             default:
                 break;
+        }
+    });
+
+    root.addEventListener('input', (event) => {
+        const actionEl = event.target.closest('[data-action]');
+        if (!actionEl) {
+            return;
+        }
+        const action = actionEl.getAttribute('data-action');
+        if (action === 'filter-audit-search') {
+            auditInfoState.filters.search = actionEl.value || '';
+            renderAuditInfo(auditInfoState.payload);
         }
     });
 }

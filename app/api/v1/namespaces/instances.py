@@ -899,5 +899,6 @@ class InstancesStatisticsResource(BaseResource):
 # 注册 instances 下的连接测试/参数校验/状态查询路由 (side effects only)
 from app.api.v1.namespaces import (  # noqa: F401,E402
     instances_accounts_sync as _instances_accounts_sync,
+    instances_audit as _instances_audit,
     instances_connections as _instances_connections,
 )

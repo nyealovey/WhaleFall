@@ -22,11 +22,33 @@ BEGIN
 END
 
 -- 2. 授予服务器级权限
+--
+-- WhaleFall 审计信息页（catalog 只读）当前首期实现依赖：
+--   - sys.server_audits
+--   - sys.server_file_audits
+--   - sys.server_audit_specifications
+--   - sys.server_audit_specification_details
+--   - sys.database_audit_specifications
+--   - sys.database_audit_specification_details
+--
+-- 当前脚本中与上述 catalog 读取直接相关的最小权限说明：
+--   1) VIEW ANY DEFINITION
+--      - 用于读取服务器级 audit / audit specification 元数据。
+--   2) VIEW ANY DATABASE
+--      - 用于枚举可见数据库，供 WhaleFall 遍历数据库级 audit specification。
+--   3) 每个数据库内的 VIEW DEFINITION
+--      - 用于读取各库内的 sys.database_audit_specifications / details。
+--
+-- 注意：
+--   - WhaleFall 当前“审计信息”页不依赖 sys.dm_server_audit_status，也不解析 sys.fn_get_audit_file。
+--   - 因此“审计 catalog 读取”本身不以 VIEW SERVER STATE 为前提。
+--   - 下面保留 VIEW SERVER STATE，是为了兼容现有监控/扩展查询口径；如果你只关心
+--     当前 WhaleFall 审计信息页，可将其视作“非必需但保留”的权限。
 GRANT CONNECT SQL TO [monitor_user];
 GRANT VIEW ANY DEFINITION TO [monitor_user];
 GRANT VIEW ANY DATABASE TO [monitor_user];
 GRANT VIEW SERVER STATE TO [monitor_user];
-PRINT '已授予监控用户所需权限';
+PRINT '已授予监控用户所需权限（含 WhaleFall 审计 catalog 读取所需权限）';
 
 -- 3. 创建数据库触发器，自动为新数据库设置权限
 -- 这个触发器会在新数据库创建时自动执行
@@ -139,8 +161,10 @@ PRINT '2. ✅ 自动为新创建的数据库设置权限（通过触发器）';
 PRINT '3. ✅ 遵循最小权限原则，仅授予必要的权限';
 PRINT '4. ✅ 支持实时查询所有数据库的用户和权限信息';
 PRINT '5. ✅ 无需手动为每个新数据库设置权限';
-PRINT '6. ✅ 移除了不必要的VIEW SERVER STATE权限';
-PRINT '7. ✅ 授予VIEW ANY DATABASE权限，支持跨数据库系统表查询';
+PRINT '6. ✅ 已补充 WhaleFall 审计信息页所需的 catalog 权限说明';
+PRINT '7. ✅ VIEW ANY DEFINITION + 数据库级 VIEW DEFINITION 可读取审计 catalog';
+PRINT '8. ✅ VIEW ANY DATABASE 支持跨数据库枚举审计规范';
+PRINT '9. ✅ VIEW SERVER STATE 当前保留用于兼容既有监控/扩展查询，但不是审计 catalog 读取前提';
 PRINT '';
 PRINT '使用方法：';
 PRINT '在鲸落系统中使用以下凭据：';
@@ -151,4 +175,5 @@ PRINT '注意：';
 PRINT '- 新创建的数据库会自动获得监控权限';
 PRINT '- 如果触发器被禁用，需要手动运行此脚本';
 PRINT '- 建议定期检查触发器状态';
+PRINT '- 若未来需要运行时审计状态/审计文件内容（如 sys.dm_server_audit_status / sys.fn_get_audit_file），需单独评估并补充权限';
 PRINT '=============================================';

@@ -376,6 +376,10 @@
     --instance-overview-accent: color-mix(in srgb, var(--status-info) 50%, var(--accent-primary) 50%);
 }
 
+.instance-overview-band--audit {
+    --instance-overview-accent: color-mix(in srgb, var(--status-success) 48%, var(--status-info) 52%);
+}
+
 .instance-overview-band__facts {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -501,6 +505,151 @@
     font-weight: 600;
 }
 
+.instance-audit-placeholder {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+    padding: 1.25rem 1.35rem;
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
+    border-radius: var(--border-radius-xl);
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 236, 0.94) 100%);
+    box-shadow: var(--shadow-sm);
+}
+
+.instance-audit-placeholder--muted {
+    opacity: 0.96;
+}
+
+.instance-audit-placeholder__icon {
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(22, 29, 38, 0.05);
+    color: var(--status-info);
+    font-size: 1.2rem;
+}
+
+.instance-audit-placeholder__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.instance-audit-placeholder__title {
+    margin: 0;
+    font-family: var(--font-family-display);
+    font-size: 1.15rem;
+    color: var(--text-primary);
+}
+
+.instance-audit-placeholder__text {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.72;
+}
+
+.instance-audit-warning-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.instance-audit-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.8rem 0.95rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--status-warning) 28%, transparent);
+    background: color-mix(in srgb, var(--status-warning) 8%, white);
+    color: var(--text-primary);
+}
+
+.instance-audit-warning i {
+    margin-top: 0.15rem;
+    color: var(--status-warning);
+}
+
+.instance-audit-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem 1.05rem;
+    border: 1px solid rgba(22, 29, 38, 0.06);
+    border-radius: var(--border-radius-xl);
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.instance-audit-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.instance-audit-section__title {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--font-family-display);
+    font-size: 1.02rem;
+    color: var(--text-primary);
+}
+
+.instance-audit-section__meta {
+    color: var(--text-muted);
+    font-size: 0.86rem;
+}
+
+.instance-audit-table {
+    margin: 0;
+}
+
+.instance-audit-table thead th {
+    border-bottom-width: 1px;
+    color: var(--text-muted);
+    font-family: var(--font-family-data);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.instance-audit-table tbody td {
+    vertical-align: top;
+}
+
+.instance-audit-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.instance-audit-name-cell strong {
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+.instance-audit-subtle {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
+.instance-audit-empty {
+    padding: 1rem 0.25rem 0.15rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
 /* 时间线与测试结果仍沿用统一 token */
 
 .timeline {
@@ -559,6 +708,10 @@
     .instance-overview-band__realtime {
         justify-self: start;
     }
+
+    .instance-audit-placeholder {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -614,6 +767,10 @@
         min-width: 0;
         max-width: none;
         width: 100%;
+    }
+
+    .instance-audit-section__header {
+        align-items: flex-start;
     }
 }
 
