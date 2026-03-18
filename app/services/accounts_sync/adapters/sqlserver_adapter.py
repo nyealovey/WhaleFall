@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 import time
 from collections.abc import Iterable, Sequence
@@ -559,24 +558,22 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             dict[str, list[str]]: 登录名到角色列表的映射.
 
         """
-        normalized = [name for name in usernames if name]
+        normalized = [name for name in dict.fromkeys(usernames) if name]
         if not normalized:
             return {}
 
-        login_payload = json.dumps(normalized, ensure_ascii=False)
-        sql = """
-            WITH target_logins AS (
-                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
-                FROM OPENJSON(%s)
-            )
+        sql = (
+            self._build_target_logins_cte(normalized)
+            + """
             SELECT member.name AS login_name, role.name AS role_name
             FROM sys.server_role_members rm
             JOIN sys.server_principals role ON rm.role_principal_id = role.principal_id
             JOIN sys.server_principals member ON rm.member_principal_id = member.principal_id
             JOIN target_logins ON member.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
         """
+        )
         conn = self._get_connection(connection)
-        rows = conn.execute_query(sql, (login_payload,))
+        rows = conn.execute_query(sql)
         result: dict[str, list[str]] = {}
         for login_name, role_name in rows:
             normalized_login = self._normalize_str(login_name)
@@ -599,23 +596,21 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             dict[str, list[str]]: 登录名到权限列表的映射.
 
         """
-        normalized = [name for name in usernames if name]
+        normalized = [name for name in dict.fromkeys(usernames) if name]
         if not normalized:
             return {}
 
-        login_payload = json.dumps(normalized, ensure_ascii=False)
-        sql = """
-            WITH target_logins AS (
-                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
-                FROM OPENJSON(%s)
-            )
+        sql = (
+            self._build_target_logins_cte(normalized)
+            + """
             SELECT sp.name AS login_name, perm.permission_name
             FROM sys.server_permissions perm
             JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
             JOIN target_logins ON sp.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
         """
+        )
         conn = self._get_connection(connection)
-        rows = conn.execute_query(sql, (login_payload,))
+        rows = conn.execute_query(sql)
         result: dict[str, list[str]] = {}
         for login_name, permission_name in rows:
             normalized_login = self._normalize_str(login_name)
@@ -666,21 +661,23 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 batch_size = len(database_list)
             database_batch_count = (len(database_list) + batch_size - 1) // batch_size
 
-            sid_to_logins, sid_payload = self._map_sids_to_logins(connection, usernames)
-            if sid_to_logins and sid_payload:
+            sid_to_logins, sid_literals = self._map_sids_to_logins(connection, usernames)
+            if sid_to_logins and sid_literals:
                 unique_usernames = list(dict.fromkeys(usernames))
                 merged: dict[str, dict[str, Any]] = {
                     login: {"roles": {}, "permissions": {}} for login in unique_usernames
                 }
                 for offset in range(0, len(database_list), batch_size):
                     database_batch = database_list[offset : offset + batch_size]
-                    principal_sql, roles_sql, perms_sql = self._build_database_permission_queries(database_batch)
+                    principal_sql, roles_sql, perms_sql = self._build_database_permission_queries(
+                        database_batch,
+                        sid_literals,
+                    )
                     principal_rows, role_rows, permission_rows = self._fetch_principal_data(
                         connection,
                         principal_sql,
                         roles_sql,
                         perms_sql,
-                        sid_payload,
                     )
                     principal_lookup = self._build_principal_lookup(principal_rows, sid_to_logins)
                     self._apply_role_rows(merged, role_rows, principal_lookup)
@@ -780,6 +777,49 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             return None
         return "0x" + sid.hex()
 
+    @staticmethod
+    def _quote_literal(value: str) -> str:
+        """转义 SQL Server 字符串字面量中的单引号."""
+        return value.replace("'", "''")
+
+    @classmethod
+    def _build_target_logins_cte(cls, usernames: Sequence[str]) -> str:
+        """构建兼容 SQL Server 2008 的 target_logins CTE."""
+        login_literals = [
+            f"(N'{cls._quote_literal(username)}')" for username in dict.fromkeys(usernames) if username
+        ]
+        if not login_literals:
+            return ""
+        values_clause = ", ".join(login_literals)
+        return (
+            f"""
+            WITH target_logins AS (
+                SELECT login_name COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
+                FROM (VALUES {values_clause}) AS source(login_name)
+            )
+            """
+        ).strip() + "\n"
+
+    @staticmethod
+    def _build_target_sids_cte(sid_literals: Sequence[str]) -> str:
+        """构建兼容 SQL Server 2008 的 target_sids CTE."""
+        sid_values = [
+            f"(CAST({literal} AS VARBINARY(128)))"
+            for literal in dict.fromkeys(sid_literals)
+            if literal and re.fullmatch(r"0x[0-9a-fA-F]+", literal)
+        ]
+        if not sid_values:
+            return ""
+        values_clause = ", ".join(sid_values)
+        return (
+            f"""
+            WITH target_sids AS (
+                SELECT sid_value
+                FROM (VALUES {values_clause}) AS source(sid_value)
+            )
+            """
+        ).strip() + "\n"
+
     def _get_accessible_databases(self, connection: object) -> list[str]:
         """获取可访问数据库列表."""
         databases_sql = """
@@ -802,24 +842,22 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self,
         connection: object,
         usernames: Sequence[str],
-    ) -> tuple[dict[bytes, list[str]], str]:
-        """构建 SID 到登录名的映射以及用于筛选的 JSON 负载."""
+    ) -> tuple[dict[bytes, list[str]], list[str]]:
+        """构建 SID 到登录名的映射以及用于筛选的十六进制 SID 列表."""
         unique_usernames = [name for name in dict.fromkeys(usernames) if name]
         if not unique_usernames:
-            return {}, ""
-        login_payload = json.dumps(unique_usernames, ensure_ascii=False)
-        login_sids_sql = """
-            WITH target_logins AS (
-                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
-                FROM OPENJSON(%s)
-            )
+            return {}, []
+        login_sids_sql = (
+            self._build_target_logins_cte(unique_usernames)
+            + """
             SELECT sp.name, sp.sid
             FROM sys.server_principals sp
             JOIN target_logins ON sp.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
             WHERE sp.type IN ('S', 'U', 'G')
         """
+        )
         conn = self._get_connection(connection)
-        login_rows = conn.execute_query(login_sids_sql, (login_payload,))
+        login_rows = conn.execute_query(login_sids_sql)
         sid_to_logins: dict[bytes, list[str]] = {}
         for login_name, raw_sid in login_rows:
             normalized_sid = self._normalize_sid(raw_sid)
@@ -830,16 +868,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         sid_literals = [literal for sid in sid_to_logins for literal in [self._sid_to_hex_literal(sid)] if literal]
         if not sid_literals:
-            return {}, ""
-        sid_payload = json.dumps(sid_literals)
-        return sid_to_logins, sid_payload
+            return {}, []
+        return sid_to_logins, sid_literals
 
     def _build_database_permission_queries(
         self,
         database_list: list[str],
+        sid_literals: Sequence[str],
     ) -> tuple[str, str, str]:
         """拼接查询数据库 principals/roles/permissions 的 SQL."""
-        sid_cte = self._target_sid_cte()
+        sid_cte = self._target_sid_cte(sid_literals)
         templates = self._get_database_permission_templates()
         principals_sql = self._compose_database_union(database_list, templates.principals)
         roles_sql = self._compose_database_union(database_list, templates.roles)
@@ -850,22 +888,15 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             sid_cte + "\n" + perms_sql,
         )
 
-    @staticmethod
-    def _target_sid_cte() -> str:
+    @classmethod
+    def _target_sid_cte(cls, sid_literals: Sequence[str]) -> str:
         """返回 target_sids 公共 CTE.
 
         Returns:
             str: 去除首尾空白的 target_sids CTE 片段.
 
         """
-        return (
-            """
-            WITH target_sids AS (
-                SELECT CONVERT(VARBINARY(128), value, 1) AS sid_value
-                FROM OPENJSON(%s)
-            )
-            """
-        ).strip()
+        return cls._build_target_sids_cte(sid_literals)
 
     def _compose_database_union(self, database_list: list[str], template: str) -> str:
         """将单库模板渲染为 UNION ALL 语句.
@@ -966,14 +997,12 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         principal_sql: str,
         roles_sql: str,
         perms_sql: str,
-        sid_payload: str,
     ) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
         """执行合并后的 SQL 并返回结果."""
-        params = (sid_payload,)
         conn = cast("SyncConnection", connection)
-        principal_rows = [tuple(row) for row in conn.execute_query(principal_sql, params)]
-        role_rows = [tuple(row) for row in conn.execute_query(roles_sql, params)]
-        permission_rows = [tuple(row) for row in conn.execute_query(perms_sql, params)]
+        principal_rows = [tuple(row) for row in conn.execute_query(principal_sql)]
+        role_rows = [tuple(row) for row in conn.execute_query(roles_sql)]
+        permission_rows = [tuple(row) for row in conn.execute_query(perms_sql)]
         return principal_rows, role_rows, permission_rows
 
     def _build_principal_lookup(
@@ -1104,25 +1133,26 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         database_list: list[str],
     ) -> dict[str, JsonDict]:
         """基于用户名回退查询数据库权限,用于无法读取 SID 的场景."""
-        login_payload = json.dumps([name for name in dict.fromkeys(usernames) if name], ensure_ascii=False)
-        if not login_payload or not database_list:
+        unique_usernames = [name for name in dict.fromkeys(usernames) if name]
+        if not unique_usernames or not database_list:
             return {}
 
         batch_size = SQLSERVER_DATABASE_PERMISSION_BATCH_SIZE
         if batch_size <= 0:
             batch_size = len(database_list)
 
-        unique_usernames = [name for name in dict.fromkeys(usernames) if name]
         merged: dict[str, dict[str, Any]] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
         for offset in range(0, len(database_list), batch_size):
             database_batch = database_list[offset : offset + batch_size]
-            principals_sql, roles_sql, perms_sql = self._build_db_permission_queries_by_name(database_batch)
+            principals_sql, roles_sql, perms_sql = self._build_db_permission_queries_by_name(
+                database_batch,
+                unique_usernames,
+            )
             principal_rows, role_rows, permission_rows = self._fetch_principal_data_by_name(
                 connection,
                 principals_sql,
                 roles_sql,
                 perms_sql,
-                login_payload,
             )
             principal_lookup = self._build_principal_lookup_by_name(principal_rows)
             self._apply_role_rows(merged, role_rows, principal_lookup)
@@ -1130,16 +1160,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         return {login: cast("JsonDict", payload) for login, payload in merged.items()}
 
-    def _build_db_permission_queries_by_name(self, database_list: list[str]) -> tuple[str, str, str]:
+    def _build_db_permission_queries_by_name(
+        self,
+        database_list: list[str],
+        usernames: Sequence[str],
+    ) -> tuple[str, str, str]:
         """构建基于用户名匹配的数据库权限查询 SQL."""
-        target_cte = (
-            """
-            WITH target_logins AS (
-                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
-                FROM OPENJSON(%s)
-            )
-            """
-        ).strip()
+        target_cte = self._build_target_logins_cte(usernames).strip()
         templates = DatabasePermissionTemplates(
             principals="""
                 SELECT '__DB_LITERAL__' AS db_name,
@@ -1208,14 +1235,12 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         principal_sql: str,
         roles_sql: str,
         perms_sql: str,
-        login_payload: str,
     ) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
         """执行基于用户名的权限查询."""
-        params = (login_payload,)
         conn = cast("SyncConnection", connection)
-        principal_rows = [tuple(row) for row in conn.execute_query(principal_sql, params)]
-        role_rows = [tuple(row) for row in conn.execute_query(roles_sql, params)]
-        permission_rows = [tuple(row) for row in conn.execute_query(perms_sql, params)]
+        principal_rows = [tuple(row) for row in conn.execute_query(principal_sql)]
+        role_rows = [tuple(row) for row in conn.execute_query(roles_sql)]
+        permission_rows = [tuple(row) for row in conn.execute_query(perms_sql)]
         return principal_rows, role_rows, permission_rows
 
     def _build_principal_lookup_by_name(

@@ -125,3 +125,100 @@ def test_collect_server_audits_uses_log_file_path_column() -> None:
     assert "log_file_path" in connection.last_sql
     assert "sfa.file_path" not in connection.last_sql
     assert audits[0]["file_path"] == "D:\\SQLAudit\\"
+
+
+@pytest.mark.unit
+def test_collect_database_audit_specifications_builds_object_display_text() -> None:
+    class _FakeConnection:
+        def execute_query(self, _sql: str):  # type: ignore[no-untyped-def]
+            return [
+                (
+                    "master",
+                    "Audit_OSCMDEXEC",
+                    "guid-1",
+                    1,
+                    None,
+                    None,
+                    "EXECUTE",
+                    "SUCCESS",
+                    "OBJECT",
+                    12345,
+                    0,
+                    "dbo",
+                    "xp_cmdshell_proxy_account",
+                    None,
+                    None,
+                ),
+            ]
+
+    specs = SQLServerAuditInfoSyncService._collect_single_database_audit_specifications(  # type: ignore[arg-type]
+        _FakeConnection(),
+        database_name="master",
+        audit_name_by_guid={"guid-1": "SIEM"},
+    )
+
+    assert specs[0]["action_count"] == 1
+    assert specs[0]["actions"][0]["display_text"] == "EXECUTE dbo.xp_cmdshell_proxy_account"
+
+
+@pytest.mark.unit
+def test_collect_snapshot_keeps_server_level_data_when_one_database_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    service = SQLServerAuditInfoSyncService()
+
+    monkeypatch.setattr(
+        service,
+        "_collect_server_audits",
+        lambda _connection: [{"name": "SIEM", "enabled": True, "target_type": "APPLICATION_LOG"}],
+    )
+    monkeypatch.setattr(
+        service,
+        "_collect_server_audit_specifications",
+        lambda _connection, _audit_name_by_guid: [
+            {
+                "scope": "server",
+                "name": "server-spec",
+                "audit_name": "SIEM",
+                "enabled": True,
+                "actions": [],
+                "action_count": 0,
+            },
+        ],
+    )
+
+    def _fake_collect_database_audits(_connection, _audit_name_by_guid):  # type: ignore[no-untyped-def]
+        return (
+            [
+                {
+                    "scope": "database",
+                    "database_name": "readable_db",
+                    "name": "db-spec",
+                    "audit_name": "SIEM",
+                    "enabled": True,
+                    "actions": [],
+                    "action_count": 0,
+                },
+            ],
+            [
+                {
+                    "scope": "database_audit_specification",
+                    "database_name": "AzureDevOps_AI-Lab",
+                    "error_code": 978,
+                    "reason": "DATABASE_NOT_READABLE",
+                    "error_message": "The target database is in an availability group and is currently accessible for connections when the application intent is set to read only.",
+                },
+            ],
+        )
+
+    monkeypatch.setattr(service, "_collect_database_audit_specifications", _fake_collect_database_audits)
+
+    snapshot = service._collect_snapshot(object())  # type: ignore[arg-type]
+    facts = build_sqlserver_audit_facts(snapshot)
+
+    assert snapshot["server_audits"][0]["name"] == "SIEM"
+    assert snapshot["database_audit_specifications"][0]["database_name"] == "readable_db"
+    assert snapshot["meta"]["partial_success"] is True
+    assert snapshot["meta"]["collected_database_count"] == 1
+    assert snapshot["meta"]["failed_database_count"] == 1
+    assert snapshot["meta"]["failed_databases"] == ["AzureDevOps_AI-Lab"]
+    assert snapshot["errors"][0]["reason"] == "DATABASE_NOT_READABLE"
+    assert facts["warnings"] == ["DATABASE_AUDIT_SPECIFICATIONS_PARTIAL:AzureDevOps_AI-Lab"]
