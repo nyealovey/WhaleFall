@@ -198,3 +198,54 @@ def test_api_v1_instances_sync_audit_info_contract(app, auth_client, monkeypatch
     assert isinstance(data, dict)
     assert data.get("session_id") == "session-1"
     assert data.get("summary", {}).get("audit_count") == 1
+
+
+@pytest.mark.unit
+def test_api_v1_instances_sync_audit_info_partial_success_contract(app, auth_client, monkeypatch) -> None:
+    _ensure_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sqlserver-1",
+            db_type="sqlserver",
+            host="127.0.0.1",
+            port=1433,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    def _fake_sync(self, *, instance_id, actor_id=None):  # type: ignore[no-untyped-def]
+        del self
+        del instance_id
+        del actor_id
+        return actions_module.InstanceAuditSyncActionResult(
+            success=True,
+            message="审计信息同步成功",
+            result={
+                "session_id": "session-1",
+                "summary": {
+                    "audit_count": 1,
+                    "partial_success": True,
+                    "failed_database_count": 1,
+                },
+            },
+        )
+
+    monkeypatch.setattr(actions_module.InstanceAuditSyncActionsService, "sync_instance_audit_info", _fake_sync)
+
+    csrf_token = _get_csrf_token(auth_client)
+    response = auth_client.post(
+        f"/api/v1/instances/{instance_id}/actions/sync-audit-info",
+        headers={"X-CSRFToken": csrf_token},
+    )
+    assert response.status_code == 200
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert data.get("summary", {}).get("partial_success") is True
+    assert data.get("summary", {}).get("failed_database_count") == 1

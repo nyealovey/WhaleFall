@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import date, datetime
+import re
 from typing import Any
 
 from app.core.constants import DatabaseType
@@ -61,6 +62,56 @@ def _target_summary(audit: Mapping[str, object]) -> str:
     return target_type or "未配置"
 
 
+def _extract_sqlserver_error_code(message: str) -> int | None:
+    match = re.search(r"\((\d+),\s*b[\"']", message)
+    if match:
+        try:
+            return int(match.group(1))
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _classify_database_audit_error(message: str, error_code: int | None) -> str:
+    lowered = message.lower()
+    if error_code == 978 or (
+        "availability group" in lowered and "application intent is set to read only" in lowered
+    ):
+        return "DATABASE_NOT_READABLE"
+    return "DATABASE_QUERY_FAILED"
+
+
+def _build_action_display_text(
+    *,
+    action_name: object,
+    class_desc: object,
+    object_schema_name: object = None,
+    object_name: object = None,
+    column_name: object = None,
+    schema_name: object = None,
+) -> str:
+    resolved_action_name = _stringify(action_name) or "未命名动作"
+    resolved_class_desc = (_stringify(class_desc) or "").upper()
+    resolved_object_schema_name = _stringify(object_schema_name)
+    resolved_object_name = _stringify(object_name)
+    resolved_column_name = _stringify(column_name)
+    resolved_schema_name = _stringify(schema_name)
+
+    if resolved_object_name:
+        object_parts = []
+        if resolved_object_schema_name:
+            object_parts.append(resolved_object_schema_name)
+        object_parts.append(resolved_object_name)
+        if resolved_column_name:
+            object_parts.append(resolved_column_name)
+        return f"{resolved_action_name} {'.'.join(object_parts)}"
+
+    if resolved_class_desc == "SCHEMA" and resolved_schema_name:
+        return f"{resolved_action_name} SCHEMA::{resolved_schema_name}"
+
+    return resolved_action_name
+
+
 def build_sqlserver_audit_facts(snapshot: Mapping[str, object]) -> dict[str, Any]:
     server_audits_value = snapshot.get("server_audits")
     server_audits = server_audits_value if isinstance(server_audits_value, list) else []
@@ -116,6 +167,19 @@ def build_sqlserver_audit_facts(snapshot: Mapping[str, object]) -> dict[str, Any
         audit_name = _stringify(specification.get("audit_name"))
         if audit_name and audit_name not in audit_names:
             warnings.append(f"AUDIT_TARGET_MISSING:{audit_name}")
+    snapshot_errors_value = snapshot.get("errors")
+    snapshot_errors = snapshot_errors_value if isinstance(snapshot_errors_value, list) else []
+    failed_databases = [
+        database_name
+        for item in snapshot_errors
+        if isinstance(item, Mapping)
+        for database_name in [_stringify(item.get("database_name"))]
+        if database_name
+    ]
+    if failed_databases:
+        warnings.append(
+            "DATABASE_AUDIT_SPECIFICATIONS_PARTIAL:" + ",".join(sorted(set(failed_databases))),
+        )
 
     return {
         "version": 1,
@@ -154,6 +218,8 @@ class SQLServerAuditInfoSyncService:
             connection.disconnect()
 
         facts = build_sqlserver_audit_facts(snapshot)
+        snapshot_meta_value = snapshot.get("meta")
+        snapshot_meta = snapshot_meta_value if isinstance(snapshot_meta_value, Mapping) else {}
         return {
             "snapshot": snapshot,
             "facts": facts,
@@ -162,6 +228,9 @@ class SQLServerAuditInfoSyncService:
                 "enabled_audit_count": facts["enabled_audit_count"],
                 "specification_count": facts["specification_count"],
                 "covered_database_count": facts["covered_database_count"],
+                "partial_success": bool(snapshot_meta.get("partial_success")),
+                "collected_database_count": int(snapshot_meta.get("collected_database_count", 0) or 0),
+                "failed_database_count": int(snapshot_meta.get("failed_database_count", 0) or 0),
             },
         }
 
@@ -174,7 +243,16 @@ class SQLServerAuditInfoSyncService:
             if audit_guid
         }
         server_specs = self._collect_server_audit_specifications(connection, audit_name_by_guid)
-        database_specs = self._collect_database_audit_specifications(connection, audit_name_by_guid)
+        database_specs, database_errors = self._collect_database_audit_specifications(connection, audit_name_by_guid)
+        failed_databases = sorted(
+            {
+                database_name
+                for item in database_errors
+                if isinstance(item, Mapping)
+                for database_name in [_stringify(item.get("database_name"))]
+                if database_name
+            },
+        )
         return {
             "version": 1,
             "supported": True,
@@ -182,10 +260,22 @@ class SQLServerAuditInfoSyncService:
             "server_audits": server_audits,
             "audit_specifications": server_specs,
             "database_audit_specifications": database_specs,
-            "errors": [],
+            "errors": database_errors,
             "meta": {
                 "collected_at": time_utils.now().isoformat(),
                 "collector": "sqlserver_audit_info_v1",
+                "partial_success": bool(database_errors),
+                "collected_database_count": len(
+                    {
+                        database_name
+                        for item in database_specs
+                        if isinstance(item, Mapping)
+                        for database_name in [_stringify(item.get("database_name"))]
+                        if database_name
+                    },
+                ),
+                "failed_database_count": len(failed_databases),
+                "failed_databases": failed_databases,
             },
         }
 
@@ -285,6 +375,10 @@ class SQLServerAuditInfoSyncService:
                         "name": action_name,
                         "audited_result": _stringify(row[6] if len(row) > 6 else None),
                         "class_desc": _stringify(row[7] if len(row) > 7 else None),
+                        "display_text": _build_action_display_text(
+                            action_name=action_name,
+                            class_desc=row[7] if len(row) > 7 else None,
+                        ),
                     },
                 )
         for spec in grouped.values():
@@ -295,18 +389,32 @@ class SQLServerAuditInfoSyncService:
         self,
         connection: DatabaseConnection,
         audit_name_by_guid: Mapping[str, str],
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         databases = self._collect_online_databases(connection)
         collected: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
         for database_name in databases:
-            collected.extend(
-                self._collect_single_database_audit_specifications(
-                    connection,
-                    database_name=database_name,
-                    audit_name_by_guid=audit_name_by_guid,
-                ),
-            )
-        return collected
+            try:
+                collected.extend(
+                    self._collect_single_database_audit_specifications(
+                        connection,
+                        database_name=database_name,
+                        audit_name_by_guid=audit_name_by_guid,
+                    ),
+                )
+            except Exception as exc:
+                message = str(exc)
+                error_code = _extract_sqlserver_error_code(message)
+                errors.append(
+                    {
+                        "scope": "database_audit_specification",
+                        "database_name": database_name,
+                        "error_code": error_code,
+                        "reason": _classify_database_audit_error(message, error_code),
+                        "error_message": message,
+                    },
+                )
+        return collected, errors
 
     @staticmethod
     def _collect_online_databases(connection: DatabaseConnection) -> list[str]:
@@ -341,10 +449,25 @@ class SQLServerAuditInfoSyncService:
                     das.modify_date,
                     dsd.audit_action_name,
                     dsd.audited_result,
-                    dsd.class_desc
+                    dsd.class_desc,
+                    dsd.major_id,
+                    dsd.minor_id,
+                    object_schema.name AS object_schema_name,
+                    object_ref.name AS object_name,
+                    column_ref.name AS column_name,
+                    schema_ref.name AS schema_name
                 FROM {database_identifier}.sys.database_audit_specifications das
                 LEFT JOIN {database_identifier}.sys.database_audit_specification_details dsd
                   ON dsd.database_specification_id = das.database_specification_id
+                LEFT JOIN {database_identifier}.sys.objects object_ref
+                  ON object_ref.object_id = dsd.major_id
+                LEFT JOIN {database_identifier}.sys.schemas object_schema
+                  ON object_schema.schema_id = object_ref.schema_id
+                LEFT JOIN {database_identifier}.sys.columns column_ref
+                  ON column_ref.object_id = object_ref.object_id
+                 AND column_ref.column_id = dsd.minor_id
+                LEFT JOIN {database_identifier}.sys.schemas schema_ref
+                  ON schema_ref.schema_id = dsd.major_id
                 ORDER BY das.name ASC, dsd.audit_action_name ASC
                 """,
             )
@@ -379,6 +502,14 @@ class SQLServerAuditInfoSyncService:
                         "name": action_name,
                         "audited_result": _stringify(row[7] if len(row) > 7 else None),
                         "class_desc": _stringify(row[8] if len(row) > 8 else None),
+                        "display_text": _build_action_display_text(
+                            action_name=action_name,
+                            class_desc=row[8] if len(row) > 8 else None,
+                            object_schema_name=row[11] if len(row) > 11 else None,
+                            object_name=row[12] if len(row) > 12 else None,
+                            column_name=row[13] if len(row) > 13 else None,
+                            schema_name=row[14] if len(row) > 14 else None,
+                        ),
                     },
                 )
         for spec in grouped.values():

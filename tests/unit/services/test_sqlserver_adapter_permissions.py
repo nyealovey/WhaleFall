@@ -1,6 +1,7 @@
 from typing import cast
 
 import pytest
+import pymssql  # type: ignore[import-not-found]
 
 from app.models.instance import Instance
 from app.services.accounts_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
@@ -47,13 +48,17 @@ def test_get_all_users_database_permissions_batch_uses_database_batches(monkeypa
 
     database_list = [f"DB{i}" for i in range(41)]
     monkeypatch.setattr(adapter, "_get_accessible_databases", lambda _conn: database_list)
-    monkeypatch.setattr(adapter, "_map_sids_to_logins", lambda _conn, _usernames: ({b"\x01": ["user1"]}, '["0x01"]'))
+    monkeypatch.setattr(adapter, "_map_sids_to_logins", lambda _conn, _usernames: ({b"\x01": ["user1"]}, ["0x01"]))
     monkeypatch.setattr(adapter, "_is_permissions_empty", lambda _result: False)
 
     batch_sizes: list[int] = []
 
-    def fake_build_database_permission_queries(database_batch: list[str]) -> tuple[str, str, str]:
+    def fake_build_database_permission_queries(
+        database_batch: list[str],
+        sid_literals: list[str],
+    ) -> tuple[str, str, str]:
         batch_sizes.append(len(database_batch))
+        assert sid_literals == ["0x01"]
         return "P", "R", "M"
 
     monkeypatch.setattr(adapter, "_build_database_permission_queries", fake_build_database_permission_queries)
@@ -65,11 +70,9 @@ def test_get_all_users_database_permissions_batch_uses_database_batches(monkeypa
         _principal_sql: str,
         _roles_sql: str,
         _perms_sql: str,
-        sid_payload: str,
     ) -> tuple[list[tuple], list[tuple], list[tuple]]:
         nonlocal fetch_calls
         fetch_calls += 1
-        assert sid_payload == '["0x01"]'
         return [], [], []
 
     monkeypatch.setattr(adapter, "_fetch_principal_data", fake_fetch_principal_data)
@@ -91,6 +94,37 @@ class _DummySQLServerConnection:
         self.last_sql = sql
         self.last_params = params
         return self._rows
+
+
+class _OpenJsonUnsupportedSQLServerConnection:
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    def execute_query(self, sql: str, params: object = None) -> list[tuple]:
+        del params
+        self.queries.append(sql)
+        if "OPENJSON" in sql:
+            raise pymssql.ProgrammingError(
+                (208, b"Invalid object name 'OPENJSON'.DB-Lib error message 20018, severity 16:\n"),
+            )
+        result: list[tuple]
+        if "FROM sys.server_role_members" in sql:
+            result = [("login1", "sysadmin")]
+        elif "FROM sys.server_permissions perm" in sql:
+            result = [("login1", "CONTROL SERVER")]
+        elif "FROM sys.databases" in sql:
+            result = [("DB1",)]
+        elif "FROM sys.server_principals sp" in sql and "sp.sid" in sql:
+            result = [("login1", b"\x01")]
+        elif "FROM [DB1].sys.database_role_members" in sql:
+            result = [("DB1", "db_owner", 10)]
+        elif "FROM [DB1].sys.database_permissions" in sql:
+            result = [("DB1", "SELECT", 10, 1, 0, "OBJECT", "dbo", "table1", None)]
+        elif "FROM [DB1].sys.database_principals" in sql:
+            result = [("DB1", "login1", 10, b"\x01")]
+        else:
+            result = []
+        return result
 
 
 @pytest.mark.unit
@@ -127,6 +161,55 @@ def test_fetch_raw_accounts_collects_sqlserver_login_status_fields(monkeypatch: 
     assert type_specific["is_locked_out"] is True
     assert type_specific["is_password_expired"] is False
     assert type_specific["must_change_password"] is True
+
+
+@pytest.mark.unit
+def test_get_server_roles_bulk_uses_escaped_literal_cte_without_openjson() -> None:
+    adapter = SQLServerAccountAdapter()
+    conn = _DummySQLServerConnection([])
+
+    adapter._get_server_roles_bulk(conn, ["plain", "O'Brien"])
+
+    assert conn.last_sql is not None
+    assert "OPENJSON" not in conn.last_sql
+    assert "N'O''Brien'" in conn.last_sql
+
+
+@pytest.mark.unit
+def test_enrich_permissions_supports_sqlserver_without_openjson() -> None:
+    adapter = SQLServerAccountAdapter()
+    instance = Instance(
+        name="inst",
+        db_type="sqlserver",
+        host="127.0.0.1",
+        port=1433,
+        description=None,
+        is_active=True,
+    )
+    conn = _OpenJsonUnsupportedSQLServerConnection()
+
+    accounts = [
+        {
+            "username": "login1",
+            "permissions": {"type_specific": {}},
+        },
+    ]
+
+    enriched = adapter.enrich_permissions(instance, conn, accounts)
+
+    permissions = cast(dict[str, object], enriched[0]["permissions"])
+    assert permissions["sqlserver_server_roles"] == ["sysadmin"]
+    assert permissions["sqlserver_server_permissions"] == ["CONTROL SERVER"]
+    assert permissions["sqlserver_database_roles"] == {"DB1": ["db_owner"]}
+    assert permissions["sqlserver_database_permissions"] == {
+        "DB1": {
+            "database": [],
+            "schema": {},
+            "table": {"dbo.table1": ["SELECT"]},
+        },
+    }
+    assert conn.queries
+    assert all("OPENJSON" not in sql for sql in conn.queries)
 
 
 @pytest.mark.unit
