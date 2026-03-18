@@ -44,13 +44,13 @@
     return element.value || "";
   }
 
-  function readSelectValues(selector, context = null) {
+  function readCheckboxValues(selector, context = null) {
     const element = getElement(selector, context);
     if (!element) {
       return [];
     }
-    return Array.from(element.selectedOptions || [])
-      .map((option) => option?.value || "")
+    return Array.from(element.querySelectorAll('input[type="checkbox"]:checked'))
+      .map((input) => input?.value || "")
       .filter(Boolean);
   }
 
@@ -78,8 +78,8 @@
   function readInitialFilters(config = {}) {
     const filterForm = getElement(config?.filterFormId || null);
 
-    const dbTypes = readSelectValues("#db_type", filterForm);
-    const instanceIds = readSelectValues('[data-role="instance-filter"]', filterForm);
+    const dbTypes = readCheckboxValues("#db_type", filterForm);
+    const instanceIds = readCheckboxValues('[data-role="instance-filter"]', filterForm);
     const databaseSelect = getElement('[data-role="database-filter"]', filterForm);
     const databaseId = databaseSelect ? databaseSelect.value || "" : "";
     let databaseName = null;
@@ -203,23 +203,94 @@
    * @param {string|number} value 需要设置的值。
    * @returns {void}
    */
+  function updateCheckboxOptions(element, options) {
+    const target = getElement(element);
+    if (!target) {
+      return;
+    }
+    const host = target.querySelector('[data-role="checkbox-group"]') || target;
+    const {
+      items = [],
+      selected = [],
+      disabled = false,
+      emptyText = "暂无可选项",
+      name = target.dataset.fieldName || "",
+      getOptionValue,
+      getOptionLabel,
+    } = options || {};
+
+    const selectedValues = Array.isArray(selected)
+      ? selected.map((item) => String(item))
+      : selected
+        ? [String(selected)]
+        : [];
+
+    host.innerHTML = "";
+    target.classList.toggle("filter-checkbox-group--disabled", Boolean(disabled));
+
+    if (!items.length) {
+      const empty = document.createElement("div");
+      empty.className = "filter-checkbox-group__empty";
+      empty.textContent = emptyText;
+      host.appendChild(empty);
+      return;
+    }
+
+    items.forEach((item, index) => {
+      const value = String(
+        (typeof getOptionValue === "function" ? getOptionValue(item) : item?.value) ?? "",
+      );
+      const labelText = String(
+        (typeof getOptionLabel === "function" ? getOptionLabel(item) : item?.label) ?? value,
+      );
+      const option = document.createElement("label");
+      option.className = "filter-checkbox-group__option";
+
+      const input = document.createElement("input");
+      input.className = "form-check-input filter-checkbox-group__input";
+      input.type = "checkbox";
+      input.name = name;
+      input.value = value;
+      input.id = `${target.id || name || "checkbox-filter"}-${index + 1}`;
+      input.checked = selectedValues.includes(value);
+      input.disabled = Boolean(disabled);
+
+      const label = document.createElement("span");
+      label.className = "filter-checkbox-group__label";
+      label.textContent = labelText;
+
+      option.htmlFor = input.id;
+      option.appendChild(input);
+      option.appendChild(label);
+      host.appendChild(option);
+    });
+  }
+
   function syncSelectValue(selector, value) {
     const element = getElement(selector);
     if (!element) {
       return;
     }
-    if (element.multiple) {
-      const selectedValues = Array.isArray(value)
-        ? value.map((item) => String(item))
-        : value
-          ? [String(value)]
-          : [];
-      Array.from(element.options).forEach((option) => {
-        option.selected = selectedValues.includes(String(option.value));
-      });
+    const selectedValues = Array.isArray(value)
+      ? value.map((item) => String(item))
+      : value
+        ? [String(value)]
+        : [];
+
+    if (element.tagName === "SELECT") {
+      if (element.multiple) {
+        Array.from(element.options).forEach((option) => {
+          option.selected = selectedValues.includes(String(option.value));
+        });
+        return;
+      }
+      element.value = value ?? "";
       return;
     }
-    element.value = value ?? "";
+
+    element.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = selectedValues.includes(String(input.value));
+    });
   }
 
   /**
@@ -234,13 +305,22 @@
     if (!element) {
       return;
     }
-    element.disabled = Boolean(disabled);
+    const resolvedDisabled = Boolean(disabled);
+    if (element.tagName === "SELECT" || element.tagName === "INPUT") {
+      element.disabled = resolvedDisabled;
+      return;
+    }
+    element.classList.toggle("filter-checkbox-group--disabled", resolvedDisabled);
+    element.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.disabled = resolvedDisabled;
+    });
   }
 
   window.CapacityStatsFilters = {
     readInitialFilters,
     readChartState,
     updateSelectOptions,
+    updateCheckboxOptions,
     syncSelectValue,
     setDisabled,
   };
