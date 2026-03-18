@@ -18,8 +18,8 @@ def test_apply_filters_uses_period_start_bounds_for_partition_pruning() -> None:
 
     repository = CapacityDatabasesRepository(session=session)
     filters = DatabaseAggregationsFilters(
-        instance_id=None,
-        db_type=None,
+        instance_ids=[],
+        db_types=[],
         database_name=None,
         database_id=None,
         period_type="daily",

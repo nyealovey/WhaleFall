@@ -22,8 +22,8 @@ def test_build_summary_query_avoids_tuple_in_and_uses_period_start_partition_key
 
     repository = CapacityDatabasesRepository(session=session)
     filters = DatabaseAggregationsSummaryFilters(
-        instance_id=None,
-        db_type=None,
+        instance_ids=[],
+        db_types=[],
         database_name=None,
         database_id=None,
         period_type="daily",
@@ -127,8 +127,8 @@ def test_summarize_latest_aggregations_returns_latest_values_within_range() -> N
     repository = CapacityDatabasesRepository(session=session)
     result = repository.summarize_latest_aggregations(
         DatabaseAggregationsSummaryFilters(
-            instance_id=None,
-            db_type=None,
+            instance_ids=[],
+            db_types=[],
             database_name=None,
             database_id=None,
             period_type="daily",

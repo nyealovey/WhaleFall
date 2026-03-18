@@ -21,9 +21,14 @@ if TYPE_CHECKING:
 _OPTIONS_KEY_PREFIX = "whalefall:v1:options"
 
 
-def _normalize_optional_str(value: str | None, *, default: str) -> str:
+def _normalize_optional_str_list(value: str | list[str] | None, *, default: str) -> str:
     if value is None:
         return default
+
+    if isinstance(value, list):
+        cleaned_items = sorted({item.strip().lower() for item in value if isinstance(item, str) and item.strip()})
+        return ",".join(cleaned_items) if cleaned_items else default
+
     cleaned = value.strip()
     if not cleaned:
         return default
@@ -67,8 +72,8 @@ class OptionsCache:
         return f"{_OPTIONS_KEY_PREFIX}:classifications:active"
 
     @staticmethod
-    def _key_instance_select_options(db_type: str | None) -> str:
-        normalized = _normalize_optional_str(db_type, default="all")
+    def _key_instance_select_options(db_type: str | list[str] | None) -> str:
+        normalized = _normalize_optional_str_list(db_type, default="all")
         return f"{_OPTIONS_KEY_PREFIX}:instances-select:{normalized}"
 
     @staticmethod
@@ -76,8 +81,8 @@ class OptionsCache:
         return f"{_OPTIONS_KEY_PREFIX}:databases-select:{instance_id}"
 
     @staticmethod
-    def _key_common_instances_options(db_type: str | None) -> str:
-        normalized = _normalize_optional_str(db_type, default="all")
+    def _key_common_instances_options(db_type: str | list[str] | None) -> str:
+        normalized = _normalize_optional_str_list(db_type, default="all")
         return f"{_OPTIONS_KEY_PREFIX}:instances-common:{normalized}"
 
     @staticmethod
@@ -130,7 +135,7 @@ class OptionsCache:
             return False
         return manager.set(self._key_classifications(), options, timeout=self._get_ttl_seconds())
 
-    def get_instance_select_options(self, db_type: str | None) -> list[dict[str, str]] | None:
+    def get_instance_select_options(self, db_type: str | list[str] | None) -> list[dict[str, str]] | None:
         """读取实例下拉 options 缓存."""
         manager = self._get_manager()
         if not manager:
@@ -138,7 +143,7 @@ class OptionsCache:
         cached = manager.get(self._key_instance_select_options(db_type))
         return cast("list[dict[str, str]] | None", cached) if isinstance(cached, list) else None
 
-    def set_instance_select_options(self, db_type: str | None, options: list[dict[str, str]]) -> bool:
+    def set_instance_select_options(self, db_type: str | list[str] | None, options: list[dict[str, str]]) -> bool:
         """写入实例下拉 options 缓存."""
         manager = self._get_manager()
         if not manager:
@@ -160,7 +165,7 @@ class OptionsCache:
             return False
         return manager.set(self._key_database_select_options(instance_id), options, timeout=self._get_ttl_seconds())
 
-    def get_common_instances_options(self, db_type: str | None) -> list[dict[str, Any]] | None:
+    def get_common_instances_options(self, db_type: str | list[str] | None) -> list[dict[str, Any]] | None:
         """读取 Common instances options 缓存."""
         manager = self._get_manager()
         if not manager:
@@ -168,7 +173,7 @@ class OptionsCache:
         cached = manager.get(self._key_common_instances_options(db_type))
         return cast("list[dict[str, Any]] | None", cached) if isinstance(cached, list) else None
 
-    def set_common_instances_options(self, db_type: str | None, items: list[dict[str, Any]]) -> bool:
+    def set_common_instances_options(self, db_type: str | list[str] | None, items: list[dict[str, Any]]) -> bool:
         """写入 Common instances options 缓存."""
         manager = self._get_manager()
         if not manager:

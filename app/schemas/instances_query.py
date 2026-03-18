@@ -13,7 +13,7 @@ from pydantic import AliasChoices, Field, field_validator
 
 from app.core.types.instances import InstanceListFilters
 from app.schemas.base import PayloadSchema
-from app.schemas.query_parsers import parse_int, parse_tags, parse_text
+from app.schemas.query_parsers import parse_int, parse_tags, parse_text, parse_text_list
 from app.utils.payload_converters import as_bool
 
 _ALLOWED_SORT_ORDERS = {"asc", "desc"}
@@ -115,12 +115,12 @@ class InstanceListFiltersQuery(PayloadSchema):
 class InstancesOptionsQuery(PayloadSchema):
     """实例 options query 参数 schema."""
 
-    db_type: str | None = None
+    db_type: list[str] | None = None
 
     @field_validator("db_type", mode="before")
     @classmethod
-    def _parse_db_type(cls, value: Any) -> str | None:
-        cleaned = parse_text(value)
+    def _parse_db_type(cls, value: Any) -> list[str] | None:
+        cleaned = parse_text_list(value)
         return cleaned or None
 
 
