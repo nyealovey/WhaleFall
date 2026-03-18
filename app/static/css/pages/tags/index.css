@@ -27,9 +27,7 @@
 }
 
 #tags-grid td[data-column-id="category"],
-#tags-grid th[data-column-id="category"],
-#tags-grid td[data-column-id="color"],
-#tags-grid th[data-column-id="color"] {
+#tags-grid th[data-column-id="category"] {
     width: 110px;
     min-width: 110px;
 }

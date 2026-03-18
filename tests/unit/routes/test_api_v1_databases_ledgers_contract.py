@@ -23,7 +23,7 @@ def test_api_v1_databases_ledgers_endpoints_contract(auth_client, monkeypatch) -
                 "db_type": "mysql",
                 "capacity": {"size_mb": 1, "size_bytes": 1048576, "label": "1 MB", "collected_at": None},
                 "sync_status": {"value": "completed", "label": "已更新", "variant": "success"},
-                "tags": [],
+                "tags": [{"name": "db_tag", "display_name": "数据库标签", "color": "primary"}],
             },
         ]
         total = 1
@@ -59,3 +59,7 @@ def test_api_v1_databases_ledgers_endpoints_contract(auth_client, monkeypatch) -
         "sync_status",
         "tags",
     }.issubset(item.keys())
+    tags = item.get("tags")
+    assert isinstance(tags, list)
+    assert len(tags) == 1
+    assert tags[0] == {"name": "db_tag", "display_name": "数据库标签"}

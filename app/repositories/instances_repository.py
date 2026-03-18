@@ -147,14 +147,12 @@ class InstancesRepository:
         tag_instance_id_column = cast(ColumnElement[int], instance_tags.c.instance_id)
         tag_name_column = cast(ColumnElement[str], Tag.name)
         tag_display_name_column = cast(ColumnElement[str], Tag.display_name)
-        tag_color_column = cast(ColumnElement[str], Tag.color)
         tag_rows_query: Query[Any] = cast(
             Query[Any],
             db.session.query(
                 tag_instance_id_column,
                 tag_name_column,
                 tag_display_name_column,
-                tag_color_column,
             ),
         )
         tag_rows = (
@@ -164,12 +162,11 @@ class InstancesRepository:
         )
 
         mapping: dict[int, list[TagSummary]] = defaultdict(list)
-        for instance_id, tag_name, display_name, color in tag_rows:
+        for instance_id, tag_name, display_name in tag_rows:
             mapping[instance_id].append(
                 TagSummary(
                     name=tag_name,
                     display_name=display_name,
-                    color=color,
                 ),
             )
         return dict(mapping)

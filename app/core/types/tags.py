@@ -14,10 +14,6 @@ class SupportsTagListRow(Protocol):
     name: str
     display_name: str
     category: str
-    color: str
-    color_value: str
-    color_name: str
-    css_class: str
     is_active: bool
     created_at: datetime | None
     updated_at: datetime | None
@@ -29,7 +25,6 @@ class TagSummary:
 
     name: str
     display_name: str
-    color: str
 
 
 @dataclass(slots=True)
@@ -69,10 +64,6 @@ class TagListItem:
     name: str
     display_name: str
     category: str
-    color: str
-    color_value: str
-    color_name: str
-    css_class: str
     is_active: bool
     created_at: str | None
     updated_at: str | None

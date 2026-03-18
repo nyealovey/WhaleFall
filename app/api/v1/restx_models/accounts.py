@@ -7,7 +7,6 @@ from flask_restx import fields
 TAG_FIELDS = {
     "name": fields.String(description="标签代码", example="prod"),
     "display_name": fields.String(description="标签展示名", example="生产"),
-    "color": fields.String(description="颜色 key", example="red"),
 }
 
 CLASSIFICATION_FIELDS = {
