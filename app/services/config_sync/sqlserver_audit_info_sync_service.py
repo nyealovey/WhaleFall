@@ -281,28 +281,7 @@ class SQLServerAuditInfoSyncService:
 
     @staticmethod
     def _collect_server_audits(connection: DatabaseConnection) -> list[dict[str, Any]]:
-        rows = connection.execute_query(
-            """
-            SELECT
-                sa.audit_id,
-                sa.name,
-                CAST(sa.audit_guid AS NVARCHAR(36)) AS audit_guid,
-                sa.type_desc,
-                sa.on_failure_desc,
-                sa.queue_delay,
-                sa.is_state_enabled,
-                sa.create_date,
-                sa.modify_date,
-                sfa.log_file_path AS file_path,
-                sfa.max_file_size,
-                sfa.max_rollover_files,
-                sfa.max_files,
-                sfa.reserve_disk_space
-            FROM sys.server_audits sa
-            LEFT JOIN sys.server_file_audits sfa ON sfa.audit_id = sa.audit_id
-            ORDER BY sa.name ASC
-            """,
-        )
+        rows = connection.execute_query(SQLServerAuditInfoSyncService._build_server_audits_query())
         audits: list[dict[str, Any]] = []
         for row in rows:
             name = _stringify(row[1] if len(row) > 1 else None)
@@ -321,12 +300,33 @@ class SQLServerAuditInfoSyncService:
                 "file_path": _stringify(row[9] if len(row) > 9 else None),
                 "max_size_mb": _intify(row[10] if len(row) > 10 else None),
                 "max_rollover_files": _intify(row[11] if len(row) > 11 else None),
-                "max_files": _intify(row[12] if len(row) > 12 else None),
-                "reserve_disk_space": _boolify(row[13] if len(row) > 13 else None),
+                "reserve_disk_space": _boolify(row[12] if len(row) > 12 else None),
             }
             audit["target_summary"] = _target_summary(audit)
             audits.append(audit)
         return audits
+
+    @staticmethod
+    def _build_server_audits_query() -> str:
+        return """
+            SELECT
+                sa.audit_id,
+                sa.name,
+                CAST(sa.audit_guid AS NVARCHAR(36)) AS audit_guid,
+                sa.type_desc,
+                sa.on_failure_desc,
+                sa.queue_delay,
+                sa.is_state_enabled,
+                sa.create_date,
+                sa.modify_date,
+                sfa.log_file_path AS file_path,
+                sfa.max_file_size,
+                sfa.max_rollover_files,
+                sfa.reserve_disk_space
+            FROM sys.server_audits sa
+            LEFT JOIN sys.server_file_audits sfa ON sfa.audit_id = sa.audit_id
+            ORDER BY sa.name ASC
+            """
 
     @staticmethod
     def _collect_server_audit_specifications(
@@ -459,7 +459,7 @@ class SQLServerAuditInfoSyncService:
                 FROM {database_identifier}.sys.database_audit_specifications das
                 LEFT JOIN {database_identifier}.sys.database_audit_specification_details dsd
                   ON dsd.database_specification_id = das.database_specification_id
-                LEFT JOIN {database_identifier}.sys.objects object_ref
+                LEFT JOIN {database_identifier}.sys.all_objects object_ref
                   ON object_ref.object_id = dsd.major_id
                 LEFT JOIN {database_identifier}.sys.schemas object_schema
                   ON object_schema.schema_id = object_ref.schema_id

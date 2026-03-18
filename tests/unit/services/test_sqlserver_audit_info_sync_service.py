@@ -4,8 +4,6 @@ from app.services.config_sync.sqlserver_audit_info_sync_service import (
     SQLServerAuditInfoSyncService,
     build_sqlserver_audit_facts,
 )
-
-
 @pytest.mark.unit
 def test_build_sqlserver_audit_facts_counts_targets_and_specs() -> None:
     snapshot = {
@@ -123,14 +121,20 @@ def test_collect_server_audits_uses_log_file_path_column() -> None:
     audits = SQLServerAuditInfoSyncService._collect_server_audits(connection)  # type: ignore[arg-type]
 
     assert "log_file_path" in connection.last_sql
+    assert "max_files" not in connection.last_sql
     assert "sfa.file_path" not in connection.last_sql
     assert audits[0]["file_path"] == "D:\\SQLAudit\\"
+    assert "max_files" not in audits[0]
 
 
 @pytest.mark.unit
 def test_collect_database_audit_specifications_builds_object_display_text() -> None:
     class _FakeConnection:
-        def execute_query(self, _sql: str):  # type: ignore[no-untyped-def]
+        def __init__(self) -> None:
+            self.last_sql = ""
+
+        def execute_query(self, sql: str):  # type: ignore[no-untyped-def]
+            self.last_sql = sql
             return [
                 (
                     "master",
@@ -151,12 +155,15 @@ def test_collect_database_audit_specifications_builds_object_display_text() -> N
                 ),
             ]
 
+    connection = _FakeConnection()
     specs = SQLServerAuditInfoSyncService._collect_single_database_audit_specifications(  # type: ignore[arg-type]
-        _FakeConnection(),
+        connection,
         database_name="master",
         audit_name_by_guid={"guid-1": "SIEM"},
     )
 
+    assert ".sys.all_objects" in connection.last_sql
+    assert ".sys.objects" not in connection.last_sql
     assert specs[0]["action_count"] == 1
     assert specs[0]["actions"][0]["display_text"] == "EXECUTE dbo.xp_cmdshell_proxy_account"
 
