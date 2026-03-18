@@ -193,6 +193,164 @@ def test_api_v1_capacity_instances_endpoints_contract(app, auth_client) -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_capacity_instances_support_multiple_db_types_and_instance_ids(app, auth_client) -> None:
+    _ensure_capacity_instances_tables(app)
+
+    with app.app_context():
+        mysql_instance = Instance(
+            name="mysql-instance",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        pg_instance = Instance(
+            name="pg-instance",
+            db_type="postgresql",
+            host="127.0.0.2",
+            port=5432,
+            description=None,
+            is_active=True,
+        )
+        excluded_instance = Instance(
+            name="sqlserver-instance",
+            db_type="sqlserver",
+            host="127.0.0.3",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        db.session.add_all([mysql_instance, pg_instance, excluded_instance])
+        db.session.commit()
+        mysql_instance_id = int(mysql_instance.id)
+        pg_instance_id = int(pg_instance.id)
+        excluded_instance_id = int(excluded_instance.id)
+
+        aggregation_date = date(2025, 12, 24)
+        db.session.add_all(
+            [
+                InstanceSizeAggregation(
+                    id=1,
+                    instance_id=mysql_instance_id,
+                    period_type="daily",
+                    period_start=aggregation_date,
+                    period_end=aggregation_date,
+                    total_size_mb=100,
+                    avg_size_mb=100,
+                    max_size_mb=100,
+                    min_size_mb=100,
+                    data_count=1,
+                    database_count=1,
+                    avg_database_count=1.0,
+                    max_database_count=1,
+                    min_database_count=1,
+                    total_size_change_mb=0,
+                    total_size_change_percent=0.0,
+                    database_count_change=0,
+                    database_count_change_percent=0.0,
+                    growth_rate=0.0,
+                    trend_direction="stable",
+                ),
+                InstanceSizeAggregation(
+                    id=2,
+                    instance_id=pg_instance_id,
+                    period_type="daily",
+                    period_start=aggregation_date,
+                    period_end=aggregation_date,
+                    total_size_mb=200,
+                    avg_size_mb=200,
+                    max_size_mb=200,
+                    min_size_mb=200,
+                    data_count=1,
+                    database_count=2,
+                    avg_database_count=2.0,
+                    max_database_count=2,
+                    min_database_count=2,
+                    total_size_change_mb=0,
+                    total_size_change_percent=0.0,
+                    database_count_change=0,
+                    database_count_change_percent=0.0,
+                    growth_rate=0.0,
+                    trend_direction="stable",
+                ),
+                InstanceSizeAggregation(
+                    id=3,
+                    instance_id=excluded_instance_id,
+                    period_type="daily",
+                    period_start=aggregation_date,
+                    period_end=aggregation_date,
+                    total_size_mb=300,
+                    avg_size_mb=300,
+                    max_size_mb=300,
+                    min_size_mb=300,
+                    data_count=1,
+                    database_count=3,
+                    avg_database_count=3.0,
+                    max_database_count=3,
+                    min_database_count=3,
+                    total_size_change_mb=0,
+                    total_size_change_percent=0.0,
+                    database_count_change=0,
+                    database_count_change_percent=0.0,
+                    growth_rate=0.0,
+                    trend_direction="stable",
+                ),
+            ],
+        )
+        db.session.add_all(
+            [
+                InstanceSizeStat(
+                    id=1,
+                    instance_id=mysql_instance_id,
+                    total_size_mb=100,
+                    database_count=1,
+                    collected_date=aggregation_date,
+                ),
+                InstanceSizeStat(
+                    id=2,
+                    instance_id=pg_instance_id,
+                    total_size_mb=200,
+                    database_count=2,
+                    collected_date=aggregation_date,
+                ),
+                InstanceSizeStat(
+                    id=3,
+                    instance_id=excluded_instance_id,
+                    total_size_mb=300,
+                    database_count=3,
+                    collected_date=aggregation_date,
+                ),
+            ],
+        )
+        db.session.commit()
+
+    response = auth_client.get(
+        f"/api/v1/capacity/instances?period_type=daily&start_date=2025-12-24&end_date=2025-12-24"
+        f"&db_type=mysql&db_type=postgresql&instance_id={mysql_instance_id}&instance_id={pg_instance_id}",
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    items = payload.get("data", {}).get("items")
+    assert isinstance(items, list)
+    instance_ids = {item.get("instance_id") for item in items if isinstance(item, dict)}
+    assert instance_ids == {mysql_instance_id, pg_instance_id}
+
+    summary_response = auth_client.get(
+        f"/api/v1/capacity/instances/summary?period_type=daily&start_date=2025-12-24&end_date=2025-12-24"
+        f"&db_type=mysql&db_type=postgresql&instance_id={mysql_instance_id}&instance_id={pg_instance_id}",
+    )
+    assert summary_response.status_code == 200
+    summary_payload = summary_response.get_json()
+    assert isinstance(summary_payload, dict)
+    summary = summary_payload.get("data", {}).get("summary")
+    assert isinstance(summary, dict)
+    assert summary.get("total_instances") == 2
+    assert summary.get("total_size_mb") == 300
+
+
+@pytest.mark.unit
 def test_api_v1_capacity_instances_include_disabled_instance_in_statistics(app, auth_client) -> None:
     _ensure_capacity_instances_tables(app)
 

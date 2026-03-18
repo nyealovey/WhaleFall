@@ -60,3 +60,22 @@ def test_filter_options_service_instance_select_options_cache_key_varies_by_db_t
     assert service.list_instance_select_options(db_type="mysql") == []
     assert service.list_instance_select_options(db_type="mysql") == []
     assert calls["repo"] == 2
+
+
+@pytest.mark.unit
+def test_filter_options_service_instance_select_options_cache_key_normalizes_multi_db_type_order(monkeypatch) -> None:
+    calls = {"repo": 0}
+
+    class _Repo:
+        def list_existing_instances(self, *, db_type=None):
+            del db_type
+            calls["repo"] += 1
+            return []
+
+    manager = CacheManager(cache=cast(Cache, _DummyCache()))
+    monkeypatch.setattr(CacheManagerRegistry, "_manager", manager, raising=False)
+
+    service = FilterOptionsService(repository=cast(Any, _Repo()))
+    assert service.list_instance_select_options(db_type=["mysql", "postgresql"]) == []
+    assert service.list_instance_select_options(db_type=["postgresql", "mysql"]) == []
+    assert calls["repo"] == 1

@@ -71,7 +71,7 @@ class FilterOptionsService:
         self._options_cache.set_classification_options(options)
         return options
 
-    def list_instance_select_options(self, db_type: str | None = None) -> list[dict[str, str]]:
+    def list_instance_select_options(self, db_type: str | list[str] | None = None) -> list[dict[str, str]]:
         """获取实例下拉选项."""
         cached = self._options_cache.get_instance_select_options(db_type)
         if cached is not None:
@@ -91,7 +91,7 @@ class FilterOptionsService:
         self._options_cache.set_database_select_options(instance_id, options)
         return options
 
-    def get_common_instances_options(self, db_type: str | None = None) -> CommonInstancesOptionsResult:
+    def get_common_instances_options(self, db_type: str | list[str] | None = None) -> CommonInstancesOptionsResult:
         """构建 Common API 的实例选项."""
         cached = self._options_cache.get_common_instances_options(db_type)
         if cached is not None:

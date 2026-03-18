@@ -44,6 +44,16 @@
     return element.value || "";
   }
 
+  function readSelectValues(selector, context = null) {
+    const element = getElement(selector, context);
+    if (!element) {
+      return [];
+    }
+    return Array.from(element.selectedOptions || [])
+      .map((option) => option?.value || "")
+      .filter(Boolean);
+  }
+
   /**
    * 获取 radio 组当前选中值，无则返回 fallback。
    *
@@ -68,8 +78,8 @@
   function readInitialFilters(config = {}) {
     const filterForm = getElement(config?.filterFormId || null);
 
-    const dbType = readSelectValue("#db_type", filterForm);
-    const instanceId = readSelectValue('[data-role="instance-filter"]', filterForm);
+    const dbTypes = readSelectValues("#db_type", filterForm);
+    const instanceIds = readSelectValues('[data-role="instance-filter"]', filterForm);
     const databaseSelect = getElement('[data-role="database-filter"]', filterForm);
     const databaseId = databaseSelect ? databaseSelect.value || "" : "";
     let databaseName = null;
@@ -82,8 +92,8 @@
     const periodType = readSelectValue("#period_type", filterForm) || "daily";
 
     return {
-      dbType: dbType || "",
-      instanceId,
+      dbTypes,
+      instanceIds,
       databaseId,
       databaseName,
       periodType: periodType || "daily",
@@ -170,7 +180,16 @@
           : item?.label) ?? value ?? "";
       option.value = String(value);
       option.textContent = label;
-      if (selected && String(selected) === String(value)) {
+      if (target.multiple) {
+        const selectedValues = Array.isArray(selected)
+          ? selected.map((item) => String(item))
+          : selected
+            ? [String(selected)]
+            : [];
+        if (selectedValues.includes(String(value))) {
+          option.selected = true;
+        }
+      } else if (selected && String(selected) === String(value)) {
         option.selected = true;
       }
       target.appendChild(option);
@@ -189,8 +208,18 @@
     if (!element) {
       return;
     }
+    if (element.multiple) {
+      const selectedValues = Array.isArray(value)
+        ? value.map((item) => String(item))
+        : value
+          ? [String(value)]
+          : [];
+      Array.from(element.options).forEach((option) => {
+        option.selected = selectedValues.includes(String(option.value));
+      });
+      return;
+    }
     element.value = value ?? "";
-    element.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   /**
