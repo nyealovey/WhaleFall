@@ -16,6 +16,10 @@ from app.services.alerts.email_sender import EmailSender
 class _DummySettings:
     global_enabled: bool = True
     recipients_json: list[str] = None  # type: ignore[assignment]
+    database_capacity_enabled: bool = False
+    account_sync_failure_enabled: bool = False
+    database_sync_failure_enabled: bool = False
+    privileged_account_enabled: bool = False
 
 
 @dataclass(slots=True)
@@ -27,15 +31,31 @@ class _DummyEvent:
 
 
 class _StubRepository:
-    def __init__(self, events: list[_DummyEvent]) -> None:
+    def __init__(
+        self,
+        events: list[_DummyEvent],
+        *,
+        daily_stats: dict[str, dict[str, int]] | None = None,
+    ) -> None:
         self.events = events
         self.marked: list[tuple[list[int], datetime]] = []
+        self.daily_stats = daily_stats or {}
 
     def list_pending_digest_events(self) -> list[_DummyEvent]:
         return list(self.events)
 
     def mark_events_digest_sent(self, event_ids: list[int], sent_at: datetime) -> None:
         self.marked.append((list(event_ids), sent_at))
+
+    def get_bucket_event_counts(self, bucket_date) -> dict[str, dict[str, int]]:
+        _ = bucket_date
+        return {
+            alert_type: {
+                "pending_count": int(values.get("pending_count", 0)),
+                "sent_count": int(values.get("sent_count", 0)),
+            }
+            for alert_type, values in self.daily_stats.items()
+        }
 
 
 class _StubSender:
@@ -97,28 +117,36 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
             "item_key": "database_capacity_growth",
             "item_name": "数据库容量异常增长",
             "enabled": False,
-            "event_count": 1,
+            "pending_count": 1,
+            "sent_count": 0,
+            "display_state": "disabled",
             "summary": "规则未启用，累计待发送事件 1 条",
         },
         {
             "item_key": "account_sync_failure",
             "item_name": "账户同步异常",
             "enabled": False,
-            "event_count": 0,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "disabled",
             "summary": "规则未启用",
         },
         {
             "item_key": "database_sync_failure",
             "item_name": "数据库同步异常",
             "enabled": False,
-            "event_count": 1,
+            "pending_count": 1,
+            "sent_count": 0,
+            "display_state": "disabled",
             "summary": "规则未启用，累计待发送事件 1 条",
         },
         {
             "item_key": "privileged_account_discovery",
             "item_name": "新增高权限账户",
             "enabled": False,
-            "event_count": 0,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "disabled",
             "summary": "规则未启用",
         },
     ]
@@ -126,6 +154,7 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
         "item_key": "deliver_digest",
         "item_name": "发送汇总邮件",
         "status": "completed",
+        "display_state": "sent",
         "summary": "已发送 2 条事件到 1 个收件人",
         "skip_reason": None,
         "recipient_count": 1,
@@ -140,7 +169,14 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
 
 @pytest.mark.unit
 def test_email_alert_digest_service_reports_skip_structure_when_no_pending_events() -> None:
-    settings = _DummySettings(global_enabled=True, recipients_json=["ops@example.com"])
+    settings = _DummySettings(
+        global_enabled=True,
+        recipients_json=["ops@example.com"],
+        database_capacity_enabled=True,
+        account_sync_failure_enabled=True,
+        database_sync_failure_enabled=True,
+        privileged_account_enabled=True,
+    )
     service = EmailAlertDigestService(
         repository=cast(EmailAlertsRepository, _StubRepository([])),
         sender=cast(EmailSender, _StubSender()),
@@ -158,6 +194,7 @@ def test_email_alert_digest_service_reports_skip_structure_when_no_pending_event
         "item_name": "发送汇总邮件",
         "status": "completed",
         "summary": "无待发送事件",
+        "display_state": "skipped_no_event",
         "skip_reason": "no_pending_events",
         "recipient_count": 1,
         "error_message": None,
@@ -166,29 +203,115 @@ def test_email_alert_digest_service_reports_skip_structure_when_no_pending_event
         {
             "item_key": "database_capacity_growth",
             "item_name": "数据库容量异常增长",
-            "enabled": False,
-            "event_count": 0,
-            "summary": "规则未启用",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
         },
         {
             "item_key": "account_sync_failure",
             "item_name": "账户同步异常",
-            "enabled": False,
-            "event_count": 0,
-            "summary": "规则未启用",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
         },
         {
             "item_key": "database_sync_failure",
             "item_name": "数据库同步异常",
-            "enabled": False,
-            "event_count": 0,
-            "summary": "规则未启用",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
         },
         {
             "item_key": "privileged_account_discovery",
             "item_name": "新增高权限账户",
-            "enabled": False,
-            "event_count": 0,
-            "summary": "规则未启用",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
+        },
+    ]
+
+
+@pytest.mark.unit
+def test_email_alert_digest_service_distinguishes_already_sent_from_no_event() -> None:
+    settings = _DummySettings(
+        global_enabled=True,
+        recipients_json=["ops@example.com"],
+        database_capacity_enabled=True,
+        account_sync_failure_enabled=True,
+        database_sync_failure_enabled=True,
+        privileged_account_enabled=True,
+    )
+    repository = _StubRepository(
+        [],
+        daily_stats={
+            "database_sync_failure": {"pending_count": 0, "sent_count": 2},
+            "account_sync_failure": {"pending_count": 0, "sent_count": 1},
+        },
+    )
+    service = EmailAlertDigestService(
+        repository=cast(EmailAlertsRepository, repository),
+        sender=cast(EmailSender, _StubSender()),
+        settings_service=cast(EmailAlertSettingsService, _StubSettingsService(settings)),
+    )
+
+    summary = service.send_pending_digest(now=datetime(2026, 3, 17, 11, 3, tzinfo=UTC))
+
+    assert summary["sent"] is False
+    assert summary["skipped"] is True
+    assert summary["skip_reason"] == "already_sent_today"
+    assert summary["send_step"] == {
+        "item_key": "deliver_digest",
+        "item_name": "发送汇总邮件",
+        "status": "completed",
+        "summary": "当天已发送 3 条告警事件，本次无待发送事件",
+        "display_state": "skipped_already_sent",
+        "skip_reason": "already_sent_today",
+        "recipient_count": 1,
+        "error_message": None,
+    }
+    assert summary["rule_results"] == [
+        {
+            "item_key": "database_capacity_growth",
+            "item_name": "数据库容量异常增长",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
+        },
+        {
+            "item_key": "account_sync_failure",
+            "item_name": "账户同步异常",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 1,
+            "display_state": "already_sent",
+            "summary": "当天已发送 1 条，本次待发送 0 条",
+        },
+        {
+            "item_key": "database_sync_failure",
+            "item_name": "数据库同步异常",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 2,
+            "display_state": "already_sent",
+            "summary": "当天已发送 2 条，本次待发送 0 条",
+        },
+        {
+            "item_key": "privileged_account_discovery",
+            "item_name": "新增高权限账户",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
         },
     ]

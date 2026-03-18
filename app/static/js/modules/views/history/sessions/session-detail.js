@@ -162,7 +162,7 @@
     }
     const statusEl = root.querySelector('[data-field="status-pill"]');
     if (statusEl) {
-      const meta = getStatusMeta(session.status);
+      const meta = getRunStatusMeta(session);
       statusEl.innerHTML = renderStatusPill(meta.text, meta.tone, meta.icon);
     }
   }
@@ -258,7 +258,7 @@
    * @return {string} HTML 片段
    */
   function renderInstanceRow(record, timeUtils) {
-    const statusMeta = getInstanceStatusMeta(record.status);
+    const statusMeta = getItemStatusMeta(record);
     // Keep the "type" chip only: do not show item_key or per-item duration here.
     const chips = [renderLedgerChip(getItemTypeText(record.item_type), 'muted', 'fas fa-tag')];
     const summary = getItemSummary(record);
@@ -312,7 +312,8 @@
     const startedTime = formatTime(session.started_at, timeUtils);
     const completedTime = formatTime(session.completed_at, timeUtils);
     const progress = resolveProgress(session);
-    const statusMeta = getStatusMeta(session.status);
+    const statusMeta = getRunStatusMeta(session);
+    const sendStep = getNotificationSendStep(session);
 
     items.push({
       title: '创建任务',
@@ -343,7 +344,7 @@
 
     items.push({
       title: statusMeta.text,
-      desc: completedTime ? `总耗时 ${formatDuration(session.started_at, session.completed_at, timeUtils)}` : '等待完成',
+      desc: sendStep.summary || (completedTime ? `总耗时 ${formatDuration(session.started_at, session.completed_at, timeUtils)}` : '等待完成'),
       time: completedTime || '-',
       tone: statusMeta.tone,
       icon: statusMeta.icon,
@@ -454,6 +455,23 @@
     }
   }
 
+  function getRunStatusMeta(run) {
+    const sendStep = getNotificationSendStep(run);
+    switch (sendStep.display_state) {
+      case 'skipped_no_event':
+      case 'skipped_already_sent':
+      case 'skipped_disabled':
+      case 'skipped_no_recipients':
+        return { text: '已跳过', tone: 'muted', icon: 'fas fa-forward' };
+      case 'sent':
+        return { text: '已发送', tone: 'success', icon: 'fas fa-paper-plane' };
+      case 'failed':
+        return { text: '失败', tone: 'danger', icon: 'fas fa-times-circle' };
+      default:
+        return getStatusMeta(run?.status);
+    }
+  }
+
   /**
    * 实例状态映射。
    *
@@ -475,6 +493,31 @@
         return { text: typeof resolver === 'function' ? resolver('cancelled') : '已取消', tone: 'muted', icon: 'fas fa-ban' };
       default:
         return { text: status || '未知', tone: 'muted', icon: 'fas fa-info-circle' };
+    }
+  }
+
+  function getItemStatusMeta(record) {
+    const displayState = getItemDisplayState(record);
+    switch (displayState) {
+      case 'no_event':
+        return { text: '无事件', tone: 'muted', icon: 'fas fa-inbox' };
+      case 'already_sent':
+        return { text: '已发送过', tone: 'info', icon: 'fas fa-paper-plane' };
+      case 'pending':
+        return { text: '有事件', tone: 'info', icon: 'fas fa-bell' };
+      case 'disabled':
+        return { text: '未启用', tone: 'muted', icon: 'fas fa-ban' };
+      case 'skipped_no_event':
+      case 'skipped_already_sent':
+      case 'skipped_disabled':
+      case 'skipped_no_recipients':
+        return { text: '已跳过', tone: 'muted', icon: 'fas fa-forward' };
+      case 'sent':
+        return { text: '已发送', tone: 'success', icon: 'fas fa-paper-plane' };
+      case 'failed':
+        return { text: '失败', tone: 'danger', icon: 'fas fa-times-circle' };
+      default:
+        return getInstanceStatusMeta(record?.status);
     }
   }
 
@@ -517,6 +560,34 @@
     }
     const summary = typeof details.summary === 'string' ? details.summary.trim() : '';
     return summary || '';
+  }
+
+  function getItemDisplayState(record) {
+    const details = record?.details_json;
+    if (!details || typeof details !== 'object') {
+      return '';
+    }
+    return typeof details.display_state === 'string' ? details.display_state : '';
+  }
+
+  function getNotificationSendStep(run) {
+    if (run?.task_category !== 'notification') {
+      return {};
+    }
+    const summary = run?.summary_json;
+    if (!summary || typeof summary !== 'object') {
+      return {};
+    }
+    const ext = summary.ext;
+    if (!ext || typeof ext !== 'object') {
+      return {};
+    }
+    const data = ext.data;
+    if (!data || typeof data !== 'object') {
+      return {};
+    }
+    const sendStep = data.send_step;
+    return sendStep && typeof sendStep === 'object' ? sendStep : {};
   }
 
   function getItemTypeText(itemType) {
