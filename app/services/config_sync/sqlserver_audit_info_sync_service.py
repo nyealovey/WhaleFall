@@ -203,7 +203,7 @@ class SQLServerAuditInfoSyncService:
                 sa.is_state_enabled,
                 sa.create_date,
                 sa.modify_date,
-                sfa.file_path,
+                sfa.log_file_path AS file_path,
                 sfa.max_file_size,
                 sfa.max_rollover_files,
                 sfa.max_files,
