@@ -693,18 +693,17 @@
       }
     }
 
-    async handleDbTypeChange(event) {
-      const values = Array.from(event?.target?.selectedOptions || [])
-        .map((option) => option?.value || "")
-        .filter(Boolean);
-      this.state.filters.dbTypes = values;
+    async handleDbTypeChange() {
+      const latest = Filters.readInitialFilters(this.config);
+      this.state.filters.dbTypes = latest.dbTypes || [];
       this.state.filters.instanceIds = [];
+      this.state.filters.databaseId = "";
+      this.state.filters.databaseName = null;
+
       Filters.syncSelectValue(this.filterElements.instance, []);
       Filters.setDisabled(this.filterElements.instance, true);
 
       if (this.config.supportsDatabaseFilter) {
-        this.state.filters.databaseId = "";
-        this.state.filters.databaseName = null;
         Filters.syncSelectValue(this.filterElements.database, "");
         Filters.setDisabled(this.filterElements.database, true);
       }
@@ -715,11 +714,9 @@
       }
     }
 
-    async handleInstanceChange(event) {
-      const values = Array.from(event?.target?.selectedOptions || [])
-        .map((option) => option?.value || "")
-        .filter(Boolean);
-      this.state.filters.instanceIds = values;
+    async handleInstanceChange() {
+      const latest = Filters.readInitialFilters(this.config);
+      this.state.filters.instanceIds = latest.instanceIds || [];
       if (this.config.supportsDatabaseFilter) {
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
@@ -755,11 +752,12 @@
       }
       const params = {};
       if (!Array.isArray(this.state.filters.dbTypes) || !this.state.filters.dbTypes.length) {
-        Filters.updateSelectOptions(this.filterElements.instance, {
-          placeholder: "所有实例",
+        Filters.updateCheckboxOptions(this.filterElements.instance, {
           items: [],
-          allowEmpty: false,
           selected: [],
+          disabled: true,
+          emptyText: "请先选择数据库类型",
+          name: "instance",
         });
         Filters.setDisabled(this.filterElements.instance, true);
         return;
@@ -767,11 +765,12 @@
       params.db_type = this.state.filters.dbTypes;
       try {
         const instances = await this.dataSource.fetchInstances(endpoint, params);
-        Filters.updateSelectOptions(this.filterElements.instance, {
-          placeholder: "所有实例",
+        Filters.updateCheckboxOptions(this.filterElements.instance, {
           items: instances,
-          allowEmpty: false,
           selected: options?.preserveSelection ? this.state.filters.instanceIds : [],
+          disabled: false,
+          emptyText: "暂无实例",
+          name: "instance",
           getOptionValue: (item) => item?.id,
           getOptionLabel: (item) => {
             if (!item) {
