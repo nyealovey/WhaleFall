@@ -154,6 +154,11 @@ def build_calculate_database_aggregations_summary(
     )
 
 
+def build_calculate_database_summary(**kwargs: Any) -> dict[str, Any]:
+    """兼容新的调度任务命名."""
+    return build_calculate_database_aggregations_summary(**kwargs)
+
+
 def build_calculate_account_classification_summary(
     *,
     task_key: str,
@@ -197,6 +202,11 @@ def build_calculate_account_classification_summary(
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,
     )
+
+
+def build_calculate_account_summary(**kwargs: Any) -> dict[str, Any]:
+    """兼容新的调度任务命名."""
+    return build_calculate_account_classification_summary(**kwargs)
 
 
 def build_auto_classify_accounts_summary(

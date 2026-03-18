@@ -55,33 +55,48 @@
 </div>
 {%- endmacro %}
 
-{% macro checkbox_filter(label, field_id, field_name, options, current_value=None, col_class='col-md-2 col-12', disabled=False, empty_text='暂无可选项', wrapper_role=None) -%}
+{% macro checkbox_filter(label, field_id, field_name, options, current_value=None, col_class='col-md-2 col-12', disabled=False, empty_text='暂无可选项', placeholder='请选择', wrapper_role=None) -%}
 {% set selected_values = current_value or [] %}
 <div class="{{ col_class }}">
     <label class="form-label" for="{{ field_id }}">{{ label }}</label>
     <div id="{{ field_id }}"
-         class="filter-checkbox-group{% if disabled %} filter-checkbox-group--disabled{% endif %}"
+         class="filter-multiselect{% if disabled %} filter-multiselect--disabled{% endif %}"
          {% if wrapper_role %}data-role="{{ wrapper_role }}"{% endif %}
-         data-field-name="{{ field_name }}">
-        <div class="filter-checkbox-group__options" data-role="checkbox-group">
-            {% if options %}
-                {% for option in options %}
-                {% set option_value = option['value'] %}
-                {% set input_id = field_id ~ '-' ~ loop.index %}
-                <label class="filter-checkbox-group__option" for="{{ input_id }}">
-                    <input class="form-check-input filter-checkbox-group__input"
-                           type="checkbox"
-                           id="{{ input_id }}"
-                           name="{{ field_name }}"
-                           value="{{ option_value }}"
-                           {% if option_value in selected_values %}checked{% endif %}
-                           {% if disabled %}disabled{% endif %}>
-                    <span class="filter-checkbox-group__label">{{ option['label'] }}</span>
-                </label>
-                {% endfor %}
-            {% else %}
-                <div class="filter-checkbox-group__empty">{{ empty_text }}</div>
-            {% endif %}
+         data-field-name="{{ field_name }}"
+         data-placeholder="{{ placeholder }}">
+        <div class="filter-multiselect__shell" data-role="multiselect">
+            <button type="button"
+                    class="filter-multiselect__trigger"
+                    data-role="multiselect-trigger"
+                    aria-expanded="false"
+                    {% if disabled %}disabled{% endif %}>
+                <span class="filter-multiselect__summary" data-role="multiselect-summary">
+                    {% if selected_values %}已选 {{ selected_values|length }} 项{% else %}{{ placeholder }}{% endif %}
+                </span>
+                <i class="fas fa-chevron-down filter-multiselect__caret" aria-hidden="true"></i>
+            </button>
+            <div class="filter-multiselect__menu" data-role="multiselect-menu" hidden>
+                <div class="filter-multiselect__options" data-role="checkbox-group">
+                    {% if options %}
+                        {% for option in options %}
+                        {% set option_value = option['value'] %}
+                        {% set input_id = field_id ~ '-' ~ loop.index %}
+                        <label class="filter-multiselect__option" for="{{ input_id }}">
+                            <input class="form-check-input filter-multiselect__input"
+                                   type="checkbox"
+                                   id="{{ input_id }}"
+                                   name="{{ field_name }}"
+                                   value="{{ option_value }}"
+                                   {% if option_value in selected_values %}checked{% endif %}
+                                   {% if disabled %}disabled{% endif %}>
+                            <span class="filter-multiselect__label">{{ option['label'] }}</span>
+                        </label>
+                        {% endfor %}
+                    {% else %}
+                        <div class="filter-multiselect__empty">{{ empty_text }}</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -89,7 +104,7 @@
 
 {% macro db_type_filter(options, current_value='', col_class='col-md-2 col-12', multiple=False) -%}
     {% if multiple %}
-        {{ checkbox_filter('数据库类型', 'db_type', 'db_type', options, current_value, col_class=col_class, wrapper_role='db-type-filter', empty_text='请先选择数据库类型') }}
+        {{ checkbox_filter('数据库类型', 'db_type', 'db_type', options, current_value, col_class=col_class, wrapper_role='db-type-filter', empty_text='暂无数据库类型', placeholder='请选择数据库类型') }}
     {% else %}
         {{ select_filter('数据库类型', 'db_type', 'db_type', options, current_value, '全部类型', col_class, allow_empty=True, multiple=False) }}
     {% endif %}
@@ -150,7 +165,7 @@
 {% macro instance_filter(scope, options, current_value='', col_class='col-md-2 col-12', disabled=False, multiple=False) -%}
 {% set field_id = scope ~ '-instance' %}
 {% if multiple %}
-    {{ checkbox_filter('实例', field_id, 'instance', options, current_value, col_class=col_class, disabled=disabled, empty_text='请先选择数据库类型', wrapper_role='instance-filter') }}
+    {{ checkbox_filter('实例', field_id, 'instance', options, current_value, col_class=col_class, disabled=disabled, empty_text='请先选择数据库类型', placeholder='请选择实例', wrapper_role='instance-filter') }}
 {% else %}
 <div class="{{ col_class }}">
     <label for="{{ field_id }}" class="form-label">实例</label>

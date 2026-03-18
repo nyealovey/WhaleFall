@@ -217,8 +217,9 @@
             const isBuiltInJob = [
                 'sync_accounts',
                 'sync_databases',
-                'calculate_database_aggregations',
-                'calculate_account_classification',
+                'calculate_database',
+                'calculate_account',
+                'email_alert',
             ].includes(originalJob.id);
 
             const payload = {

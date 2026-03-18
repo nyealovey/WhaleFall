@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
@@ -18,6 +18,14 @@ ALERT_TYPE_LABELS = {
     "account_sync_failure": "账户同步异常",
     "privileged_account_discovery": "新增高权限账户",
 }
+ALERT_RULES = (
+    ("database_capacity_growth", "数据库容量异常增长", "database_capacity_enabled"),
+    ("account_sync_failure", "账户同步异常", "account_sync_failure_enabled"),
+    ("database_sync_failure", "数据库同步异常", "database_sync_failure_enabled"),
+    ("privileged_account_discovery", "新增高权限账户", "privileged_account_enabled"),
+)
+SEND_STEP_ITEM_KEY = "deliver_digest"
+SEND_STEP_ITEM_NAME = "发送汇总邮件"
 
 
 class EmailAlertDigestService:
@@ -29,36 +37,101 @@ class EmailAlertDigestService:
         sender: EmailSender | None = None,
         settings_service: EmailAlertSettingsService | None = None,
     ) -> None:
+        """初始化邮件告警汇总服务依赖."""
         self._repository = repository or EmailAlertsRepository()
         self._sender = sender or EmailSender()
         self._settings_service = settings_service or EmailAlertSettingsService()
 
     def send_pending_digest(self, now: datetime | None = None) -> dict[str, object]:
+        """发送待汇总事件，并返回规则级与发送步骤的结构化结果."""
         settings = self._settings_service.get_or_create_settings()
         recipients = list(settings.recipients_json or [])
-        if not bool(settings.global_enabled):
-            return {"sent": False, "skipped": True, "skip_reason": "global_disabled", "event_count": 0}
-        if not recipients:
-            return {"sent": False, "skipped": True, "skip_reason": "no_recipients", "event_count": 0}
-
         events = self._repository.list_pending_digest_events()
+        rule_results = self._build_rule_results(settings=settings, events=events)
+        base_result = {
+            "sent": False,
+            "skipped": False,
+            "skip_reason": None,
+            "event_count": len(events),
+            "recipient_count": len(recipients),
+            "subject": None,
+            "rule_results": rule_results,
+        }
+
+        if not bool(settings.global_enabled):
+            return {
+                **base_result,
+                "skipped": True,
+                "skip_reason": "global_disabled",
+                "send_step": self._build_send_step(
+                    status="completed",
+                    summary="总开关已关闭",
+                    skip_reason="global_disabled",
+                    recipient_count=len(recipients),
+                ),
+            }
+        if not recipients:
+            return {
+                **base_result,
+                "skipped": True,
+                "skip_reason": "no_recipients",
+                "send_step": self._build_send_step(
+                    status="completed",
+                    summary="未配置收件人",
+                    skip_reason="no_recipients",
+                    recipient_count=0,
+                ),
+            }
         if not events:
-            return {"sent": False, "skipped": True, "skip_reason": "no_pending_events", "event_count": 0}
+            return {
+                **base_result,
+                "skipped": True,
+                "skip_reason": "no_pending_events",
+                "send_step": self._build_send_step(
+                    status="completed",
+                    summary="无待发送事件",
+                    skip_reason="no_pending_events",
+                    recipient_count=len(recipients),
+                ),
+            }
         if not self._sender.is_ready():
-            raise RuntimeError("SMTP 配置未完成")
+            return {
+                **base_result,
+                "send_step": self._build_send_step(
+                    status="failed",
+                    summary="SMTP 配置未完成",
+                    recipient_count=len(recipients),
+                    error_message="SMTP 配置未完成",
+                ),
+            }
 
         resolved_now = now or time_utils.now()
         subject = f"邮件告警汇总 - {self._format_subject_date(resolved_now)}"
         text_body = self._build_text_body(events)
-        self._sender.send_email(recipients=recipients, subject=subject, text_body=text_body)
+        try:
+            self._sender.send_email(recipients=recipients, subject=subject, text_body=text_body)
+        except Exception as exc:
+            return {
+                **base_result,
+                "subject": subject,
+                "send_step": self._build_send_step(
+                    status="failed",
+                    summary="发送汇总邮件失败",
+                    recipient_count=len(recipients),
+                    error_message=str(exc),
+                ),
+            }
         event_ids = [int(event.id) for event in events]
         self._repository.mark_events_digest_sent(event_ids, resolved_now)
         return {
+            **base_result,
             "sent": True,
-            "skipped": False,
-            "event_count": len(events),
-            "recipient_count": len(recipients),
             "subject": subject,
+            "send_step": self._build_send_step(
+                status="completed",
+                summary=f"已发送 {len(events)} 条事件到 {len(recipients)} 个收件人",
+                recipient_count=len(recipients),
+            ),
         }
 
     @staticmethod
@@ -94,3 +167,48 @@ class EmailAlertDigestService:
         if alert_type == "privileged_account_discovery":
             return f"{payload.get('instance_name')} / {payload.get('username')} - {payload.get('reason')}"
         return str(payload)
+
+    @staticmethod
+    def _build_send_step(
+        *,
+        status: str,
+        summary: str,
+        recipient_count: int,
+        skip_reason: str | None = None,
+        error_message: str | None = None,
+    ) -> dict[str, object]:
+        return {
+            "item_key": SEND_STEP_ITEM_KEY,
+            "item_name": SEND_STEP_ITEM_NAME,
+            "status": status,
+            "summary": summary,
+            "skip_reason": skip_reason,
+            "recipient_count": recipient_count,
+            "error_message": error_message,
+        }
+
+    @staticmethod
+    def _build_rule_results(*, settings: object, events: Sequence[Any]) -> list[dict[str, object]]:
+        event_counts: dict[str, int] = defaultdict(int)
+        for event in events:
+            event_counts[str(getattr(event, "alert_type", ""))] += 1
+
+        results: list[dict[str, object]] = []
+        for item_key, item_name, flag_name in ALERT_RULES:
+            enabled = bool(getattr(settings, flag_name, False))
+            event_count = int(event_counts.get(item_key, 0))
+            summary = "规则未启用"
+            if enabled:
+                summary = f"待发送事件 {event_count} 条"
+            elif event_count > 0:
+                summary = f"规则未启用，累计待发送事件 {event_count} 条"
+            results.append(
+                {
+                    "item_key": item_key,
+                    "item_name": item_name,
+                    "enabled": enabled,
+                    "event_count": event_count,
+                    "summary": summary,
+                },
+            )
+        return results
