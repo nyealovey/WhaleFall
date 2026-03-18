@@ -479,6 +479,7 @@ from app.models import (  # noqa: F401, E402
     database_size_stat,
     database_type_config,
     instance,
+    instance_config_snapshot,
     instance_size_aggregation,
     instance_size_stat,
     user,

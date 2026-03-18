@@ -31,6 +31,11 @@
       return this.httpClient.post(`/api/v1/instances/${instanceId}/actions/sync-capacity`);
     }
 
+    syncInstanceAuditInfo(instanceId) {
+      this.assertInstanceId(instanceId, "syncInstanceAuditInfo");
+      return this.httpClient.post(`/api/v1/instances/${instanceId}/actions/sync-audit-info`);
+    }
+
     syncAllAccounts() {
       return this.httpClient.post("/api/v1/instances/actions/sync-accounts");
     }
@@ -58,6 +63,11 @@
       const query = toQueryString(params);
       const normalizedQuery = query ? query.replace(/^\?/, "&") : "";
       return this.httpClient.get(`/api/v1/databases/sizes?instance_id=${instanceId}${normalizedQuery}`);
+    }
+
+    fetchInstanceAuditInfo(instanceId) {
+      this.assertInstanceId(instanceId, "fetchInstanceAuditInfo");
+      return this.httpClient.get(`/api/v1/instances/${instanceId}/audit-info`);
     }
 
     fetchDatabaseTableSizes(databaseId, params) {

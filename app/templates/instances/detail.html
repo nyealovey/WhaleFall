@@ -147,6 +147,13 @@
                             {% if not instance.is_active %}disabled title="实例已停用，无法同步容量"{% endif %}>
                         <i class="fas fa-sync-alt me-2"></i>同步容量
                     </button>
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-action="sync-audit-info"
+                            {% if not instance.is_active %}disabled title="实例已停用，无法同步审计信息"
+                            {% elif instance.db_type|lower != 'sqlserver' %}disabled title="当前仅支持 SQL Server 审计信息采集"{% endif %}>
+                        <i class="fas fa-shield-halved me-2"></i>同步审计
+                    </button>
                     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>返回列表
                     </a>
@@ -191,6 +198,11 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts-pane" type="button" role="tab" aria-controls="accounts-pane" aria-selected="false">
                             <i class="fas fa-users me-2"></i>数据库账户信息
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit-pane" type="button" role="tab" aria-controls="audit-pane" aria-selected="false">
+                            <i class="fas fa-shield-halved me-2"></i>审计信息
                         </button>
                     </li>
                 </ul>
@@ -389,6 +401,36 @@
                             </div>
                         </div>
 
+                    </div>
+
+                    <div class="tab-pane fade instance-data-pane" id="audit-pane" role="tabpanel" aria-labelledby="audit-tab">
+                        <div class="instance-data-pane__stack">
+                            <div id="auditInfoContent">
+                                {% if instance.db_type|lower == 'sqlserver' %}
+                                <section class="instance-audit-placeholder">
+                                    <div class="instance-audit-placeholder__icon">
+                                        <i class="fas fa-shield-halved"></i>
+                                    </div>
+                                    <div class="instance-audit-placeholder__content">
+                                        <span class="chip-outline chip-outline--brand">SQL SERVER</span>
+                                        <h3 class="instance-audit-placeholder__title">尚未采集审计信息</h3>
+                                        <p class="instance-audit-placeholder__text">点击「同步审计」后，将在这里集中展示审计目标、审计规范和覆盖数据库概览。</p>
+                                    </div>
+                                </section>
+                                {% else %}
+                                <section class="instance-audit-placeholder instance-audit-placeholder--muted">
+                                    <div class="instance-audit-placeholder__icon">
+                                        <i class="fas fa-circle-info"></i>
+                                    </div>
+                                    <div class="instance-audit-placeholder__content">
+                                        <span class="chip-outline chip-outline--muted">{{ instance.db_type.upper() }}</span>
+                                        <h3 class="instance-audit-placeholder__title">当前实例暂不支持审计采集</h3>
+                                        <p class="instance-audit-placeholder__text">审计页入口已预留。首期仅支持 SQL Server，后续可以在同一标签下继续扩展其他数据库的审计与安全配置。</p>
+                                    </div>
+                                </section>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
