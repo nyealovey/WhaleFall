@@ -35,12 +35,14 @@
    * @typedef {Object} InstanceService
    * @property {Function} syncInstanceAccounts - 同步实例账户
    * @property {Function} syncInstanceCapacity - 同步实例容量
+   * @property {Function} syncInstanceAuditInfo - 同步实例审计信息
    * @property {Function} syncAllAccounts - 同步所有账户
    * @property {Function} batchDeleteInstances - 批量删除实例
    * @property {Function} batchCreateInstances - 批量创建实例
    * @property {Function} restoreInstance - 恢复实例
    * @property {Function} fetchAccountChangeHistory - 获取账户变更历史
    * @property {Function} fetchDatabaseSizes - 获取数据库容量信息
+   * @property {Function} fetchInstanceAuditInfo - 获取实例审计信息
    * @property {Function} fetchDatabaseTableSizes - 获取表容量快照
    * @property {Function} refreshDatabaseTableSizes - 刷新表容量快照
    * @property {Function} fetchStatistics - 获取统计信息
@@ -72,12 +74,14 @@
     [
       "syncInstanceAccounts",
       "syncInstanceCapacity",
+      "syncInstanceAuditInfo",
       "syncAllAccounts",
       "batchDeleteInstances",
       "batchCreateInstances",
       "restoreInstance",
       "fetchAccountChangeHistory",
       "fetchDatabaseSizes",
+      "fetchInstanceAuditInfo",
       "fetchDatabaseTableSizes",
       "refreshDatabaseTableSizes",
       "fetchStatistics",
@@ -110,7 +114,7 @@
 
   const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
   const LOADING_KEYS = new Set(["stats", "batchDelete", "batchCreate"]);
-  const OPERATION_KEYS = new Set(["syncAccounts", "syncCapacity", "syncAllAccounts"]);
+  const OPERATION_KEYS = new Set(["syncAccounts", "syncCapacity", "syncAuditInfo", "syncAllAccounts"]);
   const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
 
   function setMapValue(map, key, value, allowedKeys) {
@@ -222,6 +226,7 @@
       operations: {
         syncAccounts: Array.from(state.operations.syncAccounts),
         syncCapacity: Array.from(state.operations.syncCapacity),
+        syncAuditInfo: Array.from(state.operations.syncAuditInfo),
         syncAllAccounts: state.operations.syncAllAccounts,
       },
       uploadResult: state.uploadResult ? Object.assign({}, state.uploadResult) : null,
@@ -313,6 +318,7 @@
       operations: {
         syncAccounts: new Set(),
         syncCapacity: new Set(),
+        syncAuditInfo: new Set(),
         syncAllAccounts: false,
       },
       uploadResult: null,
@@ -475,6 +481,7 @@
         operations: {
           syncAccounts: Array.from(state.operations.syncAccounts),
           syncCapacity: Array.from(state.operations.syncCapacity),
+          syncAuditInfo: Array.from(state.operations.syncAuditInfo),
           syncAllAccounts: state.operations.syncAllAccounts,
         },
         state: cloneState(state),
@@ -606,6 +613,32 @@
           })
           .finally(function () {
             markOperation("syncCapacity", id, false);
+          });
+      },
+      syncInstanceAuditInfo: function (instanceId) {
+        const id = toNumericId(instanceId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 instanceId"));
+        }
+        markOperation("syncAuditInfo", id, true);
+        return service
+          .syncInstanceAuditInfo(id)
+          .then(function (response) {
+            ensureSuccess(response, "同步审计信息失败");
+            state.lastError = null;
+            emit("instances:syncAuditInfo:success", {
+              instanceId: id,
+              response: response,
+              state: cloneState(state),
+            });
+            return response;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "syncAuditInfo", instanceId: id });
+            throw error;
+          })
+          .finally(function () {
+            markOperation("syncAuditInfo", id, false);
           });
       },
       syncAllAccounts: function () {
@@ -754,6 +787,23 @@
             throw error;
           });
       },
+      fetchInstanceAuditInfo: function (instanceId) {
+        const id = toNumericId(instanceId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 instanceId"));
+        }
+        return service
+          .fetchInstanceAuditInfo(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载审计信息失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "instanceAuditInfo", instanceId: id });
+            throw error;
+          });
+      },
       fetchDatabaseTableSizes: function (databaseId, params) {
         const id = toNumericId(databaseId);
         if (id === null) {
@@ -831,6 +881,7 @@
         state.loading.batchCreate = false;
         state.operations.syncAccounts.clear();
         state.operations.syncCapacity.clear();
+        state.operations.syncAuditInfo.clear();
         state.operations.syncAllAccounts = false;
         state.uploadResult = null;
         state.lastError = null;
