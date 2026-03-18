@@ -3,7 +3,6 @@
 集中管理所有系统常量,包括颜色、状态、错误消息、HTTP 相关常量等.
 
 主要常量:
-- ThemeColors: 主题颜色常量
 - DatabaseType: 数据库类型常量
 - SyncStatus: 同步状态常量
 - UserRole: 用户角色常量
@@ -14,7 +13,6 @@
 
 from http import HTTPStatus as HttpStatus
 
-from .colors import ThemeColors
 from .database_types import DatabaseType
 from .filter_options import (
     CREDENTIAL_TYPES,
@@ -73,8 +71,6 @@ __all__ = [
     "SyncSessionStatus",
     "SyncStatus",
     "TaskRunStatus",
-    # 颜色常量
-    "ThemeColors",
     # 时间常量
     "TimeConstants",
     # 用户角色

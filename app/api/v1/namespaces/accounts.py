@@ -46,7 +46,6 @@ TagModel = ns.model(
     {
         "name": fields.String(),
         "display_name": fields.String(),
-        "color": fields.String(),
     },
 )
 

@@ -89,17 +89,20 @@ def _complete_rule_items(task_runs_service: TaskRunsWriteService, run_id: str, r
         item_key = str(rule.get("item_key") or "")
         if not item_key:
             continue
-        event_count = _as_int(rule.get("event_count"))
+        pending_count = _as_int(rule.get("pending_count"))
+        sent_count = _as_int(rule.get("sent_count"))
         task_runs_service.start_item(run_id, item_type="rule", item_key=item_key)
         task_runs_service.complete_item(
             run_id,
             item_type="rule",
             item_key=item_key,
-            metrics_json={"event_count": event_count},
+            metrics_json={"pending_count": pending_count, "sent_count": sent_count},
             details_json={
+                "display_state": rule.get("display_state"),
                 "summary": rule.get("summary"),
                 "enabled": bool(rule.get("enabled", False)),
-                "event_count": event_count,
+                "pending_count": pending_count,
+                "sent_count": sent_count,
             },
         )
 
@@ -107,6 +110,7 @@ def _complete_rule_items(task_runs_service: TaskRunsWriteService, run_id: str, r
 def _write_send_step(task_runs_service: TaskRunsWriteService, run_id: str, send_step: dict[str, object]) -> None:
     task_runs_service.start_item(run_id, item_type="step", item_key=_SEND_STEP[0])
     details_json = {
+        "display_state": send_step.get("display_state"),
         "summary": send_step.get("summary"),
         "skip_reason": send_step.get("skip_reason"),
     }
@@ -188,7 +192,7 @@ def _fail_unexpected(
             item_type="step",
             item_key=_SEND_STEP[0],
             error_message=str(exc),
-            details_json={"summary": "发送汇总邮件失败"},
+            details_json={"display_state": "failed", "summary": "发送汇总邮件失败"},
         )
     except Exception:
         return

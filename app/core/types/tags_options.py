@@ -13,10 +13,6 @@ class TagOptionItem:
     name: str
     display_name: str
     category: str
-    color: str
-    color_value: str
-    color_name: str
-    css_class: str
     is_active: bool
     created_at: str | None
     updated_at: str | None

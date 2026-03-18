@@ -42,28 +42,33 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
                     {
                         "item_key": "database_capacity_growth",
                         "item_name": "数据库容量异常增长",
-                        "summary": "待发送事件 0 条",
+                        "display_state": "no_event",
+                        "summary": "当天未产生事件",
                     },
                     {
                         "item_key": "account_sync_failure",
                         "item_name": "账户同步异常",
-                        "summary": "待发送事件 0 条",
+                        "display_state": "no_event",
+                        "summary": "当天未产生事件",
                     },
                     {
                         "item_key": "database_sync_failure",
                         "item_name": "数据库同步异常",
-                        "summary": "待发送事件 0 条",
+                        "display_state": "no_event",
+                        "summary": "当天未产生事件",
                     },
                     {
                         "item_key": "privileged_account_discovery",
                         "item_name": "新增高权限账户",
-                        "summary": "待发送事件 0 条",
+                        "display_state": "no_event",
+                        "summary": "当天未产生事件",
                     },
                 ],
                 "send_step": {
                     "item_key": "deliver_digest",
                     "item_name": "发送汇总邮件",
                     "status": "completed",
+                    "display_state": "skipped_no_event",
                     "summary": "无待发送事件",
                     "skip_reason": "no_pending_events",
                 },
@@ -141,6 +146,7 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
     assert any(
         call["item_key"] == "deliver_digest"
         and call["details_json"] == {
+            "display_state": "skipped_no_event",
             "summary": "无待发送事件",
             "skip_reason": "no_pending_events",
         }

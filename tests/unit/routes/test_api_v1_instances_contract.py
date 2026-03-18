@@ -11,6 +11,7 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_table_size_stat import DatabaseTableSizeStat
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.tag import Tag
 from app.models.instance_database import InstanceDatabase
 from app.models.user import User
 
@@ -46,6 +47,15 @@ def test_api_v1_instances_list_contract() -> None:
             is_active=True,
         )
         db.session.add(instance)
+        db.session.flush()
+
+        tag = Tag(
+            name="instance_tag",
+            display_name="实例标签",
+            category="other",
+            is_active=True,
+        )
+        instance.tags.append(tag)
         db.session.commit()
 
         client = app.test_client()
@@ -89,7 +99,10 @@ def test_api_v1_instances_list_contract() -> None:
             "tags",
         }
         assert expected_item_keys.issubset(item.keys())
-        assert isinstance(item.get("tags"), list)
+        tags = item.get("tags")
+        assert isinstance(tags, list)
+        assert len(tags) == 1
+        assert tags[0] == {"name": "instance_tag", "display_name": "实例标签"}
 
 
 @pytest.mark.unit

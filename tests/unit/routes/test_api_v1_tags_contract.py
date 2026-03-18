@@ -30,7 +30,6 @@ def test_api_v1_tags_list_contract() -> None:
             name="demo",
             display_name="示例标签",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -69,16 +68,13 @@ def test_api_v1_tags_list_contract() -> None:
             "name",
             "display_name",
             "category",
-            "color",
-            "color_value",
-            "color_name",
-            "css_class",
             "is_active",
             "created_at",
             "updated_at",
             "instance_count",
         }
         assert expected_keys.issubset(item.keys())
+        assert {"color", "color_value", "color_name", "css_class"}.isdisjoint(item.keys())
 
 
 @pytest.mark.unit
@@ -102,7 +98,6 @@ def test_api_v1_tags_options_contract() -> None:
             name="demo",
             display_name="示例标签",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -123,7 +118,12 @@ def test_api_v1_tags_options_contract() -> None:
         data = payload.get("data")
         assert isinstance(data, dict)
         assert {"tags", "category"}.issubset(data.keys())
-        assert isinstance(data.get("tags"), list)
+        tags = data.get("tags")
+        assert isinstance(tags, list)
+        assert len(tags) == 1
+        first_tag = tags[0]
+        assert isinstance(first_tag, dict)
+        assert {"color", "color_value", "color_name", "css_class"}.isdisjoint(first_tag.keys())
 
 
 @pytest.mark.unit
@@ -147,7 +147,6 @@ def test_api_v1_tags_categories_contract() -> None:
             name="demo",
             display_name="示例标签",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -194,7 +193,6 @@ def test_api_v1_tag_detail_contract() -> None:
             name="demo",
             display_name="示例标签",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -218,6 +216,7 @@ def test_api_v1_tag_detail_contract() -> None:
         assert isinstance(tag_data, dict)
         assert tag_data.get("id") == tag.id
         assert tag_data.get("name") == tag.name
+        assert {"color", "color_value", "color_name", "css_class"}.isdisjoint(tag_data.keys())
 
 
 @pytest.mark.unit
@@ -267,7 +266,6 @@ def test_api_v1_tags_create_contract() -> None:
                 "name": "demo_new",
                 "display_name": "示例标签(新)",
                 "category": "other",
-                "color": "primary",
                 "is_active": True,
             },
             headers={"X-CSRFToken": csrf_token},
@@ -284,6 +282,7 @@ def test_api_v1_tags_create_contract() -> None:
         tag_data = data.get("tag")
         assert isinstance(tag_data, dict)
         assert tag_data.get("name") == "demo_new"
+        assert {"color", "color_value", "color_name", "css_class"}.isdisjoint(tag_data.keys())
 
 
 @pytest.mark.unit
@@ -307,7 +306,6 @@ def test_api_v1_tags_update_contract() -> None:
             name="demo",
             display_name="示例标签",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -330,7 +328,6 @@ def test_api_v1_tags_update_contract() -> None:
                 "name": "demo",
                 "display_name": "示例标签(更新)",
                 "category": "other",
-                "color": "primary",
                 "is_active": True,
             },
             headers={"X-CSRFToken": csrf_token},
@@ -348,6 +345,7 @@ def test_api_v1_tags_update_contract() -> None:
         assert isinstance(tag_data, dict)
         assert tag_data.get("id") == tag.id
         assert tag_data.get("display_name") == "示例标签(更新)"
+        assert {"color", "color_value", "color_name", "css_class"}.isdisjoint(tag_data.keys())
 
 
 @pytest.mark.unit
@@ -373,7 +371,6 @@ def test_api_v1_tags_delete_contract() -> None:
             name="demo",
             display_name="示例标签",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -430,7 +427,6 @@ def test_api_v1_tags_delete_in_use_returns_conflict() -> None:
             name="demo",
             display_name="示例标签",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -498,14 +494,12 @@ def test_api_v1_tags_batch_delete_contract() -> None:
             name="demo1",
             display_name="示例标签1",
             category="other",
-            color="primary",
             is_active=True,
         )
         tag_2 = Tag(
             name="demo2",
             display_name="示例标签2",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag_1)

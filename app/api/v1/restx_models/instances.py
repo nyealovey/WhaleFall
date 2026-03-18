@@ -7,7 +7,6 @@ from flask_restx import fields
 INSTANCE_TAG_FIELDS = {
     "name": fields.String(description="标签代码", example="prod"),
     "display_name": fields.String(description="标签展示名", example="生产"),
-    "color": fields.String(description="颜色 key", example="red"),
 }
 
 INSTANCE_LIST_ITEM_FIELDS = {
@@ -27,7 +26,7 @@ INSTANCE_LIST_ITEM_FIELDS = {
     "tags": fields.List(
         fields.Nested(INSTANCE_TAG_FIELDS),
         description="标签列表",
-        example=[{"name": "prod", "display_name": "生产", "color": "red"}],
+        example=[{"name": "prod", "display_name": "生产"}],
     ),
 }
 

@@ -44,10 +44,13 @@ class EmailAlertDigestService:
 
     def send_pending_digest(self, now: datetime | None = None) -> dict[str, object]:
         """发送待汇总事件，并返回规则级与发送步骤的结构化结果."""
+        resolved_now = now or time_utils.now()
+        bucket_date = self._resolve_bucket_date(resolved_now)
         settings = self._settings_service.get_or_create_settings()
         recipients = list(settings.recipients_json or [])
         events = self._repository.list_pending_digest_events()
-        rule_results = self._build_rule_results(settings=settings, events=events)
+        bucket_stats = self._repository.get_bucket_event_counts(bucket_date)
+        rule_results = self._build_rule_results(settings=settings, events=events, bucket_stats=bucket_stats)
         base_result = {
             "sent": False,
             "skipped": False,
@@ -65,6 +68,7 @@ class EmailAlertDigestService:
                 "skip_reason": "global_disabled",
                 "send_step": self._build_send_step(
                     status="completed",
+                    display_state="skipped_disabled",
                     summary="总开关已关闭",
                     skip_reason="global_disabled",
                     recipient_count=len(recipients),
@@ -77,18 +81,34 @@ class EmailAlertDigestService:
                 "skip_reason": "no_recipients",
                 "send_step": self._build_send_step(
                     status="completed",
+                    display_state="skipped_no_recipients",
                     summary="未配置收件人",
                     skip_reason="no_recipients",
                     recipient_count=0,
                 ),
             }
         if not events:
+            sent_count = sum(item.get("sent_count", 0) for item in bucket_stats.values())
+            if sent_count > 0:
+                return {
+                    **base_result,
+                    "skipped": True,
+                    "skip_reason": "already_sent_today",
+                    "send_step": self._build_send_step(
+                        status="completed",
+                        display_state="skipped_already_sent",
+                        summary=f"当天已发送 {sent_count} 条告警事件，本次无待发送事件",
+                        skip_reason="already_sent_today",
+                        recipient_count=len(recipients),
+                    ),
+                }
             return {
                 **base_result,
                 "skipped": True,
                 "skip_reason": "no_pending_events",
                 "send_step": self._build_send_step(
                     status="completed",
+                    display_state="skipped_no_event",
                     summary="无待发送事件",
                     skip_reason="no_pending_events",
                     recipient_count=len(recipients),
@@ -99,13 +119,13 @@ class EmailAlertDigestService:
                 **base_result,
                 "send_step": self._build_send_step(
                     status="failed",
+                    display_state="failed",
                     summary="SMTP 配置未完成",
                     recipient_count=len(recipients),
                     error_message="SMTP 配置未完成",
                 ),
             }
 
-        resolved_now = now or time_utils.now()
         subject = f"邮件告警汇总 - {self._format_subject_date(resolved_now)}"
         text_body = self._build_text_body(events)
         try:
@@ -116,6 +136,7 @@ class EmailAlertDigestService:
                 "subject": subject,
                 "send_step": self._build_send_step(
                     status="failed",
+                    display_state="failed",
                     summary="发送汇总邮件失败",
                     recipient_count=len(recipients),
                     error_message=str(exc),
@@ -129,6 +150,7 @@ class EmailAlertDigestService:
             "subject": subject,
             "send_step": self._build_send_step(
                 status="completed",
+                display_state="sent",
                 summary=f"已发送 {len(events)} 条事件到 {len(recipients)} 个收件人",
                 recipient_count=len(recipients),
             ),
@@ -172,6 +194,7 @@ class EmailAlertDigestService:
     def _build_send_step(
         *,
         status: str,
+        display_state: str,
         summary: str,
         recipient_count: int,
         skip_reason: str | None = None,
@@ -181,6 +204,7 @@ class EmailAlertDigestService:
             "item_key": SEND_STEP_ITEM_KEY,
             "item_name": SEND_STEP_ITEM_NAME,
             "status": status,
+            "display_state": display_state,
             "summary": summary,
             "skip_reason": skip_reason,
             "recipient_count": recipient_count,
@@ -188,27 +212,53 @@ class EmailAlertDigestService:
         }
 
     @staticmethod
-    def _build_rule_results(*, settings: object, events: Sequence[Any]) -> list[dict[str, object]]:
-        event_counts: dict[str, int] = defaultdict(int)
+    def _build_rule_results(
+        *,
+        settings: object,
+        events: Sequence[Any],
+        bucket_stats: dict[str, dict[str, int]],
+    ) -> list[dict[str, object]]:
+        pending_counts: dict[str, int] = defaultdict(int)
         for event in events:
-            event_counts[str(getattr(event, "alert_type", ""))] += 1
+            pending_counts[str(getattr(event, "alert_type", ""))] += 1
 
         results: list[dict[str, object]] = []
         for item_key, item_name, flag_name in ALERT_RULES:
             enabled = bool(getattr(settings, flag_name, False))
-            event_count = int(event_counts.get(item_key, 0))
+            pending_count = int(pending_counts.get(item_key, 0))
+            sent_count = int(bucket_stats.get(item_key, {}).get("sent_count", 0))
+            display_state = "disabled"
             summary = "规则未启用"
             if enabled:
-                summary = f"待发送事件 {event_count} 条"
-            elif event_count > 0:
-                summary = f"规则未启用，累计待发送事件 {event_count} 条"
+                if pending_count > 0:
+                    display_state = "pending"
+                    summary = f"待发送事件 {pending_count} 条"
+                elif sent_count > 0:
+                    display_state = "already_sent"
+                    summary = f"当天已发送 {sent_count} 条，本次待发送 0 条"
+                else:
+                    display_state = "no_event"
+                    summary = "当天未产生事件"
+            elif pending_count > 0:
+                summary = f"规则未启用，累计待发送事件 {pending_count} 条"
+            elif sent_count > 0:
+                summary = f"规则未启用，当天已发送 {sent_count} 条"
             results.append(
                 {
                     "item_key": item_key,
                     "item_name": item_name,
                     "enabled": enabled,
-                    "event_count": event_count,
+                    "pending_count": pending_count,
+                    "sent_count": sent_count,
+                    "display_state": display_state,
                     "summary": summary,
                 },
             )
         return results
+
+    @staticmethod
+    def _resolve_bucket_date(now: datetime):
+        china_time = time_utils.to_china(now)
+        if china_time is None:
+            return time_utils.now_china().date()
+        return china_time.date()
