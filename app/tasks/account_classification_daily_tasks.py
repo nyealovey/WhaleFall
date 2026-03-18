@@ -15,7 +15,7 @@ from app.models.task_run_item import TaskRunItem
 from app.repositories.account_classification_daily_stats_repository import AccountClassificationDailyStatsRepository
 from app.repositories.account_classification_repository import ClassificationRepository
 from app.services.account_classification.dsl_v4 import DslV4Evaluator
-from app.services.task_runs.task_run_summary_builders import build_calculate_account_classification_summary
+from app.services.task_runs.task_run_summary_builders import build_calculate_account_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -41,7 +41,7 @@ def _resolve_run_id(
         return resolved_run_id
 
     resolved_run_id = task_runs_service.start_run(
-        task_key="calculate_account_classification",
+        task_key="calculate_account",
         task_name="统计账户分类",
         task_category="classification",
         trigger_source=trigger_source,
@@ -71,8 +71,8 @@ def _finalize_no_rules(
     if current_run is not None and current_run.status != "cancelled":
         current_run.status = "failed"
         current_run.error_message = "没有可用的分类规则"
-        current_run.summary_json = build_calculate_account_classification_summary(
-            task_key="calculate_account_classification",
+        current_run.summary_json = build_calculate_account_summary(
+            task_key="calculate_account",
             inputs={"manual_run": manual_run},
             stat_date=stat_date,
             computed_at=computed_at,
@@ -99,8 +99,8 @@ def _finalize_no_accounts(
     if current_run is not None and current_run.status != "cancelled":
         current_run.status = "failed"
         current_run.error_message = "没有需要统计的账户"
-        current_run.summary_json = build_calculate_account_classification_summary(
-            task_key="calculate_account_classification",
+        current_run.summary_json = build_calculate_account_summary(
+            task_key="calculate_account",
             inputs={"manual_run": manual_run},
             stat_date=stat_date,
             computed_at=computed_at,
@@ -292,8 +292,8 @@ def _finalize_success(
 ) -> dict[str, Any]:
     current_run = TaskRun.query.filter_by(run_id=run_id).first()
     if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_calculate_account_classification_summary(
-            task_key="calculate_account_classification",
+        current_run.summary_json = build_calculate_account_summary(
+            task_key="calculate_account",
             inputs={"manual_run": manual_run},
             stat_date=resolved_date,
             computed_at=computed_at,
@@ -353,7 +353,7 @@ def _finalize_task_failure(
     }
 
 
-def calculate_account_classification(
+def calculate_account(
     *,
     manual_run: bool = False,
     created_by: int | None = None,

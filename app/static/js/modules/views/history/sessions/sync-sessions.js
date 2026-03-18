@@ -841,9 +841,9 @@ function getSyncCategoryText(category) {
 function getTriggerSourceText(source) {
   switch (source) {
     case 'scheduled':
-      return '定时任务';
+      return '定时';
     case 'manual':
-      return '手动触发';
+      return '手动';
     case 'api':
       return 'API';
     default:
@@ -867,6 +867,8 @@ function getTaskCategoryText(category) {
       return '聚合';
     case 'classification':
       return '分类';
+    case 'notification':
+      return '告警';
     case 'other':
       return '其他';
     default:

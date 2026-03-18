@@ -66,34 +66,89 @@
     padding: var(--spacing-lg) 0;
 }
 
-.filter-checkbox-group {
-    min-height: 9.25rem;
-    padding: 0.5rem;
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 72%, transparent);
-    border-radius: 1.15rem;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 245, 240, 0.94));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+.filter-multiselect {
+    position: relative;
 }
 
-.filter-checkbox-group--disabled {
-    opacity: 0.62;
+.filter-multiselect__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 3.15rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 72%, transparent);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 245, 240, 0.94));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    color: var(--text-primary);
+    text-align: left;
+    transition: var(--transition-fast);
+}
+
+.filter-multiselect__trigger:hover,
+.filter-multiselect.is-open .filter-multiselect__trigger {
+    border-color: color-mix(in srgb, var(--accent-primary) 34%, white);
+    box-shadow: 0 10px 24px rgba(230, 119, 35, 0.12);
+}
+
+.filter-multiselect__trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+}
+
+.filter-multiselect__summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.filter-multiselect__caret {
+    flex: 0 0 auto;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    transition: transform 0.18s ease;
+}
+
+.filter-multiselect.is-open .filter-multiselect__caret {
+    transform: rotate(180deg);
+}
+
+.filter-multiselect__menu {
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    left: 0;
+    right: 0;
+    z-index: 25;
+    padding: 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 72%, transparent);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 38px rgba(29, 43, 68, 0.14);
+    backdrop-filter: blur(18px);
+}
+
+.filter-multiselect--disabled .filter-multiselect__trigger {
     background: color-mix(in srgb, var(--surface-muted) 38%, white);
 }
 
-.filter-checkbox-group__options {
+.filter-multiselect__options {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    max-height: 8.1rem;
+    max-height: 14rem;
     overflow-y: auto;
     padding-right: 0.18rem;
 }
 
-.filter-checkbox-group__option {
+.filter-multiselect__option {
     display: flex;
     align-items: center;
     gap: 0.72rem;
-    min-height: 2.45rem;
+    min-height: 2.55rem;
     padding: 0.52rem 0.72rem;
     border: 1px solid color-mix(in srgb, var(--surface-muted) 78%, transparent);
     border-radius: 0.9rem;
@@ -102,42 +157,51 @@
     transition: var(--transition-fast);
 }
 
-.filter-checkbox-group__option:hover {
+.filter-multiselect__option:hover {
     border-color: color-mix(in srgb, var(--accent-primary) 34%, white);
     transform: translateY(-1px);
 }
 
-.filter-checkbox-group__option:has(.filter-checkbox-group__input:checked) {
+.filter-multiselect__option:has(.filter-multiselect__input:checked) {
     border-color: color-mix(in srgb, var(--accent-primary) 56%, white);
     background: color-mix(in srgb, var(--accent-primary) 12%, white);
-    box-shadow: 0 10px 18px rgba(230, 119, 35, 0.12);
 }
 
-.filter-checkbox-group__option:has(.filter-checkbox-group__input:disabled) {
+.filter-multiselect__option:has(.filter-multiselect__input:disabled) {
     cursor: not-allowed;
 }
 
-.filter-checkbox-group__input {
+.filter-multiselect__input {
     flex: 0 0 auto;
     margin: 0;
 }
 
-.filter-checkbox-group__label {
+.filter-multiselect__label {
     color: var(--text-primary);
     font-weight: 500;
     line-height: 1.35;
 }
 
-.filter-checkbox-group__empty {
+.filter-multiselect__empty {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 7rem;
+    min-height: 5.75rem;
     padding: 0.75rem;
     border-radius: 0.9rem;
     color: var(--text-muted);
     background: rgba(255, 255, 255, 0.72);
     font-size: 0.92rem;
+}
+
+@media (max-width: 768px) {
+    .filter-multiselect__menu {
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        top: auto;
+        margin-top: 0.45rem;
+    }
 }
 
 .capacity-chart-panel {

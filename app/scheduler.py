@@ -65,9 +65,9 @@ TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks
 TASK_FUNCTIONS: dict[str, JobFunc | str] = {
     "sync_accounts": "app.tasks.accounts_sync_tasks:sync_accounts",
     "sync_databases": "app.tasks.capacity_collection_tasks:sync_databases",
-    "calculate_database_aggregations": "app.tasks.capacity_aggregation_tasks:calculate_database_aggregations",
-    "calculate_account_classification": "app.tasks.account_classification_daily_tasks:calculate_account_classification",
-    "send_email_alert_digest": "app.tasks.email_alert_tasks:send_email_alert_digest",
+    "calculate_database": "app.tasks.capacity_aggregation_tasks:calculate_database",
+    "calculate_account": "app.tasks.account_classification_daily_tasks:calculate_account",
+    "email_alert": "app.tasks.email_alert_tasks:email_alert",
 }
 
 

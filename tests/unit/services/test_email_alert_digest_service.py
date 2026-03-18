@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import cast
 
 import pytest
 
+from app.repositories.email_alerts_repository import EmailAlertsRepository
 from app.services.alerts.email_alert_digest_service import EmailAlertDigestService
+from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
+from app.services.alerts.email_sender import EmailSender
 
 
 @dataclass(slots=True)
@@ -79,17 +83,112 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
     repository = _StubRepository(events)
     sender = _StubSender()
     service = EmailAlertDigestService(
-        repository=repository,
-        sender=sender,
-        settings_service=_StubSettingsService(settings),
+        repository=cast(EmailAlertsRepository, repository),
+        sender=cast(EmailSender, sender),
+        settings_service=cast(EmailAlertSettingsService, _StubSettingsService(settings)),
     )
 
     summary = service.send_pending_digest(now=datetime(2026, 3, 17, 9, 0, tzinfo=UTC))
 
     assert summary["sent"] is True
     assert summary["event_count"] == 2
+    assert summary["rule_results"] == [
+        {
+            "item_key": "database_capacity_growth",
+            "item_name": "数据库容量异常增长",
+            "enabled": False,
+            "event_count": 1,
+            "summary": "规则未启用，累计待发送事件 1 条",
+        },
+        {
+            "item_key": "account_sync_failure",
+            "item_name": "账户同步异常",
+            "enabled": False,
+            "event_count": 0,
+            "summary": "规则未启用",
+        },
+        {
+            "item_key": "database_sync_failure",
+            "item_name": "数据库同步异常",
+            "enabled": False,
+            "event_count": 1,
+            "summary": "规则未启用，累计待发送事件 1 条",
+        },
+        {
+            "item_key": "privileged_account_discovery",
+            "item_name": "新增高权限账户",
+            "enabled": False,
+            "event_count": 0,
+            "summary": "规则未启用",
+        },
+    ]
+    assert summary["send_step"] == {
+        "item_key": "deliver_digest",
+        "item_name": "发送汇总邮件",
+        "status": "completed",
+        "summary": "已发送 2 条事件到 1 个收件人",
+        "skip_reason": None,
+        "recipient_count": 1,
+        "error_message": None,
+    }
     assert sender.calls
     assert sender.calls[0]["recipients"] == ["ops@example.com"]
     assert "邮件告警汇总" in str(sender.calls[0]["subject"])
     assert "orders" in str(sender.calls[0]["text_body"])
     assert repository.marked == [([1, 2], datetime(2026, 3, 17, 9, 0, tzinfo=UTC))]
+
+
+@pytest.mark.unit
+def test_email_alert_digest_service_reports_skip_structure_when_no_pending_events() -> None:
+    settings = _DummySettings(global_enabled=True, recipients_json=["ops@example.com"])
+    service = EmailAlertDigestService(
+        repository=cast(EmailAlertsRepository, _StubRepository([])),
+        sender=cast(EmailSender, _StubSender()),
+        settings_service=cast(EmailAlertSettingsService, _StubSettingsService(settings)),
+    )
+
+    summary = service.send_pending_digest(now=datetime(2026, 3, 17, 9, 0, tzinfo=UTC))
+
+    assert summary["sent"] is False
+    assert summary["skipped"] is True
+    assert summary["skip_reason"] == "no_pending_events"
+    assert summary["event_count"] == 0
+    assert summary["send_step"] == {
+        "item_key": "deliver_digest",
+        "item_name": "发送汇总邮件",
+        "status": "completed",
+        "summary": "无待发送事件",
+        "skip_reason": "no_pending_events",
+        "recipient_count": 1,
+        "error_message": None,
+    }
+    assert summary["rule_results"] == [
+        {
+            "item_key": "database_capacity_growth",
+            "item_name": "数据库容量异常增长",
+            "enabled": False,
+            "event_count": 0,
+            "summary": "规则未启用",
+        },
+        {
+            "item_key": "account_sync_failure",
+            "item_name": "账户同步异常",
+            "enabled": False,
+            "event_count": 0,
+            "summary": "规则未启用",
+        },
+        {
+            "item_key": "database_sync_failure",
+            "item_name": "数据库同步异常",
+            "enabled": False,
+            "event_count": 0,
+            "summary": "规则未启用",
+        },
+        {
+            "item_key": "privileged_account_discovery",
+            "item_name": "新增高权限账户",
+            "enabled": False,
+            "event_count": 0,
+            "summary": "规则未启用",
+        },
+    ]

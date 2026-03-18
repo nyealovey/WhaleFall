@@ -107,12 +107,7 @@ class SchedulerActionsService:
                     raw_kwargs = getattr(job, "kwargs", None)
                     job_kwargs: dict[str, Any] = dict(raw_kwargs) if isinstance(raw_kwargs, Mapping) else {}
 
-                    if job_id in BUILTIN_TASK_IDS and job_id in {
-                        "sync_accounts",
-                        "sync_databases",
-                        "calculate_database_aggregations",
-                        "calculate_account_classification",
-                    }:
+                    if job_id in BUILTIN_TASK_IDS:
                         job_kwargs = dict(job_kwargs)
                         job_kwargs["manual_run"] = True
                         job_kwargs["created_by"] = captured_created_by
