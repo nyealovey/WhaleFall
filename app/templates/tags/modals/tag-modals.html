@@ -39,13 +39,13 @@
         <section class="crud-modal__section">
             <div class="crud-modal__section-title">
                 <span class="chip-outline chip-outline--muted">
-                    <i class="fas fa-palette" aria-hidden="true"></i>
-                    <span>分类与色彩</span>
+                    <i class="fas fa-layer-group" aria-hidden="true"></i>
+                    <span>分类信息</span>
                 </span>
-                <span class="crud-modal__muted-text">绑定分类并预览徽章色彩</span>
+                <span class="crud-modal__muted-text">绑定标签所属分类</span>
             </div>
             <div class="row g-3">
-                <div class="col-md-6 col-12">
+                <div class="col-12">
                     <label for="tagCategory" class="form-label">分类 <span class="text-danger">*</span></label>
                     <select class="form-select" id="tagCategory" name="category" required>
                         <option value="">请选择分类</option>
@@ -55,18 +55,6 @@
                         {% endif %}
                         {% endfor %}
                     </select>
-                </div>
-                <div class="col-md-6 col-12">
-                    <label for="tagColor" class="form-label">颜色</label>
-                    <select class="form-select" id="tagColor" name="color">
-                        {% for color in ['primary','secondary','success','danger','warning','info','dark'] %}
-                        <option value="{{ color }}">{{ color }}</option>
-                        {% endfor %}
-                    </select>
-                    <div class="crud-modal__hint mt-2">
-                        <span class="badge bg-primary" id="tagColorPreview">示例</span>
-                        <span class="crud-modal__muted-text">同步应用到标签栈组件</span>
-                    </div>
                 </div>
             </div>
         </section>

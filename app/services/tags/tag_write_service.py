@@ -66,7 +66,6 @@ class TagWriteService:
             name=parsed.name,
             display_name=parsed.display_name,
             category=parsed.category,
-            color=parsed.color,
             is_active=parsed.is_active,
         )
 
@@ -94,8 +93,6 @@ class TagWriteService:
         tag.name = parsed.name
         tag.display_name = parsed.display_name
         tag.category = parsed.category
-        if "color" in parsed.model_fields_set and parsed.color is not None:
-            tag.color = parsed.color
         if parsed.is_active is not None:
             tag.is_active = parsed.is_active
 
@@ -195,7 +192,6 @@ class TagWriteService:
             tag_id=tag.id,
             name=tag.name,
             category=tag.category,
-            color=tag.color,
             is_active=tag.is_active,
         )
 
@@ -208,7 +204,6 @@ class TagWriteService:
             tag_id=tag.id,
             name=tag.name,
             category=tag.category,
-            color=tag.color,
             is_active=tag.is_active,
         )
 

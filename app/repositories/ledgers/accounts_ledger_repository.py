@@ -236,17 +236,15 @@ class AccountsLedgerRepository:
                 instance_tags.c.instance_id,
                 Tag.name,
                 Tag.display_name,
-                Tag.color,
             )
             .all()
         )
         mapping: dict[int, list[TagSummary]] = defaultdict(list)
-        for instance_id, name, display_name, color in tag_rows:
+        for instance_id, name, display_name in tag_rows:
             mapping[instance_id].append(
                 TagSummary(
                     name=name,
                     display_name=display_name,
-                    color=color,
                 ),
             )
         return dict(mapping)

@@ -186,13 +186,11 @@ class DatabaseLedgerRepository:
         tag_name_column = cast("Any", Tag.name)
         tag_display_column = cast("Any", Tag.display_name)
         tag_is_active_column = cast("Any", Tag.is_active)
-        tag_color_column = cast("Any", Tag.color)
         rows = (
             self._session.query(
                 instance_tags.c.instance_id,
                 tag_name_column,
                 tag_display_column,
-                tag_color_column,
             )
             .join(Tag, Tag.id == instance_tags.c.tag_id)
             .filter(
@@ -203,12 +201,11 @@ class DatabaseLedgerRepository:
             .all()
         )
         mapping: dict[int, list[TagSummary]] = defaultdict(list)
-        for instance_id, name, display_name, color in rows:
+        for instance_id, name, display_name in rows:
             mapping[instance_id].append(
                 TagSummary(
                     name=name,
                     display_name=display_name,
-                    color=color or "secondary",
                 ),
             )
         return dict(mapping)

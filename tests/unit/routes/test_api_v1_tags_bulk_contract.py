@@ -58,7 +58,6 @@ def test_api_v1_tags_bulk_endpoints_contract(app, auth_client) -> None:
             name="t1",
             display_name="T1",
             category="other",
-            color="primary",
             is_active=True,
         )
         db.session.add(tag)
@@ -92,6 +91,10 @@ def test_api_v1_tags_bulk_endpoints_contract(app, auth_client) -> None:
     data = payload.get("data")
     assert isinstance(data, dict)
     assert {"tags", "category_names"}.issubset(data.keys())
+    tags = data.get("tags")
+    assert isinstance(tags, list)
+    assert len(tags) == 1
+    assert {"color", "color_value", "color_name", "css_class"}.isdisjoint(tags[0].keys())
 
     assign_response = auth_client.post(
         "/api/v1/tags/bulk/actions/assign",
@@ -112,6 +115,12 @@ def test_api_v1_tags_bulk_endpoints_contract(app, auth_client) -> None:
     payload = instance_tags_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    tags = data.get("tags")
+    assert isinstance(tags, list)
+    assert len(tags) == 1
+    assert {"color", "color_value", "color_name", "css_class"}.isdisjoint(tags[0].keys())
 
     remove_response = auth_client.post(
         "/api/v1/tags/bulk/actions/remove",

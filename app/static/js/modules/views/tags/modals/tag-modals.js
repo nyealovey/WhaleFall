@@ -52,8 +52,6 @@
     const titleEl = document.getElementById('tagModalTitle');
     const metaTextEl = document.getElementById('tagModalMeta');
     const metaPillEl = document.getElementById('tagModalMetaPill');
-    const colorSelect = document.getElementById('tagColor');
-    const colorPreview = document.getElementById('tagColorPreview');
 
     let mode = 'create';
     let validator = null;
@@ -78,7 +76,7 @@
     }
 
     /**
-     * 初始化表单验证与颜色预览。
+     * 初始化表单验证。
      *
      * @return {void}
      */
@@ -102,8 +100,6 @@
           markSubmitIntent();
         }
       });
-      colorSelect?.addEventListener('change', updateColorPreview);
-      updateColorPreview();
     }
 
     /**
@@ -119,24 +115,9 @@
       titleEl.textContent = '添加标签';
       updateSubmitButtonCopy();
       setMetaState('新建', 'status-pill--muted');
-      updateColorPreview();
       validator?.revalidate?.();
       validator?.instance?.refresh?.();
       clearSubmitIntent();
-    }
-
-    /**
-     * 更新颜色预览。
-     *
-     * @return {void}
-     */
-    function updateColorPreview() {
-      if (!colorSelect || !colorPreview) {
-        return;
-      }
-      const value = colorSelect.value || 'primary';
-      colorPreview.className = `badge bg-${value}`;
-      colorPreview.textContent = '示例';
     }
 
     /**
@@ -173,9 +154,7 @@
         form.name.value = tag.name || '';
         form.display_name.value = tag.display_name || '';
         form.category.value = tag.category || '';
-        form.color.value = tag.color || 'primary';
         form.is_active.checked = Boolean(tag.is_active);
-        updateColorPreview();
         setMetaState('编辑', 'status-pill--info');
         modal.show();
       } catch (error) {
@@ -221,7 +200,6 @@
         name: data.get('name'),
         display_name: data.get('display_name'),
         category: data.get('category'),
-        color: data.get('color') || 'primary',
         is_active: form.is_active.checked,
       };
       if (mode === 'edit') {

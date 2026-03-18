@@ -1,12 +1,6 @@
 """鲸落 - 标签模型."""
 
 from app import db
-from app.core.types import ColorHex, ColorName, CssClassName
-from app.utils.theme_color_utils import (
-    get_theme_color_css_class,
-    get_theme_color_name,
-    get_theme_color_value,
-)
 from app.utils.time_utils import time_utils
 
 
@@ -20,7 +14,6 @@ class Tag(db.Model):
         name: 标签代码(如 wenzhou),唯一.
         display_name: 显示名称(如 温州).
         category: 标签分类(如 location、environment).
-        color: 标签颜色(如 primary、success).
         is_active: 是否激活.
         created_at: 创建时间.
         updated_at: 更新时间.
@@ -33,7 +26,6 @@ class Tag(db.Model):
     name = db.Column(db.String(50), nullable=False, unique=True, index=True)
     display_name = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50), nullable=False, index=True)  # 标签分类
-    color = db.Column(db.String(20), default="primary", nullable=False)  # 标签颜色
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
@@ -46,7 +38,6 @@ class Tag(db.Model):
         name: str,
         display_name: str,
         category: str,
-        color: str = "primary",
         *,
         is_active: bool = True,
     ) -> None:
@@ -56,45 +47,13 @@ class Tag(db.Model):
             name: 标签代码(如 wenzhou),必须唯一.
             display_name: 显示名称(如 温州).
             category: 标签分类(如 location=地区、environment=环境).
-            color: 标签颜色(如 primary=蓝色、success=绿色),默认为 primary.
             is_active: 是否激活,默认为 True.
 
         """
         self.name = name
         self.display_name = display_name
         self.category = category
-        self.color = color
         self.is_active = is_active
-
-    @property
-    def color_value(self) -> ColorHex:
-        """获取实际颜色值.
-
-        Returns:
-            颜色的十六进制值.
-
-        """
-        return get_theme_color_value(self.color)
-
-    @property
-    def color_name(self) -> ColorName:
-        """获取颜色名称.
-
-        Returns:
-            颜色的中文名称.
-
-        """
-        return get_theme_color_name(self.color)
-
-    @property
-    def css_class(self) -> CssClassName:
-        """获取 CSS 类名.
-
-        Returns:
-            Bootstrap 颜色类名.
-
-        """
-        return get_theme_color_css_class(self.color)
 
     def to_dict(self) -> dict:
         """转换为字典格式.
@@ -108,10 +67,6 @@ class Tag(db.Model):
             "name": self.name,
             "display_name": self.display_name,
             "category": self.category,
-            "color": self.color,
-            "color_value": self.color_value,
-            "color_name": self.color_name,
-            "css_class": self.css_class,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
