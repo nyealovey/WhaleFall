@@ -1783,10 +1783,7 @@ function renderAuditInfo(payload) {
     const databaseSpecs = Array.isArray(snapshot.database_audit_specifications)
         ? snapshot.database_audit_specifications
         : [];
-    const warnings = [
-        ...(Array.isArray(facts.warnings) ? facts.warnings : []),
-        ...(Array.isArray(snapshot.errors) ? snapshot.errors : []),
-    ];
+    const warnings = Array.isArray(facts.warnings) ? facts.warnings : [];
     const scope = auditInfoState.filters.scope || 'all';
     const search = (auditInfoState.filters.search || '').trim().toLowerCase();
     const includeDisabled = auditInfoState.filters.includeDisabled === true;
