@@ -15,7 +15,7 @@ from pydantic import Field, field_validator, model_validator
 from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.core.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
 from app.schemas.base import PayloadSchema
-from app.schemas.query_parsers import parse_int, parse_optional_int, parse_text
+from app.schemas.query_parsers import parse_int, parse_optional_int, parse_optional_int_list, parse_text, parse_text_list
 from app.utils.payload_converters import as_bool
 from app.utils.time_utils import time_utils
 
@@ -54,8 +54,8 @@ class CapacityDatabasesAggregationsQuery(PayloadSchema):
 
     start_date: date | None = None
     end_date: date | None = None
-    instance_id: int | None = None
-    db_type: str | None = None
+    instance_id: list[int] = Field(default_factory=list)
+    db_type: list[str] = Field(default_factory=list)
     database_name: str | None = None
     database_id: int | None = None
     period_type: str | None = None
@@ -73,12 +73,22 @@ class CapacityDatabasesAggregationsQuery(PayloadSchema):
     def _parse_end_date(cls, value: Any) -> date | None:
         return _parse_optional_date(value, field="end_date")
 
-    @field_validator("instance_id", "database_id", mode="before")
+    @field_validator("instance_id", mode="before")
     @classmethod
-    def _parse_ids(cls, value: Any) -> int | None:
+    def _parse_instance_ids(cls, value: Any) -> list[int]:
+        return parse_optional_int_list(value)
+
+    @field_validator("database_id", mode="before")
+    @classmethod
+    def _parse_database_id(cls, value: Any) -> int | None:
         return parse_optional_int(value)
 
-    @field_validator("db_type", "database_name", "period_type", mode="before")
+    @field_validator("db_type", mode="before")
+    @classmethod
+    def _parse_db_types(cls, value: Any) -> list[str]:
+        return parse_text_list(value)
+
+    @field_validator("database_name", "period_type", mode="before")
     @classmethod
     def _parse_optional_strings(cls, value: Any) -> str | None:
         return _parse_optional_str(value)
@@ -107,8 +117,8 @@ class CapacityDatabasesAggregationsQuery(PayloadSchema):
     def to_filters(self) -> DatabaseAggregationsFilters:
         """转换为数据库容量聚合 filters 对象."""
         return DatabaseAggregationsFilters(
-            instance_id=self.instance_id,
-            db_type=self.db_type,
+            instance_ids=list(self.instance_id),
+            db_types=list(self.db_type),
             database_name=self.database_name,
             database_id=self.database_id,
             period_type=self.period_type,
@@ -125,8 +135,8 @@ class CapacityDatabasesSummaryQuery(PayloadSchema):
 
     start_date: date | None = None
     end_date: date | None = None
-    instance_id: int | None = None
-    db_type: str | None = None
+    instance_id: list[int] = Field(default_factory=list)
+    db_type: list[str] = Field(default_factory=list)
     database_name: str | None = None
     database_id: int | None = None
     period_type: str | None = None
@@ -141,12 +151,22 @@ class CapacityDatabasesSummaryQuery(PayloadSchema):
     def _parse_end_date(cls, value: Any) -> date | None:
         return _parse_optional_date(value, field="end_date")
 
-    @field_validator("instance_id", "database_id", mode="before")
+    @field_validator("instance_id", mode="before")
     @classmethod
-    def _parse_ids(cls, value: Any) -> int | None:
+    def _parse_instance_ids(cls, value: Any) -> list[int]:
+        return parse_optional_int_list(value)
+
+    @field_validator("database_id", mode="before")
+    @classmethod
+    def _parse_database_id(cls, value: Any) -> int | None:
         return parse_optional_int(value)
 
-    @field_validator("db_type", "database_name", "period_type", mode="before")
+    @field_validator("db_type", mode="before")
+    @classmethod
+    def _parse_db_types(cls, value: Any) -> list[str]:
+        return parse_text_list(value)
+
+    @field_validator("database_name", "period_type", mode="before")
     @classmethod
     def _parse_optional_strings(cls, value: Any) -> str | None:
         return _parse_optional_str(value)
@@ -154,8 +174,8 @@ class CapacityDatabasesSummaryQuery(PayloadSchema):
     def to_filters(self) -> DatabaseAggregationsSummaryFilters:
         """转换为数据库容量聚合汇总 filters 对象."""
         return DatabaseAggregationsSummaryFilters(
-            instance_id=self.instance_id,
-            db_type=self.db_type,
+            instance_ids=list(self.instance_id),
+            db_types=list(self.db_type),
             database_name=self.database_name,
             database_id=self.database_id,
             period_type=self.period_type,
@@ -200,8 +220,8 @@ class _CapacityInstancesDateRangeMixin(PayloadSchema):
 class CapacityInstancesAggregationsQuery(_CapacityInstancesDateRangeMixin):
     """实例容量聚合列表 query 参数 schema."""
 
-    instance_id: int | None = None
-    db_type: str | None = None
+    instance_id: list[int] = Field(default_factory=list)
+    db_type: list[str] = Field(default_factory=list)
     period_type: str | None = None
     page: int = _DEFAULT_PAGE
     limit: int = _DEFAULT_LIMIT
@@ -209,12 +229,17 @@ class CapacityInstancesAggregationsQuery(_CapacityInstancesDateRangeMixin):
 
     @field_validator("instance_id", mode="before")
     @classmethod
-    def _parse_instance_id(cls, value: Any) -> int | None:
-        return parse_optional_int(value)
+    def _parse_instance_id(cls, value: Any) -> list[int]:
+        return parse_optional_int_list(value)
 
-    @field_validator("db_type", "period_type", mode="before")
+    @field_validator("db_type", mode="before")
     @classmethod
-    def _parse_optional_strings(cls, value: Any) -> str | None:
+    def _parse_db_types(cls, value: Any) -> list[str]:
+        return parse_text_list(value)
+
+    @field_validator("period_type", mode="before")
+    @classmethod
+    def _parse_period_type(cls, value: Any) -> str | None:
         return _parse_optional_str(value)
 
     @field_validator("page", mode="before")
@@ -241,8 +266,8 @@ class CapacityInstancesAggregationsQuery(_CapacityInstancesDateRangeMixin):
     def to_filters(self) -> InstanceAggregationsFilters:
         """转换为实例容量聚合 filters 对象."""
         return InstanceAggregationsFilters(
-            instance_id=self.instance_id,
-            db_type=self.db_type,
+            instance_ids=list(self.instance_id),
+            db_types=list(self.db_type),
             period_type=self.period_type,
             start_date=self.start_date,
             end_date=self.end_date,
@@ -255,25 +280,30 @@ class CapacityInstancesAggregationsQuery(_CapacityInstancesDateRangeMixin):
 class CapacityInstancesSummaryQuery(_CapacityInstancesDateRangeMixin):
     """实例容量聚合汇总 query 参数 schema."""
 
-    instance_id: int | None = None
-    db_type: str | None = None
+    instance_id: list[int] = Field(default_factory=list)
+    db_type: list[str] = Field(default_factory=list)
     period_type: str | None = None
 
     @field_validator("instance_id", mode="before")
     @classmethod
-    def _parse_instance_id(cls, value: Any) -> int | None:
-        return parse_optional_int(value)
+    def _parse_instance_id(cls, value: Any) -> list[int]:
+        return parse_optional_int_list(value)
 
-    @field_validator("db_type", "period_type", mode="before")
+    @field_validator("db_type", mode="before")
     @classmethod
-    def _parse_optional_strings(cls, value: Any) -> str | None:
+    def _parse_db_types(cls, value: Any) -> list[str]:
+        return parse_text_list(value)
+
+    @field_validator("period_type", mode="before")
+    @classmethod
+    def _parse_period_type(cls, value: Any) -> str | None:
         return _parse_optional_str(value)
 
     def to_filters(self) -> InstanceAggregationsSummaryFilters:
         """转换为实例容量聚合汇总 filters 对象."""
         return InstanceAggregationsSummaryFilters(
-            instance_id=self.instance_id,
-            db_type=self.db_type,
+            instance_ids=list(self.instance_id),
+            db_types=list(self.db_type),
             period_type=self.period_type,
             start_date=self.start_date,
             end_date=self.end_date,

@@ -135,6 +135,127 @@ def test_api_v1_capacity_databases_endpoints_contract(app, auth_client) -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_capacity_databases_support_multiple_db_types_and_instance_ids(app, auth_client) -> None:
+    _ensure_capacity_databases_tables(app)
+
+    with app.app_context():
+        mysql_instance = Instance(
+            name="mysql-instance",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        pg_instance = Instance(
+            name="pg-instance",
+            db_type=DatabaseType.POSTGRESQL,
+            host="127.0.0.2",
+            port=5432,
+            description=None,
+            is_active=True,
+        )
+        excluded_instance = Instance(
+            name="sqlserver-instance",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.3",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        db.session.add_all([mysql_instance, pg_instance, excluded_instance])
+        db.session.commit()
+        mysql_instance_id = int(mysql_instance.id)
+        pg_instance_id = int(pg_instance.id)
+        excluded_instance_id = int(excluded_instance.id)
+
+        databases = [
+            InstanceDatabase(instance_id=mysql_instance_id, database_name="db_mysql", is_active=True),
+            InstanceDatabase(instance_id=pg_instance_id, database_name="db_pg", is_active=True),
+            InstanceDatabase(instance_id=excluded_instance_id, database_name="db_sqlserver", is_active=True),
+        ]
+        db.session.add_all(databases)
+        db.session.commit()
+
+        aggregation_date = date(2025, 12, 24)
+        db.session.add_all(
+            [
+                DatabaseSizeAggregation(
+                    id=1,
+                    instance_id=mysql_instance_id,
+                    database_name="db_mysql",
+                    period_type="daily",
+                    period_start=aggregation_date,
+                    period_end=aggregation_date,
+                    avg_size_mb=100,
+                    max_size_mb=100,
+                    min_size_mb=100,
+                    data_count=1,
+                    size_change_mb=0,
+                    size_change_percent=0.0,
+                    growth_rate=0.0,
+                ),
+                DatabaseSizeAggregation(
+                    id=2,
+                    instance_id=pg_instance_id,
+                    database_name="db_pg",
+                    period_type="daily",
+                    period_start=aggregation_date,
+                    period_end=aggregation_date,
+                    avg_size_mb=200,
+                    max_size_mb=200,
+                    min_size_mb=200,
+                    data_count=1,
+                    size_change_mb=0,
+                    size_change_percent=0.0,
+                    growth_rate=0.0,
+                ),
+                DatabaseSizeAggregation(
+                    id=3,
+                    instance_id=excluded_instance_id,
+                    database_name="db_sqlserver",
+                    period_type="daily",
+                    period_start=aggregation_date,
+                    period_end=aggregation_date,
+                    avg_size_mb=300,
+                    max_size_mb=300,
+                    min_size_mb=300,
+                    data_count=1,
+                    size_change_mb=0,
+                    size_change_percent=0.0,
+                    growth_rate=0.0,
+                ),
+            ],
+        )
+        db.session.commit()
+
+    response = auth_client.get(
+        f"/api/v1/capacity/databases?period_type=daily&start_date=2025-12-24&end_date=2025-12-24"
+        f"&db_type=mysql&db_type=postgresql&instance_id={mysql_instance_id}&instance_id={pg_instance_id}",
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    items = payload.get("data", {}).get("items")
+    assert isinstance(items, list)
+    names = {item.get("database_name") for item in items if isinstance(item, dict)}
+    assert names == {"db_mysql", "db_pg"}
+
+    summary_response = auth_client.get(
+        f"/api/v1/capacity/databases/summary?period_type=daily&start_date=2025-12-24&end_date=2025-12-24"
+        f"&db_type=mysql&db_type=postgresql&instance_id={mysql_instance_id}&instance_id={pg_instance_id}",
+    )
+    assert summary_response.status_code == 200
+    summary_payload = summary_response.get_json()
+    assert isinstance(summary_payload, dict)
+    summary = summary_payload.get("data", {}).get("summary")
+    assert isinstance(summary, dict)
+    assert summary.get("total_instances") == 2
+    assert summary.get("total_databases") == 2
+    assert summary.get("total_size_mb") == 300
+
+
+@pytest.mark.unit
 def test_api_v1_capacity_databases_include_disabled_instance_in_statistics(app, auth_client) -> None:
     _ensure_capacity_databases_tables(app)
 

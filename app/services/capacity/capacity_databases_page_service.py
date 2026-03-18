@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from app.core.constants import DATABASE_TYPES
 from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
@@ -21,8 +22,8 @@ class CapacityDatabasesPageContext:
     database_type_options: list[dict[str, str]]
     instance_options: list[dict[str, str]]
     database_options: list[dict[str, str]]
-    db_type: str
-    instance: str
+    db_types: list[str]
+    instances: list[str]
     database_id: str
     database: str
 
@@ -43,47 +44,51 @@ class CapacityDatabasesPageService:
     def build_context(
         self,
         *,
-        db_type: str,
-        instance: str,
+        db_type: str | list[str],
+        instance: str | list[str],
         database_id: str,
         database: str,
     ) -> CapacityDatabasesPageContext:
         """构造页面渲染上下文."""
         database_type_options = self._build_database_type_options()
 
-        normalized_db_type = db_type.strip()
-        normalized_instance = instance.strip()
+        normalized_db_types = self._normalize_text_list(db_type)
+        normalized_instances = self._normalize_text_list(instance)
         normalized_database_id = database_id.strip()
         normalized_database_name = database.strip()
 
-        if not normalized_database_id and normalized_database_name:
-            instance_id_int = self._coerce_int(normalized_instance)
+        instance_options = (
+            self._filter_options_service.list_instance_select_options(normalized_db_types) if normalized_db_types else []
+        )
+
+        selected_instance_id = self._coerce_single_instance_id(normalized_instances)
+        if not normalized_database_id and normalized_database_name and selected_instance_id is not None:
             resolved_id = self._repository.resolve_instance_database_id_by_name(
                 database_name=normalized_database_name,
-                instance_id=instance_id_int,
+                instance_id=selected_instance_id,
             )
             if resolved_id is not None:
                 normalized_database_id = str(resolved_id)
 
+        if selected_instance_id is None:
+            normalized_database_id = ""
+            normalized_database_name = ""
+
         if normalized_database_id:
             normalized_database_name = ""
 
-        db_type_filter: str | None = normalized_db_type if normalized_db_type != "" else None
-        instance_options = (
-            self._filter_options_service.list_instance_select_options(db_type_filter) if normalized_db_type else []
-        )
-
-        instance_id_int = self._coerce_int(normalized_instance)
         database_options = (
-            self._filter_options_service.list_database_select_options(instance_id_int) if instance_id_int else []
+            self._filter_options_service.list_database_select_options(selected_instance_id)
+            if selected_instance_id is not None
+            else []
         )
 
         return CapacityDatabasesPageContext(
             database_type_options=database_type_options,
             instance_options=instance_options,
             database_options=database_options,
-            db_type=normalized_db_type,
-            instance=normalized_instance,
+            db_types=normalized_db_types,
+            instances=normalized_instances,
             database_id=normalized_database_id,
             database=normalized_database_name,
         )
@@ -102,3 +107,28 @@ class CapacityDatabasesPageService:
             return int(value)
         except (TypeError, ValueError):
             return None
+
+    @classmethod
+    def _coerce_single_instance_id(cls, values: list[str]) -> int | None:
+        if len(values) != 1:
+            return None
+        return cls._coerce_int(values[0])
+
+    @staticmethod
+    def _normalize_text_list(value: str | list[str] | None) -> list[str]:
+        raw_values: list[Any]
+        if value is None:
+            raw_values = []
+        elif isinstance(value, list):
+            raw_values = value
+        else:
+            raw_values = [value]
+
+        normalized: list[str] = []
+        for item in raw_values:
+            if not isinstance(item, str):
+                continue
+            cleaned = item.strip()
+            if cleaned and cleaned not in normalized:
+                normalized.append(cleaned)
+        return normalized

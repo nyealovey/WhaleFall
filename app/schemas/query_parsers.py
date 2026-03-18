@@ -64,6 +64,36 @@ def parse_text(value: Any) -> str:
     return str(value).strip()
 
 
+def parse_text_list(value: Any) -> list[str]:
+    """Parse text or list[text] as list[str] (strip, drop blanks, preserve order, de-dup)."""
+    if value is None:
+        return []
+
+    candidates: list[Any] = value if isinstance(value, list) else [value]
+
+    result: list[str] = []
+    for item in candidates:
+        cleaned = parse_text(item)
+        if cleaned and cleaned not in result:
+            result.append(cleaned)
+    return result
+
+
+def parse_optional_int_list(value: Any) -> list[int]:
+    """Parse int or list[int] as list[int] (drop blanks, preserve order, de-dup)."""
+    if value is None:
+        return []
+
+    candidates: list[Any] = value if isinstance(value, list) else [value]
+
+    result: list[int] = []
+    for item in candidates:
+        parsed = parse_optional_int(item)
+        if parsed is not None and parsed not in result:
+            result.append(parsed)
+    return result
+
+
 def parse_tags(value: Any) -> list[str]:
     """Parse tags as list[str] (strip, drop blanks; ignore non-str items)."""
     if value is None:
@@ -83,4 +113,11 @@ def parse_tags(value: Any) -> list[str]:
     return []
 
 
-__all__ = ["parse_int", "parse_optional_int", "parse_tags", "parse_text"]
+__all__ = [
+    "parse_int",
+    "parse_optional_int",
+    "parse_optional_int_list",
+    "parse_tags",
+    "parse_text",
+    "parse_text_list",
+]

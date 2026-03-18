@@ -59,10 +59,16 @@ def test_instance_list_filters_query_fallbacks_invalid_sort_order_to_default() -
 @pytest.mark.unit
 def test_instances_options_query_strips_blank_to_none() -> None:
     query = validate_or_raise(InstancesOptionsQuery, {"db_type": "  mysql  "})
-    assert query.db_type == "mysql"
+    assert query.db_type == ["mysql"]
 
     blank = validate_or_raise(InstancesOptionsQuery, {"db_type": "   "})
     assert blank.db_type is None
+
+
+@pytest.mark.unit
+def test_instances_options_query_supports_multiple_db_types() -> None:
+    query = validate_or_raise(InstancesOptionsQuery, {"db_type": [" mysql ", "postgresql", "  "]})
+    assert query.db_type == ["mysql", "postgresql"]
 
 
 @pytest.mark.unit

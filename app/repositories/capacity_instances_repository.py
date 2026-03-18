@@ -85,10 +85,10 @@ class CapacityInstancesRepository:
             ),
         )
 
-        if filters.instance_id:
-            base_query = base_query.filter(InstanceSizeStat.instance_id == filters.instance_id)
-        if filters.db_type:
-            base_query = base_query.filter(Instance.db_type == filters.db_type)
+        if filters.instance_ids:
+            base_query = base_query.filter(InstanceSizeStat.instance_id.in_(filters.instance_ids))
+        if filters.db_types:
+            base_query = base_query.filter(Instance.db_type.in_(filters.db_types))
         if filters.start_date:
             base_query = base_query.filter(InstanceSizeStat.collected_date >= filters.start_date)
         if filters.end_date:
@@ -127,10 +127,10 @@ class CapacityInstancesRepository:
 
     @staticmethod
     def _apply_filters(query: Query[Any], filters: InstanceAggregationsFilters) -> Query[Any]:
-        if filters.instance_id:
-            query = query.filter(InstanceSizeAggregation.instance_id == filters.instance_id)
-        if filters.db_type:
-            query = query.filter(Instance.db_type == filters.db_type)
+        if filters.instance_ids:
+            query = query.filter(InstanceSizeAggregation.instance_id.in_(filters.instance_ids))
+        if filters.db_types:
+            query = query.filter(Instance.db_type.in_(filters.db_types))
         if filters.period_type:
             query = query.filter(InstanceSizeAggregation.period_type == filters.period_type)
         if filters.start_date:

@@ -19,6 +19,8 @@ def test_web_capacity_instances_page_renders_external_legend_slots(auth_client) 
     assert 'id="instanceChartLegend"' in html
     assert 'id="instanceChangeChartLegend"' in html
     assert 'id="instanceChangePercentChartLegend"' in html
+    assert 'id="db_type"' in html and "multiple" in html
+    assert 'data-role="instance-filter"' in html and "multiple" in html
 
 
 @pytest.mark.unit
@@ -30,8 +32,8 @@ def test_web_capacity_databases_page_renders_external_legend_slots(auth_client, 
             database_type_options=[],
             instance_options=[],
             database_options=[],
-            db_type="",
-            instance="",
+            db_types=[],
+            instances=[],
             database_id="",
             database="",
         ),
@@ -46,3 +48,5 @@ def test_web_capacity_databases_page_renders_external_legend_slots(auth_client, 
     assert 'id="databaseChartLegend"' in html
     assert 'id="databaseChangeChartLegend"' in html
     assert 'id="databaseChangePercentChartLegend"' in html
+    assert 'id="db_type"' in html and "multiple" in html
+    assert 'data-role="instance-filter"' in html and "multiple" in html
