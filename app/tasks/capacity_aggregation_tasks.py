@@ -18,7 +18,7 @@ from app.services.aggregation.capacity_aggregation_task_runner import (
     STATUS_FAILED,
     CapacityAggregationTaskRunner,
 )
-from app.services.task_runs.task_run_summary_builders import build_calculate_database_aggregations_summary
+from app.services.task_runs.task_run_summary_builders import build_calculate_database_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -215,13 +215,13 @@ def _resolve_task_run_id(
         return resolved_run_id
 
     resolved_run_id = task_runs_service.start_run(
-        task_key="calculate_database_aggregations",
+        task_key="calculate_database",
         task_name="统计数据库聚合",
         task_category="aggregation",
         trigger_source=trigger_source,
         created_by=created_by,
         summary_json=TaskRunSummaryFactory.base(
-            task_key="calculate_database_aggregations",
+            task_key="calculate_database",
             inputs={"requested_periods": periods},
         ),
         result_url="/capacity/instances",
@@ -239,8 +239,8 @@ def _finalize_skip_run(
 ) -> dict[str, Any]:
     current_run = TaskRun.query.filter_by(run_id=run_id).first()
     if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_calculate_database_aggregations_summary(
-            task_key="calculate_database_aggregations",
+        current_run.summary_json = build_calculate_database_summary(
+            task_key="calculate_database",
             inputs={"requested_periods": periods},
             periods_executed=[],
             instances_total=0,
@@ -300,7 +300,7 @@ def _handle_aggregation_task_failure(
     return result
 
 
-def calculate_database_aggregations(
+def calculate_database(
     *,
     manual_run: bool = False,
     periods: list[str] | None = None,
@@ -337,7 +337,7 @@ def calculate_database_aggregations(
                 sync_logger.info(
                     "任务已取消,跳过执行",
                     module="aggregation_sync",
-                    task="calculate_database_aggregations",
+                    task="calculate_database",
                     run_id=resolved_run_id,
                 )
                 return {"status": "cancelled", "message": "任务已取消", "run_id": resolved_run_id}
@@ -345,7 +345,7 @@ def calculate_database_aggregations(
             sync_logger.info(
                 "开始执行数据库大小统计聚合任务",
                 module="aggregation_sync",
-                task="calculate_database_aggregations",
+                task="calculate_database",
                 run_id=resolved_run_id,
             )
 
@@ -417,7 +417,7 @@ def calculate_database_aggregations(
                 sync_logger.info(
                     "任务已取消,跳过剩余聚合汇总",
                     module="aggregation_sync",
-                    task="calculate_database_aggregations",
+                    task="calculate_database",
                     run_id=resolved_run_id,
                 )
                 task_runs_service.finalize_run(resolved_run_id)
@@ -438,8 +438,8 @@ def calculate_database_aggregations(
 
             current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
             if current_run is not None and current_run.status != "cancelled":
-                current_run.summary_json = build_calculate_database_aggregations_summary(
-                    task_key="calculate_database_aggregations",
+                current_run.summary_json = build_calculate_database_summary(
+                    task_key="calculate_database",
                     inputs={"requested_periods": periods},
                     periods_executed=selected_periods,
                     instances_total=len(active_instances),

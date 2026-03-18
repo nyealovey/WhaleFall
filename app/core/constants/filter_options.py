@@ -67,8 +67,8 @@ STATUS_TASK_RUN_OPTIONS: Final[list[dict[str, str]]] = [
 # TaskRun(运行中心)触发来源筛选
 TASK_RUN_TRIGGER_SOURCES: Final[list[dict[str, str]]] = [
     {"value": "", "label": "全部来源"},
-    {"value": "scheduled", "label": "定时任务"},
-    {"value": "manual", "label": "手动触发"},
+    {"value": "scheduled", "label": "定时"},
+    {"value": "manual", "label": "手动"},
     {"value": "api", "label": "API"},
 ]
 
@@ -79,5 +79,6 @@ TASK_RUN_CATEGORIES: Final[list[dict[str, str]]] = [
     {"value": "capacity", "label": "容量"},
     {"value": "aggregation", "label": "聚合"},
     {"value": "classification", "label": "分类"},
+    {"value": "notification", "label": "告警"},
     {"value": "other", "label": "其他"},
 ]

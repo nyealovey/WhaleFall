@@ -203,6 +203,20 @@
    * @param {string|number} value 需要设置的值。
    * @returns {void}
    */
+  function updateCheckboxSummary(element) {
+    const target = getElement(element);
+    if (!target) {
+      return;
+    }
+    const summary = target.querySelector('[data-role="multiselect-summary"]');
+    if (!summary) {
+      return;
+    }
+    const selectedValues = readCheckboxValues(target);
+    const placeholder = target.dataset.placeholder || "请选择";
+    summary.textContent = selectedValues.length ? `已选 ${selectedValues.length} 项` : placeholder;
+  }
+
   function updateCheckboxOptions(element, options) {
     const target = getElement(element);
     if (!target) {
@@ -226,13 +240,14 @@
         : [];
 
     host.innerHTML = "";
-    target.classList.toggle("filter-checkbox-group--disabled", Boolean(disabled));
+    target.classList.toggle("filter-multiselect--disabled", Boolean(disabled));
 
     if (!items.length) {
       const empty = document.createElement("div");
-      empty.className = "filter-checkbox-group__empty";
+      empty.className = "filter-multiselect__empty";
       empty.textContent = emptyText;
       host.appendChild(empty);
+      updateCheckboxSummary(target);
       return;
     }
 
@@ -244,10 +259,10 @@
         (typeof getOptionLabel === "function" ? getOptionLabel(item) : item?.label) ?? value,
       );
       const option = document.createElement("label");
-      option.className = "filter-checkbox-group__option";
+      option.className = "filter-multiselect__option";
 
       const input = document.createElement("input");
-      input.className = "form-check-input filter-checkbox-group__input";
+      input.className = "form-check-input filter-multiselect__input";
       input.type = "checkbox";
       input.name = name;
       input.value = value;
@@ -256,7 +271,7 @@
       input.disabled = Boolean(disabled);
 
       const label = document.createElement("span");
-      label.className = "filter-checkbox-group__label";
+      label.className = "filter-multiselect__label";
       label.textContent = labelText;
 
       option.htmlFor = input.id;
@@ -264,6 +279,8 @@
       option.appendChild(label);
       host.appendChild(option);
     });
+
+    updateCheckboxSummary(target);
   }
 
   function syncSelectValue(selector, value) {
@@ -291,6 +308,7 @@
     element.querySelectorAll('input[type="checkbox"]').forEach((input) => {
       input.checked = selectedValues.includes(String(input.value));
     });
+    updateCheckboxSummary(element);
   }
 
   /**
@@ -310,7 +328,11 @@
       element.disabled = resolvedDisabled;
       return;
     }
-    element.classList.toggle("filter-checkbox-group--disabled", resolvedDisabled);
+    element.classList.toggle("filter-multiselect--disabled", resolvedDisabled);
+    const trigger = element.querySelector('[data-role="multiselect-trigger"]');
+    if (trigger) {
+      trigger.disabled = resolvedDisabled;
+    }
     element.querySelectorAll('input[type="checkbox"]').forEach((input) => {
       input.disabled = resolvedDisabled;
     });
@@ -321,6 +343,7 @@
     readChartState,
     updateSelectOptions,
     updateCheckboxOptions,
+    updateCheckboxSummary,
     syncSelectValue,
     setDisabled,
   };

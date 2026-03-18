@@ -239,6 +239,9 @@
         periodType: this.filterFormEl ? selectOne("#period_type", this.filterFormEl).first() : null,
       };
       this.handleFilterEvent = this.handleFilterEvent.bind(this);
+      this.handleDocumentClick = this.handleDocumentClick.bind(this);
+      this.handleDocumentKeydown = this.handleDocumentKeydown.bind(this);
+      this.handleFormClick = this.handleFormClick.bind(this);
       this.eventBusUnsubscribers = [];
       if (EventBus && this.filterFormId) {
         ["change", "submit", "clear"].forEach((action) => {
@@ -282,6 +285,7 @@
      */
     async initialize() {
       this.bindEvents();
+      this.bindMultiselectInteractions();
       try {
         await this.prepareInitialOptions();
       } catch (error) {
@@ -399,6 +403,67 @@
         this.state.overrides.percent = true;
         this.loadPercentChangeData();
       });
+    }
+
+    bindMultiselectInteractions() {
+      if (!this.filterFormEl) {
+        return;
+      }
+      this.filterFormEl.addEventListener("click", this.handleFormClick);
+      document.addEventListener("click", this.handleDocumentClick);
+      document.addEventListener("keydown", this.handleDocumentKeydown);
+    }
+
+    handleFormClick(event) {
+      const trigger = event?.target?.closest?.('[data-role="multiselect-trigger"]');
+      if (!trigger) {
+        return;
+      }
+      event.preventDefault();
+      const wrapper = trigger.closest('.filter-multiselect');
+      if (!wrapper || trigger.disabled) {
+        return;
+      }
+      const shouldOpen = !wrapper.classList.contains('is-open');
+      this.closeAllMultiselects();
+      this.setMultiselectOpen(wrapper, shouldOpen);
+    }
+
+    handleDocumentClick(event) {
+      if (event?.target?.closest?.('.filter-multiselect')) {
+        return;
+      }
+      this.closeAllMultiselects();
+    }
+
+    handleDocumentKeydown(event) {
+      if (event?.key === 'Escape') {
+        this.closeAllMultiselects();
+      }
+    }
+
+    closeAllMultiselects() {
+      if (!this.filterFormEl) {
+        return;
+      }
+      this.filterFormEl.querySelectorAll('.filter-multiselect').forEach((element) => {
+        this.setMultiselectOpen(element, false);
+      });
+    }
+
+    setMultiselectOpen(element, shouldOpen) {
+      if (!element) {
+        return;
+      }
+      const trigger = element.querySelector('[data-role="multiselect-trigger"]');
+      const menu = element.querySelector('[data-role="multiselect-menu"]');
+      element.classList.toggle('is-open', Boolean(shouldOpen));
+      if (trigger) {
+        trigger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+      }
+      if (menu) {
+        menu.hidden = !shouldOpen;
+      }
     }
 
     /**
@@ -694,6 +759,7 @@
     }
 
     async handleDbTypeChange() {
+      Filters.updateCheckboxSummary(this.filterElements.dbType);
       const latest = Filters.readInitialFilters(this.config);
       this.state.filters.dbTypes = latest.dbTypes || [];
       this.state.filters.instanceIds = [];
@@ -715,6 +781,7 @@
     }
 
     async handleInstanceChange() {
+      Filters.updateCheckboxSummary(this.filterElements.instance);
       const latest = Filters.readInitialFilters(this.config);
       this.state.filters.instanceIds = latest.instanceIds || [];
       if (this.config.supportsDatabaseFilter) {
@@ -929,6 +996,12 @@
      * 清理事件与模态，释放资源。
      */
     destroy() {
+      this.closeAllMultiselects();
+      if (this.filterFormEl) {
+        this.filterFormEl.removeEventListener("click", this.handleFormClick);
+      }
+      document.removeEventListener("click", this.handleDocumentClick);
+      document.removeEventListener("keydown", this.handleDocumentKeydown);
       if (this.eventBusUnsubscribers && this.eventBusUnsubscribers.length) {
         this.eventBusUnsubscribers.forEach((unsubscribe) => {
           try {
