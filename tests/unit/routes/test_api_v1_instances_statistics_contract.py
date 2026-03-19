@@ -16,12 +16,15 @@ def test_api_v1_instances_statistics_contract(auth_client, monkeypatch) -> None:
 
     def _dummy_build_statistics():
         return {
-            "total_instances": 1,
+            "total_instances": 2,
+            "current_instances": 1,
             "active_instances": 1,
             "normal_instances": 1,
             "disabled_instances": 0,
-            "deleted_instances": 0,
+            "deleted_instances": 1,
             "inactive_instances": 0,
+            "audit_enabled_instances": 1,
+            "high_availability_instances": 1,
             "db_types_count": 1,
             "db_type_stats": [{"db_type": "mysql", "count": 1}],
             "port_stats": [{"port": 3306, "count": 1}],
@@ -39,11 +42,14 @@ def test_api_v1_instances_statistics_contract(auth_client, monkeypatch) -> None:
     assert isinstance(data, dict)
     assert {
         "total_instances",
+        "current_instances",
         "active_instances",
         "normal_instances",
         "disabled_instances",
         "deleted_instances",
         "inactive_instances",
+        "audit_enabled_instances",
+        "high_availability_instances",
         "db_types_count",
         "db_type_stats",
         "port_stats",

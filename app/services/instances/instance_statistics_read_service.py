@@ -57,11 +57,14 @@ class InstanceStatisticsReadService:
 
         return InstanceStatisticsResult(
             total_instances=totals["total_instances"],
+            current_instances=totals["current_instances"],
             active_instances=totals["active_instances"],
             normal_instances=totals["normal_instances"],
             disabled_instances=totals["disabled_instances"],
             deleted_instances=totals["deleted_instances"],
             inactive_instances=totals["disabled_instances"],
+            audit_enabled_instances=totals["audit_enabled_instances"],
+            high_availability_instances=totals["high_availability_instances"],
             db_types_count=len(db_type_rows),
             db_type_stats=db_type_stats,
             port_stats=port_stats,
@@ -73,11 +76,14 @@ class InstanceStatisticsReadService:
         """构造空统计结果."""
         return InstanceStatisticsResult(
             total_instances=0,
+            current_instances=0,
             active_instances=0,
             normal_instances=0,
             disabled_instances=0,
             deleted_instances=0,
             inactive_instances=0,
+            audit_enabled_instances=0,
+            high_availability_instances=0,
             db_types_count=0,
             db_type_stats=[],
             port_stats=[],

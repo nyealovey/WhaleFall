@@ -11,8 +11,11 @@
   /**
    * @typedef {Object} InstanceStats
    * @property {number} total_instances - 实例总数
+   * @property {number} current_instances - 未删除实例数
    * @property {number} active_instances - 活跃实例数
    * @property {number} inactive_instances - 非活跃实例数
+   * @property {number} audit_enabled_instances - 已配置并启用审计的在线实例数
+   * @property {number} high_availability_instances - 高可用在线实例数
    * @property {number} total_accounts - 账户总数
    * @property {number} total_databases - 数据库总数
    * @property {number} db_types_count - 数据库类型数
@@ -302,8 +305,11 @@
       stats: Object.assign(
         {
           total_instances: 0,
+          current_instances: 0,
           active_instances: 0,
           inactive_instances: 0,
+          audit_enabled_instances: 0,
+          high_availability_instances: 0,
           total_accounts: 0,
           total_databases: 0,
           db_types_count: 0,
@@ -870,8 +876,11 @@
         state.instances = [];
         state.stats = {
           total_instances: 0,
+          current_instances: 0,
           active_instances: 0,
           inactive_instances: 0,
+          audit_enabled_instances: 0,
+          high_availability_instances: 0,
           total_accounts: 0,
           total_databases: 0,
           db_types_count: 0,
