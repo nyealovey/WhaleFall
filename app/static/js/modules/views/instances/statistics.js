@@ -421,8 +421,8 @@ function mountInstanceStatisticsPage() {
      */
     function updateStatistics(stats) {
         setStatValue('total_instances', stats.total_instances);
-        setStatValue('active_instances', stats.active_instances);
-        setStatValue('deleted_instances', stats.deleted_instances);
+        setStatValue('audit_enabled_instances', stats.audit_enabled_instances);
+        setStatValue('high_availability_instances', stats.high_availability_instances);
         setStatValue('db_types_count', stats.db_types_count);
         updateStatisticsMeta(stats);
 
@@ -432,10 +432,12 @@ function mountInstanceStatisticsPage() {
     }
 
     function updateStatisticsMeta(stats) {
-        const total = Number(stats?.total_instances ?? 0) || 0;
+        const current = Number(stats?.current_instances ?? 0) || 0;
         const active = Number(stats?.active_instances ?? 0) || 0;
         const inactive = Number(stats?.inactive_instances ?? 0) || 0;
         const deleted = Number(stats?.deleted_instances ?? 0) || 0;
+        const auditEnabled = Number(stats?.audit_enabled_instances ?? 0) || 0;
+        const highAvailability = Number(stats?.high_availability_instances ?? 0) || 0;
 
         const setText = (id, value) => {
             const node = document.getElementById(id);
@@ -445,17 +447,19 @@ function mountInstanceStatisticsPage() {
             node.textContent = String(value);
         };
 
+        setText('instancesMetaActiveCount', global.NumberFormat.formatInteger(active, { fallback: active }));
         setText('instancesMetaInactiveCount', global.NumberFormat.formatInteger(inactive, { fallback: inactive }));
+        setText('instancesMetaDeletedCount', global.NumberFormat.formatInteger(deleted, { fallback: deleted }));
 
         const formatPercent = global.NumberFormat?.formatPercent;
         if (typeof formatPercent === 'function') {
             setText(
-                'instancesMetaActiveRate',
-                formatPercent(total > 0 ? active / total : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+                'instancesMetaAuditEnabledRate',
+                formatPercent(active > 0 ? auditEnabled / active : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
             );
             setText(
-                'instancesMetaDeletedRate',
-                formatPercent(total > 0 ? deleted / total : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+                'instancesMetaHighAvailabilityRate',
+                formatPercent(active > 0 ? highAvailability / active : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
             );
         }
 
@@ -470,7 +474,7 @@ function mountInstanceStatisticsPage() {
         if (typeof formatPercent === 'function') {
             setText(
                 'instancesMetaTopDbTypeShare',
-                formatPercent(total > 0 ? topCount / total : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+                formatPercent(current > 0 ? topCount / current : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
             );
         }
     }
