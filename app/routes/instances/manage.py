@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, url_for
 from flask_login import login_required
 
 from app.core.constants import STATUS_ACTIVE_OPTIONS, DatabaseType
@@ -50,6 +50,7 @@ def index() -> str:
                 "display_name": get_database_type_display_name(item),
                 "icon": get_database_type_icon(item),
                 "color": get_database_type_color(item),
+                "asset_url": url_for("static", filename=f"img/db-types/{item}.png"),
             }
             for item in DatabaseType.RELATIONAL
         }

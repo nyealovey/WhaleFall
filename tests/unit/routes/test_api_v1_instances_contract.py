@@ -11,6 +11,7 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_table_size_stat import DatabaseTableSizeStat
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.tag import Tag
 from app.models.instance_database import InstanceDatabase
 from app.models.user import User
@@ -30,6 +31,7 @@ def test_api_v1_instances_list_contract() -> None:
                 db.metadata.tables["instance_tags"],
                 db.metadata.tables["instance_databases"],
                 db.metadata.tables["instance_accounts"],
+                db.metadata.tables["instance_config_snapshots"],
                 db.metadata.tables["sync_instance_records"],
                 db.metadata.tables["tags"],
             ],
@@ -96,13 +98,73 @@ def test_api_v1_instances_list_contract() -> None:
             "active_db_count",
             "active_account_count",
             "last_sync_time",
+            "audit_status",
             "tags",
         }
         assert expected_item_keys.issubset(item.keys())
+        assert item.get("audit_status") == "not_configured"
         tags = item.get("tags")
         assert isinstance(tags, list)
         assert len(tags) == 1
         assert tags[0] == {"name": "instance_tag", "display_name": "实例标签"}
+
+
+@pytest.mark.unit
+def test_api_v1_instances_list_exposes_enabled_audit_status_for_sqlserver() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+                db.metadata.tables["instance_databases"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["instance_config_snapshots"],
+                db.metadata.tables["sync_instance_records"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        instance = Instance(
+            name="sqlserver-audit-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.1",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.flush()
+        db.session.add(
+            InstanceConfigSnapshot(
+                instance_id=instance.id,
+                db_type=DatabaseType.SQLSERVER,
+                config_key="audit_info",
+                snapshot={"server_audits": [{"name": "audit-main", "enabled": True}]},
+                facts={"has_audit": True, "enabled_audit_count": 1},
+            ),
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/api/v1/instances")
+        assert response.status_code == 200
+
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert items[0].get("audit_status") == "enabled"
 
 
 @pytest.mark.unit

@@ -13,7 +13,9 @@
 #instances-grid .gridjs-th[data-column-id="db_type"],
 #instances-grid .gridjs-td[data-column-id="db_type"],
 #instances-grid .gridjs-th[data-column-id="status"],
-#instances-grid .gridjs-td[data-column-id="status"] {
+#instances-grid .gridjs-td[data-column-id="status"],
+#instances-grid .gridjs-th[data-column-id="audit"],
+#instances-grid .gridjs-td[data-column-id="audit"] {
     width: 64px;
     min-width: 64px;
     text-align: center;
@@ -78,6 +80,13 @@
     line-height: 1;
 }
 
+.instance-compact-indicator__asset {
+    width: 0.95rem;
+    height: 0.95rem;
+    display: block;
+    object-fit: contain;
+}
+
 .instance-compact-indicator:hover {
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
@@ -119,6 +128,7 @@
 }
 
 #instances-grid td[data-column-id="db_type"] .instance-compact-indicator,
+#instances-grid td[data-column-id="audit"] .instance-compact-indicator,
 #instances-grid td[data-column-id="status"] .instance-compact-indicator {
     margin-inline: auto;
 }

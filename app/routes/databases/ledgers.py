@@ -27,6 +27,7 @@ def _build_database_type_options() -> list[dict[str, Any]]:
             "label": "全部类型",
             "icon": "fa-layer-group",
             "color": "secondary",
+            "asset_url": "",
         },
         *[
             {
@@ -34,6 +35,7 @@ def _build_database_type_options() -> list[dict[str, Any]]:
                 "label": item["display_name"],
                 "icon": item.get("icon", "fa-database"),
                 "color": item.get("color", "primary"),
+                "asset_url": url_for("static", filename=f"img/db-types/{item['name']}.png"),
             }
             for item in DATABASE_TYPES
         ],
@@ -55,11 +57,23 @@ def list_databases() -> str:
         search = request.args.get("search", "").strip()
         selected_tags = _parse_tag_filters()
         capacity_stats_url = url_for("capacity_databases.list_databases")
+        database_type_options = _build_database_type_options()
+        database_type_map = {
+            item["value"]: {
+                "display_name": item["label"],
+                "icon": item["icon"],
+                "color": item["color"],
+                "asset_url": item["asset_url"],
+            }
+            for item in database_type_options
+            if item["value"] != "all"
+        }
         return render_template(
             "databases/ledgers.html",
             current_db_type=current_db_type or "all",
             search=search,
-            database_type_options=_build_database_type_options(),
+            database_type_options=database_type_options,
+            database_type_map=database_type_map,
             capacity_stats_url=capacity_stats_url,
             tag_options=_filter_options_service.list_active_tag_options(),
             selected_tags=selected_tags,

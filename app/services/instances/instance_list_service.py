@@ -12,6 +12,25 @@ from app.core.types.listing import PaginatedResult
 from app.repositories.instances_repository import InstancesRepository
 
 
+def _resolve_audit_status(audit_facts: dict[str, object] | None) -> str:
+    """根据审计快照 facts 推导列表页展示状态."""
+    if not isinstance(audit_facts, dict):
+        return "not_configured"
+
+    has_audit = bool(audit_facts.get("has_audit"))
+    enabled_count_raw = audit_facts.get("enabled_audit_count", 0)
+    try:
+        enabled_count = int(enabled_count_raw or 0)
+    except (TypeError, ValueError):
+        enabled_count = 0
+
+    if has_audit and enabled_count > 0:
+        return "enabled"
+    if has_audit:
+        return "configured_disabled"
+    return "not_configured"
+
+
 class InstanceListService:
     """实例列表业务编排服务."""
 
@@ -26,6 +45,7 @@ class InstanceListService:
         for instance in page_result.items:
             last_sync = metrics.last_sync_times.get(instance.id)
             status_value = "deleted" if instance.deleted_at else ("active" if instance.is_active else "inactive")
+            audit_status = _resolve_audit_status(metrics.audit_facts_map.get(instance.id))
             items.append(
                 InstanceListItem(
                     id=instance.id,
@@ -37,6 +57,7 @@ class InstanceListService:
                     is_active=instance.is_active,
                     deleted_at=instance.deleted_at.isoformat() if instance.deleted_at else None,
                     status=status_value,
+                    audit_status=audit_status,
                     main_version=instance.main_version,
                     active_db_count=metrics.database_counts.get(instance.id, 0),
                     active_account_count=metrics.account_counts.get(instance.id, 0),
