@@ -19,6 +19,7 @@ INSTANCE_LIST_ITEM_FIELDS = {
     "is_active": fields.Boolean(description="是否启用", example=True),
     "deleted_at": fields.String(description="删除时间(ISO8601, 可选)", example=None),
     "status": fields.String(description="状态", example="ok"),
+    "audit_status": fields.String(description="审计状态", example="enabled"),
     "main_version": fields.String(description="主版本", example="8.0"),
     "active_db_count": fields.Integer(description="活跃数据库数", example=12),
     "active_account_count": fields.Integer(description="活跃账号数", example=42),

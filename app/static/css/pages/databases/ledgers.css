@@ -1,5 +1,12 @@
 /* 数据库台账页面样式 */
 
+.btn-group [data-db-type-btn] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
 #database-ledger-grid td[data-column-id="database_name"] strong {
     font-weight: 600;
 }
