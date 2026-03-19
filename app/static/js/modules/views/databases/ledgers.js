@@ -45,8 +45,14 @@
     const { ready, selectOne } = helpers;
     const gridHtml = gridjs.html;
     const CHIP_COLUMN_WIDTH = "220px";
-    const TYPE_COLUMN_WIDTH = "110px";
+    const TYPE_COLUMN_WIDTH = "64px";
     const ACTION_COLUMN_WIDTH = "90px";
+    const LEDGER_DB_TYPE_VISUALS = new Map([
+      ["mysql", { fallbackIcon: "fa-database", tone: "primary" }],
+      ["postgresql", { fallbackIcon: "fa-database", tone: "info" }],
+      ["sqlserver", { fallbackIcon: "fa-server", tone: "warning" }],
+      ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
+    ]);
     const root = document.getElementById("database-ledger-root");
     if (!root) {
       return;
@@ -235,15 +241,15 @@
       }
       const normalized = typeof dbType === "string" ? dbType.toLowerCase() : "";
       const meta = dbTypeMetaMap.get(normalized) || null;
-      const label = meta?.display_name || dbType || "未知";
-      const icon = meta?.icon || "fa-database";
-      const assetUrl = meta?.asset_url || "";
-      const glyphHtml = assetUrl
-        ? `<img class="db-type-chip__asset" src="${escapeHtml(assetUrl)}" alt="" aria-hidden="true">`
-        : `<i class="fas ${icon}" aria-hidden="true"></i>`;
-      return gridHtml(
-        `<span class="chip-outline chip-outline--brand">${glyphHtml}${escapeHtml(label)}</span>`,
-      );
+      const visual = LEDGER_DB_TYPE_VISUALS.get(normalized) || {};
+      const label = meta?.display_name || dbType || "未知类型";
+      return renderCompactIndicator({
+        icon: visual.fallbackIcon || meta?.icon || "fa-database",
+        tone: visual.tone || meta?.color || "muted",
+        title: label,
+        ariaLabel: `数据库类型 ${label}`,
+        assetUrl: meta?.asset_url || "",
+      });
     }
 
     function renderCapacityCell(capacity) {
@@ -423,6 +429,33 @@
       if (target) {
         target.textContent = `共 ${total} 条记录`;
       }
+    }
+
+    function renderCompactIndicator({ icon, tone = "muted", title, ariaLabel, assetUrl = "" }) {
+      if (!gridHtml) {
+        return title || "";
+      }
+      const classes = ["ledger-compact-indicator"];
+      if (tone) {
+        classes.push(`ledger-compact-indicator--${tone}`);
+      }
+      const resolvedTitle = title || "";
+      const resolvedAriaLabel = ariaLabel || resolvedTitle;
+      const glyphHtml = assetUrl
+        ? `<img class="ledger-compact-indicator__asset"
+                src="${escapeHtml(assetUrl)}"
+                alt=""
+                aria-hidden="true">`
+        : `<i class="fas ${escapeHtml(icon || "fa-circle")}" aria-hidden="true"></i>`;
+      return gridHtml(`
+        <span class="${classes.join(" ")}"
+              title="${escapeHtml(resolvedTitle)}"
+              aria-label="${escapeHtml(resolvedAriaLabel)}"
+              role="img">
+          ${glyphHtml}
+          <span class="visually-hidden">${escapeHtml(resolvedTitle)}</span>
+        </span>
+      `);
     }
 
     function bindSyncAllDatabasesAction() {

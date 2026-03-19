@@ -67,6 +67,14 @@ function mountAccountsListPage(global) {
   const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));
   const includeDbTypeColumn = !currentDbType || currentDbType === "all";
   const basePath = resolveBasePath(currentDbType);
+  const TYPE_COLUMN_WIDTH = "64px";
+  const STATUS_COLUMN_WIDTH = "64px";
+  const LEDGER_DB_TYPE_VISUALS = new Map([
+    ["mysql", { fallbackIcon: "fa-database", tone: "primary" }],
+    ["postgresql", { fallbackIcon: "fa-database", tone: "info" }],
+    ["sqlserver", { fallbackIcon: "fa-server", tone: "warning" }],
+    ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
+  ]);
 
   let gridPage = null;
   let accountsGrid = null;
@@ -331,20 +339,20 @@ function mountAccountsListPage(global) {
       {
         name: "可用性",
         id: "is_locked",
-        width: "70px",
-        formatter: (cell) => renderStatusBadge(Boolean(cell)),
+        width: STATUS_COLUMN_WIDTH,
+        formatter: (cell) => renderAvailabilityIndicator(Boolean(cell)),
       },
       {
         name: "是否删除",
         id: "is_deleted",
-        width: "70px",
-        formatter: (cell) => renderDeletionBadge(Boolean(cell)),
+        width: STATUS_COLUMN_WIDTH,
+        formatter: (cell) => renderDeletionIndicator(Boolean(cell)),
       },
       {
-        name: "是否超极",
+        name: "是否超级",
         id: "is_superuser",
-        width: "70px",
-        formatter: (cell) => renderSuperuserBadge(Boolean(cell)),
+        width: STATUS_COLUMN_WIDTH,
+        formatter: (cell) => renderSuperuserIndicator(Boolean(cell)),
       },
       {
         name: "分类",
@@ -357,9 +365,9 @@ function mountAccountsListPage(global) {
 
     if (includeDbTypeColumn) {
       columns.push({
-        name: "数据库类型",
+        name: "类型",
         id: "db_type",
-        width: "120px",
+        width: TYPE_COLUMN_WIDTH,
         formatter: (cell) => renderDbTypeBadge(cell),
       });
     }
@@ -458,54 +466,97 @@ function mountAccountsListPage(global) {
   function renderDbTypeBadge(dbType) {
     const typeStr = typeof dbType === "string" ? dbType : String(dbType || "");
     const normalized = typeStr.toLowerCase();
-    const meta = dbTypeMetaMap.get(normalized) || null;
-    const label = meta?.display_name || (typeStr ? typeStr.toUpperCase() : "-");
-    const icon = meta?.icon || "fa-database";
-    const assetUrl = meta?.asset_url || "";
+    const meta = dbTypeMetaMap.get(normalized) || dbTypeMetaMap.get(typeStr) || null;
+    const visual = LEDGER_DB_TYPE_VISUALS.get(normalized) || {};
+    const label = meta?.display_name || (typeStr ? typeStr.toUpperCase() : "未知类型");
     if (!gridHtml) {
       return label;
     }
-    const glyphHtml = assetUrl
-      ? `<img class="db-type-chip__asset" src="${escapeHtml(assetUrl)}" alt="" aria-hidden="true">`
-      : `<i class="fas ${icon} me-1" aria-hidden="true"></i>`;
-    return gridHtml(
-      `<span class="chip-outline chip-outline--brand" data-db-type="${escapeHtml(normalized)}">${glyphHtml}${escapeHtml(label)}</span>`,
-    );
+    return renderCompactIndicator({
+      icon: visual.fallbackIcon || meta?.icon || "fa-database",
+      tone: visual.tone || meta?.color || "muted",
+      title: meta?.display_name || (typeStr ? typeStr.toUpperCase() : "未知类型"),
+      ariaLabel: `数据库类型 ${label}`,
+      assetUrl: meta?.asset_url || "",
+    });
   }
 
-  function renderStatusBadge(isLocked) {
-    const resolveText = global.UI?.Terms?.resolveLockStatusText;
-    const text = typeof resolveText === "function" ? resolveText(isLocked) : isLocked ? "已锁定" : "正常";
-    const variant = isLocked ? "danger" : "success";
-    const icon = isLocked ? "fa-lock" : "fa-check";
-    return renderStatusPill(text, variant, icon);
+  function renderAvailabilityIndicator(isLocked) {
+    if (isLocked) {
+      return renderCompactIndicator({
+        icon: "fa-lock",
+        tone: "danger",
+        title: "已锁定",
+        ariaLabel: "可用性 已锁定",
+      });
+    }
+    return renderCompactIndicator({
+      icon: "fa-circle-check",
+      tone: "success",
+      title: "正常",
+      ariaLabel: "可用性 正常",
+    });
   }
 
-  function renderDeletionBadge(isDeleted) {
-    const resolveText = global.UI?.Terms?.resolveDeletionStatusText;
-    const text = typeof resolveText === "function" ? resolveText(isDeleted) : isDeleted ? "已删除" : "正常";
-    const variant = isDeleted ? "danger" : "muted";
-    const icon = isDeleted ? "fa-trash" : "fa-check";
-    return renderStatusPill(text, variant, icon);
+  function renderDeletionIndicator(isDeleted) {
+    if (isDeleted) {
+      return renderCompactIndicator({
+        icon: "fa-trash",
+        tone: "danger",
+        title: "已删除",
+        ariaLabel: "删除状态 已删除",
+      });
+    }
+    return renderCompactIndicator({
+      icon: "fa-minus",
+      tone: "muted",
+      title: "未删除",
+      ariaLabel: "删除状态 未删除",
+    });
   }
 
-  function renderSuperuserBadge(isSuperuser) {
-    const text = isSuperuser ? "是" : "否";
-    const variant = isSuperuser ? "warning" : "muted";
-    const icon = isSuperuser ? "fa-crown" : null;
-    return renderStatusPill(text, variant, icon);
+  function renderSuperuserIndicator(isSuperuser) {
+    if (isSuperuser) {
+      return renderCompactIndicator({
+        icon: "fa-user-shield",
+        tone: "warning",
+        title: "超级用户",
+        ariaLabel: "超级权限 超级用户",
+      });
+    }
+    return renderCompactIndicator({
+      icon: "fa-minus",
+      tone: "muted",
+      title: "普通用户",
+      ariaLabel: "超级权限 普通用户",
+    });
   }
 
-  function renderStatusPill(text, variant = "muted", icon) {
+  function renderCompactIndicator({ icon, tone = "muted", title, ariaLabel, assetUrl = "" }) {
     if (!gridHtml) {
-      return text;
+      return title || "";
     }
-    const classes = ["status-pill"];
-    if (variant) {
-      classes.push(`status-pill--${variant}`);
+    const classes = ["ledger-compact-indicator"];
+    if (tone) {
+      classes.push(`ledger-compact-indicator--${tone}`);
     }
-    const iconHtml = icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : "";
-    return gridHtml(`<span class="${classes.join(" ")}">${iconHtml}${escapeHtml(text || "")}</span>`);
+    const resolvedTitle = title || "";
+    const resolvedAriaLabel = ariaLabel || resolvedTitle;
+    const glyphHtml = assetUrl
+      ? `<img class="ledger-compact-indicator__asset"
+              src="${escapeHtml(assetUrl)}"
+              alt=""
+              aria-hidden="true">`
+      : `<i class="fas ${escapeHtml(icon || "fa-circle")}" aria-hidden="true"></i>`;
+    return gridHtml(`
+      <span class="${classes.join(" ")}"
+            title="${escapeHtml(resolvedTitle)}"
+            aria-label="${escapeHtml(resolvedAriaLabel)}"
+            role="img">
+        ${glyphHtml}
+        <span class="visually-hidden">${escapeHtml(resolvedTitle)}</span>
+      </span>
+    `);
   }
 
   function renderActions(meta) {
