@@ -86,6 +86,26 @@ START 1
 CACHE 1;
 
 -- ----------------------------
+-- Sequence structure for jumpserver_asset_snapshots_id_seq
+-- ----------------------------
+CREATE SEQUENCE "public"."jumpserver_asset_snapshots_id_seq"
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for jumpserver_source_bindings_id_seq
+-- ----------------------------
+CREATE SEQUENCE "public"."jumpserver_source_bindings_id_seq"
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
 -- Sequence structure for current_account_sync_data_id_seq
 -- ----------------------------
 CREATE SEQUENCE "public"."current_account_sync_data_id_seq"
@@ -353,6 +373,41 @@ CREATE TABLE "public"."credentials" (
   "created_at" timestamptz(6) DEFAULT now(),
   "updated_at" timestamptz(6) DEFAULT now(),
   "deleted_at" timestamptz(6)
+)
+;
+
+-- ----------------------------
+-- Table structure for jumpserver_asset_snapshots
+-- ----------------------------
+CREATE TABLE "public"."jumpserver_asset_snapshots" (
+  "id" int4 NOT NULL DEFAULT nextval('jumpserver_asset_snapshots_id_seq'::regclass),
+  "external_id" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "db_type" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
+  "host" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "port" int4 NOT NULL,
+  "raw_payload" jsonb NOT NULL,
+  "sync_run_id" varchar(64) COLLATE "pg_catalog"."default",
+  "synced_at" timestamptz(6) NOT NULL DEFAULT now(),
+  "created_at" timestamptz(6) NOT NULL DEFAULT now(),
+  "updated_at" timestamptz(6) NOT NULL DEFAULT now()
+)
+;
+
+-- ----------------------------
+-- Table structure for jumpserver_source_bindings
+-- ----------------------------
+CREATE TABLE "public"."jumpserver_source_bindings" (
+  "id" int4 NOT NULL DEFAULT nextval('jumpserver_source_bindings_id_seq'::regclass),
+  "credential_id" int4 NOT NULL,
+  "base_url" varchar(512) COLLATE "pg_catalog"."default" NOT NULL,
+  "is_enabled" bool NOT NULL DEFAULT true,
+  "last_sync_at" timestamptz(6),
+  "last_sync_status" varchar(32) COLLATE "pg_catalog"."default",
+  "last_sync_run_id" varchar(64) COLLATE "pg_catalog"."default",
+  "last_error" text COLLATE "pg_catalog"."default",
+  "created_at" timestamptz(6) NOT NULL DEFAULT now(),
+  "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
 
@@ -1114,6 +1169,18 @@ OWNED BY "public"."credentials"."id";
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
+ALTER SEQUENCE "public"."jumpserver_asset_snapshots_id_seq"
+OWNED BY "public"."jumpserver_asset_snapshots"."id";
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."jumpserver_source_bindings_id_seq"
+OWNED BY "public"."jumpserver_source_bindings"."id";
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
 ALTER SEQUENCE "public"."current_account_sync_data_id_seq"
 OWNED BY "public"."account_permission"."id";
 
@@ -1334,6 +1401,17 @@ CREATE INDEX "ix_credentials_credential_type" ON "public"."credentials" USING bt
 CREATE INDEX "ix_credentials_db_type" ON "public"."credentials" USING btree (
   "db_type" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
+CREATE INDEX "ix_jumpserver_asset_snapshots_db_type_host_port" ON "public"."jumpserver_asset_snapshots" USING btree (
+  "db_type" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
+  "host" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
+  "port" ASC NULLS LAST
+);
+CREATE INDEX "ix_jumpserver_asset_snapshots_external_id" ON "public"."jumpserver_asset_snapshots" USING btree (
+  "external_id" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
+);
+CREATE INDEX "ix_jumpserver_asset_snapshots_synced_at" ON "public"."jumpserver_asset_snapshots" USING btree (
+  "synced_at" ASC NULLS LAST
+);
 CREATE INDEX "ix_credentials_name" ON "public"."credentials" USING btree (
   "name" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
@@ -1349,11 +1427,15 @@ EXECUTE PROCEDURE "public"."update_updated_at_column"();
 -- Uniques structure for table credentials
 -- ----------------------------
 ALTER TABLE "public"."credentials" ADD CONSTRAINT "credentials_name_key" UNIQUE ("name");
+ALTER TABLE "public"."jumpserver_asset_snapshots" ADD CONSTRAINT "uq_jumpserver_asset_snapshot_external_id" UNIQUE ("external_id");
+ALTER TABLE "public"."jumpserver_source_bindings" ADD CONSTRAINT "uq_jumpserver_source_binding_credential_id" UNIQUE ("credential_id");
 
 -- ----------------------------
 -- Primary Key structure for table credentials
 -- ----------------------------
 ALTER TABLE "public"."credentials" ADD CONSTRAINT "credentials_pkey" PRIMARY KEY ("id");
+ALTER TABLE "public"."jumpserver_asset_snapshots" ADD CONSTRAINT "jumpserver_asset_snapshots_pkey" PRIMARY KEY ("id");
+ALTER TABLE "public"."jumpserver_source_bindings" ADD CONSTRAINT "jumpserver_source_bindings_pkey" PRIMARY KEY ("id");
 
 -- ----------------------------
 -- Triggers structure for table database_type_configs
@@ -1787,6 +1869,7 @@ ALTER TABLE "public"."instance_tags" ADD CONSTRAINT "instance_tags_tag_id_fkey" 
 -- Foreign Keys structure for table instances
 -- ----------------------------
 ALTER TABLE "public"."instances" ADD CONSTRAINT "instances_credential_id_fkey" FOREIGN KEY ("credential_id") REFERENCES "public"."credentials" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+ALTER TABLE "public"."jumpserver_source_bindings" ADD CONSTRAINT "fk_jumpserver_source_binding_credential_id" FOREIGN KEY ("credential_id") REFERENCES "public"."credentials" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- ----------------------------
 -- Foreign Keys structure for table sync_instance_records

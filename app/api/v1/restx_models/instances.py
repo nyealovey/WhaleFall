@@ -24,6 +24,7 @@ INSTANCE_LIST_ITEM_FIELDS = {
     "active_db_count": fields.Integer(description="活跃数据库数", example=12),
     "active_account_count": fields.Integer(description="活跃账号数", example=42),
     "last_sync_time": fields.String(description="最后同步时间(ISO8601, 可选)", example="2025-01-02T00:00:00"),
+    "is_jumpserver_managed": fields.Boolean(description="是否已托管于 JumpServer", example=False),
     "tags": fields.List(
         fields.Nested(INSTANCE_TAG_FIELDS),
         description="标签列表",

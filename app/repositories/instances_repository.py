@@ -28,6 +28,7 @@ from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
+from app.repositories.jumpserver_repository import JumpServerRepository
 
 
 class InstancesRepository:
@@ -288,6 +289,7 @@ class InstancesRepository:
                 last_sync_times={},
                 tags_map={},
                 audit_facts_map={},
+                jumpserver_managed_ids=set(),
             )
 
         db_instance_id_column = cast(ColumnElement[int], InstanceDatabase.instance_id)
@@ -370,4 +372,7 @@ class InstancesRepository:
             last_sync_times=last_sync_times,
             tags_map=tags_map,
             audit_facts_map=audit_facts_map,
+            jumpserver_managed_ids=JumpServerRepository.fetch_managed_instance_ids(
+                InstancesRepository.list_instances_by_ids(instance_ids),
+            ),
         )

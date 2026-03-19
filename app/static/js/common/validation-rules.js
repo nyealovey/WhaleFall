@@ -70,6 +70,8 @@
         },
         passwordLength: '密码至少需要 6 个字符',
         usernameLength: '用户名至少需要 2 个字符',
+        apiKeyLength: 'Access Key ID至少需要 2 个字符',
+        secretKeyLength: 'Access Key Secret至少需要 6 个字符',
         loginUsername: '用户名至少需要 3 个字符',
         credentialType: '请选择凭据类型',
         credentialDbType: '请选择数据库类型',
@@ -121,7 +123,7 @@
         credentialType: [helpers.required(messages.credentialType)],
         dbType: [
             helpers.custom(function (value, fields) {
-                var credentialTypeField = fields['#credential_type'];
+                var credentialTypeField = fields['#credentialType'];
                 var credentialType = credentialTypeField ? credentialTypeField.elem.value : '';
 
                 if (credentialType !== 'database') {
@@ -134,9 +136,17 @@
             helpers.required('用户名不能为空'),
             helpers.minLength(2, messages.usernameLength),
         ],
+        apiKey: [
+            helpers.required('Access Key ID不能为空'),
+            helpers.minLength(2, messages.apiKeyLength),
+        ],
         password: [
             helpers.required('密码不能为空'),
             helpers.minLength(6, messages.passwordLength),
+        ],
+        secretKey: [
+            helpers.required('Access Key Secret不能为空'),
+            helpers.minLength(6, messages.secretKeyLength),
         ],
         passwordOptional: [
             helpers.custom(function (value) {
@@ -145,6 +155,14 @@
                 }
                 return String(value).trim().length >= 6;
             }, messages.passwordLength),
+        ],
+        secretKeyOptional: [
+            helpers.custom(function (value) {
+                if (value == null || String(value).trim() === '') {
+                    return true;
+                }
+                return String(value).trim().length >= 6;
+            }, messages.secretKeyLength),
         ],
     };
 
