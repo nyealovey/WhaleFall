@@ -31,6 +31,7 @@ class InstanceListMetrics:
     account_counts: dict[int, int]
     last_sync_times: dict[int, datetime]
     tags_map: dict[int, list[TagSummary]]
+    audit_facts_map: dict[int, dict[str, object]]
 
 
 @dataclass(slots=True)
@@ -46,6 +47,7 @@ class InstanceListItem:
     is_active: bool
     deleted_at: str | None
     status: str
+    audit_status: str
     main_version: str | None
     active_db_count: int
     active_account_count: int

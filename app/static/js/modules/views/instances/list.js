@@ -37,13 +37,14 @@ function mountInstancesListPage() {
     const CHIP_COLUMN_WIDTH = '220px';
     const TYPE_COLUMN_WIDTH = '64px';
     const STATUS_COLUMN_WIDTH = '64px';
+    const AUDIT_COLUMN_WIDTH = '64px';
     const ACTIVE_COLUMN_WIDTH = '110px';
     const ACTION_COLUMN_WIDTH = '120px';
     const INSTANCE_DB_TYPE_VISUALS = new Map([
-        ['mysql', { icon: 'fa-database', tone: 'primary' }],
-        ['postgresql', { icon: 'fa-layer-group', tone: 'info' }],
-        ['sqlserver', { icon: 'fa-server', tone: 'warning' }],
-        ['oracle', { icon: 'fa-cube', tone: 'danger' }],
+        ['mysql', { fallbackIcon: 'fa-database', tone: 'primary' }],
+        ['postgresql', { fallbackIcon: 'fa-database', tone: 'info' }],
+        ['sqlserver', { fallbackIcon: 'fa-server', tone: 'warning' }],
+        ['oracle', { fallbackIcon: 'fa-circle', tone: 'danger' }],
     ]);
 
     const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
@@ -457,6 +458,12 @@ function mountInstancesListPage() {
                 formatter: (cell, row) => renderStatusBadge(resolveRowMeta(row)),
             },
             {
+                id: 'audit',
+                name: '审计',
+                width: AUDIT_COLUMN_WIDTH,
+                formatter: (cell, row) => renderAuditBadge(resolveRowMeta(row)),
+            },
+            {
                 id: 'active_counts',
                 name: '活跃',
                 width: ACTIVE_COLUMN_WIDTH,
@@ -541,6 +548,7 @@ function mountInstancesListPage() {
                 item.db_type || '-',
                 item.host || '',
                 item.is_active,
+                item.audit_status || 'not_configured',
                 null,
                 item.main_version || '',
                 item.tags || [],
@@ -566,10 +574,11 @@ function mountInstancesListPage() {
             return meta.display_name || typeStr || '-';
         }
         return renderCompactIndicator({
-            icon: visual.icon || meta.icon || 'fa-database',
+            icon: visual.fallbackIcon || meta.icon || 'fa-database',
             tone: visual.tone || meta.color || 'muted',
             title: meta.display_name || typeStr || '未知类型',
             ariaLabel: `数据库类型 ${meta.display_name || typeStr || '未知类型'}`,
+            assetUrl: meta.asset_url || '',
         });
     }
 
@@ -627,6 +636,34 @@ function mountInstancesListPage() {
             tone: 'muted',
             title: '禁用',
             ariaLabel: '实例状态 禁用',
+        });
+    }
+
+    function renderAuditBadge(meta) {
+        const auditStatus = typeof meta?.audit_status === 'string' ? meta.audit_status.trim().toLowerCase() : '';
+        if (auditStatus === 'enabled') {
+            return renderCompactIndicator({
+                icon: 'fa-shield-halved',
+                tone: 'success',
+                title: '已配置并启用审计',
+                ariaLabel: '审计状态 已配置并启用审计',
+            });
+        }
+        if (auditStatus === 'configured_disabled') {
+            return renderCompactIndicator({
+                icon: 'fa-shield-halved',
+                tone: 'warning',
+                title: '已配置审计，但未启用',
+                ariaLabel: '审计状态 已配置审计，但未启用',
+            });
+        }
+        const normalizedDbType = typeof meta?.db_type === 'string' ? meta.db_type.trim().toLowerCase() : '';
+        const unsupported = normalizedDbType && normalizedDbType !== 'sqlserver';
+        return renderCompactIndicator({
+            icon: 'fa-shield-halved',
+            tone: 'danger',
+            title: unsupported ? '当前类型暂不支持审计采集' : '未配置审计',
+            ariaLabel: unsupported ? '审计状态 当前类型暂不支持审计采集' : '审计状态 未配置审计',
         });
     }
 
@@ -1355,7 +1392,7 @@ function mountInstancesListPage() {
         };
     }
 
-    function renderCompactIndicator({ icon, tone = 'muted', title, ariaLabel }) {
+    function renderCompactIndicator({ icon, tone = 'muted', title, ariaLabel, assetUrl = '' }) {
         if (!gridHtml) {
             return title || '';
         }
@@ -1365,12 +1402,18 @@ function mountInstancesListPage() {
         }
         const resolvedTitle = title || '';
         const resolvedAriaLabel = ariaLabel || resolvedTitle;
+        const glyphHtml = assetUrl
+            ? `<img class="instance-compact-indicator__asset"
+                    src="${escapeHtml(assetUrl)}"
+                    alt=""
+                    aria-hidden="true">`
+            : `<i class="fas ${escapeHtml(icon || 'fa-circle')}" aria-hidden="true"></i>`;
         return gridHtml(`
             <span class="${classes.join(' ')}"
                   title="${escapeHtml(resolvedTitle)}"
                   aria-label="${escapeHtml(resolvedAriaLabel)}"
                   role="img">
-                <i class="fas ${escapeHtml(icon || 'fa-circle')}" aria-hidden="true"></i>
+                ${glyphHtml}
                 <span class="visually-hidden">${escapeHtml(resolvedTitle)}</span>
             </span>
         `);

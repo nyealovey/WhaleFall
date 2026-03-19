@@ -56,6 +56,8 @@
     const exportUrl = root.dataset.exportUrl || "";
     const syncUrl = root.dataset.syncUrl || "";
     const capacityStatsUrl = root.dataset.capacityStatsUrl || "";
+    const rawDbTypeMap = safeParseJSON(root.dataset.dbTypeMap || "{}", {});
+    const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));
     let currentDbType = root.dataset.currentDbType || "all";
     const FILTER_FORM_ID = "database-ledger-filter-form";
     const TAG_FILTER_SCOPE = "database-tag-selector";
@@ -231,30 +233,16 @@
       if (!gridHtml) {
         return dbType || "-";
       }
-      let label = dbType || "未知";
-      let icon = "fa-database";
-      switch (dbType) {
-        case "mysql":
-          label = "MySQL";
-          icon = "fa-database";
-          break;
-        case "postgresql":
-          label = "PostgreSQL";
-          icon = "fa-database";
-          break;
-        case "sqlserver":
-          label = "SQL Server";
-          icon = "fa-server";
-          break;
-        case "oracle":
-          label = "Oracle";
-          icon = "fa-database";
-          break;
-        default:
-          break;
-      }
+      const normalized = typeof dbType === "string" ? dbType.toLowerCase() : "";
+      const meta = dbTypeMetaMap.get(normalized) || null;
+      const label = meta?.display_name || dbType || "未知";
+      const icon = meta?.icon || "fa-database";
+      const assetUrl = meta?.asset_url || "";
+      const glyphHtml = assetUrl
+        ? `<img class="db-type-chip__asset" src="${escapeHtml(assetUrl)}" alt="" aria-hidden="true">`
+        : `<i class="fas ${icon}" aria-hidden="true"></i>`;
       return gridHtml(
-        `<span class="chip-outline chip-outline--brand"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>`,
+        `<span class="chip-outline chip-outline--brand">${glyphHtml}${escapeHtml(label)}</span>`,
       );
     }
 
@@ -559,6 +547,15 @@
           trigger.removeAttribute("aria-disabled");
           trigger.removeAttribute("disabled");
         }
+      }
+    }
+
+    function safeParseJSON(value, fallback) {
+      try {
+        return value ? JSON.parse(value) : fallback;
+      } catch (error) {
+        console.warn("解析 JSON 失败:", error);
+        return fallback;
       }
     }
   }
