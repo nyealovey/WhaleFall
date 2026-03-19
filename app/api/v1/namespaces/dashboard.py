@@ -91,7 +91,9 @@ DashboardOverviewAccountsCount = ns.model(
     {
         "total": fields.Integer(description="总数", example=100),
         "active": fields.Integer(description="启用数", example=90),
+        "normal": fields.Integer(description="正常数", example=88),
         "locked": fields.Integer(description="锁定数", example=2),
+        "deleted": fields.Integer(description="删除数", example=10),
     },
 )
 
@@ -130,8 +132,9 @@ DashboardOverviewDatabases = ns.model(
     "DashboardOverviewDatabases",
     {
         "total": fields.Integer(description="总数", example=120),
-        "active": fields.Integer(description="启用数", example=110),
-        "inactive": fields.Integer(description="停用数", example=10),
+        "active": fields.Integer(description="正常数", example=110),
+        "inactive": fields.Integer(description="受限数", example=8),
+        "deleted": fields.Integer(description="删除数", example=2),
     },
 )
 

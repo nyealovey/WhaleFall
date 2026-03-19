@@ -56,16 +56,6 @@ class InstanceAuditSyncActionsService:
         actor_id: int | None = None,
     ) -> InstanceAuditSyncActionResult:
         instance = self._get_instance(instance_id)
-        if not instance.is_active:
-            return InstanceAuditSyncActionResult(
-                success=False,
-                message=f"实例 {instance.name} 已停用，无法同步审计信息",
-                result={},
-                http_status=HttpStatus.BAD_REQUEST,
-                message_key="INVALID_REQUEST",
-                extra={"instance_id": instance.id},
-            )
-
         if normalize_database_type(instance.db_type) != DatabaseType.SQLSERVER:
             return InstanceAuditSyncActionResult(
                 success=False,

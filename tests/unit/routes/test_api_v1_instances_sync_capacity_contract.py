@@ -296,7 +296,7 @@ def test_api_v1_instances_sync_capacity_rejects_deleted_instance(app, auth_clien
 
 
 @pytest.mark.unit
-def test_api_v1_instances_sync_capacity_rejects_disabled_instance(app, auth_client) -> None:
+def test_api_v1_instances_sync_capacity_allows_disabled_instance_for_manual_sync(app, auth_client, monkeypatch) -> None:
     _ensure_instances_tables(app)
 
     with app.app_context():
@@ -312,6 +312,47 @@ def test_api_v1_instances_sync_capacity_rejects_disabled_instance(app, auth_clie
         db.session.commit()
         instance_id = instance.id
 
+    class _DummyCapacitySyncCoordinator:
+        def __init__(self, instance):
+            self.instance = instance
+
+        def connect(self) -> bool:
+            return True
+
+        def synchronize_inventory(self) -> dict:
+            return {"active_databases": ["db1"]}
+
+        def collect_capacity(self, target_databases=None):
+            del target_databases
+            return [
+                {
+                    "database_name": "db1",
+                    "size_mb": 1,
+                    "collected_date": date(2025, 1, 1),
+                    "collected_at": datetime(2025, 1, 1, 0, 0, 0),
+                },
+            ]
+
+        def save_database_stats(self, data):
+            del data
+            return 1
+
+        def update_instance_total_size(self) -> bool:
+            return True
+
+        def disconnect(self) -> None:
+            return None
+
+    class _DummyAggregationService:
+        def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> None:
+            del instance_id
+
+        def calculate_daily_aggregations_for_instance(self, instance_id: int) -> None:
+            del instance_id
+
+    monkeypatch.setattr(database_sync_module, "CapacitySyncCoordinator", _DummyCapacitySyncCoordinator)
+    monkeypatch.setattr(aggregation_module, "AggregationService", _DummyAggregationService)
+
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
@@ -323,12 +364,11 @@ def test_api_v1_instances_sync_capacity_rejects_disabled_instance(app, auth_clie
         f"/api/v1/instances/{instance_id}/actions/sync-capacity",
         headers={"X-CSRFToken": csrf_token},
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
 
     payload = response.get_json()
     assert isinstance(payload, dict)
-    assert payload.get("success") is False
-    assert payload.get("error") is True
+    assert payload.get("success") is True
 
 
 @pytest.mark.unit
