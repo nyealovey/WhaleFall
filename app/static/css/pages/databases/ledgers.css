@@ -7,6 +7,13 @@
     gap: 0.45rem;
 }
 
+#database-ledger-grid .gridjs-th[data-column-id="db_type"],
+#database-ledger-grid .gridjs-td[data-column-id="db_type"] {
+    width: 64px;
+    min-width: 64px;
+    text-align: center;
+}
+
 #database-ledger-grid td[data-column-id="database_name"] strong {
     font-weight: 600;
 }
@@ -29,6 +36,76 @@
 .account-instance-meta,
 .account-instance-icon {
     color: var(--text-muted);
+}
+
+.ledger-compact-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(22, 29, 38, 0.08);
+    background: rgba(22, 29, 38, 0.04);
+    color: var(--text-muted);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+    transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+}
+
+.ledger-compact-indicator i {
+    font-size: 0.82rem;
+    line-height: 1;
+}
+
+.ledger-compact-indicator__asset {
+    width: 0.95rem;
+    height: 0.95rem;
+    display: block;
+    object-fit: contain;
+}
+
+.ledger-compact-indicator:hover {
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.ledger-compact-indicator--primary {
+    background: color-mix(in srgb, var(--bs-primary) 10%, white);
+    border-color: color-mix(in srgb, var(--bs-primary) 22%, transparent);
+    color: var(--bs-primary);
+}
+
+.ledger-compact-indicator--info {
+    background: color-mix(in srgb, var(--status-info) 11%, white);
+    border-color: color-mix(in srgb, var(--status-info) 22%, transparent);
+    color: var(--status-info);
+}
+
+.ledger-compact-indicator--warning {
+    background: color-mix(in srgb, var(--status-warning) 11%, white);
+    border-color: color-mix(in srgb, var(--status-warning) 24%, transparent);
+    color: var(--status-warning);
+}
+
+.ledger-compact-indicator--danger {
+    background: color-mix(in srgb, var(--status-danger) 11%, white);
+    border-color: color-mix(in srgb, var(--status-danger) 24%, transparent);
+    color: var(--status-danger);
+}
+
+.ledger-compact-indicator--success {
+    background: color-mix(in srgb, var(--status-success) 11%, white);
+    border-color: color-mix(in srgb, var(--status-success) 22%, transparent);
+    color: var(--status-success);
+}
+
+.ledger-compact-indicator--muted {
+    background: rgba(22, 29, 38, 0.05);
+    border-color: rgba(22, 29, 38, 0.1);
+    color: var(--text-muted);
+}
+
+#database-ledger-grid td[data-column-id="db_type"] .ledger-compact-indicator {
+    margin-inline: auto;
 }
 
 #database-ledger-grid .gridjs-table tbody tr:nth-child(even) td {
