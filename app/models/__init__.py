@@ -37,6 +37,8 @@ __all__ = [
     "InstanceDatabase",
     "InstanceSizeAggregation",
     "InstanceSizeStat",
+    "JumpServerAssetSnapshot",
+    "JumpServerSourceBinding",
     "PermissionConfig",
     "SyncInstanceRecord",
     "SyncSession",
@@ -61,6 +63,8 @@ _MODEL_MODULE_MAP: dict[str, str] = {
     "InstanceDatabase": "app.models.instance_database",
     "InstanceSizeAggregation": "app.models.instance_size_aggregation",
     "InstanceSizeStat": "app.models.instance_size_stat",
+    "JumpServerAssetSnapshot": "app.models.jumpserver_asset_snapshot",
+    "JumpServerSourceBinding": "app.models.jumpserver_source_binding",
     "PermissionConfig": "app.models.permission_config",
     "SyncInstanceRecord": "app.models.sync_instance_record",
     "SyncSession": "app.models.sync_session",
@@ -89,6 +93,8 @@ if TYPE_CHECKING:
     from app.models.instance_database import InstanceDatabase
     from app.models.instance_size_aggregation import InstanceSizeAggregation
     from app.models.instance_size_stat import InstanceSizeStat
+    from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
+    from app.models.jumpserver_source_binding import JumpServerSourceBinding
     from app.models.permission_config import PermissionConfig
     from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.sync_session import SyncSession

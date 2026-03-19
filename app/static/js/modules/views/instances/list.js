@@ -38,6 +38,7 @@ function mountInstancesListPage() {
     const TYPE_COLUMN_WIDTH = '64px';
     const STATUS_COLUMN_WIDTH = '64px';
     const AUDIT_COLUMN_WIDTH = '64px';
+    const MANAGED_COLUMN_WIDTH = '72px';
     const ACTIVE_COLUMN_WIDTH = '110px';
     const ACTION_COLUMN_WIDTH = '120px';
     const INSTANCE_DB_TYPE_VISUALS = new Map([
@@ -464,6 +465,12 @@ function mountInstancesListPage() {
                 formatter: (cell, row) => renderAuditBadge(resolveRowMeta(row)),
             },
             {
+                id: 'jumpserver_managed',
+                name: '已托管',
+                width: MANAGED_COLUMN_WIDTH,
+                formatter: (cell, row) => renderJumpServerManagedBadge(resolveRowMeta(row)),
+            },
+            {
                 id: 'active_counts',
                 name: '活跃',
                 width: ACTIVE_COLUMN_WIDTH,
@@ -549,6 +556,7 @@ function mountInstancesListPage() {
                 item.host || '',
                 item.is_active,
                 item.audit_status || 'not_configured',
+                item.is_jumpserver_managed,
                 null,
                 item.main_version || '',
                 item.tags || [],
@@ -664,6 +672,23 @@ function mountInstancesListPage() {
             tone: 'danger',
             title: unsupported ? '当前类型暂不支持审计采集' : '未配置审计',
             ariaLabel: unsupported ? '审计状态 当前类型暂不支持审计采集' : '审计状态 未配置审计',
+        });
+    }
+
+    function renderJumpServerManagedBadge(meta) {
+        if (meta?.is_jumpserver_managed) {
+            return renderCompactIndicator({
+                icon: 'fa-anchor',
+                tone: 'info',
+                title: '已托管于 JumpServer',
+                ariaLabel: '已托管于 JumpServer',
+            });
+        }
+        return renderCompactIndicator({
+            icon: 'fa-link-slash',
+            tone: 'muted',
+            title: '未托管',
+            ariaLabel: '未托管',
         });
     }
 

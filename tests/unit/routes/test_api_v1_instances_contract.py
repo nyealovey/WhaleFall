@@ -12,6 +12,7 @@ from app.models.database_table_size_stat import DatabaseTableSizeStat
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.instance_config_snapshot import InstanceConfigSnapshot
+from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.tag import Tag
 from app.models.instance_database import InstanceDatabase
 from app.models.user import User
@@ -90,6 +91,7 @@ def test_api_v1_instances_list_contract() -> None:
             "db_type",
             "host",
             "port",
+            "is_jumpserver_managed",
             "description",
             "is_active",
             "deleted_at",
@@ -107,6 +109,67 @@ def test_api_v1_instances_list_contract() -> None:
         assert isinstance(tags, list)
         assert len(tags) == 1
         assert tags[0] == {"name": "instance_tag", "display_name": "实例标签"}
+        assert item.get("is_jumpserver_managed") is False
+
+
+@pytest.mark.unit
+def test_api_v1_instances_list_marks_jumpserver_managed_for_database_assets() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["instance_databases"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["instance_config_snapshots"],
+                db.metadata.tables["sync_instance_records"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+                db.metadata.tables["jumpserver_asset_snapshots"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        instance = Instance(
+            name="instance-1",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.flush()
+
+        db.session.add(
+            JumpServerAssetSnapshot(
+                external_id="asset-1",
+                name="mysql-prod-1",
+                db_type=DatabaseType.MYSQL,
+                host="127.0.0.1",
+                port=3306,
+                raw_payload={},
+            ),
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/api/v1/instances")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert items[0].get("is_jumpserver_managed") is True
 
 
 @pytest.mark.unit

@@ -61,6 +61,16 @@ class CredentialsRepository:
         """获取启用的凭据列表."""
         return Credential.query.filter_by(is_active=True).order_by(Credential.created_at.desc()).all()
 
+    @staticmethod
+    def list_active_api_credentials() -> list[Credential]:
+        """获取启用中的 API 凭据."""
+        return (
+            Credential.query.filter(Credential.is_active.is_(True))
+            .filter(Credential.credential_type == "api")
+            .order_by(Credential.created_at.desc())
+            .all()
+        )
+
     def list_credentials(self, filters: CredentialListFilters) -> PaginatedResult[CredentialListRowProjection]:
         """分页查询凭据列表."""
         instance_count_expr = db.func.count(Instance.id)
