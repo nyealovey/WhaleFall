@@ -35,6 +35,7 @@ class InstanceStatisticsResult:
     """实例统计 API/页面数据."""
 
     total_instances: int
+    current_instances: int
     active_instances: int
     normal_instances: int
     disabled_instances: int

@@ -165,6 +165,7 @@ INSTANCE_VERSION_STAT_FIELDS = {
 
 INSTANCE_STATISTICS_FIELDS = {
     "total_instances": fields.Integer(description="实例总数", example=10),
+    "current_instances": fields.Integer(description="未删除实例数", example=9),
     "active_instances": fields.Integer(description="启用实例数", example=9),
     "normal_instances": fields.Integer(description="正常实例数", example=8),
     "disabled_instances": fields.Integer(description="停用实例数", example=1),

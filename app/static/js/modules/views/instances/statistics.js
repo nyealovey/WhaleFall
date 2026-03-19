@@ -433,6 +433,7 @@ function mountInstanceStatisticsPage() {
 
     function updateStatisticsMeta(stats) {
         const total = Number(stats?.total_instances ?? 0) || 0;
+        const current = Number(stats?.current_instances ?? 0) || 0;
         const active = Number(stats?.active_instances ?? 0) || 0;
         const inactive = Number(stats?.inactive_instances ?? 0) || 0;
         const deleted = Number(stats?.deleted_instances ?? 0) || 0;
@@ -470,7 +471,7 @@ function mountInstanceStatisticsPage() {
         if (typeof formatPercent === 'function') {
             setText(
                 'instancesMetaTopDbTypeShare',
-                formatPercent(total > 0 ? topCount / total : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+                formatPercent(current > 0 ? topCount / current : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
             );
         }
     }
