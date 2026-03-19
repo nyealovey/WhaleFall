@@ -91,7 +91,9 @@ def get_system_overview() -> dict:
         "accounts": {
             "total": account_summary["total_accounts"],
             "active": account_summary["active_accounts"],
+            "normal": account_summary["normal_accounts"],
             "locked": account_summary["locked_accounts"],
+            "deleted": account_summary["deleted_accounts"],
         },
         "classified_accounts": classification_overview,
         "capacity": capacity_summary,
@@ -99,6 +101,7 @@ def get_system_overview() -> dict:
             "total": database_summary["total_databases"],
             "active": database_summary["active_databases"],
             "inactive": database_summary["inactive_databases"],
+            "deleted": database_summary["deleted_databases"],
         },
     }
 

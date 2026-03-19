@@ -51,15 +51,15 @@
                     ) %}
                         <span class="status-pill status-pill--success">
                             <i class="fas fa-user-check"></i>
-                            {{ overview.accounts.active if overview and overview.accounts else 0 }} 活跃
+                            {{ overview.accounts.normal if overview and overview.accounts else 0 }}
                         </span>
                         <span class="status-pill status-pill--warning">
                             <i class="fas fa-user-lock"></i>
-                            {{ overview.accounts.locked if overview and overview.accounts else 0 }} 受限
+                            {{ overview.accounts.locked if overview and overview.accounts else 0 }}
                         </span>
-                        <span class="status-pill status-pill--muted">
+                        <span class="status-pill status-pill--danger">
                             <i class="fas fa-user-slash"></i>
-                            {{ (overview.accounts.total - overview.accounts.active) if overview and overview.accounts else 0 }} 停用
+                            {{ overview.accounts.deleted if overview and overview.accounts else 0 }}
                         </span>
                     {% endcall %}
                 </div>
@@ -78,11 +78,15 @@
                     ) %}
                         <span class="status-pill status-pill--success">
                             <i class="fas fa-check"></i>
-                            {{ overview.databases.active if overview and overview.databases else 0 }} 在线
+                            {{ overview.databases.active if overview and overview.databases else 0 }} 正常
+                        </span>
+                        <span class="status-pill status-pill--warning">
+                            <i class="fas fa-ban"></i>
+                            {{ overview.databases.inactive if overview and overview.databases else 0 }} 受限
                         </span>
                         <span class="status-pill status-pill--danger">
                             <i class="fas fa-trash"></i>
-                            {{ overview.databases.inactive if overview and overview.databases else 0 }} 已删除
+                            {{ overview.databases.deleted if overview and overview.databases else 0 }} 删除
                         </span>
                     {% endcall %}
                 </div>

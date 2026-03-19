@@ -315,10 +315,6 @@ function syncAccounts(event) {
         toast.error('InstanceStore 未初始化');
         return;
     }
-    if (!isInstanceSyncAvailable()) {
-        toast.warning?.('实例已停用，无法同步账户');
-        return;
-    }
     const fallbackBtn = selectOne('[data-action="sync-accounts"]').first();
     const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!syncBtn) {
@@ -495,10 +491,6 @@ function syncCapacity(instanceId, instanceName, event) {
         toast.error('InstanceStore 未初始化');
         return;
     }
-    if (!isInstanceSyncAvailable()) {
-        toast.warning?.('实例已停用，无法同步容量');
-        return;
-    }
     const fallbackBtn = selectOne('[data-action="sync-capacity"]').first();
     const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!syncBtn) {
@@ -608,10 +600,6 @@ function syncAuditInfo(event) {
     const dbType = String(getInstanceDbType() || '').toLowerCase();
     if (dbType !== 'sqlserver') {
         toast.warning?.('当前仅支持 SQL Server 审计信息采集');
-        return;
-    }
-    if (!isInstanceSyncAvailable()) {
-        toast.warning?.('实例已停用，无法同步审计信息');
         return;
     }
 
@@ -1703,11 +1691,6 @@ function getInstanceDbType() {
 
 function getSyncAccountsUrl() {
     return getInstanceDatasetValue('syncAccountsUrl');
-}
-
-function isInstanceSyncAvailable() {
-    const datasetValue = getInstanceDatasetValue('instanceActive');
-    return datasetValue !== 'false';
 }
 
 function getInstanceDatasetValue(field) {

@@ -49,3 +49,27 @@ def test_instances_detail_page_includes_audit_tab_and_sync_action(app, auth_clie
     assert html.index("容量信息") < html.index("审计信息")
     assert 'id="accounts-tab"' in html and "nav-link active" in html
     assert 'id="accounts-pane"' in html and "show active instance-data-pane" in html
+
+
+@pytest.mark.unit
+def test_instances_detail_page_keeps_manual_sync_buttons_enabled_for_disabled_instance(app, auth_client) -> None:
+    _ensure_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sqlserver-disabled",
+            db_type="sqlserver",
+            host="127.0.0.1",
+            port=1433,
+            is_active=False,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    response = auth_client.get(f"/instances/{instance_id}")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    for action in ('sync-accounts', 'sync-capacity', 'sync-audit-info'):
+        segment = html.split(f'data-action="{action}"', 1)[1].split('>', 1)[0]
+        assert 'disabled title="实例已停用' not in segment
