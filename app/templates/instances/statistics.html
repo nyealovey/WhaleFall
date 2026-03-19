@@ -7,6 +7,7 @@
 
 {% block content_outer %}
 {% set total_instances = stats.total_instances or 0 %}
+{% set current_instances = stats.current_instances or 0 %}
 {% set active_instances = stats.active_instances or 0 %}
 {% set inactive_instances = stats.inactive_instances or 0 %}
 {% set deleted_instances = stats.deleted_instances or 0 %}
@@ -14,7 +15,7 @@
 {% set deleted_rate = (deleted_instances / total_instances * 100) if total_instances else 0 %}
 {% set sorted_db_types = (stats.db_type_stats | sort(attribute='count', reverse=True)) if stats.db_type_stats else [] %}
 {% set top_db_type = sorted_db_types[0] if sorted_db_types else None %}
-{% set top_db_type_share = (top_db_type.count / total_instances * 100) if top_db_type and total_instances else 0 %}
+{% set top_db_type_share = (top_db_type.count / current_instances * 100) if top_db_type and current_instances else 0 %}
 {% call page_header('fas fa-chart-bar', '实例统计', '查看数据库实例画像与分布', eyebrow='Instance Insights') %}
 <div class="page-header-actions d-flex gap-2 flex-wrap">
     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
@@ -56,7 +57,7 @@
 	                        <span class="chip-outline chip-outline--muted" title="Top 类型" aria-label="Top 类型">
 	                            <i class="fas fa-database" aria-hidden="true"></i><span id="instancesMetaTopDbType" aria-hidden="true">{{ top_db_type.db_type.upper() if top_db_type else '-' }}</span>
 	                        </span>
-	                        <span class="chip-outline chip-outline--muted" title="Top 占比" aria-label="Top 占比">
+	                        <span class="chip-outline chip-outline--muted" title="Top 类型现存占比" aria-label="Top 类型现存占比">
 	                            <i class="fas fa-chart-pie" aria-hidden="true"></i><span id="instancesMetaTopDbTypeShare" aria-hidden="true">{{ '%.1f'|format(top_db_type_share) }}%</span>
 	                        </span>
 	                    {% endcall %}
@@ -92,7 +93,7 @@
 	                                    </thead>
                                     <tbody>
                                         {% for stat in stats.db_type_stats %}
-                                            {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
+                                            {% set percent = (stat.count / current_instances * 100) if current_instances > 0 else 0 %}
                                             <tr>
                                                 <td>
                                                     <span class="chip-outline chip-outline--brand">{{ stat.db_type.upper() }}</span>
@@ -140,7 +141,7 @@
 	                                    </thead>
                                     <tbody>
                                         {% for stat in stats.port_stats %}
-                                            {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
+                                            {% set percent = (stat.count / current_instances * 100) if current_instances > 0 else 0 %}
                                             <tr>
                                                 <td>
                                                     <span class="chip-outline chip-outline--muted">{{ stat.port }}</span>
@@ -198,7 +199,7 @@
 	                                    </thead>
                                     <tbody>
                                         {% for stat in stats.version_stats %}
-                                            {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
+                                            {% set percent = (stat.count / current_instances * 100) if current_instances > 0 else 0 %}
                                             <tr>
                                                 <td>
                                                     <span class="chip-outline chip-outline--brand">{{ stat.db_type.upper() }}</span>

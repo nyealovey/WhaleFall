@@ -23,15 +23,17 @@ class InstanceStatisticsRepository:
         if db_type:
             query = query.filter(Instance.db_type == db_type)
 
-        existing_query = query.filter(Instance.deleted_at.is_(None))
-        existing_instances = existing_query.count()
-        active_instances = existing_query.filter(Instance.is_active.is_(True)).count()
-        disabled_instances = max(existing_instances - active_instances, 0)
+        current_query = query.filter(Instance.deleted_at.is_(None))
+        current_instances = current_query.count()
+        active_instances = current_query.filter(Instance.is_active.is_(True)).count()
+        disabled_instances = max(current_instances - active_instances, 0)
         deleted_instances = query.filter(Instance.deleted_at.isnot(None)).count()
+        total_instances = current_instances + deleted_instances
         normal_instances = active_instances
 
         return {
-            "total_instances": existing_instances,
+            "total_instances": total_instances,
+            "current_instances": current_instances,
             "active_instances": active_instances,
             "normal_instances": normal_instances,
             "disabled_instances": disabled_instances,

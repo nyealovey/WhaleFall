@@ -11,6 +11,7 @@
   /**
    * @typedef {Object} InstanceStats
    * @property {number} total_instances - 实例总数
+   * @property {number} current_instances - 未删除实例数
    * @property {number} active_instances - 活跃实例数
    * @property {number} inactive_instances - 非活跃实例数
    * @property {number} total_accounts - 账户总数
@@ -302,6 +303,7 @@
       stats: Object.assign(
         {
           total_instances: 0,
+          current_instances: 0,
           active_instances: 0,
           inactive_instances: 0,
           total_accounts: 0,
@@ -870,6 +872,7 @@
         state.instances = [];
         state.stats = {
           total_instances: 0,
+          current_instances: 0,
           active_instances: 0,
           inactive_instances: 0,
           total_accounts: 0,
