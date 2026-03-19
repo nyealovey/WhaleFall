@@ -470,14 +470,6 @@ function mountTagsIndexPage(global) {
     return `<span class="${classes.join(" ")}">${iconHtml}${escapeHtml(text || "-")}</span>`;
   }
 
-  function buildLedgerChipHtml(content, muted = false) {
-    const classes = ["ledger-chip"];
-    if (muted) {
-      classes.push("ledger-chip--muted");
-    }
-    return `<span class="${classes.join(" ")}">${content}</span>`;
-  }
-
   function updateTagStats(stats) {
     if (!statsContainer || !stats) {
       return;
