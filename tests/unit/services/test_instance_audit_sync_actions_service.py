@@ -212,3 +212,59 @@ def test_instance_audit_sync_actions_service_keeps_completed_session_for_partial
         assert InstanceConfigSnapshot.query.filter_by(instance_id=instance.id, config_key="audit_info").one().snapshot[
             "meta"
         ]["partial_success"] is True
+
+
+@pytest.mark.unit
+def test_instance_audit_sync_actions_service_allows_disabled_instance_for_manual_sync(app) -> None:
+    _ensure_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sqlserver-disabled",
+            db_type="sqlserver",
+            host="127.0.0.1",
+            port=1433,
+            is_active=False,
+        )
+        db.session.add(instance)
+        db.session.commit()
+
+        class _FakeAuditSyncService:
+            def sync_instance_audit(self, *, instance):  # type: ignore[no-untyped-def]
+                del instance
+                return {
+                    "snapshot": {
+                        "version": 1,
+                        "supported": True,
+                        "db_type": "sqlserver",
+                        "server_audits": [{"name": "audit-main", "enabled": True, "target_type": "FILE"}],
+                        "audit_specifications": [],
+                        "database_audit_specifications": [],
+                        "errors": [],
+                        "meta": {},
+                    },
+                    "facts": {
+                        "version": 1,
+                        "supported": True,
+                        "has_audit": True,
+                        "audit_count": 1,
+                        "enabled_audit_count": 1,
+                        "specification_count": 0,
+                        "covered_database_count": 0,
+                        "target_types": ["FILE"],
+                        "failure_policies": [],
+                        "warnings": [],
+                    },
+                    "summary": {
+                        "audit_count": 1,
+                        "enabled_audit_count": 1,
+                        "specification_count": 0,
+                        "covered_database_count": 0,
+                    },
+                }
+
+        service = InstanceAuditSyncActionsService(sync_service=_FakeAuditSyncService())
+        result = service.sync_instance_audit_info(instance_id=instance.id)
+
+        assert result.success is True
+        assert result.http_status == 200

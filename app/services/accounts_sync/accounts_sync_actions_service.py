@@ -155,8 +155,6 @@ class AccountsSyncActionsService:
         instance = InstancesRepository.get_instance(instance_id)
         if instance is None or instance.deleted_at is not None:
             raise NotFoundError("实例不存在")
-        if not instance.is_active:
-            raise ValidationError("实例已停用，无法同步")
         return instance
 
     @staticmethod

@@ -216,7 +216,7 @@ def test_api_v1_accounts_sync_rejects_deleted_instance(app, auth_client) -> None
 
 
 @pytest.mark.unit
-def test_api_v1_accounts_sync_rejects_disabled_instance(app, auth_client) -> None:
+def test_api_v1_accounts_sync_allows_disabled_instance_for_manual_sync(app, auth_client, monkeypatch) -> None:
     _ensure_accounts_sync_tables(app)
 
     with app.app_context():
@@ -232,6 +232,14 @@ def test_api_v1_accounts_sync_rejects_disabled_instance(app, auth_client) -> Non
         db.session.commit()
         instance_id = instance.id
 
+    class _DummyAccountSyncService:
+        @staticmethod
+        def sync_accounts(instance, sync_type):
+            del instance, sync_type
+            return {"success": True, "message": "实例账户同步成功"}
+
+    monkeypatch.setattr(api_module, "accounts_sync_service", _DummyAccountSyncService())
+
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
@@ -241,9 +249,8 @@ def test_api_v1_accounts_sync_rejects_disabled_instance(app, auth_client) -> Non
     headers = {"X-CSRFToken": csrf_token}
 
     response = auth_client.post(f"/api/v1/instances/{instance_id}/actions/sync-accounts", headers=headers)
-    assert response.status_code == 400
+    assert response.status_code == 200
 
     payload = response.get_json()
     assert isinstance(payload, dict)
-    assert payload.get("success") is False
-    assert payload.get("error") is True
+    assert payload.get("success") is True
