@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% set page_id = 'JumpServerSourcePage' %}
+
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block title %}JumpServer 数据源 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/integrations/jumpserver-source.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+<input type="hidden" id="jumpserver-source-csrf-token" value="{{ csrf_token() }}">
+{{ page_header('fas fa-anchor', 'JumpServer 数据源', '绑定现有 API 凭据，并通过统一同步入口拉取数据库托管资产', eyebrow='Managed Assets') }}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div
+                id="jumpserver-source-page"
+                class="jumpserver-source-page"
+                data-api-url="/api/v1/integrations/jumpserver/source"
+                data-sync-api-url="/api/v1/integrations/jumpserver/actions/sync"
+            >
+                <div class="jumpserver-source-layout">
+                    <section class="card jumpserver-source-card">
+                        <div class="card-header jumpserver-source-card__header">
+                            <div>
+                                <h2 class="jumpserver-source-card__title">绑定配置</h2>
+                                <p class="jumpserver-source-card__description">直接选择凭据管理中已维护好的 API 凭据，复用其中的 URL、Access Key ID 与 Access Key Secret。</p>
+                            </div>
+                        </div>
+                        <div class="card-body jumpserver-source-card__body">
+                            <div class="jumpserver-source-field">
+                                <label for="jumpserverCredentialId" class="form-label">API 凭据</label>
+                                <select id="jumpserverCredentialId" class="form-select">
+                                    <option value="">请选择 API 凭据</option>
+                                </select>
+                                <div class="form-text">仅展示已启用的 API 凭据，复用其中保存的 Access Key ID 与 Access Key Secret。</div>
+                            </div>
+
+                            <div class="jumpserver-source-field">
+                                <label for="jumpserverBaseUrl" class="form-label">JumpServer URL</label>
+                                <input id="jumpserverBaseUrl" class="form-control" type="url" placeholder="请输入 JumpServer URL">
+                                <div class="form-text">请填写完整的 http/https 地址，例如 `https://demo.jumpserver.org`。</div>
+                            </div>
+
+                            <div class="jumpserver-source-actions">
+                                <button id="saveJumpserverSourceBtn" class="btn btn-primary" type="button">
+                                    <i class="fas fa-link me-2"></i>保存绑定
+                                </button>
+                                <button id="unbindJumpserverSourceBtn" class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-link-slash me-2"></i>解绑数据源
+                                </button>
+                                <button id="syncJumpserverAssetsBtn" class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-rotate me-2"></i>同步 JumpServer 资源
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card jumpserver-source-card jumpserver-source-card--summary">
+                        <div class="card-header jumpserver-source-card__header">
+                            <div>
+                                <h2 class="jumpserver-source-card__title">运行状态</h2>
+                                <p class="jumpserver-source-card__description">展示当前绑定、Provider 接入状态与最近一次同步结果。</p>
+                            </div>
+                        </div>
+                        <div class="card-body jumpserver-source-card__body jumpserver-source-card__body--summary">
+                            <div class="jumpserver-summary-item">
+                                <span class="jumpserver-summary-item__label">Provider</span>
+                                <strong id="jumpserverProviderStatus">Provider 待接入</strong>
+                            </div>
+                            <div class="jumpserver-summary-item">
+                                <span class="jumpserver-summary-item__label">当前绑定</span>
+                                <strong id="jumpserverBindingSummary">当前未绑定 JumpServer API 凭据</strong>
+                            </div>
+                            <div class="jumpserver-summary-item">
+                                <span class="jumpserver-summary-item__label">最近同步</span>
+                                <strong id="jumpserverSyncStatusSummary">未执行同步</strong>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/jumpserver_source_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/integrations/jumpserver/source.js') }}"></script>
+{% endblock %}

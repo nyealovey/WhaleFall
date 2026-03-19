@@ -1,6 +1,28 @@
 (function (window, document) {
   'use strict';
 
+  const DEFAULT_COPY = {
+    subjectMeta: '输入登录账号与口令',
+    usernameLabel: '用户名',
+    usernamePlaceholder: '请输入用户名',
+    passwordLabel: '密码',
+    passwordPlaceholder: '请输入密码',
+    passwordPlaceholderEdit: '留空表示保持原密码',
+    passwordHint: '密码仅用于连接验证，数据将加密存储',
+    togglePasswordAriaLabel: '显示或隐藏密码',
+  };
+
+  const API_COPY = {
+    subjectMeta: '输入 Access Key ID 与 Access Key Secret',
+    usernameLabel: 'Access Key ID',
+    usernamePlaceholder: '请输入 Access Key ID',
+    passwordLabel: 'Access Key Secret',
+    passwordPlaceholder: '请输入 Access Key Secret',
+    passwordPlaceholderEdit: '留空表示保持原 Access Key Secret',
+    passwordHint: 'Access Key Secret 仅用于接口认证，数据将加密存储',
+    togglePasswordAriaLabel: '显示或隐藏 Access Key Secret',
+  };
+
   /**
    * 创建凭据新建/编辑模态控制器。
    *
@@ -52,7 +74,12 @@
     const metaTextEl = document.getElementById('credentialModalMeta');
     const metaPillEl = document.getElementById('credentialModalMetaPill');
     const isActiveInput = document.getElementById('credentialIsActive');
+    const subjectMetaEl = document.getElementById('credentialSubjectMeta');
+    const usernameInput = document.getElementById('credentialUsername');
+    const usernameLabelTextEl = document.getElementById('credentialUsernameLabelText');
     const passwordInput = document.getElementById('credentialPassword');
+    const passwordLabelTextEl = document.getElementById('credentialPasswordLabelText');
+    const passwordHintTextEl = document.getElementById('credentialPasswordHintText');
     const typeSelect = document.getElementById('credentialType');
     const dbTypeField = document.getElementById('credentialDbTypeField');
     const dbTypeSelect = document.getElementById('credentialDbType');
@@ -60,6 +87,7 @@
 
     let validator = null;
     let validatorMode = 'create';
+    let validatorTypeFlavor = 'default';
     let mode = 'create';
 
     /**
@@ -69,11 +97,6 @@
      * @returns {void}
      */
     function init() {
-      if (!FormValidator || !ValidationRules) {
-        console.warn('CredentialModals: FormValidator 或 ValidationRules 未加载');
-        return;
-      }
-      setupValidator('create');
       typeSelect?.addEventListener('change', handleCredentialTypeChange);
       togglePasswordBtn?.addEventListener('click', handleTogglePassword);
       modalEl.addEventListener('hidden.bs.modal', resetForm);
@@ -82,28 +105,32 @@
 
     function setupValidator(targetMode) {
       if (!FormValidator || !ValidationRules) {
+        console.warn('CredentialModals: FormValidator 或 ValidationRules 未加载');
         return;
       }
       const nextMode = targetMode === 'edit' ? 'edit' : 'create';
-      if (validator && validatorMode === nextMode) {
+      const typeFlavor = isApiCredentialType() ? 'api' : 'default';
+      if (validator && validatorMode === nextMode && validatorTypeFlavor === typeFlavor) {
         return;
       }
       if (validator?.destroy) {
         validator.destroy();
       }
       validatorMode = nextMode;
+      validatorTypeFlavor = typeFlavor;
       validator = FormValidator.create('#credentialModalForm');
       if (!validator) {
         console.warn('CredentialModals: 表单校验初始化失败');
         return;
       }
-      const passwordRules = nextMode === 'edit'
-        ? ValidationRules.credential.passwordOptional
-        : ValidationRules.credential.password;
+      const usernameRules = isApiCredentialType()
+        ? ValidationRules.credential.apiKey
+        : ValidationRules.credential.username;
+      const passwordRules = resolvePasswordRules(nextMode);
       validator
         .useRules('#credentialName', ValidationRules.credential.name)
         .useRules('#credentialType', ValidationRules.credential.credentialType)
-        .useRules('#credentialUsername', ValidationRules.credential.username)
+        .useRules('#credentialUsername', usernameRules)
         .useRules('#credentialDbType', ValidationRules.credential.dbType)
         .useRules('#credentialPassword', passwordRules)
         .onSuccess(handleSubmit)
@@ -121,6 +148,7 @@
         return;
       }
       const type = typeSelect.value;
+      updateCredentialCopy(type);
       if (type === 'database') {
         dbTypeField.style.display = '';
         dbTypeSelect.required = true;
@@ -129,7 +157,49 @@
         dbTypeSelect.required = false;
         dbTypeSelect.value = '';
       }
+      setupValidator(mode);
       validator?.revalidateField('#credentialDbType');
+    }
+
+    function isApiCredentialType() {
+      return typeSelect?.value === 'api';
+    }
+
+    function resolvePasswordRules(targetMode) {
+      const nextMode = targetMode === 'edit' ? 'edit' : 'create';
+      if (isApiCredentialType()) {
+        return nextMode === 'edit'
+          ? ValidationRules.credential.secretKeyOptional
+          : ValidationRules.credential.secretKey;
+      }
+      return nextMode === 'edit'
+        ? ValidationRules.credential.passwordOptional
+        : ValidationRules.credential.password;
+    }
+
+    function updateCredentialCopy(type) {
+      const copy = type === 'api' ? API_COPY : DEFAULT_COPY;
+      if (subjectMetaEl) {
+        subjectMetaEl.textContent = copy.subjectMeta;
+      }
+      if (usernameLabelTextEl) {
+        usernameLabelTextEl.textContent = copy.usernameLabel;
+      }
+      if (usernameInput) {
+        usernameInput.placeholder = copy.usernamePlaceholder;
+      }
+      if (passwordLabelTextEl) {
+        passwordLabelTextEl.textContent = copy.passwordLabel;
+      }
+      if (passwordInput) {
+        passwordInput.placeholder = mode === 'edit' ? copy.passwordPlaceholderEdit : copy.passwordPlaceholder;
+      }
+      if (passwordHintTextEl) {
+        passwordHintTextEl.textContent = copy.passwordHint;
+      }
+      if (togglePasswordBtn) {
+        togglePasswordBtn.setAttribute('aria-label', copy.togglePasswordAriaLabel);
+      }
     }
 
     /**
@@ -164,9 +234,7 @@
       }
       form.dataset.formMode = 'create';
       mode = 'create';
-      setupValidator('create');
       passwordInput.required = true;
-      passwordInput.placeholder = '请输入密码';
       titleEl.textContent = '添加凭据';
       updateSubmitButtonCopy();
       setMetaState('新建', 'status-pill--muted');
@@ -197,10 +265,8 @@
       }
       try {
         mode = 'edit';
-        setupValidator('edit');
         form.dataset.formMode = 'edit';
         passwordInput.required = false;
-        passwordInput.placeholder = '留空表示保持原密码';
         titleEl.textContent = '编辑凭据';
         updateSubmitButtonCopy();
         setMetaState('加载中', 'status-pill--muted');
