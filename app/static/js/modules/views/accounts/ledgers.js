@@ -63,6 +63,8 @@ function mountAccountsListPage(global) {
   const resolveExportEndpoint = () =>
     pageRoot.dataset.exportUrl ?? accountsLedgersService.getExportUrl();
   const currentDbType = pageRoot.dataset.currentDbType || "all";
+  const rawDbTypeMap = safeParseJSON(pageRoot.dataset.dbTypeMap || "{}", {});
+  const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));
   const includeDbTypeColumn = !currentDbType || currentDbType === "all";
   const basePath = resolveBasePath(currentDbType);
 
@@ -456,31 +458,18 @@ function mountAccountsListPage(global) {
   function renderDbTypeBadge(dbType) {
     const typeStr = typeof dbType === "string" ? dbType : String(dbType || "");
     const normalized = typeStr.toLowerCase();
-    let meta;
-    switch (normalized) {
-      case "mysql":
-        meta = { label: "MySQL", icon: "fa-database" };
-        break;
-      case "postgresql":
-        meta = { label: "PostgreSQL", icon: "fa-database" };
-        break;
-      case "sqlserver":
-        meta = { label: "SQL Server", icon: "fa-server" };
-        break;
-      case "oracle":
-        meta = { label: "Oracle", icon: "fa-database" };
-        break;
-      default:
-        meta = null;
-        break;
-    }
-    const label = meta?.label || (typeStr ? typeStr.toUpperCase() : "-");
+    const meta = dbTypeMetaMap.get(normalized) || null;
+    const label = meta?.display_name || (typeStr ? typeStr.toUpperCase() : "-");
     const icon = meta?.icon || "fa-database";
+    const assetUrl = meta?.asset_url || "";
     if (!gridHtml) {
       return label;
     }
+    const glyphHtml = assetUrl
+      ? `<img class="db-type-chip__asset" src="${escapeHtml(assetUrl)}" alt="" aria-hidden="true">`
+      : `<i class="fas ${icon} me-1" aria-hidden="true"></i>`;
     return gridHtml(
-      `<span class="chip-outline chip-outline--brand" data-db-type="${escapeHtml(normalized)}"><i class="fas ${icon} me-1" aria-hidden="true"></i>${escapeHtml(label)}</span>`,
+      `<span class="chip-outline chip-outline--brand" data-db-type="${escapeHtml(normalized)}">${glyphHtml}${escapeHtml(label)}</span>`,
     );
   }
 
@@ -761,12 +750,21 @@ function mountAccountsListPage(global) {
       console.error("PermissionViewer 未注册");
       return;
     }
-        viewer(accountId, {
-          apiUrl: `/api/v1/accounts/ledgers/${accountId}/permissions`,
-          scope: "accounts-permission",
-          trigger,
-        });
-      }
+    viewer(accountId, {
+      apiUrl: `/api/v1/accounts/ledgers/${accountId}/permissions`,
+      scope: "accounts-permission",
+      trigger,
+    });
+  }
+
+  function safeParseJSON(value, fallback) {
+    try {
+      return value ? JSON.parse(value) : fallback;
+    } catch (error) {
+      console.warn("解析 JSON 失败:", error);
+      return fallback;
+    }
+  }
 }
 
 window.AccountsListPage = {

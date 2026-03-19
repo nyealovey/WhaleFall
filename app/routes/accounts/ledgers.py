@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, url_for
 from flask_login import login_required
 
 from app.core.constants import DATABASE_TYPES
@@ -39,9 +39,19 @@ def list_accounts(db_type: str | None = None) -> str:
                 "label": item["display_name"],
                 "icon": item.get("icon", "fa-database"),
                 "color": item.get("color", "primary"),
+                "asset_url": url_for("static", filename=f"img/db-types/{item['name']}.png"),
             }
             for item in DATABASE_TYPES
         ]
+        database_type_map = {
+            item["value"]: {
+                "display_name": item["label"],
+                "icon": item["icon"],
+                "color": item["color"],
+                "asset_url": item["asset_url"],
+            }
+            for item in database_type_options
+        }
 
         return render_template(
             "accounts/ledgers.html",
@@ -51,6 +61,7 @@ def list_accounts(db_type: str | None = None) -> str:
             selected_tags=selected_tags,
             classification=classification,
             database_type_options=database_type_options,
+            database_type_map=database_type_map,
             classification_options=classification_options,
             tag_options=tag_options,
         )

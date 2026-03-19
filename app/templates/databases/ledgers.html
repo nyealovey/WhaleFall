@@ -29,6 +29,7 @@
      data-export-url="/api/v1/databases/ledgers/exports"
      data-sync-url="/api/v1/databases/ledgers/actions/sync-all"
      data-capacity-stats-url="{{ capacity_stats_url }}"
+     data-db-type-map='{{ database_type_map | tojson | safe }}'
      data-current-db-type="{{ current_db_type or 'all' }}">
 
     <section class="page-section page-section--stacked">
@@ -52,7 +53,12 @@
                             class="btn {% if current_db_type == option.value %}btn-primary{% else %}btn-outline-primary{% endif %}"
                             data-db-type-btn
                             data-db-type="{{ option.value }}">
-                        <i class="fas {{ option.icon }} me-1"></i>{{ option.label }}
+                        {% if option.asset_url %}
+                        <img src="{{ option.asset_url }}" alt="" class="db-type-filter__asset" aria-hidden="true">
+                        {% else %}
+                        <i class="fas {{ option.icon }} me-1"></i>
+                        {% endif %}
+                        {{ option.label }}
                     </button>
                     {% endfor %}
                 </div>

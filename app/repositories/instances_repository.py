@@ -24,6 +24,7 @@ from app.core.types.listing import PaginatedResult
 from app.core.types.tags import TagSummary
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
@@ -281,7 +282,13 @@ class InstancesRepository:
     def _collect_instance_metrics(instance_ids: list[int]) -> InstanceListMetrics:
         """加载实例关联的数据库/账户数量、同步时间与标签."""
         if not instance_ids:
-            return InstanceListMetrics(database_counts={}, account_counts={}, last_sync_times={}, tags_map={})
+            return InstanceListMetrics(
+                database_counts={},
+                account_counts={},
+                last_sync_times={},
+                tags_map={},
+                audit_facts_map={},
+            )
 
         db_instance_id_column = cast(ColumnElement[int], InstanceDatabase.instance_id)
         db_active_column = cast(ColumnElement[bool], InstanceDatabase.is_active)
@@ -293,6 +300,9 @@ class InstancesRepository:
         sync_category_column = cast(ColumnElement[str], SyncInstanceRecord.sync_category)
         sync_status_column = cast(ColumnElement[str], SyncInstanceRecord.status)
         sync_completed_at_column = cast(ColumnElement[datetime], SyncInstanceRecord.completed_at)
+        audit_instance_id_column = cast(ColumnElement[int], InstanceConfigSnapshot.instance_id)
+        audit_config_key_column = cast(ColumnElement[str], InstanceConfigSnapshot.config_key)
+        audit_facts_column = cast(ColumnElement[Any], InstanceConfigSnapshot.facts)
 
         database_counts_query: Query[Any] = cast(
             Query[Any],
@@ -340,10 +350,24 @@ class InstancesRepository:
         last_sync_times = dict(last_sync_rows)
 
         tags_map = InstancesRepository.fetch_tags_map(instance_ids)
+        audit_facts_query: Query[Any] = cast(
+            Query[Any],
+            db.session.query(audit_instance_id_column, audit_facts_column),
+        )
+        audit_facts_rows = audit_facts_query.filter(
+            audit_instance_id_column.in_(instance_ids),
+            audit_config_key_column == "audit_info",
+        ).all()
+        audit_facts_map = {
+            instance_id: facts
+            for instance_id, facts in audit_facts_rows
+            if isinstance(facts, dict)
+        }
 
         return InstanceListMetrics(
             database_counts=database_counts,
             account_counts=account_counts,
             last_sync_times=last_sync_times,
             tags_map=tags_map,
+            audit_facts_map=audit_facts_map,
         )

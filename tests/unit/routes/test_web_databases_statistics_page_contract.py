@@ -35,6 +35,11 @@ def test_web_databases_ledgers_page_contains_statistics_entry(auth_client, monke
     html = response.get_data(as_text=True)
     assert 'href="/databases/statistics"' in html
     assert "数据库统计" in html
+    assert 'data-db-type-map=' in html
+    assert "db-types/mysql.png" in html
+    assert "db-types/postgresql.png" in html
+    assert "db-types/sqlserver.png" in html
+    assert "db-types/oracle.png" in html
 
 
 @pytest.mark.unit
