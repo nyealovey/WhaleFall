@@ -41,6 +41,8 @@ class InstanceStatisticsResult:
     disabled_instances: int
     deleted_instances: int
     inactive_instances: int
+    audit_enabled_instances: int
+    high_availability_instances: int
     db_types_count: int
     db_type_stats: list[InstanceDbTypeStat]
     port_stats: list[InstancePortStat]

@@ -11,8 +11,10 @@
 {% set active_instances = stats.active_instances or 0 %}
 {% set inactive_instances = stats.inactive_instances or 0 %}
 {% set deleted_instances = stats.deleted_instances or 0 %}
-{% set active_rate = (active_instances / total_instances * 100) if total_instances else 0 %}
-{% set deleted_rate = (deleted_instances / total_instances * 100) if total_instances else 0 %}
+{% set audit_enabled_instances = stats.audit_enabled_instances or 0 %}
+{% set high_availability_instances = stats.high_availability_instances or 0 %}
+{% set audit_enabled_rate = (audit_enabled_instances / active_instances * 100) if active_instances else 0 %}
+{% set high_availability_rate = (high_availability_instances / active_instances * 100) if active_instances else 0 %}
 {% set sorted_db_types = (stats.db_type_stats | sort(attribute='count', reverse=True)) if stats.db_type_stats else [] %}
 {% set top_db_type = sorted_db_types[0] if sorted_db_types else None %}
 {% set top_db_type_share = (top_db_type.count / current_instances * 100) if top_db_type and current_instances else 0 %}
@@ -33,22 +35,28 @@
 	            <div class="row g-3 instance-stats-row">
 	                <div class="col-12 col-sm-6 col-xl-3">
 	                    {% call metric_card('实例总数', value=total_instances, icon_class='fas fa-server', tone='info', data_stat_key='total_instances') %}
-	                        <span class="chip-outline chip-outline--muted" title="停用" aria-label="停用">
-	                            <i class="fas fa-ban" aria-hidden="true"></i><span id="instancesMetaInactiveCount" aria-hidden="true">{{ inactive_instances }}</span>
+	                        <span class="status-pill status-pill--success" title="在线实例" aria-label="在线实例">
+	                            <i class="fas fa-check-circle" aria-hidden="true"></i><span id="instancesMetaActiveCount" aria-hidden="true">{{ active_instances }}</span> 在线
+	                        </span>
+	                        <span class="status-pill status-pill--muted" title="停用实例" aria-label="停用实例">
+	                            <i class="fas fa-ban" aria-hidden="true"></i><span id="instancesMetaInactiveCount" aria-hidden="true">{{ inactive_instances }}</span> 停用
+	                        </span>
+	                        <span class="status-pill status-pill--danger" title="已删除实例" aria-label="已删除实例">
+	                            <i class="fas fa-trash" aria-hidden="true"></i><span id="instancesMetaDeletedCount" aria-hidden="true">{{ deleted_instances }}</span> 删除
 	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
-	                    {% call metric_card('在线实例', value=active_instances, icon_class='fas fa-check-circle', tone='success', data_stat_key='active_instances') %}
-	                        <span class="chip-outline chip-outline--muted" title="在线率" aria-label="在线率">
-	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="instancesMetaActiveRate" aria-hidden="true">{{ '%.1f'|format(active_rate) }}%</span>
+	                    {% call metric_card('审计信息', value=(stats.audit_enabled_instances or 0), icon_class='fas fa-shield-halved', tone='success', data_stat_key='audit_enabled_instances') %}
+	                        <span class="chip-outline chip-outline--muted" title="已开通率" aria-label="已开通率">
+	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="instancesMetaAuditEnabledRate" aria-hidden="true">{{ '%.1f'|format(audit_enabled_rate) }}%</span>
 	                        </span>
 	                    {% endcall %}
 	                </div>
 	                <div class="col-12 col-sm-6 col-xl-3">
-	                    {% call metric_card('已删除实例', value=deleted_instances, icon_class='fas fa-trash', tone='danger', data_stat_key='deleted_instances') %}
-	                        <span class="chip-outline chip-outline--muted" title="删除率" aria-label="删除率">
-	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="instancesMetaDeletedRate" aria-hidden="true">{{ '%.1f'|format(deleted_rate) }}%</span>
+	                    {% call metric_card('高可用占比', value=(stats.high_availability_instances or 0), icon_class='fas fa-network-wired', tone='info', data_stat_key='high_availability_instances') %}
+	                        <span class="chip-outline chip-outline--muted" title="高可用率" aria-label="高可用率">
+	                            <i class="fas fa-percent" aria-hidden="true"></i><span id="instancesMetaHighAvailabilityRate" aria-hidden="true">{{ '%.1f'|format(high_availability_rate) }}%</span>
 	                        </span>
 	                    {% endcall %}
 	                </div>
