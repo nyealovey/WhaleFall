@@ -764,8 +764,8 @@ function handleAccountsServerResponse(response) {
         item.type_specific?.plugin || '',
         item.type_specific?.account_kind || '',
         item.is_locked,
-        item.is_superuser,
         item.is_deleted,
+        item.is_superuser,
         item.last_change_time || '',
         null,
         item,
@@ -799,6 +799,7 @@ function normalizeAccountsFilters(filters) {
 function buildAccountsGridColumns() {
     const dbType = String(getInstanceDbType() || '').toLowerCase();
     const showMySQLFields = dbType === 'mysql';
+    const STATUS_COLUMN_WIDTH = '64px';
 
     const columns = [
         {
@@ -827,22 +828,22 @@ function buildAccountsGridColumns() {
             formatter: (cell, row) => renderAccountKindCell(cell, getRowMeta(row)),
         },
         {
-            name: '锁定',
+            name: '是否可用',
             id: 'is_locked',
-            width: '70px',
+            width: STATUS_COLUMN_WIDTH,
             formatter: (cell, row) => renderAccountLockedCell(cell, getRowMeta(row)),
         },
         {
-            name: '超管',
-            id: 'is_superuser',
-            width: '70px',
-            formatter: (cell) => renderAccountSuperuserBadge(Boolean(cell)),
+            name: '是否删除',
+            id: 'is_deleted',
+            width: STATUS_COLUMN_WIDTH,
+            formatter: (cell) => renderAccountDeletedBadge(Boolean(cell)),
         },
         {
-            name: '删除',
-            id: 'is_deleted',
-            width: '70px',
-            formatter: (cell) => renderAccountDeletedBadge(Boolean(cell)),
+            name: '是否超管',
+            id: 'is_superuser',
+            width: STATUS_COLUMN_WIDTH,
+            formatter: (cell) => renderAccountSuperuserBadge(Boolean(cell)),
         },
         {
             name: '最后变更',
@@ -915,29 +916,86 @@ function renderAccountLockedCell(isLocked, meta) {
     const typeSpecific = meta?.type_specific || {};
     const accountKind = typeSpecific?.account_kind ? String(typeSpecific.account_kind).toLowerCase() : null;
     if (accountKind === 'role') {
-        return gridHtml ? gridHtml('<span class="text-muted">-</span>') : '-';
+        return renderAccountCompactIndicator({
+            icon: 'fa-minus',
+            tone: 'muted',
+            title: '不适用',
+            ariaLabel: '是否可用 不适用',
+        });
     }
     return renderAccountLockedBadge(Boolean(isLocked));
 }
 
 function renderAccountLockedBadge(isLocked) {
-    const resolveText = window.UI?.Terms?.resolveLockStatusText;
-    const label = typeof resolveText === 'function' ? resolveText(isLocked) : (isLocked ? '已锁定' : '正常');
-    const cls = isLocked ? 'status-pill status-pill--danger' : 'status-pill status-pill--success';
-    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
+    if (isLocked) {
+        return renderAccountCompactIndicator({
+            icon: 'fa-lock',
+            tone: 'danger',
+            title: '已锁定',
+            ariaLabel: '是否可用 已锁定',
+        });
+    }
+    return renderAccountCompactIndicator({
+        icon: 'fa-circle-check',
+        tone: 'success',
+        title: '正常',
+        ariaLabel: '是否可用 正常',
+    });
 }
 
 function renderAccountSuperuserBadge(isSuperuser) {
-    const label = isSuperuser ? '是' : '否';
-    const cls = isSuperuser ? 'status-pill status-pill--warning' : 'status-pill status-pill--muted';
-    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
+    if (isSuperuser) {
+        return renderAccountCompactIndicator({
+            icon: 'fa-user-shield',
+            tone: 'warning',
+            title: '超管用户',
+            ariaLabel: '是否超管 超管用户',
+        });
+    }
+    return renderAccountCompactIndicator({
+        icon: 'fa-minus',
+        tone: 'muted',
+        title: '普通用户',
+        ariaLabel: '是否超管 普通用户',
+    });
 }
 
 function renderAccountDeletedBadge(isDeleted) {
-    const resolveText = window.UI?.Terms?.resolveDeletionStatusText;
-    const label = typeof resolveText === 'function' ? resolveText(isDeleted) : (isDeleted ? '已删除' : '正常');
-    const cls = isDeleted ? 'status-pill status-pill--danger' : 'status-pill status-pill--success';
-    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
+    if (isDeleted) {
+        return renderAccountCompactIndicator({
+            icon: 'fa-trash',
+            tone: 'danger',
+            title: '已删除',
+            ariaLabel: '是否删除 已删除',
+        });
+    }
+    return renderAccountCompactIndicator({
+        icon: 'fa-minus',
+        tone: 'muted',
+        title: '未删除',
+        ariaLabel: '是否删除 未删除',
+    });
+}
+
+function renderAccountCompactIndicator({ icon, tone = 'muted', title, ariaLabel }) {
+    if (!gridHtml) {
+        return title || '';
+    }
+    const classes = ['ledger-compact-indicator'];
+    if (tone) {
+        classes.push(`ledger-compact-indicator--${tone}`);
+    }
+    const resolvedTitle = title || '';
+    const resolvedAriaLabel = ariaLabel || resolvedTitle;
+    return gridHtml(`
+        <span class="${classes.join(' ')}"
+              title="${escapeHtml(resolvedTitle)}"
+              aria-label="${escapeHtml(resolvedAriaLabel)}"
+              role="img">
+            <i class="fas ${escapeHtml(icon || 'fa-circle')}" aria-hidden="true"></i>
+            <span class="visually-hidden">${escapeHtml(resolvedTitle)}</span>
+        </span>
+    `);
 }
 
 function renderAccountLastChangeTime(value) {

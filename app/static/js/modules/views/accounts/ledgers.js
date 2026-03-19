@@ -337,7 +337,7 @@ function mountAccountsListPage(global) {
         formatter: (cell, row) => renderAccountCell(rowMeta.get(row)),
       },
       {
-        name: "可用性",
+        name: "是否可用",
         id: "is_locked",
         width: STATUS_COLUMN_WIDTH,
         formatter: (cell) => renderAvailabilityIndicator(Boolean(cell)),
@@ -349,7 +349,7 @@ function mountAccountsListPage(global) {
         formatter: (cell) => renderDeletionIndicator(Boolean(cell)),
       },
       {
-        name: "是否超级",
+        name: "是否超管",
         id: "is_superuser",
         width: STATUS_COLUMN_WIDTH,
         formatter: (cell) => renderSuperuserIndicator(Boolean(cell)),
@@ -520,15 +520,15 @@ function mountAccountsListPage(global) {
       return renderCompactIndicator({
         icon: "fa-user-shield",
         tone: "warning",
-        title: "超级用户",
-        ariaLabel: "超级权限 超级用户",
+        title: "超管用户",
+        ariaLabel: "超管权限 超管用户",
       });
     }
     return renderCompactIndicator({
       icon: "fa-minus",
       tone: "muted",
       title: "普通用户",
-      ariaLabel: "超级权限 普通用户",
+      ariaLabel: "超管权限 普通用户",
     });
   }
 
