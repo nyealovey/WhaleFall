@@ -137,21 +137,18 @@
                     </button>
                     <button type="button"
                             class="btn btn-outline-secondary"
-                            data-action="sync-accounts"
-                            {% if not instance.is_active %}disabled title="实例已停用，无法同步账户"{% endif %}>
+                            data-action="sync-accounts">
                         <i class="fas fa-sync me-2"></i>同步账户
                     </button>
                     <button type="button"
                             class="btn btn-outline-secondary"
-                            data-action="sync-capacity"
-                            {% if not instance.is_active %}disabled title="实例已停用，无法同步容量"{% endif %}>
+                            data-action="sync-capacity">
                         <i class="fas fa-sync-alt me-2"></i>同步容量
                     </button>
                     <button type="button"
                             class="btn btn-outline-secondary"
                             data-action="sync-audit-info"
-                            {% if not instance.is_active %}disabled title="实例已停用，无法同步审计信息"
-                            {% elif instance.db_type|lower != 'sqlserver' %}disabled title="当前仅支持 SQL Server 审计信息采集"{% endif %}>
+                            {% if instance.db_type|lower != 'sqlserver' %}disabled title="当前仅支持 SQL Server 审计信息采集"{% endif %}>
                         <i class="fas fa-shield-halved me-2"></i>同步审计
                     </button>
                     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">

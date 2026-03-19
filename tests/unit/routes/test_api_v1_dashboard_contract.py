@@ -49,6 +49,12 @@ def test_api_v1_dashboard_overview_contract(app, auth_client) -> None:
     data = payload.get("data")
     assert isinstance(data, dict)
     assert {"users", "instances", "accounts", "classified_accounts", "capacity", "databases"}.issubset(data.keys())
+    accounts = data.get("accounts")
+    assert isinstance(accounts, dict)
+    assert {"total", "active", "normal", "locked", "deleted"}.issubset(accounts.keys())
+    databases = data.get("databases")
+    assert isinstance(databases, dict)
+    assert {"total", "active", "inactive", "deleted"}.issubset(databases.keys())
 
 
 @pytest.mark.unit

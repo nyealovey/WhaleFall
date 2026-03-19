@@ -13,7 +13,15 @@ def test_dashboard_overview_uses_instance_total_that_includes_deleted(monkeypatc
     monkeypatch.setattr(
         dashboard_module.AccountStatisticsRepository,
         "fetch_summary",
-        staticmethod(lambda: {"total_accounts": 12, "active_accounts": 11, "locked_accounts": 1}),
+        staticmethod(
+            lambda: {
+                "total_accounts": 12,
+                "active_accounts": 11,
+                "normal_accounts": 10,
+                "locked_accounts": 1,
+                "deleted_accounts": 1,
+            }
+        ),
     )
     monkeypatch.setattr(
         dashboard_module.AccountStatisticsRepository,
@@ -37,7 +45,15 @@ def test_dashboard_overview_uses_instance_total_that_includes_deleted(monkeypatc
     monkeypatch.setattr(
         dashboard_module.DatabaseStatisticsRepository,
         "fetch_summary",
-        staticmethod(lambda: {"total_databases": 10, "active_databases": 9, "inactive_databases": 1, "deleted_databases": 0, "total_instances": 2}),
+        staticmethod(
+            lambda: {
+                "total_databases": 10,
+                "active_databases": 8,
+                "inactive_databases": 1,
+                "deleted_databases": 1,
+                "total_instances": 2,
+            }
+        ),
     )
     monkeypatch.setattr(dashboard_module.db.session, "begin_nested", lambda: nullcontext())
     monkeypatch.setattr(
@@ -59,4 +75,17 @@ def test_dashboard_overview_uses_instance_total_that_includes_deleted(monkeypatc
         "active": 78,
         "inactive": 0,
         "deleted": 4,
+    }
+    assert overview["accounts"] == {
+        "total": 12,
+        "active": 11,
+        "normal": 10,
+        "locked": 1,
+        "deleted": 1,
+    }
+    assert overview["databases"] == {
+        "total": 10,
+        "active": 8,
+        "inactive": 1,
+        "deleted": 1,
     }

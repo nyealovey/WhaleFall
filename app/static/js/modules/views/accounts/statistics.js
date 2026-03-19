@@ -67,7 +67,7 @@ function mountAccountsStatisticsPage(global) {
 
   function applyStats(stats) {
     setValue("total_accounts", stats.total_accounts);
-    setValue("active_accounts", stats.active_accounts);
+    setValue("normal_accounts", stats.normal_accounts);
     setValue("locked_accounts", stats.locked_accounts);
     setValue("total_instances", stats.total_instances);
     updateSummaryMeta(stats);
@@ -77,8 +77,9 @@ function mountAccountsStatisticsPage(global) {
 
   function updateSummaryMeta(stats) {
     const total = Number(stats?.total_accounts ?? 0) || 0;
-    const active = Number(stats?.active_accounts ?? 0) || 0;
+    const normal = Number(stats?.normal_accounts ?? 0) || 0;
     const locked = Number(stats?.locked_accounts ?? 0) || 0;
+    const deleted = Number(stats?.deleted_accounts ?? 0) || 0;
     const instances = Number(stats?.total_instances ?? 0) || 0;
 
     const setText = (id, value) => {
@@ -89,35 +90,22 @@ function mountAccountsStatisticsPage(global) {
       el.textContent = String(value);
     };
 
-    const formatPercent = global.NumberFormat?.formatPercent;
-    setText(
-      "accountsMetaActiveRate",
-      typeof formatPercent === "function"
-        ? formatPercent(total > 0 ? active / total : 0, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" })
-        : "0%",
-    );
-    setText(
-      "accountsMetaLockedRate",
-      typeof formatPercent === "function"
-        ? formatPercent(total > 0 ? locked / total : 0, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" })
-        : "0%",
-    );
-
-    const inactive = total > 0 ? Math.max(0, total - active) : 0;
-    setText("accountsMetaInactiveCount", formatInteger(inactive));
+    setText("accountsMetaNormalCount", formatInteger(normal));
+    setText("accountsMetaLockedCount", formatInteger(locked));
+    setText("accountsMetaDeletedCount", formatInteger(deleted));
 
     const formatDecimal = global.NumberFormat?.formatDecimal;
     const avgPerInstance = instances > 0 ? total / instances : 0;
-    const activePerInstance = instances > 0 ? active / instances : 0;
+    const normalPerInstance = instances > 0 ? normal / instances : 0;
     const lockedPerInstance = instances > 0 ? locked / instances : 0;
     if (typeof formatDecimal === "function") {
       setText("accountsMetaAvgPerInstance", formatDecimal(avgPerInstance, { precision: 1, trimZero: true, fallback: "0" }));
-      setText("accountsMetaActivePerInstance", formatDecimal(activePerInstance, { precision: 1, trimZero: true, fallback: "0" }));
+      setText("accountsMetaNormalPerInstance", formatDecimal(normalPerInstance, { precision: 1, trimZero: true, fallback: "0" }));
       setText("accountsMetaLockedPerInstance", formatDecimal(lockedPerInstance, { precision: 1, trimZero: true, fallback: "0" }));
       return;
     }
     setText("accountsMetaAvgPerInstance", avgPerInstance.toFixed(1));
-    setText("accountsMetaActivePerInstance", activePerInstance.toFixed(1));
+    setText("accountsMetaNormalPerInstance", normalPerInstance.toFixed(1));
     setText("accountsMetaLockedPerInstance", lockedPerInstance.toFixed(1));
   }
 
@@ -159,7 +147,7 @@ function mountAccountsStatisticsPage(global) {
       if (percentLabel) {
         percentLabel.textContent = `${percent.toFixed(1)}%`;
       }
-      updateStatusPill(row, "success", meta?.active);
+      updateStatusPill(row, "success", meta?.normal);
       updateStatusPill(row, "warning", meta?.locked);
       updateStatusPill(row, "muted", meta?.deleted ?? 0);
     });
@@ -204,17 +192,8 @@ function mountAccountsStatisticsPage(global) {
       return;
     }
 
-    const resolveLockText = global.UI?.Terms?.resolveLockStatusText;
-    const lockedLabel = typeof resolveLockText === "function"
-      ? resolveLockText(true)
-      : "已锁定";
-    const resolveDeleteText = global.UI?.Terms?.resolveDeletionStatusText;
-    const deletedLabel = typeof resolveDeleteText === "function"
-      ? resolveDeleteText(true)
-      : "已删除";
-
     node.textContent = `${
-      tone === "success" ? "活跃" : tone === "warning" ? lockedLabel : deletedLabel
+      tone === "success" ? "正常" : tone === "warning" ? "受限" : "删除"
     } ${formatInteger(value)}`;
   }
 
