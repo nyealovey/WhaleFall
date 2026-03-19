@@ -171,6 +171,8 @@ INSTANCE_STATISTICS_FIELDS = {
     "disabled_instances": fields.Integer(description="停用实例数", example=1),
     "deleted_instances": fields.Integer(description="删除实例数", example=1),
     "inactive_instances": fields.Integer(description="非活跃实例数", example=1),
+    "audit_enabled_instances": fields.Integer(description="已配置并启用审计的在线实例数", example=5),
+    "high_availability_instances": fields.Integer(description="高可用在线实例数", example=4),
     "db_types_count": fields.Integer(description="数据库类型数量", example=4),
     "db_type_stats": fields.List(fields.Nested(INSTANCE_DB_TYPE_STAT_FIELDS), description="按 db_type 聚合统计"),
     "port_stats": fields.List(fields.Nested(INSTANCE_PORT_STAT_FIELDS), description="按端口聚合统计"),

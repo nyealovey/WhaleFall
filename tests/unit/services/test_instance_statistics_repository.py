@@ -26,6 +26,9 @@ def _ensure_instance_statistics_tables(app) -> None:
             bind=db.engine,
             tables=[
                 db.metadata.tables["instances"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+                db.metadata.tables["instance_config_snapshots"],
             ],
         )
 
@@ -61,3 +64,64 @@ def test_instance_statistics_repository_counts_total_current_active_inactive_and
         assert summary["disabled_instances"] == 1
         assert summary["deleted_instances"] == 1
         assert summary["normal_instances"] == 1
+        assert summary["audit_enabled_instances"] == 0
+        assert summary["high_availability_instances"] == 0
+
+
+@pytest.mark.unit
+def test_instance_statistics_repository_counts_enabled_audit_and_non_standalone_architecture_as_ha(app) -> None:
+    from app.models.instance import Instance
+    from app.models.instance_config_snapshot import InstanceConfigSnapshot
+    from app.models.tag import Tag
+
+    _ensure_instance_statistics_tables(app)
+
+    with app.app_context():
+        audit_enabled_ha = Instance(name="sqlserver-ha-audit", db_type="sqlserver", host="127.0.0.1", port=1433, is_active=True)
+        active_standalone = Instance(name="sqlserver-standalone", db_type="sqlserver", host="127.0.0.2", port=1434, is_active=True)
+        disabled_with_arch = Instance(name="sqlserver-disabled", db_type="sqlserver", host="127.0.0.3", port=1435, is_active=False)
+        db.session.add_all([audit_enabled_ha, active_standalone, disabled_with_arch])
+        db.session.flush()
+
+        geo_redundant = Tag(name="geo_redundant", display_name="两地三中心", category="architecture")
+        standalone = Tag(name="standalone", display_name="单机", category="architecture")
+        db.session.add_all([geo_redundant, standalone])
+        db.session.flush()
+
+        audit_enabled_ha.tags.append(geo_redundant)
+        active_standalone.tags.append(standalone)
+        disabled_with_arch.tags.append(geo_redundant)
+        db.session.flush()
+
+        db.session.add_all(
+            [
+                InstanceConfigSnapshot(
+                    instance_id=audit_enabled_ha.id,
+                    db_type="sqlserver",
+                    config_key="audit_info",
+                    facts={"has_audit": True, "enabled_audit_count": 1},
+                ),
+                InstanceConfigSnapshot(
+                    instance_id=active_standalone.id,
+                    db_type="sqlserver",
+                    config_key="audit_info",
+                    facts={"has_audit": True, "enabled_audit_count": 0},
+                ),
+                InstanceConfigSnapshot(
+                    instance_id=disabled_with_arch.id,
+                    db_type="sqlserver",
+                    config_key="audit_info",
+                    facts={"has_audit": True, "enabled_audit_count": 1},
+                ),
+            ],
+        )
+        db.session.commit()
+
+        summary = InstanceStatisticsRepository.fetch_summary()
+
+        assert summary["total_instances"] == 3
+        assert summary["current_instances"] == 3
+        assert summary["active_instances"] == 2
+        assert summary["disabled_instances"] == 1
+        assert summary["audit_enabled_instances"] == 1
+        assert summary["high_availability_instances"] == 1

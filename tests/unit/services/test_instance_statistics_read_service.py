@@ -20,6 +20,8 @@ def test_instance_statistics_read_service_builds_statistics_with_current_instanc
                 "normal_instances": 78,
                 "disabled_instances": 0,
                 "deleted_instances": 4,
+                "audit_enabled_instances": 14,
+                "high_availability_instances": 11,
             }
 
         @staticmethod
@@ -44,6 +46,8 @@ def test_instance_statistics_read_service_builds_statistics_with_current_instanc
     assert result.active_instances == 78
     assert result.inactive_instances == 0
     assert result.deleted_instances == 4
+    assert result.audit_enabled_instances == 14
+    assert result.high_availability_instances == 11
     assert result.db_types_count == 1
 
 
@@ -56,3 +60,5 @@ def test_instance_statistics_read_service_empty_statistics_includes_current_inst
     assert result.active_instances == 0
     assert result.inactive_instances == 0
     assert result.deleted_instances == 0
+    assert result.audit_enabled_instances == 0
+    assert result.high_availability_instances == 0
