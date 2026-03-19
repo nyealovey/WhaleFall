@@ -35,10 +35,16 @@ function mountInstancesListPage() {
     const gridHtml = gridjs.html;
     const escapeHtml = global.UI?.escapeHtml;
     const CHIP_COLUMN_WIDTH = '220px';
-    const TYPE_COLUMN_WIDTH = '110px';
-    const STATUS_COLUMN_WIDTH = '70px';
+    const TYPE_COLUMN_WIDTH = '64px';
+    const STATUS_COLUMN_WIDTH = '64px';
     const ACTIVE_COLUMN_WIDTH = '110px';
     const ACTION_COLUMN_WIDTH = '120px';
+    const INSTANCE_DB_TYPE_VISUALS = new Map([
+        ['mysql', { icon: 'fa-database', tone: 'primary' }],
+        ['postgresql', { icon: 'fa-layer-group', tone: 'info' }],
+        ['sqlserver', { icon: 'fa-server', tone: 'warning' }],
+        ['oracle', { icon: 'fa-cube', tone: 'danger' }],
+    ]);
 
     const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
     const INCLUDE_DELETED_TOGGLE_ID = 'include-deleted-toggle';
@@ -552,14 +558,19 @@ function mountInstancesListPage() {
      * @returns {string|import('gridjs').Html} HTML 片段或纯文本。
      */
     function renderDbTypeBadge(dbType) {
-        const typeStr = typeof dbType === 'string' ? dbType : (dbType || '').toString();
-        const meta = dbTypeMetaMap.get(typeStr) || {};
+        const typeStr = typeof dbType === 'string' ? dbType.trim() : (dbType || '').toString().trim();
+        const normalizedType = typeStr.toLowerCase();
+        const meta = dbTypeMetaMap.get(normalizedType) || dbTypeMetaMap.get(typeStr) || {};
+        const visual = INSTANCE_DB_TYPE_VISUALS.get(normalizedType) || {};
         if (!gridHtml) {
             return meta.display_name || typeStr || '-';
         }
-        const icon = meta.icon || 'fa-database';
-        const label = meta.display_name || (typeStr ? typeStr.toUpperCase() : '-');
-        return gridHtml(`<span class="chip-outline chip-outline--brand"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>`);
+        return renderCompactIndicator({
+            icon: visual.icon || meta.icon || 'fa-database',
+            tone: visual.tone || meta.color || 'muted',
+            title: meta.display_name || typeStr || '未知类型',
+            ariaLabel: `数据库类型 ${meta.display_name || typeStr || '未知类型'}`,
+        });
     }
 
     /**
@@ -595,14 +606,28 @@ function mountInstancesListPage() {
      */
     function renderStatusBadge(meta) {
         if (meta?.deleted_at) {
-            return renderStatusPill('已删除', 'muted', 'fa-trash');
+            return renderCompactIndicator({
+                icon: 'fa-trash',
+                tone: 'danger',
+                title: '已删除',
+                ariaLabel: '实例状态 已删除',
+            });
         }
         const isActive = Boolean(meta?.is_active);
-        const resolveText = global.UI?.Terms?.resolveActiveStatusText;
-        const text = typeof resolveText === 'function' ? resolveText(isActive) : (isActive ? '启用' : '停用');
-        const variant = isActive ? 'success' : 'muted';
-        const icon = isActive ? 'fa-check-circle' : 'fa-ban';
-        return renderStatusPill(text, variant, icon);
+        if (isActive) {
+            return renderCompactIndicator({
+                icon: 'fa-check-circle',
+                tone: 'success',
+                title: '启用',
+                ariaLabel: '实例状态 启用',
+            });
+        }
+        return renderCompactIndicator({
+            icon: 'fa-minus-circle',
+            tone: 'muted',
+            title: '禁用',
+            ariaLabel: '实例状态 禁用',
+        });
     }
 
     /**
@@ -1330,16 +1355,25 @@ function mountInstancesListPage() {
         };
     }
 
-    function renderStatusPill(text, variant = 'muted', icon) {
+    function renderCompactIndicator({ icon, tone = 'muted', title, ariaLabel }) {
         if (!gridHtml) {
-            return text;
+            return title || '';
         }
-        const classes = ['status-pill'];
-        if (variant) {
-            classes.push(`status-pill--${variant}`);
+        const classes = ['instance-compact-indicator'];
+        if (tone) {
+            classes.push(`instance-compact-indicator--${tone}`);
         }
-        const iconHtml = icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : '';
-        return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '')}</span>`);
+        const resolvedTitle = title || '';
+        const resolvedAriaLabel = ariaLabel || resolvedTitle;
+        return gridHtml(`
+            <span class="${classes.join(' ')}"
+                  title="${escapeHtml(resolvedTitle)}"
+                  aria-label="${escapeHtml(resolvedAriaLabel)}"
+                  role="img">
+                <i class="fas ${escapeHtml(icon || 'fa-circle')}" aria-hidden="true"></i>
+                <span class="visually-hidden">${escapeHtml(resolvedTitle)}</span>
+            </span>
+        `);
     }
 }
 
