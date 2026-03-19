@@ -63,6 +63,7 @@ class InstanceListService:
                     active_account_count=metrics.account_counts.get(instance.id, 0),
                     last_sync_time=last_sync.isoformat() if last_sync else None,
                     tags=metrics.tags_map.get(instance.id, []),
+                    is_jumpserver_managed=instance.id in metrics.jumpserver_managed_ids,
                 ),
             )
 

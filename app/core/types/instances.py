@@ -32,6 +32,7 @@ class InstanceListMetrics:
     last_sync_times: dict[int, datetime]
     tags_map: dict[int, list[TagSummary]]
     audit_facts_map: dict[int, dict[str, object]]
+    jumpserver_managed_ids: set[int]
 
 
 @dataclass(slots=True)
@@ -53,3 +54,4 @@ class InstanceListItem:
     active_account_count: int
     last_sync_time: str | None
     tags: list[TagSummary]
+    is_jumpserver_managed: bool
