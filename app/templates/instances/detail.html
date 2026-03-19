@@ -191,13 +191,13 @@
             <div class="card-header">
                 <ul class="nav nav-tabs card-header-tabs instance-data-tabs" id="databaseInfoTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#capacity-pane" type="button" role="tab" aria-controls="capacity-pane" aria-selected="true">
-                            <i class="fas fa-chart-pie me-2"></i>数据库容量信息
+                        <button class="nav-link active" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts-pane" type="button" role="tab" aria-controls="accounts-pane" aria-selected="true">
+                            <i class="fas fa-users me-2"></i>账户信息
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts-pane" type="button" role="tab" aria-controls="accounts-pane" aria-selected="false">
-                            <i class="fas fa-users me-2"></i>数据库账户信息
+                        <button class="nav-link" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#capacity-pane" type="button" role="tab" aria-controls="capacity-pane" aria-selected="false">
+                            <i class="fas fa-chart-pie me-2"></i>容量信息
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -209,8 +209,8 @@
             </div>
             <div class="card-body instance-data-panel">
                 <div class="tab-content" id="databaseInfoTabContent">
-                    <!-- 数据库容量信息标签页 -->
-                    <div class="tab-pane fade show active instance-data-pane" id="capacity-pane" role="tabpanel" aria-labelledby="capacity-tab">
+                    <!-- 容量信息标签页 -->
+                    <div class="tab-pane fade instance-data-pane" id="capacity-pane" role="tabpanel" aria-labelledby="capacity-tab">
                         <div class="instance-data-pane__stack">
                             <div id="databaseSizesContent">
                                 <section class="instance-overview-band instance-overview-band--capacity">
@@ -304,8 +304,8 @@
                         </div>
                     </div>
 
-                    <!-- 数据库账户信息标签页 -->
-                    <div class="tab-pane fade instance-data-pane" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
+                    <!-- 账户信息标签页 -->
+                    <div class="tab-pane fade show active instance-data-pane" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
                         {% set active_accounts = account_summary.active or 0 %}
                         {% set deleted_accounts = account_summary.deleted or 0 %}
                         {% set superuser_accounts = account_summary.superuser or 0 %}

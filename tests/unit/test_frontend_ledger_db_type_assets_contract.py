@@ -16,7 +16,9 @@ def test_accounts_ledgers_renderer_uses_compact_icon_only_type_column() -> None:
     required_fragments = (
         'const TYPE_COLUMN_WIDTH = "64px";',
         'const STATUS_COLUMN_WIDTH = "64px";',
-        'name: "是否超级",',
+        'name: "是否可用",',
+        'name: "是否删除",',
+        'name: "是否超管",',
         'name: "类型",',
         'const rawDbTypeMap = safeParseJSON(pageRoot.dataset.dbTypeMap || "{}", {});',
         "const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));",
@@ -33,6 +35,8 @@ def test_accounts_ledgers_renderer_uses_compact_icon_only_type_column() -> None:
         assert fragment in content
 
     assert 'name: "数据库类型"' not in content
+    assert 'name: "可用性"' not in content
+    assert 'name: "是否超级"' not in content
     assert 'name: "是否超极"' not in content
 
 
@@ -70,7 +74,7 @@ def test_accounts_ledgers_renderer_uses_compact_icon_only_status_indicators() ->
         'title: "已删除"',
         'function renderSuperuserIndicator(isSuperuser) {',
         'icon: "fa-user-shield"',
-        'title: "超级用户"',
+        'title: "超管用户"',
         'title: "普通用户"',
         'return renderCompactIndicator({',
     )
