@@ -7,7 +7,7 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.models.jumpserver_source_binding import JumpServerSourceBinding
 from app.repositories.credentials_repository import CredentialsRepository
 from app.repositories.jumpserver_repository import JumpServerRepository
-from app.services.jumpserver.provider import DeferredJumpServerProvider, JumpServerProvider
+from app.services.jumpserver.provider import HttpJumpServerProvider, JumpServerProvider
 
 
 class JumpServerSourceService:
@@ -22,7 +22,7 @@ class JumpServerSourceService:
     ) -> None:
         self._credentials_repository = credentials_repository or CredentialsRepository()
         self._jumpserver_repository = jumpserver_repository or JumpServerRepository()
-        self._provider = provider or DeferredJumpServerProvider()
+        self._provider = provider or HttpJumpServerProvider()
 
     def build_view_payload(self) -> dict[str, object]:
         """构建页面加载载荷."""
@@ -79,7 +79,7 @@ class JumpServerSourceService:
     @staticmethod
     def _serialize_credential(credential: object) -> dict[str, object]:
         return {
-            "id": int(getattr(credential, "id")),
+            "id": int(credential.id),
             "name": str(getattr(credential, "name", "") or ""),
             "description": str(getattr(credential, "description", "") or ""),
         }

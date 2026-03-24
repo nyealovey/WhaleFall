@@ -133,12 +133,6 @@
                             <li><a class="dropdown-item" href="{{ url_for('accounts_classifications.index') }}">
                                     <i class="fas fa-tags me-2"></i>账户分类管理
                                 </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('alerts.email_settings') }}">
-                                    <i class="fas fa-envelope-open-text me-2"></i>邮件告警配置
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('jumpserver_source.source_settings') }}">
-                                    <i class="fas fa-anchor me-2"></i>JumpServer 数据源
-                                </a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -171,6 +165,11 @@
                             <li><a class="dropdown-item" href="{{ url_for('scheduler.index') }}">
                                     <i class="fas fa-clock me-2"></i>定时任务
                                 </a></li>
+                            {% if current_user.role == 'admin' %}
+                            <li><a class="dropdown-item" href="{{ url_for('system_settings.index') }}">
+                                    <i class="fas fa-sliders me-2"></i>系统设置
+                                </a></li>
+                            {% endif %}
                             <li>
                                 <hr class="dropdown-divider">
                             </li>

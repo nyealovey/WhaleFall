@@ -1,10 +1,20 @@
+from datetime import date
+
 import pytest
+
+from app.services.task_runs.task_run_summary_builders import (
+    build_auto_classify_accounts_summary,
+    build_calculate_account_classification_summary,
+    build_calculate_database_aggregations_summary,
+    build_capacity_aggregate_current_summary,
+    build_sync_accounts_summary,
+    build_sync_databases_summary,
+    build_sync_jumpserver_assets_summary,
+)
 
 
 @pytest.mark.unit
 def test_build_sync_accounts_summary_has_common_metrics_and_ext_data() -> None:
-    from app.services.task_runs.task_run_summary_builders import build_sync_accounts_summary
-
     payload = build_sync_accounts_summary(
         task_key="sync_accounts",
         inputs={"manual_run": True},
@@ -23,8 +33,6 @@ def test_build_sync_accounts_summary_has_common_metrics_and_ext_data() -> None:
 
 @pytest.mark.unit
 def test_build_sync_databases_summary_has_ext_data() -> None:
-    from app.services.task_runs.task_run_summary_builders import build_sync_databases_summary
-
     payload = build_sync_databases_summary(
         task_key="sync_databases",
         inputs={"manual_run": False},
@@ -40,8 +48,6 @@ def test_build_sync_databases_summary_has_ext_data() -> None:
 
 @pytest.mark.unit
 def test_build_calculate_database_aggregations_summary_has_periods() -> None:
-    from app.services.task_runs.task_run_summary_builders import build_calculate_database_aggregations_summary
-
     payload = build_calculate_database_aggregations_summary(
         task_key="calculate_database_aggregations",
         inputs={"requested_periods": ["daily"]},
@@ -59,10 +65,6 @@ def test_build_calculate_database_aggregations_summary_has_periods() -> None:
 
 @pytest.mark.unit
 def test_build_calculate_account_classification_summary_has_scope_time() -> None:
-    from datetime import date
-
-    from app.services.task_runs.task_run_summary_builders import build_calculate_account_classification_summary
-
     payload = build_calculate_account_classification_summary(
         task_key="calculate_account_classification",
         inputs={},
@@ -80,8 +82,6 @@ def test_build_calculate_account_classification_summary_has_scope_time() -> None
 
 @pytest.mark.unit
 def test_build_auto_classify_accounts_summary_has_ext_data() -> None:
-    from app.services.task_runs.task_run_summary_builders import build_auto_classify_accounts_summary
-
     payload = build_auto_classify_accounts_summary(
         task_key="auto_classify_accounts",
         inputs={"instance_id": 1},
@@ -98,10 +98,6 @@ def test_build_auto_classify_accounts_summary_has_ext_data() -> None:
 
 @pytest.mark.unit
 def test_build_capacity_aggregate_current_summary_has_ext_data() -> None:
-    from datetime import date
-
-    from app.services.task_runs.task_run_summary_builders import build_capacity_aggregate_current_summary
-
     payload = build_capacity_aggregate_current_summary(
         task_key="capacity_aggregate_current",
         inputs={"scope": "all"},
@@ -115,3 +111,23 @@ def test_build_capacity_aggregate_current_summary_has_ext_data() -> None:
     )
     assert payload["ext"]["type"] == "capacity_aggregate_current"
     assert payload["ext"]["data"]["scope"] == "all"
+
+
+@pytest.mark.unit
+def test_build_sync_jumpserver_assets_summary_has_asset_counts() -> None:
+    payload = build_sync_jumpserver_assets_summary(
+        task_key="sync_jumpserver_assets",
+        inputs={"manual_run": True},
+        received_total=5,
+        supported_total=3,
+        snapshots_written_total=3,
+        skipped_unsupported=1,
+        skipped_invalid=1,
+        skipped=False,
+        skip_reason=None,
+        error_message=None,
+    )
+
+    assert payload["ext"]["type"] == "sync_jumpserver_assets"
+    assert payload["ext"]["data"]["assets"]["received_total"] == 5
+    assert payload["ext"]["data"]["assets"]["snapshots_written_total"] == 3

@@ -10,8 +10,8 @@ def _read_text(relative_path: str) -> str:
     return (ROOT_DIR / relative_path).read_text(encoding="utf-8")
 
 
-def test_jumpserver_source_template_and_nav_contract() -> None:
-    template = _read_text("app/templates/integrations/jumpserver/source.html")
+def test_jumpserver_source_template_and_system_settings_nav_contract() -> None:
+    section_partial = _read_text("app/templates/admin/system-settings/_jumpserver-source-section.html")
     base_template = _read_text("app/templates/base.html")
 
     template_fragments = (
@@ -24,10 +24,11 @@ def test_jumpserver_source_template_and_nav_contract() -> None:
         'id="syncJumpserverAssetsBtn"',
     )
     for fragment in template_fragments:
-        assert fragment in template
+        assert fragment in section_partial
 
-    assert "JumpServer 数据源" in base_template
-    assert "url_for('jumpserver_source.source_settings')" in base_template
+    assert "系统设置" in base_template
+    assert "url_for('system_settings.index')" in base_template
+    assert "url_for('jumpserver_source.source_settings')" not in base_template
 
 
 def test_jumpserver_source_js_and_instances_list_define_managed_behaviors() -> None:

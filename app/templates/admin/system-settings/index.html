@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% set page_id = 'SystemSettingsPage' %}
+
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block title %}系统设置 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/email-alert-settings.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/integrations/jumpserver-source.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/system-settings.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+{{ page_header('fas fa-sliders', '系统设置', '将管理中心中的系统级配置统一收敛，支持页内快速跳转，并为后续新增设置预留统一入口。', eyebrow='Control Plane') }}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div id="system-settings-page" class="system-settings-page">
+                <aside class="system-settings-page__sidebar">
+                    <div class="system-settings-page__sidebar-card" data-system-settings-nav="true">
+                        <div class="system-settings-page__sidebar-head">
+                            <span class="system-settings-page__sidebar-eyebrow">设置目录</span>
+                            <strong>快速跳转</strong>
+                            <p>点击左侧项直达对应配置区，滚动页面时会自动同步当前所在设置。</p>
+                        </div>
+
+                        <nav class="system-settings-page__nav" aria-label="系统设置页内导航">
+                            <a
+                                class="system-settings-page__nav-link is-active"
+                                href="#system-settings-email-alerts"
+                                data-system-settings-nav-link="system-settings-email-alerts"
+                            >
+                                <span class="system-settings-page__nav-icon">
+                                    <i class="fas fa-envelope-open-text" aria-hidden="true"></i>
+                                </span>
+                                <span class="system-settings-page__nav-text">
+                                    <strong>邮件设置</strong>
+                                    <small>维护收件人、告警开关和汇总规则</small>
+                                </span>
+                            </a>
+                            <a
+                                class="system-settings-page__nav-link"
+                                href="#system-settings-jumpserver"
+                                data-system-settings-nav-link="system-settings-jumpserver"
+                            >
+                                <span class="system-settings-page__nav-icon">
+                                    <i class="fas fa-anchor" aria-hidden="true"></i>
+                                </span>
+                                <span class="system-settings-page__nav-text">
+                                    <strong>JumpServer 数据源设置</strong>
+                                    <small>维护绑定凭据、URL 与同步入口</small>
+                                </span>
+                            </a>
+                        </nav>
+
+                        <div class="system-settings-page__sidebar-foot">
+                            <i class="fas fa-plus-circle" aria-hidden="true"></i>
+                            <span>后续新增系统级设置时，可继续按同样方式收敛到这里。</span>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="system-settings-page__content">
+                    <section
+                        id="system-settings-email-alerts"
+                        class="system-settings-page__section"
+                        data-system-settings-section
+                    >
+                        <header class="system-settings-page__section-header">
+                            <span class="system-settings-page__section-eyebrow">Alert Delivery</span>
+                            <h2>邮件设置</h2>
+                            <p>集中维护邮件告警投递策略和每日汇总规则，减少在多个页面之间来回切换。</p>
+                        </header>
+                        <div class="system-settings-page__section-body">
+                            {% include 'admin/system-settings/_email-alert-settings-section.html' %}
+                        </div>
+                    </section>
+
+                    <section
+                        id="system-settings-jumpserver"
+                        class="system-settings-page__section"
+                        data-system-settings-section
+                    >
+                        <header class="system-settings-page__section-header">
+                            <span class="system-settings-page__section-eyebrow">Managed Assets</span>
+                            <h2>JumpServer 数据源设置</h2>
+                            <p>统一维护外部托管资产来源，便于与其他系统级配置一起查看和调整。</p>
+                        </header>
+                        <div class="system-settings-page__section-body">
+                            {% include 'admin/system-settings/_jumpserver-source-section.html' %}
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/email_alert_settings_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/jumpserver_source_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/admin/alerts/email-settings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/integrations/jumpserver/source.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/admin/system-settings/index.js') }}"></script>
+{% endblock %}
