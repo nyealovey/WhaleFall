@@ -46,6 +46,7 @@ def test_api_v1_jumpserver_source_contract() -> None:
         assert isinstance(data, dict)
         assert "binding" in data
         assert "api_credentials" in data
+        assert data.get("provider_ready") is True
         api_credentials = data.get("api_credentials")
         assert isinstance(api_credentials, list)
         assert api_credentials[0]["name"] == "jumpserver-ak"
