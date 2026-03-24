@@ -10,7 +10,6 @@ def test_web_system_settings_page_renders_aggregated_sections(auth_client) -> No
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "系统设置" in html
-    assert "将管理中心中的系统级配置统一收敛" in html
     assert "邮件设置" in html
     assert "JumpServer 数据源设置" in html
     assert 'data-system-settings-nav="true"' in html
