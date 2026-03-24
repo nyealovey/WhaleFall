@@ -10,7 +10,6 @@
             <div class="card-header jumpserver-source-card__header">
                 <div>
                     <h2 class="jumpserver-source-card__title">绑定配置</h2>
-                    <p class="jumpserver-source-card__description">直接选择凭据管理中已维护好的 API 凭据，复用其中的 URL、Access Key ID 与 Access Key Secret。</p>
                 </div>
             </div>
             <div class="card-body jumpserver-source-card__body">
@@ -19,13 +18,11 @@
                     <select id="jumpserverCredentialId" class="form-select">
                         <option value="">请选择 API 凭据</option>
                     </select>
-                    <div class="form-text">仅展示已启用的 API 凭据，复用其中保存的 Access Key ID 与 Access Key Secret。</div>
                 </div>
 
                 <div class="jumpserver-source-field">
                     <label for="jumpserverBaseUrl" class="form-label">JumpServer URL</label>
                     <input id="jumpserverBaseUrl" class="form-control" type="url" placeholder="请输入 JumpServer URL">
-                    <div class="form-text">请填写完整的 http/https 地址，例如 `https://demo.jumpserver.org`。</div>
                 </div>
 
                 <div class="jumpserver-source-actions">
@@ -46,7 +43,6 @@
             <div class="card-header jumpserver-source-card__header">
                 <div>
                     <h2 class="jumpserver-source-card__title">运行状态</h2>
-                    <p class="jumpserver-source-card__description">展示当前绑定、Provider 接入状态与最近一次同步结果。</p>
                 </div>
             </div>
             <div class="card-body jumpserver-source-card__body jumpserver-source-card__body--summary">
