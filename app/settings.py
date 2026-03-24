@@ -78,6 +78,9 @@ DEFAULT_PROXY_FIX_TRUSTED_IPS = ("127.0.0.1", "::1")
 
 DEFAULT_API_V1_DOCS_ENABLED = True
 DEFAULT_ENABLE_SCHEDULER = True
+DEFAULT_JUMPSERVER_ORG_ID = "00000000-0000-0000-0000-000000000002"
+DEFAULT_JUMPSERVER_REQUEST_TIMEOUT_SECONDS = 15
+DEFAULT_JUMPSERVER_VERIFY_SSL = True
 
 _BUILD_HASH_PATTERN = re.compile(r"^[0-9a-fA-F]{7,64}$")
 
@@ -251,6 +254,15 @@ class Settings(BaseSettings):
     server_software: str = Field(default="", validation_alias="SERVER_SOFTWARE")
     flask_run_from_cli: bool = Field(default=False, validation_alias="FLASK_RUN_FROM_CLI")
     werkzeug_run_main: bool = Field(default=False, validation_alias="WERKZEUG_RUN_MAIN")
+    jumpserver_org_id: str = Field(default=DEFAULT_JUMPSERVER_ORG_ID, validation_alias="JUMPSERVER_ORG_ID")
+    jumpserver_request_timeout_seconds: int = Field(
+        default=DEFAULT_JUMPSERVER_REQUEST_TIMEOUT_SECONDS,
+        validation_alias="JUMPSERVER_REQUEST_TIMEOUT_SECONDS",
+    )
+    jumpserver_verify_ssl: bool = Field(
+        default=DEFAULT_JUMPSERVER_VERIFY_SSL,
+        validation_alias="JUMPSERVER_VERIFY_SSL",
+    )
 
     aggregation_enabled: bool = Field(default=DEFAULT_AGGREGATION_ENABLED, validation_alias="AGGREGATION_ENABLED")
     aggregation_hour: int = Field(default=DEFAULT_AGGREGATION_HOUR, validation_alias="AGGREGATION_HOUR")
@@ -401,6 +413,9 @@ class Settings(BaseSettings):
             "LOGIN_RATE_WINDOW": self.login_rate_window_seconds,
             "CORS_ORIGINS": ",".join(self.cors_origins),
             "API_V1_DOCS_ENABLED": self.api_v1_docs_enabled,
+            "JUMPSERVER_ORG_ID": self.jumpserver_org_id,
+            "JUMPSERVER_REQUEST_TIMEOUT_SECONDS": self.jumpserver_request_timeout_seconds,
+            "JUMPSERVER_VERIFY_SSL": self.jumpserver_verify_ssl,
             "AGGREGATION_ENABLED": self.aggregation_enabled,
             "AGGREGATION_HOUR": self.aggregation_hour,
             "COLLECT_DB_SIZE_ENABLED": self.collect_db_size_enabled,
@@ -580,6 +595,7 @@ class Settings(BaseSettings):
             ("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)", self.db_size_collection_timeout_seconds <= 0),
             ("MAIL_SMTP_PORT 必须为正整数", self.mail_smtp_port <= 0),
             ("MAIL_TIMEOUT_SECONDS 必须为正整数(秒)", self.mail_timeout_seconds <= 0),
+            ("JUMPSERVER_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.jumpserver_request_timeout_seconds <= 0),
         ]
         for message, condition in checks:
             if condition:
