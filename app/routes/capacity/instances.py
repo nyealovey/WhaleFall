@@ -15,6 +15,24 @@ capacity_instances_bp = Blueprint("capacity_instances", __name__)
 _filter_options_service = FilterOptionsService()
 
 
+def _build_capacity_instance_options(raw_options: list[dict[str, str]]) -> list[dict[str, str]]:
+    normalized: list[dict[str, str]] = []
+    for item in raw_options:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "") or item.get("label", "") or "").strip()
+        normalized.append(
+            {
+                "value": str(item.get("value", "") or ""),
+                "label": name,
+                "name": name,
+                "db_type": str(item.get("db_type", "") or ""),
+                "asset_url": str(item.get("asset_url", "") or ""),
+            },
+        )
+    return normalized
+
+
 @capacity_instances_bp.route("/instances", methods=["GET"])
 @login_required
 @view_required
@@ -31,7 +49,9 @@ def list_instances() -> str:
         database_type_options = [{"value": item["name"], "label": item["display_name"]} for item in DATABASE_TYPES]
 
         instance_options = (
-            _filter_options_service.list_instance_select_options(selected_db_types) if selected_db_types else []
+            _build_capacity_instance_options(_filter_options_service.list_instance_select_options(selected_db_types))
+            if selected_db_types
+            else []
         )
 
         return render_template(

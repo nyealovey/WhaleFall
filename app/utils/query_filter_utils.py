@@ -48,11 +48,14 @@ def build_instance_select_options(instances: Iterable[Any]) -> list[dict[str, st
         instance_id = getattr(instance, "id", None)
         name = getattr(instance, "name", "") or ""
         db_type = getattr(instance, "db_type", "") or ""
+        asset_url = f"/static/img/db-types/{db_type}.png" if db_type else ""
         options.append(
             {
                 "value": str(instance_id or ""),
                 "label": f"{name} ({db_type})",
+                "name": name,
                 "db_type": db_type,
+                "asset_url": asset_url,
             },
         )
     return options

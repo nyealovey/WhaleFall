@@ -1,0 +1,93 @@
+<input type="hidden" id="veeam-source-csrf-token" value="{{ csrf_token() }}">
+<div
+    id="veeam-source-page"
+    class="veeam-source-page"
+    data-api-url="/api/v1/integrations/veeam/source"
+    data-sync-api-url="/api/v1/integrations/veeam/actions/sync"
+>
+    <div class="jumpserver-source-layout">
+        <section class="card jumpserver-source-card">
+            <div class="card-header jumpserver-source-card__header">
+                <div>
+                    <h2 class="jumpserver-source-card__title">绑定配置</h2>
+                </div>
+            </div>
+            <div class="card-body jumpserver-source-card__body">
+                <div class="jumpserver-source-field">
+                    <label for="veeamCredentialId" class="form-label">Veeam 凭据</label>
+                    <select id="veeamCredentialId" class="form-select">
+                        <option value="">请选择 Veeam 凭据</option>
+                    </select>
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="veeamServerHost" class="form-label">Veeam IP</label>
+                    <input id="veeamServerHost" class="form-control" type="text" placeholder="请输入 Veeam 服务器 IP 或主机名">
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="veeamServerPort" class="form-label">端口</label>
+                    <input id="veeamServerPort" class="form-control" type="number" min="1" max="65535" placeholder="请输入端口">
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="veeamApiVersion" class="form-label">API 版本</label>
+                    <input id="veeamApiVersion" class="form-control" type="text" placeholder="请输入 Veeam API 版本">
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <div class="form-check form-switch">
+                        <input id="veeamVerifySsl" class="form-check-input" type="checkbox" checked>
+                        <label for="veeamVerifySsl" class="form-check-label">SSL 证书验证</label>
+                    </div>
+                    <div class="form-text">关闭后将跳过 Veeam HTTPS 证书校验，适用于自签名证书环境。</div>
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="veeamMatchDomains" class="form-label">域名列表</label>
+                    <textarea
+                        id="veeamMatchDomains"
+                        class="form-control"
+                        rows="5"
+                        placeholder="每行一个域名，例如&#10;domain.com&#10;corp.local"
+                    ></textarea>
+                    <div class="form-text">匹配时会为实例名称额外拼装 `instance.name.domain` 形式的候选机器名。</div>
+                </div>
+
+                <div class="jumpserver-source-actions">
+                    <button id="saveVeeamSourceBtn" class="btn btn-primary" type="button">
+                        <i class="fas fa-link me-2"></i>保存绑定
+                    </button>
+                    <button id="unbindVeeamSourceBtn" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-link-slash me-2"></i>解绑数据源
+                    </button>
+                    <button id="syncVeeamBackupsBtn" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-rotate me-2"></i>同步 Veeam 备份
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="card jumpserver-source-card jumpserver-source-card--summary">
+            <div class="card-header jumpserver-source-card__header">
+                <div>
+                    <h2 class="jumpserver-source-card__title">运行状态</h2>
+                </div>
+            </div>
+            <div class="card-body jumpserver-source-card__body jumpserver-source-card__body--summary">
+                <div class="jumpserver-summary-item">
+                    <span class="jumpserver-summary-item__label">Provider</span>
+                    <strong id="veeamProviderStatus">Provider 已接入</strong>
+                </div>
+                <div class="jumpserver-summary-item">
+                    <span class="jumpserver-summary-item__label">当前绑定</span>
+                    <strong id="veeamBindingSummary">当前未绑定 Veeam 凭据</strong>
+                </div>
+                <div class="jumpserver-summary-item">
+                    <span class="jumpserver-summary-item__label">最近同步</span>
+                    <strong id="veeamSyncStatusSummary">未执行同步</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>

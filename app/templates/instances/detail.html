@@ -202,6 +202,11 @@
                             <i class="fas fa-shield-halved me-2"></i>审计信息
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup-pane" type="button" role="tab" aria-controls="backup-pane" aria-selected="false">
+                            <i class="fas fa-hard-drive me-2"></i>备份信息
+                        </button>
+                    </li>
                 </ul>
             </div>
             <div class="card-body instance-data-panel">
@@ -426,6 +431,23 @@
                                     </div>
                                 </section>
                                 {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade instance-data-pane" id="backup-pane" role="tabpanel" aria-labelledby="backup-tab">
+                        <div class="instance-data-pane__stack">
+                            <div id="backupInfoContent">
+                                <section class="instance-audit-placeholder">
+                                    <div class="instance-audit-placeholder__icon">
+                                        <i class="fas fa-hard-drive"></i>
+                                    </div>
+                                    <div class="instance-audit-placeholder__content">
+                                        <span class="chip-outline chip-outline--brand">{{ instance.name }}</span>
+                                        <h3 class="instance-audit-placeholder__title">尚未加载备份信息</h3>
+                                        <p class="instance-audit-placeholder__text">切换到该标签后，将展示最近备份时间、命中的机器名与基础备份摘要。</p>
+                                    </div>
+                                </section>
                             </div>
                         </div>
                     </div>

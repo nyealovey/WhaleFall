@@ -330,6 +330,57 @@ def test_api_v1_credentials_create_api_contract_without_platform_url() -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_credentials_create_veeam_contract_without_db_type() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["credentials"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        csrf_response = client.get("/api/v1/auth/csrf-token")
+        assert csrf_response.status_code == 200
+        csrf_payload = csrf_response.get_json()
+        assert isinstance(csrf_payload, dict)
+        csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+        assert isinstance(csrf_token, str)
+
+        response = client.post(
+            "/api/v1/credentials",
+            json={
+                "name": "veeam-admin",
+                "credential_type": "veeam",
+                "username": "backup-admin",
+                "password": "VeeamPass123",
+                "description": "Veeam Backup Admin",
+                "is_active": True,
+            },
+            headers={"X-CSRFToken": csrf_token},
+        )
+        assert response.status_code == 201
+
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        credential_data = payload.get("data", {}).get("credential")
+        assert isinstance(credential_data, dict)
+        assert credential_data.get("credential_type") == "veeam"
+        assert credential_data.get("db_type") is None
+
+
+@pytest.mark.unit
 def test_api_v1_credentials_delete_contract() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

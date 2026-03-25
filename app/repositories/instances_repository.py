@@ -30,6 +30,7 @@ from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
 from app.repositories.jumpserver_repository import JumpServerRepository
+from app.repositories.veeam_repository import VeeamRepository
 
 
 class InstancesRepository:
@@ -344,6 +345,7 @@ class InstancesRepository:
                 tags_map={},
                 audit_facts_map={},
                 jumpserver_managed_ids=set(),
+                backup_summary_map={},
             )
 
         db_instance_id_column = cast(ColumnElement[int], InstanceDatabase.instance_id)
@@ -427,6 +429,9 @@ class InstancesRepository:
             tags_map=tags_map,
             audit_facts_map=audit_facts_map,
             jumpserver_managed_ids=JumpServerRepository.fetch_managed_instance_ids(
+                InstancesRepository.list_instances_by_ids(instance_ids),
+            ),
+            backup_summary_map=VeeamRepository.fetch_backup_summary_map(
                 InstancesRepository.list_instances_by_ids(instance_ids),
             ),
         )

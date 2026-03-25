@@ -71,6 +71,16 @@ class CredentialsRepository:
             .all()
         )
 
+    @staticmethod
+    def list_active_veeam_credentials() -> list[Credential]:
+        """获取启用中的 Veeam 凭据."""
+        return (
+            Credential.query.filter(Credential.is_active.is_(True))
+            .filter(Credential.credential_type == "veeam")
+            .order_by(Credential.created_at.desc())
+            .all()
+        )
+
     def list_credentials(self, filters: CredentialListFilters) -> PaginatedResult[CredentialListRowProjection]:
         """分页查询凭据列表."""
         instance_count_expr = db.func.count(Instance.id)

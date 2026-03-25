@@ -39,6 +39,7 @@ function mountInstancesListPage() {
     const STATUS_COLUMN_WIDTH = '64px';
     const AUDIT_COLUMN_WIDTH = '64px';
     const MANAGED_COLUMN_WIDTH = '72px';
+    const BACKUP_COLUMN_WIDTH = '72px';
     const ACTIVE_COLUMN_WIDTH = '110px';
     const ACTION_COLUMN_WIDTH = '120px';
     const INSTANCE_DB_TYPE_VISUALS = new Map([
@@ -473,6 +474,12 @@ function mountInstancesListPage() {
                 formatter: (cell, row) => renderJumpServerManagedBadge(resolveRowMeta(row)),
             },
             {
+                id: 'backup',
+                name: '备份',
+                width: BACKUP_COLUMN_WIDTH,
+                formatter: (cell, row) => renderBackupBadge(resolveRowMeta(row)),
+            },
+            {
                 id: 'active_counts',
                 name: '活跃',
                 width: ACTIVE_COLUMN_WIDTH,
@@ -559,6 +566,7 @@ function mountInstancesListPage() {
                 item.is_active,
                 item.audit_status || 'not_configured',
                 item.is_jumpserver_managed,
+                item.backup_status || 'not_backed_up',
                 null,
                 item.main_version || '',
                 item.tags || [],
@@ -691,6 +699,32 @@ function mountInstancesListPage() {
             tone: 'muted',
             title: '未托管',
             ariaLabel: '未托管',
+        });
+    }
+
+    function renderBackupBadge(meta) {
+        const backupStatus = typeof meta?.backup_status === 'string' ? meta.backup_status.trim().toLowerCase() : '';
+        if (backupStatus === 'backed_up') {
+            return renderCompactIndicator({
+                icon: 'fa-check-circle',
+                tone: 'success',
+                title: '已备份（24小时内有备份）',
+                ariaLabel: '备份状态 已备份（24小时内有备份）',
+            });
+        }
+        if (backupStatus === 'backup_stale') {
+            return renderCompactIndicator({
+                icon: 'fa-triangle-exclamation',
+                tone: 'warning',
+                title: '备份异常（最近备份超过24小时）',
+                ariaLabel: '备份状态 备份异常（最近备份超过24小时）',
+            });
+        }
+        return renderCompactIndicator({
+            icon: 'fa-circle-minus',
+            tone: 'muted',
+            title: '未备份',
+            ariaLabel: '备份状态 未备份',
         });
     }
 

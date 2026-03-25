@@ -101,6 +101,7 @@ class FilterOptionsService:
                     name=cast(str, item.get("name", "")),
                     db_type=cast(str, item.get("db_type", "")),
                     display_name=cast(str, item.get("display_name", "")),
+                    asset_url=cast(str, item.get("asset_url", "")),
                 )
                 for item in cached
                 if isinstance(item, dict)
@@ -114,6 +115,7 @@ class FilterOptionsService:
                 name=instance.name,
                 db_type=instance.db_type,
                 display_name=f"{instance.name} ({instance.db_type.upper()})",
+                asset_url=f"/static/img/db-types/{instance.db_type}.png",
             )
             for instance in instances
         ]
@@ -125,6 +127,7 @@ class FilterOptionsService:
                     "name": item.name,
                     "db_type": item.db_type,
                     "display_name": item.display_name,
+                    "asset_url": item.asset_url,
                 }
                 for item in items
             ],

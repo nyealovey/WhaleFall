@@ -10,6 +10,7 @@ from __future__ import annotations
 from app.core.types.instances import InstanceListFilters, InstanceListItem
 from app.core.types.listing import PaginatedResult
 from app.repositories.instances_repository import InstancesRepository
+from app.services.veeam.instance_backup_read_service import resolve_backup_status
 
 
 def _resolve_audit_status(audit_facts: dict[str, object] | None) -> str:
@@ -46,6 +47,8 @@ class InstanceListService:
             last_sync = metrics.last_sync_times.get(instance.id)
             status_value = "deleted" if instance.deleted_at else ("active" if instance.is_active else "inactive")
             audit_status = _resolve_audit_status(metrics.audit_facts_map.get(instance.id))
+            backup_summary = metrics.backup_summary_map.get(instance.id, {})
+            backup_last_time = backup_summary.get("latest_backup_at") if isinstance(backup_summary, dict) else None
             items.append(
                 InstanceListItem(
                     id=instance.id,
@@ -64,6 +67,10 @@ class InstanceListService:
                     last_sync_time=last_sync.isoformat() if last_sync else None,
                     tags=metrics.tags_map.get(instance.id, []),
                     is_jumpserver_managed=instance.id in metrics.jumpserver_managed_ids,
+                    backup_status=resolve_backup_status(
+                        latest_backup_at=backup_last_time if isinstance(backup_last_time, str) else None
+                    ),
+                    backup_last_time=backup_last_time if isinstance(backup_last_time, str) else None,
                 ),
             )
 

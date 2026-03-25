@@ -20,6 +20,8 @@ INSTANCE_LIST_ITEM_FIELDS = {
     "deleted_at": fields.String(description="删除时间(ISO8601, 可选)", example=None),
     "status": fields.String(description="状态", example="ok"),
     "audit_status": fields.String(description="审计状态", example="enabled"),
+    "backup_status": fields.String(description="备份状态", example="backed_up"),
+    "backup_last_time": fields.String(description="最近备份时间(ISO8601, 可选)", example="2025-01-02T00:00:00"),
     "main_version": fields.String(description="主版本", example="8.0"),
     "active_db_count": fields.Integer(description="活跃数据库数", example=12),
     "active_account_count": fields.Integer(description="活跃账号数", example=42),
@@ -37,13 +39,14 @@ INSTANCE_OPTION_ITEM_FIELDS = {
     "name": fields.String(description="实例名称", example="prod-mysql-1"),
     "db_type": fields.String(description="数据库类型", example="mysql"),
     "display_name": fields.String(description="展示名", example="生产 MySQL 1"),
+    "asset_url": fields.String(description="数据库类型图标资源", example="/static/img/db-types/mysql.png"),
 }
 
 INSTANCES_OPTIONS_RESPONSE_FIELDS = {
     "instances": fields.List(
         fields.Nested(INSTANCE_OPTION_ITEM_FIELDS),
         description="实例选项列表",
-        example=[{"id": 1, "name": "prod-mysql-1", "db_type": "mysql", "display_name": "生产 MySQL 1"}],
+        example=[{"id": 1, "name": "prod-mysql-1", "db_type": "mysql", "display_name": "生产 MySQL 1", "asset_url": "/static/img/db-types/mysql.png"}],
     ),
 }
 

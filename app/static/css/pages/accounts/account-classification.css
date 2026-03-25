@@ -132,30 +132,6 @@
     justify-content: center;
 }
 
-.classification-card__note {
-    margin: 0.7rem 0 0;
-    color: var(--text-muted);
-    font-size: 0.88rem;
-    line-height: 1.55;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.classification-card__meta {
-    margin-top: 0.9rem;
-    padding-top: 0.85rem;
-    border-top: 1px solid rgba(22, 29, 38, 0.06);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-}
-
-.classification-card__meta .ledger-chip {
-    background-color: rgba(255, 255, 255, 0.78);
-}
-
 .rule-group-card {
     border: 1px solid rgba(22, 29, 38, 0.08);
     border-radius: var(--border-radius-md);

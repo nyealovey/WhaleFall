@@ -20,10 +20,13 @@ def test_system_settings_template_base_nav_and_assets_contract() -> None:
         'data-system-settings-nav="true"',
         'data-system-settings-nav-link="system-settings-email-alerts"',
         'data-system-settings-nav-link="system-settings-jumpserver"',
+        'data-system-settings-nav-link="system-settings-veeam"',
         'href="#system-settings-email-alerts"',
         'href="#system-settings-jumpserver"',
+        'href="#system-settings-veeam"',
         'id="system-settings-email-alerts"',
         'id="system-settings-jumpserver"',
+        'id="system-settings-veeam"',
     )
     for fragment in template_fragments:
         assert fragment in template

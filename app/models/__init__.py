@@ -43,6 +43,8 @@ __all__ = [
     "SyncInstanceRecord",
     "SyncSession",
     "User",
+    "VeeamMachineBackupSnapshot",
+    "VeeamSourceBinding",
 ]
 
 _MODEL_MODULE_MAP: dict[str, str] = {
@@ -69,6 +71,8 @@ _MODEL_MODULE_MAP: dict[str, str] = {
     "SyncInstanceRecord": "app.models.sync_instance_record",
     "SyncSession": "app.models.sync_session",
     "User": "app.models.user",
+    "VeeamMachineBackupSnapshot": "app.models.veeam_machine_backup_snapshot",
+    "VeeamSourceBinding": "app.models.veeam_source_binding",
 }
 
 if TYPE_CHECKING:
@@ -99,6 +103,8 @@ if TYPE_CHECKING:
     from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.sync_session import SyncSession
     from app.models.user import User
+    from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
+    from app.models.veeam_source_binding import VeeamSourceBinding
 
 
 def __getattr__(name: str) -> object:

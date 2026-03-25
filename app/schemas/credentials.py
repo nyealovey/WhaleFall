@@ -19,7 +19,7 @@ from app.schemas.base import PayloadSchema
 from app.utils.database_type_utils import normalize_database_type
 from app.utils.payload_converters import as_bool
 
-_ALLOWED_CREDENTIAL_TYPES: set[str] = {"database", "ssh", "windows", "api", "ldap"}
+_ALLOWED_CREDENTIAL_TYPES: set[str] = {"database", "ssh", "windows", "api", "ldap", "veeam"}
 
 
 def _ensure_mapping(data: Any) -> Mapping[str, Any]:

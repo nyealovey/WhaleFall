@@ -303,13 +303,6 @@ function mountAccountClassificationPage(window, document) {
 
     function renderClassificationCard(classification) {
         const iconHtml = getClassificationIcon(classification.icon_name);
-        const priority = typeof classification.priority === 'number' ? classification.priority : '—';
-        const rulesCount = typeof classification.rules_count === 'number' ? classification.rules_count : 0;
-        const description = typeof classification?.description === 'string' ? classification.description.trim() : '';
-        const chips = [
-            renderLedgerChip(`优先级 ${priority}`, 'muted'),
-            renderLedgerChip(`规则 ${rulesCount}`, 'muted'),
-        ];
         const code = classification?.code ? `#${escapeHtml(classification.code)}` : '#-';
 
         return `
@@ -330,12 +323,6 @@ function mountAccountClassificationPage(window, document) {
                         ${renderClassificationActions(classification)}
                     </div>
                 </div>
-                ${
-                    description
-                        ? `<p class="classification-card__note" title="${escapeHtml(description)}">${escapeHtml(description)}</p>`
-                        : ''
-                }
-                <div class="classification-card__meta">${chips.join('')}</div>
             </div>
         `;
     }
