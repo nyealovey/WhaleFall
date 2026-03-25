@@ -534,41 +534,10 @@
 }
 
 .instance-overview-band__controls {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.9rem;
-    align-items: center;
     padding: 0.85rem 1rem;
     border-radius: var(--border-radius-lg);
     border: 1px solid rgba(22, 29, 38, 0.06);
     background: rgba(255, 255, 255, 0.72);
-}
-
-.instance-overview-band__toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.8rem;
-    min-width: 0;
-}
-
-.instance-overview-band__toggle .form-check-label {
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.instance-overview-band__search {
-    flex: 1 1 20rem;
-    min-width: 14rem;
-    max-width: 28rem;
-}
-
-.instance-overview-band__realtime {
-    justify-self: end;
-}
-
-.instance-overview-band__realtime .chip-outline {
-    white-space: nowrap;
 }
 
 .instance-quick-actions .btn {
@@ -783,14 +752,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .instance-overview-band__controls {
-        grid-template-columns: 1fr;
-    }
-
-    .instance-overview-band__realtime {
-        justify-self: start;
-    }
-
     .instance-audit-placeholder {
         grid-template-columns: 1fr;
     }
@@ -838,17 +799,6 @@
 
     .instance-overview-band__facts {
         grid-template-columns: 1fr;
-    }
-
-    .instance-overview-band__toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .instance-overview-band__search {
-        min-width: 0;
-        max-width: none;
-        width: 100%;
     }
 
     .instance-audit-section__header {

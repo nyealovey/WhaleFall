@@ -36,13 +36,13 @@
     <section class="page-section page-section--stacked">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-                {% call filter_card(form_id='instance-filter-form', action='#', auto_register=False) %}
-                    {{ search_input(value=search, placeholder='搜索实例 / 主机') }}
-                    {{ db_type_filter(database_type_options, db_type) }}
-                    {{ status_active_filter(status_options, status) }}
-                    {{ select_filter('审计', 'audit_status', 'audit_status', audit_status_options, audit_status, '全部审计', allow_empty=False) }}
-                    {{ select_filter('托管', 'managed_status', 'managed_status', managed_status_options, managed_status, '全部托管', allow_empty=False) }}
-                    {{ tag_selector_filter(tag_options, selected_tags, field_id='instance-tag-selector', col_class='col-md-2 col-12') }}
+                {% call filter_card(form_id='instance-filter-form', action='#', auto_register=False, layout='nowrap-desktop') %}
+                    {{ search_input(value=search, placeholder='搜索实例 / 主机', width_preset='lg') }}
+                    {{ db_type_filter(database_type_options, db_type, width_preset='sm') }}
+                    {{ status_active_filter(status_options, status, width_preset='sm') }}
+                    {{ select_filter('审计', 'audit_status', 'audit_status', audit_status_options, audit_status, '全部审计', width_preset='sm', allow_empty=False) }}
+                    {{ select_filter('托管', 'managed_status', 'managed_status', managed_status_options, managed_status, '全部托管', width_preset='sm', allow_empty=False) }}
+                    {{ tag_selector_filter(tag_options, selected_tags, field_id='instance-tag-selector', width_preset='md') }}
                 {% endcall %}
             </div>
         </div>

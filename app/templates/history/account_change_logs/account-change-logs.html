@@ -64,11 +64,11 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='account-change-logs-filter-form', action=url_for('history_account_change_logs.index'), auto_register=False) %}
-                {{ search_input(placeholder='搜索账号 / 实例', value=selected_search, col_class='col-md-2 col-12') }}
-                {{ select_filter('实例', 'instance_id', 'instance_id', instance_options, selected_instance_id, '所有实例', 'col-md-2 col-12') }}
-                {{ db_type_filter(db_type_options, selected_db_type, col_class='col-md-2 col-12') }}
-                {{ select_filter('变更类型', 'change_type', 'change_type', change_type_options, selected_change_type, '全部类型', 'col-md-2 col-12') }}
-                {{ time_range_filter(time_range_options, selected_time_range, col_class='col-md-2 col-12') }}
+                {{ search_input(placeholder='搜索账号 / 实例', value=selected_search, width_preset='lg') }}
+                {{ select_filter('实例', 'instance_id', 'instance_id', instance_options, selected_instance_id, '所有实例', width_preset='md') }}
+                {{ db_type_filter(db_type_options, selected_db_type, width_preset='md') }}
+                {{ select_filter('变更类型', 'change_type', 'change_type', change_type_options, selected_change_type, '全部类型', width_preset='md') }}
+                {{ time_range_filter(time_range_options, selected_time_range, width_preset='md') }}
             {% endcall %}
         </div>
     </div>

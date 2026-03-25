@@ -1,10 +1,11 @@
-{% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='', auto_register=True, scope=None) -%}
+{% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='', auto_register=True, scope=None, layout='wrap', actions_layout='inline') -%}
     {% set fields = caller() %}
     {% include 'components/ui/filter_card.html' %}
 {%- endmacro %}
 
-{% macro search_input(label='搜索', field_id='search', field_name='search', placeholder='搜索关键词', value='', col_class='col-md-2 col-12') -%}
-<div class="{{ col_class }} filter-search-field">
+{% macro search_input(label='搜索', field_id='search', field_name='search', placeholder='搜索关键词', value='', width_preset='lg') -%}
+{% set resolved_width = width_preset or 'lg' %}
+<div class="filter-field filter-field--{{ resolved_width }} filter-field--search">
     <label for="{{ field_id }}" class="form-label">{{ label }}</label>
     <input type="text"
            class="form-control filter-search-input"
@@ -16,8 +17,9 @@
 </div>
 {%- endmacro %}
 
-{% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', col_class='col-md-2 col-12', allow_empty=True, multiple=False) -%}
+{% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', width_preset='md', allow_empty=True, multiple=False, disabled=False) -%}
 {% set option_list = options or [] %}
+{% set resolved_width = width_preset or 'md' %}
 {% set ns = namespace(has_builtin_all=False) %}
 {% for option in option_list %}
     {% set opt_value = option.get('value') %}
@@ -25,11 +27,12 @@
         {% set ns.has_builtin_all = True %}
     {% endif %}
 {% endfor %}
-<div class="{{ col_class }}">
+<div class="filter-field filter-field--{{ resolved_width }} filter-field--select">
     <label for="{{ field_id }}" class="form-label">{{ label }}</label>
     <select id="{{ field_id }}"
             name="{{ field_name }}"
             class="form-select"
+            {% if disabled %}disabled{% endif %}
             {% if multiple %}multiple{% endif %}
             {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}>
         {% if allow_empty and not ns.has_builtin_all and not multiple %}
@@ -40,12 +43,14 @@
         {% set label_text = option['label'] %}
         {% set color = option.get('color') %}
         {% set category = option.get('category') %}
+        {% set disabled_option = option.get('disabled') %}
         <option value="{{ value }}"
                 {% if multiple %}
                     {% if value in (current_value or []) %}selected{% endif %}
                 {% else %}
                     {% if value == current_value %}selected{% endif %}
                 {% endif %}
+                {% if disabled_option %}disabled{% endif %}
                 {% if color %}data-color="{{ color }}"{% endif %}
                 {% if category %}data-category="{{ category }}"{% endif %}>
             {{ label_text }}
@@ -55,9 +60,10 @@
 </div>
 {%- endmacro %}
 
-{% macro checkbox_filter(label, field_id, field_name, options, current_value=None, col_class='col-md-2 col-12', disabled=False, empty_text='暂无可选项', placeholder='请选择', wrapper_role=None) -%}
+{% macro checkbox_filter(label, field_id, field_name, options, current_value=None, width_preset='lg', disabled=False, empty_text='暂无可选项', placeholder='请选择', wrapper_role=None) -%}
 {% set selected_values = current_value or [] %}
-<div class="{{ col_class }}">
+{% set resolved_width = width_preset or 'lg' %}
+<div class="filter-field filter-field--{{ resolved_width }} filter-field--checkbox">
     <label class="form-label" for="{{ field_id }}">{{ label }}</label>
     <div id="{{ field_id }}"
          class="filter-multiselect{% if disabled %} filter-multiselect--disabled{% endif %}"
@@ -102,72 +108,72 @@
 </div>
 {%- endmacro %}
 
-{% macro db_type_filter(options, current_value='', col_class='col-md-2 col-12', multiple=False) -%}
+{% macro db_type_filter(options, current_value='', width_preset='md', multiple=False) -%}
     {% if multiple %}
-        {{ checkbox_filter('数据库类型', 'db_type', 'db_type', options, current_value, col_class=col_class, wrapper_role='db-type-filter', empty_text='暂无数据库类型', placeholder='请选择数据库类型') }}
+        {{ checkbox_filter('数据库类型', 'db_type', 'db_type', options, current_value, width_preset=width_preset, wrapper_role='db-type-filter', empty_text='暂无数据库类型', placeholder='请选择数据库类型') }}
     {% else %}
-        {{ select_filter('数据库类型', 'db_type', 'db_type', options, current_value, '全部类型', col_class, allow_empty=True, multiple=False) }}
+        {{ select_filter('数据库类型', 'db_type', 'db_type', options, current_value, '全部类型', width_preset=width_preset) }}
     {% endif %}
 {%- endmacro %}
 
-{% macro status_active_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False) }}
+{% macro status_active_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', width_preset=width_preset, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro status_sync_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ status_active_filter(options, current_value, col_class) }}
+{% macro status_sync_filter(options, current_value='', width_preset='md') -%}
+    {{ status_active_filter(options, current_value, width_preset) }}
 {%- endmacro %}
 
-{% macro credential_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('凭据类型', 'credential_type', 'credential_type', options, current_value, '全部类型', col_class) }}
+{% macro credential_type_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('凭据类型', 'credential_type', 'credential_type', options, current_value, '全部类型', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro classification_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('账户分类', 'classification', 'classification', options, current_value, '全部分类', col_class) }}
+{% macro classification_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('账户分类', 'classification', 'classification', options, current_value, '全部分类', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro tag_category_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('标签分类', 'category', 'category', options, current_value, '全部分类', col_class) }}
+{% macro tag_category_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('标签分类', 'category', 'category', options, current_value, '全部分类', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro log_level_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('日志级别', 'level', 'level', options, current_value, '全部级别', col_class) }}
+{% macro log_level_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('日志级别', 'level', 'level', options, current_value, '全部级别', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro module_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('模块', 'module', 'module', options, current_value, '全部模块', col_class) }}
+{% macro module_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('模块', 'module', 'module', options, current_value, '全部模块', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro time_range_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('时间范围', 'time_range', 'time_range', options, current_value, '选择时间范围', col_class, allow_empty=False) }}
+{% macro time_range_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('时间范围', 'time_range', 'time_range', options, current_value, '选择时间范围', width_preset=width_preset, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro sync_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('操作方式', 'sync_type', 'sync_type', options, current_value, '全部方式', col_class) }}
+{% macro sync_type_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('操作方式', 'sync_type', 'sync_type', options, current_value, '全部方式', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro sync_category_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('分类', 'sync_category', 'sync_category', options, current_value, '全部分类', col_class) }}
+{% macro sync_category_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('分类', 'sync_category', 'sync_category', options, current_value, '全部分类', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro task_run_trigger_source_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('触发来源', 'trigger_source', 'trigger_source', options, current_value, '全部来源', col_class) }}
+{% macro task_run_trigger_source_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('触发来源', 'trigger_source', 'trigger_source', options, current_value, '全部来源', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro task_run_category_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('任务分类', 'task_category', 'task_category', options, current_value, '全部分类', col_class) }}
+{% macro task_run_category_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('任务分类', 'task_category', 'task_category', options, current_value, '全部分类', width_preset=width_preset) }}
 {%- endmacro %}
 
-{% macro period_type_filter(options, current_value='', col_class='col-md-2 col-12') -%}
-    {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', col_class, allow_empty=False) }}
+{% macro period_type_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', width_preset=width_preset, allow_empty=False) }}
 {%- endmacro %}
 
-{% macro instance_filter(scope, options, current_value='', col_class='col-md-2 col-12', disabled=False, multiple=False) -%}
+{% macro instance_filter(scope, options, current_value='', width_preset='lg', disabled=False, multiple=False) -%}
 {% set field_id = scope ~ '-instance' %}
 {% if multiple %}
-    {{ checkbox_filter('实例', field_id, 'instance', options, current_value, col_class=col_class, disabled=disabled, empty_text='请先选择数据库类型', placeholder='请选择实例', wrapper_role='instance-filter') }}
+    {{ checkbox_filter('实例', field_id, 'instance', options, current_value, width_preset=width_preset, disabled=disabled, empty_text='请先选择数据库类型', placeholder='请选择实例', wrapper_role='instance-filter') }}
 {% else %}
-<div class="{{ col_class }}">
+<div class="filter-field filter-field--{{ width_preset or 'lg' }} filter-field--select">
     <label for="{{ field_id }}" class="form-label">实例</label>
     <select id="{{ field_id }}"
             name="instance"
@@ -187,9 +193,9 @@
 {% endif %}
 {%- endmacro %}
 
-{% macro database_filter(scope, options, current_value='', col_class='col-md-2 col-12', disabled=False) -%}
+{% macro database_filter(scope, options, current_value='', width_preset='md', disabled=False) -%}
 {% set field_id = scope ~ '-database' %}
-<div class="{{ col_class }}">
+<div class="filter-field filter-field--{{ width_preset or 'md' }} filter-field--select">
     <label for="{{ field_id }}" class="form-label">数据库</label>
     <select id="{{ field_id }}"
             name="database_id"
@@ -207,36 +213,24 @@
 </div>
 {%- endmacro %}
 
-{% macro tag_selector_filter(options, selected=None, field_name='tags', field_id='tag-selector', col_class='col-md-2 col-12', placeholder='选择标签', allow_clear=True) -%}
+{% macro tag_selector_filter(options, selected=None, field_name='tags', field_id='tag-selector', width_preset='md', placeholder='选择标签') -%}
 {% set selected_values = selected or [] %}
-{% set ns = namespace(selected_details=[]) %}
-{% for option in options or [] %}
-    {% if option['value'] in selected_values %}
-        {% set _ = ns.selected_details.append(option) %}
-    {% endif %}
-{% endfor %}
-{% set preview_limit = 3 %}
-{% set visible_chips = ns.selected_details[:preview_limit] %}
-<div class="{{ col_class }}" id="{{ field_id }}-container" data-tag-selector-scope="{{ field_id }}">
+{% set selected_count = selected_values|length %}
+{% set summary_text = '已选 ' ~ selected_count ~ ' 个' if selected_count else '未选择' %}
+<div class="filter-field filter-field--{{ width_preset or 'md' }} filter-field--tag" id="{{ field_id }}-container" data-tag-selector-scope="{{ field_id }}">
     <label class="form-label" for="{{ field_id }}-open">标签筛选</label>
     <div class="tag-filter-preview">
         <button type="button"
-                class="btn btn-outline-primary d-flex align-items-center gap-2"
+                class="btn btn-outline-primary tag-filter-preview__button"
                 id="{{ field_id }}-open">
-            <i class="fas fa-tags"></i>{{ placeholder }}
+            <span class="tag-filter-preview__leading">
+                <i class="fas fa-tags"></i>
+                <span class="tag-filter-preview__label">{{ placeholder }}</span>
+            </span>
+            <span id="{{ field_id }}-preview" class="tag-filter-preview__summary{% if not selected_count %} is-empty{% endif %}">
+                <span id="{{ field_id }}-chips">{{ summary_text }}</span>
+            </span>
         </button>
-        <div id="{{ field_id }}-preview" class="tag-filter-preview__chips"{% if not selected_values %} style="display: none;"{% endif %}>
-            <div class="ledger-chip-stack" id="{{ field_id }}-chips">
-            {% for tag in visible_chips %}
-                <span class="ledger-chip">
-                    <i class="fas fa-tag"></i>{{ tag['label'] }}
-                </span>
-            {% endfor %}
-            {% if selected_values|length > preview_limit %}
-                <span class="ledger-chip ledger-chip--counter">+{{ selected_values|length - preview_limit }}</span>
-            {% endif %}
-            </div>
-        </div>
     </div>
     <input type="hidden"
            id="{{ field_id }}-selected"
