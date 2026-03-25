@@ -42,13 +42,17 @@ def test_instances_detail_page_includes_audit_tab_and_sync_action(app, auth_clie
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "审计信息" in html
+    assert "备份信息" in html
     assert 'data-action="sync-audit-info"' in html
     assert html.index('data-action="sync-accounts"') < html.index('data-action="sync-capacity"')
     assert html.index('data-action="sync-capacity"') < html.index('data-action="sync-audit-info"')
     assert html.index("账户信息") < html.index("容量信息")
     assert html.index("容量信息") < html.index("审计信息")
+    assert html.index("审计信息") < html.index("备份信息")
     assert 'id="accounts-tab"' in html and "nav-link active" in html
     assert 'id="accounts-pane"' in html and "show active instance-data-pane" in html
+    assert 'id="backup-tab"' in html
+    assert 'id="backup-pane"' in html
 
 
 @pytest.mark.unit

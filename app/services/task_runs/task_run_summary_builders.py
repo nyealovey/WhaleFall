@@ -157,6 +157,40 @@ def build_sync_jumpserver_assets_summary(
     )
 
 
+def build_sync_veeam_backups_summary(
+    *,
+    task_key: str,
+    inputs: dict[str, Any] | None,
+    received_total: int,
+    snapshots_written_total: int,
+    skipped_invalid: int,
+    skipped: bool = False,
+    skip_reason: str | None = None,
+    error_message: str | None = None,
+) -> dict[str, Any]:
+    """构建 sync_veeam_backups 的最终 summary_json(v1)."""
+    metrics = [
+        _metric(key="received_total", label="拉取备份记录", value=received_total, unit="个", tone="info"),
+        _metric(key="snapshots_written_total", label="写入机器快照", value=snapshots_written_total, unit="个", tone="success"),
+        _metric(key="skipped_invalid", label="跳过无效记录", value=skipped_invalid, unit="个", tone="warning"),
+    ]
+    ext_data = {
+        "backups": {
+            "received_total": received_total,
+            "snapshots_written_total": snapshots_written_total,
+            "skipped_invalid": skipped_invalid,
+        },
+        "error_message": error_message,
+    }
+    return TaskRunSummaryFactory.base(
+        task_key=task_key,
+        inputs=_inputs(inputs),
+        metrics=metrics,
+        flags=_flags(skipped=skipped, skip_reason=skip_reason),
+        ext_data=ext_data,
+    )
+
+
 def build_calculate_database_aggregations_summary(
     *,
     task_key: str,

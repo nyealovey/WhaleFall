@@ -49,6 +49,18 @@
                                     <strong>JumpServer</strong>
                                 </span>
                             </a>
+                            <a
+                                class="system-settings-page__nav-link"
+                                href="#system-settings-veeam"
+                                data-system-settings-nav-link="system-settings-veeam"
+                            >
+                                <span class="system-settings-page__nav-icon">
+                                    <i class="fas fa-hard-drive" aria-hidden="true"></i>
+                                </span>
+                                <span class="system-settings-page__nav-text">
+                                    <strong>Veeam</strong>
+                                </span>
+                            </a>
                         </nav>
                     </div>
                 </aside>
@@ -79,6 +91,19 @@
                             {% include 'admin/system-settings/_jumpserver-source-section.html' %}
                         </div>
                     </section>
+
+                    <section
+                        id="system-settings-veeam"
+                        class="system-settings-page__section"
+                        data-system-settings-section
+                    >
+                        <header class="system-settings-page__section-header">
+                            <h2>Veeam 数据源设置</h2>
+                        </header>
+                        <div class="system-settings-page__section-body">
+                            {% include 'admin/system-settings/_veeam-source-section.html' %}
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -89,7 +114,9 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/modules/services/email_alert_settings_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/jumpserver_source_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/veeam_source_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/alerts/email-settings.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/integrations/jumpserver/source.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/integrations/veeam/source.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/system-settings/index.js') }}"></script>
 {% endblock %}

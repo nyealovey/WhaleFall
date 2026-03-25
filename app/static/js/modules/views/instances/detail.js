@@ -40,6 +40,11 @@
             search: '',
         },
     };
+    const backupInfoState = {
+        loaded: false,
+        loading: false,
+        payload: null,
+    };
 
 /**
  * 挂载实例详情页面。
@@ -116,6 +121,7 @@ function ensureInstanceService() {
         initializeDatabaseTableSizesModal();
         initializeInstanceModals();
         initializeAuditTab();
+        initializeBackupTab();
         resetGridFilterForms();
         initializeAccountsGrid();
         initializeDatabaseSizesGrid();
@@ -130,6 +136,18 @@ function initializeAuditTab() {
     auditTab.addEventListener('shown.bs.tab', () => {
         if (!auditInfoState.loaded && !auditInfoState.loading) {
             loadAuditInfo();
+        }
+    });
+}
+
+function initializeBackupTab() {
+    const backupTab = document.getElementById('backup-tab');
+    if (!backupTab) {
+        return;
+    }
+    backupTab.addEventListener('shown.bs.tab', () => {
+        if (!backupInfoState.loaded && !backupInfoState.loading) {
+            loadBackupInfo();
         }
     });
 }
@@ -1739,6 +1757,36 @@ function showAuditTab() {
     bootstrapTab.getOrCreateInstance(auditTab).show();
 }
 
+function loadBackupInfo(forceRefresh = false) {
+    if (!instanceStore?.actions?.fetchInstanceBackupInfo) {
+        toast.error('InstanceStore 未初始化');
+        return;
+    }
+    if (backupInfoState.loading) {
+        return;
+    }
+    if (backupInfoState.loaded && !forceRefresh) {
+        renderBackupInfo(backupInfoState.payload);
+        return;
+    }
+
+    backupInfoState.loading = true;
+    renderBackupLoading();
+
+    instanceStore.actions.fetchInstanceBackupInfo(getInstanceId())
+        .then((response) => {
+            backupInfoState.payload = response?.data || response || null;
+            backupInfoState.loaded = true;
+            renderBackupInfo(backupInfoState.payload);
+        })
+        .catch((error) => {
+            renderBackupError(error?.message || '加载备份信息失败');
+        })
+        .finally(() => {
+            backupInfoState.loading = false;
+        });
+}
+
 function loadAuditInfo(forceRefresh = false) {
     if (!instanceStore?.actions?.fetchInstanceAuditInfo) {
         toast.error('InstanceStore 未初始化');
@@ -1799,6 +1847,106 @@ function renderAuditError(message) {
             </div>
         </section>
     `);
+}
+
+function renderBackupLoading() {
+    const contentDiv = selectOne('#backupInfoContent');
+    if (!contentDiv.length) {
+        return;
+    }
+    contentDiv.html(`
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">正在加载备份信息...</p>
+        </div>
+    `);
+}
+
+function renderBackupError(message) {
+    const contentDiv = selectOne('#backupInfoContent');
+    if (!contentDiv.length) {
+        return;
+    }
+    contentDiv.html(`
+        <section class="instance-audit-placeholder instance-audit-placeholder--muted">
+            <div class="instance-audit-placeholder__icon">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="instance-audit-placeholder__content">
+                <span class="chip-outline chip-outline--muted">错误</span>
+                <h3 class="instance-audit-placeholder__title">备份信息加载失败</h3>
+                <p class="instance-audit-placeholder__text">${escapeHtml(message || '请稍后重试')}</p>
+            </div>
+        </section>
+    `);
+}
+
+function renderBackupInfo(payload) {
+    const contentDiv = selectOne('#backupInfoContent');
+    if (!contentDiv.length) {
+        return;
+    }
+    const data = payload && typeof payload === 'object' ? payload : {};
+    if (data.backup_status === 'not_backed_up') {
+        contentDiv.html(renderBackupEmptyState(data));
+        return;
+    }
+    const candidates = Array.isArray(data.match_candidates) ? data.match_candidates : [];
+    const detailRows = [
+        { label: '备份状态', value: formatBackupStatusLabel(data.backup_status) },
+        { label: '命中机器名', value: data.matched_machine_name || '-' },
+        { label: '最近备份时间', value: formatAuditTimestamp(data.backup_last_time) },
+        { label: '作业名称', value: data.job_name || '-' },
+        { label: '还原点名称', value: data.restore_point_name || '-' },
+        { label: '最近同步时间', value: formatAuditTimestamp(data.last_sync_time) },
+        { label: '候选机器名', value: candidates.join(' / ') || '-' },
+    ];
+    contentDiv.html(`
+        <section class="instance-audit-section">
+            <header class="instance-audit-section__header">
+                <h3 class="instance-audit-section__title"><i class="fas fa-hard-drive"></i>备份摘要</h3>
+                <span class="instance-audit-section__meta">${escapeHtml(formatBackupStatusLabel(data.backup_status))}</span>
+            </header>
+            <div class="table-responsive">
+                <table class="table table-hover instance-audit-table">
+                    <tbody>
+                        ${detailRows.map((row) => `
+                            <tr>
+                                <th style="width: 12rem;">${escapeHtml(row.label)}</th>
+                                <td>${escapeHtml(String(row.value || '-'))}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `);
+}
+
+function renderBackupEmptyState(data) {
+    const candidates = Array.isArray(data.match_candidates) ? data.match_candidates : [getInstanceName()];
+    return `
+        <section class="instance-audit-placeholder">
+            <div class="instance-audit-placeholder__icon">
+                <i class="fas fa-hard-drive"></i>
+            </div>
+            <div class="instance-audit-placeholder__content">
+                <span class="chip-outline chip-outline--brand">${escapeHtml(getInstanceName())}</span>
+                <h3 class="instance-audit-placeholder__title">尚未采集到该实例候选机器名的备份记录</h3>
+                <p class="instance-audit-placeholder__text">候选机器名：${escapeHtml(candidates.join(' / ') || getInstanceName())}</p>
+            </div>
+        </section>
+    `;
+}
+
+function formatBackupStatusLabel(status) {
+    if (status === 'backed_up') {
+        return '已备份';
+    }
+    if (status === 'backup_stale') {
+        return '备份异常';
+    }
+    return '未备份';
 }
 
 function renderAuditInfo(payload) {

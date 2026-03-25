@@ -70,6 +70,11 @@
       return this.httpClient.get(`/api/v1/instances/${instanceId}/audit-info`);
     }
 
+    fetchInstanceBackupInfo(instanceId) {
+      this.assertInstanceId(instanceId, "fetchInstanceBackupInfo");
+      return this.httpClient.get(`/api/v1/instances/${instanceId}/backup-info`);
+    }
+
     fetchDatabaseTableSizes(databaseId, params) {
       if (!databaseId && databaseId !== 0) {
         throw new Error("InstanceManagementService: fetchDatabaseTableSizes 需要 databaseId");
