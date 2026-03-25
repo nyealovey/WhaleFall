@@ -212,9 +212,64 @@
     if (!summary) {
       return;
     }
-    const selectedValues = readCheckboxValues(target);
     const placeholder = target.dataset.placeholder || "请选择";
-    summary.textContent = selectedValues.length ? `已选 ${selectedValues.length} 项` : placeholder;
+    const summaryMode = target.dataset.summaryMode || "count";
+    const selectedInputs = Array.from(target.querySelectorAll('input[type="checkbox"]:checked'));
+    summary.replaceChildren();
+
+    if (!selectedInputs.length) {
+      summary.textContent = placeholder;
+      return;
+    }
+
+    if (summaryMode !== "instance-assets") {
+      summary.textContent = `已选 ${selectedInputs.length} 项`;
+      return;
+    }
+
+    const summaryShell = document.createElement("span");
+    summaryShell.className = "filter-multiselect__summary-inline";
+    if (selectedInputs.length === 1) {
+      const first = selectedInputs[0];
+      const assetUrl = first?.dataset?.assetUrl || "";
+      const labelText = first?.dataset?.summaryLabel || first?.value || "";
+      if (assetUrl) {
+        const asset = document.createElement("img");
+        asset.className = "filter-multiselect__asset";
+        asset.src = assetUrl;
+        asset.alt = "";
+        asset.setAttribute("aria-hidden", "true");
+        summaryShell.appendChild(asset);
+      }
+      const text = document.createElement("span");
+      text.className = "filter-multiselect__summary-text";
+      text.textContent = labelText;
+      summaryShell.appendChild(text);
+      summary.appendChild(summaryShell);
+      return;
+    }
+
+    const icons = document.createElement("span");
+    icons.className = "filter-multiselect__summary-icons";
+    selectedInputs.slice(0, 2).forEach((input) => {
+      const assetUrl = input?.dataset?.assetUrl || "";
+      if (!assetUrl) {
+        return;
+      }
+      const asset = document.createElement("img");
+      asset.className = "filter-multiselect__asset";
+      asset.src = assetUrl;
+      asset.alt = "";
+      asset.setAttribute("aria-hidden", "true");
+      icons.appendChild(asset);
+    });
+    summaryShell.appendChild(icons);
+
+    const text = document.createElement("span");
+    text.className = "filter-multiselect__summary-text";
+    text.textContent = `已选 ${selectedInputs.length} 个实例`;
+    summaryShell.appendChild(text);
+    summary.appendChild(summaryShell);
   }
 
   function updateCheckboxOptions(element, options) {
@@ -229,8 +284,11 @@
       disabled = false,
       emptyText = "暂无可选项",
       name = target.dataset.fieldName || "",
+      summaryMode = target.dataset.summaryMode || "count",
+      showOptionAssets = false,
       getOptionValue,
       getOptionLabel,
+      getOptionMeta,
     } = options || {};
 
     const selectedValues = Array.isArray(selected)
@@ -241,6 +299,7 @@
 
     host.innerHTML = "";
     target.classList.toggle("filter-multiselect--disabled", Boolean(disabled));
+    target.dataset.summaryMode = summaryMode;
 
     if (!items.length) {
       const empty = document.createElement("div");
@@ -258,8 +317,13 @@
       const labelText = String(
         (typeof getOptionLabel === "function" ? getOptionLabel(item) : item?.label) ?? value,
       );
+      const meta = typeof getOptionMeta === "function" ? getOptionMeta(item) : {};
+      const assetUrl = String(meta?.assetUrl || item?.asset_url || "");
       const option = document.createElement("label");
       option.className = "filter-multiselect__option";
+      if (showOptionAssets && assetUrl) {
+        option.classList.add("filter-multiselect__option--with-asset");
+      }
 
       const input = document.createElement("input");
       input.className = "form-check-input filter-multiselect__input";
@@ -269,9 +333,23 @@
       input.id = `${target.id || name || "checkbox-filter"}-${index + 1}`;
       input.checked = selectedValues.includes(value);
       input.disabled = Boolean(disabled);
+      input.dataset.summaryLabel = labelText;
+      input.dataset.assetUrl = assetUrl;
+
+      if (showOptionAssets && assetUrl) {
+        const asset = document.createElement("img");
+        asset.className = "filter-multiselect__asset";
+        asset.src = assetUrl;
+        asset.alt = "";
+        asset.setAttribute("aria-hidden", "true");
+        option.appendChild(asset);
+      }
 
       const label = document.createElement("span");
       label.className = "filter-multiselect__label";
+      if (showOptionAssets) {
+        label.className = "filter-multiselect__label filter-multiselect__label--single-line";
+      }
       label.textContent = labelText;
 
       option.htmlFor = input.id;

@@ -13,6 +13,7 @@ class CommonInstanceOptionItem:
     name: str
     db_type: str
     display_name: str
+    asset_url: str
 
 
 @dataclass(slots=True)

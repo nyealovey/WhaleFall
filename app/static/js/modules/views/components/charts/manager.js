@@ -838,14 +838,18 @@
           disabled: false,
           emptyText: "暂无实例",
           name: "instance",
+          summaryMode: "instance-assets",
+          showOptionAssets: true,
           getOptionValue: (item) => item?.id,
+          getOptionMeta: (item) => ({
+            assetUrl: item?.asset_url || "",
+            dbType: item?.db_type || "",
+          }),
           getOptionLabel: (item) => {
             if (!item) {
               return "";
             }
-            const name = item.name || item.instance_name || "未知实例";
-            const dbType = item.db_type || "";
-            return dbType ? `${name} (${dbType})` : name;
+            return item.name || item.instance_name || "未知实例";
           },
         });
         Filters.setDisabled(this.filterElements.instance, !this.state.filters.dbTypes.length);

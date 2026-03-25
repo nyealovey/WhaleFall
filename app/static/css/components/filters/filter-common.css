@@ -141,6 +141,28 @@
     white-space: nowrap;
 }
 
+.filter-multiselect__summary-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.filter-multiselect__summary-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    flex: 0 0 auto;
+}
+
+.filter-multiselect__summary-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .filter-form .filter-multiselect__caret {
     flex: 0 0 auto;
     color: var(--text-muted);
@@ -202,6 +224,10 @@
     text-overflow: ellipsis;
 }
 
+.tag-filter-preview__button--selected {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+}
+
 .tag-filter-preview__summary {
     min-width: 0;
     justify-self: end;
@@ -216,8 +242,37 @@
     color: var(--accent-primary-strong);
 }
 
+.tag-filter-preview__button--selected .tag-filter-preview__summary {
+    padding-left: 0;
+    border-left: 0;
+}
+
+.tag-filter-preview__summary[hidden] {
+    display: none;
+}
+
 .tag-filter-preview__summary.is-empty {
     color: color-mix(in srgb, var(--text-muted) 78%, white);
+}
+
+.filter-multiselect__option--with-asset {
+    padding-right: 0.85rem;
+}
+
+.filter-multiselect__asset {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    display: block;
+    object-fit: contain;
+}
+
+.filter-multiselect__label--single-line {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
 }
 
 .selected-tags-inline {
