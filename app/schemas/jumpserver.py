@@ -16,6 +16,7 @@ class JumpServerSourceBindingPayload(PayloadSchema):
 
     credential_id: int
     base_url: str
+    verify_ssl: bool | None = None
 
     @field_validator("credential_id", mode="before")
     @classmethod

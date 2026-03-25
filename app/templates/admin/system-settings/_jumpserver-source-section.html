@@ -25,6 +25,14 @@
                     <input id="jumpserverBaseUrl" class="form-control" type="url" placeholder="请输入 JumpServer URL">
                 </div>
 
+                <div class="jumpserver-source-field">
+                    <div class="form-check form-switch">
+                        <input id="jumpserverVerifySsl" class="form-check-input" type="checkbox" checked>
+                        <label for="jumpserverVerifySsl" class="form-check-label">SSL 证书验证</label>
+                    </div>
+                    <div class="form-text">关闭后将跳过 JumpServer HTTPS 证书校验，适用于自签名证书环境。</div>
+                </div>
+
                 <div class="jumpserver-source-actions">
                     <button id="saveJumpserverSourceBtn" class="btn btn-primary" type="button">
                         <i class="fas fa-link me-2"></i>保存绑定
