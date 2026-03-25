@@ -26,6 +26,7 @@ JumpServerSourceData = ns.model(
         "binding": fields.Raw(required=False),
         "api_credentials": fields.List(fields.Raw, required=True),
         "provider_ready": fields.Boolean(required=True),
+        "default_verify_ssl": fields.Boolean(required=True),
     },
 )
 
@@ -40,6 +41,7 @@ JumpServerSourceBindingPayloadModel = ns.model(
     {
         "credential_id": fields.Integer(required=True, description="API 凭据 ID", example=1),
         "base_url": fields.String(required=True, description="JumpServer URL", example="https://demo.jumpserver.org"),
+        "verify_ssl": fields.Boolean(required=False, description="是否校验 JumpServer HTTPS 证书", example=False),
     },
 )
 
@@ -94,7 +96,11 @@ class JumpServerSourceResource(BaseResource):
         def _execute():
             payload = validate_or_raise(JumpServerSourceBindingPayload, get_raw_payload() or {})
             service = JumpServerSourceService()
-            service.bind_source(credential_id=payload.credential_id, base_url=payload.base_url)
+            service.bind_source(
+                credential_id=payload.credential_id,
+                base_url=payload.base_url,
+                verify_ssl=payload.verify_ssl,
+            )
             data = service.build_view_payload()
             return self.success(data=data, message="JumpServer 数据源绑定成功")
 

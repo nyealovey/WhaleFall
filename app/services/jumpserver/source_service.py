@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from flask import current_app, has_app_context
+
 from app import db
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.jumpserver_source_binding import JumpServerSourceBinding
 from app.repositories.credentials_repository import CredentialsRepository
 from app.repositories.jumpserver_repository import JumpServerRepository
 from app.services.jumpserver.provider import HttpJumpServerProvider, JumpServerProvider
+from app.settings import Settings
 
 
 class JumpServerSourceService:
@@ -32,9 +35,16 @@ class JumpServerSourceService:
             "binding": self._serialize_binding(binding),
             "api_credentials": [self._serialize_credential(credential) for credential in api_credentials],
             "provider_ready": self._provider.is_configured(),
+            "default_verify_ssl": self._resolve_default_verify_ssl(),
         }
 
-    def bind_source(self, *, credential_id: int, base_url: str) -> JumpServerSourceBinding:
+    def bind_source(
+        self,
+        *,
+        credential_id: int,
+        base_url: str,
+        verify_ssl: bool | None = None,
+    ) -> JumpServerSourceBinding:
         """绑定 JumpServer API 凭据."""
         credential = self._credentials_repository.get_by_id(credential_id)
         if credential is None:
@@ -42,11 +52,18 @@ class JumpServerSourceService:
         self._ensure_bindable_credential(credential)
 
         binding = self._jumpserver_repository.get_binding()
+        resolved_verify_ssl = self._resolve_default_verify_ssl() if verify_ssl is None else bool(verify_ssl)
         if binding is None:
-            binding = JumpServerSourceBinding(credential_id=credential.id, base_url=base_url)
+            binding = JumpServerSourceBinding(
+                credential_id=credential.id,
+                base_url=base_url,
+                verify_ssl=resolved_verify_ssl,
+            )
         else:
             binding.credential_id = credential.id
             binding.base_url = base_url
+            if verify_ssl is not None or binding.verify_ssl is None:
+                binding.verify_ssl = resolved_verify_ssl
             binding.is_enabled = True
             binding.last_error = None
         self._jumpserver_repository.add_binding(binding)
@@ -68,6 +85,12 @@ class JumpServerSourceService:
             raise ValidationError("请先绑定 JumpServer API 凭据")
         return binding
 
+    def resolve_binding_verify_ssl(self, binding: JumpServerSourceBinding | None) -> bool:
+        """返回绑定生效后的 SSL 校验开关."""
+        if binding is None or binding.verify_ssl is None:
+            return self._resolve_default_verify_ssl()
+        return bool(binding.verify_ssl)
+
     @staticmethod
     def _ensure_bindable_credential(credential: object) -> None:
         credential_type = str(getattr(credential, "credential_type", "") or "").strip().lower()
@@ -88,7 +111,19 @@ class JumpServerSourceService:
         if binding is None:
             return None
         data = binding.to_dict()
+        data["verify_ssl"] = self.resolve_binding_verify_ssl(binding)
         credential = getattr(binding, "credential", None)
         if credential is not None:
             data["credential"] = self._serialize_credential(credential)
         return data
+
+    @staticmethod
+    def _resolve_default_verify_ssl() -> bool:
+        if has_app_context():
+            return bool(
+                current_app.config.get(
+                    "JUMPSERVER_VERIFY_SSL",
+                    Settings.model_fields["jumpserver_verify_ssl"].default,
+                )
+            )
+        return bool(Settings.load().jumpserver_verify_ssl)

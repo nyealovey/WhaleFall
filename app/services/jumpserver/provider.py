@@ -69,6 +69,7 @@ class JumpServerProvider(Protocol):
         base_url: str,
         access_key_id: str,
         access_key_secret: str,
+        verify_ssl: bool | None = None,
     ) -> JumpServerAssetCollection:
         """返回数据库类资产列表与统计."""
 
@@ -88,7 +89,9 @@ class DeferredJumpServerProvider:
         base_url: str,
         access_key_id: str,
         access_key_secret: str,
+        verify_ssl: bool | None = None,
     ) -> JumpServerAssetCollection:
+        _ = verify_ssl
         raise NotImplementedError("JumpServer Provider 尚未接入真实 API")
 
 
@@ -139,6 +142,7 @@ class HttpJumpServerProvider:
         base_url: str,
         access_key_id: str,
         access_key_secret: str,
+        verify_ssl: bool | None = None,
     ) -> JumpServerAssetCollection:
         assets: list[JumpServerDatabaseAsset] = []
         received_total = 0
@@ -150,6 +154,7 @@ class HttpJumpServerProvider:
                 url=next_url,
                 access_key_id=access_key_id,
                 access_key_secret=access_key_secret,
+                verify_ssl=verify_ssl,
             )
             page_items, raw_next_url = self._parse_page_payload(payload)
             received_total += len(page_items)
@@ -173,7 +178,7 @@ class HttpJumpServerProvider:
 
     @staticmethod
     def _build_initial_url(base_url: str) -> str:
-        resolved_base_url = str(base_url or "").rstrip("/")
+        resolved_base_url = HttpJumpServerProvider._normalize_base_url(base_url)
         return f"{resolved_base_url}{JUMPSERVER_DATABASE_ASSETS_PATH}?limit={JUMPSERVER_PAGE_LIMIT}&offset=0"
 
     @staticmethod
@@ -183,7 +188,17 @@ class HttpJumpServerProvider:
         stripped = next_url.strip()
         if stripped.startswith(("http://", "https://")):
             return stripped
-        return urljoin(f"{str(base_url or '').rstrip('/')}/", stripped.lstrip("/"))
+        return urljoin(f"{HttpJumpServerProvider._normalize_base_url(base_url)}/", stripped.lstrip("/"))
+
+    @staticmethod
+    def _normalize_base_url(base_url: str) -> str:
+        parsed = urlsplit(str(base_url or "").strip())
+        if not parsed.scheme or not parsed.netloc:
+            return str(base_url or "").rstrip("/")
+        normalized_path = parsed.path.rstrip("/")
+        if normalized_path.endswith("/api/docs"):
+            normalized_path = normalized_path[: -len("/api/docs")]
+        return f"{parsed.scheme}://{parsed.netloc}{normalized_path}"
 
     def _request_json(
         self,
@@ -191,6 +206,7 @@ class HttpJumpServerProvider:
         url: str,
         access_key_id: str,
         access_key_secret: str,
+        verify_ssl: bool | None = None,
     ) -> object:
         request_target = self._build_request_target(url)
         date_header = formatdate(usegmt=True)
@@ -224,7 +240,8 @@ class HttpJumpServerProvider:
             },
             method="GET",
         )
-        context = ssl.create_default_context() if self._verify_ssl else ssl._create_unverified_context()
+        resolved_verify_ssl = self._verify_ssl if verify_ssl is None else bool(verify_ssl)
+        context = ssl.create_default_context() if resolved_verify_ssl else ssl._create_unverified_context()
         with self._opener(request, timeout=self._timeout_seconds, context=context) as response:
             payload_bytes = response.read()
         return json.loads(payload_bytes.decode("utf-8"))

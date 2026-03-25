@@ -25,6 +25,7 @@
   const elements = {
     credentialId: document.getElementById("jumpserverCredentialId"),
     baseUrl: document.getElementById("jumpserverBaseUrl"),
+    verifySsl: document.getElementById("jumpserverVerifySsl"),
     providerStatus: document.getElementById("jumpserverProviderStatus"),
     bindingSummary: document.getElementById("jumpserverBindingSummary"),
     syncStatusSummary: document.getElementById("jumpserverSyncStatusSummary"),
@@ -85,7 +86,8 @@
       elements.bindingSummary.textContent = "当前未绑定 JumpServer API 凭据";
       return;
     }
-    elements.bindingSummary.textContent = `${binding.credential.name} · ${binding.base_url || "-"}`;
+    const sslVerifyStatus = binding.verify_ssl === false ? "SSL 证书验证关闭" : "SSL 证书验证开启";
+    elements.bindingSummary.textContent = `${binding.credential.name} · ${binding.base_url || "-"} · ${sslVerifyStatus}`;
   }
 
   function updateSyncSummary(binding) {
@@ -120,6 +122,13 @@
     if (elements.baseUrl) {
       elements.baseUrl.value = binding?.base_url || "";
     }
+    if (elements.verifySsl instanceof HTMLInputElement) {
+      if (typeof binding?.verify_ssl === "boolean") {
+        elements.verifySsl.checked = binding.verify_ssl;
+      } else {
+        elements.verifySsl.checked = Boolean(payload?.default_verify_ssl ?? true);
+      }
+    }
     updateProviderStatus(payload?.provider_ready);
     updateBindingSummary(binding);
     updateSyncSummary(binding);
@@ -138,6 +147,7 @@
     event.preventDefault();
     const credentialId = Number(elements.credentialId?.value || 0);
     const baseUrl = String(elements.baseUrl?.value || "").trim();
+    const verifySsl = elements.verifySsl instanceof HTMLInputElement ? elements.verifySsl.checked : true;
     if (!credentialId) {
       toast?.error?.("请选择 API 凭据");
       return;
@@ -148,7 +158,10 @@
     }
     const stop = setButtonBusy(elements.saveButton, "保存中...");
     try {
-      const response = await service.updateBinding({ credential_id: credentialId, base_url: baseUrl }, csrfToken);
+      const response = await service.updateBinding(
+        { credential_id: credentialId, base_url: baseUrl, verify_ssl: verifySsl },
+        csrfToken,
+      );
       if (!response?.success) {
         throw new Error(response?.message || "绑定 JumpServer 数据源失败");
       }
