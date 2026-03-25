@@ -147,3 +147,46 @@ def test_http_jumpserver_provider_skips_assets_missing_required_fields() -> None
     assert result.received_total == 3
     assert result.supported_total == 1
     assert result.skipped_invalid == 2
+
+
+@pytest.mark.unit
+def test_http_jumpserver_provider_normalizes_api_docs_url_to_site_root() -> None:
+    captured_urls: list[str] = []
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        return _FakeResponse([])
+
+    provider = HttpJumpServerProvider(opener=_fake_opener)
+
+    provider.list_database_assets(
+        base_url="https://gf-jump.chint.com/api/docs/",
+        access_key_id="ak-id",
+        access_key_secret="ak-secret",
+    )
+
+    assert captured_urls == ["https://gf-jump.chint.com/api/v1/assets/assets/?limit=200&offset=0"]
+
+
+@pytest.mark.unit
+def test_http_jumpserver_provider_allows_per_request_ssl_verification_override() -> None:
+    captured_contexts: list[object] = []
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (request, timeout)
+        captured_contexts.append(context)
+        return _FakeResponse([])
+
+    provider = HttpJumpServerProvider(verify_ssl=True, opener=_fake_opener)
+
+    provider.list_database_assets(
+        base_url="https://demo.jumpserver.org",
+        access_key_id="ak-id",
+        access_key_secret="ak-secret",
+        verify_ssl=False,
+    )
+
+    assert len(captured_contexts) == 1
+    assert getattr(captured_contexts[0], "check_hostname", True) is False
+    assert int(getattr(captured_contexts[0], "verify_mode")) == 0

@@ -20,6 +20,7 @@ def test_jumpserver_source_template_and_system_settings_nav_contract() -> None:
         'data-sync-api-url="/api/v1/integrations/jumpserver/actions/sync"',
         'id="jumpserverCredentialId"',
         'id="jumpserverBaseUrl"',
+        'id="jumpserverVerifySsl"',
         'id="saveJumpserverSourceBtn"',
         'id="syncJumpserverAssetsBtn"',
     )
@@ -39,7 +40,9 @@ def test_jumpserver_source_js_and_instances_list_define_managed_behaviors() -> N
         "function mountJumpServerSourcePage",
         "saveJumpserverSourceBtn",
         "jumpserverBaseUrl",
+        "jumpserverVerifySsl",
         "syncJumpserverAssetsBtn",
+        "SSL 证书验证",
         "解绑数据源",
         "同步 JumpServer 资源",
     )
