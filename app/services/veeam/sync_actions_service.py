@@ -11,10 +11,12 @@ from app import db
 from app.core.exceptions import ValidationError
 from app.infra.route_safety import log_with_context
 from app.models.task_run import TaskRun
+from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
 from app.services.task_runs.task_run_summary_builders import build_sync_veeam_backups_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
-from app.services.veeam.provider import HttpVeeamProvider, VeeamProvider
+from app.services.veeam.matching import build_instance_match_candidates, normalize_machine_name
+from app.services.veeam.provider import HttpVeeamProvider, VeeamMachineBackupRecord, VeeamProvider
 from app.services.veeam.source_service import VeeamSourceService
 from app.utils.time_utils import time_utils
 
@@ -47,13 +49,21 @@ class VeeamSyncActionsService:
         *,
         source_service: VeeamSourceService | None = None,
         veeam_repository: VeeamRepository | None = None,
+        instances_repository: InstancesRepository | None = None,
         provider: VeeamProvider | None = None,
     ) -> None:
         self._source_service = source_service or VeeamSourceService(provider=provider)
         self._veeam_repository = veeam_repository or VeeamRepository()
+        self._instances_repository = instances_repository or InstancesRepository()
         self._provider = provider or HttpVeeamProvider()
 
-    def prepare_background_sync(self, *, created_by: int | None) -> VeeamSyncPreparedRun:
+    def prepare_background_sync(
+        self,
+        *,
+        created_by: int | None,
+        trigger_source: str = "manual",
+        result_url: str = "/admin/system-settings#system-settings-veeam",
+    ) -> VeeamSyncPreparedRun:
         """创建 TaskRun 并校验同步前置条件."""
         if not self._provider.is_configured():
             raise ValidationError("Veeam Provider 尚未接入真实 API")
@@ -67,10 +77,10 @@ class VeeamSyncActionsService:
             task_key="sync_veeam_backups",
             task_name="Veeam 备份同步",
             task_category="other",
-            trigger_source="manual",
+            trigger_source=trigger_source,
             created_by=created_by,
             summary_json=None,
-            result_url="/admin/system-settings#system-settings-veeam",
+            result_url=result_url,
         )
         task_runs_service.init_items(
             run_id,
@@ -141,8 +151,20 @@ class VeeamSyncActionsService:
                 api_version=str(binding.api_version or ""),
                 verify_ssl=bool(binding.verify_ssl),
             )
+            latest_records = self._select_latest_records(result.records)
+            enrichment_targets = self._select_enrichment_targets(latest_records, match_domains=binding.match_domains)
+            enriched_records = self._provider.enrich_machine_backups(
+                server_host=str(binding.server_host or ""),
+                server_port=int(binding.server_port),
+                username=str(credential.username or ""),
+                password=str(credential.get_plain_password() or ""),
+                api_version=str(binding.api_version or ""),
+                records=enrichment_targets,
+                verify_ssl=bool(binding.verify_ssl),
+            ) if enrichment_targets else []
+            records_to_write = self._merge_enriched_records(latest_records, enriched_records)
             snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
-                result.records,
+                records_to_write,
                 sync_run_id=run_id,
                 synced_at=synced_at,
             )
@@ -227,3 +249,51 @@ class VeeamSyncActionsService:
             return
         current_run.summary_json = payload
         current_run.error_message = error_message
+
+    @staticmethod
+    def _select_latest_records(records: list[VeeamMachineBackupRecord]) -> list[VeeamMachineBackupRecord]:
+        latest_by_machine: dict[str, VeeamMachineBackupRecord] = {}
+        for record in records:
+            normalized_machine_name = normalize_machine_name(record.machine_name)
+            if not normalized_machine_name:
+                continue
+            current = latest_by_machine.get(normalized_machine_name)
+            if current is None or record.backup_at > current.backup_at:
+                latest_by_machine[normalized_machine_name] = record
+        return list(latest_by_machine.values())
+
+    def _select_enrichment_targets(
+        self,
+        records: list[VeeamMachineBackupRecord],
+        *,
+        match_domains: object,
+    ) -> list[VeeamMachineBackupRecord]:
+        domains = match_domains if isinstance(match_domains, list) else []
+        instances = self._instances_repository.list_existing_instances()
+        matched_machine_names: set[str] = set()
+        for instance in instances:
+            matched_machine_names.update(
+                build_instance_match_candidates(getattr(instance, "name", None), domains)
+            )
+        if not matched_machine_names:
+            return []
+        return [
+            record
+            for record in records
+            if normalize_machine_name(record.machine_name) in matched_machine_names
+        ]
+
+    @staticmethod
+    def _merge_enriched_records(
+        base_records: list[VeeamMachineBackupRecord],
+        enriched_records: list[VeeamMachineBackupRecord],
+    ) -> list[VeeamMachineBackupRecord]:
+        enriched_map = {
+            (normalize_machine_name(record.machine_name), record.source_record_id): record
+            for record in enriched_records
+        }
+        merged: list[VeeamMachineBackupRecord] = []
+        for record in base_records:
+            key = (normalize_machine_name(record.machine_name), record.source_record_id)
+            merged.append(enriched_map.get(key, record))
+        return merged

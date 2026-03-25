@@ -64,9 +64,14 @@ def test_api_v1_instance_backup_info_contract() -> None:
                 machine_name="db01.domain.com",
                 normalized_machine_name="db01.domain.com",
                 latest_backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                backup_id="backup-1",
+                backup_file_id="file-2",
                 job_name="daily-job",
                 restore_point_name="rp-2",
                 source_record_id="rp-2",
+                restore_point_size_bytes=1024,
+                backup_chain_size_bytes=4096,
+                restore_point_count=3,
                 raw_payload={"id": "rp-2"},
             )
         )
@@ -87,4 +92,7 @@ def test_api_v1_instance_backup_info_contract() -> None:
         assert data.get("matched_machine_name") == "db01.domain.com"
         assert data.get("job_name") == "daily-job"
         assert data.get("restore_point_name") == "rp-2"
+        assert data.get("restore_point_size_bytes") == 1024
+        assert data.get("backup_chain_size_bytes") == 4096
+        assert data.get("restore_point_count") == 3
         assert data.get("match_candidates") == ["db01", "db01.domain.com"]
