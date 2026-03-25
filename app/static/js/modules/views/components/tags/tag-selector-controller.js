@@ -18,18 +18,33 @@
     if (!chipsEl || !previewEl) {
       return;
     }
+    const buttonEl = previewEl.closest(".tag-filter-preview__button");
+    const labelEl = buttonEl?.querySelector(".tag-filter-preview__label");
+    const placeholder = buttonEl?.dataset?.placeholder || "选择标签";
     if (!tags.length) {
-      chipsEl.textContent = "未选择";
+      chipsEl.textContent = "";
+      previewEl.hidden = true;
       previewEl.classList.add("is-empty");
+      if (labelEl) {
+        labelEl.textContent = placeholder;
+      }
+      buttonEl?.classList?.remove("tag-filter-preview__button--selected");
       return;
     }
     const visible = tags.slice(0, limit);
     const labels = visible
       .map((tag) => String(tag.display_name || tag.name || tag.hiddenValue || "").trim())
       .filter(Boolean);
-    const overflow = tags.length - visible.length;
-    chipsEl.textContent = overflow > 0 ? `${labels.join(" / ")} +${overflow}` : labels.join(" / ");
+    chipsEl.textContent =
+      tags.length <= 2
+        ? labels.join(" / ")
+        : `已选 ${tags.length} 个标签`;
+    previewEl.hidden = false;
     previewEl.classList.remove("is-empty");
+    if (labelEl) {
+      labelEl.textContent = "";
+    }
+    buttonEl?.classList?.add("tag-filter-preview__button--selected");
   }
 
   /**

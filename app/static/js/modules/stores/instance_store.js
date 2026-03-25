@@ -46,6 +46,7 @@
    * @property {Function} fetchAccountChangeHistory - 获取账户变更历史
    * @property {Function} fetchDatabaseSizes - 获取数据库容量信息
    * @property {Function} fetchInstanceAuditInfo - 获取实例审计信息
+   * @property {Function} fetchInstanceBackupInfo - 获取实例备份信息
    * @property {Function} fetchDatabaseTableSizes - 获取表容量快照
    * @property {Function} refreshDatabaseTableSizes - 刷新表容量快照
    * @property {Function} fetchStatistics - 获取统计信息
@@ -85,6 +86,7 @@
       "fetchAccountChangeHistory",
       "fetchDatabaseSizes",
       "fetchInstanceAuditInfo",
+      "fetchInstanceBackupInfo",
       "fetchDatabaseTableSizes",
       "refreshDatabaseTableSizes",
       "fetchStatistics",
@@ -807,6 +809,23 @@
           })
           .catch(function (error) {
             handleError(error, { target: "instanceAuditInfo", instanceId: id });
+            throw error;
+          });
+      },
+      fetchInstanceBackupInfo: function (instanceId) {
+        const id = toNumericId(instanceId);
+        if (id === null) {
+          return Promise.reject(new Error("InstanceStore: 需要 instanceId"));
+        }
+        return service
+          .fetchInstanceBackupInfo(id)
+          .then(function (response) {
+            const result = ensureSuccess(response, "加载备份信息失败");
+            state.lastError = null;
+            return result;
+          })
+          .catch(function (error) {
+            handleError(error, { target: "instanceBackupInfo", instanceId: id });
             throw error;
           });
       },

@@ -45,7 +45,8 @@ def test_api_v1_common_instances_options_contract(app, auth_client) -> None:
 
     item = instances[0]
     assert isinstance(item, dict)
-    assert {"id", "name", "db_type", "display_name"}.issubset(item.keys())
+    assert {"id", "name", "db_type", "display_name", "asset_url"}.issubset(item.keys())
+    assert item.get("asset_url") == "/static/img/db-types/mysql.png"
 
     filtered = auth_client.get("/api/v1/instances/options?db_type=MYSQL")
     assert filtered.status_code == 200

@@ -24,6 +24,7 @@ DATABASE_TYPES: Final[list[dict[str, str]]] = [
 CREDENTIAL_TYPES: Final[list[dict[str, str]]] = [
     {"value": "database", "label": "数据库凭据"},
     {"value": "api", "label": "API 凭据"},
+    {"value": "veeam", "label": "Veeam 凭据"},
     {"value": "ssh", "label": "SSH 凭据"},
 ]
 

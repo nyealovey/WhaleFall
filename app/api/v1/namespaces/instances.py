@@ -904,5 +904,6 @@ class InstancesStatisticsResource(BaseResource):
 from app.api.v1.namespaces import (  # noqa: F401,E402
     instances_accounts_sync as _instances_accounts_sync,
     instances_audit as _instances_audit,
+    instances_backup as _instances_backup,
     instances_connections as _instances_connections,
 )

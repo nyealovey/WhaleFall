@@ -60,15 +60,22 @@
 </div>
 {%- endmacro %}
 
-{% macro checkbox_filter(label, field_id, field_name, options, current_value=None, width_preset='lg', disabled=False, empty_text='暂无可选项', placeholder='请选择', wrapper_role=None) -%}
+{% macro checkbox_filter(label, field_id, field_name, options, current_value=None, width_preset='lg', disabled=False, empty_text='暂无可选项', placeholder='请选择', wrapper_role=None, show_option_assets=False, summary_mode='count') -%}
 {% set selected_values = current_value or [] %}
 {% set resolved_width = width_preset or 'lg' %}
+{% set ns = namespace(selected_details=[]) %}
+{% for option in options or [] %}
+    {% if option['value'] in selected_values %}
+        {% set _ = ns.selected_details.append(option) %}
+    {% endif %}
+{% endfor %}
 <div class="filter-field filter-field--{{ resolved_width }} filter-field--checkbox">
     <label class="form-label" for="{{ field_id }}">{{ label }}</label>
     <div id="{{ field_id }}"
          class="filter-multiselect{% if disabled %} filter-multiselect--disabled{% endif %}"
          {% if wrapper_role %}data-role="{{ wrapper_role }}"{% endif %}
          data-field-name="{{ field_name }}"
+         data-summary-mode="{{ summary_mode }}"
          data-placeholder="{{ placeholder }}">
         <div class="filter-multiselect__shell" data-role="multiselect">
             <button type="button"
@@ -77,7 +84,39 @@
                     aria-expanded="false"
                     {% if disabled %}disabled{% endif %}>
                 <span class="filter-multiselect__summary" data-role="multiselect-summary">
-                    {% if selected_values %}已选 {{ selected_values|length }} 项{% else %}{{ placeholder }}{% endif %}
+                    {% if summary_mode == 'instance-assets' and ns.selected_details %}
+                        {% if ns.selected_details|length == 1 %}
+                            {% if ns.selected_details[0].get('asset_url') %}
+                            <span class="filter-multiselect__summary-inline">
+                                <img class="filter-multiselect__asset"
+                                     src="{{ ns.selected_details[0]['asset_url'] }}"
+                                     alt=""
+                                     aria-hidden="true">
+                                <span class="filter-multiselect__summary-text">{{ ns.selected_details[0].get('name') or ns.selected_details[0]['label'] }}</span>
+                            </span>
+                            {% else %}
+                            {{ ns.selected_details[0].get('name') or ns.selected_details[0]['label'] }}
+                            {% endif %}
+                        {% else %}
+                            <span class="filter-multiselect__summary-inline">
+                                <span class="filter-multiselect__summary-icons">
+                                    {% for option in ns.selected_details[:2] %}
+                                        {% if option.get('asset_url') %}
+                                        <img class="filter-multiselect__asset"
+                                             src="{{ option['asset_url'] }}"
+                                             alt=""
+                                             aria-hidden="true">
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                                <span class="filter-multiselect__summary-text">已选 {{ ns.selected_details|length }} 个实例</span>
+                            </span>
+                        {% endif %}
+                    {% elif selected_values %}
+                        已选 {{ selected_values|length }} 项
+                    {% else %}
+                        {{ placeholder }}
+                    {% endif %}
                 </span>
                 <i class="fas fa-chevron-down filter-multiselect__caret" aria-hidden="true"></i>
             </button>
@@ -93,9 +132,17 @@
                                    id="{{ input_id }}"
                                    name="{{ field_name }}"
                                    value="{{ option_value }}"
+                                   data-summary-label="{{ option.get('name') or option['label'] }}"
+                                   data-asset-url="{{ option.get('asset_url', '') }}"
                                    {% if option_value in selected_values %}checked{% endif %}
                                    {% if disabled %}disabled{% endif %}>
-                            <span class="filter-multiselect__label">{{ option['label'] }}</span>
+                            {% if show_option_assets and option.get('asset_url') %}
+                            <img class="filter-multiselect__asset"
+                                 src="{{ option['asset_url'] }}"
+                                 alt=""
+                                 aria-hidden="true">
+                            {% endif %}
+                            <span class="filter-multiselect__label{% if show_option_assets %} filter-multiselect__label--single-line{% endif %}">{{ option['label'] }}</span>
                         </label>
                         {% endfor %}
                     {% else %}
@@ -171,7 +218,7 @@
 {% macro instance_filter(scope, options, current_value='', width_preset='lg', disabled=False, multiple=False) -%}
 {% set field_id = scope ~ '-instance' %}
 {% if multiple %}
-    {{ checkbox_filter('实例', field_id, 'instance', options, current_value, width_preset=width_preset, disabled=disabled, empty_text='请先选择数据库类型', placeholder='请选择实例', wrapper_role='instance-filter') }}
+    {{ checkbox_filter('实例', field_id, 'instance', options, current_value, width_preset=width_preset, disabled=disabled, empty_text='请先选择数据库类型', placeholder='请选择实例', wrapper_role='instance-filter', show_option_assets=True, summary_mode='instance-assets') }}
 {% else %}
 <div class="filter-field filter-field--{{ width_preset or 'lg' }} filter-field--select">
     <label for="{{ field_id }}" class="form-label">实例</label>
@@ -216,18 +263,33 @@
 {% macro tag_selector_filter(options, selected=None, field_name='tags', field_id='tag-selector', width_preset='md', placeholder='选择标签') -%}
 {% set selected_values = selected or [] %}
 {% set selected_count = selected_values|length %}
-{% set summary_text = '已选 ' ~ selected_count ~ ' 个' if selected_count else '未选择' %}
+{% set ns = namespace(selected_details=[]) %}
+{% for option in options or [] %}
+    {% if option['value'] in selected_values %}
+        {% set _ = ns.selected_details.append(option) %}
+    {% endif %}
+{% endfor %}
+{% if selected_count and selected_count <= 2 and ns.selected_details|length == selected_count %}
+    {% set summary_text = ns.selected_details | map(attribute='label') | join(' / ') %}
+{% elif selected_count %}
+    {% set summary_text = '已选 ' ~ selected_count ~ ' 个标签' %}
+{% else %}
+    {% set summary_text = '' %}
+{% endif %}
 <div class="filter-field filter-field--{{ width_preset or 'md' }} filter-field--tag" id="{{ field_id }}-container" data-tag-selector-scope="{{ field_id }}">
     <label class="form-label" for="{{ field_id }}-open">标签筛选</label>
     <div class="tag-filter-preview">
         <button type="button"
-                class="btn btn-outline-primary tag-filter-preview__button"
+                class="btn btn-outline-primary tag-filter-preview__button{% if selected_count %} tag-filter-preview__button--selected{% endif %}"
+                data-placeholder="{{ placeholder }}"
                 id="{{ field_id }}-open">
             <span class="tag-filter-preview__leading">
                 <i class="fas fa-tags"></i>
-                <span class="tag-filter-preview__label">{{ placeholder }}</span>
+                <span class="tag-filter-preview__label">{% if not selected_count %}{{ placeholder }}{% endif %}</span>
             </span>
-            <span id="{{ field_id }}-preview" class="tag-filter-preview__summary{% if not selected_count %} is-empty{% endif %}">
+            <span id="{{ field_id }}-preview"
+                  class="tag-filter-preview__summary{% if not selected_count %} is-empty{% endif %}"
+                  {% if not selected_count %}hidden{% endif %}>
                 <span id="{{ field_id }}-chips">{{ summary_text }}</span>
             </span>
         </button>
