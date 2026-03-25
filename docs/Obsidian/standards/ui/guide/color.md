@@ -59,7 +59,9 @@ related:
 
 ### 5) 筛选区（FilterCard）约束
 
-- MUST：所有 `filter_card` 渲染的搜索/下拉控件必须采用 `col-md-2 col-12` 栅格，禁止写死像素宽度；如需突破必须在评审中说明。
+- MUST：所有 `filter_card` 渲染的搜索/下拉控件必须使用共享 `width_preset` 语义宽度，禁止回退到 `col-md-*` 栅格或模板内写死宽度。
+- SHOULD：需要桌面端单行稳定展示的筛选区显式使用 `layout='nowrap-desktop'`，其余页面默认使用 `layout='wrap'`。
+- SHOULD：详情页内嵌的带状筛选条应复用共享 `filter-band` 语义与宽度 token，禁止在页面 CSS 内另起一套近似实现。
 
 ## 正反例
 

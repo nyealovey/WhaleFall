@@ -12,23 +12,6 @@
   const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
   const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
 
-  function escapeHtml(value) {
-    if (value === undefined || value === null) {
-      return "";
-    }
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function buildPreviewChip(label, { muted = false } = {}) {
-    const classes = ["ledger-chip", muted ? "ledger-chip--muted" : ""].filter(Boolean).join(" ");
-    return `<span class="${classes}"><i class="fas fa-tag"></i>${escapeHtml(label)}</span>`;
-  }
-
   function updatePreviewDisplay(previewSelector, chipsSelector, tags = [], limit = 3) {
     const previewEl = toElement(previewSelector);
     const chipsEl = toElement(chipsSelector);
@@ -36,19 +19,17 @@
       return;
     }
     if (!tags.length) {
-      chipsEl.innerHTML = "";
-      previewEl.style.display = "none";
+      chipsEl.textContent = "未选择";
+      previewEl.classList.add("is-empty");
       return;
     }
     const visible = tags.slice(0, limit);
-    const html = visible
-      .map((tag) => buildPreviewChip(tag.display_name || tag.name || tag.hiddenValue || "", { muted: tag.is_active === false }))
-      .join("");
+    const labels = visible
+      .map((tag) => String(tag.display_name || tag.name || tag.hiddenValue || "").trim())
+      .filter(Boolean);
     const overflow = tags.length - visible.length;
-    chipsEl.innerHTML = overflow > 0
-      ? `${html}<span class="ledger-chip ledger-chip--muted">+${overflow}</span>`
-      : html;
-    previewEl.style.display = "";
+    chipsEl.textContent = overflow > 0 ? `${labels.join(" / ")} +${overflow}` : labels.join(" / ");
+    previewEl.classList.remove("is-empty");
   }
 
   /**

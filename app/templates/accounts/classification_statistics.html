@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set page_id = 'AccountClassificationStatisticsPage' %}
 {% from 'components/ui/page_header.html' import page_header %}
-{% from 'components/filters/macros.html' import filter_card %}
+{% from 'components/filters/macros.html' import filter_card, select_filter %}
 
 {% block title %}账户分类统计 - 鲸落{% endblock %}
 
@@ -21,61 +21,18 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
+            {% set period_type_options = [
+                {'value': 'daily', 'label': '日统计'},
+                {'value': 'weekly', 'label': '周统计'},
+                {'value': 'monthly', 'label': '月统计'},
+                {'value': 'quarterly', 'label': '季统计'},
+                {'value': 'yearly', 'label': '年统计（即将支持）', 'disabled': true},
+            ] %}
             {% call filter_card(form_id='account-classification-statistics-filter', action='', method='GET', submit_label='应用', clear_label='重置', auto_register=False, extra_classes='acs-filter-card') %}
-                <div class="col-md-2 col-12">
-                    <label for="classification_id" class="form-label">账户分类</label>
-                    <select id="classification_id" name="classification_id" class="form-select">
-                        <option value="">全部分类</option>
-                        {% for option in classification_options or [] %}
-                            <option value="{{ option['value'] }}"
-                                    {% if option['value'] == selected_classification_id %}selected{% endif %}
-                                    data-code="{{ option.get('code', '') }}">
-                                {{ option['label'] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if not classification_options %}
-                        <p class="filter-empty-hint mt-1 mb-0">暂无可用分类，请先在「账户分类管理」中创建。</p>
-                    {% endif %}
-                </div>
-
-                <div class="col-md-2 col-12">
-                    <label for="period_type" class="form-label">统计周期</label>
-                    <select id="period_type" name="period_type" class="form-select">
-                        <option value="daily" {% if selected_period_type == 'daily' %}selected{% endif %}>日统计</option>
-                        <option value="weekly" {% if selected_period_type == 'weekly' %}selected{% endif %}>周统计</option>
-                        <option value="monthly" {% if selected_period_type == 'monthly' %}selected{% endif %}>月统计</option>
-                        <option value="quarterly" {% if selected_period_type == 'quarterly' %}selected{% endif %}>季统计</option>
-                        <option value="yearly" disabled>年统计（即将支持）</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2 col-12">
-                    <label for="db_type" class="form-label">数据库类型</label>
-                    <select id="db_type" name="db_type" class="form-select">
-                        <option value="">全部类型</option>
-                        {% for option in database_type_options or [] %}
-                            <option value="{{ option['value'] }}" {% if option['value'] == selected_db_type %}selected{% endif %}>
-                                {{ option['label'] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="col-md-2 col-12">
-                    <label for="instance_id" class="form-label">实例</label>
-                    <select id="instance_id"
-                            name="instance_id"
-                            class="form-select"
-                            {% if not selected_db_type %}disabled{% endif %}>
-                        <option value="">所有实例</option>
-                        {% for option in instance_options or [] %}
-                            <option value="{{ option['value'] }}" {% if option['value'] == selected_instance_id %}selected{% endif %}>
-                                {{ option['label'] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                {{ select_filter('账户分类', 'classification_id', 'classification_id', classification_options, selected_classification_id, '全部分类', width_preset='lg') }}
+                {{ select_filter('统计周期', 'period_type', 'period_type', period_type_options, selected_period_type, '选择周期', width_preset='sm', allow_empty=False) }}
+                {{ select_filter('数据库类型', 'db_type', 'db_type', database_type_options, selected_db_type, '全部类型', width_preset='sm') }}
+                {{ select_filter('实例', 'instance_id', 'instance_id', instance_options, selected_instance_id, '所有实例', width_preset='lg', disabled=(not selected_db_type)) }}
 
                 <input type="hidden" name="rule_id" id="rule_id" value="{{ selected_rule_id or '' }}">
             {% endcall %}
