@@ -31,6 +31,7 @@ from app.api.v1.namespaces.sessions import ns as sessions_ns
 from app.api.v1.namespaces.tags import ns as tags_ns
 from app.api.v1.namespaces.task_runs import ns as task_runs_ns
 from app.api.v1.namespaces.users import ns as users_ns
+from app.api.v1.namespaces.veeam import ns as veeam_ns
 from app.settings import Settings
 
 
@@ -55,6 +56,7 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     api.add_namespace(health_ns, path="/health")
     api.add_namespace(instances_ns, path="/instances")
     api.add_namespace(jumpserver_ns, path="/integrations/jumpserver")
+    api.add_namespace(veeam_ns, path="/integrations/veeam")
     api.add_namespace(capacity_ns, path="/capacity")
     api.add_namespace(databases_ns, path="/databases")
     api.add_namespace(tags_ns, path="/tags")

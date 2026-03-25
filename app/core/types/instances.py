@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.core.types.tags import TagSummary
@@ -35,6 +35,7 @@ class InstanceListMetrics:
     tags_map: dict[int, list[TagSummary]]
     audit_facts_map: dict[int, dict[str, object]]
     jumpserver_managed_ids: set[int]
+    backup_summary_map: dict[int, dict[str, object]] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -57,3 +58,5 @@ class InstanceListItem:
     last_sync_time: str | None
     tags: list[TagSummary]
     is_jumpserver_managed: bool
+    backup_status: str = "not_backed_up"
+    backup_last_time: str | None = None

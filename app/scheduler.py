@@ -64,6 +64,7 @@ CRON_FIELDS = ("second", "minute", "hour", "day", "month", "day_of_week", "year"
 TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
 TASK_FUNCTIONS: dict[str, JobFunc | str] = {
     "sync_accounts": "app.tasks.accounts_sync_tasks:sync_accounts",
+    "sync_veeam_backups": "app.tasks.veeam_backup_sync_tasks:sync_veeam_backups",
     "sync_databases": "app.tasks.capacity_collection_tasks:sync_databases",
     "calculate_database": "app.tasks.capacity_aggregation_tasks:calculate_database",
     "calculate_account": "app.tasks.account_classification_daily_tasks:calculate_account",
