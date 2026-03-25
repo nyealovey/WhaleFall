@@ -15,6 +15,7 @@ import ssl
 from dataclasses import dataclass
 from email.utils import formatdate
 from typing import Any, Protocol
+from urllib.error import HTTPError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import Request, urlopen
 
@@ -242,9 +243,36 @@ class HttpJumpServerProvider:
         )
         resolved_verify_ssl = self._verify_ssl if verify_ssl is None else bool(verify_ssl)
         context = ssl.create_default_context() if resolved_verify_ssl else ssl._create_unverified_context()
-        with self._opener(request, timeout=self._timeout_seconds, context=context) as response:
-            payload_bytes = response.read()
+        try:
+            with self._opener(request, timeout=self._timeout_seconds, context=context) as response:
+                payload_bytes = response.read()
+        except HTTPError as exc:
+            raise RuntimeError(self._build_http_error_message(exc)) from exc
         return json.loads(payload_bytes.decode("utf-8"))
+
+    @staticmethod
+    def _build_http_error_message(error: HTTPError) -> str:
+        response_body = HttpJumpServerProvider._read_http_error_body(error)
+        message = f"JumpServer API 请求失败: {error.code} {error.reason} url={error.url}"
+        if response_body:
+            message = f"{message} body={response_body}"
+        return message
+
+    @staticmethod
+    def _read_http_error_body(error: HTTPError) -> str:
+        payload = getattr(error, "fp", None)
+        if payload is None:
+            return ""
+        try:
+            raw = payload.read()
+        except Exception:
+            return ""
+        if not isinstance(raw, bytes):
+            return ""
+        text = raw.decode("utf-8", errors="replace").strip()
+        if not text:
+            return ""
+        return text[:300]
 
     @staticmethod
     def _build_request_target(url: str) -> str:

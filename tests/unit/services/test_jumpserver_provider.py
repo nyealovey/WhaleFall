@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import io
 import json
+from urllib.error import HTTPError
 from typing import Any
 
 import pytest
@@ -190,3 +192,32 @@ def test_http_jumpserver_provider_allows_per_request_ssl_verification_override()
     assert len(captured_contexts) == 1
     assert getattr(captured_contexts[0], "check_hostname", True) is False
     assert int(getattr(captured_contexts[0], "verify_mode")) == 0
+
+
+@pytest.mark.unit
+def test_http_jumpserver_provider_surfaces_http_error_status_url_and_response_body() -> None:
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        raise HTTPError(
+            url=request.full_url,
+            code=503,
+            msg="Service Unavailable",
+            hdrs=None,
+            fp=io.BytesIO(b'{"detail":"jumpserver upstream unavailable"}'),
+        )
+
+    provider = HttpJumpServerProvider(opener=_fake_opener)
+
+    with pytest.raises(Exception, match="503"):
+        provider.list_database_assets(
+            base_url="https://demo.jumpserver.org",
+            access_key_id="ak-id",
+            access_key_secret="ak-secret",
+        )
+
+    with pytest.raises(Exception, match="jumpserver upstream unavailable"):
+        provider.list_database_assets(
+            base_url="https://demo.jumpserver.org",
+            access_key_id="ak-id",
+            access_key_secret="ak-secret",
+        )
