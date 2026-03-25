@@ -26,6 +26,12 @@
                 </div>
 
                 <div class="jumpserver-source-field">
+                    <label for="jumpserverOrgId" class="form-label">组织 ID</label>
+                    <input id="jumpserverOrgId" class="form-control" type="text" placeholder="请输入 JumpServer org_id">
+                    <div class="form-text">JumpServer v3 组织上下文，一般为 UUID；同步请求会通过 `X-JMS-ORG` 发送。</div>
+                </div>
+
+                <div class="jumpserver-source-field">
                     <div class="form-check form-switch">
                         <input id="jumpserverVerifySsl" class="form-check-input" type="checkbox" checked>
                         <label for="jumpserverVerifySsl" class="form-check-label">SSL 证书验证</label>
