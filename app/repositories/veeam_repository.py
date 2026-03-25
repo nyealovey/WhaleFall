@@ -19,9 +19,14 @@ def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object
         "machine_name": row.machine_name,
         "normalized_machine_name": row.normalized_machine_name,
         "latest_backup_at": row.latest_backup_at.isoformat() if row.latest_backup_at else None,
+        "backup_id": row.backup_id,
+        "backup_file_id": row.backup_file_id,
         "job_name": row.job_name,
         "restore_point_name": row.restore_point_name,
         "source_record_id": row.source_record_id,
+        "restore_point_size_bytes": row.restore_point_size_bytes,
+        "backup_chain_size_bytes": row.backup_chain_size_bytes,
+        "restore_point_count": row.restore_point_count,
         "sync_run_id": row.sync_run_id,
         "synced_at": row.synced_at.isoformat() if row.synced_at else None,
     }
@@ -97,9 +102,14 @@ class VeeamRepository:
             row.machine_name = record.machine_name
             row.normalized_machine_name = normalized_machine_name
             row.latest_backup_at = record.backup_at
+            row.backup_id = record.backup_id
+            row.backup_file_id = record.backup_file_id
             row.job_name = record.job_name
             row.restore_point_name = record.restore_point_name
             row.source_record_id = record.source_record_id
+            row.restore_point_size_bytes = record.restore_point_size_bytes
+            row.backup_chain_size_bytes = record.backup_chain_size_bytes
+            row.restore_point_count = record.restore_point_count
             row.raw_payload = record.raw_payload
             row.sync_run_id = sync_run_id
             row.synced_at = synced_at
