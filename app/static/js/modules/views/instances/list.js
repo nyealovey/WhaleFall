@@ -287,6 +287,8 @@ function mountInstancesListPage() {
                     'search',
                     'db_type',
                     'status',
+                    'audit_status',
+                    'managed_status',
                     'tags',
                     'include_deleted',
                     'page',
@@ -782,6 +784,8 @@ function mountInstancesListPage() {
             search: sanitizeText(source?.search || source?.q),
             db_type: sanitizeText(source?.db_type),
             status: sanitizeText(source?.status),
+            audit_status: sanitizeText(source?.audit_status),
+            managed_status: sanitizeText(source?.managed_status),
             tags: normalizeArrayValue(source?.tags),
             include_deleted: includeDeleted,
         };
@@ -812,6 +816,12 @@ function mountInstancesListPage() {
         }
         if (isMeaningful(filters.status)) {
             normalized.status = filters.status;
+        }
+        if (isMeaningful(filters.audit_status)) {
+            normalized.audit_status = filters.audit_status;
+        }
+        if (isMeaningful(filters.managed_status)) {
+            normalized.managed_status = filters.managed_status;
         }
         if (isMeaningful(filters.tags)) {
             normalized.tags = filters.tags;

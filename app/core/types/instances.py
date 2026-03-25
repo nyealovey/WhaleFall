@@ -19,6 +19,8 @@ class InstanceListFilters:
     search: str
     db_type: str
     status: str
+    audit_status: str
+    managed_status: str
     tags: list[str]
     include_deleted: bool
 

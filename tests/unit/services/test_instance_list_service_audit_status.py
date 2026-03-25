@@ -21,6 +21,8 @@ def _build_filters() -> InstanceListFilters:
         search="",
         db_type="",
         status="",
+        audit_status="",
+        managed_status="",
         tags=[],
         include_deleted=False,
     )
@@ -47,6 +49,7 @@ def _build_metrics() -> InstanceListMetrics:
         last_sync_times={},
         tags_map={},
         audit_facts_map={},
+        jumpserver_managed_ids=set(),
     )
 
 

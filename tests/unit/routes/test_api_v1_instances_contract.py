@@ -231,6 +231,171 @@ def test_api_v1_instances_list_exposes_enabled_audit_status_for_sqlserver() -> N
 
 
 @pytest.mark.unit
+def test_api_v1_instances_list_filters_by_audit_status() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+                db.metadata.tables["instance_databases"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["instance_config_snapshots"],
+                db.metadata.tables["sync_instance_records"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        enabled = Instance(
+            name="sqlserver-enabled",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.1",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        configured_disabled = Instance(
+            name="sqlserver-configured-disabled",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.2",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        not_configured = Instance(
+            name="sqlserver-not-configured",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.3",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        db.session.add_all([enabled, configured_disabled, not_configured])
+        db.session.flush()
+        db.session.add_all(
+            [
+                InstanceConfigSnapshot(
+                    instance_id=enabled.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    config_key="audit_info",
+                    snapshot={"server_audits": [{"name": "audit-main", "enabled": True}]},
+                    facts={"has_audit": True, "enabled_audit_count": 1},
+                ),
+                InstanceConfigSnapshot(
+                    instance_id=configured_disabled.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    config_key="audit_info",
+                    snapshot={"server_audits": [{"name": "audit-main", "enabled": False}]},
+                    facts={"has_audit": True, "enabled_audit_count": 0},
+                ),
+            ]
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/api/v1/instances?audit_status=enabled")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert [item.get("name") for item in items] == ["sqlserver-enabled"]
+
+        response = client.get("/api/v1/instances?audit_status=configured_disabled")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert [item.get("name") for item in items] == ["sqlserver-configured-disabled"]
+
+        response = client.get("/api/v1/instances?audit_status=not_configured")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert [item.get("name") for item in items] == ["sqlserver-not-configured"]
+
+
+@pytest.mark.unit
+def test_api_v1_instances_list_filters_by_managed_status() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["instance_databases"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["instance_config_snapshots"],
+                db.metadata.tables["sync_instance_records"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+                db.metadata.tables["jumpserver_asset_snapshots"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        managed = Instance(
+            name="managed-instance",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        unmanaged = Instance(
+            name="unmanaged-instance",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.2",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        db.session.add_all([managed, unmanaged])
+        db.session.flush()
+        db.session.add(
+            JumpServerAssetSnapshot(
+                external_id="asset-1",
+                name="mysql-prod-1",
+                db_type=DatabaseType.MYSQL,
+                host="127.0.0.1",
+                port=3306,
+                raw_payload={},
+            ),
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/api/v1/instances?managed_status=managed")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert [item.get("name") for item in items] == ["managed-instance"]
+
+
+@pytest.mark.unit
 def test_api_v1_instances_detail_contract() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
