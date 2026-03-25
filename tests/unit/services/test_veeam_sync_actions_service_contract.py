@@ -8,6 +8,7 @@ from app import create_app, db
 from app.models.credential import Credential
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
+from app.models.instance import Instance
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.models.veeam_source_binding import VeeamSourceBinding
 from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
@@ -81,6 +82,7 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
             bind=db.engine,
             tables=[
                 db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
                 db.metadata.tables["veeam_source_bindings"],
                 db.metadata.tables["veeam_machine_backup_snapshots"],
                 db.metadata.tables["task_runs"],
@@ -96,7 +98,14 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
             description="Veeam",
             is_active=True,
         )
-        db.session.add(credential)
+        instance = Instance(
+            name="db01",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=True,
+        )
+        db.session.add_all([credential, instance])
         db.session.flush()
 
         binding = VeeamSourceBinding(
@@ -137,7 +146,8 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                         VeeamMachineBackupRecord(
                             machine_name="db01.domain.com",
                             backup_at=datetime(2026, 3, 25, 1, 0, tzinfo=UTC),
-                            job_name="daily-job",
+                            backup_id="backup-1",
+                            backup_file_id="file-1",
                             restore_point_name="rp-1",
                             source_record_id="rp-1",
                             raw_payload={"id": "rp-1"},
@@ -145,7 +155,8 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                         VeeamMachineBackupRecord(
                             machine_name="db01.domain.com",
                             backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
-                            job_name="daily-job",
+                            backup_id="backup-1",
+                            backup_file_id="file-2",
                             restore_point_name="rp-2",
                             source_record_id="rp-2",
                             raw_payload={"id": "rp-2"},
@@ -153,7 +164,8 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                         VeeamMachineBackupRecord(
                             machine_name="db02",
                             backup_at=datetime(2026, 3, 24, 20, 0, tzinfo=UTC),
-                            job_name="daily-job",
+                            backup_id="backup-2",
+                            backup_file_id="file-3",
                             restore_point_name="rp-3",
                             source_record_id="rp-3",
                             raw_payload={"id": "rp-3"},
@@ -163,6 +175,37 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                     snapshots_written_total=2,
                     skipped_invalid=0,
                 )
+
+            def enrich_machine_backups(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                records: list[VeeamMachineBackupRecord],
+                verify_ssl: bool | None = None,
+            ) -> list[VeeamMachineBackupRecord]:
+                captured["enriched_machine_names"] = [record.machine_name for record in records]
+                captured["enriched_record_ids"] = [record.source_record_id for record in records]
+                _ = (server_host, server_port, username, password, api_version, verify_ssl)
+                return [
+                    VeeamMachineBackupRecord(
+                        machine_name=record.machine_name,
+                        backup_at=record.backup_at,
+                        backup_id=record.backup_id,
+                        backup_file_id=record.backup_file_id,
+                        job_name="daily-job",
+                        restore_point_name=record.restore_point_name,
+                        source_record_id=record.source_record_id,
+                        restore_point_size_bytes=1024,
+                        backup_chain_size_bytes=4096,
+                        restore_point_count=3,
+                        raw_payload=record.raw_payload,
+                    )
+                    for record in records
+                ]
 
         service = VeeamSyncActionsService(provider=_StubProvider())
 
@@ -178,12 +221,19 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert captured["password"] == "VeeamPass123"
         assert captured["api_version"] == "1.3-rev1"
         assert captured["verify_ssl"] is False
+        assert captured["enriched_machine_names"] == ["db01.domain.com"]
+        assert captured["enriched_record_ids"] == ["rp-2"]
 
         snapshots = VeeamMachineBackupSnapshot.query.order_by(VeeamMachineBackupSnapshot.machine_name.asc()).all()
         assert len(snapshots) == 2
+        assert snapshots[0].job_name == "daily-job"
+        assert snapshots[0].restore_point_size_bytes == 1024
+        assert snapshots[0].backup_chain_size_bytes == 4096
+        assert snapshots[0].restore_point_count == 3
         assert snapshots[0].machine_name == "db01.domain.com"
         assert snapshots[0].restore_point_name == "rp-2"
         assert snapshots[1].machine_name == "db02"
+        assert snapshots[1].job_name is None
 
         binding = VeeamSourceBinding.query.first()
         assert binding is not None
