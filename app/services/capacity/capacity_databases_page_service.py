@@ -58,7 +58,11 @@ class CapacityDatabasesPageService:
         normalized_database_name = database.strip()
 
         instance_options = (
-            self._filter_options_service.list_instance_select_options(normalized_db_types) if normalized_db_types else []
+            self._build_capacity_instance_options(
+                self._filter_options_service.list_instance_select_options(normalized_db_types),
+            )
+            if normalized_db_types
+            else []
         )
 
         selected_instance_id = self._coerce_single_instance_id(normalized_instances)
@@ -96,6 +100,24 @@ class CapacityDatabasesPageService:
     @staticmethod
     def _build_database_type_options() -> list[dict[str, str]]:
         return [{"value": item["name"], "label": item["display_name"]} for item in DATABASE_TYPES]
+
+    @staticmethod
+    def _build_capacity_instance_options(raw_options: list[dict[str, str]]) -> list[dict[str, str]]:
+        normalized: list[dict[str, str]] = []
+        for item in raw_options:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name", "") or item.get("label", "") or "").strip()
+            normalized.append(
+                {
+                    "value": str(item.get("value", "") or ""),
+                    "label": name,
+                    "name": name,
+                    "db_type": str(item.get("db_type", "") or ""),
+                    "asset_url": str(item.get("asset_url", "") or ""),
+                },
+            )
+        return normalized
 
     @staticmethod
     def _coerce_int(value: str) -> int | None:
