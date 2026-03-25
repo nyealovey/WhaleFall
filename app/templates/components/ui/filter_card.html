@@ -3,22 +3,24 @@
         <form id="{{ form_id }}"
               method="{{ method }}"
               action="{{ action }}"
-              class="filter-form"
+              class="filter-form filter-form--{{ layout }}"
               {% if scope %}data-wf-scope="{{ scope }}"{% endif %}
               data-filter-auto="{{ 'true' if auto_register else 'false' }}"
+              data-filter-layout="{{ layout }}"
+              data-filter-actions-layout="{{ actions_layout }}"
               novalidate>
             <div class="filter-card__toolbar">
-                <div class="row g-3 align-items-end">
+                <div class="filter-card__fields">
                     {{ fields | safe }}
-                    <div class="col-md-2 col-12">
-                        <div class="filter-actions">
-                            <button type="submit" class="btn btn-primary" data-filter-submit>
-                                <i class="fas fa-filter me-1"></i>{{ submit_label }}
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter-clear>
-                                <i class="fas fa-times me-1"></i>{{ clear_label }}
-                            </button>
-                        </div>
+                </div>
+                <div class="filter-card__actions">
+                    <div class="filter-actions filter-actions--{{ actions_layout }}">
+                        <button type="submit" class="btn btn-primary" data-filter-submit>
+                            <i class="fas fa-filter me-1"></i>{{ submit_label }}
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-filter-clear>
+                            <i class="fas fa-times me-1"></i>{{ clear_label }}
+                        </button>
                     </div>
                 </div>
             </div>

@@ -197,6 +197,11 @@
     --control-padding-x-regular: 1rem;
     --control-padding-y-compact: 0.42rem;
     --control-padding-x-compact: 0.875rem;
+    --filter-field-width-sm: clamp(8.25rem, 8vw, 9.5rem);
+    --filter-field-width-md: clamp(9.5rem, 11vw, 11.5rem);
+    --filter-field-width-lg: clamp(11.5rem, 18vw, 15rem);
+    --filter-field-width-xl: clamp(14rem, 22vw, 18rem);
+    --filter-actions-inline-width: clamp(9rem, 12vw, 10.5rem);
 
     /* Modals */
     --modal-width-sm: min(92vw, 420px);
