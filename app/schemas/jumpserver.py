@@ -16,6 +16,7 @@ class JumpServerSourceBindingPayload(PayloadSchema):
 
     credential_id: int
     base_url: str
+    org_id: str | None = None
     verify_ssl: bool | None = None
 
     @field_validator("credential_id", mode="before")
@@ -48,3 +49,13 @@ class JumpServerSourceBindingPayload(PayloadSchema):
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("JumpServer URL必须是合法的 http/https 地址")
         return value
+
+    @field_validator("org_id", mode="before")
+    @classmethod
+    def _parse_org_id(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        resolved = str(value).strip()
+        if not resolved:
+            return None
+        return resolved

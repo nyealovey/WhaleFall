@@ -25,6 +25,7 @@
   const elements = {
     credentialId: document.getElementById("jumpserverCredentialId"),
     baseUrl: document.getElementById("jumpserverBaseUrl"),
+    orgId: document.getElementById("jumpserverOrgId"),
     verifySsl: document.getElementById("jumpserverVerifySsl"),
     providerStatus: document.getElementById("jumpserverProviderStatus"),
     bindingSummary: document.getElementById("jumpserverBindingSummary"),
@@ -87,7 +88,8 @@
       return;
     }
     const sslVerifyStatus = binding.verify_ssl === false ? "SSL 证书验证关闭" : "SSL 证书验证开启";
-    elements.bindingSummary.textContent = `${binding.credential.name} · ${binding.base_url || "-"} · ${sslVerifyStatus}`;
+    elements.bindingSummary.textContent =
+      `${binding.credential.name} · ${binding.base_url || "-"} · org=${binding.org_id || "-"} · ${sslVerifyStatus}`;
   }
 
   function updateSyncSummary(binding) {
@@ -122,6 +124,9 @@
     if (elements.baseUrl) {
       elements.baseUrl.value = binding?.base_url || "";
     }
+    if (elements.orgId) {
+      elements.orgId.value = binding?.org_id || payload?.default_org_id || "";
+    }
     if (elements.verifySsl instanceof HTMLInputElement) {
       if (typeof binding?.verify_ssl === "boolean") {
         elements.verifySsl.checked = binding.verify_ssl;
@@ -147,6 +152,7 @@
     event.preventDefault();
     const credentialId = Number(elements.credentialId?.value || 0);
     const baseUrl = String(elements.baseUrl?.value || "").trim();
+    const orgId = String(elements.orgId?.value || "").trim();
     const verifySsl = elements.verifySsl instanceof HTMLInputElement ? elements.verifySsl.checked : true;
     if (!credentialId) {
       toast?.error?.("请选择 API 凭据");
@@ -156,10 +162,14 @@
       toast?.error?.("请输入 JumpServer URL");
       return;
     }
+    if (!orgId) {
+      toast?.error?.("请输入 JumpServer 组织 ID");
+      return;
+    }
     const stop = setButtonBusy(elements.saveButton, "保存中...");
     try {
       const response = await service.updateBinding(
-        { credential_id: credentialId, base_url: baseUrl, verify_ssl: verifySsl },
+        { credential_id: credentialId, base_url: baseUrl, org_id: orgId, verify_ssl: verifySsl },
         csrfToken,
       );
       if (!response?.success) {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 import json
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from typing import Any
 
 import pytest
@@ -195,6 +195,30 @@ def test_http_jumpserver_provider_allows_per_request_ssl_verification_override()
 
 
 @pytest.mark.unit
+def test_http_jumpserver_provider_allows_per_request_org_id_override() -> None:
+    captured_headers: list[dict[str, str]] = []
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_headers.append({key.lower(): value for key, value in request.header_items()})
+        return _FakeResponse([])
+
+    provider = HttpJumpServerProvider(
+        org_id="00000000-0000-0000-0000-000000000002",
+        opener=_fake_opener,
+    )
+
+    provider.list_database_assets(
+        base_url="https://demo.jumpserver.org",
+        access_key_id="ak-id",
+        access_key_secret="ak-secret",
+        org_id="00000000-0000-0000-0000-000000000777",
+    )
+
+    assert captured_headers[0]["x-jms-org"] == "00000000-0000-0000-0000-000000000777"
+
+
+@pytest.mark.unit
 def test_http_jumpserver_provider_surfaces_http_error_status_url_and_response_body() -> None:
     def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
         _ = (timeout, context)
@@ -216,6 +240,32 @@ def test_http_jumpserver_provider_surfaces_http_error_status_url_and_response_bo
         )
 
     with pytest.raises(Exception, match="jumpserver upstream unavailable"):
+        provider.list_database_assets(
+            base_url="https://demo.jumpserver.org",
+            access_key_id="ak-id",
+            access_key_secret="ak-secret",
+        )
+
+
+@pytest.mark.unit
+def test_http_jumpserver_provider_surfaces_url_error_with_request_url_and_reason() -> None:
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (request, timeout, context)
+        raise URLError("[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol")
+
+    provider = HttpJumpServerProvider(opener=_fake_opener)
+
+    with pytest.raises(
+        Exception,
+        match=r"JumpServer API 网络连接失败: url=https://demo\.jumpserver\.org/api/v1/assets/assets/\?limit=200&offset=0",
+    ):
+        provider.list_database_assets(
+            base_url="https://demo.jumpserver.org",
+            access_key_id="ak-id",
+            access_key_secret="ak-secret",
+        )
+
+    with pytest.raises(Exception, match="UNEXPECTED_EOF_WHILE_READING"):
         provider.list_database_assets(
             base_url="https://demo.jumpserver.org",
             access_key_id="ak-id",
