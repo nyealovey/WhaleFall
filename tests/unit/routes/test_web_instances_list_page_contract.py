@@ -21,3 +21,5 @@ def test_web_instances_list_page_embeds_vendor_db_type_assets(auth_client, monke
     assert "db-types/postgresql.png" in html
     assert "db-types/sqlserver.png" in html
     assert "db-types/oracle.png" in html
+    assert 'id="audit_status"' in html
+    assert 'id="managed_status"' in html

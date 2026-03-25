@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, cast
 
-from sqlalchemy import func, or_
+from sqlalchemy import false, func, inspect, or_
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Subquery
@@ -26,6 +26,7 @@ from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.instance_database import InstanceDatabase
+from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
 from app.repositories.jumpserver_repository import JumpServerRepository
@@ -245,6 +246,59 @@ class InstancesRepository:
                 query = cast("Query[Any]", query).filter(Instance.is_active.is_(True))
             elif filters.status == "inactive":
                 query = cast("Query[Any]", query).filter(Instance.is_active.is_(False))
+
+        if filters.audit_status:
+            if not inspect(db.engine).has_table(InstanceConfigSnapshot.__tablename__):
+                if filters.audit_status in {"enabled", "configured_disabled"}:
+                    query = cast("Query[Any]", query).filter(false())
+            else:
+                audit_facts_text = func.lower(func.replace(InstanceConfigSnapshot.facts.cast(db.Text), " ", ""))
+                has_audit_exists = (
+                    db.session.query(InstanceConfigSnapshot.id)
+                    .filter(InstanceConfigSnapshot.instance_id == Instance.id)
+                    .filter(InstanceConfigSnapshot.config_key == "audit_info")
+                    .filter(audit_facts_text.like('%"has_audit":true%'))
+                    .exists()
+                )
+                enabled_exists = (
+                    db.session.query(InstanceConfigSnapshot.id)
+                    .filter(InstanceConfigSnapshot.instance_id == Instance.id)
+                    .filter(InstanceConfigSnapshot.config_key == "audit_info")
+                    .filter(audit_facts_text.like('%"has_audit":true%'))
+                    .filter(~audit_facts_text.like('%"enabled_audit_count":0%'))
+                    .exists()
+                )
+                configured_disabled_exists = (
+                    db.session.query(InstanceConfigSnapshot.id)
+                    .filter(InstanceConfigSnapshot.instance_id == Instance.id)
+                    .filter(InstanceConfigSnapshot.config_key == "audit_info")
+                    .filter(audit_facts_text.like('%"has_audit":true%'))
+                    .filter(audit_facts_text.like('%"enabled_audit_count":0%'))
+                    .exists()
+                )
+                if filters.audit_status == "enabled":
+                    query = cast("Query[Any]", query).filter(enabled_exists)
+                elif filters.audit_status == "configured_disabled":
+                    query = cast("Query[Any]", query).filter(configured_disabled_exists)
+                elif filters.audit_status == "not_configured":
+                    query = cast("Query[Any]", query).filter(~has_audit_exists)
+
+        if filters.managed_status:
+            if not JumpServerRepository._has_asset_snapshot_table():
+                if filters.managed_status == "managed":
+                    query = cast("Query[Any]", query).filter(false())
+            else:
+                managed_exists = (
+                    db.session.query(JumpServerAssetSnapshot.id)
+                    .filter(func.lower(JumpServerAssetSnapshot.db_type) == func.lower(Instance.db_type))
+                    .filter(func.trim(JumpServerAssetSnapshot.host) == func.trim(Instance.host))
+                    .filter(JumpServerAssetSnapshot.port == Instance.port)
+                    .exists()
+                )
+                if filters.managed_status == "managed":
+                    query = cast("Query[Any]", query).filter(managed_exists)
+                elif filters.managed_status == "unmanaged":
+                    query = cast("Query[Any]", query).filter(~managed_exists)
 
         if filters.tags:
             tag_name_column = cast(ColumnElement[str], Tag.name)

@@ -20,6 +20,17 @@ from app.utils.decorators import view_required
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
 _filter_options_service = FilterOptionsService()
+INSTANCE_AUDIT_FILTER_OPTIONS = [
+    {"value": "all", "label": "全部审计"},
+    {"value": "enabled", "label": "已启用"},
+    {"value": "configured_disabled", "label": "已配置未启用"},
+    {"value": "not_configured", "label": "未配置"},
+]
+INSTANCE_MANAGED_FILTER_OPTIONS = [
+    {"value": "all", "label": "全部托管"},
+    {"value": "managed", "label": "已托管"},
+    {"value": "unmanaged", "label": "未托管"},
+]
 
 
 @instances_bp.route("/")
@@ -37,6 +48,8 @@ def index() -> str:
     search = (request.args.get("search") or "").strip()
     db_type = (request.args.get("db_type") or "").strip()
     status_param = (request.args.get("status") or "").strip()
+    audit_status = (request.args.get("audit_status") or "").strip()
+    managed_status = (request.args.get("managed_status") or "").strip()
     include_deleted_raw = (request.args.get("include_deleted") or "").strip().lower()
     include_deleted = include_deleted_raw in {"true", "1", "on", "yes"}
     tags_raw = request.args.getlist("tags")
@@ -62,9 +75,13 @@ def index() -> str:
             database_type_map=database_type_map,
             tag_options=tag_options,
             status_options=STATUS_ACTIVE_OPTIONS,
+            audit_status_options=INSTANCE_AUDIT_FILTER_OPTIONS,
+            managed_status_options=INSTANCE_MANAGED_FILTER_OPTIONS,
             search=search,
             db_type=db_type,
             status=status_param,
+            audit_status=audit_status,
+            managed_status=managed_status,
             include_deleted=include_deleted,
             selected_tags=tags,
         )
@@ -78,6 +95,8 @@ def index() -> str:
             "search": search,
             "db_type": db_type,
             "status": status_param,
+            "audit_status": audit_status,
+            "managed_status": managed_status,
             "include_deleted": include_deleted,
             "tags_count": len(tags),
         },
