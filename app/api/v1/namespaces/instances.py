@@ -338,6 +338,8 @@ _instances_list_query_parser.add_argument("order", type=str, default="desc", loc
 _instances_list_query_parser.add_argument("search", type=str, default="", location="args")
 _instances_list_query_parser.add_argument("db_type", type=str, default="", location="args")
 _instances_list_query_parser.add_argument("status", type=str, default="", location="args")
+_instances_list_query_parser.add_argument("audit_status", type=str, default="", location="args")
+_instances_list_query_parser.add_argument("managed_status", type=str, default="", location="args")
 _instances_list_query_parser.add_argument("tags", type=str, action="append", location="args")
 _instances_list_query_parser.add_argument(
     "include_deleted",
@@ -492,6 +494,8 @@ class InstancesResource(BaseResource):
             context={
                 "search": filters.search,
                 "status": filters.status,
+                "audit_status": filters.audit_status,
+                "managed_status": filters.managed_status,
                 "include_deleted": filters.include_deleted,
             },
         )
