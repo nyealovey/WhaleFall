@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import StrictStr, field_validator, model_validator
+from pydantic import StrictStr, ValidationInfo, field_validator, model_validator
 
 from app.core.constants import DatabaseType
 from app.core.constants.validation_limits import (
@@ -53,7 +53,7 @@ def _validate_name(value: str) -> str:
     return cleaned
 
 
-def _validate_username(value: str) -> str:
+def _validate_username(value: str, *, credential_type: str | None = None) -> str:
     normalized = value.strip()
     if not normalized:
         raise ValueError("用户名不能为空")
@@ -61,6 +61,10 @@ def _validate_username(value: str) -> str:
         raise ValueError(f"用户名长度至少{CREDENTIAL_USERNAME_MIN_LENGTH}个字符")
     if len(normalized) > CREDENTIAL_USERNAME_MAX_LENGTH:
         raise ValueError(f"用户名长度不能超过{CREDENTIAL_USERNAME_MAX_LENGTH}个字符")
+    if credential_type == "veeam":
+        if not re.match(r"^[a-zA-Z0-9_.\\-]+$", normalized):
+            raise ValueError("Veeam 用户名只能包含字母、数字、下划线、连字符、点和反斜杠")
+        return normalized
     if not re.match(r"^[a-zA-Z0-9_.-]+$", normalized):
         raise ValueError("用户名只能包含字母、数字、下划线、连字符和点")
     return normalized
@@ -123,8 +127,9 @@ class CredentialCreatePayload(PayloadSchema):
 
     @field_validator("username")
     @classmethod
-    def _validate_username(cls, value: str) -> str:
-        return _validate_username(value)
+    def _validate_username(cls, value: str, info: ValidationInfo) -> str:
+        credential_type = info.data.get("credential_type") if isinstance(info.data, dict) else None
+        return _validate_username(value, credential_type=credential_type if isinstance(credential_type, str) else None)
 
     @field_validator("password")
     @classmethod
@@ -182,8 +187,9 @@ class CredentialUpdatePayload(PayloadSchema):
 
     @field_validator("username")
     @classmethod
-    def _validate_username(cls, value: str) -> str:
-        return _validate_username(value)
+    def _validate_username(cls, value: str, info: ValidationInfo) -> str:
+        credential_type = info.data.get("credential_type") if isinstance(info.data, dict) else None
+        return _validate_username(value, credential_type=credential_type if isinstance(credential_type, str) else None)
 
     @field_validator("password", mode="before")
     @classmethod
