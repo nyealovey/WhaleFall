@@ -216,6 +216,7 @@
         function buildPayload(formElement, formData, originalJob) {
             const isBuiltInJob = [
                 'sync_accounts',
+                'sync_veeam_backups',
                 'sync_databases',
                 'calculate_database',
                 'calculate_account',
