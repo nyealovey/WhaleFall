@@ -137,6 +137,7 @@ class JumpServerSyncActionsService:
                 base_url=str(binding.base_url or ""),
                 access_key_id=str(credential.username or ""),
                 access_key_secret=str(credential.get_plain_password() or ""),
+                verify_ssl=self._source_service.resolve_binding_verify_ssl(binding),
             )
             self._jumpserver_repository.replace_asset_snapshots(result.assets, sync_run_id=run_id, synced_at=synced_at)
             binding.last_sync_at = synced_at
