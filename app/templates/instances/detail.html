@@ -265,10 +265,10 @@
                                         </article>
                                     </div>
 
-                                    <div class="instance-overview-band__controls">
-                                        <form id="instance-databases-filter-form" action="#" class="instance-overview-band__toolbar">
+                                    <div class="instance-overview-band__controls filter-band">
+                                        <form id="instance-databases-filter-form" action="#" class="instance-overview-band__toolbar filter-band__form">
                                             <input type="hidden" name="latest_only" value="true">
-                                            <div class="form-check form-switch mb-0 instance-overview-band__toggle">
+                                            <div class="form-check form-switch mb-0 instance-overview-band__toggle filter-band__toggle">
                                                 <input class="form-check-input" type="checkbox" role="switch" id="showDeletedDatabases"
                                                        name="include_inactive"
                                                        value="true"
@@ -277,7 +277,7 @@
                                                     <i class="fas fa-eye me-1"></i>显示已删除数据库
                                                 </label>
                                             </div>
-                                            <div class="input-group input-group-sm instance-overview-band__search">
+                                            <div class="input-group input-group-sm instance-overview-band__search filter-band__field filter-band__field--lg">
                                                 <span class="input-group-text">
                                                     <i class="fas fa-search"></i>
                                                 </span>
@@ -290,7 +290,7 @@
                                                        autocomplete="off">
                                             </div>
                                         </form>
-                                        <div class="instance-overview-band__realtime">
+                                        <div class="instance-overview-band__realtime filter-band__meta">
                                             <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
                                         </div>
                                     </div>
@@ -364,9 +364,9 @@
                                     </article>
                                 </div>
 
-                                <div class="instance-overview-band__controls">
-	                                <form id="instance-accounts-filter-form" action="#" class="instance-overview-band__toolbar">
-	                                    <div class="form-check form-switch mb-0 instance-overview-band__toggle">
+                                <div class="instance-overview-band__controls filter-band">
+	                                <form id="instance-accounts-filter-form" action="#" class="instance-overview-band__toolbar filter-band__form">
+	                                    <div class="form-check form-switch mb-0 instance-overview-band__toggle filter-band__toggle">
 	                                        <input class="form-check-input" type="checkbox" role="switch" id="showDeletedAccounts"
 	                                               name="include_deleted"
 	                                               value="true"
@@ -375,7 +375,7 @@
 	                                            <i class="fas fa-eye-slash me-1"></i>显示已删除账户
 	                                        </label>
 	                                    </div>
-	                                    <div class="input-group input-group-sm instance-overview-band__search">
+	                                    <div class="input-group input-group-sm instance-overview-band__search filter-band__field filter-band__field--lg">
 	                                        <span class="input-group-text">
 	                                            <i class="fas fa-search"></i>
 	                                        </span>
@@ -388,7 +388,7 @@
 	                                               autocomplete="off">
 	                                    </div>
 	                                </form>
-                                    <div class="instance-overview-band__realtime">
+                                    <div class="instance-overview-band__realtime filter-band__meta">
 	                                    <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
                                     </div>
                                 </div>

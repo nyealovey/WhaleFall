@@ -73,3 +73,31 @@ def test_instances_detail_page_keeps_manual_sync_buttons_enabled_for_disabled_in
     for action in ('sync-accounts', 'sync-capacity', 'sync-audit-info'):
         segment = html.split(f'data-action="{action}"', 1)[1].split('>', 1)[0]
         assert 'disabled title="实例已停用' not in segment
+
+
+@pytest.mark.unit
+def test_instances_detail_page_uses_shared_filter_band_classes(app, auth_client) -> None:
+    _ensure_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="mysql-filter-band",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    response = auth_client.get(f"/instances/{instance_id}")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'id="instance-accounts-filter-form"' in html
+    assert 'id="instance-databases-filter-form"' in html
+    assert "filter-band__form" in html
+    assert "filter-band__toggle" in html
+    assert "filter-band__field filter-band__field--lg" in html
+    assert "filter-band__meta" in html
