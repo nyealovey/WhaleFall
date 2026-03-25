@@ -14,6 +14,7 @@ class JumpServerSourceBinding(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=False, unique=True)
     base_url = db.Column(db.String(512), nullable=False)
+    org_id = db.Column(db.String(64), nullable=True)
     verify_ssl = db.Column(db.Boolean, nullable=True)
     is_enabled = db.Column(db.Boolean, nullable=False, default=True)
     last_sync_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -30,6 +31,7 @@ class JumpServerSourceBinding(db.Model):
         return {
             "credential_id": self.credential_id,
             "base_url": self.base_url,
+            "org_id": self.org_id,
             "verify_ssl": bool(self.verify_ssl) if self.verify_ssl is not None else None,
             "is_enabled": bool(self.is_enabled),
             "last_sync_at": self.last_sync_at.isoformat() if self.last_sync_at else None,

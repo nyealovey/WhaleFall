@@ -100,6 +100,7 @@ def test_sync_once_writes_snapshots_updates_binding_and_finalizes_task_run() -> 
         binding = JumpServerSourceBinding(
             credential_id=credential.id,
             base_url="https://demo.jumpserver.org",
+            org_id="00000000-0000-0000-0000-000000000777",
             verify_ssl=False,
         )
         db.session.add(binding)
@@ -117,11 +118,13 @@ def test_sync_once_writes_snapshots_updates_binding_and_finalizes_task_run() -> 
                 base_url: str,
                 access_key_id: str,
                 access_key_secret: str,
+                org_id: str | None = None,
                 verify_ssl: bool | None = None,
             ):
                 captured["base_url"] = base_url
                 captured["access_key_id"] = access_key_id
                 captured["access_key_secret"] = access_key_secret
+                captured["org_id"] = org_id
                 captured["verify_ssl"] = verify_ssl
                 return JumpServerAssetCollection(
                     assets=[
@@ -149,6 +152,7 @@ def test_sync_once_writes_snapshots_updates_binding_and_finalizes_task_run() -> 
         db.session.commit()
 
         assert captured["verify_ssl"] is False
+        assert captured["org_id"] == "00000000-0000-0000-0000-000000000777"
 
         snapshot = JumpServerAssetSnapshot.query.filter_by(external_id="asset-1").first()
         assert snapshot is not None
@@ -231,9 +235,10 @@ def test_sync_once_failure_marks_binding_and_task_run_failed_and_preserves_exist
                 base_url: str,
                 access_key_id: str,
                 access_key_secret: str,
+                org_id: str | None = None,
                 verify_ssl: bool | None = None,
             ):
-                _ = (base_url, access_key_id, access_key_secret, verify_ssl)
+                _ = (base_url, access_key_id, access_key_secret, org_id, verify_ssl)
                 raise RuntimeError("provider boom")
 
         service = JumpServerSyncActionsService(provider=_StubProvider())

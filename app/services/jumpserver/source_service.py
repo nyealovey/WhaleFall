@@ -35,6 +35,7 @@ class JumpServerSourceService:
             "binding": self._serialize_binding(binding),
             "api_credentials": [self._serialize_credential(credential) for credential in api_credentials],
             "provider_ready": self._provider.is_configured(),
+            "default_org_id": self._resolve_default_org_id(),
             "default_verify_ssl": self._resolve_default_verify_ssl(),
         }
 
@@ -43,6 +44,7 @@ class JumpServerSourceService:
         *,
         credential_id: int,
         base_url: str,
+        org_id: str | None = None,
         verify_ssl: bool | None = None,
     ) -> JumpServerSourceBinding:
         """绑定 JumpServer API 凭据."""
@@ -52,16 +54,20 @@ class JumpServerSourceService:
         self._ensure_bindable_credential(credential)
 
         binding = self._jumpserver_repository.get_binding()
+        resolved_org_id = self._resolve_default_org_id() if org_id is None else str(org_id).strip()
         resolved_verify_ssl = self._resolve_default_verify_ssl() if verify_ssl is None else bool(verify_ssl)
         if binding is None:
             binding = JumpServerSourceBinding(
                 credential_id=credential.id,
                 base_url=base_url,
+                org_id=resolved_org_id,
                 verify_ssl=resolved_verify_ssl,
             )
         else:
             binding.credential_id = credential.id
             binding.base_url = base_url
+            if org_id is not None or binding.org_id is None:
+                binding.org_id = resolved_org_id
             if verify_ssl is not None or binding.verify_ssl is None:
                 binding.verify_ssl = resolved_verify_ssl
             binding.is_enabled = True
@@ -91,6 +97,15 @@ class JumpServerSourceService:
             return self._resolve_default_verify_ssl()
         return bool(binding.verify_ssl)
 
+    def resolve_binding_org_id(self, binding: JumpServerSourceBinding | None) -> str:
+        """返回绑定生效后的 org_id."""
+        if binding is None:
+            return self._resolve_default_org_id()
+        resolved = str(binding.org_id or "").strip()
+        if resolved:
+            return resolved
+        return self._resolve_default_org_id()
+
     @staticmethod
     def _ensure_bindable_credential(credential: object) -> None:
         credential_type = str(getattr(credential, "credential_type", "") or "").strip().lower()
@@ -111,11 +126,24 @@ class JumpServerSourceService:
         if binding is None:
             return None
         data = binding.to_dict()
+        data["org_id"] = self.resolve_binding_org_id(binding)
         data["verify_ssl"] = self.resolve_binding_verify_ssl(binding)
         credential = getattr(binding, "credential", None)
         if credential is not None:
             data["credential"] = self._serialize_credential(credential)
         return data
+
+    @staticmethod
+    def _resolve_default_org_id() -> str:
+        if has_app_context():
+            return str(
+                current_app.config.get(
+                    "JUMPSERVER_ORG_ID",
+                    Settings.model_fields["jumpserver_org_id"].default,
+                )
+                or ""
+            ).strip()
+        return str(Settings.load().jumpserver_org_id or "").strip()
 
     @staticmethod
     def _resolve_default_verify_ssl() -> bool:

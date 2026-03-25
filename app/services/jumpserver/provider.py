@@ -15,7 +15,7 @@ import ssl
 from dataclasses import dataclass
 from email.utils import formatdate
 from typing import Any, Protocol
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import Request, urlopen
 
@@ -70,6 +70,7 @@ class JumpServerProvider(Protocol):
         base_url: str,
         access_key_id: str,
         access_key_secret: str,
+        org_id: str | None = None,
         verify_ssl: bool | None = None,
     ) -> JumpServerAssetCollection:
         """返回数据库类资产列表与统计."""
@@ -90,9 +91,10 @@ class DeferredJumpServerProvider:
         base_url: str,
         access_key_id: str,
         access_key_secret: str,
+        org_id: str | None = None,
         verify_ssl: bool | None = None,
     ) -> JumpServerAssetCollection:
-        _ = verify_ssl
+        _ = (org_id, verify_ssl)
         raise NotImplementedError("JumpServer Provider 尚未接入真实 API")
 
 
@@ -135,7 +137,7 @@ class HttpJumpServerProvider:
         }
 
     def is_configured(self) -> bool:
-        return bool(self._org_id) and self._timeout_seconds > 0
+        return self._timeout_seconds > 0
 
     def list_database_assets(
         self,
@@ -143,6 +145,7 @@ class HttpJumpServerProvider:
         base_url: str,
         access_key_id: str,
         access_key_secret: str,
+        org_id: str | None = None,
         verify_ssl: bool | None = None,
     ) -> JumpServerAssetCollection:
         assets: list[JumpServerDatabaseAsset] = []
@@ -155,6 +158,7 @@ class HttpJumpServerProvider:
                 url=next_url,
                 access_key_id=access_key_id,
                 access_key_secret=access_key_secret,
+                org_id=org_id,
                 verify_ssl=verify_ssl,
             )
             page_items, raw_next_url = self._parse_page_payload(payload)
@@ -207,6 +211,7 @@ class HttpJumpServerProvider:
         url: str,
         access_key_id: str,
         access_key_secret: str,
+        org_id: str | None = None,
         verify_ssl: bool | None = None,
     ) -> object:
         request_target = self._build_request_target(url)
@@ -236,7 +241,7 @@ class HttpJumpServerProvider:
             headers={
                 "Accept": JUMPSERVER_ACCEPT_HEADER,
                 "Date": date_header,
-                "X-JMS-ORG": self._org_id,
+                "X-JMS-ORG": str(org_id or self._org_id).strip(),
                 "Authorization": authorization,
             },
             method="GET",
@@ -248,6 +253,8 @@ class HttpJumpServerProvider:
                 payload_bytes = response.read()
         except HTTPError as exc:
             raise RuntimeError(self._build_http_error_message(exc)) from exc
+        except URLError as exc:
+            raise RuntimeError(self._build_url_error_message(url=url, error=exc)) from exc
         return json.loads(payload_bytes.decode("utf-8"))
 
     @staticmethod
@@ -273,6 +280,11 @@ class HttpJumpServerProvider:
         if not text:
             return ""
         return text[:300]
+
+    @staticmethod
+    def _build_url_error_message(*, url: str, error: URLError) -> str:
+        reason = getattr(error, "reason", error)
+        return f"JumpServer API 网络连接失败: url={url} reason={reason}"
 
     @staticmethod
     def _build_request_target(url: str) -> str:
