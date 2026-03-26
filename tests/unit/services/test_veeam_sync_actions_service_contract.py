@@ -71,7 +71,12 @@ def test_prepare_background_sync_uses_system_settings_anchor(monkeypatch) -> Non
     assert prepared.run_id == "run-veeam-1"
     assert captured["task_key"] == "sync_veeam_backups"
     assert captured["result_url"] == "/admin/system-settings#system-settings-veeam"
-    assert captured_items == [("step", "sync_backups", "同步 Veeam 备份")]
+    assert captured_items == [
+        ("step", "fetch_backup_objects", "获取 backupObjects"),
+        ("step", "match_backup_objects", "匹配目标备份对象"),
+        ("step", "fetch_restore_points", "拉取 restorePoints"),
+        ("step", "write_snapshots", "写入快照"),
+    ]
 
 
 @pytest.mark.unit
@@ -160,7 +165,7 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
             def is_configured(self) -> bool:
                 return True
 
-            def list_machine_backups(
+            def create_session(
                 self,
                 *,
                 server_host: str,
@@ -168,18 +173,62 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                 username: str,
                 password: str,
                 api_version: str,
-                match_machine_names: set[str] | None = None,
                 verify_ssl: bool | None = None,
-            ) -> VeeamMachineBackupCollection:
+            ) -> object:
                 captured["server_host"] = server_host
                 captured["server_port"] = server_port
                 captured["username"] = username
                 captured["password"] = password
                 captured["api_version"] = api_version
-                captured["match_machine_names"] = set(match_machine_names or set())
                 captured["verify_ssl"] = verify_ssl
-                return VeeamMachineBackupCollection(
-                    records=[
+                return object()
+
+            def fetch_backup_objects(self, *, session: object) -> list[dict[str, object]]:
+                captured["session_used_for_fetch"] = session is not None
+                return [
+                    {"id": "backup-1", "name": "db01.domain.com"},
+                    {"id": "backup-2", "name": "unmatched.domain.com"},
+                ]
+
+            def match_backup_objects(
+                self,
+                *,
+                backup_items: list[dict[str, object]],
+                match_machine_names: set[str] | None = None,
+            ) -> object:
+                captured["match_machine_names"] = set(match_machine_names or set())
+                captured["backup_items_total"] = len(backup_items)
+
+                class _MatchResult:
+                    matched_backup_objects = [
+                        type(
+                            "MatchedBackupObject",
+                            (),
+                            {
+                                "backup_object_id": "backup-1",
+                                "machine_name": "db01.domain.com",
+                                "backup_item": {"id": "backup-1", "name": "db01.domain.com"},
+                            },
+                        )()
+                    ]
+                    backups_received_total = 2
+                    backups_matched_total = 1
+                    backups_unmatched_total = 1
+                    backups_missing_machine_name = 0
+                    matched_backup_ids_sample = ["backup-1"]
+                    unmatched_backup_ids_sample = ["backup-2"]
+                    unmatched_machine_names_sample = ["unmatched.domain.com"]
+                    missing_machine_name_backup_ids_sample: list[str] = []
+                    missing_machine_name_backup_names_sample: list[str] = []
+
+                return _MatchResult()
+
+            def fetch_restore_point_records(self, *, session: object, match_result: object) -> object:
+                captured["restore_session_used"] = session is not None
+                captured["matched_backup_objects_total"] = len(getattr(match_result, "matched_backup_objects", []))
+
+                class _RestorePointsResult:
+                    records = [
                         VeeamMachineBackupRecord(
                             machine_name="db01.domain.com",
                             backup_at=datetime(2026, 3, 25, 1, 0, tzinfo=UTC),
@@ -207,11 +256,14 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                             source_record_id="rp-1b",
                             raw_payload={"id": "rp-1b"},
                         ),
-                    ],
-                    received_total=3,
-                    snapshots_written_total=3,
-                    skipped_invalid=0,
-                )
+                    ]
+                    received_total = 3
+                    snapshots_written_total = 3
+                    skipped_invalid = 0
+                    restore_points_backup_objects_total = 1
+                    restore_points_backup_objects_completed = 1
+
+                return _RestorePointsResult()
 
         service = VeeamSyncActionsService(provider=_StubProvider())
 
@@ -253,17 +305,27 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
         assert run is not None
         assert run.status == "completed"
-        assert run.progress_total == 1
-        assert run.progress_completed == 1
+        assert run.progress_total == 4
+        assert run.progress_completed == 4
         assert run.progress_failed == 0
         assert run.summary_json["ext"]["type"] == "sync_veeam_backups"
         assert run.summary_json["ext"]["data"]["backups"]["received_total"] == 3
         assert run.summary_json["ext"]["data"]["backups"]["snapshots_written_total"] == 1
 
-        item = TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step", item_key="sync_backups").first()
-        assert item is not None
-        assert item.status == "completed"
-        assert item.metrics_json["snapshots_written_total"] == 1
+        items = {
+            item.item_key: item
+            for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+        }
+        assert set(items) == {"fetch_backup_objects", "match_backup_objects", "fetch_restore_points", "write_snapshots"}
+        assert items["fetch_backup_objects"].status == "completed"
+        assert items["fetch_backup_objects"].metrics_json["backup_objects_received_total"] == 2
+        assert "共拉取 2 个 backupObjects" in items["fetch_backup_objects"].details_json["summary"]
+        assert items["match_backup_objects"].status == "completed"
+        assert items["match_backup_objects"].metrics_json["matched_backup_objects_total"] == 1
+        assert items["fetch_restore_points"].status == "completed"
+        assert items["fetch_restore_points"].metrics_json["restore_points_backup_objects_completed"] == 1
+        assert items["write_snapshots"].status == "completed"
+        assert items["write_snapshots"].metrics_json["snapshots_written_total"] == 1
 
 
 @pytest.mark.unit
@@ -324,7 +386,7 @@ def test_sync_once_logs_candidate_pool_and_unmatched_backup_summary(monkeypatch)
             def is_configured(self) -> bool:
                 return True
 
-            def list_machine_backups(
+            def create_session(
                 self,
                 *,
                 server_host: str,
@@ -332,25 +394,52 @@ def test_sync_once_logs_candidate_pool_and_unmatched_backup_summary(monkeypatch)
                 username: str,
                 password: str,
                 api_version: str,
-                match_machine_names: set[str] | None = None,
                 verify_ssl: bool | None = None,
-            ) -> VeeamMachineBackupCollection:
-                _ = (server_host, server_port, username, password, api_version, match_machine_names, verify_ssl)
-                return VeeamMachineBackupCollection(
-                    records=[],
-                    received_total=0,
-                    snapshots_written_total=0,
-                    skipped_invalid=0,
-                    backups_received_total=2,
-                    backups_matched_total=0,
-                    backups_unmatched_total=1,
-                    backups_missing_machine_name=1,
-                    matched_backup_ids_sample=[],
-                    unmatched_backup_ids_sample=["backup-2"],
-                    unmatched_machine_names_sample=["unmatched.domain.com"],
-                    missing_machine_name_backup_ids_sample=["backup-1"],
-                    missing_machine_name_backup_names_sample=["daily-job-1"],
-                )
+            ) -> object:
+                _ = (server_host, server_port, username, password, api_version, verify_ssl)
+                return object()
+
+            def fetch_backup_objects(self, *, session: object) -> list[dict[str, object]]:
+                _ = session
+                return [
+                    {"id": "backup-1", "name": "db01.domain.com"},
+                    {"id": "backup-2", "name": "unmatched.domain.com"},
+                ]
+
+            def match_backup_objects(
+                self,
+                *,
+                backup_items: list[dict[str, object]],
+                match_machine_names: set[str] | None = None,
+            ) -> object:
+                _ = (backup_items, match_machine_names)
+
+                class _MatchResult:
+                    matched_backup_objects: list[object] = []
+                    backups_received_total = 2
+                    backups_matched_total = 0
+                    backups_unmatched_total = 1
+                    backups_missing_machine_name = 1
+                    matched_backup_ids_sample: list[str] = []
+                    unmatched_backup_ids_sample = ["backup-2"]
+                    unmatched_machine_names_sample = ["unmatched.domain.com"]
+                    missing_machine_name_backup_ids_sample = ["backup-1"]
+                    missing_machine_name_backup_names_sample = ["daily-job-1"]
+
+                return _MatchResult()
+
+            def fetch_restore_point_records(self, *, session: object, match_result: object) -> object:
+                _ = (session, match_result)
+
+                class _RestorePointsResult:
+                    records: list[VeeamMachineBackupRecord] = []
+                    received_total = 0
+                    snapshots_written_total = 0
+                    skipped_invalid = 0
+                    restore_points_backup_objects_total = 0
+                    restore_points_backup_objects_completed = 0
+
+                return _RestorePointsResult()
 
         service = VeeamSyncActionsService(provider=_StubProvider())
         prepared = service.prepare_background_sync(created_by=1)
@@ -427,7 +516,7 @@ def test_sync_once_accepts_snapshot_without_enrichment_fields() -> None:
             def is_configured(self) -> bool:
                 return True
 
-            def list_machine_backups(
+            def create_session(
                 self,
                 *,
                 server_host: str,
@@ -435,12 +524,52 @@ def test_sync_once_accepts_snapshot_without_enrichment_fields() -> None:
                 username: str,
                 password: str,
                 api_version: str,
-                match_machine_names: set[str] | None = None,
                 verify_ssl: bool | None = None,
-            ) -> VeeamMachineBackupCollection:
-                _ = (server_host, server_port, username, password, api_version, match_machine_names, verify_ssl)
-                return VeeamMachineBackupCollection(
-                    records=[
+            ) -> object:
+                _ = (server_host, server_port, username, password, api_version, verify_ssl)
+                return object()
+
+            def fetch_backup_objects(self, *, session: object) -> list[dict[str, object]]:
+                _ = session
+                return [{"id": "backup-1", "name": "db01.domain.com"}]
+
+            def match_backup_objects(
+                self,
+                *,
+                backup_items: list[dict[str, object]],
+                match_machine_names: set[str] | None = None,
+            ) -> object:
+                _ = (backup_items, match_machine_names)
+
+                class _MatchResult:
+                    matched_backup_objects = [
+                        type(
+                            "MatchedBackupObject",
+                            (),
+                            {
+                                "backup_object_id": "backup-1",
+                                "machine_name": "db01.domain.com",
+                                "backup_item": {"id": "backup-1", "name": "db01.domain.com"},
+                            },
+                        )()
+                    ]
+                    backups_received_total = 1
+                    backups_matched_total = 1
+                    backups_unmatched_total = 0
+                    backups_missing_machine_name = 0
+                    matched_backup_ids_sample = ["backup-1"]
+                    unmatched_backup_ids_sample: list[str] = []
+                    unmatched_machine_names_sample: list[str] = []
+                    missing_machine_name_backup_ids_sample: list[str] = []
+                    missing_machine_name_backup_names_sample: list[str] = []
+
+                return _MatchResult()
+
+            def fetch_restore_point_records(self, *, session: object, match_result: object) -> object:
+                _ = (session, match_result)
+
+                class _RestorePointsResult:
+                    records = [
                         VeeamMachineBackupRecord(
                             machine_name="db01.domain.com",
                             backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
@@ -450,11 +579,14 @@ def test_sync_once_accepts_snapshot_without_enrichment_fields() -> None:
                             source_record_id="rp-1",
                             raw_payload={"id": "rp-1"},
                         )
-                    ],
-                    received_total=1,
-                    snapshots_written_total=1,
-                    skipped_invalid=0,
-                )
+                    ]
+                    received_total = 1
+                    snapshots_written_total = 1
+                    skipped_invalid = 0
+                    restore_points_backup_objects_total = 1
+                    restore_points_backup_objects_completed = 1
+
+                return _RestorePointsResult()
 
         service = VeeamSyncActionsService(provider=_StubProvider())
         prepared = service.prepare_background_sync(created_by=1)
@@ -469,3 +601,157 @@ def test_sync_once_accepts_snapshot_without_enrichment_fields() -> None:
         assert snapshots[0].backup_chain_size_bytes is None
         assert snapshots[0].restore_point_count == 1
         assert snapshots[0].raw_payload["restore_point_times"] == ["2026-03-25T02:00:00+00:00"]
+
+
+@pytest.mark.unit
+def test_sync_once_marks_restore_points_stage_failed_with_progress_details() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
+            ],
+        )
+
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            description="Veeam",
+            is_active=True,
+        )
+        instance = Instance(
+            name="db01",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=True,
+        )
+        db.session.add_all([credential, instance])
+        db.session.flush()
+
+        binding = VeeamSourceBinding(
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+            match_domains=["domain.com"],
+        )
+        db.session.add(binding)
+        db.session.commit()
+
+        class _RestorePointsError(RuntimeError):
+            def __init__(self) -> None:
+                super().__init__("Veeam API 请求超时: timeout=60s url=https://10.0.0.10:9419/api/v1/backupObjects/backup-2/restorePoints")
+                self.matched_backup_objects_total = 2
+                self.completed_backup_objects_total = 1
+                self.failed_backup_object_id = "backup-2"
+                self.failed_machine_name = "db02.domain.com"
+                self.failed_url = "https://10.0.0.10:9419/api/v1/backupObjects/backup-2/restorePoints"
+
+        class _StubProvider:
+            def is_configured(self) -> bool:
+                return True
+
+            def create_session(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                verify_ssl: bool | None = None,
+            ) -> object:
+                _ = (server_host, server_port, username, password, api_version, verify_ssl)
+                return object()
+
+            def fetch_backup_objects(self, *, session: object) -> list[dict[str, object]]:
+                _ = session
+                return [
+                    {"id": "backup-1", "name": "db01.domain.com"},
+                    {"id": "backup-2", "name": "db02.domain.com"},
+                ]
+
+            def match_backup_objects(
+                self,
+                *,
+                backup_items: list[dict[str, object]],
+                match_machine_names: set[str] | None = None,
+            ) -> object:
+                _ = (backup_items, match_machine_names)
+
+                class _MatchResult:
+                    matched_backup_objects = [
+                        type(
+                            "MatchedBackupObject",
+                            (),
+                            {
+                                "backup_object_id": "backup-1",
+                                "machine_name": "db01.domain.com",
+                                "backup_item": {"id": "backup-1", "name": "db01.domain.com"},
+                            },
+                        )(),
+                        type(
+                            "MatchedBackupObject",
+                            (),
+                            {
+                                "backup_object_id": "backup-2",
+                                "machine_name": "db02.domain.com",
+                                "backup_item": {"id": "backup-2", "name": "db02.domain.com"},
+                            },
+                        )(),
+                    ]
+                    backups_received_total = 2
+                    backups_matched_total = 2
+                    backups_unmatched_total = 0
+                    backups_missing_machine_name = 0
+                    matched_backup_ids_sample = ["backup-1", "backup-2"]
+                    unmatched_backup_ids_sample: list[str] = []
+                    unmatched_machine_names_sample: list[str] = []
+                    missing_machine_name_backup_ids_sample: list[str] = []
+                    missing_machine_name_backup_names_sample: list[str] = []
+
+                return _MatchResult()
+
+            def fetch_restore_point_records(self, *, session: object, match_result: object) -> object:
+                _ = (session, match_result)
+                raise _RestorePointsError()
+
+        service = VeeamSyncActionsService(provider=_StubProvider())
+        prepared = service.prepare_background_sync(created_by=1)
+        db.session.commit()
+
+        with pytest.raises(RuntimeError, match="timeout=60s"):
+            service._sync_once(created_by=1, run_id=prepared.run_id, credential_id=credential.id)
+
+        run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
+        assert run is not None
+        assert run.status == "failed"
+        assert run.progress_total == 4
+        assert run.progress_completed == 2
+        assert run.progress_failed == 1
+
+        items = {
+            item.item_key: item
+            for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+        }
+        assert items["fetch_backup_objects"].status == "completed"
+        assert items["match_backup_objects"].status == "completed"
+        assert items["fetch_restore_points"].status == "failed"
+        assert items["fetch_restore_points"].started_at is not None
+        assert items["fetch_restore_points"].details_json["restore_points_backup_objects_completed"] == 1
+        assert items["fetch_restore_points"].details_json["matched_backup_objects_total"] == 2
+        assert items["fetch_restore_points"].details_json["failed_backup_object_id"] == "backup-2"
+        assert items["fetch_restore_points"].details_json["failed_url"].endswith("/backup-2/restorePoints")
+        assert items["write_snapshots"].status == "pending"
