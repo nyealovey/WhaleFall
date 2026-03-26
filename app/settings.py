@@ -84,6 +84,7 @@ DEFAULT_JUMPSERVER_VERIFY_SSL = True
 DEFAULT_VEEAM_PORT = 9419
 DEFAULT_VEEAM_API_VERSION = "1.3-rev1"
 DEFAULT_VEEAM_REQUEST_TIMEOUT_SECONDS = 15
+DEFAULT_VEEAM_BACKUP_OBJECTS_LIMIT = 2000
 DEFAULT_VEEAM_VERIFY_SSL = True
 
 _BUILD_HASH_PATTERN = re.compile(r"^[0-9a-fA-F]{7,64}$")
@@ -273,6 +274,10 @@ class Settings(BaseSettings):
         default=DEFAULT_VEEAM_REQUEST_TIMEOUT_SECONDS,
         validation_alias="VEEAM_REQUEST_TIMEOUT_SECONDS",
     )
+    veeam_backup_objects_limit: int = Field(
+        default=DEFAULT_VEEAM_BACKUP_OBJECTS_LIMIT,
+        validation_alias="VEEAM_BACKUP_OBJECTS_LIMIT",
+    )
     veeam_verify_ssl: bool = Field(default=DEFAULT_VEEAM_VERIFY_SSL, validation_alias="VEEAM_VERIFY_SSL")
 
     aggregation_enabled: bool = Field(default=DEFAULT_AGGREGATION_ENABLED, validation_alias="AGGREGATION_ENABLED")
@@ -430,6 +435,7 @@ class Settings(BaseSettings):
             "VEEAM_PORT": self.veeam_port,
             "VEEAM_API_VERSION": self.veeam_api_version,
             "VEEAM_REQUEST_TIMEOUT_SECONDS": self.veeam_request_timeout_seconds,
+            "VEEAM_BACKUP_OBJECTS_LIMIT": self.veeam_backup_objects_limit,
             "VEEAM_VERIFY_SSL": self.veeam_verify_ssl,
             "AGGREGATION_ENABLED": self.aggregation_enabled,
             "AGGREGATION_HOUR": self.aggregation_hour,
@@ -613,6 +619,7 @@ class Settings(BaseSettings):
             ("JUMPSERVER_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.jumpserver_request_timeout_seconds <= 0),
             ("VEEAM_PORT 必须为正整数", self.veeam_port <= 0),
             ("VEEAM_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.veeam_request_timeout_seconds <= 0),
+            ("VEEAM_BACKUP_OBJECTS_LIMIT 必须为正整数", self.veeam_backup_objects_limit <= 0),
         ]
         for message, condition in checks:
             if condition:

@@ -109,6 +109,7 @@ class HttpVeeamProvider:
     ) -> None:
         resolved_settings = self._resolve_settings()
         self._timeout_seconds = int(timeout_seconds or resolved_settings["timeout_seconds"])
+        self._backup_objects_limit = int(resolved_settings["backup_objects_limit"])
         self._verify_ssl = bool(resolved_settings["verify_ssl"] if verify_ssl is None else verify_ssl)
         self._opener = opener
 
@@ -120,6 +121,10 @@ class HttpVeeamProvider:
                     "VEEAM_REQUEST_TIMEOUT_SECONDS",
                     Settings.model_fields["veeam_request_timeout_seconds"].default,
                 ),
+                "backup_objects_limit": current_app.config.get(
+                    "VEEAM_BACKUP_OBJECTS_LIMIT",
+                    Settings.model_fields["veeam_backup_objects_limit"].default,
+                ),
                 "verify_ssl": current_app.config.get(
                     "VEEAM_VERIFY_SSL",
                     Settings.model_fields["veeam_verify_ssl"].default,
@@ -128,6 +133,7 @@ class HttpVeeamProvider:
         settings = Settings.load()
         return {
             "timeout_seconds": settings.veeam_request_timeout_seconds,
+            "backup_objects_limit": settings.veeam_backup_objects_limit,
             "verify_ssl": settings.veeam_verify_ssl,
         }
 
@@ -155,7 +161,7 @@ class HttpVeeamProvider:
             verify_ssl=resolved_verify_ssl,
         )
         backup_items = self._collect_paginated_items(
-            url=f"{base_url}{VEEAM_BACKUP_OBJECTS_PATH}",
+            url=self._build_backup_objects_url(base_url=base_url, limit=self._backup_objects_limit),
             access_token=access_token,
             api_version=api_version,
             verify_ssl=resolved_verify_ssl,
@@ -500,6 +506,10 @@ class HttpVeeamProvider:
         return f"{base_url}{VEEAM_BACKUP_OBJECTS_PATH}/{str(backup_object_id).strip()}/restorePoints"
 
     @staticmethod
+    def _build_backup_objects_url(*, base_url: str, limit: int) -> str:
+        return f"{base_url}{VEEAM_BACKUP_OBJECTS_PATH}?limit={int(limit)}"
+
+    @staticmethod
     def _build_backup_files_url(*, base_url: str, backup_id: str | None) -> str | None:
         if not backup_id:
             return None
@@ -591,6 +601,8 @@ class HttpVeeamProvider:
 
         parsed = urlsplit(current_url)
         query_items = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        for key in ("page", "pageSize", "page_size", "perPage", "per_page", "skip", "offset", "limit"):
+            query_items.pop(key, None)
         next_page = page + 1
         query_items["page"] = str(next_page)
         if any(key in payload for key in ("pageSize", "page_size")):
@@ -613,6 +625,8 @@ class HttpVeeamProvider:
 
         parsed = urlsplit(current_url)
         query_items = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        for key in ("page", "pageSize", "page_size", "perPage", "per_page", "skip", "offset", "limit"):
+            query_items.pop(key, None)
         if "skip" in payload and "offset" not in payload:
             query_items["skip"] = str(offset + limit)
         else:
