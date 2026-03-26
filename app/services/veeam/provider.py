@@ -63,6 +63,9 @@ class VeeamMachineBackupCollection:
     missing_machine_name_backup_names_sample: list[str] = field(default_factory=list)
     restore_points_backup_objects_total: int = 0
     restore_points_backup_objects_completed: int = 0
+    timed_out_backup_objects_total: int = 0
+    timed_out_backup_ids_sample: list[str] = field(default_factory=list)
+    timed_out_machine_names_sample: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +122,10 @@ class VeeamRestorePointsFetchError(RuntimeError):
         self.failed_backup_object_id = failed_backup_object_id
         self.failed_machine_name = failed_machine_name
         self.failed_url = failed_url
+
+
+class VeeamRequestTimeoutError(RuntimeError):
+    """Veeam 单次请求超时."""
 
 
 class VeeamProvider(Protocol):
@@ -323,6 +330,9 @@ class HttpVeeamProvider:
         received_total = 0
         matched_backup_objects_total = len(match_result.matched_backup_objects)
         completed_backup_objects_total = 0
+        timed_out_backup_objects_total = 0
+        timed_out_backup_ids_sample: list[str] = []
+        timed_out_machine_names_sample: list[str] = []
 
         for matched_backup_object in match_result.matched_backup_objects:
             failed_url = self._build_backup_restore_points_url(
@@ -336,6 +346,13 @@ class HttpVeeamProvider:
                     api_version=session.api_version,
                     verify_ssl=session.verify_ssl,
                 )
+            except VeeamRequestTimeoutError:
+                timed_out_backup_objects_total += 1
+                if len(timed_out_backup_ids_sample) < 20:
+                    timed_out_backup_ids_sample.append(matched_backup_object.backup_object_id)
+                if matched_backup_object.machine_name and len(timed_out_machine_names_sample) < 20:
+                    timed_out_machine_names_sample.append(str(matched_backup_object.machine_name))
+                continue
             except Exception as exc:
                 raise VeeamRestorePointsFetchError(
                     str(exc),
@@ -374,6 +391,9 @@ class HttpVeeamProvider:
             missing_machine_name_backup_names_sample=match_result.missing_machine_name_backup_names_sample,
             restore_points_backup_objects_total=matched_backup_objects_total,
             restore_points_backup_objects_completed=completed_backup_objects_total,
+            timed_out_backup_objects_total=timed_out_backup_objects_total,
+            timed_out_backup_ids_sample=timed_out_backup_ids_sample,
+            timed_out_machine_names_sample=timed_out_machine_names_sample,
         )
 
     def list_machine_backups(
@@ -493,12 +513,16 @@ class HttpVeeamProvider:
             with self._opener(request, timeout=self._timeout_seconds, context=context) as response:
                 payload_bytes = response.read()
         except TimeoutError as exc:
-            raise RuntimeError(
+            raise VeeamRequestTimeoutError(
                 f"Veeam API 请求超时: timeout={self._timeout_seconds}s url={request.full_url}"
             ) from exc
         except HTTPError as exc:
             raise RuntimeError(self._build_http_error_message(exc)) from exc
         except URLError as exc:
+            if self._is_timeout_url_error(exc):
+                raise VeeamRequestTimeoutError(
+                    f"Veeam API 请求超时: timeout={self._timeout_seconds}s url={request.full_url}"
+                ) from exc
             raise RuntimeError(self._build_url_error_message(url=request.full_url, error=exc)) from exc
         return json.loads(payload_bytes.decode("utf-8"))
 
@@ -522,6 +546,17 @@ class HttpVeeamProvider:
     def _build_url_error_message(*, url: str, error: URLError) -> str:
         reason = getattr(error, "reason", error)
         return f"Veeam API 网络连接失败: url={url} reason={reason}"
+
+    @staticmethod
+    def _is_timeout_url_error(error: URLError) -> bool:
+        reason = getattr(error, "reason", None)
+        if isinstance(reason, TimeoutError):
+            return True
+        if isinstance(reason, str) and "timed out" in reason.lower():
+            return True
+        if reason is not None and "timed out" in str(reason).lower():
+            return True
+        return False
 
     @staticmethod
     def _parse_page_payload(payload: object) -> list[dict[str, Any]]:

@@ -26,6 +26,7 @@ from app.services.veeam.provider import (
     VeeamMachineBackupRecord,
     VeeamProvider,
     VeeamProviderSession,
+    VeeamRestorePointsFetchError,
 )
 from app.services.veeam.source_service import VeeamSourceService
 from app.utils.time_utils import time_utils
@@ -325,6 +326,50 @@ class VeeamSyncActionsService:
                 session=cast("VeeamProviderSession", session),
                 match_result=cast("VeeamBackupObjectMatchResult", match_result),
             )
+            timed_out_backup_objects_total = int(getattr(restore_points_result, "timed_out_backup_objects_total", 0) or 0)
+            completed_backup_objects_total = int(
+                getattr(restore_points_result, "restore_points_backup_objects_completed", 0) or 0
+            )
+            if timed_out_backup_objects_total > 0 and completed_backup_objects_total > 0:
+                log_with_context(
+                    "warning",
+                    "Veeam restorePoints 拉取部分超时，已跳过异常对象",
+                    module="veeam",
+                    action="sync_backups_background",
+                    context=sync_context,
+                    extra={
+                        "matched_backup_objects_total": getattr(restore_points_result, "restore_points_backup_objects_total", 0),
+                        "restore_points_backup_objects_completed": completed_backup_objects_total,
+                        "timed_out_backup_objects_total": timed_out_backup_objects_total,
+                        "timed_out_backup_ids_sample": getattr(restore_points_result, "timed_out_backup_ids_sample", []),
+                        "timed_out_machine_names_sample": getattr(
+                            restore_points_result,
+                            "timed_out_machine_names_sample",
+                            [],
+                        ),
+                    },
+                    include_actor=False,
+                )
+            if timed_out_backup_objects_total > 0 and completed_backup_objects_total <= 0:
+                raise VeeamRestorePointsFetchError(
+                    "Veeam restorePoints 全部请求超时，未获取到任何恢复点",
+                    matched_backup_objects_total=int(
+                        getattr(restore_points_result, "restore_points_backup_objects_total", 0)
+                        or getattr(match_result, "backups_matched_total", 0)
+                    ),
+                    completed_backup_objects_total=0,
+                    failed_backup_object_id=(
+                        getattr(restore_points_result, "timed_out_backup_ids_sample", [None])[0]
+                        if getattr(restore_points_result, "timed_out_backup_ids_sample", None)
+                        else None
+                    ),
+                    failed_machine_name=(
+                        getattr(restore_points_result, "timed_out_machine_names_sample", [None])[0]
+                        if getattr(restore_points_result, "timed_out_machine_names_sample", None)
+                        else None
+                    ),
+                    failed_url="",
+                )
             self._complete_stage(
                 task_runs_service=task_runs_service,
                 run_id=run_id,
@@ -338,6 +383,7 @@ class VeeamSyncActionsService:
                     ),
                     "restore_points_received_total": getattr(restore_points_result, "received_total", 0),
                     "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
+                    "timed_out_backup_objects_total": timed_out_backup_objects_total,
                 },
                 details_json=self._build_fetch_restore_points_details(
                     match_result=cast("VeeamBackupObjectMatchResult", match_result),
@@ -401,6 +447,8 @@ class VeeamSyncActionsService:
                     received_total=cast("VeeamMachineBackupCollection", restore_points_result).received_total,
                     snapshots_written_total=snapshots_written_total,
                     skipped_invalid=cast("VeeamMachineBackupCollection", restore_points_result).skipped_invalid,
+                    timed_out_backup_objects_total=timed_out_backup_objects_total,
+                    partial_success=timed_out_backup_objects_total > 0,
                     error_message=None,
                 ),
                 error_message=None,
@@ -425,6 +473,7 @@ class VeeamSyncActionsService:
                     "backup_objects_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
                     "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
                     "restore_points_received_total": getattr(restore_points_result, "received_total", 0),
+                    "timed_out_backup_objects_total": timed_out_backup_objects_total,
                     "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
                     "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
@@ -451,6 +500,11 @@ class VeeamSyncActionsService:
                     exception=exc,
                 ),
             )
+            self._cancel_following_stages(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                current_stage_key=current_stage_key,
+            )
             self._write_run_summary(
                 run_id=run_id,
                 payload=build_sync_veeam_backups_summary(
@@ -459,6 +513,8 @@ class VeeamSyncActionsService:
                     received_total=0,
                     snapshots_written_total=0,
                     skipped_invalid=0,
+                    timed_out_backup_objects_total=0,
+                    partial_success=False,
                     error_message=str(exc),
                 ),
                 error_message=str(exc),
@@ -532,10 +588,11 @@ class VeeamSyncActionsService:
         match_result: VeeamBackupObjectMatchResult,
         result: VeeamMachineBackupCollection,
     ) -> dict[str, object]:
-        total = int(result.restore_points_backup_objects_total or match_result.backups_matched_total or 0)
-        completed = int(result.restore_points_backup_objects_completed or 0)
+        total = int(getattr(result, "restore_points_backup_objects_total", 0) or match_result.backups_matched_total or 0)
+        completed = int(getattr(result, "restore_points_backup_objects_completed", 0) or 0)
+        timed_out = int(getattr(result, "timed_out_backup_objects_total", 0) or 0)
         summary = (
-            f"已完成 {completed}/{total} 个对象 · 拉取 {result.received_total} 条恢复点"
+            f"已完成 {completed}/{total} 个对象 · 超时跳过 {timed_out} 个对象 · 拉取 {result.received_total} 条恢复点"
             if total > 0
             else "无匹配对象，跳过 restorePoints 拉取"
         )
@@ -546,6 +603,9 @@ class VeeamSyncActionsService:
             "restore_points_received_total": result.received_total,
             "skipped_invalid": result.skipped_invalid,
             "matched_backup_ids_sample": list(match_result.matched_backup_ids_sample),
+            "timed_out_backup_objects_total": timed_out,
+            "timed_out_backup_ids_sample": list(getattr(result, "timed_out_backup_ids_sample", [])),
+            "timed_out_machine_names_sample": list(getattr(result, "timed_out_machine_names_sample", [])),
         }
 
     @staticmethod
@@ -587,6 +647,25 @@ class VeeamSyncActionsService:
         if stage_key == _WRITE_SNAPSHOTS_ITEM_KEY:
             return {"summary": "写入快照失败", "error_message": error_message}
         return {"error_message": error_message}
+
+    @staticmethod
+    def _cancel_following_stages(
+        *,
+        task_runs_service: TaskRunsWriteService,
+        run_id: str,
+        current_stage_key: str | None,
+    ) -> None:
+        stage_keys = [item_key for item_key, _ in _SYNC_STAGE_ITEMS]
+        if current_stage_key not in stage_keys:
+            return
+        current_index = stage_keys.index(current_stage_key)
+        for item_key in stage_keys[current_index + 1 :]:
+            task_runs_service.cancel_item(
+                run_id,
+                item_type=_SYNC_ITEM_TYPE,
+                item_key=item_key,
+                details_json={"summary": "前序步骤失败，未继续执行"},
+            )
 
     @staticmethod
     def _write_run_summary(*, run_id: str, payload: dict[str, object], error_message: str | None) -> None:
