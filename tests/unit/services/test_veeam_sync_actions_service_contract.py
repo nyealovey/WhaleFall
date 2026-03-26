@@ -342,6 +342,8 @@ def test_sync_once_logs_candidate_pool_and_unmatched_backup_summary(monkeypatch)
                     matched_backup_ids_sample=[],
                     unmatched_backup_ids_sample=["backup-2"],
                     unmatched_machine_names_sample=["unmatched.domain.com"],
+                    missing_machine_name_backup_ids_sample=["backup-1"],
+                    missing_machine_name_backup_names_sample=["daily-job-1"],
                 )
 
             def enrich_machine_backups(self, **kwargs: object) -> list[VeeamMachineBackupRecord]:
@@ -368,3 +370,5 @@ def test_sync_once_logs_candidate_pool_and_unmatched_backup_summary(monkeypatch)
         assert extra["backups_missing_machine_name"] == 1
         assert extra["unmatched_backup_ids_sample"] == ["backup-2"]
         assert extra["unmatched_machine_names_sample"] == ["unmatched.domain.com"]
+        assert extra["missing_machine_name_backup_ids_sample"] == ["backup-1"]
+        assert extra["missing_machine_name_backup_names_sample"] == ["daily-job-1"]
