@@ -19,13 +19,32 @@ from app.repositories.veeam_repository import VeeamRepository
 from app.services.task_runs.task_run_summary_builders import build_sync_veeam_backups_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.services.veeam.matching import build_instance_match_candidates, normalize_machine_name
-from app.services.veeam.provider import HttpVeeamProvider, VeeamMachineBackupRecord, VeeamProvider
+from app.services.veeam.provider import (
+    HttpVeeamProvider,
+    VeeamBackupObjectMatchResult,
+    VeeamMachineBackupCollection,
+    VeeamMachineBackupRecord,
+    VeeamProvider,
+    VeeamProviderSession,
+)
 from app.services.veeam.source_service import VeeamSourceService
 from app.utils.time_utils import time_utils
 
 _SYNC_ITEM_TYPE = "step"
-_SYNC_ITEM_KEY = "sync_backups"
-_SYNC_ITEM_NAME = "同步 Veeam 备份"
+_FETCH_BACKUP_OBJECTS_ITEM_KEY = "fetch_backup_objects"
+_FETCH_BACKUP_OBJECTS_ITEM_NAME = "获取 backupObjects"
+_MATCH_BACKUP_OBJECTS_ITEM_KEY = "match_backup_objects"
+_MATCH_BACKUP_OBJECTS_ITEM_NAME = "匹配目标备份对象"
+_FETCH_RESTORE_POINTS_ITEM_KEY = "fetch_restore_points"
+_FETCH_RESTORE_POINTS_ITEM_NAME = "拉取 restorePoints"
+_WRITE_SNAPSHOTS_ITEM_KEY = "write_snapshots"
+_WRITE_SNAPSHOTS_ITEM_NAME = "写入快照"
+_SYNC_STAGE_ITEMS: tuple[tuple[str, str], ...] = (
+    (_FETCH_BACKUP_OBJECTS_ITEM_KEY, _FETCH_BACKUP_OBJECTS_ITEM_NAME),
+    (_MATCH_BACKUP_OBJECTS_ITEM_KEY, _MATCH_BACKUP_OBJECTS_ITEM_NAME),
+    (_FETCH_RESTORE_POINTS_ITEM_KEY, _FETCH_RESTORE_POINTS_ITEM_NAME),
+    (_WRITE_SNAPSHOTS_ITEM_KEY, _WRITE_SNAPSHOTS_ITEM_NAME),
+)
 
 BACKGROUND_SYNC_EXCEPTIONS: tuple[type[Exception], ...] = (
     ValidationError,
@@ -142,9 +161,10 @@ class VeeamSyncActionsService:
             items=[
                 TaskRunItemInit(
                     item_type=_SYNC_ITEM_TYPE,
-                    item_key=_SYNC_ITEM_KEY,
-                    item_name=_SYNC_ITEM_NAME,
+                    item_key=item_key,
+                    item_name=item_name,
                 )
+                for item_key, item_name in _SYNC_STAGE_ITEMS
             ],
         )
         return VeeamSyncPreparedRun(run_id=run_id, credential_id=int(binding.credential_id))
@@ -178,8 +198,13 @@ class VeeamSyncActionsService:
         task_runs_service = TaskRunsWriteService()
         synced_at = time_utils.now()
         sync_context = {"created_by": created_by, "run_id": run_id}
+        current_stage_key: str | None = None
+        session: VeeamProviderSession | object | None = None
+        backup_items: list[dict[str, object]] = []
+        match_result: VeeamBackupObjectMatchResult | object | None = None
+        restore_points_result: VeeamMachineBackupCollection | object | None = None
+        latest_records: list[VeeamMachineBackupRecord] = []
         try:
-            task_runs_service.start_item(run_id, item_type=_SYNC_ITEM_TYPE, item_key=_SYNC_ITEM_KEY)
             log_with_context(
                 "info",
                 "Veeam 备份同步开始",
@@ -207,14 +232,30 @@ class VeeamSyncActionsService:
                 },
                 include_actor=False,
             )
-            result = self._provider.list_machine_backups(
+            current_stage_key = _FETCH_BACKUP_OBJECTS_ITEM_KEY
+            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            session = self._provider.create_session(
                 server_host=str(binding.server_host or ""),
                 server_port=int(binding.server_port),
                 username=str(credential.username or ""),
                 password=str(credential.get_plain_password() or ""),
                 api_version=str(binding.api_version or ""),
-                match_machine_names=match_machine_names,
                 verify_ssl=bool(binding.verify_ssl),
+            )
+            backup_items = self._provider.fetch_backup_objects(session=cast("VeeamProviderSession", session))
+            self._complete_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=current_stage_key,
+                metrics_json={"backup_objects_received_total": len(backup_items)},
+                details_json=self._build_fetch_backup_objects_details(backup_objects_received_total=len(backup_items)),
+            )
+
+            current_stage_key = _MATCH_BACKUP_OBJECTS_ITEM_KEY
+            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            match_result = self._provider.match_backup_objects(
+                backup_items=cast("list[dict[str, object]]", backup_items),
+                match_machine_names=match_machine_names,
             )
             log_with_context(
                 "info",
@@ -223,25 +264,40 @@ class VeeamSyncActionsService:
                 action="sync_backups_background",
                 context=sync_context,
                 extra={
-                    "backups_received_total": result.backups_received_total,
-                    "backups_matched_total": result.backups_matched_total,
-                    "backups_unmatched_total": result.backups_unmatched_total,
-                    "backups_missing_machine_name": result.backups_missing_machine_name,
-                    "backup_objects_received_total": result.backups_received_total,
-                    "backup_objects_matched_total": result.backups_matched_total,
-                    "backup_objects_unmatched_total": result.backups_unmatched_total,
-                    "backup_objects_missing_machine_name": result.backups_missing_machine_name,
-                    "matched_backup_ids_sample": result.matched_backup_ids_sample,
-                    "unmatched_backup_ids_sample": result.unmatched_backup_ids_sample,
-                    "unmatched_machine_names_sample": result.unmatched_machine_names_sample,
-                    "missing_machine_name_backup_ids_sample": result.missing_machine_name_backup_ids_sample,
-                    "missing_machine_name_backup_names_sample": result.missing_machine_name_backup_names_sample,
-                    "restore_points_received_total": result.received_total,
-                    "skipped_invalid": result.skipped_invalid,
+                    "backups_received_total": getattr(match_result, "backups_received_total", 0),
+                    "backups_matched_total": getattr(match_result, "backups_matched_total", 0),
+                    "backups_unmatched_total": getattr(match_result, "backups_unmatched_total", 0),
+                    "backups_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
+                    "backup_objects_received_total": getattr(match_result, "backups_received_total", 0),
+                    "backup_objects_matched_total": getattr(match_result, "backups_matched_total", 0),
+                    "backup_objects_unmatched_total": getattr(match_result, "backups_unmatched_total", 0),
+                    "backup_objects_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
+                    "matched_backup_ids_sample": getattr(match_result, "matched_backup_ids_sample", []),
+                    "unmatched_backup_ids_sample": getattr(match_result, "unmatched_backup_ids_sample", []),
+                    "unmatched_machine_names_sample": getattr(match_result, "unmatched_machine_names_sample", []),
+                    "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
+                    "missing_machine_name_backup_names_sample": getattr(match_result, "missing_machine_name_backup_names_sample", []),
                 },
                 include_actor=False,
             )
-            if result.backups_matched_total <= 0:
+            self._complete_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=current_stage_key,
+                metrics_json={
+                    "candidate_machine_count": len(match_machine_names),
+                    "backups_received_total": getattr(match_result, "backups_received_total", 0),
+                    "matched_backup_objects_total": getattr(match_result, "backups_matched_total", 0),
+                    "unmatched_backup_objects_total": getattr(match_result, "backups_unmatched_total", 0),
+                    "missing_machine_name_backup_objects_total": getattr(match_result, "backups_missing_machine_name", 0),
+                },
+                details_json=self._build_match_backup_objects_details(
+                    candidate_machine_count=len(match_machine_names),
+                    match_result=cast("VeeamBackupObjectMatchResult", match_result),
+                ),
+            )
+
+            if getattr(match_result, "backups_matched_total", 0) <= 0:
                 log_with_context(
                     "warning",
                     "Veeam 未命中任何备份链",
@@ -251,18 +307,45 @@ class VeeamSyncActionsService:
                     extra={
                         "candidate_machine_count": len(match_machine_names),
                         "candidate_machine_sample": sorted(match_machine_names)[:20],
-                        "backups_received_total": result.backups_received_total,
-                        "backups_missing_machine_name": result.backups_missing_machine_name,
-                        "backup_objects_received_total": result.backups_received_total,
-                        "backup_objects_missing_machine_name": result.backups_missing_machine_name,
-                        "unmatched_backup_ids_sample": result.unmatched_backup_ids_sample,
-                        "unmatched_machine_names_sample": result.unmatched_machine_names_sample,
-                        "missing_machine_name_backup_ids_sample": result.missing_machine_name_backup_ids_sample,
-                        "missing_machine_name_backup_names_sample": result.missing_machine_name_backup_names_sample,
+                        "backups_received_total": getattr(match_result, "backups_received_total", 0),
+                        "backups_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
+                        "backup_objects_received_total": getattr(match_result, "backups_received_total", 0),
+                        "backup_objects_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
+                        "unmatched_backup_ids_sample": getattr(match_result, "unmatched_backup_ids_sample", []),
+                        "unmatched_machine_names_sample": getattr(match_result, "unmatched_machine_names_sample", []),
+                        "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
+                        "missing_machine_name_backup_names_sample": getattr(match_result, "missing_machine_name_backup_names_sample", []),
                     },
                     include_actor=False,
                 )
-            latest_records = self._select_latest_records(result.records)
+
+            current_stage_key = _FETCH_RESTORE_POINTS_ITEM_KEY
+            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            restore_points_result = self._provider.fetch_restore_point_records(
+                session=cast("VeeamProviderSession", session),
+                match_result=cast("VeeamBackupObjectMatchResult", match_result),
+            )
+            self._complete_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=current_stage_key,
+                metrics_json={
+                    "matched_backup_objects_total": getattr(restore_points_result, "restore_points_backup_objects_total", 0),
+                    "restore_points_backup_objects_completed": getattr(
+                        restore_points_result,
+                        "restore_points_backup_objects_completed",
+                        0,
+                    ),
+                    "restore_points_received_total": getattr(restore_points_result, "received_total", 0),
+                    "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
+                },
+                details_json=self._build_fetch_restore_points_details(
+                    match_result=cast("VeeamBackupObjectMatchResult", match_result),
+                    result=cast("VeeamMachineBackupCollection", restore_points_result),
+                ),
+            )
+
+            latest_records = self._select_latest_records(cast("VeeamMachineBackupCollection", restore_points_result).records)
             log_with_context(
                 "info",
                 "Veeam 最新机器快照已筛选",
@@ -275,6 +358,8 @@ class VeeamSyncActionsService:
                 },
                 include_actor=False,
             )
+            current_stage_key = _WRITE_SNAPSHOTS_ITEM_KEY
+            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
             self._validate_records_to_write(latest_records)
             snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
                 latest_records,
@@ -298,26 +383,24 @@ class VeeamSyncActionsService:
             task_runs_service.complete_item(
                 run_id,
                 item_type=_SYNC_ITEM_TYPE,
-                item_key=_SYNC_ITEM_KEY,
+                item_key=current_stage_key,
                 metrics_json={
-                    "received_total": result.received_total,
+                    "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
-                    "skipped_invalid": result.skipped_invalid,
                 },
-                details_json={
-                    "received_total": result.received_total,
-                    "snapshots_written_total": snapshots_written_total,
-                    "skipped_invalid": result.skipped_invalid,
-                },
+                details_json=self._build_write_snapshots_details(
+                    latest_machine_count=len(latest_records),
+                    snapshots_written_total=snapshots_written_total,
+                ),
             )
             self._write_run_summary(
                 run_id=run_id,
                 payload=build_sync_veeam_backups_summary(
                     task_key="sync_veeam_backups",
                     inputs={"credential_id": int(binding.credential_id)},
-                    received_total=result.received_total,
+                    received_total=cast("VeeamMachineBackupCollection", restore_points_result).received_total,
                     snapshots_written_total=snapshots_written_total,
-                    skipped_invalid=result.skipped_invalid,
+                    skipped_invalid=cast("VeeamMachineBackupCollection", restore_points_result).skipped_invalid,
                     error_message=None,
                 ),
                 error_message=None,
@@ -332,19 +415,19 @@ class VeeamSyncActionsService:
                 context=sync_context,
                 extra={
                     "candidate_machine_count": len(match_machine_names),
-                    "backups_received_total": result.backups_received_total,
-                    "backups_matched_total": result.backups_matched_total,
-                    "backups_unmatched_total": result.backups_unmatched_total,
-                    "backups_missing_machine_name": result.backups_missing_machine_name,
-                    "backup_objects_received_total": result.backups_received_total,
-                    "backup_objects_matched_total": result.backups_matched_total,
-                    "backup_objects_unmatched_total": result.backups_unmatched_total,
-                    "backup_objects_missing_machine_name": result.backups_missing_machine_name,
-                    "missing_machine_name_backup_ids_sample": result.missing_machine_name_backup_ids_sample,
-                    "restore_points_received_total": result.received_total,
+                    "backups_received_total": getattr(match_result, "backups_received_total", 0),
+                    "backups_matched_total": getattr(match_result, "backups_matched_total", 0),
+                    "backups_unmatched_total": getattr(match_result, "backups_unmatched_total", 0),
+                    "backups_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
+                    "backup_objects_received_total": getattr(match_result, "backups_received_total", 0),
+                    "backup_objects_matched_total": getattr(match_result, "backups_matched_total", 0),
+                    "backup_objects_unmatched_total": getattr(match_result, "backups_unmatched_total", 0),
+                    "backup_objects_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
+                    "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
+                    "restore_points_received_total": getattr(restore_points_result, "received_total", 0),
                     "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
-                    "skipped_invalid": result.skipped_invalid,
+                    "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
                 },
                 include_actor=False,
             )
@@ -359,9 +442,14 @@ class VeeamSyncActionsService:
             task_runs_service.fail_item(
                 run_id,
                 item_type=_SYNC_ITEM_TYPE,
-                item_key=_SYNC_ITEM_KEY,
+                item_key=current_stage_key or _FETCH_BACKUP_OBJECTS_ITEM_KEY,
                 error_message=str(exc),
-                details_json={"error_message": str(exc)},
+                details_json=self._build_failed_stage_details(
+                    stage_key=current_stage_key,
+                    error_message=str(exc),
+                    match_result=cast("VeeamBackupObjectMatchResult | None", match_result),
+                    exception=exc,
+                ),
             )
             self._write_run_summary(
                 run_id=run_id,
@@ -387,6 +475,118 @@ class VeeamSyncActionsService:
                 include_actor=False,
             )
             raise
+
+    @staticmethod
+    def _start_stage(*, task_runs_service: TaskRunsWriteService, run_id: str, item_key: str) -> None:
+        task_runs_service.start_item(run_id, item_type=_SYNC_ITEM_TYPE, item_key=item_key)
+        db.session.commit()
+
+    @staticmethod
+    def _complete_stage(
+        *,
+        task_runs_service: TaskRunsWriteService,
+        run_id: str,
+        item_key: str,
+        metrics_json: dict[str, object],
+        details_json: dict[str, object],
+    ) -> None:
+        task_runs_service.complete_item(
+            run_id,
+            item_type=_SYNC_ITEM_TYPE,
+            item_key=item_key,
+            metrics_json=metrics_json,
+            details_json=details_json,
+        )
+        db.session.commit()
+
+    @staticmethod
+    def _build_fetch_backup_objects_details(*, backup_objects_received_total: int) -> dict[str, object]:
+        return {
+            "summary": f"共拉取 {backup_objects_received_total} 个 backupObjects",
+            "backup_objects_received_total": backup_objects_received_total,
+        }
+
+    @staticmethod
+    def _build_match_backup_objects_details(
+        *,
+        candidate_machine_count: int,
+        match_result: VeeamBackupObjectMatchResult,
+    ) -> dict[str, object]:
+        return {
+            "summary": f"候选机器 {candidate_machine_count} 个 · 匹配 {match_result.backups_matched_total} 个对象",
+            "candidate_machine_count": candidate_machine_count,
+            "backup_objects_received_total": match_result.backups_received_total,
+            "matched_backup_objects_total": match_result.backups_matched_total,
+            "unmatched_backup_objects_total": match_result.backups_unmatched_total,
+            "missing_machine_name_backup_objects_total": match_result.backups_missing_machine_name,
+            "matched_backup_ids_sample": list(match_result.matched_backup_ids_sample),
+            "unmatched_backup_ids_sample": list(match_result.unmatched_backup_ids_sample),
+            "unmatched_machine_names_sample": list(match_result.unmatched_machine_names_sample),
+            "missing_machine_name_backup_ids_sample": list(match_result.missing_machine_name_backup_ids_sample),
+            "missing_machine_name_backup_names_sample": list(match_result.missing_machine_name_backup_names_sample),
+        }
+
+    @staticmethod
+    def _build_fetch_restore_points_details(
+        *,
+        match_result: VeeamBackupObjectMatchResult,
+        result: VeeamMachineBackupCollection,
+    ) -> dict[str, object]:
+        total = int(result.restore_points_backup_objects_total or match_result.backups_matched_total or 0)
+        completed = int(result.restore_points_backup_objects_completed or 0)
+        summary = (
+            f"已完成 {completed}/{total} 个对象 · 拉取 {result.received_total} 条恢复点"
+            if total > 0
+            else "无匹配对象，跳过 restorePoints 拉取"
+        )
+        return {
+            "summary": summary,
+            "matched_backup_objects_total": total,
+            "restore_points_backup_objects_completed": completed,
+            "restore_points_received_total": result.received_total,
+            "skipped_invalid": result.skipped_invalid,
+            "matched_backup_ids_sample": list(match_result.matched_backup_ids_sample),
+        }
+
+    @staticmethod
+    def _build_write_snapshots_details(*, latest_machine_count: int, snapshots_written_total: int) -> dict[str, object]:
+        return {
+            "summary": f"已筛选 {latest_machine_count} 台机器 · 写入 {snapshots_written_total} 条快照",
+            "latest_machine_count": latest_machine_count,
+            "snapshots_written_total": snapshots_written_total,
+        }
+
+    @staticmethod
+    def _build_failed_stage_details(
+        *,
+        stage_key: str | None,
+        error_message: str,
+        match_result: VeeamBackupObjectMatchResult | None,
+        exception: Exception,
+    ) -> dict[str, object]:
+        if stage_key == _FETCH_RESTORE_POINTS_ITEM_KEY:
+            matched_total = int(getattr(exception, "matched_backup_objects_total", 0) or getattr(match_result, "backups_matched_total", 0))
+            completed_total = int(getattr(exception, "completed_backup_objects_total", 0))
+            return {
+                "summary": (
+                    f"已完成 {completed_total}/{matched_total} 个对象，当前对象 restorePoints 拉取失败"
+                    if matched_total > 0
+                    else "restorePoints 拉取失败"
+                ),
+                "matched_backup_objects_total": matched_total,
+                "restore_points_backup_objects_completed": completed_total,
+                "failed_backup_object_id": getattr(exception, "failed_backup_object_id", None),
+                "failed_machine_name": getattr(exception, "failed_machine_name", None),
+                "failed_url": getattr(exception, "failed_url", None),
+                "error_message": error_message,
+            }
+        if stage_key == _FETCH_BACKUP_OBJECTS_ITEM_KEY:
+            return {"summary": "拉取 backupObjects 失败", "error_message": error_message}
+        if stage_key == _MATCH_BACKUP_OBJECTS_ITEM_KEY:
+            return {"summary": "匹配目标备份对象失败", "error_message": error_message}
+        if stage_key == _WRITE_SNAPSHOTS_ITEM_KEY:
+            return {"summary": "写入快照失败", "error_message": error_message}
+        return {"error_message": error_message}
 
     @staticmethod
     def _write_run_summary(*, run_id: str, payload: dict[str, object], error_message: str | None) -> None:

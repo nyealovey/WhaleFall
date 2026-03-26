@@ -456,6 +456,92 @@ def test_http_veeam_provider_skips_unmatched_backups_before_fetching_restore_poi
 
 
 @pytest.mark.unit
+def test_http_veeam_provider_fetch_restore_point_records_preserves_progress_when_object_times_out() -> None:
+    captured_urls: list[str] = []
+    payloads = [
+        {
+            "items": [
+                {
+                    "machineName": "db01.domain.com",
+                    "creationTime": "2026-03-25T01:00:00Z",
+                    "id": "rp-1",
+                    "backupId": "backup-1",
+                }
+            ],
+            "next": None,
+        }
+    ]
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        if request.full_url.endswith("/backup-object-2/restorePoints"):
+            raise TimeoutError("The read operation timed out")
+        return _FakeResponse(payloads[len(captured_urls) - 1])
+
+    provider = HttpVeeamProvider(opener=_fake_opener)
+    session = type(
+        "ProviderSession",
+        (),
+        {
+            "base_url": "https://veeam.example.com:9419",
+            "access_token": "token-1",
+            "api_version": "1.3-rev1",
+            "verify_ssl": True,
+        },
+    )()
+    match_result = type(
+        "MatchResult",
+        (),
+        {
+            "matched_backup_objects": [
+                type(
+                    "MatchedBackupObject",
+                    (),
+                    {
+                        "backup_object_id": "backup-object-1",
+                        "machine_name": "db01.domain.com",
+                        "backup_item": {"id": "backup-object-1", "name": "db01.domain.com"},
+                    },
+                )(),
+                type(
+                    "MatchedBackupObject",
+                    (),
+                    {
+                        "backup_object_id": "backup-object-2",
+                        "machine_name": "db02.domain.com",
+                        "backup_item": {"id": "backup-object-2", "name": "db02.domain.com"},
+                    },
+                )(),
+            ],
+            "backups_received_total": 2,
+            "backups_matched_total": 2,
+            "backups_unmatched_total": 0,
+            "backups_missing_machine_name": 0,
+            "matched_backup_ids_sample": ["backup-object-1", "backup-object-2"],
+            "unmatched_backup_ids_sample": [],
+            "unmatched_machine_names_sample": [],
+            "missing_machine_name_backup_ids_sample": [],
+            "missing_machine_name_backup_names_sample": [],
+        },
+    )()
+
+    with pytest.raises(RuntimeError) as exc_info:
+        provider.fetch_restore_point_records(session=session, match_result=match_result)
+
+    error = exc_info.value
+    assert getattr(error, "matched_backup_objects_total", None) == 2
+    assert getattr(error, "completed_backup_objects_total", None) == 1
+    assert getattr(error, "failed_backup_object_id", None) == "backup-object-2"
+    assert getattr(error, "failed_machine_name", None) == "db02.domain.com"
+    assert getattr(error, "failed_url", "").endswith("/backup-object-2/restorePoints")
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints",
+        "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints",
+    ]
+
+
+@pytest.mark.unit
 def test_http_veeam_provider_surfaces_timeout_with_url_and_timeout_seconds() -> None:
     captured_urls: list[str] = []
 

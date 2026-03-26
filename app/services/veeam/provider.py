@@ -61,6 +61,64 @@ class VeeamMachineBackupCollection:
     unmatched_machine_names_sample: list[str] = field(default_factory=list)
     missing_machine_name_backup_ids_sample: list[str] = field(default_factory=list)
     missing_machine_name_backup_names_sample: list[str] = field(default_factory=list)
+    restore_points_backup_objects_total: int = 0
+    restore_points_backup_objects_completed: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class VeeamProviderSession:
+    """Veeam 同步会话上下文."""
+
+    base_url: str
+    access_token: str
+    api_version: str
+    verify_ssl: bool
+
+
+@dataclass(frozen=True, slots=True)
+class VeeamMatchedBackupObject:
+    """匹配后的 backupObject."""
+
+    backup_object_id: str
+    machine_name: str | None = None
+    backup_item: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class VeeamBackupObjectMatchResult:
+    """backupObjects 匹配统计结果."""
+
+    matched_backup_objects: list[VeeamMatchedBackupObject]
+    backups_received_total: int
+    backups_matched_total: int
+    backups_unmatched_total: int
+    backups_missing_machine_name: int
+    matched_backup_ids_sample: list[str] = field(default_factory=list)
+    unmatched_backup_ids_sample: list[str] = field(default_factory=list)
+    unmatched_machine_names_sample: list[str] = field(default_factory=list)
+    missing_machine_name_backup_ids_sample: list[str] = field(default_factory=list)
+    missing_machine_name_backup_names_sample: list[str] = field(default_factory=list)
+
+
+class VeeamRestorePointsFetchError(RuntimeError):
+    """restorePoints 拉取失败时携带阶段进度."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        matched_backup_objects_total: int,
+        completed_backup_objects_total: int,
+        failed_backup_object_id: str | None,
+        failed_machine_name: str | None,
+        failed_url: str,
+    ) -> None:
+        super().__init__(message)
+        self.matched_backup_objects_total = matched_backup_objects_total
+        self.completed_backup_objects_total = completed_backup_objects_total
+        self.failed_backup_object_id = failed_backup_object_id
+        self.failed_machine_name = failed_machine_name
+        self.failed_url = failed_url
 
 
 class VeeamProvider(Protocol):
@@ -68,6 +126,37 @@ class VeeamProvider(Protocol):
 
     def is_configured(self) -> bool:
         """返回 provider 是否已具备真实可用实现."""
+
+    def create_session(
+        self,
+        *,
+        server_host: str,
+        server_port: int,
+        username: str,
+        password: str,
+        api_version: str,
+        verify_ssl: bool | None = None,
+    ) -> VeeamProviderSession:
+        """创建同步会话."""
+
+    def fetch_backup_objects(self, *, session: VeeamProviderSession) -> list[dict[str, Any]]:
+        """拉取 backupObjects."""
+
+    def match_backup_objects(
+        self,
+        *,
+        backup_items: list[dict[str, Any]],
+        match_machine_names: set[str] | None = None,
+    ) -> VeeamBackupObjectMatchResult:
+        """匹配目标 backupObjects 并返回统计."""
+
+    def fetch_restore_point_records(
+        self,
+        *,
+        session: VeeamProviderSession,
+        match_result: VeeamBackupObjectMatchResult,
+    ) -> VeeamMachineBackupCollection:
+        """按匹配结果拉取 restorePoints."""
 
     def list_machine_backups(
         self,
@@ -126,7 +215,7 @@ class HttpVeeamProvider:
     def is_configured(self) -> bool:
         return self._timeout_seconds > 0
 
-    def list_machine_backups(
+    def create_session(
         self,
         *,
         server_host: str,
@@ -134,9 +223,8 @@ class HttpVeeamProvider:
         username: str,
         password: str,
         api_version: str,
-        match_machine_names: set[str] | None = None,
         verify_ssl: bool | None = None,
-    ) -> VeeamMachineBackupCollection:
+    ) -> VeeamProviderSession:
         base_url = self._build_base_url(server_host=server_host, server_port=server_port)
         resolved_verify_ssl = self._verify_ssl if verify_ssl is None else bool(verify_ssl)
         access_token = self._request_access_token(
@@ -146,15 +234,27 @@ class HttpVeeamProvider:
             api_version=api_version,
             verify_ssl=resolved_verify_ssl,
         )
-        backup_items = self._collect_paginated_items(
-            url=self._build_backup_objects_url(base_url=base_url, limit=self._backup_objects_limit),
+        return VeeamProviderSession(
+            base_url=base_url,
             access_token=access_token,
             api_version=api_version,
             verify_ssl=resolved_verify_ssl,
         )
-        records: list[VeeamMachineBackupRecord] = []
-        skipped_invalid = 0
-        received_total = 0
+
+    def fetch_backup_objects(self, *, session: VeeamProviderSession) -> list[dict[str, Any]]:
+        return self._collect_paginated_items(
+            url=self._build_backup_objects_url(base_url=session.base_url, limit=self._backup_objects_limit),
+            access_token=session.access_token,
+            api_version=session.api_version,
+            verify_ssl=session.verify_ssl,
+        )
+
+    def match_backup_objects(
+        self,
+        *,
+        backup_items: list[dict[str, Any]],
+        match_machine_names: set[str] | None = None,
+    ) -> VeeamBackupObjectMatchResult:
         backups_received_total = len(backup_items)
         backups_matched_total = 0
         backups_unmatched_total = 0
@@ -164,6 +264,8 @@ class HttpVeeamProvider:
         unmatched_machine_names_sample: list[str] = []
         missing_machine_name_backup_ids_sample: list[str] = []
         missing_machine_name_backup_names_sample: list[str] = []
+        matched_backup_objects: list[VeeamMatchedBackupObject] = []
+
         for backup_item in backup_items:
             backup_object_id = self._pick_string(backup_item, ("id", "backupObjectId", "backup_object_id"))
             if not backup_object_id:
@@ -186,31 +288,19 @@ class HttpVeeamProvider:
                     if backup_machine_name and len(unmatched_machine_names_sample) < 20:
                         unmatched_machine_names_sample.append(str(backup_machine_name))
                     continue
-                backups_matched_total += 1
-                if len(matched_backup_ids_sample) < 20:
-                    matched_backup_ids_sample.append(backup_object_id)
-            restore_point_items = self._collect_paginated_items(
-                url=self._build_backup_restore_points_url(base_url=base_url, backup_object_id=backup_object_id),
-                access_token=access_token,
-                api_version=api_version,
-                verify_ssl=resolved_verify_ssl,
-            )
-            received_total += len(restore_point_items)
-            for item in restore_point_items:
-                record = self._normalize_backup_record(
-                    item,
-                    backup_item=backup_item,
-                    backup_machine_name=backup_machine_name,
+            backups_matched_total += 1
+            if len(matched_backup_ids_sample) < 20:
+                matched_backup_ids_sample.append(backup_object_id)
+            matched_backup_objects.append(
+                VeeamMatchedBackupObject(
+                    backup_object_id=backup_object_id,
+                    machine_name=backup_machine_name,
+                    backup_item=dict(backup_item),
                 )
-                if record is None:
-                    skipped_invalid += 1
-                    continue
-                records.append(record)
-        return VeeamMachineBackupCollection(
-            records=records,
-            received_total=received_total,
-            snapshots_written_total=len(records),
-            skipped_invalid=skipped_invalid,
+            )
+
+        return VeeamBackupObjectMatchResult(
+            matched_backup_objects=matched_backup_objects,
             backups_received_total=backups_received_total,
             backups_matched_total=backups_matched_total,
             backups_unmatched_total=backups_unmatched_total,
@@ -221,6 +311,96 @@ class HttpVeeamProvider:
             missing_machine_name_backup_ids_sample=missing_machine_name_backup_ids_sample,
             missing_machine_name_backup_names_sample=missing_machine_name_backup_names_sample,
         )
+
+    def fetch_restore_point_records(
+        self,
+        *,
+        session: VeeamProviderSession,
+        match_result: VeeamBackupObjectMatchResult,
+    ) -> VeeamMachineBackupCollection:
+        records: list[VeeamMachineBackupRecord] = []
+        skipped_invalid = 0
+        received_total = 0
+        matched_backup_objects_total = len(match_result.matched_backup_objects)
+        completed_backup_objects_total = 0
+
+        for matched_backup_object in match_result.matched_backup_objects:
+            failed_url = self._build_backup_restore_points_url(
+                base_url=session.base_url,
+                backup_object_id=matched_backup_object.backup_object_id,
+            )
+            try:
+                restore_point_items = self._collect_paginated_items(
+                    url=failed_url,
+                    access_token=session.access_token,
+                    api_version=session.api_version,
+                    verify_ssl=session.verify_ssl,
+                )
+            except Exception as exc:
+                raise VeeamRestorePointsFetchError(
+                    str(exc),
+                    matched_backup_objects_total=matched_backup_objects_total,
+                    completed_backup_objects_total=completed_backup_objects_total,
+                    failed_backup_object_id=matched_backup_object.backup_object_id,
+                    failed_machine_name=matched_backup_object.machine_name,
+                    failed_url=failed_url,
+                ) from exc
+            received_total += len(restore_point_items)
+            completed_backup_objects_total += 1
+            for item in restore_point_items:
+                record = self._normalize_backup_record(
+                    item,
+                    backup_item=matched_backup_object.backup_item,
+                    backup_machine_name=matched_backup_object.machine_name,
+                )
+                if record is None:
+                    skipped_invalid += 1
+                    continue
+                records.append(record)
+
+        return VeeamMachineBackupCollection(
+            records=records,
+            received_total=received_total,
+            snapshots_written_total=len(records),
+            skipped_invalid=skipped_invalid,
+            backups_received_total=match_result.backups_received_total,
+            backups_matched_total=match_result.backups_matched_total,
+            backups_unmatched_total=match_result.backups_unmatched_total,
+            backups_missing_machine_name=match_result.backups_missing_machine_name,
+            matched_backup_ids_sample=match_result.matched_backup_ids_sample,
+            unmatched_backup_ids_sample=match_result.unmatched_backup_ids_sample,
+            unmatched_machine_names_sample=match_result.unmatched_machine_names_sample,
+            missing_machine_name_backup_ids_sample=match_result.missing_machine_name_backup_ids_sample,
+            missing_machine_name_backup_names_sample=match_result.missing_machine_name_backup_names_sample,
+            restore_points_backup_objects_total=matched_backup_objects_total,
+            restore_points_backup_objects_completed=completed_backup_objects_total,
+        )
+
+    def list_machine_backups(
+        self,
+        *,
+        server_host: str,
+        server_port: int,
+        username: str,
+        password: str,
+        api_version: str,
+        match_machine_names: set[str] | None = None,
+        verify_ssl: bool | None = None,
+    ) -> VeeamMachineBackupCollection:
+        session = self.create_session(
+            server_host=server_host,
+            server_port=server_port,
+            username=username,
+            password=password,
+            api_version=api_version,
+            verify_ssl=verify_ssl,
+        )
+        backup_items = self.fetch_backup_objects(session=session)
+        match_result = self.match_backup_objects(
+            backup_items=backup_items,
+            match_machine_names=match_machine_names,
+        )
+        return self.fetch_restore_point_records(session=session, match_result=match_result)
 
     def _collect_paginated_items(
         self,
