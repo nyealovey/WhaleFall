@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app import create_app
+from app import create_app, db
 from app.services.veeam.source_service import VeeamSourceService
 from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 
@@ -26,6 +26,7 @@ def sync_veeam_backups(
                 trigger_source="manual" if manual_run else "scheduled",
             )
             resolved_run_id = prepared.run_id
+            db.session.commit()
         service._sync_once(
             created_by=created_by if manual_run else None,
             run_id=resolved_run_id,
