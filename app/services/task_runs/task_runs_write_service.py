@@ -163,6 +163,24 @@ class TaskRunsWriteService:
         if details_json is not None:
             item.details_json = self._ensure_json_serializable(details_json)
 
+    def cancel_item(
+        self,
+        run_id: str,
+        *,
+        item_type: str,
+        item_key: str,
+        details_json: dict[str, Any] | None = None,
+    ) -> None:
+        """将指定子项标记为 cancelled，并写入完成时间与可选详情."""
+        self._get_run_or_error(run_id)
+        item = self._get_item_or_error(run_id=run_id, item_type=item_type, item_key=item_key)
+        if item.status in TaskRunStatus.TERMINAL:
+            return
+        item.status = TaskRunStatus.CANCELLED
+        item.completed_at = time_utils.now()
+        if details_json is not None:
+            item.details_json = self._ensure_json_serializable(details_json)
+
     def finalize_run(self, run_id: str) -> None:
         """汇总子项状态并更新 run 的进度与完成状态."""
         run = self._get_run_or_error(run_id)

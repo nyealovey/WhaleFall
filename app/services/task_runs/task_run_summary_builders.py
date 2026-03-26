@@ -164,6 +164,8 @@ def build_sync_veeam_backups_summary(
     received_total: int,
     snapshots_written_total: int,
     skipped_invalid: int,
+    timed_out_backup_objects_total: int = 0,
+    partial_success: bool = False,
     skipped: bool = False,
     skip_reason: str | None = None,
     error_message: str | None = None,
@@ -174,12 +176,24 @@ def build_sync_veeam_backups_summary(
         _metric(key="snapshots_written_total", label="写入机器快照", value=snapshots_written_total, unit="个", tone="success"),
         _metric(key="skipped_invalid", label="跳过无效记录", value=skipped_invalid, unit="个", tone="warning"),
     ]
+    if timed_out_backup_objects_total > 0:
+        metrics.append(
+            _metric(
+                key="timed_out_backup_objects_total",
+                label="超时跳过对象",
+                value=timed_out_backup_objects_total,
+                unit="个",
+                tone="warning",
+            )
+        )
     ext_data = {
         "backups": {
             "received_total": received_total,
             "snapshots_written_total": snapshots_written_total,
             "skipped_invalid": skipped_invalid,
+            "timed_out_backup_objects_total": timed_out_backup_objects_total,
         },
+        "partial_success": partial_success,
         "error_message": error_message,
     }
     return TaskRunSummaryFactory.base(

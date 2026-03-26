@@ -456,7 +456,7 @@ def test_http_veeam_provider_skips_unmatched_backups_before_fetching_restore_poi
 
 
 @pytest.mark.unit
-def test_http_veeam_provider_fetch_restore_point_records_preserves_progress_when_object_times_out() -> None:
+def test_http_veeam_provider_fetch_restore_point_records_skips_timeout_and_preserves_progress() -> None:
     captured_urls: list[str] = []
     payloads = [
         {
@@ -526,15 +526,15 @@ def test_http_veeam_provider_fetch_restore_point_records_preserves_progress_when
         },
     )()
 
-    with pytest.raises(RuntimeError) as exc_info:
-        provider.fetch_restore_point_records(session=session, match_result=match_result)
+    result = provider.fetch_restore_point_records(session=session, match_result=match_result)
 
-    error = exc_info.value
-    assert getattr(error, "matched_backup_objects_total", None) == 2
-    assert getattr(error, "completed_backup_objects_total", None) == 1
-    assert getattr(error, "failed_backup_object_id", None) == "backup-object-2"
-    assert getattr(error, "failed_machine_name", None) == "db02.domain.com"
-    assert getattr(error, "failed_url", "").endswith("/backup-object-2/restorePoints")
+    assert result.received_total == 1
+    assert len(result.records) == 1
+    assert result.restore_points_backup_objects_total == 2
+    assert result.restore_points_backup_objects_completed == 1
+    assert result.timed_out_backup_objects_total == 1
+    assert result.timed_out_backup_ids_sample == ["backup-object-2"]
+    assert result.timed_out_machine_names_sample == ["db02.domain.com"]
     assert captured_urls == [
         "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints",
         "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints",
