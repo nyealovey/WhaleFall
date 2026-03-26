@@ -20,7 +20,6 @@ from app.utils.time_utils import time_utils
 VEEAM_TOKEN_PATH = "/api/oauth2/token"
 VEEAM_RESTORE_POINTS_PATH = "/api/v1/restorePoints"
 VEEAM_BACKUP_OBJECTS_PATH = "/api/v1/backupObjects"
-VEEAM_BACKUPS_PATH = "/api/v1/backups"
 VEEAM_ACCEPT_HEADER = "application/json"
 
 
@@ -82,19 +81,6 @@ class VeeamProvider(Protocol):
         verify_ssl: bool | None = None,
     ) -> VeeamMachineBackupCollection:
         """返回机器级备份列表与统计."""
-
-    def enrich_machine_backups(
-        self,
-        *,
-        server_host: str,
-        server_port: int,
-        username: str,
-        password: str,
-        api_version: str,
-        records: list[VeeamMachineBackupRecord],
-        verify_ssl: bool | None = None,
-    ) -> list[VeeamMachineBackupRecord]:
-        """补齐命中机器的作业与大小信息."""
 
 
 class HttpVeeamProvider:
@@ -258,105 +244,6 @@ class HttpVeeamProvider:
             next_url = self._resolve_next_url(base_url=url, current_url=next_url, payload=payload)
         return items
 
-    def _collect_optional_paginated_items(
-        self,
-        *,
-        url: str | None,
-        access_token: str,
-        api_version: str,
-        verify_ssl: bool,
-    ) -> list[dict[str, Any]]:
-        if not url:
-            return []
-        try:
-            return self._collect_paginated_items(
-                url=url,
-                access_token=access_token,
-                api_version=api_version,
-                verify_ssl=verify_ssl,
-            )
-        except (RuntimeError, ValueError):
-            return []
-
-    def enrich_machine_backups(
-        self,
-        *,
-        server_host: str,
-        server_port: int,
-        username: str,
-        password: str,
-        api_version: str,
-        records: list[VeeamMachineBackupRecord],
-        verify_ssl: bool | None = None,
-    ) -> list[VeeamMachineBackupRecord]:
-        if not records:
-            return []
-
-        base_url = self._build_base_url(server_host=server_host, server_port=server_port)
-        resolved_verify_ssl = self._verify_ssl if verify_ssl is None else bool(verify_ssl)
-        access_token = self._request_access_token(
-            base_url=base_url,
-            username=username,
-            password=password,
-            api_version=api_version,
-            verify_ssl=resolved_verify_ssl,
-        )
-
-        enriched_records: list[VeeamMachineBackupRecord] = []
-        for record in records:
-            backup_payload = self._request_optional_json(
-                url=self._build_detail_url(base_url, VEEAM_BACKUPS_PATH, record.backup_id),
-                access_token=access_token,
-                api_version=api_version,
-                verify_ssl=resolved_verify_ssl,
-            )
-            backup_file_items = self._collect_optional_paginated_items(
-                url=self._build_backup_files_url(base_url=base_url, backup_id=record.backup_id),
-                access_token=access_token,
-                api_version=api_version,
-                verify_ssl=resolved_verify_ssl,
-            )
-            raw_payload = dict(record.raw_payload)
-            if isinstance(backup_payload, dict):
-                raw_payload["backup_detail"] = backup_payload
-            if backup_file_items:
-                raw_payload["backup_files"] = backup_file_items
-
-            resolved_backup_chain_size = self._resolve_backup_chain_size_bytes(
-                backup_file_items=backup_file_items,
-                restore_point_ids=self._collect_restore_point_ids(record),
-            )
-            resolved_restore_point_count = self._pick_nested_int(
-                backup_payload,
-                ("restorePointCount", "restore_point_count", "restorePointsCount", "restore_points_count", "pointCount"),
-            )
-            if resolved_restore_point_count is None:
-                resolved_restore_point_count = record.restore_point_count
-
-            enriched_records.append(
-                VeeamMachineBackupRecord(
-                    machine_name=record.machine_name,
-                    backup_at=record.backup_at,
-                    backup_id=record.backup_id,
-                    backup_file_id=record.backup_file_id,
-                    job_name=(
-                        self._pick_nested_string(backup_payload, ("jobName", "job_name", "backupName", "backup_name", "name"))
-                        or record.job_name
-                    ),
-                    restore_point_name=record.restore_point_name,
-                    source_record_id=record.source_record_id,
-                    restore_point_size_bytes=record.restore_point_size_bytes,
-                    backup_chain_size_bytes=(
-                        resolved_backup_chain_size
-                        if resolved_backup_chain_size is not None
-                        else record.backup_chain_size_bytes
-                    ),
-                    restore_point_count=resolved_restore_point_count,
-                    raw_payload=raw_payload,
-                )
-            )
-        return enriched_records
-
     @staticmethod
     def _build_base_url(*, server_host: str, server_port: int) -> str:
         host = str(server_host or "").strip()
@@ -420,26 +307,6 @@ class HttpVeeamProvider:
         )
         return self._read_json_response(request=request, verify_ssl=verify_ssl)
 
-    def _request_optional_json(
-        self,
-        *,
-        url: str | None,
-        access_token: str,
-        api_version: str,
-        verify_ssl: bool,
-    ) -> object | None:
-        if not url:
-            return None
-        try:
-            return self._request_json(
-                url=url,
-                access_token=access_token,
-                api_version=api_version,
-                verify_ssl=verify_ssl,
-            )
-        except (RuntimeError, ValueError):
-            return None
-
     def _read_json_response(self, *, request: Request, verify_ssl: bool) -> object:
         context = ssl.create_default_context() if verify_ssl else ssl._create_unverified_context()
         try:
@@ -496,24 +363,12 @@ class HttpVeeamProvider:
         raise ValueError("Veeam 备份列表响应格式不受支持")
 
     @staticmethod
-    def _build_detail_url(base_url: str, prefix: str, object_id: str | None) -> str | None:
-        if not object_id:
-            return None
-        return f"{base_url}{prefix}/{str(object_id).strip()}"
-
-    @staticmethod
     def _build_backup_restore_points_url(*, base_url: str, backup_object_id: str) -> str:
         return f"{base_url}{VEEAM_BACKUP_OBJECTS_PATH}/{str(backup_object_id).strip()}/restorePoints"
 
     @staticmethod
     def _build_backup_objects_url(*, base_url: str, limit: int) -> str:
         return f"{base_url}{VEEAM_BACKUP_OBJECTS_PATH}?limit={int(limit)}"
-
-    @staticmethod
-    def _build_backup_files_url(*, base_url: str, backup_id: str | None) -> str | None:
-        if not backup_id:
-            return None
-        return f"{base_url}{VEEAM_BACKUPS_PATH}/{str(backup_id).strip()}/backupFiles"
 
     @staticmethod
     def _resolve_next_url(*, base_url: str, current_url: str, payload: object) -> str | None:
@@ -756,13 +611,6 @@ class HttpVeeamProvider:
         return None
 
     @staticmethod
-    def _pick_nested_string(payload: object, keys: tuple[str, ...]) -> str | None:
-        for key, value in HttpVeeamProvider._walk_key_values(payload):
-            if key in keys and isinstance(value, str) and value.strip():
-                return value.strip()
-        return None
-
-    @staticmethod
     def _pick_nested_int(payload: object, keys: tuple[str, ...]) -> int | None:
         for key, value in HttpVeeamProvider._walk_key_values(payload):
             if key not in keys:
@@ -772,61 +620,6 @@ class HttpVeeamProvider:
             except (TypeError, ValueError):
                 continue
         return None
-
-    @staticmethod
-    def _collect_restore_point_ids(record: VeeamMachineBackupRecord) -> list[str]:
-        raw_payload = record.raw_payload if isinstance(record.raw_payload, dict) else {}
-        candidates = raw_payload.get("restore_point_ids")
-        collected: list[str] = []
-        if isinstance(candidates, list):
-            for item in candidates:
-                if isinstance(item, str) and item.strip():
-                    collected.append(item.strip())
-        if record.source_record_id and record.source_record_id not in collected:
-            collected.append(record.source_record_id)
-        return collected
-
-    @staticmethod
-    def _resolve_backup_chain_size_bytes(
-        *,
-        backup_file_items: list[dict[str, Any]],
-        restore_point_ids: list[str],
-    ) -> int | None:
-        if not backup_file_items or not restore_point_ids:
-            return None
-
-        target_restore_point_ids = {item for item in restore_point_ids if item}
-        if not target_restore_point_ids:
-            return None
-
-        seen_file_ids: set[str] = set()
-        matched_any = False
-        total_size = 0
-        for item in backup_file_items:
-            file_id = HttpVeeamProvider._pick_string(item, ("id", "backupFileId", "backup_file_id"))
-            if file_id and file_id in seen_file_ids:
-                continue
-            restore_point_refs = item.get("restorePointIds")
-            if not isinstance(restore_point_refs, list):
-                continue
-            normalized_restore_point_refs = {
-                str(point_id).strip()
-                for point_id in restore_point_refs
-                if isinstance(point_id, str) and point_id.strip()
-            }
-            if not normalized_restore_point_refs.intersection(target_restore_point_ids):
-                continue
-            backup_size = HttpVeeamProvider._pick_nested_int(
-                item,
-                ("backupSize", "backup_size", "sizeBytes", "size_bytes", "size"),
-            )
-            if backup_size is None:
-                continue
-            matched_any = True
-            if file_id:
-                seen_file_ids.add(file_id)
-            total_size += backup_size
-        return total_size if matched_any else None
 
     @staticmethod
     def _walk_key_values(payload: object) -> list[tuple[str, object]]:
