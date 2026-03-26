@@ -143,16 +143,18 @@ class VeeamSyncActionsService:
         synced_at = time_utils.now()
         try:
             task_runs_service.start_item(run_id, item_type=_SYNC_ITEM_TYPE, item_key=_SYNC_ITEM_KEY)
+            match_machine_names = self._build_all_match_candidates(match_domains=binding.match_domains)
             result = self._provider.list_machine_backups(
                 server_host=str(binding.server_host or ""),
                 server_port=int(binding.server_port),
                 username=str(credential.username or ""),
                 password=str(credential.get_plain_password() or ""),
                 api_version=str(binding.api_version or ""),
+                match_machine_names=match_machine_names,
                 verify_ssl=bool(binding.verify_ssl),
             )
             latest_records = self._select_latest_records(result.records)
-            enrichment_targets = self._select_enrichment_targets(latest_records, match_domains=binding.match_domains)
+            enrichment_targets = latest_records
             enriched_records = self._provider.enrich_machine_backups(
                 server_host=str(binding.server_host or ""),
                 server_port=int(binding.server_port),
@@ -250,6 +252,16 @@ class VeeamSyncActionsService:
         current_run.summary_json = payload
         current_run.error_message = error_message
 
+    def _build_all_match_candidates(self, *, match_domains: object) -> set[str]:
+        domains = match_domains if isinstance(match_domains, list) else []
+        instances = self._instances_repository.list_existing_instances()
+        matched_machine_names: set[str] = set()
+        for instance in instances:
+            matched_machine_names.update(
+                build_instance_match_candidates(getattr(instance, "name", None), domains)
+            )
+        return matched_machine_names
+
     @staticmethod
     def _select_latest_records(records: list[VeeamMachineBackupRecord]) -> list[VeeamMachineBackupRecord]:
         latest_by_machine: dict[str, VeeamMachineBackupRecord] = {}
@@ -261,27 +273,6 @@ class VeeamSyncActionsService:
             if current is None or record.backup_at > current.backup_at:
                 latest_by_machine[normalized_machine_name] = record
         return list(latest_by_machine.values())
-
-    def _select_enrichment_targets(
-        self,
-        records: list[VeeamMachineBackupRecord],
-        *,
-        match_domains: object,
-    ) -> list[VeeamMachineBackupRecord]:
-        domains = match_domains if isinstance(match_domains, list) else []
-        instances = self._instances_repository.list_existing_instances()
-        matched_machine_names: set[str] = set()
-        for instance in instances:
-            matched_machine_names.update(
-                build_instance_match_candidates(getattr(instance, "name", None), domains)
-            )
-        if not matched_machine_names:
-            return []
-        return [
-            record
-            for record in records
-            if normalize_machine_name(record.machine_name) in matched_machine_names
-        ]
 
     @staticmethod
     def _merge_enriched_records(
