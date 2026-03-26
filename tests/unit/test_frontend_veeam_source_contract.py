@@ -76,7 +76,12 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
         "backup_size_bytes",
         "compress_ratio",
         "creation_time",
-        "instance-backup-timeline",
+        "table table-hover instance-audit-table",
+        "恢复点名称",
+        "数据大小",
+        "备份大小",
+        "压缩率",
+        "创建时间",
         "instance-overview-band",
     )
     for fragment in detail_fragments:
@@ -87,6 +92,7 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
         "最近同步时间",
         "备份摘要",
         "全部恢复点时间",
+        "instance-backup-timeline",
     )
     for fragment in removed_detail_fragments:
         assert fragment not in instance_detail_js
