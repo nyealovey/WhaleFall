@@ -76,6 +76,39 @@ def test_prepare_background_sync_uses_system_settings_anchor(monkeypatch) -> Non
 
 
 @pytest.mark.unit
+def test_launch_background_sync_runs_sync_task_with_prepared_run_id(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_task(*, manual_run: bool, created_by: int | None, run_id: str) -> None:
+        captured["manual_run"] = manual_run
+        captured["created_by"] = created_by
+        captured["run_id"] = run_id
+
+    class _DummyThread:
+        name = "sync_veeam_backups_manual"
+
+    def _fake_launch_background_sync(*, created_by: int | None, run_id: str, task):
+        task(manual_run=True, created_by=created_by, run_id=run_id)
+        return _DummyThread()
+
+    monkeypatch.setattr(sync_actions_service_module, "_launch_background_sync", _fake_launch_background_sync)
+
+    service = VeeamSyncActionsService(task=_fake_task)
+    result = service.launch_background_sync(
+        created_by=1,
+        prepared=sync_actions_service_module.VeeamSyncPreparedRun(run_id="run-veeam-1", credential_id=21),
+    )
+
+    assert result.run_id == "run-veeam-1"
+    assert result.thread_name == "sync_veeam_backups_manual"
+    assert captured == {
+        "manual_run": True,
+        "created_by": 1,
+        "run_id": "run-veeam-1",
+    }
+
+
+@pytest.mark.unit
 def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes_task_run() -> None:  # noqa: PLR0915
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

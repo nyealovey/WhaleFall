@@ -443,3 +443,35 @@ def test_http_veeam_provider_enrichment_tolerates_missing_detail_endpoints() -> 
         "https://veeam.example.com:9419/api/v1/backups/backup-1",
         "https://veeam.example.com:9419/api/v1/backups/backup-1/backupFiles",
     ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_surfaces_timeout_with_url_and_timeout_seconds() -> None:
+    captured_urls: list[str] = []
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        if request.full_url.endswith("/api/v1/backupObjects"):
+            raise TimeoutError("The read operation timed out")
+        return _FakeResponse({"access_token": "token-1"})
+
+    provider = HttpVeeamProvider(timeout_seconds=15, opener=_fake_opener)
+
+    with pytest.raises(RuntimeError, match="Veeam API 请求超时") as exc_info:
+        provider.list_machine_backups(
+            server_host="veeam.example.com",
+            server_port=9419,
+            username="DOMAIN\\user",
+            password="secret",
+            api_version="1.3-rev1",
+            match_machine_names={"db01.domain.com"},
+        )
+
+    message = str(exc_info.value)
+    assert "timeout=15s" in message
+    assert "url=https://veeam.example.com:9419/api/v1/backupObjects" in message
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/oauth2/token",
+        "https://veeam.example.com:9419/api/v1/backupObjects",
+    ]

@@ -439,6 +439,10 @@ class HttpVeeamProvider:
         try:
             with self._opener(request, timeout=self._timeout_seconds, context=context) as response:
                 payload_bytes = response.read()
+        except TimeoutError as exc:
+            raise RuntimeError(
+                f"Veeam API 请求超时: timeout={self._timeout_seconds}s url={request.full_url}"
+            ) from exc
         except HTTPError as exc:
             raise RuntimeError(self._build_http_error_message(exc)) from exc
         except URLError as exc:
