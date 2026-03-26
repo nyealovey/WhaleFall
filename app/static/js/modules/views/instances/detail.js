@@ -1937,19 +1937,12 @@ function renderBackupInfo(payload) {
                 </article>
             </div>
         </section>
-        <section class="instance-audit-section instance-backup-timeline">
-            <header class="instance-audit-section__header">
-                <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
-                <span class="instance-audit-section__meta">共 ${escapeHtml(String(displayedRestorePointCount))} 条</span>
-            </header>
-            <div class="instance-backup-timeline__list">
-                ${restorePoints.length
-                    ? restorePoints.map((item, index) => renderBackupRestorePoint(item, index)).join('')
-                    : restorePointTimes.length
-                        ? restorePointTimes.map((item, index) => renderBackupRestorePointTimeFallback(item, index)).join('')
-                    : `<div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div>`}
-            </div>
-        </section>
+        ${renderBackupRestorePointsSection({
+            restorePoints,
+            restorePointTimes,
+            displayedRestorePointCount,
+            legacyRestorePointWarning,
+        })}
     `);
 }
 
@@ -2077,60 +2070,83 @@ function pickBackupRestorePointList(item, keys) {
     return [];
 }
 
-function renderBackupRestorePoint(item, index) {
-    const sequence = escapeHtml(String(index + 1).padStart(2, '0'));
+function renderBackupRestorePointsSection({
+    restorePoints,
+    restorePointTimes,
+    displayedRestorePointCount,
+    legacyRestorePointWarning,
+}) {
+    const body = restorePoints.length
+        ? restorePoints.map((item, index) => renderBackupRestorePointTableRow(item, index)).join('')
+        : restorePointTimes.length
+            ? restorePointTimes.map((item, index) => renderBackupRestorePointFallbackRow(item, index)).join('')
+            : `<tr><td colspan="6"><div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div></td></tr>`;
+    return `
+        <section class="instance-audit-section">
+            <header class="instance-audit-section__header">
+                <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
+                <span class="instance-audit-section__meta">显示 ${escapeHtml(String(displayedRestorePointCount))} / ${escapeHtml(String(displayedRestorePointCount))}</span>
+            </header>
+            <div class="table-responsive">
+                <table class="table table-hover instance-audit-table">
+                    <thead>
+                        <tr>
+                            <th>恢复点名称</th>
+                            <th>数据大小</th>
+                            <th>备份大小</th>
+                            <th>压缩率</th>
+                            <th>创建时间</th>
+                            <th>恢复点 ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>${body}</tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderBackupRestorePointTableRow(item, index) {
     const title = escapeHtml(item.name || item.id || `恢复点 ${index + 1}`);
     const subtleParts = [];
-    if (item.id) {
-        subtleParts.push(`ID ${item.id}`);
-    }
     if (item.backup_id) {
         subtleParts.push(`Backup ${item.backup_id}`);
     }
+    if (item.object_id) {
+        subtleParts.push(`Object ${item.object_id}`);
+    }
     return `
-        <article class="instance-backup-timeline__item">
-            <span class="instance-backup-timeline__index">${sequence}</span>
-            <div class="instance-backup-timeline__content">
-                <div class="instance-backup-timeline__header">
-                    <strong class="instance-backup-timeline__name">${title}</strong>
-                    ${subtleParts.length
-                        ? `<span class="instance-backup-timeline__subtle">${escapeHtml(subtleParts.join(' · '))}</span>`
-                        : ''}
+        <tr>
+            <td>
+                <div class="instance-audit-name-cell">
+                    <strong>${title}</strong>
+                    <span class="instance-audit-subtle">${escapeHtml(subtleParts.join(' · ') || `序号 ${String(index + 1).padStart(2, '0')}`)}</span>
                 </div>
-                <div class="instance-backup-timeline__metrics">
-                    ${renderBackupRestorePointMetric('数据大小', formatBackupBytes(item.data_size_bytes))}
-                    ${renderBackupRestorePointMetric('备份大小', formatBackupBytes(item.backup_size_bytes))}
-                    ${renderBackupRestorePointMetric('压缩率', formatBackupRatio(item.compress_ratio))}
-                    ${renderBackupRestorePointMetric('创建时间', formatAuditTimestamp(item.creation_time))}
-                </div>
-            </div>
-        </article>
+            </td>
+            <td>${escapeHtml(formatBackupBytes(item.data_size_bytes))}</td>
+            <td>${escapeHtml(formatBackupBytes(item.backup_size_bytes))}</td>
+            <td>${escapeHtml(formatBackupRatio(item.compress_ratio))}</td>
+            <td>${escapeHtml(formatAuditTimestamp(item.creation_time))}</td>
+            <td>${escapeHtml(item.id || '-')}</td>
+        </tr>
     `;
 }
 
-function renderBackupRestorePointTimeFallback(value, index) {
+function renderBackupRestorePointFallbackRow(value, index) {
     return `
-        <article class="instance-backup-timeline__item">
-            <span class="instance-backup-timeline__index">${escapeHtml(String(index + 1).padStart(2, '0'))}</span>
-            <div class="instance-backup-timeline__content">
-                <div class="instance-backup-timeline__header">
-                    <strong class="instance-backup-timeline__name">${escapeHtml(`恢复点 ${index + 1}`)}</strong>
-                    <span class="instance-backup-timeline__subtle">${escapeHtml(String(value))}</span>
+        <tr>
+            <td>
+                <div class="instance-audit-name-cell">
+                    <strong>${escapeHtml(`恢复点 ${index + 1}`)}</strong>
+                    <span class="instance-audit-subtle">${escapeHtml(String(value))}</span>
                 </div>
-                <div class="instance-backup-timeline__metrics">
-                    ${renderBackupRestorePointMetric('创建时间', formatAuditTimestamp(value))}
-                </div>
-            </div>
-        </article>
-    `;
-}
-
-function renderBackupRestorePointMetric(label, value) {
-    return `
-        <div class="instance-backup-timeline__metric">
-            <span class="instance-backup-timeline__metric-label">${escapeHtml(label)}</span>
-            <strong class="instance-backup-timeline__metric-value">${escapeHtml(value || '-')}</strong>
-        </div>
+            </td>
+            <td>${escapeHtml('-')}</td>
+            <td>${escapeHtml('-')}</td>
+            <td>${escapeHtml('-')}</td>
+            <td>${escapeHtml(formatAuditTimestamp(value))}</td>
+            <td>${escapeHtml('-')}</td>
+        </tr>
     `;
 }
 
