@@ -75,7 +75,7 @@ def test_prepare_background_sync_uses_system_settings_anchor(monkeypatch) -> Non
 
 
 @pytest.mark.unit
-def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes_task_run() -> None:
+def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes_task_run() -> None:  # noqa: PLR0915
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
 
@@ -193,6 +193,7 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
             ) -> list[VeeamMachineBackupRecord]:
                 captured["enriched_machine_names"] = [record.machine_name for record in records]
                 captured["enriched_record_ids"] = [record.source_record_id for record in records]
+                captured["enriched_raw_payloads"] = [record.raw_payload for record in records]
                 _ = (server_host, server_port, username, password, api_version, verify_ssl)
                 return [
                     VeeamMachineBackupRecord(
@@ -204,7 +205,7 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                         restore_point_name=record.restore_point_name,
                         source_record_id=record.source_record_id,
                         restore_point_size_bytes=1024,
-                        backup_chain_size_bytes=4096,
+                        backup_chain_size_bytes=384,
                         restore_point_count=3,
                         raw_payload=record.raw_payload,
                     )
@@ -228,15 +229,32 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert captured["verify_ssl"] is False
         assert captured["enriched_machine_names"] == ["db01.domain.com"]
         assert captured["enriched_record_ids"] == ["rp-2"]
+        assert captured["enriched_raw_payloads"] == [
+            {
+                "id": "rp-2",
+                "restore_point_ids": ["rp-2", "rp-1b", "rp-1"],
+                "restore_point_times": [
+                    "2026-03-25T02:00:00+00:00",
+                    "2026-03-25T01:30:00+00:00",
+                    "2026-03-25T01:00:00+00:00",
+                ],
+            }
+        ]
 
         snapshots = VeeamMachineBackupSnapshot.query.order_by(VeeamMachineBackupSnapshot.machine_name.asc()).all()
         assert len(snapshots) == 1
         assert snapshots[0].job_name == "daily-job"
         assert snapshots[0].restore_point_size_bytes == 1024
-        assert snapshots[0].backup_chain_size_bytes == 4096
+        assert snapshots[0].backup_chain_size_bytes == 384
         assert snapshots[0].restore_point_count == 3
         assert snapshots[0].machine_name == "db01.domain.com"
         assert snapshots[0].restore_point_name == "rp-2"
+        assert snapshots[0].raw_payload["restore_point_ids"] == ["rp-2", "rp-1b", "rp-1"]
+        assert snapshots[0].raw_payload["restore_point_times"] == [
+            "2026-03-25T02:00:00+00:00",
+            "2026-03-25T01:30:00+00:00",
+            "2026-03-25T01:00:00+00:00",
+        ]
 
         binding = VeeamSourceBinding.query.first()
         assert binding is not None

@@ -32,6 +32,7 @@ InstanceBackupInfoData = ns.model(
         "restore_point_size_bytes": fields.Integer(required=False),
         "backup_chain_size_bytes": fields.Integer(required=False),
         "restore_point_count": fields.Integer(required=False),
+        "restore_point_times": fields.List(fields.String, required=False),
         "last_sync_time": fields.String(required=False),
         "message": fields.String(required=False),
     },

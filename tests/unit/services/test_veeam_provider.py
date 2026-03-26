@@ -346,8 +346,14 @@ def test_http_veeam_provider_enriches_job_name_and_sizes_from_backup_details() -
     captured_urls: list[str] = []
     payloads = [
         {"access_token": "token-1"},
-        {"data": {"name": "daily-job", "backupChainSizeBytes": 4096, "restorePointCount": 3}},
-        {"data": {"sizeBytes": 1024}},
+        {"data": {"name": "daily-job", "restorePointCount": 3}},
+        {
+            "data": [
+                {"id": "file-a", "restorePointIds": ["rp-1", "rp-2"], "backupSize": 256},
+                {"id": "file-b", "restorePointIds": ["rp-2"], "backupSize": 128},
+                {"id": "file-c", "restorePointIds": ["rp-x"], "backupSize": 999},
+            ]
+        },
     ]
 
     def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
@@ -371,20 +377,24 @@ def test_http_veeam_provider_enriches_job_name_and_sizes_from_backup_details() -
                 backup_file_id="file-1",
                 restore_point_name="rp-2",
                 source_record_id="rp-2",
-                raw_payload={"id": "rp-2"},
+                raw_payload={
+                    "id": "rp-2",
+                    "restore_point_ids": ["rp-1", "rp-2"],
+                    "restore_point_times": ["2026-03-25T02:00:00Z", "2026-03-25T01:00:00Z"],
+                },
             )
         ],
     )
 
     assert len(result) == 1
     assert result[0].job_name == "daily-job"
-    assert result[0].restore_point_size_bytes == 1024
-    assert result[0].backup_chain_size_bytes == 4096
+    assert result[0].restore_point_size_bytes is None
+    assert result[0].backup_chain_size_bytes == 384
     assert result[0].restore_point_count == 3
     assert captured_urls == [
         "https://veeam.example.com:9419/api/oauth2/token",
         "https://veeam.example.com:9419/api/v1/backups/backup-1",
-        "https://veeam.example.com:9419/api/v1/backupFiles/file-1",
+        "https://veeam.example.com:9419/api/v1/backups/backup-1/backupFiles",
     ]
 
 
@@ -418,7 +428,7 @@ def test_http_veeam_provider_enrichment_tolerates_missing_detail_endpoints() -> 
                 backup_file_id="file-1",
                 restore_point_name="rp-2",
                 source_record_id="rp-2",
-                raw_payload={"id": "rp-2"},
+                raw_payload={"id": "rp-2", "restore_point_ids": ["rp-2"]},
             )
         ],
     )
@@ -428,3 +438,8 @@ def test_http_veeam_provider_enrichment_tolerates_missing_detail_endpoints() -> 
     assert result[0].restore_point_size_bytes is None
     assert result[0].backup_chain_size_bytes is None
     assert result[0].restore_point_count is None
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/oauth2/token",
+        "https://veeam.example.com:9419/api/v1/backups/backup-1",
+        "https://veeam.example.com:9419/api/v1/backups/backup-1/backupFiles",
+    ]
