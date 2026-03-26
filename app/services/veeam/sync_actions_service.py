@@ -141,9 +141,36 @@ class VeeamSyncActionsService:
 
         task_runs_service = TaskRunsWriteService()
         synced_at = time_utils.now()
+        sync_context = {"created_by": created_by, "run_id": run_id}
         try:
             task_runs_service.start_item(run_id, item_type=_SYNC_ITEM_TYPE, item_key=_SYNC_ITEM_KEY)
+            log_with_context(
+                "info",
+                "Veeam 备份同步开始",
+                module="veeam",
+                action="sync_backups_background",
+                context=sync_context,
+                extra={
+                    "server_host": str(binding.server_host or ""),
+                    "server_port": int(binding.server_port),
+                    "api_version": str(binding.api_version or ""),
+                    "verify_ssl": bool(binding.verify_ssl),
+                },
+                include_actor=False,
+            )
             match_machine_names = self._build_all_match_candidates(match_domains=binding.match_domains)
+            log_with_context(
+                "info",
+                "Veeam 候选机器池已构建",
+                module="veeam",
+                action="sync_backups_background",
+                context=sync_context,
+                extra={
+                    "candidate_machine_count": len(match_machine_names),
+                    "candidate_machine_sample": sorted(match_machine_names)[:20],
+                },
+                include_actor=False,
+            )
             result = self._provider.list_machine_backups(
                 server_host=str(binding.server_host or ""),
                 server_port=int(binding.server_port),
@@ -153,7 +180,55 @@ class VeeamSyncActionsService:
                 match_machine_names=match_machine_names,
                 verify_ssl=bool(binding.verify_ssl),
             )
+            log_with_context(
+                "info",
+                "Veeam 备份链匹配完成",
+                module="veeam",
+                action="sync_backups_background",
+                context=sync_context,
+                extra={
+                    "backups_received_total": result.backups_received_total,
+                    "backups_matched_total": result.backups_matched_total,
+                    "backups_unmatched_total": result.backups_unmatched_total,
+                    "backups_missing_machine_name": result.backups_missing_machine_name,
+                    "matched_backup_ids_sample": result.matched_backup_ids_sample,
+                    "unmatched_backup_ids_sample": result.unmatched_backup_ids_sample,
+                    "unmatched_machine_names_sample": result.unmatched_machine_names_sample,
+                    "restore_points_received_total": result.received_total,
+                    "skipped_invalid": result.skipped_invalid,
+                },
+                include_actor=False,
+            )
+            if result.backups_matched_total <= 0:
+                log_with_context(
+                    "warning",
+                    "Veeam 未命中任何备份链",
+                    module="veeam",
+                    action="sync_backups_background",
+                    context=sync_context,
+                    extra={
+                        "candidate_machine_count": len(match_machine_names),
+                        "candidate_machine_sample": sorted(match_machine_names)[:20],
+                        "backups_received_total": result.backups_received_total,
+                        "backups_missing_machine_name": result.backups_missing_machine_name,
+                        "unmatched_backup_ids_sample": result.unmatched_backup_ids_sample,
+                        "unmatched_machine_names_sample": result.unmatched_machine_names_sample,
+                    },
+                    include_actor=False,
+                )
             latest_records = self._select_latest_records(result.records)
+            log_with_context(
+                "info",
+                "Veeam 最新机器快照已筛选",
+                module="veeam",
+                action="sync_backups_background",
+                context=sync_context,
+                extra={
+                    "latest_machine_count": len(latest_records),
+                    "latest_machine_names_sample": [record.machine_name for record in latest_records[:20]],
+                },
+                include_actor=False,
+            )
             enrichment_targets = latest_records
             enriched_records = self._provider.enrich_machine_backups(
                 server_host=str(binding.server_host or ""),
@@ -164,6 +239,27 @@ class VeeamSyncActionsService:
                 records=enrichment_targets,
                 verify_ssl=bool(binding.verify_ssl),
             ) if enrichment_targets else []
+            log_with_context(
+                "info",
+                "Veeam 备份详情补全完成",
+                module="veeam",
+                action="sync_backups_background",
+                context=sync_context,
+                extra={
+                    "enriched_machine_count": len(enriched_records),
+                    "job_name_filled_count": sum(1 for record in enriched_records if record.job_name),
+                    "restore_point_size_filled_count": sum(
+                        1 for record in enriched_records if record.restore_point_size_bytes is not None
+                    ),
+                    "backup_chain_size_filled_count": sum(
+                        1 for record in enriched_records if record.backup_chain_size_bytes is not None
+                    ),
+                    "restore_point_count_filled_count": sum(
+                        1 for record in enriched_records if record.restore_point_count is not None
+                    ),
+                },
+                include_actor=False,
+            )
             records_to_write = self._merge_enriched_records(latest_records, enriched_records)
             snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
                 records_to_write,
@@ -175,6 +271,15 @@ class VeeamSyncActionsService:
             binding.last_sync_run_id = run_id
             binding.last_error = None
             db.session.add(binding)
+            log_with_context(
+                "info",
+                "Veeam 快照写入完成",
+                module="veeam",
+                action="sync_backups_background",
+                context=sync_context,
+                extra={"snapshots_written_total": snapshots_written_total},
+                include_actor=False,
+            )
             task_runs_service.complete_item(
                 run_id,
                 item_type=_SYNC_ITEM_TYPE,
@@ -204,6 +309,26 @@ class VeeamSyncActionsService:
             )
             task_runs_service.finalize_run(run_id)
             db.session.commit()
+            log_with_context(
+                "info",
+                "Veeam 备份同步完成",
+                module="veeam",
+                action="sync_backups_background",
+                context=sync_context,
+                extra={
+                    "candidate_machine_count": len(match_machine_names),
+                    "backups_received_total": result.backups_received_total,
+                    "backups_matched_total": result.backups_matched_total,
+                    "backups_unmatched_total": result.backups_unmatched_total,
+                    "backups_missing_machine_name": result.backups_missing_machine_name,
+                    "restore_points_received_total": result.received_total,
+                    "latest_machine_count": len(latest_records),
+                    "enriched_machine_count": len(enriched_records),
+                    "snapshots_written_total": snapshots_written_total,
+                    "skipped_invalid": result.skipped_invalid,
+                },
+                include_actor=False,
+            )
         except Exception as exc:
             db.session.rollback()
             binding = self._source_service.get_binding_or_error()
@@ -238,8 +363,8 @@ class VeeamSyncActionsService:
                 "Veeam 备份同步失败",
                 module="veeam",
                 action="sync_backups_background",
-                context={"created_by": created_by, "run_id": run_id},
-                extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
+                context=sync_context,
+                extra={"error_type": exc.__class__.__name__, "error_message": str(exc), "stage": "sync_backups"},
                 include_actor=False,
             )
             raise
