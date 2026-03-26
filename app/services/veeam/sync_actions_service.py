@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import importlib
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, cast
 
-from flask import current_app, has_app_context
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.core.exceptions import ValidationError
@@ -24,6 +27,14 @@ _SYNC_ITEM_TYPE = "step"
 _SYNC_ITEM_KEY = "sync_backups"
 _SYNC_ITEM_NAME = "同步 Veeam 备份"
 
+BACKGROUND_SYNC_EXCEPTIONS: tuple[type[Exception], ...] = (
+    ValidationError,
+    SQLAlchemyError,
+    RuntimeError,
+    ValueError,
+    LookupError,
+)
+
 
 @dataclass(frozen=True, slots=True)
 class VeeamSyncPreparedRun:
@@ -41,6 +52,48 @@ class VeeamSyncLaunchResult:
     thread_name: str
 
 
+def _resolve_default_task() -> Callable[..., Any]:
+    """惰性加载默认任务函数,避免导入期循环依赖."""
+    module = importlib.import_module("app.tasks.veeam_backup_sync_tasks")
+    return cast("Callable[..., Any]", module.sync_veeam_backups)
+
+
+def _launch_background_sync(
+    *,
+    created_by: int | None,
+    run_id: str,
+    task: Callable[..., Any],
+) -> threading.Thread:
+    def _run_task(captured_created_by: int | None, captured_run_id: str) -> None:
+        try:
+            task(manual_run=True, created_by=captured_created_by, run_id=captured_run_id)
+        except BACKGROUND_SYNC_EXCEPTIONS as exc:
+            log_with_context(
+                "error",
+                "后台 Veeam 备份同步失败",
+                module="veeam",
+                action="sync_backups_background",
+                context={
+                    "created_by": captured_created_by,
+                    "run_id": captured_run_id,
+                },
+                extra={
+                    "error_type": exc.__class__.__name__,
+                    "error_message": str(exc),
+                },
+                include_actor=False,
+            )
+
+    thread = threading.Thread(
+        target=_run_task,
+        args=(created_by, run_id),
+        name="sync_veeam_backups_manual",
+        daemon=True,
+    )
+    thread.start()
+    return thread
+
+
 class VeeamSyncActionsService:
     """Veeam 备份同步动作编排."""
 
@@ -51,11 +104,13 @@ class VeeamSyncActionsService:
         veeam_repository: VeeamRepository | None = None,
         instances_repository: InstancesRepository | None = None,
         provider: VeeamProvider | None = None,
+        task: Callable[..., Any] | None = None,
     ) -> None:
         self._source_service = source_service or VeeamSourceService(provider=provider)
         self._veeam_repository = veeam_repository or VeeamRepository()
         self._instances_repository = instances_repository or InstancesRepository()
         self._provider = provider or HttpVeeamProvider()
+        self._task = task or _resolve_default_task()
 
     def prepare_background_sync(
         self,
@@ -101,30 +156,11 @@ class VeeamSyncActionsService:
         prepared: VeeamSyncPreparedRun,
     ) -> VeeamSyncLaunchResult:
         """后台启动同步线程."""
-        base_app = current_app._get_current_object() if has_app_context() else None
-        db.session.commit()
-
-        def _run_sync(captured_created_by: int | None, captured_run_id: str, credential_id: int) -> None:
-            app = base_app
-            if app is None:
-                return
-            with app.app_context():
-                try:
-                    self._sync_once(
-                        created_by=captured_created_by,
-                        run_id=captured_run_id,
-                        credential_id=credential_id,
-                    )
-                except Exception:
-                    return
-
-        thread = threading.Thread(
-            target=_run_sync,
-            args=(created_by, prepared.run_id, prepared.credential_id),
-            name="sync_veeam_backups_manual",
-            daemon=True,
+        thread = _launch_background_sync(
+            created_by=created_by,
+            run_id=prepared.run_id,
+            task=self._task,
         )
-        thread.start()
         return VeeamSyncLaunchResult(run_id=prepared.run_id, thread_name=thread.name)
 
     def _sync_once(

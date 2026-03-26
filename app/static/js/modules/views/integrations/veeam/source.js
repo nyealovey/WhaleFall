@@ -211,12 +211,51 @@
   async function handleSyncBackups() {
     const stop = setButtonBusy(elements.syncButton, "同步中...");
     try {
-      const response = await service.syncBackups(csrfToken);
-      if (!response?.success) {
-        throw new Error(response?.message || "同步 Veeam 备份失败");
-      }
-      const runId = response?.data?.run_id || "-";
-      toast?.success?.(`同步 Veeam 备份任务已启动：${runId}`);
+      const result = await service.syncBackups(csrfToken);
+      const resolver = global.UI?.resolveAsyncActionOutcome;
+      const outcome =
+        typeof resolver === "function"
+          ? resolver(result, {
+              action: "veeam:syncBackups",
+              startedMessage: "Veeam 备份同步任务已启动",
+              failedMessage: "同步 Veeam 备份失败",
+              unknownMessage: "Veeam 备份同步未完成，请稍后在运行中心确认",
+              resultUrl: "/history/sessions",
+              resultText: "前往运行中心查看同步进度",
+            })
+          : null;
+
+      const fallbackStatus =
+        result?.success === true
+          ? "started"
+          : result?.success === false || result?.error === true
+            ? "failed"
+            : "unknown";
+      const fallbackOutcome = {
+        status: fallbackStatus,
+        tone:
+          fallbackStatus === "started"
+            ? "success"
+            : fallbackStatus === "failed"
+              ? "error"
+              : "warning",
+        message:
+          fallbackStatus === "started"
+            ? result?.message || "Veeam 备份同步任务已启动"
+            : fallbackStatus === "failed"
+              ? result?.message || "同步 Veeam 备份失败"
+              : result?.message || "Veeam 备份同步未完成，请稍后在运行中心确认",
+      };
+
+      const resolved = outcome || fallbackOutcome;
+      const warnOrInfo = toast?.warning || toast?.info;
+      const notifier =
+        resolved.tone === "success"
+          ? toast?.success
+          : resolved.tone === "error"
+            ? toast?.error
+            : warnOrInfo;
+      notifier?.call(toast, resolved.message);
       await loadSource();
     } catch (error) {
       toast?.error?.(error?.message || "同步 Veeam 备份失败");

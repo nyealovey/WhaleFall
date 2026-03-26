@@ -45,6 +45,9 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
         "saveVeeamSourceBtn",
         "syncVeeamBackupsBtn",
         "同步 Veeam 备份",
+        "resolveAsyncActionOutcome",
+        'action: "veeam:syncBackups"',
+        'resultUrl: "/history/sessions"',
     )
     for fragment in source_fragments:
         assert fragment in source_js
