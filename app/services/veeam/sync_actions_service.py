@@ -725,6 +725,10 @@ class VeeamSyncActionsService:
             raw_payload["restore_point_ids"] = restore_point_ids
         if restore_point_times:
             raw_payload["restore_point_times"] = restore_point_times
+        raw_payload["restore_points"] = [
+            VeeamSyncActionsService._serialize_restore_point_payload(record)
+            for record in ordered_records
+        ]
         resolved_restore_point_count = len(restore_point_ids) or len(restore_point_times) or latest_record.restore_point_count
         return VeeamMachineBackupRecord(
             machine_name=latest_record.machine_name,
@@ -739,6 +743,21 @@ class VeeamSyncActionsService:
             restore_point_count=resolved_restore_point_count,
             raw_payload=raw_payload,
         )
+
+    @staticmethod
+    def _serialize_restore_point_payload(record: VeeamMachineBackupRecord) -> dict[str, object]:
+        payload = dict(record.raw_payload) if isinstance(record.raw_payload, dict) else {}
+        if record.source_record_id and not payload.get("id"):
+            payload["id"] = record.source_record_id
+        if record.restore_point_name and not payload.get("name"):
+            payload["name"] = record.restore_point_name
+        if record.backup_id and not payload.get("backupId"):
+            payload["backupId"] = record.backup_id
+        if record.backup_file_id and not payload.get("backupFileId"):
+            payload["backupFileId"] = record.backup_file_id
+        if record.backup_at and not payload.get("creationTime"):
+            payload["creationTime"] = record.backup_at.isoformat()
+        return payload
 
     @staticmethod
     def _collect_unique_strings(values: list[str | None]) -> list[str]:

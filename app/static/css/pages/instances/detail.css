@@ -753,11 +753,18 @@
 .instance-backup-timeline__content {
     display: flex;
     flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.instance-backup-timeline__header {
+    display: flex;
+    flex-direction: column;
     gap: 0.25rem;
     min-width: 0;
 }
 
-.instance-backup-timeline__timestamp {
+.instance-backup-timeline__name {
     color: var(--text-primary);
     font-family: var(--font-family-data);
     font-size: 0.98rem;
@@ -768,6 +775,40 @@
     color: var(--text-muted);
     font-family: var(--font-family-data);
     font-size: 0.76rem;
+    overflow-wrap: anywhere;
+}
+
+.instance-backup-timeline__metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.65rem;
+}
+
+.instance-backup-timeline__metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    min-width: 0;
+    padding: 0.7rem 0.78rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(22, 29, 38, 0.06);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.instance-backup-timeline__metric-label {
+    color: var(--text-muted);
+    font-family: var(--font-family-data);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.instance-backup-timeline__metric-value {
+    color: var(--text-primary);
+    font-family: var(--font-family-data);
+    font-size: 0.84rem;
+    line-height: 1.45;
     overflow-wrap: anywhere;
 }
 
