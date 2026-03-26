@@ -271,6 +271,7 @@ class VeeamSyncActionsService:
                 include_actor=False,
             )
             records_to_write = self._merge_enriched_records(latest_records, enriched_records)
+            self._validate_records_to_write(records_to_write)
             snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
                 records_to_write,
                 sync_run_id=run_id,
@@ -436,9 +437,7 @@ class VeeamSyncActionsService:
         restore_point_ids = VeeamSyncActionsService._collect_unique_strings(
             [record.source_record_id for record in ordered_records]
         )
-        restore_point_times = VeeamSyncActionsService._collect_unique_strings(
-            [record.backup_at.isoformat() for record in ordered_records]
-        )
+        restore_point_times = [record.backup_at.isoformat() for record in ordered_records]
         raw_payload = dict(latest_record.raw_payload)
         if restore_point_ids:
             raw_payload["restore_point_ids"] = restore_point_ids
@@ -470,6 +469,24 @@ class VeeamSyncActionsService:
                 continue
             collected.append(normalized)
         return collected
+
+    @staticmethod
+    def _validate_records_to_write(records: list[VeeamMachineBackupRecord]) -> None:
+        for record in records:
+            restore_point_count = int(record.restore_point_count or 0)
+            if restore_point_count <= 0:
+                continue
+            raw_payload = record.raw_payload if isinstance(record.raw_payload, dict) else {}
+            restore_point_times = raw_payload.get("restore_point_times")
+            normalized_times = [
+                str(item).strip()
+                for item in restore_point_times
+                if isinstance(item, str) and item.strip()
+            ] if isinstance(restore_point_times, list) else []
+            if not normalized_times:
+                raise ValidationError("Veeam 快照缺少恢复点时间，请重新执行一次 Veeam 同步")
+            if len(normalized_times) != restore_point_count:
+                raise ValidationError("Veeam 快照恢复点时间数量与恢复点数量不一致")
 
     @staticmethod
     def _merge_enriched_records(
