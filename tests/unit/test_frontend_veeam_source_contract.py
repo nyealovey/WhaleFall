@@ -62,12 +62,24 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
         "renderBackupInfo",
         "#backupInfoContent",
         "backup-tab",
-        "最近还原点大小",
+        "备份状态",
+        "最近备份时间",
         "备份链完整大小",
         "恢复点数量",
+        "恢复点时间",
+        "restore_point_times",
+        "instance-backup-timeline",
         "instance-overview-band",
     )
     for fragment in detail_fragments:
         assert fragment in instance_detail_js
+
+    removed_detail_fragments = (
+        "最近还原点大小",
+        "最近同步时间",
+        "备份摘要",
+    )
+    for fragment in removed_detail_fragments:
+        assert fragment not in instance_detail_js
 
     assert "候选机器名" not in instance_detail_js

@@ -37,6 +37,8 @@ class VeeamMachineBackupSnapshot(db.Model):
 
     def to_dict(self) -> dict[str, object]:
         """序列化快照."""
+        raw_payload = self.raw_payload if isinstance(self.raw_payload, dict) else {}
+        restore_point_times = raw_payload.get("restore_point_times")
         return {
             "machine_name": self.machine_name,
             "normalized_machine_name": self.normalized_machine_name,
@@ -49,6 +51,11 @@ class VeeamMachineBackupSnapshot(db.Model):
             "restore_point_size_bytes": self.restore_point_size_bytes,
             "backup_chain_size_bytes": self.backup_chain_size_bytes,
             "restore_point_count": self.restore_point_count,
+            "restore_point_times": [
+                str(item).strip()
+                for item in restore_point_times
+                if isinstance(item, str) and item.strip()
+            ] if isinstance(restore_point_times, list) else [],
             "sync_run_id": self.sync_run_id,
             "synced_at": self.synced_at.isoformat() if self.synced_at else None,
         }

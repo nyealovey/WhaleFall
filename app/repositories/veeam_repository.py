@@ -12,9 +12,12 @@ from app.models.instance import Instance
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.models.veeam_source_binding import VeeamSourceBinding
 from app.services.veeam.matching import build_instance_match_candidates, normalize_machine_name
+from app.services.veeam.provider import VeeamMachineBackupRecord
 
 
 def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object]:
+    raw_payload = row.raw_payload if isinstance(row.raw_payload, dict) else {}
+    restore_point_times = raw_payload.get("restore_point_times")
     return {
         "machine_name": row.machine_name,
         "normalized_machine_name": row.normalized_machine_name,
@@ -27,6 +30,11 @@ def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object
         "restore_point_size_bytes": row.restore_point_size_bytes,
         "backup_chain_size_bytes": row.backup_chain_size_bytes,
         "restore_point_count": row.restore_point_count,
+        "restore_point_times": [
+            str(item).strip()
+            for item in restore_point_times
+            if isinstance(item, str) and item.strip()
+        ] if isinstance(restore_point_times, list) else [],
         "sync_run_id": row.sync_run_id,
         "synced_at": row.synced_at.isoformat() if row.synced_at else None,
     }
@@ -66,14 +74,12 @@ class VeeamRepository:
 
     @staticmethod
     def replace_machine_backup_snapshots(
-        records: Iterable["VeeamMachineBackupRecord"],
+        records: Iterable[VeeamMachineBackupRecord],
         *,
         sync_run_id: str,
         synced_at: datetime,
     ) -> int:
         """以本次同步结果替换机器备份快照内容."""
-        from app.services.veeam.provider import VeeamMachineBackupRecord
-
         latest_by_machine: dict[str, VeeamMachineBackupRecord] = {}
         for record in records:
             if not isinstance(record, VeeamMachineBackupRecord):

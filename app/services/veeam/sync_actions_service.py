@@ -405,14 +405,71 @@ class VeeamSyncActionsService:
     @staticmethod
     def _select_latest_records(records: list[VeeamMachineBackupRecord]) -> list[VeeamMachineBackupRecord]:
         latest_by_machine: dict[str, VeeamMachineBackupRecord] = {}
+        records_by_machine_backup: dict[tuple[str, str | None], list[VeeamMachineBackupRecord]] = {}
         for record in records:
             normalized_machine_name = normalize_machine_name(record.machine_name)
             if not normalized_machine_name:
                 continue
+            records_by_machine_backup.setdefault((normalized_machine_name, record.backup_id), []).append(record)
             current = latest_by_machine.get(normalized_machine_name)
             if current is None or record.backup_at > current.backup_at:
                 latest_by_machine[normalized_machine_name] = record
-        return list(latest_by_machine.values())
+        return [
+            VeeamSyncActionsService._attach_restore_point_snapshot(
+                latest_record=record,
+                related_records=records_by_machine_backup.get((normalized_machine_name, record.backup_id), []),
+            )
+            for normalized_machine_name, record in latest_by_machine.items()
+        ]
+
+    @staticmethod
+    def _attach_restore_point_snapshot(
+        *,
+        latest_record: VeeamMachineBackupRecord,
+        related_records: list[VeeamMachineBackupRecord],
+    ) -> VeeamMachineBackupRecord:
+        ordered_records = sorted(
+            related_records,
+            key=lambda item: (item.backup_at, item.source_record_id or ""),
+            reverse=True,
+        )
+        restore_point_ids = VeeamSyncActionsService._collect_unique_strings(
+            [record.source_record_id for record in ordered_records]
+        )
+        restore_point_times = VeeamSyncActionsService._collect_unique_strings(
+            [record.backup_at.isoformat() for record in ordered_records]
+        )
+        raw_payload = dict(latest_record.raw_payload)
+        if restore_point_ids:
+            raw_payload["restore_point_ids"] = restore_point_ids
+        if restore_point_times:
+            raw_payload["restore_point_times"] = restore_point_times
+        resolved_restore_point_count = len(restore_point_ids) or len(restore_point_times) or latest_record.restore_point_count
+        return VeeamMachineBackupRecord(
+            machine_name=latest_record.machine_name,
+            backup_at=latest_record.backup_at,
+            backup_id=latest_record.backup_id,
+            backup_file_id=latest_record.backup_file_id,
+            job_name=latest_record.job_name,
+            restore_point_name=latest_record.restore_point_name,
+            source_record_id=latest_record.source_record_id,
+            restore_point_size_bytes=latest_record.restore_point_size_bytes,
+            backup_chain_size_bytes=latest_record.backup_chain_size_bytes,
+            restore_point_count=resolved_restore_point_count,
+            raw_payload=raw_payload,
+        )
+
+    @staticmethod
+    def _collect_unique_strings(values: list[str | None]) -> list[str]:
+        collected: list[str] = []
+        for value in values:
+            if not isinstance(value, str):
+                continue
+            normalized = value.strip()
+            if not normalized or normalized in collected:
+                continue
+            collected.append(normalized)
+        return collected
 
     @staticmethod
     def _merge_enriched_records(
