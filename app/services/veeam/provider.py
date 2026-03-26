@@ -21,7 +21,6 @@ VEEAM_TOKEN_PATH = "/api/oauth2/token"
 VEEAM_RESTORE_POINTS_PATH = "/api/v1/restorePoints"
 VEEAM_BACKUP_OBJECTS_PATH = "/api/v1/backupObjects"
 VEEAM_BACKUPS_PATH = "/api/v1/backups"
-VEEAM_BACKUP_FILES_PATH = "/api/v1/backupFiles"
 VEEAM_ACCEPT_HEADER = "application/json"
 
 
@@ -253,6 +252,26 @@ class HttpVeeamProvider:
             next_url = self._resolve_next_url(base_url=url, current_url=next_url, payload=payload)
         return items
 
+    def _collect_optional_paginated_items(
+        self,
+        *,
+        url: str | None,
+        access_token: str,
+        api_version: str,
+        verify_ssl: bool,
+    ) -> list[dict[str, Any]]:
+        if not url:
+            return []
+        try:
+            return self._collect_paginated_items(
+                url=url,
+                access_token=access_token,
+                api_version=api_version,
+                verify_ssl=verify_ssl,
+            )
+        except (RuntimeError, ValueError):
+            return []
+
     def enrich_machine_backups(
         self,
         *,
@@ -285,8 +304,8 @@ class HttpVeeamProvider:
                 api_version=api_version,
                 verify_ssl=resolved_verify_ssl,
             )
-            backup_file_payload = self._request_optional_json(
-                url=self._build_detail_url(base_url, VEEAM_BACKUP_FILES_PATH, record.backup_file_id),
+            backup_file_items = self._collect_optional_paginated_items(
+                url=self._build_backup_files_url(base_url=base_url, backup_id=record.backup_id),
                 access_token=access_token,
                 api_version=api_version,
                 verify_ssl=resolved_verify_ssl,
@@ -294,8 +313,19 @@ class HttpVeeamProvider:
             raw_payload = dict(record.raw_payload)
             if isinstance(backup_payload, dict):
                 raw_payload["backup_detail"] = backup_payload
-            if isinstance(backup_file_payload, dict):
-                raw_payload["backup_file_detail"] = backup_file_payload
+            if backup_file_items:
+                raw_payload["backup_files"] = backup_file_items
+
+            resolved_backup_chain_size = self._resolve_backup_chain_size_bytes(
+                backup_file_items=backup_file_items,
+                restore_point_ids=self._collect_restore_point_ids(record),
+            )
+            resolved_restore_point_count = self._pick_nested_int(
+                backup_payload,
+                ("restorePointCount", "restore_point_count", "restorePointsCount", "restore_points_count", "pointCount"),
+            )
+            if resolved_restore_point_count is None:
+                resolved_restore_point_count = record.restore_point_count
 
             enriched_records.append(
                 VeeamMachineBackupRecord(
@@ -309,27 +339,13 @@ class HttpVeeamProvider:
                     ),
                     restore_point_name=record.restore_point_name,
                     source_record_id=record.source_record_id,
-                    restore_point_size_bytes=(
-                        self._pick_nested_int(
-                            backup_file_payload,
-                            ("restorePointSizeBytes", "restore_point_size_bytes", "sizeBytes", "size_bytes", "size"),
-                        )
-                        or record.restore_point_size_bytes
-                    ),
+                    restore_point_size_bytes=record.restore_point_size_bytes,
                     backup_chain_size_bytes=(
-                        self._pick_nested_int(
-                            backup_payload,
-                            ("backupChainSizeBytes", "backup_chain_size_bytes", "totalSizeBytes", "total_size_bytes", "sizeBytes", "size_bytes", "size"),
-                        )
-                        or record.backup_chain_size_bytes
+                        resolved_backup_chain_size
+                        if resolved_backup_chain_size is not None
+                        else record.backup_chain_size_bytes
                     ),
-                    restore_point_count=(
-                        self._pick_nested_int(
-                            backup_payload,
-                            ("restorePointCount", "restore_point_count", "restorePointsCount", "restore_points_count", "pointCount"),
-                        )
-                        or record.restore_point_count
-                    ),
+                    restore_point_count=resolved_restore_point_count,
                     raw_payload=raw_payload,
                 )
             )
@@ -373,7 +389,7 @@ class HttpVeeamProvider:
         )
         response_payload = self._read_json_response(request=request, verify_ssl=verify_ssl)
         if not isinstance(response_payload, dict):
-            raise ValueError("Veeam token 响应格式不受支持")
+            raise TypeError("Veeam token 响应格式不受支持")
         access_token = str(response_payload.get("access_token") or "").strip()
         if not access_token:
             raise ValueError("Veeam token 响应缺少 access_token")
@@ -480,6 +496,12 @@ class HttpVeeamProvider:
         return f"{base_url}{VEEAM_BACKUP_OBJECTS_PATH}/{str(backup_object_id).strip()}/restorePoints"
 
     @staticmethod
+    def _build_backup_files_url(*, base_url: str, backup_id: str | None) -> str | None:
+        if not backup_id:
+            return None
+        return f"{base_url}{VEEAM_BACKUPS_PATH}/{str(backup_id).strip()}/backupFiles"
+
+    @staticmethod
     def _resolve_next_url(*, base_url: str, current_url: str, payload: object) -> str | None:
         if not isinstance(payload, dict):
             return None
@@ -497,7 +519,7 @@ class HttpVeeamProvider:
         return None
 
     @staticmethod
-    def _extract_next_link(payload: dict[str, Any]) -> str | None:
+    def _extract_next_link(payload: dict[str, Any]) -> str | None:  # noqa: PLR0912
         for key in ("next", "nextLink", "next_link"):
             value = payload.get(key)
             if isinstance(value, str) and value.strip():
@@ -732,6 +754,61 @@ class HttpVeeamProvider:
             except (TypeError, ValueError):
                 continue
         return None
+
+    @staticmethod
+    def _collect_restore_point_ids(record: VeeamMachineBackupRecord) -> list[str]:
+        raw_payload = record.raw_payload if isinstance(record.raw_payload, dict) else {}
+        candidates = raw_payload.get("restore_point_ids")
+        collected: list[str] = []
+        if isinstance(candidates, list):
+            for item in candidates:
+                if isinstance(item, str) and item.strip():
+                    collected.append(item.strip())
+        if record.source_record_id and record.source_record_id not in collected:
+            collected.append(record.source_record_id)
+        return collected
+
+    @staticmethod
+    def _resolve_backup_chain_size_bytes(
+        *,
+        backup_file_items: list[dict[str, Any]],
+        restore_point_ids: list[str],
+    ) -> int | None:
+        if not backup_file_items or not restore_point_ids:
+            return None
+
+        target_restore_point_ids = {item for item in restore_point_ids if item}
+        if not target_restore_point_ids:
+            return None
+
+        seen_file_ids: set[str] = set()
+        matched_any = False
+        total_size = 0
+        for item in backup_file_items:
+            file_id = HttpVeeamProvider._pick_string(item, ("id", "backupFileId", "backup_file_id"))
+            if file_id and file_id in seen_file_ids:
+                continue
+            restore_point_refs = item.get("restorePointIds")
+            if not isinstance(restore_point_refs, list):
+                continue
+            normalized_restore_point_refs = {
+                str(point_id).strip()
+                for point_id in restore_point_refs
+                if isinstance(point_id, str) and point_id.strip()
+            }
+            if not normalized_restore_point_refs.intersection(target_restore_point_ids):
+                continue
+            backup_size = HttpVeeamProvider._pick_nested_int(
+                item,
+                ("backupSize", "backup_size", "sizeBytes", "size_bytes", "size"),
+            )
+            if backup_size is None:
+                continue
+            matched_any = True
+            if file_id:
+                seen_file_ids.add(file_id)
+            total_size += backup_size
+        return total_size if matched_any else None
 
     @staticmethod
     def _walk_key_values(payload: object) -> list[tuple[str, object]]:

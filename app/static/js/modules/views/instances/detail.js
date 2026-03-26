@@ -1891,11 +1891,9 @@ function renderBackupInfo(payload) {
         contentDiv.html(renderBackupEmptyState(data));
         return;
     }
-    const detailRows = [
-        { label: '命中机器名', value: data.matched_machine_name || '-' },
-        { label: '作业名称', value: data.job_name || '-' },
-        { label: '还原点名称', value: data.restore_point_name || '-' },
-    ];
+    const restorePointTimes = Array.isArray(data.restore_point_times)
+        ? data.restore_point_times.filter((item) => typeof item === 'string' && item.trim())
+        : [];
     contentDiv.html(`
         <section class="instance-overview-band instance-overview-band--capacity">
             <div class="instance-overview-band__facts">
@@ -1915,21 +1913,13 @@ function renderBackupInfo(payload) {
                     <strong class="instance-overview-band__fact-value">${escapeHtml(formatAuditTimestamp(data.backup_last_time))}</strong>
                     <span class="status-pill status-pill--success"><i class="fas fa-check" aria-hidden="true"></i>已采集</span>
                 </article>
-                <article class="instance-overview-band__fact" data-tone="info">
-                    <div class="instance-overview-band__fact-header">
-                        <span class="instance-overview-band__fact-label">最近还原点大小</span>
-                        <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-weight-hanging"></i></span>
-                    </div>
-                    <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupBytes(data.restore_point_size_bytes))}</strong>
-                    <span class="status-pill status-pill--info"><i class="fas fa-file-arrow-up" aria-hidden="true"></i>restore point</span>
-                </article>
                 <article class="instance-overview-band__fact" data-tone="danger">
                     <div class="instance-overview-band__fact-header">
                         <span class="instance-overview-band__fact-label">备份链完整大小</span>
                         <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-box-archive"></i></span>
                     </div>
                     <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupBytes(data.backup_chain_size_bytes))}</strong>
-                    <span class="status-pill status-pill--danger"><i class="fas fa-link" aria-hidden="true"></i>chain</span>
+                    <span class="status-pill status-pill--danger"><i class="fas fa-link" aria-hidden="true"></i>backup files</span>
                 </article>
                 <article class="instance-overview-band__fact" data-tone="brand">
                     <div class="instance-overview-band__fact-header">
@@ -1939,37 +1929,25 @@ function renderBackupInfo(payload) {
                     <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupCount(data.restore_point_count))}</strong>
                     <span class="status-pill status-pill--muted"><i class="fas fa-list-ol" aria-hidden="true"></i>数量</span>
                 </article>
-                <article class="instance-overview-band__fact" data-tone="info">
-                    <div class="instance-overview-band__fact-header">
-                        <span class="instance-overview-band__fact-label">最近同步时间</span>
-                        <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-rotate"></i></span>
-                    </div>
-                    <strong class="instance-overview-band__fact-value">${escapeHtml(formatAuditTimestamp(data.last_sync_time))}</strong>
-                    <span class="status-pill status-pill--info"><i class="fas fa-cloud-arrow-down" aria-hidden="true"></i>同步</span>
-                </article>
-            </div>
-            <div class="instance-overview-band__controls filter-band">
-                <div class="instance-overview-band__realtime filter-band__meta">
-                    <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>缓存快照</span>
-                </div>
             </div>
         </section>
-        <section class="instance-audit-section">
+        <section class="instance-audit-section instance-backup-timeline">
             <header class="instance-audit-section__header">
-                <h3 class="instance-audit-section__title"><i class="fas fa-hard-drive"></i>备份摘要</h3>
-                <span class="instance-audit-section__meta">${escapeHtml(formatBackupStatusLabel(data.backup_status))}</span>
+                <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点时间</h3>
+                <span class="instance-audit-section__meta">共 ${escapeHtml(String(restorePointTimes.length))} 条</span>
             </header>
-            <div class="table-responsive">
-                <table class="table table-hover instance-audit-table">
-                    <tbody>
-                        ${detailRows.map((row) => `
-                            <tr>
-                                <th style="width: 12rem;">${escapeHtml(row.label)}</th>
-                                <td>${escapeHtml(String(row.value || '-'))}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+            <div class="instance-backup-timeline__list">
+                ${restorePointTimes.length
+                    ? restorePointTimes.map((item, index) => `
+                        <article class="instance-backup-timeline__item">
+                            <span class="instance-backup-timeline__index">${escapeHtml(String(index + 1).padStart(2, '0'))}</span>
+                            <div class="instance-backup-timeline__content">
+                                <strong class="instance-backup-timeline__timestamp">${escapeHtml(formatAuditTimestamp(item))}</strong>
+                                <span class="instance-backup-timeline__subtle">${escapeHtml(String(item))}</span>
+                            </div>
+                        </article>
+                    `).join('')
+                    : '<div class="instance-audit-empty">最近一次同步快照未提供恢复点时间。</div>'}
             </div>
         </section>
     `);
@@ -1984,7 +1962,7 @@ function renderBackupEmptyState(data) {
             <div class="instance-audit-placeholder__content">
                 <span class="chip-outline chip-outline--brand">${escapeHtml(getInstanceName())}</span>
                 <h3 class="instance-audit-placeholder__title">尚未采集到匹配该实例的备份记录</h3>
-                <p class="instance-audit-placeholder__text">${escapeHtml(data.message || '完成同步后，这里会展示作业名称、还原点大小、备份链大小和恢复点数量。')}</p>
+                <p class="instance-audit-placeholder__text">${escapeHtml(data.message || '完成同步后，这里会展示备份状态、最近备份时间、备份链完整大小、恢复点数量和全部恢复点时间。')}</p>
             </div>
         </section>
     `;
