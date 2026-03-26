@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 import pytest
 
 from app import create_app, db
@@ -73,7 +71,14 @@ def test_api_v1_instance_backup_info_contract() -> None:
                 restore_point_size_bytes=1024,
                 backup_chain_size_bytes=4096,
                 restore_point_count=3,
-                raw_payload={"id": "rp-2"},
+                raw_payload={
+                    "id": "rp-2",
+                    "restore_point_times": [
+                        "2026-03-25T02:00:00+00:00",
+                        "2026-03-25T01:30:00+00:00",
+                        "2026-03-25T01:00:00+00:00",
+                    ],
+                },
             )
         )
         db.session.commit()
@@ -96,4 +101,9 @@ def test_api_v1_instance_backup_info_contract() -> None:
         assert data.get("restore_point_size_bytes") == 1024
         assert data.get("backup_chain_size_bytes") == 4096
         assert data.get("restore_point_count") == 3
+        assert data.get("restore_point_times") == [
+            "2026-03-25T02:00:00+00:00",
+            "2026-03-25T01:30:00+00:00",
+            "2026-03-25T01:00:00+00:00",
+        ]
         assert data.get("match_candidates") == ["db01", "db01.domain.com"]
