@@ -275,41 +275,9 @@ class VeeamSyncActionsService:
                 },
                 include_actor=False,
             )
-            enrichment_targets = latest_records
-            enriched_records = self._provider.enrich_machine_backups(
-                server_host=str(binding.server_host or ""),
-                server_port=int(binding.server_port),
-                username=str(credential.username or ""),
-                password=str(credential.get_plain_password() or ""),
-                api_version=str(binding.api_version or ""),
-                records=enrichment_targets,
-                verify_ssl=bool(binding.verify_ssl),
-            ) if enrichment_targets else []
-            log_with_context(
-                "info",
-                "Veeam 备份详情补全完成",
-                module="veeam",
-                action="sync_backups_background",
-                context=sync_context,
-                extra={
-                    "enriched_machine_count": len(enriched_records),
-                    "job_name_filled_count": sum(1 for record in enriched_records if record.job_name),
-                    "restore_point_size_filled_count": sum(
-                        1 for record in enriched_records if record.restore_point_size_bytes is not None
-                    ),
-                    "backup_chain_size_filled_count": sum(
-                        1 for record in enriched_records if record.backup_chain_size_bytes is not None
-                    ),
-                    "restore_point_count_filled_count": sum(
-                        1 for record in enriched_records if record.restore_point_count is not None
-                    ),
-                },
-                include_actor=False,
-            )
-            records_to_write = self._merge_enriched_records(latest_records, enriched_records)
-            self._validate_records_to_write(records_to_write)
+            self._validate_records_to_write(latest_records)
             snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
-                records_to_write,
+                latest_records,
                 sync_run_id=run_id,
                 synced_at=synced_at,
             )
@@ -375,7 +343,6 @@ class VeeamSyncActionsService:
                     "missing_machine_name_backup_ids_sample": result.missing_machine_name_backup_ids_sample,
                     "restore_points_received_total": result.received_total,
                     "latest_machine_count": len(latest_records),
-                    "enriched_machine_count": len(enriched_records),
                     "snapshots_written_total": snapshots_written_total,
                     "skipped_invalid": result.skipped_invalid,
                 },
@@ -523,18 +490,3 @@ class VeeamSyncActionsService:
                 raise ValidationError("Veeam 快照缺少恢复点时间，请重新执行一次 Veeam 同步")
             if len(normalized_times) != restore_point_count:
                 raise ValidationError("Veeam 快照恢复点时间数量与恢复点数量不一致")
-
-    @staticmethod
-    def _merge_enriched_records(
-        base_records: list[VeeamMachineBackupRecord],
-        enriched_records: list[VeeamMachineBackupRecord],
-    ) -> list[VeeamMachineBackupRecord]:
-        enriched_map = {
-            (normalize_machine_name(record.machine_name), record.source_record_id): record
-            for record in enriched_records
-        }
-        merged: list[VeeamMachineBackupRecord] = []
-        for record in base_records:
-            key = (normalize_machine_name(record.machine_name), record.source_record_id)
-            merged.append(enriched_map.get(key, record))
-        return merged
