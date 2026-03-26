@@ -25,30 +25,61 @@ class _FakeResponse:
 
 
 @pytest.mark.unit
-def test_http_veeam_provider_requests_restore_points_across_next_links() -> None:
+def test_http_veeam_provider_requests_backups_first_then_restore_points_across_next_links() -> None:
     captured_requests: list[dict[str, Any]] = []
     payloads = [
         {"access_token": "token-1"},
         {
             "items": [
                 {
+                    "id": "backup-1",
                     "machineName": "db01.domain.com",
-                    "creationTime": "2026-03-25T01:00:00Z",
-                    "jobName": "daily-job",
-                    "restorePointName": "rp-1",
-                    "id": "rp-1",
+                    "name": "daily-job",
+                    "backupChainSizeBytes": 4096,
+                    "restorePointCount": 2,
                 }
             ],
-            "next": "https://veeam.example.com:9419/api/v1/restorePoints?page=2",
+            "next": "https://veeam.example.com:9419/api/v1/backups?page=2",
+        },
+        {
+            "items": [
+                {
+                    "id": "backup-2",
+                    "machineName": "db02.domain.com",
+                    "name": "daily-job-2",
+                    "backupChainSizeBytes": 8192,
+                    "restorePointCount": 1,
+                }
+            ],
+            "next": None,
+        },
+        {
+            "items": [
+                {
+                    "machineName": "db01.domain.com",
+                    "creationTime": "2026-03-25T01:00:00Z",
+                    "restorePointName": "rp-1",
+                    "id": "rp-1",
+                    "backupId": "backup-1",
+                },
+                {
+                    "machineName": "db01.domain.com",
+                    "creationTime": "2026-03-25T02:00:00Z",
+                    "restorePointName": "rp-2",
+                    "id": "rp-2",
+                    "backupId": "backup-1",
+                }
+            ],
+            "next": None,
         },
         {
             "items": [
                 {
                     "machineName": "db02.domain.com",
-                    "creationTime": "2026-03-25T02:00:00Z",
-                    "jobName": "daily-job",
-                    "restorePointName": "rp-2",
-                    "id": "rp-2",
+                    "creationTime": "2026-03-25T03:00:00Z",
+                    "restorePointName": "rp-3",
+                    "id": "rp-3",
+                    "backupId": "backup-2",
                 }
             ],
             "next": None,
@@ -75,30 +106,33 @@ def test_http_veeam_provider_requests_restore_points_across_next_links() -> None
         username="DOMAIN\\user",
         password="secret",
         api_version="1.3-rev1",
+        match_machine_names={"db01.domain.com", "db02.domain.com"},
     )
 
-    assert result.received_total == 2
-    assert result.snapshots_written_total == 2
+    assert result.received_total == 3
+    assert result.snapshots_written_total == 3
     assert result.skipped_invalid == 0
-    assert [record.machine_name for record in result.records] == ["db01.domain.com", "db02.domain.com"]
+    assert [record.machine_name for record in result.records] == ["db01.domain.com", "db01.domain.com", "db02.domain.com"]
 
-    assert len(captured_requests) == 3
+    assert len(captured_requests) == 5
     assert captured_requests[0]["url"] == "https://veeam.example.com:9419/api/oauth2/token"
-    assert captured_requests[1]["url"] == "https://veeam.example.com:9419/api/v1/restorePoints"
-    assert captured_requests[2]["url"] == "https://veeam.example.com:9419/api/v1/restorePoints?page=2"
+    assert captured_requests[1]["url"] == "https://veeam.example.com:9419/api/v1/backups"
+    assert captured_requests[2]["url"] == "https://veeam.example.com:9419/api/v1/backups?page=2"
+    assert captured_requests[3]["url"] == "https://veeam.example.com:9419/api/v1/backups/backup-1/restorePoints"
+    assert captured_requests[4]["url"] == "https://veeam.example.com:9419/api/v1/backups/backup-2/restorePoints"
 
 
 @pytest.mark.unit
-def test_http_veeam_provider_uses_page_metadata_when_next_link_missing() -> None:
+def test_http_veeam_provider_uses_backup_page_metadata_when_next_link_missing() -> None:
     captured_urls: list[str] = []
     payloads = [
         {"access_token": "token-1"},
         {
             "items": [
                 {
+                    "id": "backup-1",
                     "machineName": "db01.domain.com",
-                    "creationTime": "2026-03-25T01:00:00Z",
-                    "id": "rp-1",
+                    "name": "daily-job",
                 }
             ],
             "page": 1,
@@ -108,14 +142,36 @@ def test_http_veeam_provider_uses_page_metadata_when_next_link_missing() -> None
         {
             "items": [
                 {
+                    "id": "backup-2",
                     "machineName": "db02.domain.com",
-                    "creationTime": "2026-03-25T02:00:00Z",
-                    "id": "rp-2",
+                    "name": "daily-job-2",
                 }
             ],
             "page": 2,
             "pageSize": 1,
             "total": 2,
+        },
+        {
+            "items": [
+                {
+                    "machineName": "db01.domain.com",
+                    "creationTime": "2026-03-25T01:00:00Z",
+                    "id": "rp-1",
+                    "backupId": "backup-1",
+                }
+            ],
+            "next": None,
+        },
+        {
+            "items": [
+                {
+                    "machineName": "db02.domain.com",
+                    "creationTime": "2026-03-25T02:00:00Z",
+                    "id": "rp-2",
+                    "backupId": "backup-2",
+                }
+            ],
+            "next": None,
         },
     ]
 
@@ -132,14 +188,75 @@ def test_http_veeam_provider_uses_page_metadata_when_next_link_missing() -> None
         username="DOMAIN\\user",
         password="secret",
         api_version="1.3-rev1",
+        match_machine_names={"db01.domain.com", "db02.domain.com"},
     )
 
     assert result.received_total == 2
     assert [record.machine_name for record in result.records] == ["db01.domain.com", "db02.domain.com"]
     assert captured_urls == [
         "https://veeam.example.com:9419/api/oauth2/token",
-        "https://veeam.example.com:9419/api/v1/restorePoints",
-        "https://veeam.example.com:9419/api/v1/restorePoints?page=2&pageSize=1",
+        "https://veeam.example.com:9419/api/v1/backups",
+        "https://veeam.example.com:9419/api/v1/backups?page=2&pageSize=1",
+        "https://veeam.example.com:9419/api/v1/backups/backup-1/restorePoints",
+        "https://veeam.example.com:9419/api/v1/backups/backup-2/restorePoints",
+    ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_skips_unmatched_backups_before_fetching_restore_points() -> None:
+    captured_urls: list[str] = []
+    payloads = [
+        {"access_token": "token-1"},
+        {
+            "items": [
+                {
+                    "id": "backup-1",
+                    "machineName": "db01.domain.com",
+                    "name": "daily-job",
+                },
+                {
+                    "id": "backup-2",
+                    "machineName": "unmatched.domain.com",
+                    "name": "daily-job-2",
+                },
+            ],
+            "next": None,
+        },
+        {
+            "items": [
+                {
+                    "machineName": "db01.domain.com",
+                    "creationTime": "2026-03-25T01:00:00Z",
+                    "id": "rp-1",
+                    "backupId": "backup-1",
+                }
+            ],
+            "next": None,
+        },
+    ]
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        return _FakeResponse(payloads[len(captured_urls) - 1])
+
+    provider = HttpVeeamProvider(opener=_fake_opener)
+
+    result = provider.list_machine_backups(
+        server_host="veeam.example.com",
+        server_port=9419,
+        username="DOMAIN\\user",
+        password="secret",
+        api_version="1.3-rev1",
+        match_machine_names={"db01.domain.com"},
+    )
+
+    assert result.received_total == 1
+    assert [record.machine_name for record in result.records] == ["db01.domain.com"]
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/oauth2/token",
+        "https://veeam.example.com:9419/api/v1/backups",
+        "https://veeam.example.com:9419/api/v1/backups/backup-1/restorePoints",
     ]
 
 
