@@ -7,6 +7,7 @@ import pytest
 
 import app.services.veeam.sync_actions_service as sync_actions_service_module
 from app import create_app, db
+from app.core.exceptions import ValidationError
 from app.models.credential import Credential
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
@@ -390,3 +391,123 @@ def test_sync_once_logs_candidate_pool_and_unmatched_backup_summary(monkeypatch)
         assert extra["unmatched_machine_names_sample"] == ["unmatched.domain.com"]
         assert extra["missing_machine_name_backup_ids_sample"] == ["backup-1"]
         assert extra["missing_machine_name_backup_names_sample"] == ["daily-job-1"]
+
+
+@pytest.mark.unit
+def test_sync_once_rejects_snapshot_when_restore_point_times_missing() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
+            ],
+        )
+
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            description="Veeam",
+            is_active=True,
+        )
+        instance = Instance(
+            name="db01",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=True,
+        )
+        db.session.add_all([credential, instance])
+        db.session.flush()
+
+        binding = VeeamSourceBinding(
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+            match_domains=["domain.com"],
+        )
+        db.session.add(binding)
+        db.session.commit()
+
+        class _StubProvider:
+            def is_configured(self) -> bool:
+                return True
+
+            def list_machine_backups(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                match_machine_names: set[str] | None = None,
+                verify_ssl: bool | None = None,
+            ) -> VeeamMachineBackupCollection:
+                _ = (server_host, server_port, username, password, api_version, match_machine_names, verify_ssl)
+                return VeeamMachineBackupCollection(
+                    records=[
+                        VeeamMachineBackupRecord(
+                            machine_name="db01.domain.com",
+                            backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                            backup_id="backup-1",
+                            backup_file_id="file-1",
+                            restore_point_name="rp-1",
+                            source_record_id="rp-1",
+                            raw_payload={"id": "rp-1"},
+                        )
+                    ],
+                    received_total=1,
+                    snapshots_written_total=1,
+                    skipped_invalid=0,
+                )
+
+            def enrich_machine_backups(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                records: list[VeeamMachineBackupRecord],
+                verify_ssl: bool | None = None,
+            ) -> list[VeeamMachineBackupRecord]:
+                _ = (server_host, server_port, username, password, api_version, verify_ssl)
+                return [
+                    VeeamMachineBackupRecord(
+                        machine_name=record.machine_name,
+                        backup_at=record.backup_at,
+                        backup_id=record.backup_id,
+                        backup_file_id=record.backup_file_id,
+                        job_name="daily-job",
+                        restore_point_name=record.restore_point_name,
+                        source_record_id=record.source_record_id,
+                        restore_point_size_bytes=1024,
+                        backup_chain_size_bytes=2048,
+                        restore_point_count=30,
+                        raw_payload={"id": "rp-1"},
+                    )
+                    for record in records
+                ]
+
+        service = VeeamSyncActionsService(provider=_StubProvider())
+        prepared = service.prepare_background_sync(created_by=1)
+        db.session.commit()
+
+        with pytest.raises(ValidationError, match="恢复点时间"):
+            service._sync_once(created_by=1, run_id=prepared.run_id, credential_id=credential.id)
+
+        snapshots = VeeamMachineBackupSnapshot.query.all()
+        assert snapshots == []

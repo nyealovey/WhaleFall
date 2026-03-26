@@ -1894,6 +1894,10 @@ function renderBackupInfo(payload) {
     const restorePointTimes = Array.isArray(data.restore_point_times)
         ? data.restore_point_times.filter((item) => typeof item === 'string' && item.trim())
         : [];
+    const displayedRestorePointCount = restorePointTimes.length || Number(data.restore_point_count) || 0;
+    const legacyRestorePointWarning = displayedRestorePointCount > 0 && restorePointTimes.length === 0
+        ? '当前快照缺少恢复点时间，请重新执行一次 Veeam 同步。'
+        : '最近一次同步快照未提供恢复点时间。';
     contentDiv.html(`
         <section class="instance-overview-band instance-overview-band--capacity">
             <div class="instance-overview-band__facts">
@@ -1934,7 +1938,7 @@ function renderBackupInfo(payload) {
         <section class="instance-audit-section instance-backup-timeline">
             <header class="instance-audit-section__header">
                 <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点时间</h3>
-                <span class="instance-audit-section__meta">共 ${escapeHtml(String(restorePointTimes.length))} 条</span>
+                <span class="instance-audit-section__meta">共 ${escapeHtml(String(displayedRestorePointCount))} 条</span>
             </header>
             <div class="instance-backup-timeline__list">
                 ${restorePointTimes.length
@@ -1947,7 +1951,7 @@ function renderBackupInfo(payload) {
                             </div>
                         </article>
                     `).join('')
-                    : '<div class="instance-audit-empty">最近一次同步快照未提供恢复点时间。</div>'}
+                    : `<div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div>`}
             </div>
         </section>
     `);

@@ -436,19 +436,17 @@
                     </div>
 
                     <div class="tab-pane fade instance-data-pane" id="backup-pane" role="tabpanel" aria-labelledby="backup-tab">
-                        <div class="instance-data-pane__stack">
-                            <div id="backupInfoContent">
-                                <section class="instance-audit-placeholder">
-                                    <div class="instance-audit-placeholder__icon">
-                                        <i class="fas fa-hard-drive"></i>
-                                    </div>
-                                    <div class="instance-audit-placeholder__content">
-                                        <span class="chip-outline chip-outline--brand">{{ instance.name }}</span>
-                                        <h3 class="instance-audit-placeholder__title">尚未加载备份信息</h3>
-                                        <p class="instance-audit-placeholder__text">切换到该标签后，将展示最近备份时间、备份链完整大小、恢复点数量与全部恢复点时间。</p>
-                                    </div>
-                                </section>
-                            </div>
+                        <div id="backupInfoContent">
+                            <section class="instance-audit-placeholder">
+                                <div class="instance-audit-placeholder__icon">
+                                    <i class="fas fa-hard-drive"></i>
+                                </div>
+                                <div class="instance-audit-placeholder__content">
+                                    <span class="chip-outline chip-outline--brand">{{ instance.name }}</span>
+                                    <h3 class="instance-audit-placeholder__title">尚未加载备份信息</h3>
+                                    <p class="instance-audit-placeholder__text">切换到该标签后，将展示最近备份时间、备份链完整大小、恢复点数量与全部恢复点时间。</p>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>
