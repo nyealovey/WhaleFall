@@ -10,6 +10,7 @@ from app.models.instance import Instance
 from app.models.user import User
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.models.veeam_source_binding import VeeamSourceBinding
+from app.utils.time_utils import time_utils
 
 
 @pytest.mark.unit
@@ -56,14 +57,14 @@ def test_api_v1_instance_backup_info_contract() -> None:
                 api_version="1.3-rev1",
                 verify_ssl=True,
                 match_domains=["domain.com"],
-                last_sync_at=datetime(2026, 3, 25, 3, 0, tzinfo=UTC),
+                last_sync_at=time_utils.now(),
             )
         )
         db.session.add(
             VeeamMachineBackupSnapshot(
                 machine_name="db01.domain.com",
                 normalized_machine_name="db01.domain.com",
-                latest_backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                latest_backup_at=time_utils.now(),
                 backup_id="backup-1",
                 backup_file_id="file-2",
                 job_name="daily-job",
