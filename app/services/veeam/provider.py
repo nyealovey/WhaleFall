@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from flask import current_app, has_app_context
 
 from app.settings import Settings
+from app.services.veeam.matching import normalize_machine_name
 from app.utils.time_utils import time_utils
 
 VEEAM_TOKEN_PATH = "/api/oauth2/token"
@@ -68,6 +69,7 @@ class VeeamProvider(Protocol):
         username: str,
         password: str,
         api_version: str,
+        match_machine_names: set[str] | None = None,
         verify_ssl: bool | None = None,
     ) -> VeeamMachineBackupCollection:
         """返回机器级备份列表与统计."""
@@ -131,6 +133,7 @@ class HttpVeeamProvider:
         username: str,
         password: str,
         api_version: str,
+        match_machine_names: set[str] | None = None,
         verify_ssl: bool | None = None,
     ) -> VeeamMachineBackupCollection:
         base_url = self._build_base_url(server_host=server_host, server_port=server_port)
@@ -142,32 +145,69 @@ class HttpVeeamProvider:
             api_version=api_version,
             verify_ssl=resolved_verify_ssl,
         )
+        backup_items = self._collect_paginated_items(
+            url=f"{base_url}{VEEAM_BACKUPS_PATH}",
+            access_token=access_token,
+            api_version=api_version,
+            verify_ssl=resolved_verify_ssl,
+        )
         records: list[VeeamMachineBackupRecord] = []
         skipped_invalid = 0
         received_total = 0
-        next_url: str | None = f"{base_url}{VEEAM_RESTORE_POINTS_PATH}"
-        while next_url:
-            payload = self._request_json(
-                url=next_url,
+        for backup_item in backup_items:
+            backup_id = self._pick_string(backup_item, ("id", "backupId", "backup_id"))
+            if not backup_id:
+                continue
+            backup_machine_name = self._resolve_backup_machine_name(backup_item)
+            if match_machine_names:
+                normalized_backup_machine_name = normalize_machine_name(backup_machine_name)
+                if not normalized_backup_machine_name or normalized_backup_machine_name not in match_machine_names:
+                    continue
+            restore_point_items = self._collect_paginated_items(
+                url=self._build_backup_restore_points_url(base_url=base_url, backup_id=backup_id),
                 access_token=access_token,
                 api_version=api_version,
                 verify_ssl=resolved_verify_ssl,
             )
-            page_items = self._parse_page_payload(payload)
-            received_total += len(page_items)
-            for item in page_items:
-                record = self._normalize_backup_record(item)
+            received_total += len(restore_point_items)
+            for item in restore_point_items:
+                record = self._normalize_backup_record(
+                    item,
+                    backup_item=backup_item,
+                    backup_machine_name=backup_machine_name,
+                )
                 if record is None:
                     skipped_invalid += 1
                     continue
                 records.append(record)
-            next_url = self._resolve_next_url(base_url=base_url, current_url=next_url, payload=payload)
         return VeeamMachineBackupCollection(
             records=records,
             received_total=received_total,
             snapshots_written_total=len(records),
             skipped_invalid=skipped_invalid,
         )
+
+    def _collect_paginated_items(
+        self,
+        *,
+        url: str,
+        access_token: str,
+        api_version: str,
+        verify_ssl: bool,
+    ) -> list[dict[str, Any]]:
+        items: list[dict[str, Any]] = []
+        next_url: str | None = url
+        while next_url:
+            payload = self._request_json(
+                url=next_url,
+                access_token=access_token,
+                api_version=api_version,
+                verify_ssl=verify_ssl,
+            )
+            page_items = self._parse_page_payload(payload)
+            items.extend(page_items)
+            next_url = self._resolve_next_url(base_url=url, current_url=next_url, payload=payload)
+        return items
 
     def enrich_machine_backups(
         self,
@@ -392,6 +432,10 @@ class HttpVeeamProvider:
         return f"{base_url}{prefix}/{str(object_id).strip()}"
 
     @staticmethod
+    def _build_backup_restore_points_url(*, base_url: str, backup_id: str) -> str:
+        return f"{base_url}{VEEAM_BACKUPS_PATH}/{str(backup_id).strip()}/restorePoints"
+
+    @staticmethod
     def _resolve_next_url(*, base_url: str, current_url: str, payload: object) -> str | None:
         if not isinstance(payload, dict):
             return None
@@ -516,17 +560,24 @@ class HttpVeeamProvider:
         return None
 
     @staticmethod
-    def _normalize_backup_record(item: dict[str, Any]) -> VeeamMachineBackupRecord | None:
-        machine_name = HttpVeeamProvider._resolve_machine_name(item)
+    def _normalize_backup_record(
+        item: dict[str, Any],
+        *,
+        backup_item: dict[str, Any] | None = None,
+        backup_machine_name: str | None = None,
+    ) -> VeeamMachineBackupRecord | None:
+        machine_name = backup_machine_name or HttpVeeamProvider._resolve_machine_name(item)
         backup_at = HttpVeeamProvider._resolve_backup_at(item)
         if not machine_name or backup_at is None:
             return None
         return VeeamMachineBackupRecord(
             machine_name=machine_name,
             backup_at=backup_at,
-            backup_id=HttpVeeamProvider._pick_string(item, ("backupId", "backup_id")),
+            backup_id=HttpVeeamProvider._pick_string(item, ("backupId", "backup_id"))
+            or HttpVeeamProvider._pick_string(backup_item or {}, ("id", "backupId", "backup_id")),
             backup_file_id=HttpVeeamProvider._pick_string(item, ("backupFileId", "backup_file_id")),
-            job_name=HttpVeeamProvider._pick_string(item, ("jobName", "job_name", "backupName", "backup_name")),
+            job_name=HttpVeeamProvider._pick_string(item, ("jobName", "job_name", "backupName", "backup_name"))
+            or HttpVeeamProvider._pick_string(backup_item or {}, ("jobName", "job_name", "backupName", "backup_name", "name")),
             restore_point_name=HttpVeeamProvider._pick_string(
                 item,
                 ("restorePointName", "restore_point_name", "name"),
@@ -539,12 +590,38 @@ class HttpVeeamProvider:
             backup_chain_size_bytes=HttpVeeamProvider._pick_nested_int(
                 item,
                 ("backupChainSizeBytes", "backup_chain_size_bytes", "totalSizeBytes", "total_size_bytes"),
+            ) or HttpVeeamProvider._pick_nested_int(
+                backup_item or {},
+                ("backupChainSizeBytes", "backup_chain_size_bytes", "totalSizeBytes", "total_size_bytes", "sizeBytes", "size_bytes", "size"),
             ),
             restore_point_count=HttpVeeamProvider._pick_nested_int(
                 item,
                 ("restorePointCount", "restore_point_count", "restorePointsCount", "restore_points_count"),
+            ) or HttpVeeamProvider._pick_nested_int(
+                backup_item or {},
+                ("restorePointCount", "restore_point_count", "restorePointsCount", "restore_points_count", "pointCount"),
             ),
             raw_payload=dict(item),
+        )
+
+    @staticmethod
+    def _resolve_backup_machine_name(item: dict[str, Any]) -> str | None:
+        return HttpVeeamProvider._pick_string(
+            item,
+            (
+                "machineName",
+                "machine_name",
+                "objectName",
+                "object_name",
+                "workloadName",
+                "workload_name",
+                "computerName",
+                "computer_name",
+                "vmName",
+                "vm_name",
+                "hostName",
+                "host_name",
+            ),
         )
 
     @staticmethod

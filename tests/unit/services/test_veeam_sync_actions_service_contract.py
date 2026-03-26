@@ -133,6 +133,7 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                 username: str,
                 password: str,
                 api_version: str,
+                match_machine_names: set[str] | None = None,
                 verify_ssl: bool | None = None,
             ) -> VeeamMachineBackupCollection:
                 captured["server_host"] = server_host
@@ -140,6 +141,7 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                 captured["username"] = username
                 captured["password"] = password
                 captured["api_version"] = api_version
+                captured["match_machine_names"] = set(match_machine_names or set())
                 captured["verify_ssl"] = verify_ssl
                 return VeeamMachineBackupCollection(
                     records=[
@@ -162,17 +164,17 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                             raw_payload={"id": "rp-2"},
                         ),
                         VeeamMachineBackupRecord(
-                            machine_name="db02",
-                            backup_at=datetime(2026, 3, 24, 20, 0, tzinfo=UTC),
-                            backup_id="backup-2",
-                            backup_file_id="file-3",
-                            restore_point_name="rp-3",
-                            source_record_id="rp-3",
-                            raw_payload={"id": "rp-3"},
+                            machine_name="db01.domain.com",
+                            backup_at=datetime(2026, 3, 25, 1, 30, tzinfo=UTC),
+                            backup_id="backup-1",
+                            backup_file_id="file-1b",
+                            restore_point_name="rp-1b",
+                            source_record_id="rp-1b",
+                            raw_payload={"id": "rp-1b"},
                         ),
                     ],
                     received_total=3,
-                    snapshots_written_total=2,
+                    snapshots_written_total=3,
                     skipped_invalid=0,
                 )
 
@@ -220,20 +222,19 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert captured["username"] == "backup-admin"
         assert captured["password"] == "VeeamPass123"
         assert captured["api_version"] == "1.3-rev1"
+        assert captured["match_machine_names"] == {"db01", "db01.domain.com"}
         assert captured["verify_ssl"] is False
         assert captured["enriched_machine_names"] == ["db01.domain.com"]
         assert captured["enriched_record_ids"] == ["rp-2"]
 
         snapshots = VeeamMachineBackupSnapshot.query.order_by(VeeamMachineBackupSnapshot.machine_name.asc()).all()
-        assert len(snapshots) == 2
+        assert len(snapshots) == 1
         assert snapshots[0].job_name == "daily-job"
         assert snapshots[0].restore_point_size_bytes == 1024
         assert snapshots[0].backup_chain_size_bytes == 4096
         assert snapshots[0].restore_point_count == 3
         assert snapshots[0].machine_name == "db01.domain.com"
         assert snapshots[0].restore_point_name == "rp-2"
-        assert snapshots[1].machine_name == "db02"
-        assert snapshots[1].job_name is None
 
         binding = VeeamSourceBinding.query.first()
         assert binding is not None
@@ -249,9 +250,9 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert run.progress_failed == 0
         assert run.summary_json["ext"]["type"] == "sync_veeam_backups"
         assert run.summary_json["ext"]["data"]["backups"]["received_total"] == 3
-        assert run.summary_json["ext"]["data"]["backups"]["snapshots_written_total"] == 2
+        assert run.summary_json["ext"]["data"]["backups"]["snapshots_written_total"] == 1
 
         item = TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step", item_key="sync_backups").first()
         assert item is not None
         assert item.status == "completed"
-        assert item.metrics_json["snapshots_written_total"] == 2
+        assert item.metrics_json["snapshots_written_total"] == 1
