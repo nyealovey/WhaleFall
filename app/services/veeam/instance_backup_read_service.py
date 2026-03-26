@@ -44,6 +44,7 @@ class InstanceBackupInfoReadService:
         matched = self._veeam_repository.find_best_backup_for_instance_name(instance.name)
         latest_backup_at = matched.get("latest_backup_at") if isinstance(matched, dict) else None
         restore_point_times = matched.get("restore_point_times") if isinstance(matched, dict) else []
+        restore_points = matched.get("restore_points") if isinstance(matched, dict) else []
         return {
             "instance_id": int(instance.id),
             "instance_name": instance.name,
@@ -62,6 +63,7 @@ class InstanceBackupInfoReadService:
             "backup_chain_size_bytes": matched.get("backup_chain_size_bytes") if isinstance(matched, dict) else None,
             "restore_point_count": matched.get("restore_point_count") if isinstance(matched, dict) else None,
             "restore_point_times": restore_point_times if isinstance(restore_point_times, list) else [],
+            "restore_points": restore_points if isinstance(restore_points, list) else [],
             "last_sync_time": matched.get("last_sync_time") if isinstance(matched, dict) else None,
             "message": "获取备份信息成功",
         }

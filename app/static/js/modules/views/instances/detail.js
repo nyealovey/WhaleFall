@@ -1891,10 +1891,12 @@ function renderBackupInfo(payload) {
         contentDiv.html(renderBackupEmptyState(data));
         return;
     }
+    const restorePoints = normalizeBackupRestorePoints(data);
     const restorePointTimes = Array.isArray(data.restore_point_times)
         ? data.restore_point_times.filter((item) => typeof item === 'string' && item.trim())
         : [];
-    const displayedRestorePointCount = restorePointTimes.length || Number(data.restore_point_count) || 0;
+    const displayedRestorePointCount = restorePoints.length || restorePointTimes.length || Number(data.restore_point_count) || 0;
+    const backupChainSizeBytes = resolveBackupChainSizeBytes(data.backup_chain_size_bytes, restorePoints);
     const legacyRestorePointWarning = displayedRestorePointCount > 0 && restorePointTimes.length === 0
         ? '当前快照缺少恢复点时间，请重新执行一次 Veeam 同步。'
         : '最近一次同步快照未提供恢复点时间。';
@@ -1922,7 +1924,7 @@ function renderBackupInfo(payload) {
                         <span class="instance-overview-band__fact-label">备份链完整大小</span>
                         <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-box-archive"></i></span>
                     </div>
-                    <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupBytes(data.backup_chain_size_bytes))}</strong>
+                    <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupBytes(backupChainSizeBytes))}</strong>
                     <span class="status-pill status-pill--danger"><i class="fas fa-link" aria-hidden="true"></i>backup files</span>
                 </article>
                 <article class="instance-overview-band__fact" data-tone="brand">
@@ -1930,27 +1932,21 @@ function renderBackupInfo(payload) {
                         <span class="instance-overview-band__fact-label">恢复点数量</span>
                         <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
                     </div>
-                    <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupCount(data.restore_point_count))}</strong>
+                    <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupCount(displayedRestorePointCount))}</strong>
                     <span class="status-pill status-pill--muted"><i class="fas fa-list-ol" aria-hidden="true"></i>数量</span>
                 </article>
             </div>
         </section>
         <section class="instance-audit-section instance-backup-timeline">
             <header class="instance-audit-section__header">
-                <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点时间</h3>
+                <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
                 <span class="instance-audit-section__meta">共 ${escapeHtml(String(displayedRestorePointCount))} 条</span>
             </header>
             <div class="instance-backup-timeline__list">
-                ${restorePointTimes.length
-                    ? restorePointTimes.map((item, index) => `
-                        <article class="instance-backup-timeline__item">
-                            <span class="instance-backup-timeline__index">${escapeHtml(String(index + 1).padStart(2, '0'))}</span>
-                            <div class="instance-backup-timeline__content">
-                                <strong class="instance-backup-timeline__timestamp">${escapeHtml(formatAuditTimestamp(item))}</strong>
-                                <span class="instance-backup-timeline__subtle">${escapeHtml(String(item))}</span>
-                            </div>
-                        </article>
-                    `).join('')
+                ${restorePoints.length
+                    ? restorePoints.map((item, index) => renderBackupRestorePoint(item, index)).join('')
+                    : restorePointTimes.length
+                        ? restorePointTimes.map((item, index) => renderBackupRestorePointTimeFallback(item, index)).join('')
                     : `<div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div>`}
             </div>
         </section>
@@ -1966,7 +1962,7 @@ function renderBackupEmptyState(data) {
             <div class="instance-audit-placeholder__content">
                 <span class="chip-outline chip-outline--brand">${escapeHtml(getInstanceName())}</span>
                 <h3 class="instance-audit-placeholder__title">尚未采集到匹配该实例的备份记录</h3>
-                <p class="instance-audit-placeholder__text">${escapeHtml(data.message || '完成同步后，这里会展示备份状态、最近备份时间、备份链完整大小、恢复点数量和全部恢复点时间。')}</p>
+                <p class="instance-audit-placeholder__text">${escapeHtml(data.message || '完成同步后，这里会展示备份状态、最近备份时间、备份链完整大小、恢复点数量和全部恢复点明细。')}</p>
             </div>
         </section>
     `;
@@ -1992,6 +1988,150 @@ function formatBackupCount(value) {
         return String(value);
     }
     return formatter(value, { fallback: '-' });
+}
+
+function formatBackupRatio(value) {
+    if (value === null || value === undefined || value === '') {
+        return '-';
+    }
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return String(value);
+    }
+    return `${numeric}%`;
+}
+
+function resolveBackupChainSizeBytes(currentValue, restorePoints) {
+    const sizes = Array.isArray(restorePoints)
+        ? restorePoints
+            .map((item) => Number(item?.backup_size_bytes))
+            .filter((value) => Number.isFinite(value))
+        : [];
+    if (sizes.length) {
+        return sizes.reduce((total, value) => total + value, 0);
+    }
+    return currentValue;
+}
+
+function normalizeBackupRestorePoints(data) {
+    const items = Array.isArray(data?.restore_points) ? data.restore_points : [];
+    return items
+        .filter((item) => item && typeof item === 'object')
+        .map((item) => ({
+            id: pickBackupRestorePointString(item, ['id', 'restore_point_id', 'restorePointId']),
+            name: pickBackupRestorePointString(item, ['name', 'restore_point_name', 'restorePointName']),
+            backup_id: pickBackupRestorePointString(item, ['backup_id', 'backupId']),
+            object_id: pickBackupRestorePointString(item, ['object_id', 'objectId']),
+            restore_point_ids: pickBackupRestorePointList(item, ['restore_point_ids', 'restorePointIds']),
+            data_size_bytes: pickBackupRestorePointNumber(item, ['data_size_bytes', 'dataSizeBytes', 'dataSize']),
+            backup_size_bytes: pickBackupRestorePointNumber(item, ['backup_size_bytes', 'backupSizeBytes', 'backupSize']),
+            compress_ratio: pickBackupRestorePointNumber(item, ['compress_ratio', 'compressRatio']),
+            creation_time: pickBackupRestorePointString(item, ['creation_time', 'creationTime', 'backup_time', 'backupTime']),
+        }))
+        .filter((item) => item.id || item.name || item.creation_time);
+}
+
+function pickBackupRestorePointString(item, keys) {
+    if (!item || typeof item !== 'object' || !Array.isArray(keys)) {
+        return '';
+    }
+    for (const key of keys) {
+        const value = item[key];
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+    return '';
+}
+
+function pickBackupRestorePointNumber(item, keys) {
+    if (!item || typeof item !== 'object' || !Array.isArray(keys)) {
+        return null;
+    }
+    for (const key of keys) {
+        const rawValue = item[key];
+        if (rawValue === null || rawValue === undefined || rawValue === '') {
+            continue;
+        }
+        const numeric = Number(rawValue);
+        if (Number.isFinite(numeric)) {
+            return numeric;
+        }
+    }
+    return null;
+}
+
+function pickBackupRestorePointList(item, keys) {
+    if (!item || typeof item !== 'object' || !Array.isArray(keys)) {
+        return [];
+    }
+    for (const key of keys) {
+        const value = item[key];
+        if (!Array.isArray(value)) {
+            continue;
+        }
+        return value
+            .filter((entry) => typeof entry === 'string' && entry.trim())
+            .map((entry) => entry.trim());
+    }
+    return [];
+}
+
+function renderBackupRestorePoint(item, index) {
+    const sequence = escapeHtml(String(index + 1).padStart(2, '0'));
+    const title = escapeHtml(item.name || item.id || `恢复点 ${index + 1}`);
+    const subtleParts = [];
+    if (item.id) {
+        subtleParts.push(`ID ${item.id}`);
+    }
+    if (item.backup_id) {
+        subtleParts.push(`Backup ${item.backup_id}`);
+    }
+    return `
+        <article class="instance-backup-timeline__item">
+            <span class="instance-backup-timeline__index">${sequence}</span>
+            <div class="instance-backup-timeline__content">
+                <div class="instance-backup-timeline__header">
+                    <strong class="instance-backup-timeline__name">${title}</strong>
+                    ${subtleParts.length
+                        ? `<span class="instance-backup-timeline__subtle">${escapeHtml(subtleParts.join(' · '))}</span>`
+                        : ''}
+                </div>
+                <div class="instance-backup-timeline__metrics">
+                    ${renderBackupRestorePointMetric('数据大小', formatBackupBytes(item.data_size_bytes))}
+                    ${renderBackupRestorePointMetric('备份大小', formatBackupBytes(item.backup_size_bytes))}
+                    ${renderBackupRestorePointMetric('压缩率', formatBackupRatio(item.compress_ratio))}
+                    ${renderBackupRestorePointMetric('创建时间', formatAuditTimestamp(item.creation_time))}
+                </div>
+            </div>
+        </article>
+    `;
+}
+
+function renderBackupRestorePointTimeFallback(value, index) {
+    return `
+        <article class="instance-backup-timeline__item">
+            <span class="instance-backup-timeline__index">${escapeHtml(String(index + 1).padStart(2, '0'))}</span>
+            <div class="instance-backup-timeline__content">
+                <div class="instance-backup-timeline__header">
+                    <strong class="instance-backup-timeline__name">${escapeHtml(`恢复点 ${index + 1}`)}</strong>
+                    <span class="instance-backup-timeline__subtle">${escapeHtml(String(value))}</span>
+                </div>
+                <div class="instance-backup-timeline__metrics">
+                    ${renderBackupRestorePointMetric('创建时间', formatAuditTimestamp(value))}
+                </div>
+            </div>
+        </article>
+    `;
+}
+
+function renderBackupRestorePointMetric(label, value) {
+    return `
+        <div class="instance-backup-timeline__metric">
+            <span class="instance-backup-timeline__metric-label">${escapeHtml(label)}</span>
+            <strong class="instance-backup-timeline__metric-value">${escapeHtml(value || '-')}</strong>
+        </div>
+    `;
 }
 
 function formatBackupStatusLabel(status) {

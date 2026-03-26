@@ -15,9 +15,118 @@ from app.services.veeam.matching import build_instance_match_candidates, normali
 from app.services.veeam.provider import VeeamMachineBackupRecord
 
 
+def _normalize_string(value: object) -> str | None:
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return cleaned or None
+    return None
+
+
+def _walk_key_values(payload: object):
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            yield str(key), value
+            yield from _walk_key_values(value)
+    elif isinstance(payload, list):
+        for item in payload:
+            yield from _walk_key_values(item)
+
+
+def _pick_nested_int(payload: object, keys: tuple[str, ...]) -> int | None:
+    for key, value in _walk_key_values(payload):
+        if key not in keys:
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _pick_string(payload: object, keys: tuple[str, ...]) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    for key in keys:
+        value = _normalize_string(payload.get(key))
+        if value:
+            return value
+    return None
+
+
+def _pick_string_list(payload: object, keys: tuple[str, ...]) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+    for key in keys:
+        value = payload.get(key)
+        if not isinstance(value, list):
+            continue
+        normalized = [
+            cleaned
+            for item in value
+            if (cleaned := _normalize_string(item))
+        ]
+        if normalized:
+            return normalized
+    return []
+
+
+def _normalize_restore_points(raw_payload: dict[str, object]) -> list[dict[str, object]]:
+    items = raw_payload.get("restore_points")
+    if not isinstance(items, list):
+        return []
+
+    normalized_items: list[dict[str, object]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        normalized = {
+            "id": _pick_string(item, ("id", "restorePointId", "restore_point_id")),
+            "name": _pick_string(item, ("name", "restorePointName", "restore_point_name")),
+            "backup_id": _pick_string(item, ("backupId", "backup_id")),
+            "object_id": _pick_string(item, ("objectId", "object_id")),
+            "restore_point_ids": _pick_string_list(item, ("restorePointIds", "restore_point_ids")),
+            "data_size_bytes": _pick_nested_int(
+                item,
+                ("dataSize", "data_size", "dataSizeBytes", "data_size_bytes"),
+            ),
+            "backup_size_bytes": _pick_nested_int(
+                item,
+                ("backupSize", "backup_size", "backupSizeBytes", "backup_size_bytes"),
+            ),
+            "compress_ratio": _pick_nested_int(item, ("compressRatio", "compress_ratio")),
+            "creation_time": _pick_string(
+                item,
+                ("creationTime", "creation_time", "backupTime", "backup_time"),
+            ),
+        }
+        if any(
+            value not in (None, [], "")
+            for value in normalized.values()
+        ):
+            normalized_items.append(normalized)
+    return normalized_items
+
+
 def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object]:
     raw_payload = row.raw_payload if isinstance(row.raw_payload, dict) else {}
+    restore_points = _normalize_restore_points(raw_payload)
     restore_point_times = raw_payload.get("restore_point_times")
+    normalized_restore_point_times = [
+        str(item).strip()
+        for item in restore_point_times
+        if isinstance(item, str) and item.strip()
+    ] if isinstance(restore_point_times, list) else []
+    if not normalized_restore_point_times and restore_points:
+        normalized_restore_point_times = [
+            creation_time
+            for item in restore_points
+            if (creation_time := _normalize_string(item.get("creation_time")))
+        ]
+    backup_size_values = [
+        value
+        for item in restore_points
+        if isinstance((value := item.get("backup_size_bytes")), int)
+    ]
     return {
         "machine_name": row.machine_name,
         "normalized_machine_name": row.normalized_machine_name,
@@ -28,13 +137,10 @@ def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object
         "restore_point_name": row.restore_point_name,
         "source_record_id": row.source_record_id,
         "restore_point_size_bytes": row.restore_point_size_bytes,
-        "backup_chain_size_bytes": row.backup_chain_size_bytes,
-        "restore_point_count": row.restore_point_count,
-        "restore_point_times": [
-            str(item).strip()
-            for item in restore_point_times
-            if isinstance(item, str) and item.strip()
-        ] if isinstance(restore_point_times, list) else [],
+        "backup_chain_size_bytes": sum(backup_size_values) if backup_size_values else row.backup_chain_size_bytes,
+        "restore_point_count": len(restore_points) or row.restore_point_count or len(normalized_restore_point_times),
+        "restore_point_times": normalized_restore_point_times,
+        "restore_points": restore_points,
         "sync_run_id": row.sync_run_id,
         "synced_at": row.synced_at.isoformat() if row.synced_at else None,
     }

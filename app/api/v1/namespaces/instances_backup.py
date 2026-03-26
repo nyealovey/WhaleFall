@@ -15,6 +15,21 @@ from app.services.veeam.instance_backup_read_service import InstanceBackupInfoRe
 
 ErrorEnvelope = get_error_envelope_model(ns)
 
+InstanceBackupRestorePointData = ns.model(
+    "InstanceBackupRestorePointData",
+    {
+        "id": fields.String(required=False),
+        "name": fields.String(required=False),
+        "backup_id": fields.String(required=False),
+        "object_id": fields.String(required=False),
+        "restore_point_ids": fields.List(fields.String, required=False),
+        "data_size_bytes": fields.Integer(required=False),
+        "backup_size_bytes": fields.Integer(required=False),
+        "compress_ratio": fields.Integer(required=False),
+        "creation_time": fields.String(required=False),
+    },
+)
+
 InstanceBackupInfoData = ns.model(
     "InstanceBackupInfoData",
     {
@@ -33,6 +48,7 @@ InstanceBackupInfoData = ns.model(
         "backup_chain_size_bytes": fields.Integer(required=False),
         "restore_point_count": fields.Integer(required=False),
         "restore_point_times": fields.List(fields.String, required=False),
+        "restore_points": fields.List(fields.Nested(InstanceBackupRestorePointData), required=False),
         "last_sync_time": fields.String(required=False),
         "message": fields.String(required=False),
     },
