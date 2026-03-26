@@ -53,6 +53,13 @@ class VeeamMachineBackupCollection:
     received_total: int
     snapshots_written_total: int
     skipped_invalid: int
+    backups_received_total: int = 0
+    backups_matched_total: int = 0
+    backups_unmatched_total: int = 0
+    backups_missing_machine_name: int = 0
+    matched_backup_ids_sample: list[str] = field(default_factory=list)
+    unmatched_backup_ids_sample: list[str] = field(default_factory=list)
+    unmatched_machine_names_sample: list[str] = field(default_factory=list)
 
 
 class VeeamProvider(Protocol):
@@ -154,6 +161,13 @@ class HttpVeeamProvider:
         records: list[VeeamMachineBackupRecord] = []
         skipped_invalid = 0
         received_total = 0
+        backups_received_total = len(backup_items)
+        backups_matched_total = 0
+        backups_unmatched_total = 0
+        backups_missing_machine_name = 0
+        matched_backup_ids_sample: list[str] = []
+        unmatched_backup_ids_sample: list[str] = []
+        unmatched_machine_names_sample: list[str] = []
         for backup_item in backup_items:
             backup_id = self._pick_string(backup_item, ("id", "backupId", "backup_id"))
             if not backup_id:
@@ -161,8 +175,19 @@ class HttpVeeamProvider:
             backup_machine_name = self._resolve_backup_machine_name(backup_item)
             if match_machine_names:
                 normalized_backup_machine_name = normalize_machine_name(backup_machine_name)
-                if not normalized_backup_machine_name or normalized_backup_machine_name not in match_machine_names:
+                if not normalized_backup_machine_name:
+                    backups_missing_machine_name += 1
                     continue
+                if normalized_backup_machine_name not in match_machine_names:
+                    backups_unmatched_total += 1
+                    if len(unmatched_backup_ids_sample) < 20:
+                        unmatched_backup_ids_sample.append(backup_id)
+                    if backup_machine_name and len(unmatched_machine_names_sample) < 20:
+                        unmatched_machine_names_sample.append(str(backup_machine_name))
+                    continue
+                backups_matched_total += 1
+                if len(matched_backup_ids_sample) < 20:
+                    matched_backup_ids_sample.append(backup_id)
             restore_point_items = self._collect_paginated_items(
                 url=self._build_backup_restore_points_url(base_url=base_url, backup_id=backup_id),
                 access_token=access_token,
@@ -185,6 +210,13 @@ class HttpVeeamProvider:
             received_total=received_total,
             snapshots_written_total=len(records),
             skipped_invalid=skipped_invalid,
+            backups_received_total=backups_received_total,
+            backups_matched_total=backups_matched_total,
+            backups_unmatched_total=backups_unmatched_total,
+            backups_missing_machine_name=backups_missing_machine_name,
+            matched_backup_ids_sample=matched_backup_ids_sample,
+            unmatched_backup_ids_sample=unmatched_backup_ids_sample,
+            unmatched_machine_names_sample=unmatched_machine_names_sample,
         )
 
     def _collect_paginated_items(
