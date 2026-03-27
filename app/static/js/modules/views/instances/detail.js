@@ -1938,8 +1938,7 @@ function renderBackupInfo(payload) {
                 </article>
             </div>
         </section>
-        ${renderBackupRestorePointsSection({
-            backupId: data.backup_id,
+        ${renderBackupRestorePointsSections({
             restorePoints,
             restorePointTimes,
             displayedRestorePointCount,
@@ -2108,45 +2107,126 @@ function pickBackupRestorePointList(item, keys) {
     return [];
 }
 
-function renderBackupRestorePointsSection({
-    backupId,
+function groupRestorePointsByBackupId(restorePoints) {
+    const groups = new Map();
+    for (const item of restorePoints) {
+        const key = item.backup_id || '_unknown_';
+        if (!groups.has(key)) {
+            groups.set(key, []);
+        }
+        groups.get(key).push(item);
+    }
+    return groups;
+}
+
+function renderBackupRestorePointsSections({
     restorePoints,
     restorePointTimes,
     displayedRestorePointCount,
     legacyRestorePointWarning,
 }) {
-    const metaParts = [];
-    if (backupId) {
-        metaParts.push(`Backup ID ${escapeHtml(String(backupId))}`);
-    }
-    metaParts.push(`显示 ${escapeHtml(String(displayedRestorePointCount))} / ${escapeHtml(String(displayedRestorePointCount))}`);
-    const body = restorePoints.length
-        ? restorePoints.map((item, index) => renderBackupRestorePointTableRow(item, index)).join('')
-        : restorePointTimes.length
+    if (!restorePoints.length) {
+        const body = restorePointTimes.length
             ? restorePointTimes.map((item, index) => renderBackupRestorePointFallbackRow(item, index)).join('')
             : `<tr><td colspan="6"><div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div></td></tr>`;
+        return `
+            <section class="instance-audit-section">
+                <header class="instance-audit-section__header">
+                    <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
+                    <span class="instance-audit-section__meta">共 ${escapeHtml(String(displayedRestorePointCount))} 个恢复点</span>
+                </header>
+                <div class="table-responsive">
+                    <table class="table table-hover instance-audit-table">
+                        <thead>
+                            <tr>
+                                <th>恢复点名称</th>
+                                <th>备份方式</th>
+                                <th>数据大小</th>
+                                <th>备份大小</th>
+                                <th>压缩率</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>${body}</tbody>
+                    </table>
+                </div>
+            </section>
+        `;
+    }
+
+    const groups = groupRestorePointsByBackupId(restorePoints);
+    if (groups.size <= 1) {
+        const backupId = groups.keys().next().value;
+        const items = groups.get(backupId) || [];
+        const metaParts = [];
+        if (backupId && backupId !== '_unknown_') {
+            metaParts.push(`Backup ID ${escapeHtml(String(backupId))}`);
+        }
+        metaParts.push(`${escapeHtml(String(items.length))} 个恢复点`);
+        return `
+            <section class="instance-audit-section">
+                <header class="instance-audit-section__header">
+                    <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
+                    <span class="instance-audit-section__meta">${metaParts.join(' · ')}</span>
+                </header>
+                <div class="table-responsive">
+                    <table class="table table-hover instance-audit-table">
+                        <thead>
+                            <tr>
+                                <th>恢复点名称</th>
+                                <th>备份方式</th>
+                                <th>数据大小</th>
+                                <th>备份大小</th>
+                                <th>压缩率</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>${items.map((item, index) => renderBackupRestorePointTableRow(item, index)).join('')}</tbody>
+                    </table>
+                </div>
+            </section>
+        `;
+    }
+
+    const sections = [];
+    let groupIndex = 0;
+    for (const [backupId, items] of groups) {
+        groupIndex++;
+        const metaParts = [];
+        if (backupId && backupId !== '_unknown_') {
+            metaParts.push(`Backup ID ${escapeHtml(String(backupId))}`);
+        }
+        metaParts.push(`${escapeHtml(String(items.length))} 个恢复点`);
+        sections.push(`
+            <section class="instance-audit-section">
+                <header class="instance-audit-section__header">
+                    <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>备份任务 ${escapeHtml(String(groupIndex))} 恢复点明细</h3>
+                    <span class="instance-audit-section__meta">${metaParts.join(' · ')}</span>
+                </header>
+                <div class="table-responsive">
+                    <table class="table table-hover instance-audit-table">
+                        <thead>
+                            <tr>
+                                <th>恢复点名称</th>
+                                <th>备份方式</th>
+                                <th>数据大小</th>
+                                <th>备份大小</th>
+                                <th>压缩率</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>${items.map((item, index) => renderBackupRestorePointTableRow(item, index)).join('')}</tbody>
+                    </table>
+                </div>
+            </section>
+        `);
+    }
     return `
-        <section class="instance-audit-section">
-            <header class="instance-audit-section__header">
-                <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
-                <span class="instance-audit-section__meta">${metaParts.join(' · ')}</span>
-            </header>
-            <div class="table-responsive">
-                <table class="table table-hover instance-audit-table">
-                    <thead>
-                        <tr>
-                            <th>恢复点名称</th>
-                            <th>备份方式</th>
-                            <th>数据大小</th>
-                            <th>备份大小</th>
-                            <th>压缩率</th>
-                            <th>创建时间</th>
-                        </tr>
-                    </thead>
-                    <tbody>${body}</tbody>
-                </table>
-            </div>
-        </section>
+        <div class="instance-audit-section__header" style="margin-bottom: 0;">
+            <h3 class="instance-audit-section__title" style="margin: 0;"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
+            <span class="instance-audit-section__meta">共 ${escapeHtml(String(groups.size))} 个备份任务 · ${escapeHtml(String(displayedRestorePointCount))} 个恢复点</span>
+        </div>
+        ${sections.join('')}
     `;
 }
 

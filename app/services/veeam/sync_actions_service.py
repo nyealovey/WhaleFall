@@ -333,13 +333,15 @@ class VeeamSyncActionsService:
                 match_result=cast("VeeamBackupObjectMatchResult", match_result),
             )
             timed_out_backup_objects_total = int(getattr(restore_points_result, "timed_out_backup_objects_total", 0) or 0)
+            failed_backup_objects_total = int(getattr(restore_points_result, "failed_backup_objects_total", 0) or 0)
             completed_backup_objects_total = int(
                 getattr(restore_points_result, "restore_points_backup_objects_completed", 0) or 0
             )
-            if timed_out_backup_objects_total > 0 and completed_backup_objects_total > 0:
+            skipped_backup_objects_total = timed_out_backup_objects_total + failed_backup_objects_total
+            if skipped_backup_objects_total > 0 and completed_backup_objects_total > 0:
                 log_with_context(
                     "warning",
-                    "Veeam restorePoints 拉取部分超时，已跳过异常对象",
+                    "Veeam restorePoints 拉取部分超时/失败，已跳过异常对象",
                     module="veeam",
                     action="sync_backups_background",
                     context=sync_context,
@@ -353,10 +355,13 @@ class VeeamSyncActionsService:
                             "timed_out_machine_names_sample",
                             [],
                         ),
+                        "failed_backup_objects_total": failed_backup_objects_total,
+                        "failed_backup_ids_sample": getattr(restore_points_result, "failed_backup_ids_sample", []),
+                        "failed_machine_names_sample": getattr(restore_points_result, "failed_machine_names_sample", []),
                     },
                     include_actor=False,
                 )
-            if timed_out_backup_objects_total > 0 and completed_backup_objects_total <= 0:
+            if skipped_backup_objects_total > 0 and completed_backup_objects_total <= 0:
                 self._raise_restore_points_all_timeout(
                     restore_points_result=cast("VeeamMachineBackupCollection", restore_points_result),
                     match_result=cast("VeeamBackupObjectMatchResult", match_result),
@@ -375,6 +380,7 @@ class VeeamSyncActionsService:
                     "restore_points_received_total": getattr(restore_points_result, "received_total", 0),
                     "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
                     "timed_out_backup_objects_total": timed_out_backup_objects_total,
+                    "failed_backup_objects_total": failed_backup_objects_total,
                 },
                 details_json=self._build_fetch_restore_points_details(
                     match_result=cast("VeeamBackupObjectMatchResult", match_result),
@@ -519,7 +525,7 @@ class VeeamSyncActionsService:
                     backup_ids_fully_covered_total=int(backup_file_coverage["backup_ids_fully_covered_total"]),
                     backup_ids_partially_covered_total=int(backup_file_coverage["backup_ids_partially_covered_total"]),
                     partial_success=(
-                        timed_out_backup_objects_total > 0
+                        skipped_backup_objects_total > 0
                         or backup_files_partial_success
                     ),
                     error_message=None,
@@ -547,6 +553,7 @@ class VeeamSyncActionsService:
                     "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
                     "restore_points_received_total": getattr(restore_points_result, "received_total", 0),
                     "timed_out_backup_objects_total": timed_out_backup_objects_total,
+                    "failed_backup_objects_total": failed_backup_objects_total,
                     "backup_ids_total": getattr(backup_files_result, "backup_ids_total", 0),
                     "backup_ids_completed": getattr(backup_files_result, "backup_ids_completed", 0),
                     "backup_files_scanned_total": getattr(backup_files_result, "received_total", 0),
@@ -674,8 +681,9 @@ class VeeamSyncActionsService:
         total = int(getattr(result, "restore_points_backup_objects_total", 0) or match_result.backups_matched_total or 0)
         completed = int(getattr(result, "restore_points_backup_objects_completed", 0) or 0)
         timed_out = int(getattr(result, "timed_out_backup_objects_total", 0) or 0)
+        failed = int(getattr(result, "failed_backup_objects_total", 0) or 0)
         summary = (
-            f"已完成 {completed}/{total} 个对象 · 超时跳过 {timed_out} 个对象 · 拉取 {result.received_total} 条恢复点"
+            f"已完成 {completed}/{total} 个对象 · 超时跳过 {timed_out} 个 · 失败跳过 {failed} 个 · 拉取 {result.received_total} 条恢复点"
             if total > 0
             else "无匹配对象，跳过 restorePoints 拉取"
         )
@@ -689,6 +697,9 @@ class VeeamSyncActionsService:
             "timed_out_backup_objects_total": timed_out,
             "timed_out_backup_ids_sample": list(getattr(result, "timed_out_backup_ids_sample", [])),
             "timed_out_machine_names_sample": list(getattr(result, "timed_out_machine_names_sample", [])),
+            "failed_backup_objects_total": failed,
+            "failed_backup_ids_sample": list(getattr(result, "failed_backup_ids_sample", [])),
+            "failed_machine_names_sample": list(getattr(result, "failed_machine_names_sample", [])),
         }
 
     @staticmethod
@@ -805,19 +816,19 @@ class VeeamSyncActionsService:
     @staticmethod
     def _select_latest_records(records: list[VeeamMachineBackupRecord]) -> list[VeeamMachineBackupRecord]:
         latest_by_machine: dict[str, VeeamMachineBackupRecord] = {}
-        records_by_machine_backup: dict[tuple[str, str | None], list[VeeamMachineBackupRecord]] = {}
+        records_by_machine: dict[str, list[VeeamMachineBackupRecord]] = {}
         for record in records:
             normalized_machine_name = normalize_machine_name(record.machine_name)
             if not normalized_machine_name:
                 continue
-            records_by_machine_backup.setdefault((normalized_machine_name, record.backup_id), []).append(record)
+            records_by_machine.setdefault(normalized_machine_name, []).append(record)
             current = latest_by_machine.get(normalized_machine_name)
             if current is None or record.backup_at > current.backup_at:
                 latest_by_machine[normalized_machine_name] = record
         return [
             VeeamSyncActionsService._attach_restore_point_snapshot(
                 latest_record=record,
-                related_records=records_by_machine_backup.get((normalized_machine_name, record.backup_id), []),
+                related_records=records_by_machine.get(normalized_machine_name, []),
             )
             for normalized_machine_name, record in latest_by_machine.items()
         ]
@@ -1117,5 +1128,3 @@ class VeeamSyncActionsService:
             ] if isinstance(restore_point_times, list) else []
             if not normalized_times:
                 raise ValidationError("Veeam 快照缺少恢复点时间，请重新执行一次 Veeam 同步")
-            if len(normalized_times) != restore_point_count:
-                raise ValidationError("Veeam 快照恢复点时间数量与恢复点数量不一致")

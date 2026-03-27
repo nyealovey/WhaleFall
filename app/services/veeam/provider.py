@@ -67,6 +67,9 @@ class VeeamMachineBackupCollection:
     timed_out_backup_objects_total: int = 0
     timed_out_backup_ids_sample: list[str] = field(default_factory=list)
     timed_out_machine_names_sample: list[str] = field(default_factory=list)
+    failed_backup_objects_total: int = 0
+    failed_backup_ids_sample: list[str] = field(default_factory=list)
+    failed_machine_names_sample: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
@@ -374,6 +377,10 @@ class HttpVeeamProvider:
         timed_out_backup_ids_sample: list[str] = []
         timed_out_machine_names_sample: list[str] = []
 
+        failed_backup_objects_total = 0
+        failed_backup_ids_sample: list[str] = []
+        failed_machine_names_sample: list[str] = []
+
         for matched_backup_object in match_result.matched_backup_objects:
             failed_url = self._build_backup_restore_points_url(
                 base_url=session.base_url,
@@ -393,15 +400,13 @@ class HttpVeeamProvider:
                 if matched_backup_object.machine_name and len(timed_out_machine_names_sample) < 20:
                     timed_out_machine_names_sample.append(str(matched_backup_object.machine_name))
                 continue
-            except Exception as exc:
-                raise VeeamRestorePointsFetchError(
-                    str(exc),
-                    matched_backup_objects_total=matched_backup_objects_total,
-                    completed_backup_objects_total=completed_backup_objects_total,
-                    failed_backup_object_id=matched_backup_object.backup_object_id,
-                    failed_machine_name=matched_backup_object.machine_name,
-                    failed_url=failed_url,
-                ) from exc
+            except Exception:
+                failed_backup_objects_total += 1
+                if len(failed_backup_ids_sample) < 20:
+                    failed_backup_ids_sample.append(matched_backup_object.backup_object_id)
+                if matched_backup_object.machine_name and len(failed_machine_names_sample) < 20:
+                    failed_machine_names_sample.append(str(matched_backup_object.machine_name))
+                continue
             received_total += len(restore_point_items)
             completed_backup_objects_total += 1
             for item in restore_point_items:
@@ -434,6 +439,9 @@ class HttpVeeamProvider:
             timed_out_backup_objects_total=timed_out_backup_objects_total,
             timed_out_backup_ids_sample=timed_out_backup_ids_sample,
             timed_out_machine_names_sample=timed_out_machine_names_sample,
+            failed_backup_objects_total=failed_backup_objects_total,
+            failed_backup_ids_sample=failed_backup_ids_sample,
+            failed_machine_names_sample=failed_machine_names_sample,
         )
 
     def list_machine_backups(
