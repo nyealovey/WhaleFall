@@ -1939,6 +1939,7 @@ function renderBackupInfo(payload) {
             </div>
         </section>
         ${renderBackupRestorePointsSection({
+            backupId: data.backup_id,
             restorePoints,
             restorePointTimes,
             displayedRestorePointCount,
@@ -2049,6 +2050,7 @@ function normalizeBackupRestorePoints(data) {
         .map((item) => ({
             id: pickBackupRestorePointString(item, ['id', 'restore_point_id', 'restorePointId']),
             name: pickBackupRestorePointString(item, ['name', 'restore_point_name', 'restorePointName']),
+            type: pickBackupRestorePointString(item, ['type']),
             backup_id: pickBackupRestorePointString(item, ['backup_id', 'backupId']),
             object_id: pickBackupRestorePointString(item, ['object_id', 'objectId']),
             restore_point_ids: pickBackupRestorePointList(item, ['restore_point_ids', 'restorePointIds']),
@@ -2107,27 +2109,34 @@ function pickBackupRestorePointList(item, keys) {
 }
 
 function renderBackupRestorePointsSection({
+    backupId,
     restorePoints,
     restorePointTimes,
     displayedRestorePointCount,
     legacyRestorePointWarning,
 }) {
+    const metaParts = [];
+    if (backupId) {
+        metaParts.push(`Backup ID ${escapeHtml(String(backupId))}`);
+    }
+    metaParts.push(`显示 ${escapeHtml(String(displayedRestorePointCount))} / ${escapeHtml(String(displayedRestorePointCount))}`);
     const body = restorePoints.length
         ? restorePoints.map((item, index) => renderBackupRestorePointTableRow(item, index)).join('')
         : restorePointTimes.length
             ? restorePointTimes.map((item, index) => renderBackupRestorePointFallbackRow(item, index)).join('')
-            : `<tr><td colspan="5"><div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div></td></tr>`;
+            : `<tr><td colspan="6"><div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div></td></tr>`;
     return `
         <section class="instance-audit-section">
             <header class="instance-audit-section__header">
                 <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
-                <span class="instance-audit-section__meta">显示 ${escapeHtml(String(displayedRestorePointCount))} / ${escapeHtml(String(displayedRestorePointCount))}</span>
+                <span class="instance-audit-section__meta">${metaParts.join(' · ')}</span>
             </header>
             <div class="table-responsive">
                 <table class="table table-hover instance-audit-table">
                     <thead>
                         <tr>
                             <th>恢复点名称</th>
+                            <th>备份方式</th>
                             <th>数据大小</th>
                             <th>备份大小</th>
                             <th>压缩率</th>
@@ -2151,6 +2160,7 @@ function renderBackupRestorePointTableRow(item, index) {
                     <span class="instance-audit-subtle">${escapeHtml(`序号 ${String(index + 1).padStart(2, '0')}`)}</span>
                 </div>
             </td>
+            <td>${escapeHtml(item.type || '-')}</td>
             <td>${escapeHtml(formatBackupBytes(item.data_size_bytes))}</td>
             <td>${escapeHtml(formatBackupBytes(item.backup_size_bytes))}</td>
             <td>${escapeHtml(formatBackupRatio(item.compress_ratio))}</td>
@@ -2168,6 +2178,7 @@ function renderBackupRestorePointFallbackRow(value, index) {
                     <span class="instance-audit-subtle">${escapeHtml(String(value))}</span>
                 </div>
             </td>
+            <td>${escapeHtml('-')}</td>
             <td>${escapeHtml('-')}</td>
             <td>${escapeHtml('-')}</td>
             <td>${escapeHtml('-')}</td>

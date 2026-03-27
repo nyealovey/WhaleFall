@@ -81,6 +81,7 @@ def test_api_v1_instance_backup_info_contract() -> None:
                         {
                             "id": "restore-point-2",
                             "name": "db01-full-20260325T020000.vib",
+                            "type": "Increment",
                             "backupId": "backup-1",
                             "objectId": "object-1",
                             "restorePointIds": ["rp-2"],
@@ -92,6 +93,7 @@ def test_api_v1_instance_backup_info_contract() -> None:
                         {
                             "id": "restore-point-1",
                             "name": "db01-full-20260325T013000.vib",
+                            "type": "Full",
                             "backupId": "backup-1",
                             "objectId": "object-1",
                             "restorePointIds": ["rp-1b"],
@@ -138,6 +140,7 @@ def test_api_v1_instance_backup_info_contract() -> None:
             {
                 "id": "restore-point-2",
                 "name": "db01-full-20260325T020000.vib",
+                "type": "Increment",
                 "backup_id": "backup-1",
                 "object_id": "object-1",
                 "restore_point_ids": ["rp-2"],
@@ -149,6 +152,7 @@ def test_api_v1_instance_backup_info_contract() -> None:
             {
                 "id": "restore-point-1",
                 "name": "db01-full-20260325T013000.vib",
+                "type": "Full",
                 "backup_id": "backup-1",
                 "object_id": "object-1",
                 "restore_point_ids": ["rp-1b"],
