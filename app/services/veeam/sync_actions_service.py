@@ -390,12 +390,16 @@ class VeeamSyncActionsService:
                 session=cast("VeeamProviderSession", session),
                 backup_ids=backup_ids,
             )
+            backup_file_coverage = self._summarize_backup_file_coverage(
+                records=restore_point_records,
+                backup_files_result=cast("VeeamBackupFileCollection", backup_files_result),
+            )
             backup_files_partial_success = self._is_backup_files_partial_success(
                 backup_ids_total=int(getattr(backup_files_result, "backup_ids_total", 0) or 0),
                 backup_ids_completed=int(getattr(backup_files_result, "backup_ids_completed", 0) or 0),
                 timed_out_backup_ids_total=int(getattr(backup_files_result, "timed_out_backup_ids_total", 0) or 0),
                 failed_backup_ids_total=int(getattr(backup_files_result, "failed_backup_ids_total", 0) or 0),
-            )
+            ) or bool(backup_file_coverage["restore_points_missing_metrics_total"])
             if backup_files_partial_success:
                 log_with_context(
                     "warning",
@@ -406,12 +410,17 @@ class VeeamSyncActionsService:
                     extra={
                         "backup_ids_total": getattr(backup_files_result, "backup_ids_total", 0),
                         "backup_ids_completed": getattr(backup_files_result, "backup_ids_completed", 0),
-                        "backup_files_received_total": getattr(backup_files_result, "received_total", 0),
+                        "backup_files_scanned_total": getattr(backup_files_result, "received_total", 0),
                         "timed_out_backup_ids_total": getattr(backup_files_result, "timed_out_backup_ids_total", 0),
                         "timed_out_backup_ids_sample": getattr(backup_files_result, "timed_out_backup_ids_sample", []),
                         "failed_backup_ids_total": getattr(backup_files_result, "failed_backup_ids_total", 0),
                         "failed_backup_ids_sample": getattr(backup_files_result, "failed_backup_ids_sample", []),
                         "failed_urls_sample": getattr(backup_files_result, "failed_urls_sample", []),
+                        "restore_points_expected_total": backup_file_coverage["restore_points_expected_total"],
+                        "restore_points_enriched_total": backup_file_coverage["restore_points_enriched_total"],
+                        "restore_points_missing_metrics_total": backup_file_coverage["restore_points_missing_metrics_total"],
+                        "backup_ids_fully_covered_total": backup_file_coverage["backup_ids_fully_covered_total"],
+                        "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
                     },
                     include_actor=False,
                 )
@@ -422,13 +431,19 @@ class VeeamSyncActionsService:
                 metrics_json={
                     "backup_ids_total": getattr(backup_files_result, "backup_ids_total", 0),
                     "backup_ids_completed": getattr(backup_files_result, "backup_ids_completed", 0),
-                    "backup_files_received_total": getattr(backup_files_result, "received_total", 0),
+                    "backup_files_scanned_total": getattr(backup_files_result, "received_total", 0),
                     "timed_out_backup_ids_total": getattr(backup_files_result, "timed_out_backup_ids_total", 0),
                     "failed_backup_ids_total": getattr(backup_files_result, "failed_backup_ids_total", 0),
+                    "restore_points_expected_total": backup_file_coverage["restore_points_expected_total"],
+                    "restore_points_enriched_total": backup_file_coverage["restore_points_enriched_total"],
+                    "restore_points_missing_metrics_total": backup_file_coverage["restore_points_missing_metrics_total"],
+                    "backup_ids_fully_covered_total": backup_file_coverage["backup_ids_fully_covered_total"],
+                    "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
                 },
                 details_json=self._build_fetch_backup_files_details(
                     backup_ids_total=len(backup_ids),
                     result=cast("VeeamBackupFileCollection", backup_files_result),
+                    coverage=backup_file_coverage,
                 ),
             )
 
@@ -493,11 +508,16 @@ class VeeamSyncActionsService:
                     snapshots_written_total=snapshots_written_total,
                     skipped_invalid=cast("VeeamMachineBackupCollection", restore_points_result).skipped_invalid,
                     timed_out_backup_objects_total=timed_out_backup_objects_total,
-                    backup_files_received_total=int(getattr(backup_files_result, "received_total", 0) or 0),
+                    backup_files_scanned_total=int(getattr(backup_files_result, "received_total", 0) or 0),
                     backup_ids_total=int(getattr(backup_files_result, "backup_ids_total", 0) or 0),
                     backup_ids_completed=int(getattr(backup_files_result, "backup_ids_completed", 0) or 0),
                     timed_out_backup_ids_total=int(getattr(backup_files_result, "timed_out_backup_ids_total", 0) or 0),
                     failed_backup_ids_total=int(getattr(backup_files_result, "failed_backup_ids_total", 0) or 0),
+                    restore_points_expected_total=int(backup_file_coverage["restore_points_expected_total"]),
+                    restore_points_enriched_total=int(backup_file_coverage["restore_points_enriched_total"]),
+                    restore_points_missing_metrics_total=int(backup_file_coverage["restore_points_missing_metrics_total"]),
+                    backup_ids_fully_covered_total=int(backup_file_coverage["backup_ids_fully_covered_total"]),
+                    backup_ids_partially_covered_total=int(backup_file_coverage["backup_ids_partially_covered_total"]),
                     partial_success=(
                         timed_out_backup_objects_total > 0
                         or backup_files_partial_success
@@ -529,9 +549,14 @@ class VeeamSyncActionsService:
                     "timed_out_backup_objects_total": timed_out_backup_objects_total,
                     "backup_ids_total": getattr(backup_files_result, "backup_ids_total", 0),
                     "backup_ids_completed": getattr(backup_files_result, "backup_ids_completed", 0),
-                    "backup_files_received_total": getattr(backup_files_result, "received_total", 0),
+                    "backup_files_scanned_total": getattr(backup_files_result, "received_total", 0),
                     "timed_out_backup_ids_total": getattr(backup_files_result, "timed_out_backup_ids_total", 0),
                     "failed_backup_ids_total": getattr(backup_files_result, "failed_backup_ids_total", 0),
+                    "restore_points_expected_total": backup_file_coverage["restore_points_expected_total"],
+                    "restore_points_enriched_total": backup_file_coverage["restore_points_enriched_total"],
+                    "restore_points_missing_metrics_total": backup_file_coverage["restore_points_missing_metrics_total"],
+                    "backup_ids_fully_covered_total": backup_file_coverage["backup_ids_fully_covered_total"],
+                    "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
                     "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
                     "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
@@ -671,12 +696,13 @@ class VeeamSyncActionsService:
         *,
         backup_ids_total: int,
         result: VeeamBackupFileCollection,
+        coverage: dict[str, int],
     ) -> dict[str, object]:
         completed = int(getattr(result, "backup_ids_completed", 0) or 0)
         timed_out = int(getattr(result, "timed_out_backup_ids_total", 0) or 0)
         failed = int(getattr(result, "failed_backup_ids_total", 0) or 0)
         summary = (
-            f"已完成 {completed}/{backup_ids_total} 个备份 · 超时跳过 {timed_out} 个备份 · 失败跳过 {failed} 个备份 · 拉取 {result.received_total} 条 backupFiles"
+            f"已完成 {completed}/{backup_ids_total} 个备份 · 全覆盖 {coverage['backup_ids_fully_covered_total']} 个 · 部分覆盖 {coverage['backup_ids_partially_covered_total']} 个 · 超时跳过 {timed_out} 个备份 · 失败跳过 {failed} 个备份 · 有效补齐 {coverage['restore_points_enriched_total']}/{coverage['restore_points_expected_total']} 个恢复点"
             if backup_ids_total > 0
             else "无有效 backupId，跳过 backupFiles 拉取"
         )
@@ -684,12 +710,17 @@ class VeeamSyncActionsService:
             "summary": summary,
             "backup_ids_total": backup_ids_total,
             "backup_ids_completed": completed,
-            "backup_files_received_total": result.received_total,
+            "backup_files_scanned_total": result.received_total,
             "timed_out_backup_ids_total": timed_out,
             "timed_out_backup_ids_sample": list(getattr(result, "timed_out_backup_ids_sample", [])),
             "failed_backup_ids_total": failed,
             "failed_backup_ids_sample": list(getattr(result, "failed_backup_ids_sample", [])),
             "failed_urls_sample": list(getattr(result, "failed_urls_sample", [])),
+            "restore_points_expected_total": coverage["restore_points_expected_total"],
+            "restore_points_enriched_total": coverage["restore_points_enriched_total"],
+            "restore_points_missing_metrics_total": coverage["restore_points_missing_metrics_total"],
+            "backup_ids_fully_covered_total": coverage["backup_ids_fully_covered_total"],
+            "backup_ids_partially_covered_total": coverage["backup_ids_partially_covered_total"],
         }
 
     @staticmethod
@@ -880,6 +911,63 @@ class VeeamSyncActionsService:
         if timed_out_backup_ids_total > 0 or failed_backup_ids_total > 0:
             return True
         return backup_ids_total > 0 and backup_ids_completed < backup_ids_total
+
+    @staticmethod
+    def _summarize_backup_file_coverage(
+        *,
+        records: list[VeeamMachineBackupRecord],
+        backup_files_result: VeeamBackupFileCollection,
+    ) -> dict[str, int]:
+        expected_restore_point_ids_by_backup: dict[str, set[str]] = {}
+        for record in records:
+            backup_id = str(record.backup_id or "").strip()
+            restore_point_id = str(record.source_record_id or "").strip()
+            if not backup_id or not restore_point_id:
+                continue
+            expected_restore_point_ids_by_backup.setdefault(backup_id, set()).add(restore_point_id)
+
+        matched_restore_point_ids_by_backup: dict[str, set[str]] = {
+            backup_id: set()
+            for backup_id in expected_restore_point_ids_by_backup
+        }
+        for backup_file in backup_files_result.records:
+            backup_id = str(backup_file.backup_id or "").strip()
+            if backup_id not in expected_restore_point_ids_by_backup:
+                continue
+            expected_restore_point_ids = expected_restore_point_ids_by_backup[backup_id]
+            matched_restore_point_ids = matched_restore_point_ids_by_backup.setdefault(backup_id, set())
+            for restore_point_id in backup_file.restore_point_ids:
+                normalized_restore_point_id = str(restore_point_id or "").strip()
+                if normalized_restore_point_id and normalized_restore_point_id in expected_restore_point_ids:
+                    matched_restore_point_ids.add(normalized_restore_point_id)
+
+        restore_points_expected_total = sum(
+            len(restore_point_ids)
+            for restore_point_ids in expected_restore_point_ids_by_backup.values()
+        )
+        restore_points_enriched_total = sum(
+            len(restore_point_ids)
+            for restore_point_ids in matched_restore_point_ids_by_backup.values()
+        )
+        backup_ids_fully_covered_total = 0
+        backup_ids_partially_covered_total = 0
+        for backup_id, expected_restore_point_ids in expected_restore_point_ids_by_backup.items():
+            matched_count = len(matched_restore_point_ids_by_backup.get(backup_id, set()))
+            expected_count = len(expected_restore_point_ids)
+            if expected_count <= 0 or matched_count <= 0:
+                continue
+            if matched_count >= expected_count:
+                backup_ids_fully_covered_total += 1
+                continue
+            backup_ids_partially_covered_total += 1
+
+        return {
+            "restore_points_expected_total": restore_points_expected_total,
+            "restore_points_enriched_total": restore_points_enriched_total,
+            "restore_points_missing_metrics_total": max(restore_points_expected_total - restore_points_enriched_total, 0),
+            "backup_ids_fully_covered_total": backup_ids_fully_covered_total,
+            "backup_ids_partially_covered_total": backup_ids_partially_covered_total,
+        }
 
     @staticmethod
     def _merge_backup_file_metrics_into_records(  # noqa: PLR0912

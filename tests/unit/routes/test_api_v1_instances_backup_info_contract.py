@@ -124,6 +124,12 @@ def test_api_v1_instance_backup_info_contract() -> None:
         assert data.get("restore_point_size_bytes") == 1024
         assert data.get("backup_chain_size_bytes") == 135184128
         assert data.get("restore_point_count") == 2
+        assert data.get("backup_metrics_coverage") == {
+            "expected_restore_point_count": 2,
+            "enriched_restore_point_count": 2,
+            "missing_restore_point_count": 0,
+            "partial": False,
+        }
         assert data.get("restore_point_times") == [
             "2026-03-25T02:00:00+00:00",
             "2026-03-25T01:30:00+00:00",

@@ -165,11 +165,16 @@ def build_sync_veeam_backups_summary(
     snapshots_written_total: int,
     skipped_invalid: int,
     timed_out_backup_objects_total: int = 0,
-    backup_files_received_total: int = 0,
+    backup_files_scanned_total: int = 0,
     backup_ids_total: int = 0,
     backup_ids_completed: int = 0,
     timed_out_backup_ids_total: int = 0,
     failed_backup_ids_total: int = 0,
+    restore_points_expected_total: int = 0,
+    restore_points_enriched_total: int = 0,
+    restore_points_missing_metrics_total: int = 0,
+    backup_ids_fully_covered_total: int = 0,
+    backup_ids_partially_covered_total: int = 0,
     partial_success: bool = False,
     skipped: bool = False,
     skip_reason: str | None = None,
@@ -197,13 +202,62 @@ def build_sync_veeam_backups_summary(
                 _metric(key="backup_ids_total", label="备份链总数", value=backup_ids_total, unit="个", tone="info"),
                 _metric(key="backup_ids_completed", label="已补齐链路", value=backup_ids_completed, unit="个", tone="success"),
                 _metric(
-                    key="backup_files_received_total",
-                    label="拉取 backupFiles",
-                    value=backup_files_received_total,
+                    key="backup_files_scanned_total",
+                    label="扫描 backupFiles",
+                    value=backup_files_scanned_total,
                     unit="个",
                     tone="info",
                 ),
             ]
+        )
+    if restore_points_expected_total > 0:
+        metrics.extend(
+            [
+                _metric(
+                    key="restore_points_expected_total",
+                    label="预期恢复点",
+                    value=restore_points_expected_total,
+                    unit="个",
+                    tone="info",
+                ),
+                _metric(
+                    key="restore_points_enriched_total",
+                    label="已补齐恢复点",
+                    value=restore_points_enriched_total,
+                    unit="个",
+                    tone="success",
+                ),
+            ]
+        )
+    if restore_points_missing_metrics_total > 0:
+        metrics.append(
+            _metric(
+                key="restore_points_missing_metrics_total",
+                label="缺失指标恢复点",
+                value=restore_points_missing_metrics_total,
+                unit="个",
+                tone="warning",
+            )
+        )
+    if backup_ids_fully_covered_total > 0:
+        metrics.append(
+            _metric(
+                key="backup_ids_fully_covered_total",
+                label="全覆盖备份链",
+                value=backup_ids_fully_covered_total,
+                unit="个",
+                tone="success",
+            )
+        )
+    if backup_ids_partially_covered_total > 0:
+        metrics.append(
+            _metric(
+                key="backup_ids_partially_covered_total",
+                label="部分覆盖备份链",
+                value=backup_ids_partially_covered_total,
+                unit="个",
+                tone="warning",
+            )
         )
     if timed_out_backup_ids_total > 0:
         metrics.append(
@@ -231,11 +285,16 @@ def build_sync_veeam_backups_summary(
             "snapshots_written_total": snapshots_written_total,
             "skipped_invalid": skipped_invalid,
             "timed_out_backup_objects_total": timed_out_backup_objects_total,
-            "backup_files_received_total": backup_files_received_total,
+            "backup_files_scanned_total": backup_files_scanned_total,
             "backup_ids_total": backup_ids_total,
             "backup_ids_completed": backup_ids_completed,
             "timed_out_backup_ids_total": timed_out_backup_ids_total,
             "failed_backup_ids_total": failed_backup_ids_total,
+            "restore_points_expected_total": restore_points_expected_total,
+            "restore_points_enriched_total": restore_points_enriched_total,
+            "restore_points_missing_metrics_total": restore_points_missing_metrics_total,
+            "backup_ids_fully_covered_total": backup_ids_fully_covered_total,
+            "backup_ids_partially_covered_total": backup_ids_partially_covered_total,
         },
         "partial_success": partial_success,
         "error_message": error_message,

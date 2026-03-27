@@ -62,6 +62,7 @@ class InstanceBackupInfoReadService:
             "restore_point_size_bytes": matched.get("restore_point_size_bytes") if isinstance(matched, dict) else None,
             "backup_chain_size_bytes": matched.get("backup_chain_size_bytes") if isinstance(matched, dict) else None,
             "restore_point_count": matched.get("restore_point_count") if isinstance(matched, dict) else None,
+            "backup_metrics_coverage": matched.get("backup_metrics_coverage") if isinstance(matched, dict) else None,
             "restore_point_times": restore_point_times if isinstance(restore_point_times, list) else [],
             "restore_points": restore_points if isinstance(restore_points, list) else [],
             "last_sync_time": matched.get("last_sync_time") if isinstance(matched, dict) else None,

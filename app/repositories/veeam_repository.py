@@ -107,6 +107,27 @@ def _normalize_restore_points(raw_payload: dict[str, object]) -> list[dict[str, 
     return normalized_items
 
 
+def _build_backup_metrics_coverage(
+    *,
+    restore_points: list[dict[str, object]],
+    restore_point_count: int,
+    restore_point_times_count: int,
+) -> dict[str, object]:
+    expected_restore_point_count = len(restore_points) or restore_point_count or restore_point_times_count
+    enriched_restore_point_count = sum(
+        1
+        for item in restore_points
+        if isinstance(item.get("backup_size_bytes"), int)
+    )
+    missing_restore_point_count = max(expected_restore_point_count - enriched_restore_point_count, 0)
+    return {
+        "expected_restore_point_count": expected_restore_point_count,
+        "enriched_restore_point_count": enriched_restore_point_count,
+        "missing_restore_point_count": missing_restore_point_count,
+        "partial": expected_restore_point_count > 0 and missing_restore_point_count > 0,
+    }
+
+
 def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object]:
     raw_payload = row.raw_payload if isinstance(row.raw_payload, dict) else {}
     restore_points = _normalize_restore_points(raw_payload)
@@ -127,6 +148,7 @@ def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object
         for item in restore_points
         if isinstance((value := item.get("backup_size_bytes")), int)
     ]
+    resolved_restore_point_count = len(restore_points) or row.restore_point_count or len(normalized_restore_point_times)
     return {
         "machine_name": row.machine_name,
         "normalized_machine_name": row.normalized_machine_name,
@@ -138,7 +160,12 @@ def _serialize_snapshot_row(row: VeeamMachineBackupSnapshot) -> dict[str, object
         "source_record_id": row.source_record_id,
         "restore_point_size_bytes": row.restore_point_size_bytes,
         "backup_chain_size_bytes": sum(backup_size_values) if backup_size_values else row.backup_chain_size_bytes,
-        "restore_point_count": len(restore_points) or row.restore_point_count or len(normalized_restore_point_times),
+        "restore_point_count": resolved_restore_point_count,
+        "backup_metrics_coverage": _build_backup_metrics_coverage(
+            restore_points=restore_points,
+            restore_point_count=int(resolved_restore_point_count or 0),
+            restore_point_times_count=len(normalized_restore_point_times),
+        ),
         "restore_point_times": normalized_restore_point_times,
         "restore_points": restore_points,
         "sync_run_id": row.sync_run_id,
