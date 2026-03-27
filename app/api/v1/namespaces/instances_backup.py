@@ -20,6 +20,7 @@ InstanceBackupRestorePointData = ns.model(
     {
         "id": fields.String(required=False),
         "name": fields.String(required=False),
+        "type": fields.String(required=False),
         "backup_id": fields.String(required=False),
         "object_id": fields.String(required=False),
         "restore_point_ids": fields.List(fields.String, required=False),
