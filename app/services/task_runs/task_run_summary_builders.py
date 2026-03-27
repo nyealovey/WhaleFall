@@ -165,6 +165,11 @@ def build_sync_veeam_backups_summary(
     snapshots_written_total: int,
     skipped_invalid: int,
     timed_out_backup_objects_total: int = 0,
+    backup_files_received_total: int = 0,
+    backup_ids_total: int = 0,
+    backup_ids_completed: int = 0,
+    timed_out_backup_ids_total: int = 0,
+    failed_backup_ids_total: int = 0,
     partial_success: bool = False,
     skipped: bool = False,
     skip_reason: str | None = None,
@@ -186,12 +191,51 @@ def build_sync_veeam_backups_summary(
                 tone="warning",
             )
         )
+    if backup_ids_total > 0:
+        metrics.extend(
+            [
+                _metric(key="backup_ids_total", label="备份链总数", value=backup_ids_total, unit="个", tone="info"),
+                _metric(key="backup_ids_completed", label="已补齐链路", value=backup_ids_completed, unit="个", tone="success"),
+                _metric(
+                    key="backup_files_received_total",
+                    label="拉取 backupFiles",
+                    value=backup_files_received_total,
+                    unit="个",
+                    tone="info",
+                ),
+            ]
+        )
+    if timed_out_backup_ids_total > 0:
+        metrics.append(
+            _metric(
+                key="timed_out_backup_ids_total",
+                label="超时链路",
+                value=timed_out_backup_ids_total,
+                unit="个",
+                tone="warning",
+            )
+        )
+    if failed_backup_ids_total > 0:
+        metrics.append(
+            _metric(
+                key="failed_backup_ids_total",
+                label="失败链路",
+                value=failed_backup_ids_total,
+                unit="个",
+                tone="danger",
+            )
+        )
     ext_data = {
         "backups": {
             "received_total": received_total,
             "snapshots_written_total": snapshots_written_total,
             "skipped_invalid": skipped_invalid,
             "timed_out_backup_objects_total": timed_out_backup_objects_total,
+            "backup_files_received_total": backup_files_received_total,
+            "backup_ids_total": backup_ids_total,
+            "backup_ids_completed": backup_ids_completed,
+            "timed_out_backup_ids_total": timed_out_backup_ids_total,
+            "failed_backup_ids_total": failed_backup_ids_total,
         },
         "partial_success": partial_success,
         "error_message": error_message,
