@@ -571,3 +571,137 @@ def test_http_veeam_provider_surfaces_timeout_with_url_and_timeout_seconds() -> 
         "https://veeam.example.com:9419/api/oauth2/token",
         "https://veeam.example.com:9419/api/v1/backupObjects?limit=2000",
     ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_fetch_backup_file_items_tracks_progress_and_normalizes_metrics() -> None:
+    captured_urls: list[str] = []
+    payloads = [
+        {
+            "items": [
+                {
+                    "id": "file-1",
+                    "backupId": "backup-1",
+                    "objectId": "object-1",
+                    "restorePointIds": ["rp-1"],
+                    "dataSize": 425819216,
+                    "backupSize": 117592064,
+                    "dedupRatio": 36,
+                    "compressRatio": 27,
+                    "creationTime": "2026-03-25T02:00:00Z",
+                    "gfsPeriods": ["None"],
+                }
+            ],
+            "next": None,
+        },
+        {
+            "items": [
+                {
+                    "id": "file-2",
+                    "backupId": "backup-2",
+                    "objectId": "object-2",
+                    "restorePointIds": ["rp-2"],
+                    "dataSize": 225819216,
+                    "backupSize": 17592064,
+                    "dedupRatio": 33,
+                    "compressRatio": 31,
+                    "creationTime": "2026-03-25T01:30:00Z",
+                    "gfsPeriods": ["Weekly"],
+                }
+            ],
+            "next": None,
+        },
+    ]
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        return _FakeResponse(payloads[len(captured_urls) - 1])
+
+    provider = HttpVeeamProvider(opener=_fake_opener)
+    session = type(
+        "ProviderSession",
+        (),
+        {
+            "base_url": "https://veeam.example.com:9419",
+            "access_token": "token-1",
+            "api_version": "1.3-rev1",
+            "verify_ssl": True,
+        },
+    )()
+
+    result = provider.fetch_backup_file_records(session=session, backup_ids=["backup-1", "backup-2"])
+
+    assert result.received_total == 2
+    assert len(result.records) == 2
+    assert result.backup_ids_total == 2
+    assert result.backup_ids_completed == 2
+    assert result.timed_out_backup_ids_total == 0
+    assert result.failed_backup_ids_total == 0
+    assert result.records[0].backup_id == "backup-1"
+    assert result.records[0].backup_file_id == "file-1"
+    assert result.records[0].object_id == "object-1"
+    assert result.records[0].restore_point_ids == ["rp-1"]
+    assert result.records[0].data_size_bytes == 425819216
+    assert result.records[0].backup_size_bytes == 117592064
+    assert result.records[0].dedup_ratio == 36
+    assert result.records[0].compress_ratio == 27
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/v1/backups/backup-1/backupFiles",
+        "https://veeam.example.com:9419/api/v1/backups/backup-2/backupFiles",
+    ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_fetch_backup_file_items_skips_timeout_and_preserves_progress() -> None:
+    captured_urls: list[str] = []
+    payloads = [
+        {
+            "items": [
+                {
+                    "id": "file-1",
+                    "backupId": "backup-1",
+                    "objectId": "object-1",
+                    "restorePointIds": ["rp-1"],
+                    "dataSize": 425819216,
+                    "backupSize": 117592064,
+                    "compressRatio": 27,
+                    "creationTime": "2026-03-25T02:00:00Z",
+                }
+            ],
+            "next": None,
+        }
+    ]
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        if request.full_url.endswith("/backup-2/backupFiles"):
+            raise TimeoutError("The read operation timed out")
+        return _FakeResponse(payloads[len(captured_urls) - 1])
+
+    provider = HttpVeeamProvider(opener=_fake_opener)
+    session = type(
+        "ProviderSession",
+        (),
+        {
+            "base_url": "https://veeam.example.com:9419",
+            "access_token": "token-1",
+            "api_version": "1.3-rev1",
+            "verify_ssl": True,
+        },
+    )()
+
+    result = provider.fetch_backup_file_records(session=session, backup_ids=["backup-1", "backup-2"])
+
+    assert result.received_total == 1
+    assert len(result.records) == 1
+    assert result.backup_ids_total == 2
+    assert result.backup_ids_completed == 1
+    assert result.timed_out_backup_ids_total == 1
+    assert result.timed_out_backup_ids_sample == ["backup-2"]
+    assert result.failed_backup_ids_total == 0
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/v1/backups/backup-1/backupFiles",
+        "https://veeam.example.com:9419/api/v1/backups/backup-2/backupFiles",
+    ]

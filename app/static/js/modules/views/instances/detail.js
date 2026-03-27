@@ -2080,7 +2080,7 @@ function renderBackupRestorePointsSection({
         ? restorePoints.map((item, index) => renderBackupRestorePointTableRow(item, index)).join('')
         : restorePointTimes.length
             ? restorePointTimes.map((item, index) => renderBackupRestorePointFallbackRow(item, index)).join('')
-            : `<tr><td colspan="6"><div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div></td></tr>`;
+            : `<tr><td colspan="5"><div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div></td></tr>`;
     return `
         <section class="instance-audit-section">
             <header class="instance-audit-section__header">
@@ -2096,7 +2096,6 @@ function renderBackupRestorePointsSection({
                             <th>备份大小</th>
                             <th>压缩率</th>
                             <th>创建时间</th>
-                            <th>恢复点 ID</th>
                         </tr>
                     </thead>
                     <tbody>${body}</tbody>
@@ -2107,27 +2106,19 @@ function renderBackupRestorePointsSection({
 }
 
 function renderBackupRestorePointTableRow(item, index) {
-    const title = escapeHtml(item.name || item.id || `恢复点 ${index + 1}`);
-    const subtleParts = [];
-    if (item.backup_id) {
-        subtleParts.push(`Backup ${item.backup_id}`);
-    }
-    if (item.object_id) {
-        subtleParts.push(`Object ${item.object_id}`);
-    }
+    const title = escapeHtml(item.name || `恢复点 ${index + 1}`);
     return `
         <tr>
             <td>
                 <div class="instance-audit-name-cell">
                     <strong>${title}</strong>
-                    <span class="instance-audit-subtle">${escapeHtml(subtleParts.join(' · ') || `序号 ${String(index + 1).padStart(2, '0')}`)}</span>
+                    <span class="instance-audit-subtle">${escapeHtml(`序号 ${String(index + 1).padStart(2, '0')}`)}</span>
                 </div>
             </td>
             <td>${escapeHtml(formatBackupBytes(item.data_size_bytes))}</td>
             <td>${escapeHtml(formatBackupBytes(item.backup_size_bytes))}</td>
             <td>${escapeHtml(formatBackupRatio(item.compress_ratio))}</td>
             <td>${escapeHtml(formatAuditTimestamp(item.creation_time))}</td>
-            <td>${escapeHtml(item.id || '-')}</td>
         </tr>
     `;
 }
@@ -2145,7 +2136,6 @@ function renderBackupRestorePointFallbackRow(value, index) {
             <td>${escapeHtml('-')}</td>
             <td>${escapeHtml('-')}</td>
             <td>${escapeHtml(formatAuditTimestamp(value))}</td>
-            <td>${escapeHtml('-')}</td>
         </tr>
     `;
 }

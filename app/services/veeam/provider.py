@@ -20,6 +20,7 @@ from app.utils.time_utils import time_utils
 VEEAM_TOKEN_PATH = "/api/oauth2/token"
 VEEAM_RESTORE_POINTS_PATH = "/api/v1/restorePoints"
 VEEAM_BACKUP_OBJECTS_PATH = "/api/v1/backupObjects"
+VEEAM_BACKUPS_PATH = "/api/v1/backups"
 VEEAM_ACCEPT_HEADER = "application/json"
 
 
@@ -66,6 +67,37 @@ class VeeamMachineBackupCollection:
     timed_out_backup_objects_total: int = 0
     timed_out_backup_ids_sample: list[str] = field(default_factory=list)
     timed_out_machine_names_sample: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class VeeamBackupFileRecord:
+    """标准化后的 Veeam backupFile 记录."""
+
+    backup_id: str
+    backup_file_id: str | None = None
+    object_id: str | None = None
+    restore_point_ids: list[str] = field(default_factory=list)
+    data_size_bytes: int | None = None
+    backup_size_bytes: int | None = None
+    dedup_ratio: int | None = None
+    compress_ratio: int | None = None
+    backup_at: datetime | None = None
+    raw_payload: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class VeeamBackupFileCollection:
+    """本次 backupFiles 拉取结果."""
+
+    records: list[VeeamBackupFileRecord]
+    received_total: int
+    backup_ids_total: int
+    backup_ids_completed: int
+    timed_out_backup_ids_total: int = 0
+    timed_out_backup_ids_sample: list[str] = field(default_factory=list)
+    failed_backup_ids_total: int = 0
+    failed_backup_ids_sample: list[str] = field(default_factory=list)
+    failed_urls_sample: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,6 +196,14 @@ class VeeamProvider(Protocol):
         match_result: VeeamBackupObjectMatchResult,
     ) -> VeeamMachineBackupCollection:
         """按匹配结果拉取 restorePoints."""
+
+    def fetch_backup_file_records(
+        self,
+        *,
+        session: VeeamProviderSession,
+        backup_ids: list[str],
+    ) -> VeeamBackupFileCollection:
+        """按 backupId 拉取 backupFiles."""
 
     def list_machine_backups(
         self,
@@ -422,6 +462,65 @@ class HttpVeeamProvider:
         )
         return self.fetch_restore_point_records(session=session, match_result=match_result)
 
+    def fetch_backup_file_records(
+        self,
+        *,
+        session: VeeamProviderSession,
+        backup_ids: list[str],
+    ) -> VeeamBackupFileCollection:
+        normalized_backup_ids: list[str] = []
+        for backup_id in backup_ids:
+            normalized = str(backup_id or "").strip()
+            if not normalized or normalized in normalized_backup_ids:
+                continue
+            normalized_backup_ids.append(normalized)
+
+        records: list[VeeamBackupFileRecord] = []
+        received_total = 0
+        backup_ids_completed = 0
+        timed_out_backup_ids_sample: list[str] = []
+        failed_backup_ids_sample: list[str] = []
+        failed_urls_sample: list[str] = []
+
+        for backup_id in normalized_backup_ids:
+            failed_url = self._build_backup_files_url(base_url=session.base_url, backup_id=backup_id)
+            try:
+                backup_file_items = self._collect_paginated_items(
+                    url=failed_url,
+                    access_token=session.access_token,
+                    api_version=session.api_version,
+                    verify_ssl=session.verify_ssl,
+                )
+            except VeeamRequestTimeoutError:
+                if len(timed_out_backup_ids_sample) < 20:
+                    timed_out_backup_ids_sample.append(backup_id)
+                continue
+            except Exception:
+                if len(failed_backup_ids_sample) < 20:
+                    failed_backup_ids_sample.append(backup_id)
+                if len(failed_urls_sample) < 20:
+                    failed_urls_sample.append(failed_url)
+                continue
+
+            received_total += len(backup_file_items)
+            backup_ids_completed += 1
+            for item in backup_file_items:
+                record = self._normalize_backup_file_record(item, backup_id=backup_id)
+                if record is not None:
+                    records.append(record)
+
+        return VeeamBackupFileCollection(
+            records=records,
+            received_total=received_total,
+            backup_ids_total=len(normalized_backup_ids),
+            backup_ids_completed=backup_ids_completed,
+            timed_out_backup_ids_total=len(timed_out_backup_ids_sample),
+            timed_out_backup_ids_sample=timed_out_backup_ids_sample,
+            failed_backup_ids_total=len(failed_backup_ids_sample),
+            failed_backup_ids_sample=failed_backup_ids_sample,
+            failed_urls_sample=failed_urls_sample,
+        )
+
     def _collect_paginated_items(
         self,
         *,
@@ -554,9 +653,7 @@ class HttpVeeamProvider:
             return True
         if isinstance(reason, str) and "timed out" in reason.lower():
             return True
-        if reason is not None and "timed out" in str(reason).lower():
-            return True
-        return False
+        return reason is not None and "timed out" in str(reason).lower()
 
     @staticmethod
     def _parse_page_payload(payload: object) -> list[dict[str, Any]]:
@@ -584,6 +681,10 @@ class HttpVeeamProvider:
     @staticmethod
     def _build_backup_objects_url(*, base_url: str, limit: int) -> str:
         return f"{base_url}{VEEAM_BACKUP_OBJECTS_PATH}?limit={int(limit)}"
+
+    @staticmethod
+    def _build_backup_files_url(*, base_url: str, backup_id: str) -> str:
+        return f"{base_url}{VEEAM_BACKUPS_PATH}/{str(backup_id).strip()}/backupFiles"
 
     @staticmethod
     def _resolve_next_url(*, base_url: str, current_url: str, payload: object) -> str | None:
@@ -762,6 +863,32 @@ class HttpVeeamProvider:
         )
 
     @staticmethod
+    def _normalize_backup_file_record(item: dict[str, Any], *, backup_id: str) -> VeeamBackupFileRecord | None:
+        resolved_backup_id = HttpVeeamProvider._pick_string(item, ("backupId", "backup_id")) or str(backup_id).strip()
+        if not resolved_backup_id:
+            return None
+        creation_time = HttpVeeamProvider._pick_string(item, ("creationTime", "creation_time"))
+        resolved_backup_at = time_utils.to_utc(creation_time) if creation_time else None
+        return VeeamBackupFileRecord(
+            backup_id=resolved_backup_id,
+            backup_file_id=HttpVeeamProvider._pick_string(item, ("backupFileId", "backup_file_id", "id")),
+            object_id=HttpVeeamProvider._pick_string(item, ("objectId", "object_id")),
+            restore_point_ids=HttpVeeamProvider._pick_string_list(item, ("restorePointIds", "restore_point_ids")),
+            data_size_bytes=HttpVeeamProvider._pick_nested_int(
+                item,
+                ("dataSize", "data_size", "dataSizeBytes", "data_size_bytes"),
+            ),
+            backup_size_bytes=HttpVeeamProvider._pick_nested_int(
+                item,
+                ("backupSize", "backup_size", "backupSizeBytes", "backup_size_bytes"),
+            ),
+            dedup_ratio=HttpVeeamProvider._pick_nested_int(item, ("dedupRatio", "dedup_ratio")),
+            compress_ratio=HttpVeeamProvider._pick_nested_int(item, ("compressRatio", "compress_ratio")),
+            backup_at=resolved_backup_at,
+            raw_payload=dict(item),
+        )
+
+    @staticmethod
     def _resolve_backup_machine_name(item: dict[str, Any]) -> str | None:
         return HttpVeeamProvider._pick_string(
             item,
@@ -824,6 +951,21 @@ class HttpVeeamProvider:
             if isinstance(value, str) and value.strip():
                 return value.strip()
         return None
+
+    @staticmethod
+    def _pick_string_list(item: dict[str, Any], keys: tuple[str, ...]) -> list[str]:
+        for key in keys:
+            value = item.get(key)
+            if not isinstance(value, list):
+                continue
+            normalized = [
+                str(entry).strip()
+                for entry in value
+                if isinstance(entry, str) and str(entry).strip()
+            ]
+            if normalized:
+                return normalized
+        return []
 
     @staticmethod
     def _pick_nested_int(payload: object, keys: tuple[str, ...]) -> int | None:

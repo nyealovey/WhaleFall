@@ -75,6 +75,7 @@ def test_prepare_background_sync_uses_system_settings_anchor(monkeypatch) -> Non
         ("step", "fetch_backup_objects", "获取 backupObjects"),
         ("step", "match_backup_objects", "匹配目标备份对象"),
         ("step", "fetch_restore_points", "拉取 restorePoints"),
+        ("step", "fetch_backup_files", "拉取 backupFiles"),
         ("step", "write_snapshots", "写入快照"),
     ]
 
@@ -265,6 +266,102 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
 
                 return _RestorePointsResult()
 
+            def fetch_backup_file_records(self, *, session: object, backup_ids: list[str]) -> object:
+                captured["backup_files_session_used"] = session is not None
+                captured["backup_ids"] = list(backup_ids)
+
+                class _BackupFilesResult:
+                    records = [
+                        type(
+                            "BackupFileRecord",
+                            (),
+                            {
+                                "backup_id": "backup-1",
+                                "backup_file_id": "file-2",
+                                "object_id": "object-1",
+                                "restore_point_ids": ["rp-2"],
+                                "data_size_bytes": 425819216,
+                                "backup_size_bytes": 117592064,
+                                "dedup_ratio": 36,
+                                "compress_ratio": 27,
+                                "backup_at": datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                                "raw_payload": {
+                                    "id": "file-2",
+                                    "backupId": "backup-1",
+                                    "objectId": "object-1",
+                                    "restorePointIds": ["rp-2"],
+                                    "dataSize": 425819216,
+                                    "backupSize": 117592064,
+                                    "dedupRatio": 36,
+                                    "compressRatio": 27,
+                                    "creationTime": "2026-03-25T02:00:00+00:00",
+                                },
+                            },
+                        )(),
+                        type(
+                            "BackupFileRecord",
+                            (),
+                            {
+                                "backup_id": "backup-1",
+                                "backup_file_id": "file-1b",
+                                "object_id": "object-1",
+                                "restore_point_ids": ["rp-1b"],
+                                "data_size_bytes": 225819216,
+                                "backup_size_bytes": 17592064,
+                                "dedup_ratio": 33,
+                                "compress_ratio": 31,
+                                "backup_at": datetime(2026, 3, 25, 1, 30, tzinfo=UTC),
+                                "raw_payload": {
+                                    "id": "file-1b",
+                                    "backupId": "backup-1",
+                                    "objectId": "object-1",
+                                    "restorePointIds": ["rp-1b"],
+                                    "dataSize": 225819216,
+                                    "backupSize": 17592064,
+                                    "dedupRatio": 33,
+                                    "compressRatio": 31,
+                                    "creationTime": "2026-03-25T01:30:00+00:00",
+                                },
+                            },
+                        )(),
+                        type(
+                            "BackupFileRecord",
+                            (),
+                            {
+                                "backup_id": "backup-1",
+                                "backup_file_id": "file-1",
+                                "object_id": "object-1",
+                                "restore_point_ids": ["rp-1"],
+                                "data_size_bytes": 125819216,
+                                "backup_size_bytes": 10592064,
+                                "dedup_ratio": 30,
+                                "compress_ratio": 29,
+                                "backup_at": datetime(2026, 3, 25, 1, 0, tzinfo=UTC),
+                                "raw_payload": {
+                                    "id": "file-1",
+                                    "backupId": "backup-1",
+                                    "objectId": "object-1",
+                                    "restorePointIds": ["rp-1"],
+                                    "dataSize": 125819216,
+                                    "backupSize": 10592064,
+                                    "dedupRatio": 30,
+                                    "compressRatio": 29,
+                                    "creationTime": "2026-03-25T01:00:00+00:00",
+                                },
+                            },
+                        )(),
+                    ]
+                    received_total = 3
+                    backup_ids_total = 1
+                    backup_ids_completed = 1
+                    timed_out_backup_ids_total = 0
+                    timed_out_backup_ids_sample: list[str] = []
+                    failed_backup_ids_total = 0
+                    failed_backup_ids_sample: list[str] = []
+                    failed_urls_sample: list[str] = []
+
+                return _BackupFilesResult()
+
         service = VeeamSyncActionsService(provider=_StubProvider())
 
         prepared = service.prepare_background_sync(created_by=1)
@@ -284,8 +381,8 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         snapshots = VeeamMachineBackupSnapshot.query.order_by(VeeamMachineBackupSnapshot.machine_name.asc()).all()
         assert len(snapshots) == 1
         assert snapshots[0].job_name is None
-        assert snapshots[0].restore_point_size_bytes is None
-        assert snapshots[0].backup_chain_size_bytes is None
+        assert snapshots[0].restore_point_size_bytes == 425819216
+        assert snapshots[0].backup_chain_size_bytes == 145776192
         assert snapshots[0].restore_point_count == 3
         assert snapshots[0].machine_name == "db01.domain.com"
         assert snapshots[0].restore_point_name == "rp-2"
@@ -295,6 +392,10 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
             "2026-03-25T01:30:00+00:00",
             "2026-03-25T01:00:00+00:00",
         ]
+        assert snapshots[0].raw_payload["restore_points"][0]["objectId"] == "object-1"
+        assert snapshots[0].raw_payload["restore_points"][0]["dataSize"] == 425819216
+        assert snapshots[0].raw_payload["restore_points"][0]["backupSize"] == 117592064
+        assert snapshots[0].raw_payload["restore_points"][0]["compressRatio"] == 27
 
         binding = VeeamSourceBinding.query.first()
         assert binding is not None
@@ -305,18 +406,25 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
         assert run is not None
         assert run.status == "completed"
-        assert run.progress_total == 4
-        assert run.progress_completed == 4
+        assert run.progress_total == 5
+        assert run.progress_completed == 5
         assert run.progress_failed == 0
         assert run.summary_json["ext"]["type"] == "sync_veeam_backups"
         assert run.summary_json["ext"]["data"]["backups"]["received_total"] == 3
         assert run.summary_json["ext"]["data"]["backups"]["snapshots_written_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["backup_files_received_total"] == 3
 
         items = {
             item.item_key: item
             for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
         }
-        assert set(items) == {"fetch_backup_objects", "match_backup_objects", "fetch_restore_points", "write_snapshots"}
+        assert set(items) == {
+            "fetch_backup_objects",
+            "match_backup_objects",
+            "fetch_restore_points",
+            "fetch_backup_files",
+            "write_snapshots",
+        }
         assert items["fetch_backup_objects"].status == "completed"
         assert items["fetch_backup_objects"].metrics_json["backup_objects_received_total"] == 2
         assert "共拉取 2 个 backupObjects" in items["fetch_backup_objects"].details_json["summary"]
@@ -324,6 +432,8 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert items["match_backup_objects"].metrics_json["matched_backup_objects_total"] == 1
         assert items["fetch_restore_points"].status == "completed"
         assert items["fetch_restore_points"].metrics_json["restore_points_backup_objects_completed"] == 1
+        assert items["fetch_backup_files"].status == "completed"
+        assert items["fetch_backup_files"].metrics_json["backup_ids_completed"] == 1
         assert items["write_snapshots"].status == "completed"
         assert items["write_snapshots"].metrics_json["snapshots_written_total"] == 1
 
@@ -440,6 +550,22 @@ def test_sync_once_logs_candidate_pool_and_unmatched_backup_summary(monkeypatch)
                     restore_points_backup_objects_completed = 0
 
                 return _RestorePointsResult()
+
+            def fetch_backup_file_records(self, *, session: object, backup_ids: list[str]) -> object:
+                _ = (session, backup_ids)
+
+                class _BackupFilesResult:
+                    records: list[object] = []
+                    received_total = 0
+                    backup_ids_total = 0
+                    backup_ids_completed = 0
+                    timed_out_backup_ids_total = 0
+                    timed_out_backup_ids_sample: list[str] = []
+                    failed_backup_ids_total = 0
+                    failed_backup_ids_sample: list[str] = []
+                    failed_urls_sample: list[str] = []
+
+                return _BackupFilesResult()
 
         service = VeeamSyncActionsService(provider=_StubProvider())
         prepared = service.prepare_background_sync(created_by=1)
@@ -587,6 +713,22 @@ def test_sync_once_accepts_snapshot_without_enrichment_fields() -> None:
                     restore_points_backup_objects_completed = 1
 
                 return _RestorePointsResult()
+
+            def fetch_backup_file_records(self, *, session: object, backup_ids: list[str]) -> object:
+                _ = (session, backup_ids)
+
+                class _BackupFilesResult:
+                    records: list[object] = []
+                    received_total = 0
+                    backup_ids_total = 1
+                    backup_ids_completed = 1
+                    timed_out_backup_ids_total = 0
+                    timed_out_backup_ids_sample: list[str] = []
+                    failed_backup_ids_total = 0
+                    failed_backup_ids_sample: list[str] = []
+                    failed_urls_sample: list[str] = []
+
+                return _BackupFilesResult()
 
         service = VeeamSyncActionsService(provider=_StubProvider())
         prepared = service.prepare_background_sync(created_by=1)
@@ -741,6 +883,48 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
 
                 return _RestorePointsResult()
 
+            def fetch_backup_file_records(self, *, session: object, backup_ids: list[str]) -> object:
+                _ = (session, backup_ids)
+
+                class _BackupFilesResult:
+                    records = [
+                        type(
+                            "BackupFileRecord",
+                            (),
+                            {
+                                "backup_id": "backup-1",
+                                "backup_file_id": "file-1",
+                                "object_id": "object-1",
+                                "restore_point_ids": ["rp-1"],
+                                "data_size_bytes": 425819216,
+                                "backup_size_bytes": 117592064,
+                                "dedup_ratio": 36,
+                                "compress_ratio": 27,
+                                "backup_at": datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                                "raw_payload": {
+                                    "id": "file-1",
+                                    "backupId": "backup-1",
+                                    "objectId": "object-1",
+                                    "restorePointIds": ["rp-1"],
+                                    "dataSize": 425819216,
+                                    "backupSize": 117592064,
+                                    "compressRatio": 27,
+                                    "creationTime": "2026-03-25T02:00:00+00:00",
+                                },
+                            },
+                        )()
+                    ]
+                    received_total = 1
+                    backup_ids_total = 1
+                    backup_ids_completed = 1
+                    timed_out_backup_ids_total = 0
+                    timed_out_backup_ids_sample: list[str] = []
+                    failed_backup_ids_total = 0
+                    failed_backup_ids_sample: list[str] = []
+                    failed_urls_sample: list[str] = []
+
+                return _BackupFilesResult()
+
         service = VeeamSyncActionsService(provider=_StubProvider())
         prepared = service.prepare_background_sync(created_by=1)
         db.session.commit()
@@ -750,8 +934,8 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
         run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
         assert run is not None
         assert run.status == "completed"
-        assert run.progress_total == 4
-        assert run.progress_completed == 4
+        assert run.progress_total == 5
+        assert run.progress_completed == 5
         assert run.progress_failed == 0
         assert run.summary_json["ext"]["data"]["partial_success"] is True
         assert run.summary_json["ext"]["data"]["backups"]["timed_out_backup_objects_total"] == 1
@@ -763,7 +947,180 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
         assert items["fetch_restore_points"].status == "completed"
         assert items["fetch_restore_points"].details_json["timed_out_backup_objects_total"] == 1
         assert items["fetch_restore_points"].details_json["timed_out_backup_ids_sample"] == ["backup-2"]
+        assert items["fetch_backup_files"].status == "completed"
         assert items["write_snapshots"].status == "completed"
+
+
+@pytest.mark.unit
+def test_sync_once_completes_when_backup_files_timeout_is_skipped() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
+            ],
+        )
+
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            description="Veeam",
+            is_active=True,
+        )
+        instance = Instance(
+            name="db01",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=True,
+        )
+        db.session.add_all([credential, instance])
+        db.session.flush()
+
+        binding = VeeamSourceBinding(
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+            match_domains=["domain.com"],
+        )
+        db.session.add(binding)
+        db.session.commit()
+
+        class _StubProvider:
+            def is_configured(self) -> bool:
+                return True
+
+            def create_session(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                verify_ssl: bool | None = None,
+            ) -> object:
+                _ = (server_host, server_port, username, password, api_version, verify_ssl)
+                return object()
+
+            def fetch_backup_objects(self, *, session: object) -> list[dict[str, object]]:
+                _ = session
+                return [{"id": "backup-1", "name": "db01.domain.com"}]
+
+            def match_backup_objects(
+                self,
+                *,
+                backup_items: list[dict[str, object]],
+                match_machine_names: set[str] | None = None,
+            ) -> object:
+                _ = (backup_items, match_machine_names)
+
+                class _MatchResult:
+                    matched_backup_objects = [
+                        type(
+                            "MatchedBackupObject",
+                            (),
+                            {
+                                "backup_object_id": "backup-1",
+                                "machine_name": "db01.domain.com",
+                                "backup_item": {"id": "backup-1", "name": "db01.domain.com"},
+                            },
+                        )()
+                    ]
+                    backups_received_total = 1
+                    backups_matched_total = 1
+                    backups_unmatched_total = 0
+                    backups_missing_machine_name = 0
+                    matched_backup_ids_sample = ["backup-1"]
+                    unmatched_backup_ids_sample: list[str] = []
+                    unmatched_machine_names_sample: list[str] = []
+                    missing_machine_name_backup_ids_sample: list[str] = []
+                    missing_machine_name_backup_names_sample: list[str] = []
+
+                return _MatchResult()
+
+            def fetch_restore_point_records(self, *, session: object, match_result: object) -> object:
+                _ = (session, match_result)
+
+                class _RestorePointsResult:
+                    records = [
+                        VeeamMachineBackupRecord(
+                            machine_name="db01.domain.com",
+                            backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                            backup_id="backup-1",
+                            backup_file_id="file-1",
+                            restore_point_name="rp-1",
+                            source_record_id="rp-1",
+                            raw_payload={"id": "rp-1"},
+                        )
+                    ]
+                    received_total = 1
+                    snapshots_written_total = 1
+                    skipped_invalid = 0
+                    restore_points_backup_objects_total = 1
+                    restore_points_backup_objects_completed = 1
+                    timed_out_backup_objects_total = 0
+                    timed_out_backup_ids_sample: list[str] = []
+                    timed_out_machine_names_sample: list[str] = []
+
+                return _RestorePointsResult()
+
+            def fetch_backup_file_records(self, *, session: object, backup_ids: list[str]) -> object:
+                _ = (session, backup_ids)
+
+                class _BackupFilesResult:
+                    records: list[object] = []
+                    received_total = 0
+                    backup_ids_total = 1
+                    backup_ids_completed = 0
+                    timed_out_backup_ids_total = 1
+                    timed_out_backup_ids_sample = ["backup-1"]
+                    failed_backup_ids_total = 0
+                    failed_backup_ids_sample: list[str] = []
+                    failed_urls_sample = ["https://10.0.0.10:9419/api/v1/backups/backup-1/backupFiles"]
+
+                return _BackupFilesResult()
+
+        service = VeeamSyncActionsService(provider=_StubProvider())
+        prepared = service.prepare_background_sync(created_by=1)
+        db.session.commit()
+
+        service._sync_once(created_by=1, run_id=prepared.run_id, credential_id=credential.id)
+
+        run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
+        assert run is not None
+        assert run.status == "completed"
+        assert run.progress_total == 5
+        assert run.progress_completed == 5
+        assert run.progress_failed == 0
+        assert run.summary_json["ext"]["data"]["partial_success"] is True
+        assert run.summary_json["ext"]["data"]["backups"]["backup_files_received_total"] == 0
+        assert run.summary_json["ext"]["data"]["backups"]["timed_out_backup_ids_total"] == 1
+
+        items = {
+            item.item_key: item
+            for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+        }
+        assert items["fetch_backup_files"].status == "completed"
+        assert items["fetch_backup_files"].details_json["timed_out_backup_ids_sample"] == ["backup-1"]
+        assert items["write_snapshots"].status == "completed"
+
+        snapshots = VeeamMachineBackupSnapshot.query.all()
+        assert len(snapshots) == 1
+        assert snapshots[0].restore_point_size_bytes is None
+        assert snapshots[0].backup_chain_size_bytes is None
 
 
 @pytest.mark.unit
@@ -891,6 +1248,10 @@ def test_sync_once_marks_restore_points_stage_failed_with_progress_details() -> 
                 _ = (session, match_result)
                 raise _RestorePointsError()
 
+            def fetch_backup_file_records(self, *, session: object, backup_ids: list[str]) -> object:
+                _ = (session, backup_ids)
+                raise AssertionError("backupFiles stage should not run when restorePoints fails")
+
         service = VeeamSyncActionsService(provider=_StubProvider())
         prepared = service.prepare_background_sync(created_by=1)
         db.session.commit()
@@ -901,9 +1262,9 @@ def test_sync_once_marks_restore_points_stage_failed_with_progress_details() -> 
         run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
         assert run is not None
         assert run.status == "failed"
-        assert run.progress_total == 4
+        assert run.progress_total == 5
         assert run.progress_completed == 2
-        assert run.progress_failed == 2
+        assert run.progress_failed == 3
 
         items = {
             item.item_key: item
@@ -917,4 +1278,5 @@ def test_sync_once_marks_restore_points_stage_failed_with_progress_details() -> 
         assert items["fetch_restore_points"].details_json["matched_backup_objects_total"] == 2
         assert items["fetch_restore_points"].details_json["failed_backup_object_id"] == "backup-2"
         assert items["fetch_restore_points"].details_json["failed_url"].endswith("/backup-2/restorePoints")
+        assert items["fetch_backup_files"].status == "cancelled"
         assert items["write_snapshots"].status == "cancelled"

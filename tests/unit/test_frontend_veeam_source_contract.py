@@ -93,11 +93,17 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
         "备份摘要",
         "全部恢复点时间",
         "instance-backup-timeline",
+        "恢复点 ID",
     )
     for fragment in removed_detail_fragments:
         assert fragment not in instance_detail_js
 
     assert "候选机器名" not in instance_detail_js
+    assert "Backup ${item.backup_id}" not in instance_detail_js
+    assert "item.name || item.id ||" not in instance_detail_js
+    assert "restorePointSizeBytes" not in instance_detail_js
+    assert "storageSizeBytes" not in instance_detail_js
+    assert "compressionRatio" not in instance_detail_js
     assert "当前快照缺少恢复点时间，请重新执行一次 Veeam 同步。" in instance_detail_js
     assert "const displayedRestorePointCount = restorePoints.length || restorePointTimes.length || Number(data.restore_point_count) || 0;" in instance_detail_js
     assert "#databaseInfoTabContent > .instance-data-pane" in instance_detail_css
