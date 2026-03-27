@@ -1897,6 +1897,7 @@ function renderBackupInfo(payload) {
         : [];
     const displayedRestorePointCount = restorePoints.length || restorePointTimes.length || Number(data.restore_point_count) || 0;
     const backupChainSizeBytes = resolveBackupChainSizeBytes(data.backup_chain_size_bytes, restorePoints);
+    const backupMetricsCoverage = normalizeBackupMetricsCoverage(data, restorePoints, displayedRestorePointCount);
     const legacyRestorePointWarning = displayedRestorePointCount > 0 && restorePointTimes.length === 0
         ? '当前快照缺少恢复点时间，请重新执行一次 Veeam 同步。'
         : '最近一次同步快照未提供恢复点时间。';
@@ -1925,7 +1926,7 @@ function renderBackupInfo(payload) {
                         <span class="instance-overview-band__fact-icon" aria-hidden="true"><i class="fas fa-box-archive"></i></span>
                     </div>
                     <strong class="instance-overview-band__fact-value">${escapeHtml(formatBackupBytes(backupChainSizeBytes))}</strong>
-                    <span class="status-pill status-pill--danger"><i class="fas fa-link" aria-hidden="true"></i>backup files</span>
+                    ${renderBackupMetricsCoveragePill(backupMetricsCoverage)}
                 </article>
                 <article class="instance-overview-band__fact" data-tone="brand">
                     <div class="instance-overview-band__fact-header">
@@ -1944,6 +1945,41 @@ function renderBackupInfo(payload) {
             legacyRestorePointWarning,
         })}
     `);
+}
+
+function normalizeBackupMetricsCoverage(data, restorePoints, displayedRestorePointCount) {
+    const coverage = data?.backup_metrics_coverage;
+    if (coverage && typeof coverage === 'object') {
+        const expectedRestorePointCount = Number(coverage.expected_restore_point_count) || 0;
+        const enrichedRestorePointCount = Number(coverage.enriched_restore_point_count) || 0;
+        const missingRestorePointCount = Number(coverage.missing_restore_point_count);
+        return {
+            expected_restore_point_count: expectedRestorePointCount,
+            enriched_restore_point_count: enrichedRestorePointCount,
+            missing_restore_point_count: Number.isFinite(missingRestorePointCount)
+                ? Math.max(missingRestorePointCount, 0)
+                : Math.max(expectedRestorePointCount - enrichedRestorePointCount, 0),
+            partial: Boolean(coverage.partial),
+        };
+    }
+    const expectedRestorePointCount = Number(displayedRestorePointCount) || 0;
+    const enrichedRestorePointCount = restorePoints.filter(
+        (item) => item?.backup_size_bytes !== null && item?.backup_size_bytes !== undefined
+    ).length;
+    const missingRestorePointCount = Math.max(expectedRestorePointCount - enrichedRestorePointCount, 0);
+    return {
+        expected_restore_point_count: expectedRestorePointCount,
+        enriched_restore_point_count: enrichedRestorePointCount,
+        missing_restore_point_count: missingRestorePointCount,
+        partial: expectedRestorePointCount > 0 && missingRestorePointCount > 0,
+    };
+}
+
+function renderBackupMetricsCoveragePill(coverage) {
+    if (coverage?.partial) {
+        return `<span class="status-pill status-pill--warning"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>部分覆盖 ${escapeHtml(String(coverage.enriched_restore_point_count || 0))}/${escapeHtml(String(coverage.expected_restore_point_count || 0))}</span>`;
+    }
+    return '<span class="status-pill status-pill--danger"><i class="fas fa-link" aria-hidden="true"></i>backup files</span>';
 }
 
 function renderBackupEmptyState(data) {

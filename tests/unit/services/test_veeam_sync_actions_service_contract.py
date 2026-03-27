@@ -412,7 +412,12 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert run.summary_json["ext"]["type"] == "sync_veeam_backups"
         assert run.summary_json["ext"]["data"]["backups"]["received_total"] == 3
         assert run.summary_json["ext"]["data"]["backups"]["snapshots_written_total"] == 1
-        assert run.summary_json["ext"]["data"]["backups"]["backup_files_received_total"] == 3
+        assert run.summary_json["ext"]["data"]["backups"]["backup_files_scanned_total"] == 3
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_expected_total"] == 3
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_enriched_total"] == 3
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_missing_metrics_total"] == 0
+        assert run.summary_json["ext"]["data"]["backups"]["backup_ids_fully_covered_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["backup_ids_partially_covered_total"] == 0
 
         items = {
             item.item_key: item
@@ -434,6 +439,8 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert items["fetch_restore_points"].metrics_json["restore_points_backup_objects_completed"] == 1
         assert items["fetch_backup_files"].status == "completed"
         assert items["fetch_backup_files"].metrics_json["backup_ids_completed"] == 1
+        assert items["fetch_backup_files"].metrics_json["restore_points_enriched_total"] == 3
+        assert items["fetch_backup_files"].details_json["restore_points_enriched_total"] == 3
         assert items["write_snapshots"].status == "completed"
         assert items["write_snapshots"].metrics_json["snapshots_written_total"] == 1
 
@@ -939,6 +946,9 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
         assert run.progress_failed == 0
         assert run.summary_json["ext"]["data"]["partial_success"] is True
         assert run.summary_json["ext"]["data"]["backups"]["timed_out_backup_objects_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_expected_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_enriched_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["backup_ids_fully_covered_total"] == 1
 
         items = {
             item.item_key: item
@@ -948,6 +958,7 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
         assert items["fetch_restore_points"].details_json["timed_out_backup_objects_total"] == 1
         assert items["fetch_restore_points"].details_json["timed_out_backup_ids_sample"] == ["backup-2"]
         assert items["fetch_backup_files"].status == "completed"
+        assert items["fetch_backup_files"].details_json["summary"] == "已完成 1/1 个备份 · 全覆盖 1 个 · 部分覆盖 0 个 · 超时跳过 0 个备份 · 失败跳过 0 个备份 · 有效补齐 1/1 个恢复点"
         assert items["write_snapshots"].status == "completed"
 
 
@@ -1106,8 +1117,13 @@ def test_sync_once_completes_when_backup_files_timeout_is_skipped() -> None:
         assert run.progress_completed == 5
         assert run.progress_failed == 0
         assert run.summary_json["ext"]["data"]["partial_success"] is True
-        assert run.summary_json["ext"]["data"]["backups"]["backup_files_received_total"] == 0
+        assert run.summary_json["ext"]["data"]["backups"]["backup_files_scanned_total"] == 0
         assert run.summary_json["ext"]["data"]["backups"]["timed_out_backup_ids_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_expected_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_enriched_total"] == 0
+        assert run.summary_json["ext"]["data"]["backups"]["restore_points_missing_metrics_total"] == 1
+        assert run.summary_json["ext"]["data"]["backups"]["backup_ids_fully_covered_total"] == 0
+        assert run.summary_json["ext"]["data"]["backups"]["backup_ids_partially_covered_total"] == 0
 
         items = {
             item.item_key: item
@@ -1115,6 +1131,8 @@ def test_sync_once_completes_when_backup_files_timeout_is_skipped() -> None:
         }
         assert items["fetch_backup_files"].status == "completed"
         assert items["fetch_backup_files"].details_json["timed_out_backup_ids_sample"] == ["backup-1"]
+        assert items["fetch_backup_files"].details_json["restore_points_enriched_total"] == 0
+        assert items["fetch_backup_files"].details_json["summary"] == "已完成 0/1 个备份 · 全覆盖 0 个 · 部分覆盖 0 个 · 超时跳过 1 个备份 · 失败跳过 0 个备份 · 有效补齐 0/1 个恢复点"
         assert items["write_snapshots"].status == "completed"
 
         snapshots = VeeamMachineBackupSnapshot.query.all()

@@ -10,6 +10,7 @@ from app.services.task_runs.task_run_summary_builders import (
     build_sync_accounts_summary,
     build_sync_databases_summary,
     build_sync_jumpserver_assets_summary,
+    build_sync_veeam_backups_summary,
 )
 
 
@@ -131,3 +132,35 @@ def test_build_sync_jumpserver_assets_summary_has_asset_counts() -> None:
     assert payload["ext"]["type"] == "sync_jumpserver_assets"
     assert payload["ext"]["data"]["assets"]["received_total"] == 5
     assert payload["ext"]["data"]["assets"]["snapshots_written_total"] == 3
+
+
+@pytest.mark.unit
+def test_build_sync_veeam_backups_summary_has_coverage_counts() -> None:
+    payload = build_sync_veeam_backups_summary(
+        task_key="sync_veeam_backups",
+        inputs={"manual_run": True},
+        received_total=2090,
+        snapshots_written_total=67,
+        skipped_invalid=0,
+        timed_out_backup_objects_total=0,
+        backup_files_scanned_total=3896,
+        backup_ids_total=34,
+        backup_ids_completed=26,
+        timed_out_backup_ids_total=1,
+        failed_backup_ids_total=7,
+        restore_points_expected_total=2090,
+        restore_points_enriched_total=949,
+        restore_points_missing_metrics_total=1141,
+        backup_ids_fully_covered_total=18,
+        backup_ids_partially_covered_total=8,
+        partial_success=True,
+        error_message=None,
+    )
+
+    assert payload["ext"]["type"] == "sync_veeam_backups"
+    assert payload["ext"]["data"]["backups"]["backup_files_scanned_total"] == 3896
+    assert payload["ext"]["data"]["backups"]["restore_points_expected_total"] == 2090
+    assert payload["ext"]["data"]["backups"]["restore_points_enriched_total"] == 949
+    assert payload["ext"]["data"]["backups"]["restore_points_missing_metrics_total"] == 1141
+    assert payload["ext"]["data"]["backups"]["backup_ids_fully_covered_total"] == 18
+    assert payload["ext"]["data"]["backups"]["backup_ids_partially_covered_total"] == 8

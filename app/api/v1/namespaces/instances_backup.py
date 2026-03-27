@@ -30,6 +30,16 @@ InstanceBackupRestorePointData = ns.model(
     },
 )
 
+InstanceBackupMetricsCoverageData = ns.model(
+    "InstanceBackupMetricsCoverageData",
+    {
+        "expected_restore_point_count": fields.Integer(required=True),
+        "enriched_restore_point_count": fields.Integer(required=True),
+        "missing_restore_point_count": fields.Integer(required=True),
+        "partial": fields.Boolean(required=True),
+    },
+)
+
 InstanceBackupInfoData = ns.model(
     "InstanceBackupInfoData",
     {
@@ -47,6 +57,7 @@ InstanceBackupInfoData = ns.model(
         "restore_point_size_bytes": fields.Integer(required=False),
         "backup_chain_size_bytes": fields.Integer(required=False),
         "restore_point_count": fields.Integer(required=False),
+        "backup_metrics_coverage": fields.Nested(InstanceBackupMetricsCoverageData, required=False),
         "restore_point_times": fields.List(fields.String, required=False),
         "restore_points": fields.List(fields.Nested(InstanceBackupRestorePointData), required=False),
         "last_sync_time": fields.String(required=False),

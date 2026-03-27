@@ -71,6 +71,8 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
         "备份链完整大小",
         "恢复点数量",
         "恢复点明细",
+        "backup_metrics_coverage",
+        "部分覆盖",
         "restore_point_times",
         "restore_points",
         "backup_size_bytes",
