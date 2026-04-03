@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 
 from flask import current_app, has_app_context
 
+from app.infra.route_safety import log_with_context
 from app.services.veeam.matching import build_instance_ip_candidates, normalize_ip_address, normalize_machine_name
 from app.settings import Settings
 from app.utils.time_utils import time_utils
@@ -332,7 +333,7 @@ class HttpVeeamProvider:
                 name_matched = False
                 ip_matched = False
 
-                if match_machine_names and normalized_backup_machine_name:
+                if match_machine_names:
                     if normalized_backup_machine_name in match_machine_names:
                         name_matched = True
                     elif not normalized_backup_machine_name:
@@ -342,7 +343,6 @@ class HttpVeeamProvider:
                         backup_name = self._pick_string(backup_item, ("name", "jobName", "backupName"))
                         if backup_name and len(missing_machine_name_backup_names_sample) < 20:
                             missing_machine_name_backup_names_sample.append(backup_name)
-                        continue
 
                 if match_machine_ips and normalized_backup_machine_ip:
                     if normalized_backup_machine_ip in match_machine_ips:
@@ -355,15 +355,29 @@ class HttpVeeamProvider:
                     if backup_machine_name and len(unmatched_machine_names_sample) < 20:
                         unmatched_machine_names_sample.append(str(backup_machine_name))
                     continue
-            backups_matched_total += 1
-            if len(matched_backup_ids_sample) < 20:
-                matched_backup_ids_sample.append(backup_object_id)
-            matched_backup_objects.append(
-                VeeamMatchedBackupObject(
-                    backup_object_id=backup_object_id,
-                    machine_name=backup_machine_name,
-                    backup_item=dict(backup_item),
+
+                backups_matched_total += 1
+                if len(matched_backup_ids_sample) < 20:
+                    matched_backup_ids_sample.append(backup_object_id)
+                matched_backup_objects.append(
+                    VeeamMatchedBackupObject(
+                        backup_object_id=backup_object_id,
+                        machine_name=backup_machine_name,
+                        backup_item=dict(backup_item),
+                    )
                 )
+
+        if unmatched_machine_names_sample:
+            log_with_context(
+                "info",
+                "Veeam 备份未匹配到实例",
+                module="veeam",
+                action="match_backup_objects",
+                extra={
+                    "unmatched_count": backups_unmatched_total,
+                    "unmatched_machine_names": sorted(unmatched_machine_names_sample)[:20],
+                },
+                include_actor=False,
             )
 
         return VeeamBackupObjectMatchResult(
