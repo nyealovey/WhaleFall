@@ -252,8 +252,6 @@ class VeeamSyncInstanceActionResource(BaseResource):
 
             name_candidates = build_instance_match_candidates(instance_name, domains)
             ip_candidates = build_instance_ip_candidates(instance_host)
-            all_candidates = set(name_candidates)
-            all_candidates.update(ip_candidates)
 
             backup_items = provider.fetch_backup_objects(session=session)
 
@@ -319,36 +317,29 @@ class VeeamSyncInstanceActionResource(BaseResource):
                 include_actor=False,
             )
 
-            restore_point_items = provider.fetch_restore_point_records(
-                session=session,
-                match_result=type(
-                    "obj",
-                    (object,),
-                    {
-                        "matched_backup_objects": [
-                            type(
-                                "obj",
-                                (object,),
-                                {
-                                    "backup_object_id": matched_backup_id,
-                                    "machine_name": matched_machine_name,
-                                    "backup_item": matched_backup,
-                                },
-                            )()
-                        ]
-                    },
-                )(),
+            restore_points_url = provider._build_backup_restore_points_url(
+                base_url=session.base_url,
+                backup_object_id=matched_backup_id,
+            )
+            restore_point_items = provider._collect_paginated_items(
+                url=restore_points_url,
+                access_token=session.access_token,
+                api_version=session.api_version,
+                verify_ssl=session.verify_ssl,
             )
 
-            records = provider.normalize_backup_records(
-                restore_point_items=restore_point_items,
-                machine_name=matched_machine_name,
-                backup_item=matched_backup,
-            )
+            records: list = []
+            for item in restore_point_items:
+                record = provider._normalize_backup_record(
+                    item,
+                    backup_item=matched_backup,
+                    backup_machine_name=matched_machine_name,
+                )
+                if record:
+                    records.append(record)
 
             if records:
                 from app.utils.time_utils import time_utils
-                from datetime import datetime
 
                 synced_at = time_utils.now()
                 snapshots_written = VeeamRepository.replace_machine_backup_snapshots(
