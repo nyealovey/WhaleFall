@@ -205,15 +205,17 @@ class VeeamSyncInstanceActionResource(BaseResource):
             if instance is None or instance.deleted_at is not None:
                 raise NotFoundError("实例不存在")
 
-            if not self._provider.is_configured():
+            provider = HttpVeeamProvider()
+            if not provider.is_configured():
                 raise ValidationError("Veeam Provider 尚未接入真实 API")
 
-            binding = VeeamSourceService().get_binding_or_error()
+            source_service = VeeamSourceService()
+            binding = source_service.get_binding_or_error()
             credential = getattr(binding, "credential", None)
             if credential is None:
                 raise ValidationError("Veeam 数据源未绑定有效凭据")
 
-            session = self._provider.create_session(
+            session = provider.create_session(
                 server_host=str(binding.server_host or ""),
                 server_port=int(binding.server_port),
                 username=str(credential.username or ""),
@@ -223,7 +225,23 @@ class VeeamSyncInstanceActionResource(BaseResource):
             )
 
             instance_host = getattr(instance, "host", None)
-            matched = self._veeam_repository.find_best_backup_for_instance_name(instance.name, instance_host)
+            matched = VeeamRepository.find_best_backup_for_instance_name(instance.name, instance_host)
+
+            from app.infra.route_safety import log_with_context
+
+            log_with_context(
+                "info",
+                "单实例 Veeam 备份查询",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    "instance_id": instance_id,
+                    "instance_name": instance.name,
+                    "instance_host": instance_host,
+                    "has_backup_info": matched is not None,
+                },
+                include_actor=False,
+            )
 
             return self.success(
                 data={"instance_id": instance_id, "instance_name": instance.name, "backup_info": matched},
@@ -251,6 +269,20 @@ class VeeamSyncInstanceActionResource(BaseResource):
                 raise NotFoundError("实例不存在")
 
             if not VeeamRepository._has_machine_backup_snapshot_table():
+                from app.infra.route_safety import log_with_context
+
+                log_with_context(
+                    "info",
+                    "获取单实例 Veeam 备份信息",
+                    module="veeam",
+                    action="get_instance_backup",
+                    extra={
+                        "instance_id": instance_id,
+                        "instance_name": instance.name,
+                        "reason": "snapshot_table_not_exists",
+                    },
+                    include_actor=False,
+                )
                 return self.success(
                     data={"instance_id": instance_id, "instance_name": instance.name, "backup_info": None},
                     message="Veeam 备份快照表不存在",
@@ -258,6 +290,22 @@ class VeeamSyncInstanceActionResource(BaseResource):
 
             instance_host = getattr(instance, "host", None)
             matched = VeeamRepository.find_best_backup_for_instance_name(instance.name, instance_host)
+
+            from app.infra.route_safety import log_with_context
+
+            log_with_context(
+                "info",
+                "获取单实例 Veeam 备份信息",
+                module="veeam",
+                action="get_instance_backup",
+                extra={
+                    "instance_id": instance_id,
+                    "instance_name": instance.name,
+                    "instance_host": instance_host,
+                    "has_backup_info": matched is not None,
+                },
+                include_actor=False,
+            )
 
             return self.success(
                 data={"instance_id": instance_id, "instance_name": instance.name, "backup_info": matched},
