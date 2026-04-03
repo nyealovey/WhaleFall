@@ -2049,6 +2049,7 @@ function normalizeBackupRestorePoints(data) {
         .map((item) => ({
             id: pickBackupRestorePointString(item, ['id', 'restore_point_id', 'restorePointId']),
             name: pickBackupRestorePointString(item, ['name', 'restore_point_name', 'restorePointName']),
+            platform_name: pickBackupRestorePointString(item, ['platform_name', 'platformName']),
             type: pickBackupRestorePointString(item, ['type']),
             backup_id: pickBackupRestorePointString(item, ['backup_id', 'backupId']),
             object_id: pickBackupRestorePointString(item, ['object_id', 'objectId']),
@@ -2140,6 +2141,7 @@ function renderBackupRestorePointsSections({
                         <thead>
                             <tr>
                                 <th>恢复点名称</th>
+                                <th>平台</th>
                                 <th>备份方式</th>
                                 <th>数据大小</th>
                                 <th>备份大小</th>
@@ -2174,6 +2176,7 @@ function renderBackupRestorePointsSections({
                         <thead>
                             <tr>
                                 <th>恢复点名称</th>
+                                <th>平台</th>
                                 <th>备份方式</th>
                                 <th>数据大小</th>
                                 <th>备份大小</th>
@@ -2208,6 +2211,7 @@ function renderBackupRestorePointsSections({
                         <thead>
                             <tr>
                                 <th>恢复点名称</th>
+                                <th>平台</th>
                                 <th>备份方式</th>
                                 <th>数据大小</th>
                                 <th>备份大小</th>
@@ -2232,6 +2236,7 @@ function renderBackupRestorePointsSections({
 
 function renderBackupRestorePointTableRow(item, index) {
     const title = escapeHtml(item.name || `恢复点 ${index + 1}`);
+    const platform = escapeHtml(item.platform_name || '-');
     return `
         <tr>
             <td>
@@ -2240,6 +2245,7 @@ function renderBackupRestorePointTableRow(item, index) {
                     <span class="instance-audit-subtle">${escapeHtml(`序号 ${String(index + 1).padStart(2, '0')}`)}</span>
                 </div>
             </td>
+            <td>${platform}</td>
             <td>${escapeHtml(item.type || '-')}</td>
             <td>${escapeHtml(formatBackupBytes(item.data_size_bytes))}</td>
             <td>${escapeHtml(formatBackupBytes(item.backup_size_bytes))}</td>
@@ -2258,6 +2264,7 @@ function renderBackupRestorePointFallbackRow(value, index) {
                     <span class="instance-audit-subtle">${escapeHtml(String(value))}</span>
                 </div>
             </td>
+            <td>${escapeHtml('-')}</td>
             <td>${escapeHtml('-')}</td>
             <td>${escapeHtml('-')}</td>
             <td>${escapeHtml('-')}</td>
