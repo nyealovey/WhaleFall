@@ -14,6 +14,11 @@ from app.schemas.validation import validate_or_raise
 from app.schemas.veeam import VeeamSourceBindingPayload
 from app.services.veeam.source_service import VeeamSourceService
 from app.services.veeam.sync_actions_service import VeeamSyncActionsService
+from app.services.veeam.instance_backup_read_service import InstanceBackupInfoReadService
+from app.repositories.instances_repository import InstancesRepository
+from app.repositories.veeam_repository import VeeamRepository
+from app.services.veeam.provider import HttpVeeamProvider
+from app.core.exceptions import NotFoundError, ValidationError
 from app.utils.decorators import require_csrf
 
 ns = Namespace("veeam", description="Veeam 数据源")
@@ -177,4 +182,91 @@ class VeeamSyncActionResource(BaseResource):
             module="veeam",
             action="sync_backups",
             public_error="触发 Veeam 备份同步失败",
+        )
+
+
+@ns.route("/actions/sync-instance/<int:instance_id>")
+class VeeamSyncInstanceActionResource(BaseResource):
+    """单实例 Veeam 备份同步动作资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", VeeamSyncResultSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def post(self, instance_id: int):
+        """为指定实例触发 Veeam 备份同步."""
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            instance = InstancesRepository().get_instance(instance_id)
+            if instance is None or instance.deleted_at is not None:
+                raise NotFoundError("实例不存在")
+
+            if not self._provider.is_configured():
+                raise ValidationError("Veeam Provider 尚未接入真实 API")
+
+            binding = VeeamSourceService().get_binding_or_error()
+            credential = getattr(binding, "credential", None)
+            if credential is None:
+                raise ValidationError("Veeam 数据源未绑定有效凭据")
+
+            session = self._provider.create_session(
+                server_host=str(binding.server_host or ""),
+                server_port=int(binding.server_port),
+                username=str(credential.username or ""),
+                password=str(credential.get_plain_password() or ""),
+                api_version=str(binding.api_version),
+                verify_ssl=bool(binding.verify_ssl),
+            )
+
+            instance_host = getattr(instance, "host", None)
+            matched = self._veeam_repository.find_best_backup_for_instance_name(instance.name, instance_host)
+
+            return self.success(
+                data={"instance_id": instance_id, "instance_name": instance.name, "backup_info": matched},
+                message=f"实例 {instance.name} 备份同步查询成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="sync_instance_backup",
+            public_error="查询实例备份信息失败",
+        )
+
+    @ns.response(200, "OK", VeeamSyncResultSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self, instance_id: int):
+        """获取指定实例的 Veeam 备份信息."""
+
+        def _execute():
+            instance = InstancesRepository().get_instance(instance_id)
+            if instance is None or instance.deleted_at is not None:
+                raise NotFoundError("实例不存在")
+
+            if not VeeamRepository._has_machine_backup_snapshot_table():
+                return self.success(
+                    data={"instance_id": instance_id, "instance_name": instance.name, "backup_info": None},
+                    message="Veeam 备份快照表不存在",
+                )
+
+            instance_host = getattr(instance, "host", None)
+            matched = VeeamRepository.find_best_backup_for_instance_name(instance.name, instance_host)
+
+            return self.success(
+                data={"instance_id": instance_id, "instance_name": instance.name, "backup_info": matched},
+                message=f"获取实例 {instance.name} 备份信息成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="get_instance_backup",
+            public_error="获取实例备份信息失败",
         )

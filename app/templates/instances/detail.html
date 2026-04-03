@@ -151,6 +151,12 @@
                             {% if instance.db_type|lower != 'sqlserver' %}disabled title="当前仅支持 SQL Server 审计信息采集"{% endif %}>
                         <i class="fas fa-shield-halved me-2"></i>同步审计
                     </button>
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-action="sync-backup"
+                            id="syncBackupBtn">
+                        <i class="fas fa-hdd me-2"></i>同步备份
+                    </button>
                     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>返回列表
                     </a>
