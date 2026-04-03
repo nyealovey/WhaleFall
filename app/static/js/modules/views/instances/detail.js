@@ -670,12 +670,15 @@ function syncBackup(event) {
     buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
     buttonWrapper.attr('disabled', 'disabled');
 
-    console.info('开始同步实例备份', { instanceId, instanceName, action: 'sync_backup' });
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    console.info('开始同步实例备份', { instanceId, instanceName, action: 'sync_backup', csrfToken: !!csrfToken });
 
     fetch(`/api/v1/integrations/veeam/actions/sync-instance/${instanceId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
         },
     })
         .then((res) => {
