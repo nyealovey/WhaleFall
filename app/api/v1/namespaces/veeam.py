@@ -253,7 +253,37 @@ class VeeamSyncInstanceActionResource(BaseResource):
             name_candidates = build_instance_match_candidates(instance_name, domains)
             ip_candidates = build_instance_ip_candidates(instance_host)
 
+            log_with_context(
+                "debug",
+                "单实例 Veeam 候选匹配",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    "instance_id": instance_id,
+                    "instance_name": instance_name,
+                    "instance_host": instance_host,
+                    "name_candidates": name_candidates,
+                    "ip_candidates": ip_candidates,
+                },
+                include_actor=False,
+            )
+
             backup_items = provider.fetch_backup_objects(session=session)
+
+            log_with_context(
+                "debug",
+                "单实例 Veeam 备份列表",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    "instance_id": instance_id,
+                    "backup_items_count": len(backup_items),
+                    "backup_items_sample": [
+                        provider._pick_string(item, ("name", "machineName", "objectName")) for item in backup_items[:10]
+                    ],
+                },
+                include_actor=False,
+            )
 
             matched_backup = None
             for item in backup_items:
@@ -268,10 +298,27 @@ class VeeamSyncInstanceActionResource(BaseResource):
                 if backup_name_as_ip and not normalized_backup_ip:
                     normalized_backup_ip = backup_name_as_ip
 
-                if normalized_backup_name in name_candidates or (
-                    normalized_backup_ip and normalized_backup_ip in ip_candidates
-                ):
+                name_match = normalized_backup_name in name_candidates if normalized_backup_name else False
+                ip_match = normalized_backup_ip in ip_candidates if normalized_backup_ip else False
+
+                if name_match or ip_match:
                     matched_backup = item
+                    log_with_context(
+                        "debug",
+                        "单实例 Veeam 备份匹配成功",
+                        module="veeam",
+                        action="sync_instance_backup",
+                        extra={
+                            "instance_id": instance_id,
+                            "backup_name": backup_name,
+                            "normalized_backup_name": normalized_backup_ip,
+                            "backup_ip": backup_ip,
+                            "normalized_backup_ip": normalized_backup_ip,
+                            "name_match": name_match,
+                            "ip_match": ip_match,
+                        },
+                        include_actor=False,
+                    )
                     break
 
             if not matched_backup:
@@ -321,11 +368,36 @@ class VeeamSyncInstanceActionResource(BaseResource):
                 base_url=session.base_url,
                 backup_object_id=matched_backup_id,
             )
+            log_with_context(
+                "debug",
+                "单实例 Veeam 恢复点 URL",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    "instance_id": instance_id,
+                    "restore_points_url": restore_points_url,
+                },
+                include_actor=False,
+            )
+
             restore_point_items = provider._collect_paginated_items(
                 url=restore_points_url,
                 access_token=session.access_token,
                 api_version=session.api_version,
                 verify_ssl=session.verify_ssl,
+            )
+
+            log_with_context(
+                "debug",
+                "单实例 Veeam 恢复点数据",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    "instance_id": instance_id,
+                    "restore_point_items_count": len(restore_point_items),
+                    "restore_point_items_sample": restore_point_items[:3],
+                },
+                include_actor=False,
             )
 
             records: list = []
@@ -337,6 +409,21 @@ class VeeamSyncInstanceActionResource(BaseResource):
                 )
                 if record:
                     records.append(record)
+
+            log_with_context(
+                "debug",
+                "单实例 Veeam 标准化记录",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    "instance_id": instance_id,
+                    "records_count": len(records),
+                    "records_sample": [
+                        {"machine_name": r.machine_name, "backup_at": str(r.backup_at)} for r in records[:3]
+                    ],
+                },
+                include_actor=False,
+            )
 
             if records:
                 from app.utils.time_utils import time_utils
