@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -22,10 +21,10 @@ def test_accounts_ledgers_renderer_uses_compact_icon_only_type_column() -> None:
         'name: "类型",',
         'const rawDbTypeMap = safeParseJSON(pageRoot.dataset.dbTypeMap || "{}", {});',
         "const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));",
-        'formatter: (cell) => renderAvailabilityIndicator(Boolean(cell)),',
-        'formatter: (cell) => renderDeletionIndicator(Boolean(cell)),',
-        'formatter: (cell) => renderSuperuserIndicator(Boolean(cell)),',
-        'const visual = LEDGER_DB_TYPE_VISUALS.get(normalized) || {};',
+        "formatter: (cell) => renderAvailabilityIndicator(Boolean(cell)),",
+        "formatter: (cell) => renderDeletionIndicator(Boolean(cell)),",
+        "formatter: (cell) => renderSuperuserIndicator(Boolean(cell)),",
+        "const visual = LEDGER_DB_TYPE_VISUALS.get(normalized) || {};",
         'assetUrl: meta?.asset_url || "",',
         '<img class="ledger-compact-indicator__asset"',
         'src="${escapeHtml(assetUrl)}"',
@@ -48,7 +47,7 @@ def test_databases_ledgers_renderer_uses_compact_icon_only_type_column() -> None
         'name: "类型",',
         'const rawDbTypeMap = safeParseJSON(root.dataset.dbTypeMap || "{}", {});',
         "const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));",
-        'const visual = LEDGER_DB_TYPE_VISUALS.get(normalized) || {};',
+        "const visual = LEDGER_DB_TYPE_VISUALS.get(normalized) || {};",
         'assetUrl: meta?.asset_url || "",',
         '<img class="ledger-compact-indicator__asset"',
         'src="${escapeHtml(assetUrl)}"',
@@ -62,21 +61,21 @@ def test_accounts_ledgers_renderer_uses_compact_icon_only_status_indicators() ->
     content = _read_text("app/static/js/modules/views/accounts/ledgers.js")
 
     required_fragments = (
-        'function renderAvailabilityIndicator(isLocked) {',
+        "function renderAvailabilityIndicator(isLocked) {",
         'icon: "fa-circle-check"',
         'title: "正常"',
         'icon: "fa-lock"',
         'title: "已锁定"',
-        'function renderDeletionIndicator(isDeleted) {',
+        "function renderDeletionIndicator(isDeleted) {",
         'icon: "fa-minus"',
         'title: "未删除"',
         'icon: "fa-trash"',
         'title: "已删除"',
-        'function renderSuperuserIndicator(isSuperuser) {',
+        "function renderSuperuserIndicator(isSuperuser) {",
         'icon: "fa-user-shield"',
         'title: "超管用户"',
         'title: "普通用户"',
-        'return renderCompactIndicator({',
+        "return renderCompactIndicator({",
     )
 
     for fragment in required_fragments:
@@ -115,8 +114,6 @@ def test_ledger_compact_indicator_styles_are_defined_for_accounts_and_databases_
     for fragment in account_layout_fragments:
         assert fragment in accounts_content
 
-    database_layout_fragments = (
-        '#database-ledger-grid td[data-column-id="db_type"] .ledger-compact-indicator {',
-    )
+    database_layout_fragments = ('#database-ledger-grid td[data-column-id="db_type"] .ledger-compact-indicator {',)
     for fragment in database_layout_fragments:
         assert fragment in databases_content

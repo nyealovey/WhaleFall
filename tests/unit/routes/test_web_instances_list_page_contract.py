@@ -16,7 +16,7 @@ def test_web_instances_list_page_embeds_vendor_db_type_assets(auth_client, monke
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert 'data-db-type-map=' in html
+    assert "data-db-type-map=" in html
     assert "db-types/mysql.png" in html
     assert "db-types/postgresql.png" in html
     assert "db-types/sqlserver.png" in html

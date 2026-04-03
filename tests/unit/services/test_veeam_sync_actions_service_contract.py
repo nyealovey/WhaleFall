@@ -8,14 +8,14 @@ import pytest
 import app.services.veeam.sync_actions_service as sync_actions_service_module
 from app import create_app, db
 from app.models.credential import Credential
+from app.models.instance import Instance
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
-from app.models.instance import Instance
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.models.veeam_source_binding import VeeamSourceBinding
 from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
-from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 from app.services.veeam.provider import VeeamMachineBackupCollection, VeeamMachineBackupRecord
+from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 
 
 @pytest.mark.unit
@@ -196,8 +196,10 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
                 *,
                 backup_items: list[dict[str, object]],
                 match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
             ) -> object:
                 captured["match_machine_names"] = set(match_machine_names or set())
+                captured["match_machine_ips"] = set(match_machine_ips or set())
                 captured["backup_items_total"] = len(backup_items)
 
                 class _MatchResult:
@@ -420,8 +422,7 @@ def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes
         assert run.summary_json["ext"]["data"]["backups"]["backup_ids_partially_covered_total"] == 0
 
         items = {
-            item.item_key: item
-            for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+            item.item_key: item for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
         }
         assert set(items) == {
             "fetch_backup_objects",
@@ -528,8 +529,9 @@ def test_sync_once_logs_candidate_pool_and_unmatched_backup_summary(monkeypatch)
                 *,
                 backup_items: list[dict[str, object]],
                 match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
             ) -> object:
-                _ = (backup_items, match_machine_names)
+                _ = (backup_items, match_machine_names, match_machine_ips)
 
                 class _MatchResult:
                     matched_backup_objects: list[object] = []
@@ -671,8 +673,9 @@ def test_sync_once_accepts_snapshot_without_enrichment_fields() -> None:
                 *,
                 backup_items: list[dict[str, object]],
                 match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
             ) -> object:
-                _ = (backup_items, match_machine_names)
+                _ = (backup_items, match_machine_names, match_machine_ips)
 
                 class _MatchResult:
                     matched_backup_objects = [
@@ -828,8 +831,9 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
                 *,
                 backup_items: list[dict[str, object]],
                 match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
             ) -> object:
-                _ = (backup_items, match_machine_names)
+                _ = (backup_items, match_machine_names, match_machine_ips)
 
                 class _MatchResult:
                     matched_backup_objects = [
@@ -951,14 +955,16 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
         assert run.summary_json["ext"]["data"]["backups"]["backup_ids_fully_covered_total"] == 1
 
         items = {
-            item.item_key: item
-            for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+            item.item_key: item for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
         }
         assert items["fetch_restore_points"].status == "completed"
         assert items["fetch_restore_points"].details_json["timed_out_backup_objects_total"] == 1
         assert items["fetch_restore_points"].details_json["timed_out_backup_ids_sample"] == ["backup-2"]
         assert items["fetch_backup_files"].status == "completed"
-        assert items["fetch_backup_files"].details_json["summary"] == "已完成 1/1 个备份 · 全覆盖 1 个 · 部分覆盖 0 个 · 超时跳过 0 个备份 · 失败跳过 0 个备份 · 有效补齐 1/1 个恢复点"
+        assert (
+            items["fetch_backup_files"].details_json["summary"]
+            == "已完成 1/1 个备份 · 全覆盖 1 个 · 部分覆盖 0 个 · 超时跳过 0 个备份 · 失败跳过 0 个备份 · 有效补齐 1/1 个恢复点"
+        )
         assert items["write_snapshots"].status == "completed"
 
 
@@ -1035,8 +1041,9 @@ def test_sync_once_completes_when_backup_files_timeout_is_skipped() -> None:
                 *,
                 backup_items: list[dict[str, object]],
                 match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
             ) -> object:
-                _ = (backup_items, match_machine_names)
+                _ = (backup_items, match_machine_names, match_machine_ips)
 
                 class _MatchResult:
                     matched_backup_objects = [
@@ -1126,13 +1133,15 @@ def test_sync_once_completes_when_backup_files_timeout_is_skipped() -> None:
         assert run.summary_json["ext"]["data"]["backups"]["backup_ids_partially_covered_total"] == 0
 
         items = {
-            item.item_key: item
-            for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+            item.item_key: item for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
         }
         assert items["fetch_backup_files"].status == "completed"
         assert items["fetch_backup_files"].details_json["timed_out_backup_ids_sample"] == ["backup-1"]
         assert items["fetch_backup_files"].details_json["restore_points_enriched_total"] == 0
-        assert items["fetch_backup_files"].details_json["summary"] == "已完成 0/1 个备份 · 全覆盖 0 个 · 部分覆盖 0 个 · 超时跳过 1 个备份 · 失败跳过 0 个备份 · 有效补齐 0/1 个恢复点"
+        assert (
+            items["fetch_backup_files"].details_json["summary"]
+            == "已完成 0/1 个备份 · 全覆盖 0 个 · 部分覆盖 0 个 · 超时跳过 1 个备份 · 失败跳过 0 个备份 · 有效补齐 0/1 个恢复点"
+        )
         assert items["write_snapshots"].status == "completed"
 
         snapshots = VeeamMachineBackupSnapshot.query.all()
@@ -1190,7 +1199,9 @@ def test_sync_once_marks_restore_points_stage_failed_with_progress_details() -> 
 
         class _RestorePointsError(RuntimeError):
             def __init__(self) -> None:
-                super().__init__("Veeam API 请求超时: timeout=60s url=https://10.0.0.10:9419/api/v1/backupObjects/backup-2/restorePoints")
+                super().__init__(
+                    "Veeam API 请求超时: timeout=60s url=https://10.0.0.10:9419/api/v1/backupObjects/backup-2/restorePoints"
+                )
                 self.matched_backup_objects_total = 2
                 self.completed_backup_objects_total = 1
                 self.failed_backup_object_id = "backup-2"
@@ -1226,8 +1237,9 @@ def test_sync_once_marks_restore_points_stage_failed_with_progress_details() -> 
                 *,
                 backup_items: list[dict[str, object]],
                 match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
             ) -> object:
-                _ = (backup_items, match_machine_names)
+                _ = (backup_items, match_machine_names, match_machine_ips)
 
                 class _MatchResult:
                     matched_backup_objects = [
@@ -1285,8 +1297,7 @@ def test_sync_once_marks_restore_points_stage_failed_with_progress_details() -> 
         assert run.progress_failed == 3
 
         items = {
-            item.item_key: item
-            for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+            item.item_key: item for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
         }
         assert items["fetch_backup_objects"].status == "completed"
         assert items["match_backup_objects"].status == "completed"

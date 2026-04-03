@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 TAG_SELECTOR_VIEW_PATH = ROOT_DIR / "app/static/js/modules/views/components/tags/tag-selector-view.js"
 

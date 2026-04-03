@@ -1,11 +1,11 @@
 import pytest
 
 from app import db
-from app.models.account_permission import AccountPermission
 from app.models.account_classification_daily_stats import (  # noqa: F401
     AccountClassificationDailyClassificationMatchStat,
     AccountClassificationDailyRuleMatchStat,
 )
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.utils.time_utils import time_utils

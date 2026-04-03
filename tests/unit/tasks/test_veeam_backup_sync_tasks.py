@@ -34,7 +34,13 @@ def test_sync_veeam_backups_commits_prepared_run_before_sync_once(monkeypatch) -
             _ = self
             return _StubBinding()
 
-        def _fake_prepare_background_sync(self, *, created_by: int | None, trigger_source: str = "manual", result_url: str = "/admin/system-settings#system-settings-veeam"):
+        def _fake_prepare_background_sync(
+            self,
+            *,
+            created_by: int | None,
+            trigger_source: str = "manual",
+            result_url: str = "/admin/system-settings#system-settings-veeam",
+        ):
             _ = (self, trigger_source, result_url)
             task_runs_service = TaskRunsWriteService()
             run_id = task_runs_service.start_run(
@@ -61,8 +67,12 @@ def test_sync_veeam_backups_commits_prepared_run_before_sync_once(monkeypatch) -
             observed["run_exists_after_rollback"] = TaskRun.query.filter_by(run_id=run_id).first() is not None
 
         monkeypatch.setattr(task_module, "create_app", _fake_create_app)
-        monkeypatch.setattr(task_module.VeeamSourceService, "get_binding_or_error", _fake_get_binding_or_error, raising=True)
-        monkeypatch.setattr(task_module.VeeamSyncActionsService, "prepare_background_sync", _fake_prepare_background_sync, raising=True)
+        monkeypatch.setattr(
+            task_module.VeeamSourceService, "get_binding_or_error", _fake_get_binding_or_error, raising=True
+        )
+        monkeypatch.setattr(
+            task_module.VeeamSyncActionsService, "prepare_background_sync", _fake_prepare_background_sync, raising=True
+        )
         monkeypatch.setattr(task_module.VeeamSyncActionsService, "_sync_once", _fake_sync_once, raising=True)
 
         task_module.sync_veeam_backups(manual_run=True, created_by=1)

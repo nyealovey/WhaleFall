@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CHART_RENDERER_PATH = ROOT_DIR / "app/static/js/modules/views/components/charts/chart-renderer.js"
 

@@ -75,4 +75,3 @@ class InstanceAuditInfoReadService:
             "facts": snapshot_row.facts,
             "message": "获取审计信息成功",
         }
-

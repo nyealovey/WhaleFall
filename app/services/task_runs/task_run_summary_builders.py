@@ -183,7 +183,13 @@ def build_sync_veeam_backups_summary(
     """构建 sync_veeam_backups 的最终 summary_json(v1)."""
     metrics = [
         _metric(key="received_total", label="拉取备份记录", value=received_total, unit="个", tone="info"),
-        _metric(key="snapshots_written_total", label="写入机器快照", value=snapshots_written_total, unit="个", tone="success"),
+        _metric(
+            key="snapshots_written_total",
+            label="写入机器快照",
+            value=snapshots_written_total,
+            unit="个",
+            tone="success",
+        ),
         _metric(key="skipped_invalid", label="跳过无效记录", value=skipped_invalid, unit="个", tone="warning"),
     ]
     if timed_out_backup_objects_total > 0:
@@ -200,7 +206,13 @@ def build_sync_veeam_backups_summary(
         metrics.extend(
             [
                 _metric(key="backup_ids_total", label="备份链总数", value=backup_ids_total, unit="个", tone="info"),
-                _metric(key="backup_ids_completed", label="已补齐链路", value=backup_ids_completed, unit="个", tone="success"),
+                _metric(
+                    key="backup_ids_completed",
+                    label="已补齐链路",
+                    value=backup_ids_completed,
+                    unit="个",
+                    tone="success",
+                ),
                 _metric(
                     key="backup_files_scanned_total",
                     label="扫描 backupFiles",

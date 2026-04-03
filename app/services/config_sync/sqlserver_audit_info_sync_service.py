@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from datetime import date, datetime
-import re
 from typing import Any
 
 from app.core.constants import DatabaseType
@@ -74,9 +74,7 @@ def _extract_sqlserver_error_code(message: str) -> int | None:
 
 def _classify_database_audit_error(message: str, error_code: int | None) -> str:
     lowered = message.lower()
-    if error_code == 978 or (
-        "availability group" in lowered and "application intent is set to read only" in lowered
-    ):
+    if error_code == 978 or ("availability group" in lowered and "application intent is set to read only" in lowered):
         return "DATABASE_NOT_READABLE"
     return "DATABASE_QUERY_FAILED"
 

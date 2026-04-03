@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import importlib
+from dataclasses import dataclass
 from typing import Any, cast
 
 import pytest
 
 from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
-
 
 accounts_tasks_module = importlib.import_module("app.tasks.accounts_sync_tasks")
 
@@ -25,12 +24,16 @@ class _DummySyncSessionService:
         self.complete_calls: list[dict[str, object]] = []
         self.fail_calls: list[dict[str, object]] = []
 
-    def complete_instance_sync(self, record_id: int, *, stats: object, sync_details: dict[str, Any] | None = None) -> None:
+    def complete_instance_sync(
+        self, record_id: int, *, stats: object, sync_details: dict[str, Any] | None = None
+    ) -> None:
         _ = (record_id, stats)
         normalize_sync_details_v1(sync_details)
         self.complete_calls.append({"record_id": record_id, "sync_details": sync_details})
 
-    def fail_instance_sync(self, record_id: int, error_message: str, sync_details: dict[str, Any] | None = None) -> None:
+    def fail_instance_sync(
+        self, record_id: int, error_message: str, sync_details: dict[str, Any] | None = None
+    ) -> None:
         _ = (sync_details,)
         self.fail_calls.append({"record_id": record_id, "error_message": error_message})
 
@@ -87,4 +90,3 @@ def test_accounts_sync_task_single_instance_success_adds_sync_details_version(mo
     assert dummy_sync_session_service.complete_calls
     sync_details = cast(dict[str, Any], dummy_sync_session_service.complete_calls[0]["sync_details"])
     assert sync_details.get("version") == 1
-

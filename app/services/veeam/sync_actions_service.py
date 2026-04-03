@@ -18,11 +18,15 @@ from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
 from app.services.task_runs.task_run_summary_builders import build_sync_veeam_backups_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
-from app.services.veeam.matching import build_instance_match_candidates, normalize_machine_name
+from app.services.veeam.matching import (
+    build_instance_ip_candidates,
+    build_instance_match_candidates,
+    normalize_machine_name,
+)
 from app.services.veeam.provider import (
+    HttpVeeamProvider,
     VeeamBackupFileCollection,
     VeeamBackupFileRecord,
-    HttpVeeamProvider,
     VeeamBackupObjectMatchResult,
     VeeamMachineBackupCollection,
     VeeamMachineBackupRecord,
@@ -226,7 +230,9 @@ class VeeamSyncActionsService:
                 },
                 include_actor=False,
             )
-            match_machine_names = self._build_all_match_candidates(match_domains=binding.match_domains)
+            match_machine_names, match_machine_ips = self._build_all_match_candidates(
+                match_domains=binding.match_domains
+            )
             log_with_context(
                 "info",
                 "Veeam 候选机器池已构建",
@@ -236,6 +242,8 @@ class VeeamSyncActionsService:
                 extra={
                     "candidate_machine_count": len(match_machine_names),
                     "candidate_machine_sample": sorted(match_machine_names)[:20],
+                    "candidate_ip_count": len(match_machine_ips),
+                    "candidate_ip_sample": sorted(match_machine_ips)[:20],
                 },
                 include_actor=False,
             )
@@ -263,6 +271,7 @@ class VeeamSyncActionsService:
             match_result = self._provider.match_backup_objects(
                 backup_items=cast("list[dict[str, object]]", backup_items),
                 match_machine_names=match_machine_names,
+                match_machine_ips=match_machine_ips,
             )
             log_with_context(
                 "info",
@@ -282,8 +291,12 @@ class VeeamSyncActionsService:
                     "matched_backup_ids_sample": getattr(match_result, "matched_backup_ids_sample", []),
                     "unmatched_backup_ids_sample": getattr(match_result, "unmatched_backup_ids_sample", []),
                     "unmatched_machine_names_sample": getattr(match_result, "unmatched_machine_names_sample", []),
-                    "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
-                    "missing_machine_name_backup_names_sample": getattr(match_result, "missing_machine_name_backup_names_sample", []),
+                    "missing_machine_name_backup_ids_sample": getattr(
+                        match_result, "missing_machine_name_backup_ids_sample", []
+                    ),
+                    "missing_machine_name_backup_names_sample": getattr(
+                        match_result, "missing_machine_name_backup_names_sample", []
+                    ),
                 },
                 include_actor=False,
             )
@@ -296,7 +309,9 @@ class VeeamSyncActionsService:
                     "backups_received_total": getattr(match_result, "backups_received_total", 0),
                     "matched_backup_objects_total": getattr(match_result, "backups_matched_total", 0),
                     "unmatched_backup_objects_total": getattr(match_result, "backups_unmatched_total", 0),
-                    "missing_machine_name_backup_objects_total": getattr(match_result, "backups_missing_machine_name", 0),
+                    "missing_machine_name_backup_objects_total": getattr(
+                        match_result, "backups_missing_machine_name", 0
+                    ),
                 },
                 details_json=self._build_match_backup_objects_details(
                     candidate_machine_count=len(match_machine_names),
@@ -320,8 +335,12 @@ class VeeamSyncActionsService:
                         "backup_objects_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
                         "unmatched_backup_ids_sample": getattr(match_result, "unmatched_backup_ids_sample", []),
                         "unmatched_machine_names_sample": getattr(match_result, "unmatched_machine_names_sample", []),
-                        "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
-                        "missing_machine_name_backup_names_sample": getattr(match_result, "missing_machine_name_backup_names_sample", []),
+                        "missing_machine_name_backup_ids_sample": getattr(
+                            match_result, "missing_machine_name_backup_ids_sample", []
+                        ),
+                        "missing_machine_name_backup_names_sample": getattr(
+                            match_result, "missing_machine_name_backup_names_sample", []
+                        ),
                     },
                     include_actor=False,
                 )
@@ -332,7 +351,9 @@ class VeeamSyncActionsService:
                 session=cast("VeeamProviderSession", session),
                 match_result=cast("VeeamBackupObjectMatchResult", match_result),
             )
-            timed_out_backup_objects_total = int(getattr(restore_points_result, "timed_out_backup_objects_total", 0) or 0)
+            timed_out_backup_objects_total = int(
+                getattr(restore_points_result, "timed_out_backup_objects_total", 0) or 0
+            )
             failed_backup_objects_total = int(getattr(restore_points_result, "failed_backup_objects_total", 0) or 0)
             completed_backup_objects_total = int(
                 getattr(restore_points_result, "restore_points_backup_objects_completed", 0) or 0
@@ -346,10 +367,14 @@ class VeeamSyncActionsService:
                     action="sync_backups_background",
                     context=sync_context,
                     extra={
-                        "matched_backup_objects_total": getattr(restore_points_result, "restore_points_backup_objects_total", 0),
+                        "matched_backup_objects_total": getattr(
+                            restore_points_result, "restore_points_backup_objects_total", 0
+                        ),
                         "restore_points_backup_objects_completed": completed_backup_objects_total,
                         "timed_out_backup_objects_total": timed_out_backup_objects_total,
-                        "timed_out_backup_ids_sample": getattr(restore_points_result, "timed_out_backup_ids_sample", []),
+                        "timed_out_backup_ids_sample": getattr(
+                            restore_points_result, "timed_out_backup_ids_sample", []
+                        ),
                         "timed_out_machine_names_sample": getattr(
                             restore_points_result,
                             "timed_out_machine_names_sample",
@@ -357,7 +382,9 @@ class VeeamSyncActionsService:
                         ),
                         "failed_backup_objects_total": failed_backup_objects_total,
                         "failed_backup_ids_sample": getattr(restore_points_result, "failed_backup_ids_sample", []),
-                        "failed_machine_names_sample": getattr(restore_points_result, "failed_machine_names_sample", []),
+                        "failed_machine_names_sample": getattr(
+                            restore_points_result, "failed_machine_names_sample", []
+                        ),
                     },
                     include_actor=False,
                 )
@@ -371,7 +398,9 @@ class VeeamSyncActionsService:
                 run_id=run_id,
                 item_key=current_stage_key,
                 metrics_json={
-                    "matched_backup_objects_total": getattr(restore_points_result, "restore_points_backup_objects_total", 0),
+                    "matched_backup_objects_total": getattr(
+                        restore_points_result, "restore_points_backup_objects_total", 0
+                    ),
                     "restore_points_backup_objects_completed": getattr(
                         restore_points_result,
                         "restore_points_backup_objects_completed",
@@ -424,9 +453,13 @@ class VeeamSyncActionsService:
                         "failed_urls_sample": getattr(backup_files_result, "failed_urls_sample", []),
                         "restore_points_expected_total": backup_file_coverage["restore_points_expected_total"],
                         "restore_points_enriched_total": backup_file_coverage["restore_points_enriched_total"],
-                        "restore_points_missing_metrics_total": backup_file_coverage["restore_points_missing_metrics_total"],
+                        "restore_points_missing_metrics_total": backup_file_coverage[
+                            "restore_points_missing_metrics_total"
+                        ],
                         "backup_ids_fully_covered_total": backup_file_coverage["backup_ids_fully_covered_total"],
-                        "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
+                        "backup_ids_partially_covered_total": backup_file_coverage[
+                            "backup_ids_partially_covered_total"
+                        ],
                     },
                     include_actor=False,
                 )
@@ -442,7 +475,9 @@ class VeeamSyncActionsService:
                     "failed_backup_ids_total": getattr(backup_files_result, "failed_backup_ids_total", 0),
                     "restore_points_expected_total": backup_file_coverage["restore_points_expected_total"],
                     "restore_points_enriched_total": backup_file_coverage["restore_points_enriched_total"],
-                    "restore_points_missing_metrics_total": backup_file_coverage["restore_points_missing_metrics_total"],
+                    "restore_points_missing_metrics_total": backup_file_coverage[
+                        "restore_points_missing_metrics_total"
+                    ],
                     "backup_ids_fully_covered_total": backup_file_coverage["backup_ids_fully_covered_total"],
                     "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
                 },
@@ -521,13 +556,12 @@ class VeeamSyncActionsService:
                     failed_backup_ids_total=int(getattr(backup_files_result, "failed_backup_ids_total", 0) or 0),
                     restore_points_expected_total=int(backup_file_coverage["restore_points_expected_total"]),
                     restore_points_enriched_total=int(backup_file_coverage["restore_points_enriched_total"]),
-                    restore_points_missing_metrics_total=int(backup_file_coverage["restore_points_missing_metrics_total"]),
+                    restore_points_missing_metrics_total=int(
+                        backup_file_coverage["restore_points_missing_metrics_total"]
+                    ),
                     backup_ids_fully_covered_total=int(backup_file_coverage["backup_ids_fully_covered_total"]),
                     backup_ids_partially_covered_total=int(backup_file_coverage["backup_ids_partially_covered_total"]),
-                    partial_success=(
-                        skipped_backup_objects_total > 0
-                        or backup_files_partial_success
-                    ),
+                    partial_success=(skipped_backup_objects_total > 0 or backup_files_partial_success),
                     error_message=None,
                 ),
                 error_message=None,
@@ -550,7 +584,9 @@ class VeeamSyncActionsService:
                     "backup_objects_matched_total": getattr(match_result, "backups_matched_total", 0),
                     "backup_objects_unmatched_total": getattr(match_result, "backups_unmatched_total", 0),
                     "backup_objects_missing_machine_name": getattr(match_result, "backups_missing_machine_name", 0),
-                    "missing_machine_name_backup_ids_sample": getattr(match_result, "missing_machine_name_backup_ids_sample", []),
+                    "missing_machine_name_backup_ids_sample": getattr(
+                        match_result, "missing_machine_name_backup_ids_sample", []
+                    ),
                     "restore_points_received_total": getattr(restore_points_result, "received_total", 0),
                     "timed_out_backup_objects_total": timed_out_backup_objects_total,
                     "failed_backup_objects_total": failed_backup_objects_total,
@@ -561,7 +597,9 @@ class VeeamSyncActionsService:
                     "failed_backup_ids_total": getattr(backup_files_result, "failed_backup_ids_total", 0),
                     "restore_points_expected_total": backup_file_coverage["restore_points_expected_total"],
                     "restore_points_enriched_total": backup_file_coverage["restore_points_enriched_total"],
-                    "restore_points_missing_metrics_total": backup_file_coverage["restore_points_missing_metrics_total"],
+                    "restore_points_missing_metrics_total": backup_file_coverage[
+                        "restore_points_missing_metrics_total"
+                    ],
                     "backup_ids_fully_covered_total": backup_file_coverage["backup_ids_fully_covered_total"],
                     "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
                     "latest_machine_count": len(latest_records),
@@ -678,7 +716,9 @@ class VeeamSyncActionsService:
         match_result: VeeamBackupObjectMatchResult,
         result: VeeamMachineBackupCollection,
     ) -> dict[str, object]:
-        total = int(getattr(result, "restore_points_backup_objects_total", 0) or match_result.backups_matched_total or 0)
+        total = int(
+            getattr(result, "restore_points_backup_objects_total", 0) or match_result.backups_matched_total or 0
+        )
         completed = int(getattr(result, "restore_points_backup_objects_completed", 0) or 0)
         timed_out = int(getattr(result, "timed_out_backup_objects_total", 0) or 0)
         failed = int(getattr(result, "failed_backup_objects_total", 0) or 0)
@@ -751,7 +791,10 @@ class VeeamSyncActionsService:
         exception: Exception,
     ) -> dict[str, object]:
         if stage_key == _FETCH_RESTORE_POINTS_ITEM_KEY:
-            matched_total = int(getattr(exception, "matched_backup_objects_total", 0) or getattr(match_result, "backups_matched_total", 0))
+            matched_total = int(
+                getattr(exception, "matched_backup_objects_total", 0)
+                or getattr(match_result, "backups_matched_total", 0)
+            )
             completed_total = int(getattr(exception, "completed_backup_objects_total", 0))
             return {
                 "summary": (
@@ -803,15 +846,15 @@ class VeeamSyncActionsService:
         current_run.summary_json = payload
         current_run.error_message = error_message
 
-    def _build_all_match_candidates(self, *, match_domains: object) -> set[str]:
+    def _build_all_match_candidates(self, *, match_domains: object) -> tuple[set[str], set[str]]:
         domains = match_domains if isinstance(match_domains, list) else []
         instances = self._instances_repository.list_existing_instances()
         matched_machine_names: set[str] = set()
+        matched_machine_ips: set[str] = set()
         for instance in instances:
-            matched_machine_names.update(
-                build_instance_match_candidates(getattr(instance, "name", None), domains)
-            )
-        return matched_machine_names
+            matched_machine_names.update(build_instance_match_candidates(getattr(instance, "name", None), domains))
+            matched_machine_ips.update(build_instance_ip_candidates(getattr(instance, "host", None)))
+        return matched_machine_names, matched_machine_ips
 
     @staticmethod
     def _select_latest_records(records: list[VeeamMachineBackupRecord]) -> list[VeeamMachineBackupRecord]:
@@ -854,22 +897,29 @@ class VeeamSyncActionsService:
         if restore_point_times:
             raw_payload["restore_point_times"] = restore_point_times
         raw_payload["restore_points"] = [
-            VeeamSyncActionsService._serialize_restore_point_payload(record)
-            for record in ordered_records
+            VeeamSyncActionsService._serialize_restore_point_payload(record) for record in ordered_records
         ]
         backup_size_values = [
             value
             for record in ordered_records
-            if (value := VeeamSyncActionsService._extract_backup_metric_int(
-                record.raw_payload,
-                ("backupSize", "backup_size", "backupSizeBytes", "backup_size_bytes"),
-            )) is not None
+            if (
+                value := VeeamSyncActionsService._extract_backup_metric_int(
+                    record.raw_payload,
+                    ("backupSize", "backup_size", "backupSizeBytes", "backup_size_bytes"),
+                )
+            )
+            is not None
         ]
-        restore_point_size_bytes = latest_record.restore_point_size_bytes or VeeamSyncActionsService._extract_backup_metric_int(
-            latest_record.raw_payload,
-            ("dataSize", "data_size", "dataSizeBytes", "data_size_bytes"),
+        restore_point_size_bytes = (
+            latest_record.restore_point_size_bytes
+            or VeeamSyncActionsService._extract_backup_metric_int(
+                latest_record.raw_payload,
+                ("dataSize", "data_size", "dataSizeBytes", "data_size_bytes"),
+            )
         )
-        resolved_restore_point_count = len(restore_point_ids) or len(restore_point_times) or latest_record.restore_point_count
+        resolved_restore_point_count = (
+            len(restore_point_ids) or len(restore_point_times) or latest_record.restore_point_count
+        )
         return VeeamMachineBackupRecord(
             machine_name=latest_record.machine_name,
             backup_at=latest_record.backup_at,
@@ -879,7 +929,9 @@ class VeeamSyncActionsService:
             restore_point_name=latest_record.restore_point_name,
             source_record_id=latest_record.source_record_id,
             restore_point_size_bytes=restore_point_size_bytes,
-            backup_chain_size_bytes=sum(backup_size_values) if backup_size_values else latest_record.backup_chain_size_bytes,
+            backup_chain_size_bytes=(
+                sum(backup_size_values) if backup_size_values else latest_record.backup_chain_size_bytes
+            ),
             restore_point_count=resolved_restore_point_count,
             raw_payload=raw_payload,
         )
@@ -938,8 +990,7 @@ class VeeamSyncActionsService:
             expected_restore_point_ids_by_backup.setdefault(backup_id, set()).add(restore_point_id)
 
         matched_restore_point_ids_by_backup: dict[str, set[str]] = {
-            backup_id: set()
-            for backup_id in expected_restore_point_ids_by_backup
+            backup_id: set() for backup_id in expected_restore_point_ids_by_backup
         }
         for backup_file in backup_files_result.records:
             backup_id = str(backup_file.backup_id or "").strip()
@@ -953,12 +1004,10 @@ class VeeamSyncActionsService:
                     matched_restore_point_ids.add(normalized_restore_point_id)
 
         restore_points_expected_total = sum(
-            len(restore_point_ids)
-            for restore_point_ids in expected_restore_point_ids_by_backup.values()
+            len(restore_point_ids) for restore_point_ids in expected_restore_point_ids_by_backup.values()
         )
         restore_points_enriched_total = sum(
-            len(restore_point_ids)
-            for restore_point_ids in matched_restore_point_ids_by_backup.values()
+            len(restore_point_ids) for restore_point_ids in matched_restore_point_ids_by_backup.values()
         )
         backup_ids_fully_covered_total = 0
         backup_ids_partially_covered_total = 0
@@ -975,7 +1024,9 @@ class VeeamSyncActionsService:
         return {
             "restore_points_expected_total": restore_points_expected_total,
             "restore_points_enriched_total": restore_points_enriched_total,
-            "restore_points_missing_metrics_total": max(restore_points_expected_total - restore_points_enriched_total, 0),
+            "restore_points_missing_metrics_total": max(
+                restore_points_expected_total - restore_points_enriched_total, 0
+            ),
             "backup_ids_fully_covered_total": backup_ids_fully_covered_total,
             "backup_ids_partially_covered_total": backup_ids_partially_covered_total,
         }
@@ -1045,11 +1096,7 @@ class VeeamSyncActionsService:
 
         filtered_candidates = candidates
         if record.backup_file_id:
-            exact_matches = [
-                candidate
-                for candidate in candidates
-                if candidate.backup_file_id == record.backup_file_id
-            ]
+            exact_matches = [candidate for candidate in candidates if candidate.backup_file_id == record.backup_file_id]
             if exact_matches:
                 filtered_candidates = exact_matches
 
@@ -1121,10 +1168,10 @@ class VeeamSyncActionsService:
                 continue
             raw_payload = record.raw_payload if isinstance(record.raw_payload, dict) else {}
             restore_point_times = raw_payload.get("restore_point_times")
-            normalized_times = [
-                str(item).strip()
-                for item in restore_point_times
-                if isinstance(item, str) and item.strip()
-            ] if isinstance(restore_point_times, list) else []
+            normalized_times = (
+                [str(item).strip() for item in restore_point_times if isinstance(item, str) and item.strip()]
+                if isinstance(restore_point_times, list)
+                else []
+            )
             if not normalized_times:
                 raise ValidationError("Veeam 快照缺少恢复点时间，请重新执行一次 Veeam 同步")

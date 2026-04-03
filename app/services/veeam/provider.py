@@ -13,8 +13,8 @@ from urllib.request import Request, urlopen
 
 from flask import current_app, has_app_context
 
+from app.services.veeam.matching import build_instance_ip_candidates, normalize_ip_address, normalize_machine_name
 from app.settings import Settings
-from app.services.veeam.matching import normalize_machine_name
 from app.utils.time_utils import time_utils
 
 VEEAM_TOKEN_PATH = "/api/oauth2/token"
@@ -34,6 +34,7 @@ class VeeamMachineBackupRecord:
 
     machine_name: str
     backup_at: datetime
+    machine_ip: str | None = None
     backup_id: str | None = None
     backup_file_id: str | None = None
     job_name: str | None = None
@@ -189,6 +190,7 @@ class VeeamProvider(Protocol):
         *,
         backup_items: list[dict[str, Any]],
         match_machine_names: set[str] | None = None,
+        match_machine_ips: set[str] | None = None,
     ) -> VeeamBackupObjectMatchResult:
         """匹配目标 backupObjects 并返回统计."""
 
@@ -304,6 +306,7 @@ class HttpVeeamProvider:
         *,
         backup_items: list[dict[str, Any]],
         match_machine_names: set[str] | None = None,
+        match_machine_ips: set[str] | None = None,
     ) -> VeeamBackupObjectMatchResult:
         backups_received_total = len(backup_items)
         backups_matched_total = 0
@@ -321,17 +324,31 @@ class HttpVeeamProvider:
             if not backup_object_id:
                 continue
             backup_machine_name = self._resolve_backup_machine_name(backup_item)
-            if match_machine_names:
+            backup_machine_ip = self._resolve_backup_machine_ip(backup_item)
+            if match_machine_names or match_machine_ips:
                 normalized_backup_machine_name = normalize_machine_name(backup_machine_name)
-                if not normalized_backup_machine_name:
-                    backups_missing_machine_name += 1
-                    if len(missing_machine_name_backup_ids_sample) < 20:
-                        missing_machine_name_backup_ids_sample.append(backup_object_id)
-                    backup_name = self._pick_string(backup_item, ("name", "jobName", "backupName"))
-                    if backup_name and len(missing_machine_name_backup_names_sample) < 20:
-                        missing_machine_name_backup_names_sample.append(backup_name)
-                    continue
-                if normalized_backup_machine_name not in match_machine_names:
+                normalized_backup_machine_ip = normalize_ip_address(backup_machine_ip) if backup_machine_ip else None
+
+                name_matched = False
+                ip_matched = False
+
+                if match_machine_names and normalized_backup_machine_name:
+                    if normalized_backup_machine_name in match_machine_names:
+                        name_matched = True
+                    elif not normalized_backup_machine_name:
+                        backups_missing_machine_name += 1
+                        if len(missing_machine_name_backup_ids_sample) < 20:
+                            missing_machine_name_backup_ids_sample.append(backup_object_id)
+                        backup_name = self._pick_string(backup_item, ("name", "jobName", "backupName"))
+                        if backup_name and len(missing_machine_name_backup_names_sample) < 20:
+                            missing_machine_name_backup_names_sample.append(backup_name)
+                        continue
+
+                if match_machine_ips and normalized_backup_machine_ip:
+                    if normalized_backup_machine_ip in match_machine_ips:
+                        ip_matched = True
+
+                if not name_matched and not ip_matched:
                     backups_unmatched_total += 1
                     if len(unmatched_backup_ids_sample) < 20:
                         unmatched_backup_ids_sample.append(backup_object_id)
@@ -770,7 +787,9 @@ class HttpVeeamProvider:
 
     @staticmethod
     def _build_next_url_from_page_fields(*, current_url: str, payload: dict[str, Any]) -> str | None:
-        page = HttpVeeamProvider._pick_int(payload, ("page", "pageNumber", "page_number", "currentPage", "current_page"))
+        page = HttpVeeamProvider._pick_int(
+            payload, ("page", "pageNumber", "page_number", "currentPage", "current_page")
+        )
         page_size = HttpVeeamProvider._pick_int(payload, ("pageSize", "page_size", "limit", "perPage", "per_page"))
         total = HttpVeeamProvider._pick_int(payload, ("total", "totalCount", "total_count", "count"))
         if page is None or page_size is None or total is None:
@@ -838,6 +857,7 @@ class HttpVeeamProvider:
             return None
         return VeeamMachineBackupRecord(
             machine_name=machine_name,
+            machine_ip=HttpVeeamProvider._resolve_backup_machine_ip(backup_item) if backup_item else None,
             backup_at=backup_at,
             backup_id=HttpVeeamProvider._pick_string(item, ("backupId", "backup_id"))
             or HttpVeeamProvider._pick_string(backup_item or {}, ("backupId", "backup_id")),
@@ -856,16 +876,32 @@ class HttpVeeamProvider:
             backup_chain_size_bytes=HttpVeeamProvider._pick_nested_int(
                 item,
                 ("backupChainSizeBytes", "backup_chain_size_bytes", "totalSizeBytes", "total_size_bytes"),
-            ) or HttpVeeamProvider._pick_nested_int(
+            )
+            or HttpVeeamProvider._pick_nested_int(
                 backup_item or {},
-                ("backupChainSizeBytes", "backup_chain_size_bytes", "totalSizeBytes", "total_size_bytes", "sizeBytes", "size_bytes", "size"),
+                (
+                    "backupChainSizeBytes",
+                    "backup_chain_size_bytes",
+                    "totalSizeBytes",
+                    "total_size_bytes",
+                    "sizeBytes",
+                    "size_bytes",
+                    "size",
+                ),
             ),
             restore_point_count=HttpVeeamProvider._pick_nested_int(
                 item,
                 ("restorePointCount", "restore_point_count", "restorePointsCount", "restore_points_count"),
-            ) or HttpVeeamProvider._pick_nested_int(
+            )
+            or HttpVeeamProvider._pick_nested_int(
                 backup_item or {},
-                ("restorePointCount", "restore_point_count", "restorePointsCount", "restore_points_count", "pointCount"),
+                (
+                    "restorePointCount",
+                    "restore_point_count",
+                    "restorePointsCount",
+                    "restore_points_count",
+                    "pointCount",
+                ),
             ),
             raw_payload=dict(item),
         )
@@ -918,6 +954,25 @@ class HttpVeeamProvider:
         )
 
     @staticmethod
+    def _resolve_backup_machine_ip(item: dict[str, Any]) -> str | None:
+        return HttpVeeamProvider._pick_string(
+            item,
+            (
+                "ipAddress",
+                "ip_address",
+                "hostIp",
+                "host_ip",
+                "guestIp",
+                "guest_ip",
+                "ip",
+                "ipAddress1",
+                "ip_address_1",
+                "networkIp",
+                "network_ip",
+            ),
+        )
+
+    @staticmethod
     def _resolve_machine_name(item: dict[str, Any]) -> str | None:
         direct = HttpVeeamProvider._pick_string(
             item,
@@ -966,11 +1021,7 @@ class HttpVeeamProvider:
             value = item.get(key)
             if not isinstance(value, list):
                 continue
-            normalized = [
-                str(entry).strip()
-                for entry in value
-                if isinstance(entry, str) and str(entry).strip()
-            ]
+            normalized = [str(entry).strip() for entry in value if isinstance(entry, str) and str(entry).strip()]
             if normalized:
                 return normalized
         return []

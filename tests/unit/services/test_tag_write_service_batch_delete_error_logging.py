@@ -58,4 +58,3 @@ def test_tag_write_service_batch_delete_logs_when_delete_fails(monkeypatch) -> N
     assert kwargs["include_actor"] is True
     assert kwargs["context"] == {"tag_id": 1}
     assert kwargs["extra"] == {"error_message": "boom"}
-

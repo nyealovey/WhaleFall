@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -16,7 +15,7 @@ def test_update_prod_flask_preserves_existing_nginx_site_config_by_default() -> 
     required_fragments = (
         "--sync-nginx-site-config",
         'FORCE_SYNC_NGINX_SITE_CONFIG="${FORCE_SYNC_NGINX_SITE_CONFIG:-0}"',
-        'force_sync=${FORCE_SYNC_NGINX_SITE_CONFIG}',
+        "force_sync=${FORCE_SYNC_NGINX_SITE_CONFIG}",
         '\\"\\$force_sync\\" != \\"1\\"',
         "保留现有 Nginx 站点配置",
     )

@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 MODAL_VIEW_PATH = ROOT_DIR / "app/static/js/modules/views/instances/modals/database-table-sizes-modal.js"
 

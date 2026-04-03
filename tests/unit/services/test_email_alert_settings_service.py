@@ -5,8 +5,8 @@ from dataclasses import dataclass
 import pytest
 
 from app import create_app
-from app.settings import Settings
 from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
+from app.settings import Settings
 
 
 @dataclass(slots=True)

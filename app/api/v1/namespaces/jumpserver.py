@@ -42,7 +42,9 @@ JumpServerSourceBindingPayloadModel = ns.model(
     {
         "credential_id": fields.Integer(required=True, description="API 凭据 ID", example=1),
         "base_url": fields.String(required=True, description="JumpServer URL", example="https://demo.jumpserver.org"),
-        "org_id": fields.String(required=False, description="JumpServer 组织 ID", example="00000000-0000-0000-0000-000000000002"),
+        "org_id": fields.String(
+            required=False, description="JumpServer 组织 ID", example="00000000-0000-0000-0000-000000000002"
+        ),
         "verify_ssl": fields.Boolean(required=False, description="是否校验 JumpServer HTTPS 证书", example=False),
     },
 )

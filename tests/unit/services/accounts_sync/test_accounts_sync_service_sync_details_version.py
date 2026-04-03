@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import importlib
+from dataclasses import dataclass
 from typing import Any, cast
 
 import pytest
 
 from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
 from app.services.accounts_sync.accounts_sync_service import AccountSyncService
-
 
 accounts_sync_service_module = importlib.import_module("app.services.accounts_sync.accounts_sync_service")
 
@@ -39,7 +38,9 @@ class _DummySyncSessionService:
     def start_instance_sync(self, record_id: int) -> None:
         _ = record_id
 
-    def complete_instance_sync(self, record_id: int, *, stats: object, sync_details: dict[str, Any] | None = None) -> None:
+    def complete_instance_sync(
+        self, record_id: int, *, stats: object, sync_details: dict[str, Any] | None = None
+    ) -> None:
         _ = (record_id, stats)
         normalize_sync_details_v1(sync_details)
         self.complete_calls.append({"record_id": record_id, "sync_details": sync_details})
@@ -81,4 +82,3 @@ def test_sync_with_session_success_adds_sync_details_version(monkeypatch) -> Non
     assert dummy_sync_session_service.complete_calls
     sync_details = cast(dict[str, Any], dummy_sync_session_service.complete_calls[0]["sync_details"])
     assert sync_details.get("version") == 1
-

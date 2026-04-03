@@ -241,6 +241,7 @@ class AccountSyncService:
         record: Any | None = None
         result: SyncOperationResult
         try:
+
             def _get_summary_dict(value: object, *, field: str) -> dict[str, Any]:
                 if value is None:
                     return {}

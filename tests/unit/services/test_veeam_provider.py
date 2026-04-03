@@ -67,7 +67,7 @@ def test_http_veeam_provider_requests_backups_first_then_restore_points_across_n
                     "id": "rp-2",
                     "backupId": "backup-1",
                     "backupFileId": "file-2",
-                }
+                },
             ],
             "next": None,
         },
@@ -112,14 +112,24 @@ def test_http_veeam_provider_requests_backups_first_then_restore_points_across_n
     assert result.received_total == 3
     assert result.snapshots_written_total == 3
     assert result.skipped_invalid == 0
-    assert [record.machine_name for record in result.records] == ["db01.domain.com", "db01.domain.com", "db02.domain.com"]
+    assert [record.machine_name for record in result.records] == [
+        "db01.domain.com",
+        "db01.domain.com",
+        "db02.domain.com",
+    ]
 
     assert len(captured_requests) == 5
     assert captured_requests[0]["url"] == "https://veeam.example.com:9419/api/oauth2/token"
     assert captured_requests[1]["url"] == "https://veeam.example.com:9419/api/v1/backupObjects?limit=2000"
     assert captured_requests[2]["url"] == "https://veeam.example.com:9419/api/v1/backupObjects?page=2"
-    assert captured_requests[3]["url"] == "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints"
-    assert captured_requests[4]["url"] == "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints"
+    assert (
+        captured_requests[3]["url"]
+        == "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints"
+    )
+    assert (
+        captured_requests[4]["url"]
+        == "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints"
+    )
 
 
 @pytest.mark.unit

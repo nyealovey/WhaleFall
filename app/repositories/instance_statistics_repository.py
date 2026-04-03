@@ -15,7 +15,6 @@ from app.models.instance import Instance
 from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.tag import Tag, instance_tags
 
-
 AUDIT_INFO_CONFIG_KEY = "audit_info"
 _STANDALONE_ARCHITECTURE_ALIASES = {"standalone", "single", "单机"}
 
@@ -42,7 +41,9 @@ class InstanceStatisticsRepository:
             for (instance_id,) in current_query.with_entities(Instance.id).filter(Instance.is_active.is_(True)).all()
         ]
         audit_enabled_instances = InstanceStatisticsRepository._count_audit_enabled_instances(active_instance_ids)
-        high_availability_instances = InstanceStatisticsRepository._count_high_availability_instances(active_instance_ids)
+        high_availability_instances = InstanceStatisticsRepository._count_high_availability_instances(
+            active_instance_ids
+        )
 
         return {
             "total_instances": total_instances,

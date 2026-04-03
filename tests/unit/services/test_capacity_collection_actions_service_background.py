@@ -52,4 +52,3 @@ def test_launch_background_collection_logs_when_task_raises(monkeypatch) -> None
     assert kwargs["include_actor"] is False
     assert kwargs["context"] == {"created_by": 1, "run_id": "run-1"}
     assert kwargs["extra"] == {"error_type": "RuntimeError", "error_message": "boom"}
-

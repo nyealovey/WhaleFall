@@ -15,10 +15,10 @@ from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
-from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.accounts_sync.accounts_sync_task_service import AccountsSyncTaskService
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
+from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.services.task_runs.task_run_summary_builders import build_sync_accounts_summary
@@ -175,13 +175,10 @@ def _record_privileged_account_alerts(
     if not usernames:
         return
 
-    permissions = (
-        AccountPermission.query.filter(
-            AccountPermission.instance_id == instance.id,
-            AccountPermission.username.in_(sorted(set(usernames))),
-        )
-        .all()
-    )
+    permissions = AccountPermission.query.filter(
+        AccountPermission.instance_id == instance.id,
+        AccountPermission.username.in_(sorted(set(usernames))),
+    ).all()
     for permission in permissions:
         if not permission.is_superuser:
             continue

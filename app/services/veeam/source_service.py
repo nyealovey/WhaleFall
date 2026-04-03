@@ -139,7 +139,5 @@ class VeeamSourceService:
     @staticmethod
     def _resolve_default_verify_ssl() -> bool:
         if has_app_context():
-            return bool(
-                current_app.config.get("VEEAM_VERIFY_SSL", Settings.model_fields["veeam_verify_ssl"].default)
-            )
+            return bool(current_app.config.get("VEEAM_VERIFY_SSL", Settings.model_fields["veeam_verify_ssl"].default))
         return bool(Settings.load().veeam_verify_ssl)

@@ -785,20 +785,21 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     @classmethod
     def _build_target_logins_cte(cls, usernames: Sequence[str]) -> str:
         """构建兼容 SQL Server 2008 的 target_logins CTE."""
-        login_literals = [
-            f"(N'{cls._quote_literal(username)}')" for username in dict.fromkeys(usernames) if username
-        ]
+        login_literals = [f"(N'{cls._quote_literal(username)}')" for username in dict.fromkeys(usernames) if username]
         if not login_literals:
             return ""
         values_clause = ", ".join(login_literals)
         return (
-            f"""
+            (
+                f"""
             WITH target_logins AS (
                 SELECT login_name COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
                 FROM (VALUES {values_clause}) AS source(login_name)
             )
             """
-        ).strip() + "\n"
+            ).strip()
+            + "\n"
+        )
 
     @staticmethod
     def _build_target_sids_cte(sid_literals: Sequence[str]) -> str:
@@ -812,13 +813,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             return ""
         values_clause = ", ".join(sid_values)
         return (
-            f"""
+            (
+                f"""
             WITH target_sids AS (
                 SELECT sid_value
                 FROM (VALUES {values_clause}) AS source(sid_value)
             )
             """
-        ).strip() + "\n"
+            ).strip()
+            + "\n"
+        )
 
     def _get_accessible_databases(self, connection: object) -> list[str]:
         """获取可访问数据库列表."""

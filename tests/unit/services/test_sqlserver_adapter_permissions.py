@@ -1,7 +1,7 @@
 from typing import cast
 
-import pytest
 import pymssql  # type: ignore[import-not-found]
+import pytest
 
 from app.models.instance import Instance
 from app.services.accounts_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter

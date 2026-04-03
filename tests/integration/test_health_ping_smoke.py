@@ -18,4 +18,3 @@ def test_api_v1_health_ping_returns_success_envelope(client):
     assert payload["error"] is False
     assert payload["message"] == "健康检查成功"
     assert payload["data"]["status"] == "ok"
-

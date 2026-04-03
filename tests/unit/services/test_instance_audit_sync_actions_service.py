@@ -209,9 +209,12 @@ def test_instance_audit_sync_actions_service_keeps_completed_session_for_partial
         assert record.status == "completed"
         assert record.sync_details["summary"]["partial_success"] is True
         assert record.sync_details["summary"]["failed_database_count"] == 1
-        assert InstanceConfigSnapshot.query.filter_by(instance_id=instance.id, config_key="audit_info").one().snapshot[
-            "meta"
-        ]["partial_success"] is True
+        assert (
+            InstanceConfigSnapshot.query.filter_by(instance_id=instance.id, config_key="audit_info")
+            .one()
+            .snapshot["meta"]["partial_success"]
+            is True
+        )
 
 
 @pytest.mark.unit

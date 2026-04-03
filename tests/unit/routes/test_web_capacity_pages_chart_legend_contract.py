@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-import app.routes.capacity.instances as capacity_instances_route
 import app.routes.capacity.databases as capacity_databases_route
+import app.routes.capacity.instances as capacity_instances_route
 from app.services.capacity.capacity_databases_page_service import CapacityDatabasesPageContext
 
 

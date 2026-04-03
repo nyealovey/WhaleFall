@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -23,15 +22,15 @@ def test_instances_statistics_template_uses_new_top_cards_and_current_for_distri
         "{% set top_db_type_share = (top_db_type.count / current_instances * 100) if top_db_type and current_instances else 0 %}",
         "{% set percent = (stat.count / current_instances * 100) if current_instances > 0 else 0 %}",
         "metric_card('实例总数'",
-        "id=\"instancesMetaActiveCount\"",
-        "id=\"instancesMetaInactiveCount\"",
-        "id=\"instancesMetaDeletedCount\"",
+        'id="instancesMetaActiveCount"',
+        'id="instancesMetaInactiveCount"',
+        'id="instancesMetaDeletedCount"',
         "metric_card('审计信息'",
         "data_stat_key='audit_enabled_instances'",
-        "id=\"instancesMetaAuditEnabledRate\"",
+        'id="instancesMetaAuditEnabledRate"',
         "metric_card('高可用占比'",
         "data_stat_key='high_availability_instances'",
-        "id=\"instancesMetaHighAvailabilityRate\"",
+        'id="instancesMetaHighAvailabilityRate"',
         "metric_card('数据库类型'",
     )
 

@@ -14,8 +14,8 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import bool_with_default, new_parser
 from app.api.v1.restx_models.databases import (
-    DATABASE_STATISTICS_FIELDS,
     DATABASE_OPTION_ITEM_FIELDS,
+    DATABASE_STATISTICS_FIELDS,
     DATABASES_OPTIONS_RESPONSE_FIELDS,
 )
 from app.api.v1.restx_models.instances import (

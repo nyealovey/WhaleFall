@@ -153,8 +153,7 @@ class AccountStatisticsRepository:
         )
 
         db_type_stats: dict[str, dict[str, int]] = {
-            db_type: {"total": 0, "active": 0, "normal": 0, "locked": 0, "deleted": 0}
-            for db_type in target_db_types
+            db_type: {"total": 0, "active": 0, "normal": 0, "locked": 0, "deleted": 0} for db_type in target_db_types
         }
 
         for row in stats_query.all():

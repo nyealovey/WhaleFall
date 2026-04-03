@@ -57,8 +57,9 @@ class EmailAlertsRepository:
         if not event_ids:
             return
         (
-            EmailAlertEvent.query.filter(EmailAlertEvent.id.in_(event_ids))
-            .update({"digest_sent_at": sent_at}, synchronize_session=False)
+            EmailAlertEvent.query.filter(EmailAlertEvent.id.in_(event_ids)).update(
+                {"digest_sent_at": sent_at}, synchronize_session=False
+            )
         )
         db.session.flush()
 

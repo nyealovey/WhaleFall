@@ -46,7 +46,9 @@ def test_aggregate_period_logs_error_when_instance_aggregation_raises(monkeypatc
     )
 
     instance = SimpleNamespace(id=1, name="inst-1")
-    monkeypatch.setattr(database_aggregation_runner_module.InstancesRepository, "list_active_instances", lambda: [instance])
+    monkeypatch.setattr(
+        database_aggregation_runner_module.InstancesRepository, "list_active_instances", lambda: [instance]
+    )
 
     @contextmanager
     def _begin_nested():
