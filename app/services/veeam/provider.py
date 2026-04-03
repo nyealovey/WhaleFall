@@ -328,7 +328,10 @@ class HttpVeeamProvider:
             backup_machine_ip = self._resolve_backup_machine_ip(backup_item)
             if match_machine_names or match_machine_ips:
                 normalized_backup_machine_name = normalize_machine_name(backup_machine_name)
+                backup_name_as_ip = normalize_ip_address(backup_machine_name)
                 normalized_backup_machine_ip = normalize_ip_address(backup_machine_ip) if backup_machine_ip else None
+                if backup_name_as_ip and not normalized_backup_machine_ip:
+                    normalized_backup_machine_ip = backup_name_as_ip
 
                 name_matched = False
                 ip_matched = False
