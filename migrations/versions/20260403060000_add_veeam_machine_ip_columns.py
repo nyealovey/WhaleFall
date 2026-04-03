@@ -34,12 +34,6 @@ def upgrade() -> None:
         ["normalized_machine_ip"],
         unique=False,
     )
-    op.drop_constraint("uq_veeam_machine_backup_snapshots_normalized_machine_name", "veeam_machine_backup_snapshots")
-    op.create_unique_constraint(
-        "uq_veeam_machine_backup_snapshots_normalized_machine_name",
-        "veeam_machine_backup_snapshots",
-        ["normalized_machine_name"],
-    )
 
 
 def downgrade() -> None:
@@ -50,9 +44,3 @@ def downgrade() -> None:
     )
     op.drop_column("veeam_machine_backup_snapshots", "normalized_machine_ip")
     op.drop_column("veeam_machine_backup_snapshots", "machine_ip")
-    op.drop_constraint("uq_veeam_machine_backup_snapshots_normalized_machine_name", "veeam_machine_backup_snapshots")
-    op.create_unique_constraint(
-        "uq_veeam_machine_backup_snapshots_normalized_machine_name",
-        "veeam_machine_backup_snapshots",
-        ["normalized_machine_name"],
-    )
