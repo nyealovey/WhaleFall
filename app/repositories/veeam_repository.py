@@ -83,6 +83,7 @@ def _normalize_restore_points(raw_payload: dict[str, object]) -> list[dict[str, 
         normalized = {
             "id": _pick_string(item, ("id", "restorePointId", "restore_point_id")),
             "name": _pick_string(item, ("name", "restorePointName", "restore_point_name")),
+            "platform_name": _pick_string(item, ("platformName", "platform_name")),
             "type": _pick_string(item, ("type",)),
             "backup_id": _pick_string(item, ("backupId", "backup_id")),
             "object_id": _pick_string(item, ("objectId", "object_id")),
