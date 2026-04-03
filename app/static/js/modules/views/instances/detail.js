@@ -670,23 +670,31 @@ function syncBackup(event) {
     buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
     buttonWrapper.attr('disabled', 'disabled');
 
+    console.info('开始同步实例备份', { instanceId, instanceName, action: 'sync_backup' });
+
     fetch(`/api/v1/veeam/actions/sync-instance/${instanceId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
     })
-        .then((res) => res.json())
+        .then((res) => {
+            console.info('同步备份响应状态', { status: res.status, ok: res.ok });
+            return res.json();
+        })
         .then((data) => {
+            console.info('同步备份响应数据', data);
             if (data.success) {
                 toast.success(`实例 ${instanceName} 备份同步成功`);
                 loadBackupInfo(true);
             } else {
-                toast.error('同步备份失败: ' + (data.error?.message || '未知错误'));
+                const errorMsg = data.error?.message || data.message || JSON.stringify(data);
+                toast.error('同步备份失败: ' + errorMsg);
             }
         })
         .catch((error) => {
-            toast.error('同步备份失败: ' + (error?.message || '未知错误'));
+            console.error('同步备份请求失败', error);
+            toast.error('同步备份失败: ' + (error?.message || error?.toString() || '未知错误'));
         })
         .finally(() => {
             buttonWrapper.html(originalText || '同步备份');
