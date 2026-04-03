@@ -203,6 +203,7 @@ class VeeamSyncInstanceActionResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
     def post(self, instance_id: int):
         """为指定实例触发 Veeam 备份同步."""
         operator_id = getattr(current_user, "id", None)
@@ -331,6 +332,7 @@ class VeeamSyncInstanceActionResource(BaseResource):
                                 {
                                     "backup_object_id": matched_backup_id,
                                     "machine_name": matched_machine_name,
+                                    "backup_item": matched_backup,
                                 },
                             )()
                         ]
