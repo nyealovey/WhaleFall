@@ -15,7 +15,13 @@ from pydantic import Field, field_validator, model_validator
 from app.core.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.core.types.capacity_instances import InstanceAggregationsFilters, InstanceAggregationsSummaryFilters
 from app.schemas.base import PayloadSchema
-from app.schemas.query_parsers import parse_int, parse_optional_int, parse_optional_int_list, parse_text, parse_text_list
+from app.schemas.query_parsers import (
+    parse_int,
+    parse_optional_int,
+    parse_optional_int_list,
+    parse_text,
+    parse_text_list,
+)
 from app.utils.payload_converters import as_bool
 from app.utils.time_utils import time_utils
 

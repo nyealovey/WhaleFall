@@ -76,15 +76,16 @@ def _resolve_run_id(
 
 def _init_items(task_runs_service: TaskRunsWriteService, run_id: str) -> None:
     items = [
-        TaskRunItemInit(item_type="rule", item_key=item_key, item_name=item_name)
-        for item_key, item_name in _RULE_ITEMS
+        TaskRunItemInit(item_type="rule", item_key=item_key, item_name=item_name) for item_key, item_name in _RULE_ITEMS
     ]
     items.append(TaskRunItemInit(item_type="step", item_key=_SEND_STEP[0], item_name=_SEND_STEP[1]))
     task_runs_service.init_items(run_id, items=items)
     db.session.commit()
 
 
-def _complete_rule_items(task_runs_service: TaskRunsWriteService, run_id: str, rule_results: list[dict[str, object]]) -> None:
+def _complete_rule_items(
+    task_runs_service: TaskRunsWriteService, run_id: str, rule_results: list[dict[str, object]]
+) -> None:
     for rule in rule_results:
         item_key = str(rule.get("item_key") or "")
         if not item_key:
@@ -142,7 +143,9 @@ def _write_summary(run_id: str, summary: dict[str, Any]) -> None:
     send_step = _as_dict(summary.get("send_step"))
     if send_step.get("status") == "failed":
         current_run.status = "failed"
-        current_run.error_message = str(send_step.get("error_message") or send_step.get("summary") or "发送汇总邮件失败")
+        current_run.error_message = str(
+            send_step.get("error_message") or send_step.get("summary") or "发送汇总邮件失败"
+        )
         current_run.completed_at = time_utils.now()
 
     current_run.summary_json = TaskRunSummaryFactory.base(

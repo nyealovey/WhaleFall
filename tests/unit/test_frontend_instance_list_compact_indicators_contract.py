@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -59,9 +58,9 @@ def test_instance_list_css_defines_compact_indicator_tokens() -> None:
         ".instance-compact-indicator--muted {",
         ".instance-compact-indicator__asset {",
         "object-fit: contain;",
-        "#instances-grid td[data-column-id=\"db_type\"] .instance-compact-indicator,",
-        "#instances-grid td[data-column-id=\"audit\"] .instance-compact-indicator,",
-        "#instances-grid td[data-column-id=\"status\"] .instance-compact-indicator {",
+        '#instances-grid td[data-column-id="db_type"] .instance-compact-indicator,',
+        '#instances-grid td[data-column-id="audit"] .instance-compact-indicator,',
+        '#instances-grid td[data-column-id="status"] .instance-compact-indicator {',
     )
 
     for fragment in required_fragments:

@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import app.services.aggregation.instance_aggregation_runner as instance_aggregation_runner_module
 from app.core.exceptions import DatabaseError
 from app.services.aggregation.calculator import PeriodCalculator
-from app.services.aggregation.instance_aggregation_runner import InstanceAggregationRunner, InstanceAggregationContext
+from app.services.aggregation.instance_aggregation_runner import InstanceAggregationContext, InstanceAggregationRunner
 
 
 @pytest.mark.unit
@@ -47,7 +47,9 @@ def test_aggregate_period_logs_error_when_query_stats_raises(monkeypatch) -> Non
     )
 
     instance = SimpleNamespace(id=1, name="inst-1")
-    monkeypatch.setattr(instance_aggregation_runner_module.InstancesRepository, "list_active_instances", lambda: [instance])
+    monkeypatch.setattr(
+        instance_aggregation_runner_module.InstancesRepository, "list_active_instances", lambda: [instance]
+    )
 
     @contextmanager
     def _begin_nested():
@@ -91,7 +93,9 @@ def test_persist_instance_aggregation_wraps_sqlalchemy_error(monkeypatch) -> Non
     )
     stats = [SimpleNamespace(collected_date=date(2026, 1, 1), total_size_mb=1, database_count=1)]
 
-    monkeypatch.setattr(runner._repository, "get_existing_instance_aggregation", lambda **_kwargs: SimpleNamespace(id=None))
+    monkeypatch.setattr(
+        runner._repository, "get_existing_instance_aggregation", lambda **_kwargs: SimpleNamespace(id=None)
+    )
 
     def _raise_add(_obj: object) -> None:
         raise SQLAlchemyError("boom")
@@ -123,7 +127,9 @@ def test_persist_instance_aggregation_wraps_unknown_commit_error(monkeypatch) ->
     )
     stats = [SimpleNamespace(collected_date=date(2026, 1, 1), total_size_mb=1, database_count=1)]
 
-    monkeypatch.setattr(runner._repository, "get_existing_instance_aggregation", lambda **_kwargs: SimpleNamespace(id=1))
+    monkeypatch.setattr(
+        runner._repository, "get_existing_instance_aggregation", lambda **_kwargs: SimpleNamespace(id=1)
+    )
     monkeypatch.setattr(instance_aggregation_runner_module.db.session, "add", lambda *_: None)
 
     with pytest.raises(DatabaseError):

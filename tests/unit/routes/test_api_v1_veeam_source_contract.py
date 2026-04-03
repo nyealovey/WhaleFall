@@ -152,7 +152,13 @@ def test_api_v1_veeam_sync_action_contract(monkeypatch) -> None:
 
         captured: dict[str, object] = {}
 
-        def _fake_prepare(_self, *, created_by: int | None, trigger_source: str = "manual", result_url: str = "/admin/system-settings#system-settings-veeam"):
+        def _fake_prepare(
+            _self,
+            *,
+            created_by: int | None,
+            trigger_source: str = "manual",
+            result_url: str = "/admin/system-settings#system-settings-veeam",
+        ):
             captured["created_by"] = created_by
             captured["trigger_source"] = trigger_source
             captured["result_url"] = result_url
@@ -162,7 +168,9 @@ def test_api_v1_veeam_sync_action_contract(monkeypatch) -> None:
             captured["launch_created_by"] = created_by
             captured["launch_run_id"] = prepared.run_id
 
-        monkeypatch.setattr("app.api.v1.namespaces.veeam.VeeamSyncActionsService.prepare_background_sync", _fake_prepare)
+        monkeypatch.setattr(
+            "app.api.v1.namespaces.veeam.VeeamSyncActionsService.prepare_background_sync", _fake_prepare
+        )
         monkeypatch.setattr("app.api.v1.namespaces.veeam.VeeamSyncActionsService.launch_background_sync", _fake_launch)
 
         client = app.test_client()

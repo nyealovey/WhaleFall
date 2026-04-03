@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -17,12 +16,11 @@ def test_tags_modal_template_removes_legacy_color_inputs() -> None:
         'id="tagColor"',
         'name="color"',
         'id="tagColorPreview"',
-        '>颜色<',
+        ">颜色<",
     )
 
     for fragment in forbidden_fragments:
         assert fragment not in content
-
 
 
 def test_tags_page_scripts_remove_color_column_and_preview_logic() -> None:
@@ -46,7 +44,6 @@ def test_tags_page_scripts_remove_color_column_and_preview_logic() -> None:
     )
     for fragment in index_forbidden:
         assert fragment not in index_content
-
 
 
 def test_tags_page_css_drops_color_column_width_rules() -> None:

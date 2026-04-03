@@ -29,4 +29,3 @@ class InstanceConfigSnapshotsRepository:
     @staticmethod
     def flush() -> None:
         db.session.flush()
-

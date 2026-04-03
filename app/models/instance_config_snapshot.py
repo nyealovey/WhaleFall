@@ -45,4 +45,3 @@ class InstanceConfigSnapshot(db.Model):
         Index("ix_instance_config_snapshots_config_key", "config_key"),
         Index("ix_instance_config_snapshots_last_sync_time", "last_sync_time"),
     )
-

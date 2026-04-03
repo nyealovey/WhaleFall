@@ -117,11 +117,7 @@ class InstanceAuditSyncActionsService:
             )
 
         partial_success = bool(summary.get("partial_success"))
-        message = (
-            "审计信息同步部分成功，已保存服务器级结果"
-            if partial_success
-            else "审计信息同步成功"
-        )
+        message = "审计信息同步部分成功，已保存服务器级结果" if partial_success else "审计信息同步成功"
         return InstanceAuditSyncActionResult(
             success=True,
             message=message,

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from app import db
 import app.api.v1.namespaces.alerts as alerts_module
+from app import db
 
 
 def _ensure_alert_tables(app) -> None:

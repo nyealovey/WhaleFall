@@ -77,9 +77,15 @@ def test_instance_statistics_repository_counts_enabled_audit_and_non_standalone_
     _ensure_instance_statistics_tables(app)
 
     with app.app_context():
-        audit_enabled_ha = Instance(name="sqlserver-ha-audit", db_type="sqlserver", host="127.0.0.1", port=1433, is_active=True)
-        active_standalone = Instance(name="sqlserver-standalone", db_type="sqlserver", host="127.0.0.2", port=1434, is_active=True)
-        disabled_with_arch = Instance(name="sqlserver-disabled", db_type="sqlserver", host="127.0.0.3", port=1435, is_active=False)
+        audit_enabled_ha = Instance(
+            name="sqlserver-ha-audit", db_type="sqlserver", host="127.0.0.1", port=1433, is_active=True
+        )
+        active_standalone = Instance(
+            name="sqlserver-standalone", db_type="sqlserver", host="127.0.0.2", port=1434, is_active=True
+        )
+        disabled_with_arch = Instance(
+            name="sqlserver-disabled", db_type="sqlserver", host="127.0.0.3", port=1435, is_active=False
+        )
         db.session.add_all([audit_enabled_ha, active_standalone, disabled_with_arch])
         db.session.flush()
 

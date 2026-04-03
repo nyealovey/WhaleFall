@@ -46,7 +46,15 @@ INSTANCES_OPTIONS_RESPONSE_FIELDS = {
     "instances": fields.List(
         fields.Nested(INSTANCE_OPTION_ITEM_FIELDS),
         description="实例选项列表",
-        example=[{"id": 1, "name": "prod-mysql-1", "db_type": "mysql", "display_name": "生产 MySQL 1", "asset_url": "/static/img/db-types/mysql.png"}],
+        example=[
+            {
+                "id": 1,
+                "name": "prod-mysql-1",
+                "db_type": "mysql",
+                "display_name": "生产 MySQL 1",
+                "asset_url": "/static/img/db-types/mysql.png",
+            }
+        ],
     ),
 }
 

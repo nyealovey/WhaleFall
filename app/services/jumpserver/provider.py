@@ -119,7 +119,9 @@ class HttpJumpServerProvider:
     def _resolve_settings() -> dict[str, object]:
         if has_app_context():
             return {
-                "org_id": current_app.config.get("JUMPSERVER_ORG_ID", Settings.model_fields["jumpserver_org_id"].default),
+                "org_id": current_app.config.get(
+                    "JUMPSERVER_ORG_ID", Settings.model_fields["jumpserver_org_id"].default
+                ),
                 "timeout_seconds": current_app.config.get(
                     "JUMPSERVER_REQUEST_TIMEOUT_SECONDS",
                     Settings.model_fields["jumpserver_request_timeout_seconds"].default,

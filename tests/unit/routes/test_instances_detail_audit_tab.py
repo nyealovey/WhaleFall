@@ -76,8 +76,8 @@ def test_instances_detail_page_keeps_manual_sync_buttons_enabled_for_disabled_in
     response = auth_client.get(f"/instances/{instance_id}")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    for action in ('sync-accounts', 'sync-capacity', 'sync-audit-info'):
-        segment = html.split(f'data-action="{action}"', 1)[1].split('>', 1)[0]
+    for action in ("sync-accounts", "sync-capacity", "sync-audit-info"):
+        segment = html.split(f'data-action="{action}"', 1)[1].split(">", 1)[0]
         assert 'disabled title="实例已停用' not in segment
 
 

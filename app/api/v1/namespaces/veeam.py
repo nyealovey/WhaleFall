@@ -12,8 +12,8 @@ from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.schemas.validation import validate_or_raise
 from app.schemas.veeam import VeeamSourceBindingPayload
-from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 from app.services.veeam.source_service import VeeamSourceService
+from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 from app.utils.decorators import require_csrf
 
 ns = Namespace("veeam", description="Veeam 数据源")
@@ -45,7 +45,7 @@ VeeamSourceBindingPayloadModel = ns.model(
         "credential_id": fields.Integer(required=True, description="Veeam 凭据 ID", example=1),
         "server_host": fields.String(required=True, description="Veeam 服务器 IP/主机名", example="10.0.0.10"),
         "server_port": fields.Integer(required=True, description="Veeam 服务器端口", example=9419),
-        "api_version": fields.String(required=True, description="Veeam API 版本", example="1.3-rev1"),
+        "api_version": fields.String(required=True, description="Veeam API 版本", example="v1.2-rev0"),
         "verify_ssl": fields.Boolean(required=False, description="是否校验 Veeam HTTPS 证书", example=False),
         "match_domains": fields.List(
             fields.String,

@@ -262,7 +262,9 @@ def _build_classification_records(
         for db_type in sorted(db_types):
             instance_ids = sorted(instance_ids_by_db_type.get(db_type) or [])
             for instance_id in instance_ids:
-                matched = matched_accounts_by_classification_instance.get((classification_id, db_type, instance_id)) or set()
+                matched = (
+                    matched_accounts_by_classification_instance.get((classification_id, db_type, instance_id)) or set()
+                )
                 classification_records.append(
                     {
                         "stat_date": resolved_date,

@@ -7,16 +7,16 @@ from app import create_app, db
 from app.core.constants import DatabaseType
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
+from app.models.credential import Credential
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_table_size_stat import DatabaseTableSizeStat
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.instance_config_snapshot import InstanceConfigSnapshot
+from app.models.instance_database import InstanceDatabase
 from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.tag import Tag
-from app.models.instance_database import InstanceDatabase
 from app.models.user import User
-from app.models.credential import Credential
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.models.veeam_source_binding import VeeamSourceBinding
 

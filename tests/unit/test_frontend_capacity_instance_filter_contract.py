@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -20,7 +19,7 @@ def test_capacity_chart_manager_uses_instance_assets_in_multiselect_options() ->
     required_manager_fragments = (
         'assetUrl: item?.asset_url || ""',
         "getOptionMeta: (item) => ({",
-        "dbType: item?.db_type || \"\",",
+        'dbType: item?.db_type || "",',
     )
     for fragment in required_manager_fragments:
         assert fragment in manager_content
@@ -34,7 +33,7 @@ def test_capacity_chart_manager_uses_instance_assets_in_multiselect_options() ->
     for fragment in required_filters_fragments:
         assert fragment in filters_content
 
-    assert 'return dbType ? `${name} (${dbType})` : name;' not in manager_content
+    assert "return dbType ? `${name} (${dbType})` : name;" not in manager_content
 
 
 @pytest.mark.unit

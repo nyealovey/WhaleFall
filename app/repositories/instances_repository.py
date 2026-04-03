@@ -416,11 +416,7 @@ class InstancesRepository:
             audit_instance_id_column.in_(instance_ids),
             audit_config_key_column == "audit_info",
         ).all()
-        audit_facts_map = {
-            instance_id: facts
-            for instance_id, facts in audit_facts_rows
-            if isinstance(facts, dict)
-        }
+        audit_facts_map = {instance_id: facts for instance_id, facts in audit_facts_rows if isinstance(facts, dict)}
 
         return InstanceListMetrics(
             database_counts=database_counts,

@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 
-from app.services.aggregation.capacity_aggregation_task_runner import CapacityAggregationTaskRunner, STATUS_FAILED
+from app.services.aggregation.capacity_aggregation_task_runner import STATUS_FAILED, CapacityAggregationTaskRunner
 
 
 class _DummyLogger:

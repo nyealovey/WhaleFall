@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -109,7 +108,10 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
     assert "storageSizeBytes" not in instance_detail_js
     assert "compressionRatio" not in instance_detail_js
     assert "当前快照缺少恢复点时间，请重新执行一次 Veeam 同步。" in instance_detail_js
-    assert "const displayedRestorePointCount = restorePoints.length || restorePointTimes.length || Number(data.restore_point_count) || 0;" in instance_detail_js
+    assert (
+        "const displayedRestorePointCount = restorePoints.length || restorePointTimes.length || Number(data.restore_point_count) || 0;"
+        in instance_detail_js
+    )
     assert "#databaseInfoTabContent > .instance-data-pane" in instance_detail_css
     assert "display: none;" in instance_detail_css
     assert "#databaseInfoTabContent > .instance-data-pane.active" in instance_detail_css

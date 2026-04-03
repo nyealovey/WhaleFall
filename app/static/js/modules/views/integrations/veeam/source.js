@@ -89,7 +89,7 @@
       elements.serverPort.value = binding?.server_port || payload?.default_port || 9419;
     }
     if (elements.apiVersion) {
-      elements.apiVersion.value = binding?.api_version || payload?.default_api_version || "1.3-rev1";
+      elements.apiVersion.value = binding?.api_version || payload?.default_api_version || "v1.2-rev0";
     }
     if (elements.verifySsl instanceof HTMLInputElement) {
       if (typeof binding?.verify_ssl === "boolean") {

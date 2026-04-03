@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -40,9 +39,9 @@ def test_accounts_statistics_template_uses_normal_locked_deleted_instead_of_acti
         "{% set normal_accounts = stats.normal_accounts or 0 %}",
         "{% set deleted_accounts = stats.deleted_accounts or 0 %}",
         "metric_card('总账户数'",
-        "id=\"accountsMetaNormalCount\"",
-        "id=\"accountsMetaLockedCount\"",
-        "id=\"accountsMetaDeletedCount\"",
+        'id="accountsMetaNormalCount"',
+        'id="accountsMetaLockedCount"',
+        'id="accountsMetaDeletedCount"',
         "metric_card('正常账户'",
         "data_stat_key='normal_accounts'",
         "metric_card('受限账户'",
@@ -73,8 +72,8 @@ def test_accounts_statistics_frontend_refresh_logic_uses_normal_locked_deleted_l
         'setText("accountsMetaNormalCount",',
         'setText("accountsMetaLockedCount",',
         'setText("accountsMetaDeletedCount",',
-        'const normal = Number(stats?.normal_accounts ?? 0) || 0;',
-        'const deleted = Number(stats?.deleted_accounts ?? 0) || 0;',
+        "const normal = Number(stats?.normal_accounts ?? 0) || 0;",
+        "const deleted = Number(stats?.deleted_accounts ?? 0) || 0;",
         'tone === "success" ? "正常" : tone === "warning" ? "受限" : "删除"',
     )
     for fragment in required_fragments:
@@ -82,9 +81,9 @@ def test_accounts_statistics_frontend_refresh_logic_uses_normal_locked_deleted_l
 
     forbidden_fragments = (
         'setValue("active_accounts", stats.active_accounts);',
-        'accountsMetaActiveRate',
-        'accountsMetaLockedRate',
-        'accountsMetaInactiveCount',
+        "accountsMetaActiveRate",
+        "accountsMetaLockedRate",
+        "accountsMetaInactiveCount",
         'tone === "success" ? "活跃"',
     )
     for fragment in forbidden_fragments:
@@ -95,20 +94,20 @@ def test_databases_statistics_template_uses_normal_restricted_deleted_labels() -
     content = _read_text("app/templates/databases/statistics.html")
 
     required_fragments = (
-        "title=\"正常数据库\"",
-        "aria-label=\"正常数据库\"",
-        "title=\"受限数据库\"",
-        "aria-label=\"受限数据库\"",
-        "title=\"已删除数据库\"",
+        'title="正常数据库"',
+        'aria-label="正常数据库"',
+        'title="受限数据库"',
+        'aria-label="受限数据库"',
+        'title="已删除数据库"',
     )
     for fragment in required_fragments:
         assert fragment in content
 
     forbidden_fragments = (
-        "title=\"活跃数据库\"",
-        "aria-label=\"活跃数据库\"",
-        "title=\"停用数据库\"",
-        "aria-label=\"停用数据库\"",
+        'title="活跃数据库"',
+        'aria-label="活跃数据库"',
+        'title="停用数据库"',
+        'aria-label="停用数据库"',
         "metric_card('活跃数据库'",
     )
     for fragment in forbidden_fragments:

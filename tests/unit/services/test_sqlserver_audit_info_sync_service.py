@@ -4,6 +4,8 @@ from app.services.config_sync.sqlserver_audit_info_sync_service import (
     SQLServerAuditInfoSyncService,
     build_sqlserver_audit_facts,
 )
+
+
 @pytest.mark.unit
 def test_build_sqlserver_audit_facts_counts_targets_and_specs() -> None:
     snapshot = {

@@ -59,7 +59,9 @@ DATABASE_STATISTICS_FIELDS = {
     "total_size_mb": fields.Integer(description="总容量(MB)", example=4096),
     "avg_size_mb": fields.Float(description="平均容量(MB)", example=682.7),
     "max_size_mb": fields.Integer(description="最大容量(MB)", example=2048),
-    "db_type_stats": fields.List(fields.Nested(DATABASE_STATISTICS_DB_TYPE_ITEM_FIELDS), description="按数据库类型统计"),
+    "db_type_stats": fields.List(
+        fields.Nested(DATABASE_STATISTICS_DB_TYPE_ITEM_FIELDS), description="按数据库类型统计"
+    ),
     "instance_stats": fields.List(fields.Nested(DATABASE_STATISTICS_INSTANCE_ITEM_FIELDS), description="按实例统计"),
     "sync_status_stats": fields.List(
         fields.Nested(DATABASE_STATISTICS_SYNC_STATUS_ITEM_FIELDS),

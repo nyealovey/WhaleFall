@@ -81,7 +81,9 @@ class DatabaseStatisticsReadService:
                 database_name=cast(str, getattr(row, "database_name", "")),
                 size_mb=int(getattr(row, "size_mb", 0) or 0),
                 size_label=self._ledger_service._format_size(int(getattr(row, "size_mb", 0) or 0)),
-                collected_at=getattr(row, "collected_at", None).isoformat() if getattr(row, "collected_at", None) else None,
+                collected_at=(
+                    getattr(row, "collected_at", None).isoformat() if getattr(row, "collected_at", None) else None
+                ),
             )
             for row in capacity_rows
         ]

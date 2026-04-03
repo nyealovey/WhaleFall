@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 TAG_MANAGEMENT_STORE_PATH = ROOT_DIR / "app/static/js/modules/stores/tag_management_store.js"
 

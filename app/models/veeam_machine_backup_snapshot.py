@@ -15,7 +15,9 @@ class VeeamMachineBackupSnapshot(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     machine_name = db.Column(db.String(255), nullable=False)
-    normalized_machine_name = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    normalized_machine_name = db.Column(db.String(255), nullable=False, index=True)
+    machine_ip = db.Column(db.String(64), nullable=True)
+    normalized_machine_ip = db.Column(db.String(64), nullable=True, index=True)
     latest_backup_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
     backup_id = db.Column(db.String(255), nullable=True)
     backup_file_id = db.Column(db.String(255), nullable=True)
@@ -35,6 +37,11 @@ class VeeamMachineBackupSnapshot(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
 
+    __table_args__ = (
+        db.UniqueConstraint("normalized_machine_name", name="uq_veeam_snapshot_normalized_name"),
+        db.UniqueConstraint("normalized_machine_ip", name="uq_veeam_snapshot_normalized_ip"),
+    )
+
     def to_dict(self) -> dict[str, object]:
         """序列化快照."""
         raw_payload = self.raw_payload if isinstance(self.raw_payload, dict) else {}
@@ -42,6 +49,8 @@ class VeeamMachineBackupSnapshot(db.Model):
         return {
             "machine_name": self.machine_name,
             "normalized_machine_name": self.normalized_machine_name,
+            "machine_ip": self.machine_ip,
+            "normalized_machine_ip": self.normalized_machine_ip,
             "latest_backup_at": self.latest_backup_at.isoformat() if self.latest_backup_at else None,
             "backup_id": self.backup_id,
             "backup_file_id": self.backup_file_id,
@@ -51,11 +60,11 @@ class VeeamMachineBackupSnapshot(db.Model):
             "restore_point_size_bytes": self.restore_point_size_bytes,
             "backup_chain_size_bytes": self.backup_chain_size_bytes,
             "restore_point_count": self.restore_point_count,
-            "restore_point_times": [
-                str(item).strip()
-                for item in restore_point_times
-                if isinstance(item, str) and item.strip()
-            ] if isinstance(restore_point_times, list) else [],
+            "restore_point_times": (
+                [str(item).strip() for item in restore_point_times if isinstance(item, str) and item.strip()]
+                if isinstance(restore_point_times, list)
+                else []
+            ),
             "sync_run_id": self.sync_run_id,
             "synced_at": self.synced_at.isoformat() if self.synced_at else None,
         }

@@ -41,18 +41,22 @@ class InstanceBackupInfoReadService:
         if instance is None or instance.deleted_at is not None:
             raise NotFoundError("实例不存在")
 
-        matched = self._veeam_repository.find_best_backup_for_instance_name(instance.name)
+        matched = self._veeam_repository.find_best_backup_for_instance_name(
+            instance.name, getattr(instance, "host", None)
+        )
         latest_backup_at = matched.get("latest_backup_at") if isinstance(matched, dict) else None
         restore_point_times = matched.get("restore_point_times") if isinstance(matched, dict) else []
         restore_points = matched.get("restore_points") if isinstance(matched, dict) else []
         return {
             "instance_id": int(instance.id),
             "instance_name": instance.name,
+            "instance_host": getattr(instance, "host", None),
             "backup_status": resolve_backup_status(
                 latest_backup_at=latest_backup_at if isinstance(latest_backup_at, str) else None
             ),
             "backup_last_time": latest_backup_at if isinstance(latest_backup_at, str) else None,
             "matched_machine_name": matched.get("matched_machine_name") if isinstance(matched, dict) else None,
+            "matched_machine_ip": matched.get("matched_machine_ip") if isinstance(matched, dict) else None,
             "match_candidates": matched.get("match_candidates") if isinstance(matched, dict) else [instance.name],
             "backup_id": matched.get("backup_id") if isinstance(matched, dict) else None,
             "backup_file_id": matched.get("backup_file_id") if isinstance(matched, dict) else None,

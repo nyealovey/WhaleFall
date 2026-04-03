@@ -91,11 +91,7 @@ class JumpServerRepository:
         hosts = sorted({str(instance.host).strip() for instance in instances if getattr(instance, "host", None)})
         ports = sorted({int(instance.port) for instance in instances if getattr(instance, "port", None) is not None})
         db_types = sorted(
-            {
-                str(instance.db_type).strip().lower()
-                for instance in instances
-                if getattr(instance, "db_type", None)
-            }
+            {str(instance.db_type).strip().lower() for instance in instances if getattr(instance, "db_type", None)}
         )
         if not hosts or not ports or not db_types:
             return set()

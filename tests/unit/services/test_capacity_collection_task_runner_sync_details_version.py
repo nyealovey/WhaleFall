@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import importlib
+from dataclasses import dataclass
 from typing import Any, cast
 
 import pytest
 
 from app.schemas.internal_contracts.sync_details_v1 import normalize_sync_details_v1
 from app.services.capacity.capacity_collection_task_runner import CapacityCollectionTaskRunner
-
 
 capacity_runner_module = importlib.import_module("app.services.capacity.capacity_collection_task_runner")
 
@@ -17,7 +16,9 @@ class _DummySyncSessionService:
     def __init__(self) -> None:
         self.complete_calls: list[dict[str, object]] = []
 
-    def complete_instance_sync(self, record_id: int, *, stats: object, sync_details: dict[str, Any] | None = None) -> None:
+    def complete_instance_sync(
+        self, record_id: int, *, stats: object, sync_details: dict[str, Any] | None = None
+    ) -> None:
         _ = (record_id, stats)
         normalize_sync_details_v1(sync_details)
         self.complete_calls.append({"record_id": record_id, "sync_details": sync_details})
@@ -76,4 +77,3 @@ def test_capacity_runner_sync_inventory_adds_sync_details_version(monkeypatch) -
     assert dummy_sync_session_service.complete_calls
     sync_details = cast(dict[str, Any], dummy_sync_session_service.complete_calls[0]["sync_details"])
     assert sync_details.get("version") == 1
-
