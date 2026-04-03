@@ -672,7 +672,7 @@ function syncBackup(event) {
 
     console.info('开始同步实例备份', { instanceId, instanceName, action: 'sync_backup' });
 
-    fetch(`/api/v1/veeam/actions/sync-instance/${instanceId}`, {
+    fetch(`/api/v1/integrations/veeam/actions/sync-instance/${instanceId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
