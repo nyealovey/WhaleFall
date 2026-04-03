@@ -240,6 +240,7 @@ class VeeamSyncActionsService:
                 action="sync_backups_background",
                 context=sync_context,
                 extra={
+                    "match_domains": binding.match_domains,
                     "candidate_machine_count": len(match_machine_names),
                     "candidate_machine_sample": sorted(match_machine_names)[:20],
                     "candidate_ip_count": len(match_machine_ips),
