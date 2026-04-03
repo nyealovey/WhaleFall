@@ -650,6 +650,50 @@ function syncAuditInfo(event) {
         });
 }
 
+function syncBackup(event) {
+    const instanceId = getInstanceId();
+    const instanceName = getInstanceName();
+
+    if (!instanceId) {
+        toast.error('实例 ID 获取失败');
+        return;
+    }
+
+    const fallbackBtn = selectOne('[data-action="sync-backup"]').first();
+    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+    if (!syncBtn) {
+        return;
+    }
+    const buttonWrapper = from(syncBtn);
+    const originalText = buttonWrapper.html();
+
+    buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
+    buttonWrapper.attr('disabled', 'disabled');
+
+    fetch(`/api/v1/veeam/actions/sync-instance/${instanceId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success) {
+                toast.success(`实例 ${instanceName} 备份同步成功`);
+                loadBackupInfo(true);
+            } else {
+                toast.error('同步备份失败: ' + (data.error?.message || '未知错误'));
+            }
+        })
+        .catch((error) => {
+            toast.error('同步备份失败: ' + (error?.message || '未知错误'));
+        })
+        .finally(() => {
+            buttonWrapper.html(originalText || '同步备份');
+            buttonWrapper.attr('disabled', null);
+        });
+}
+
 /**
  * 查看实例账户权限。
  *
@@ -2998,6 +3042,10 @@ function bindTemplateActions() {
             case 'sync-audit-info':
                 event.preventDefault();
                 syncAuditInfo(actionEvent);
+                break;
+            case 'sync-backup':
+                event.preventDefault();
+                syncBackup(actionEvent);
                 break;
             case 'edit-instance':
                 event.preventDefault();
