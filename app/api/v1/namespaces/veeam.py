@@ -16,7 +16,7 @@ from app.services.veeam.source_service import VeeamSourceService
 from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
-from app.services.veeam.provider import HttpVeeamProvider
+from app.services.veeam.provider import HttpVeeamProvider, VeeamMachineBackupRecord
 from app.services.veeam.matching import (
     build_instance_match_candidates,
     build_instance_ip_candidates,
@@ -310,7 +310,7 @@ class VeeamSyncInstanceActionResource(BaseResource):
                         extra={
                             "instance_id": instance_id,
                             "backup_name": backup_name,
-                            "normalized_backup_name": normalized_backup_ip,
+                            "normalized_backup_name": normalized_backup_name,
                             "backup_ip": backup_ip,
                             "normalized_backup_ip": normalized_backup_ip,
                             "name_match": name_match,
@@ -401,7 +401,7 @@ class VeeamSyncInstanceActionResource(BaseResource):
                 include_actor=False,
             )
 
-            records: list = []
+            records: list[VeeamMachineBackupRecord] = []
             for item in restore_point_items:
                 record = provider._normalize_backup_record(
                     item,
@@ -427,9 +427,16 @@ class VeeamSyncInstanceActionResource(BaseResource):
             )
 
             if records:
+                backup_ids = VeeamSyncActionsService._collect_unique_strings([record.backup_id for record in records])
+                backup_files_result = provider.fetch_backup_file_records(session=session, backup_ids=backup_ids)
+                enriched_records = VeeamSyncActionsService._merge_backup_file_metrics_into_records(
+                    records=records,
+                    backup_files_result=backup_files_result,
+                )
+                snapshots_to_write = VeeamSyncActionsService._select_latest_records(enriched_records)
                 synced_at = time_utils.now()
                 snapshots_written = VeeamRepository.upsert_machine_backup_snapshots(
-                    records=records,
+                    records=snapshots_to_write,
                     sync_run_id=f"single_sync_{instance_id}",
                     synced_at=synced_at,
                 )
@@ -444,6 +451,7 @@ class VeeamSyncInstanceActionResource(BaseResource):
                         "instance_name": instance_name,
                         "matched_backup_id": matched_backup_id,
                         "restore_points_count": len(records),
+                        "backup_files_scanned_total": getattr(backup_files_result, "received_total", 0),
                         "snapshots_written": snapshots_written,
                     },
                     include_actor=False,
