@@ -14,7 +14,6 @@ from app.schemas.validation import validate_or_raise
 from app.schemas.veeam import VeeamSourceBindingPayload
 from app.services.veeam.source_service import VeeamSourceService
 from app.services.veeam.sync_actions_service import VeeamSyncActionsService
-from app.services.veeam.instance_backup_read_service import InstanceBackupInfoReadService
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
 from app.services.veeam.provider import HttpVeeamProvider
@@ -27,6 +26,7 @@ from app.services.veeam.matching import (
 from app.core.exceptions import NotFoundError, ValidationError
 from app.infra.route_safety import log_with_context
 from app.utils.decorators import require_csrf
+from app.utils.time_utils import time_utils
 
 ns = Namespace("veeam", description="Veeam 数据源")
 
@@ -204,11 +204,10 @@ class VeeamSyncInstanceActionResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
-    def post(self, instance_id: int):
+    def post(self, instance_id: int):  # noqa: PLR0915
         """为指定实例触发 Veeam 备份同步."""
-        operator_id = getattr(current_user, "id", None)
 
-        def _execute():
+        def _execute():  # noqa: PLR0912, PLR0915
             instance = InstancesRepository().get_instance(instance_id)
             if instance is None or instance.deleted_at is not None:
                 raise NotFoundError("实例不存在")
@@ -349,6 +348,8 @@ class VeeamSyncInstanceActionResource(BaseResource):
 
             matched_backup_id = provider._pick_string(matched_backup, ("id", "backupObjectId"))
             matched_machine_name = provider._pick_string(matched_backup, ("name", "machineName", "objectName"))
+            if not matched_backup_id:
+                raise ValidationError("Veeam 备份对象缺少 ID")
 
             log_with_context(
                 "info",
@@ -426,10 +427,8 @@ class VeeamSyncInstanceActionResource(BaseResource):
             )
 
             if records:
-                from app.utils.time_utils import time_utils
-
                 synced_at = time_utils.now()
-                snapshots_written = VeeamRepository.replace_machine_backup_snapshots(
+                snapshots_written = VeeamRepository.upsert_machine_backup_snapshots(
                     records=records,
                     sync_run_id=f"single_sync_{instance_id}",
                     synced_at=synced_at,
@@ -485,8 +484,6 @@ class VeeamSyncInstanceActionResource(BaseResource):
                 raise NotFoundError("实例不存在")
 
             if not VeeamRepository._has_machine_backup_snapshot_table():
-                from app.infra.route_safety import log_with_context
-
                 log_with_context(
                     "info",
                     "获取单实例 Veeam 备份信息",
@@ -506,8 +503,6 @@ class VeeamSyncInstanceActionResource(BaseResource):
 
             instance_host = getattr(instance, "host", None)
             matched = VeeamRepository.find_best_backup_for_instance_name(instance.name, instance_host)
-
-            from app.infra.route_safety import log_with_context
 
             log_with_context(
                 "info",

@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 import ssl
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
@@ -14,7 +17,7 @@ from urllib.request import Request, urlopen
 from flask import current_app, has_app_context
 
 from app.infra.route_safety import log_with_context
-from app.services.veeam.matching import build_instance_ip_candidates, normalize_ip_address, normalize_machine_name
+from app.services.veeam.matching import normalize_ip_address, normalize_machine_name
 from app.settings import Settings
 from app.utils.time_utils import time_utils
 
@@ -23,6 +26,15 @@ VEEAM_RESTORE_POINTS_PATH = "/api/v1/restorePoints"
 VEEAM_BACKUP_OBJECTS_PATH = "/api/v1/backupObjects"
 VEEAM_BACKUPS_PATH = "/api/v1/backups"
 VEEAM_ACCEPT_HEADER = "application/json"
+
+
+class _ProviderSettings(TypedDict):
+    timeout_seconds: int
+    token_timeout_seconds: int
+    token_retry_attempts: int
+    token_retry_backoff_seconds: int
+    backup_objects_limit: int
+    verify_ssl: bool
 
 
 def _default_open(request: Request, *, timeout: int, context: ssl.SSLContext):
@@ -170,6 +182,7 @@ class VeeamProvider(Protocol):
 
     def is_configured(self) -> bool:
         """返回 provider 是否已具备真实可用实现."""
+        ...
 
     def create_session(
         self,
@@ -182,9 +195,11 @@ class VeeamProvider(Protocol):
         verify_ssl: bool | None = None,
     ) -> VeeamProviderSession:
         """创建同步会话."""
+        ...
 
     def fetch_backup_objects(self, *, session: VeeamProviderSession) -> list[dict[str, Any]]:
         """拉取 backupObjects."""
+        ...
 
     def match_backup_objects(
         self,
@@ -194,6 +209,7 @@ class VeeamProvider(Protocol):
         match_machine_ips: set[str] | None = None,
     ) -> VeeamBackupObjectMatchResult:
         """匹配目标 backupObjects 并返回统计."""
+        ...
 
     def fetch_restore_point_records(
         self,
@@ -202,6 +218,7 @@ class VeeamProvider(Protocol):
         match_result: VeeamBackupObjectMatchResult,
     ) -> VeeamMachineBackupCollection:
         """按匹配结果拉取 restorePoints."""
+        ...
 
     def fetch_backup_file_records(
         self,
@@ -210,6 +227,7 @@ class VeeamProvider(Protocol):
         backup_ids: list[str],
     ) -> VeeamBackupFileCollection:
         """按 backupId 拉取 backupFiles."""
+        ...
 
     def list_machine_backups(
         self,
@@ -223,6 +241,7 @@ class VeeamProvider(Protocol):
         verify_ssl: bool | None = None,
     ) -> VeeamMachineBackupCollection:
         """返回机器级备份列表与统计."""
+        ...
 
 
 class HttpVeeamProvider:
@@ -232,35 +251,68 @@ class HttpVeeamProvider:
         self,
         *,
         timeout_seconds: int | None = None,
+        token_timeout_seconds: int | None = None,
+        token_retry_attempts: int | None = None,
+        token_retry_backoff_seconds: int | None = None,
         verify_ssl: bool | None = None,
         opener=_default_open,
     ) -> None:
         resolved_settings = self._resolve_settings()
         self._timeout_seconds = int(timeout_seconds or resolved_settings["timeout_seconds"])
+        self._token_timeout_seconds = int(
+            token_timeout_seconds
+            if token_timeout_seconds is not None
+            else resolved_settings["token_timeout_seconds"]
+        )
+        self._token_retry_attempts = int(
+            token_retry_attempts
+            if token_retry_attempts is not None
+            else resolved_settings["token_retry_attempts"]
+        )
+        self._token_retry_backoff_seconds = int(
+            token_retry_backoff_seconds
+            if token_retry_backoff_seconds is not None
+            else resolved_settings["token_retry_backoff_seconds"]
+        )
         self._backup_objects_limit = int(resolved_settings["backup_objects_limit"])
         self._verify_ssl = bool(resolved_settings["verify_ssl"] if verify_ssl is None else verify_ssl)
         self._opener = opener
 
     @staticmethod
-    def _resolve_settings() -> dict[str, object]:
+    def _resolve_settings() -> _ProviderSettings:
         if has_app_context():
             return {
-                "timeout_seconds": current_app.config.get(
+                "timeout_seconds": int(current_app.config.get(
                     "VEEAM_REQUEST_TIMEOUT_SECONDS",
                     Settings.model_fields["veeam_request_timeout_seconds"].default,
-                ),
-                "backup_objects_limit": current_app.config.get(
+                )),
+                "token_timeout_seconds": int(current_app.config.get(
+                    "VEEAM_TOKEN_TIMEOUT_SECONDS",
+                    Settings.model_fields["veeam_token_timeout_seconds"].default,
+                )),
+                "token_retry_attempts": int(current_app.config.get(
+                    "VEEAM_TOKEN_RETRY_ATTEMPTS",
+                    Settings.model_fields["veeam_token_retry_attempts"].default,
+                )),
+                "token_retry_backoff_seconds": int(current_app.config.get(
+                    "VEEAM_TOKEN_RETRY_BACKOFF_SECONDS",
+                    Settings.model_fields["veeam_token_retry_backoff_seconds"].default,
+                )),
+                "backup_objects_limit": int(current_app.config.get(
                     "VEEAM_BACKUP_OBJECTS_LIMIT",
                     Settings.model_fields["veeam_backup_objects_limit"].default,
-                ),
-                "verify_ssl": current_app.config.get(
+                )),
+                "verify_ssl": bool(current_app.config.get(
                     "VEEAM_VERIFY_SSL",
                     Settings.model_fields["veeam_verify_ssl"].default,
-                ),
+                )),
             }
         settings = Settings.load()
         return {
             "timeout_seconds": settings.veeam_request_timeout_seconds,
+            "token_timeout_seconds": settings.veeam_token_timeout_seconds,
+            "token_retry_attempts": settings.veeam_token_retry_attempts,
+            "token_retry_backoff_seconds": settings.veeam_token_retry_backoff_seconds,
             "backup_objects_limit": settings.veeam_backup_objects_limit,
             "verify_ssl": settings.veeam_verify_ssl,
         }
@@ -302,7 +354,7 @@ class HttpVeeamProvider:
             verify_ssl=session.verify_ssl,
         )
 
-    def match_backup_objects(
+    def match_backup_objects(  # noqa: PLR0912
         self,
         *,
         backup_items: list[dict[str, Any]],
@@ -347,9 +399,8 @@ class HttpVeeamProvider:
                         if backup_name and len(missing_machine_name_backup_names_sample) < 20:
                             missing_machine_name_backup_names_sample.append(backup_name)
 
-                if match_machine_ips and normalized_backup_machine_ip:
-                    if normalized_backup_machine_ip in match_machine_ips:
-                        ip_matched = True
+                if match_machine_ips and normalized_backup_machine_ip and normalized_backup_machine_ip in match_machine_ips:
+                    ip_matched = True
 
                 if not name_matched and not ip_matched:
                     backups_unmatched_total += 1
@@ -621,7 +672,39 @@ class HttpVeeamProvider:
             data=payload,
             method="POST",
         )
-        response_payload = self._read_json_response(request=request, verify_ssl=verify_ssl)
+        max_attempts = max(self._token_retry_attempts, 1)
+        response_payload: object | None = None
+        for attempt in range(1, max_attempts + 1):
+            started_at = time.monotonic()
+            try:
+                response_payload = self._read_json_response(
+                    request=request,
+                    verify_ssl=verify_ssl,
+                    timeout_seconds=self._token_timeout_seconds,
+                )
+                break
+            except VeeamRequestTimeoutError:
+                elapsed_ms = int((time.monotonic() - started_at) * 1000)
+                log_with_context(
+                    "warning",
+                    "Veeam token 请求超时",
+                    module="veeam",
+                    action="request_token",
+                    extra={
+                        "base_url": base_url,
+                        "timeout_seconds": self._token_timeout_seconds,
+                        "attempt": attempt,
+                        "max_attempts": max_attempts,
+                        "elapsed_ms": elapsed_ms,
+                        "pid": os.getpid(),
+                        "thread_name": threading.current_thread().name,
+                    },
+                    include_actor=False,
+                )
+                if attempt >= max_attempts:
+                    raise
+                if self._token_retry_backoff_seconds > 0:
+                    time.sleep(self._token_retry_backoff_seconds)
         if not isinstance(response_payload, dict):
             raise TypeError("Veeam token 响应格式不受支持")
         access_token = str(response_payload.get("access_token") or "").strip()
@@ -648,21 +731,22 @@ class HttpVeeamProvider:
         )
         return self._read_json_response(request=request, verify_ssl=verify_ssl)
 
-    def _read_json_response(self, *, request: Request, verify_ssl: bool) -> object:
+    def _read_json_response(self, *, request: Request, verify_ssl: bool, timeout_seconds: int | None = None) -> object:
         context = ssl.create_default_context() if verify_ssl else ssl._create_unverified_context()
+        resolved_timeout_seconds = self._timeout_seconds if timeout_seconds is None else timeout_seconds
         try:
-            with self._opener(request, timeout=self._timeout_seconds, context=context) as response:
+            with self._opener(request, timeout=resolved_timeout_seconds, context=context) as response:
                 payload_bytes = response.read()
         except TimeoutError as exc:
             raise VeeamRequestTimeoutError(
-                f"Veeam API 请求超时: timeout={self._timeout_seconds}s url={request.full_url}"
+                f"Veeam API 请求超时: timeout={resolved_timeout_seconds}s url={request.full_url}"
             ) from exc
         except HTTPError as exc:
             raise RuntimeError(self._build_http_error_message(exc)) from exc
         except URLError as exc:
             if self._is_timeout_url_error(exc):
                 raise VeeamRequestTimeoutError(
-                    f"Veeam API 请求超时: timeout={self._timeout_seconds}s url={request.full_url}"
+                    f"Veeam API 请求超时: timeout={resolved_timeout_seconds}s url={request.full_url}"
                 ) from exc
             raise RuntimeError(self._build_url_error_message(url=request.full_url, error=exc)) from exc
         return json.loads(payload_bytes.decode("utf-8"))
@@ -1047,6 +1131,8 @@ class HttpVeeamProvider:
     def _pick_nested_int(payload: object, keys: tuple[str, ...]) -> int | None:
         for key, value in HttpVeeamProvider._walk_key_values(payload):
             if key not in keys:
+                continue
+            if not isinstance(value, (int, float, str)):
                 continue
             try:
                 return int(value)
