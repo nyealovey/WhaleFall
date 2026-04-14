@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import os
+import threading
+
 from app import create_app, db
+from app.infra.route_safety import log_with_context
 from app.services.veeam.source_service import VeeamSourceService
 from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 
@@ -17,16 +21,31 @@ def sync_veeam_backups(
     """同步 Veeam 备份快照."""
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
+        trigger_source = "manual" if manual_run else "scheduled"
         service = VeeamSyncActionsService()
         binding = VeeamSourceService().get_binding_or_error()
         resolved_run_id = run_id
         if not resolved_run_id:
             prepared = service.prepare_background_sync(
                 created_by=created_by if manual_run else None,
-                trigger_source="manual" if manual_run else "scheduled",
+                trigger_source=trigger_source,
             )
             resolved_run_id = prepared.run_id
             db.session.commit()
+        log_with_context(
+            "info",
+            "Veeam 备份任务入口",
+            module="veeam",
+            action="sync_veeam_backups_task",
+            extra={
+                "manual_run": manual_run,
+                "trigger_source": trigger_source,
+                "run_id": resolved_run_id,
+                "pid": os.getpid(),
+                "thread_name": threading.current_thread().name,
+            },
+            include_actor=False,
+        )
         service._sync_once(
             created_by=created_by if manual_run else None,
             run_id=resolved_run_id,

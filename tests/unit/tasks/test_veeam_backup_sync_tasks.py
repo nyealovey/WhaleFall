@@ -79,3 +79,48 @@ def test_sync_veeam_backups_commits_prepared_run_before_sync_once(monkeypatch) -
 
         assert isinstance(observed.get("run_id"), str)
         assert observed["run_exists_after_rollback"] is True
+
+
+@pytest.mark.unit
+def test_sync_veeam_backups_logs_entry_context(monkeypatch) -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        class _StubBinding:
+            credential_id = 21
+
+        def _fake_create_app(*, init_scheduler_on_start: bool = False):
+            _ = init_scheduler_on_start
+            return app
+
+        def _fake_get_binding_or_error(self):
+            _ = self
+            return _StubBinding()
+
+        def _fake_sync_once(self, *, created_by: int | None, run_id: str, credential_id: int) -> None:
+            _ = (self, created_by, run_id, credential_id)
+
+        calls: list[dict[str, object]] = []
+
+        def _fake_log_with_context(level: str, message: str, **kwargs: object) -> None:
+            calls.append({"level": level, "message": message, **kwargs})
+
+        monkeypatch.setattr(task_module, "create_app", _fake_create_app)
+        monkeypatch.setattr(
+            task_module.VeeamSourceService, "get_binding_or_error", _fake_get_binding_or_error, raising=True
+        )
+        monkeypatch.setattr(task_module.VeeamSyncActionsService, "_sync_once", _fake_sync_once, raising=True)
+        monkeypatch.setattr(task_module, "log_with_context", _fake_log_with_context, raising=False)
+
+        task_module.sync_veeam_backups(manual_run=False, created_by=None, run_id="run-scheduled-1")
+
+        assert len(calls) == 1
+        assert calls[0]["message"] == "Veeam 备份任务入口"
+        extra = calls[0]["extra"]
+        assert isinstance(extra, dict)
+        assert extra["manual_run"] is False
+        assert extra["trigger_source"] == "scheduled"
+        assert extra["run_id"] == "run-scheduled-1"
+        assert isinstance(extra["pid"], int)
+        assert isinstance(extra["thread_name"], str)

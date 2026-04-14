@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy import inspect
@@ -20,11 +21,65 @@ from app.services.veeam.matching import (
 from app.services.veeam.provider import VeeamMachineBackupRecord
 
 
+@dataclass(frozen=True, slots=True)
+class _SnapshotWriteRecord:
+    record: VeeamMachineBackupRecord
+    normalized_machine_name: str
+    machine_ip: str | None
+    normalized_machine_ip: str | None
+
+
 def _normalize_string(value: object) -> str | None:
     if isinstance(value, str):
         cleaned = value.strip()
         return cleaned or None
     return None
+
+
+def _resolve_snapshot_machine_ip(record: VeeamMachineBackupRecord) -> tuple[str | None, str | None]:
+    normalized_machine_ip = normalize_ip_address(record.machine_ip) if record.machine_ip else None
+    if normalized_machine_ip:
+        return normalized_machine_ip, normalized_machine_ip
+    machine_name_as_ip = normalize_ip_address(record.machine_name)
+    if machine_name_as_ip:
+        return machine_name_as_ip, machine_name_as_ip
+    return None, None
+
+
+def _build_snapshot_write_records(records: Iterable[VeeamMachineBackupRecord]) -> list[_SnapshotWriteRecord]:
+    valid_records = [record for record in records if isinstance(record, VeeamMachineBackupRecord)]
+    selected: list[_SnapshotWriteRecord] = []
+    seen_names: set[str] = set()
+    seen_ips: set[str] = set()
+
+    for record in sorted(
+        valid_records,
+        key=lambda item: (item.backup_at, item.source_record_id or ""),
+        reverse=True,
+    ):
+        normalized_machine_name = normalize_machine_name(record.machine_name)
+        machine_ip, normalized_machine_ip = _resolve_snapshot_machine_ip(record)
+        if not normalized_machine_name and not normalized_machine_ip:
+            continue
+        if normalized_machine_name and normalized_machine_name in seen_names:
+            continue
+        if normalized_machine_ip and normalized_machine_ip in seen_ips:
+            continue
+
+        selected.append(
+            _SnapshotWriteRecord(
+                record=record,
+                normalized_machine_name=normalized_machine_name,
+                machine_ip=machine_ip,
+                normalized_machine_ip=normalized_machine_ip,
+            )
+        )
+        if normalized_machine_name:
+            seen_names.add(normalized_machine_name)
+        if normalized_machine_ip:
+            seen_ips.add(normalized_machine_ip)
+
+    return selected
 
 
 def _walk_key_values(payload: object):
@@ -205,84 +260,112 @@ class VeeamRepository:
         synced_at: datetime,
     ) -> int:
         """以本同步结果替换机器备份快照内容,支持机器名/IP 双通道匹配."""
-        latest_by_key: dict[str, VeeamMachineBackupRecord] = {}
-        for record in records:
-            if not isinstance(record, VeeamMachineBackupRecord):
-                continue
-            normalized_machine_name = normalize_machine_name(record.machine_name)
-            normalized_machine_ip = normalize_ip_address(record.machine_ip) if record.machine_ip else None
+        return VeeamRepository._write_machine_backup_snapshots(
+            records,
+            sync_run_id=sync_run_id,
+            synced_at=synced_at,
+            delete_missing=True,
+        )
 
-            key_name = normalized_machine_name if normalized_machine_name else None
-            key_ip = normalized_machine_ip if normalized_machine_ip else None
+    @staticmethod
+    def upsert_machine_backup_snapshots(
+        records: Iterable[VeeamMachineBackupRecord],
+        *,
+        sync_run_id: str,
+        synced_at: datetime,
+    ) -> int:
+        """写入本次机器备份快照,不删除其它机器快照."""
+        return VeeamRepository._write_machine_backup_snapshots(
+            records,
+            sync_run_id=sync_run_id,
+            synced_at=synced_at,
+            delete_missing=False,
+        )
 
-            if key_name:
-                current = latest_by_key.get(key_name)
-                if current is None or record.backup_at > current.backup_at:
-                    latest_by_key[key_name] = record
-            if key_ip:
-                current = latest_by_key.get(key_ip)
-                if current is None or record.backup_at > current.backup_at:
-                    latest_by_key[key_ip] = record
-
+    @staticmethod
+    def _write_machine_backup_snapshots(
+        records: Iterable[VeeamMachineBackupRecord],
+        *,
+        sync_run_id: str,
+        synced_at: datetime,
+        delete_missing: bool,
+    ) -> int:
+        selected_records = _build_snapshot_write_records(records)
+        existing_rows = VeeamMachineBackupSnapshot.query.all()
         existing_name = {
-            row.normalized_machine_name: row
-            for row in VeeamMachineBackupSnapshot.query.filter(
-                VeeamMachineBackupSnapshot.normalized_machine_name.isnot(None)
-            ).all()
+            row.normalized_machine_name: row for row in existing_rows if row.normalized_machine_name
         }
-        existing_ip = {
-            row.normalized_machine_ip: row
-            for row in VeeamMachineBackupSnapshot.query.filter(
-                VeeamMachineBackupSnapshot.normalized_machine_ip.isnot(None)
-            ).all()
-        }
+        existing_ip = {row.normalized_machine_ip: row for row in existing_rows if row.normalized_machine_ip}
 
-        keep_keys: set[str] = set()
-        for key, record in latest_by_key.items():
-            keep_keys.add(key)
-            normalized_machine_name = normalize_machine_name(record.machine_name)
-            normalized_machine_ip = normalize_ip_address(record.machine_ip) if record.machine_ip else None
-
-            row = None
-            if normalized_machine_name and normalized_machine_name in existing_name:
-                row = existing_name[normalized_machine_name]
-            elif normalized_machine_ip and normalized_machine_ip in existing_ip:
-                row = existing_ip[normalized_machine_ip]
-
+        kept_existing_object_ids: set[int] = set()
+        for selected in selected_records:
+            row = VeeamRepository._find_snapshot_row(
+                selected,
+                existing_name=existing_name,
+                existing_ip=existing_ip,
+            )
             if row is None:
-                row = VeeamMachineBackupSnapshot(
-                    machine_name=record.machine_name,
-                    normalized_machine_name=normalized_machine_name or "",
-                    latest_backup_at=record.backup_at,
-                )
+                row = VeeamMachineBackupSnapshot()
 
-            row.machine_name = record.machine_name
-            row.normalized_machine_name = normalized_machine_name or ""
-            row.machine_ip = record.machine_ip
-            row.normalized_machine_ip = normalized_machine_ip or ""
-            row.latest_backup_at = record.backup_at
-            row.backup_id = record.backup_id
-            row.backup_file_id = record.backup_file_id
-            row.job_name = record.job_name
-            row.restore_point_name = record.restore_point_name
-            row.source_record_id = record.source_record_id
-            row.restore_point_size_bytes = record.restore_point_size_bytes
-            row.backup_chain_size_bytes = record.backup_chain_size_bytes
-            row.restore_point_count = record.restore_point_count
-            row.raw_payload = record.raw_payload
-            row.sync_run_id = sync_run_id
-            row.synced_at = synced_at
+            VeeamRepository._apply_snapshot_write_record(
+                row,
+                selected,
+                sync_run_id=sync_run_id,
+                synced_at=synced_at,
+            )
             db.session.add(row)
+            kept_existing_object_ids.add(id(row))
 
-        for row in existing_name.values():
-            if row.normalized_machine_name not in keep_keys:
-                db.session.delete(row)
-        for row in existing_ip.values():
-            if row.normalized_machine_ip not in keep_keys:
-                db.session.delete(row)
+        if delete_missing:
+            for row in existing_rows:
+                if id(row) not in kept_existing_object_ids:
+                    db.session.delete(row)
 
         db.session.flush()
-        return len(keep_keys)
+        return len(selected_records)
+
+    @staticmethod
+    def _find_snapshot_row(
+        selected: _SnapshotWriteRecord,
+        *,
+        existing_name: dict[str, VeeamMachineBackupSnapshot],
+        existing_ip: dict[str, VeeamMachineBackupSnapshot],
+    ) -> VeeamMachineBackupSnapshot | None:
+        name_row = existing_name.get(selected.normalized_machine_name)
+        ip_row = existing_ip.get(selected.normalized_machine_ip) if selected.normalized_machine_ip else None
+
+        if name_row is not None and ip_row is not None and name_row is not ip_row:
+            ip_row.machine_ip = None
+            ip_row.normalized_machine_ip = None
+            db.session.delete(ip_row)
+            return name_row
+        return name_row or ip_row
+
+    @staticmethod
+    def _apply_snapshot_write_record(
+        row: VeeamMachineBackupSnapshot,
+        selected: _SnapshotWriteRecord,
+        *,
+        sync_run_id: str,
+        synced_at: datetime,
+    ) -> None:
+        record = selected.record
+        row.machine_name = record.machine_name
+        row.normalized_machine_name = selected.normalized_machine_name
+        row.machine_ip = selected.machine_ip
+        row.normalized_machine_ip = selected.normalized_machine_ip
+        row.latest_backup_at = record.backup_at
+        row.backup_id = record.backup_id
+        row.backup_file_id = record.backup_file_id
+        row.job_name = record.job_name
+        row.restore_point_name = record.restore_point_name
+        row.source_record_id = record.source_record_id
+        row.restore_point_size_bytes = record.restore_point_size_bytes
+        row.backup_chain_size_bytes = record.backup_chain_size_bytes
+        row.restore_point_count = record.restore_point_count
+        row.raw_payload = record.raw_payload
+        row.sync_run_id = sync_run_id
+        row.synced_at = synced_at
 
     @staticmethod
     def find_best_backup_for_instance_name(

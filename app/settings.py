@@ -84,6 +84,9 @@ DEFAULT_JUMPSERVER_VERIFY_SSL = True
 DEFAULT_VEEAM_PORT = 9419
 DEFAULT_VEEAM_API_VERSION = "v1.2-rev0"
 DEFAULT_VEEAM_REQUEST_TIMEOUT_SECONDS = 15
+DEFAULT_VEEAM_TOKEN_TIMEOUT_SECONDS = 15
+DEFAULT_VEEAM_TOKEN_RETRY_ATTEMPTS = 3
+DEFAULT_VEEAM_TOKEN_RETRY_BACKOFF_SECONDS = 10
 DEFAULT_VEEAM_BACKUP_OBJECTS_LIMIT = 2000
 DEFAULT_VEEAM_VERIFY_SSL = True
 
@@ -274,6 +277,18 @@ class Settings(BaseSettings):
         default=DEFAULT_VEEAM_REQUEST_TIMEOUT_SECONDS,
         validation_alias="VEEAM_REQUEST_TIMEOUT_SECONDS",
     )
+    veeam_token_timeout_seconds: int = Field(
+        default=DEFAULT_VEEAM_TOKEN_TIMEOUT_SECONDS,
+        validation_alias="VEEAM_TOKEN_TIMEOUT_SECONDS",
+    )
+    veeam_token_retry_attempts: int = Field(
+        default=DEFAULT_VEEAM_TOKEN_RETRY_ATTEMPTS,
+        validation_alias="VEEAM_TOKEN_RETRY_ATTEMPTS",
+    )
+    veeam_token_retry_backoff_seconds: int = Field(
+        default=DEFAULT_VEEAM_TOKEN_RETRY_BACKOFF_SECONDS,
+        validation_alias="VEEAM_TOKEN_RETRY_BACKOFF_SECONDS",
+    )
     veeam_backup_objects_limit: int = Field(
         default=DEFAULT_VEEAM_BACKUP_OBJECTS_LIMIT,
         validation_alias="VEEAM_BACKUP_OBJECTS_LIMIT",
@@ -435,6 +450,9 @@ class Settings(BaseSettings):
             "VEEAM_PORT": self.veeam_port,
             "VEEAM_API_VERSION": self.veeam_api_version,
             "VEEAM_REQUEST_TIMEOUT_SECONDS": self.veeam_request_timeout_seconds,
+            "VEEAM_TOKEN_TIMEOUT_SECONDS": self.veeam_token_timeout_seconds,
+            "VEEAM_TOKEN_RETRY_ATTEMPTS": self.veeam_token_retry_attempts,
+            "VEEAM_TOKEN_RETRY_BACKOFF_SECONDS": self.veeam_token_retry_backoff_seconds,
             "VEEAM_BACKUP_OBJECTS_LIMIT": self.veeam_backup_objects_limit,
             "VEEAM_VERIFY_SSL": self.veeam_verify_ssl,
             "AGGREGATION_ENABLED": self.aggregation_enabled,
@@ -619,6 +637,12 @@ class Settings(BaseSettings):
             ("JUMPSERVER_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.jumpserver_request_timeout_seconds <= 0),
             ("VEEAM_PORT 必须为正整数", self.veeam_port <= 0),
             ("VEEAM_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.veeam_request_timeout_seconds <= 0),
+            ("VEEAM_TOKEN_TIMEOUT_SECONDS 必须为正整数(秒)", self.veeam_token_timeout_seconds <= 0),
+            ("VEEAM_TOKEN_RETRY_ATTEMPTS 必须为正整数", self.veeam_token_retry_attempts <= 0),
+            (
+                "VEEAM_TOKEN_RETRY_BACKOFF_SECONDS 必须为非负整数(秒)",
+                self.veeam_token_retry_backoff_seconds < 0,
+            ),
             ("VEEAM_BACKUP_OBJECTS_LIMIT 必须为正整数", self.veeam_backup_objects_limit <= 0),
         ]
         for message, condition in checks:

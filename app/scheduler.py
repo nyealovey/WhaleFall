@@ -447,9 +447,6 @@ def _reload_all_jobs() -> None:
 
 def _load_tasks_from_config(*, force: bool = False) -> None:
     """从配置文件加载默认任务并注册."""
-    if not force and _should_skip_default_task_creation():
-        return
-
     try:
         task_configs = _read_default_task_configs()
     except FileNotFoundError:
@@ -472,10 +469,10 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
     logger.info("默认定时任务已添加")
 
 
-def _should_skip_default_task_creation() -> bool:
-    """是否需要跳过默认任务创建."""
+def _should_skip_default_task_creation(task_id: str) -> bool:
+    """是否需要跳过当前默认任务创建."""
     try:
-        existing_jobs = scheduler.get_jobs()
+        existing_job = scheduler.get_job(task_id)
     except KeyboardInterrupt:
         logger.warning("检查现有任务时被中断,跳过创建默认任务")
         return True
@@ -483,8 +480,8 @@ def _should_skip_default_task_creation() -> bool:
         logger.exception("检查现有任务失败", error=str(query_error))
         return True
 
-    if existing_jobs:
-        logger.info("发现现有任务,跳过默认任务创建", job_count=len(existing_jobs))
+    if existing_job:
+        logger.info("发现现有任务,跳过默认任务创建", task_id=task_id)
         return True
     return False
 
@@ -515,6 +512,9 @@ def _register_task_from_config(task_config: SchedulerTaskConfig, *, force: bool)
     func = _load_task_callable(function_name)
     if not func:
         logger.warning("未知的任务函数", function_name=function_name)
+        return
+
+    if not force and _should_skip_default_task_creation(task_id):
         return
 
     if force:

@@ -6,7 +6,12 @@ from typing import Any
 import pytest
 from flask import Flask
 
-from app.services.veeam.provider import HttpVeeamProvider
+from app.services.veeam.provider import (
+    HttpVeeamProvider,
+    VeeamBackupObjectMatchResult,
+    VeeamMatchedBackupObject,
+    VeeamProviderSession,
+)
 
 
 class _FakeResponse:
@@ -130,6 +135,113 @@ def test_http_veeam_provider_requests_backups_first_then_restore_points_across_n
         captured_requests[4]["url"]
         == "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints"
     )
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_uses_token_timeout_separately_from_data_timeout() -> None:
+    captured_requests: list[dict[str, Any]] = []
+    payloads = [
+        {"access_token": "token-1"},
+        {"items": [], "next": None},
+    ]
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = context
+        captured_requests.append({"url": request.full_url, "timeout": timeout})
+        return _FakeResponse(payloads[len(captured_requests) - 1])
+
+    provider = HttpVeeamProvider(
+        timeout_seconds=120,
+        token_timeout_seconds=15,
+        opener=_fake_opener,
+    )
+
+    provider.list_machine_backups(
+        server_host="veeam.example.com",
+        server_port=9419,
+        username="DOMAIN\\user",
+        password="secret",
+        api_version="1.3-rev1",
+        match_machine_names={"db01.domain.com"},
+    )
+
+    assert captured_requests == [
+        {"url": "https://veeam.example.com:9419/api/oauth2/token", "timeout": 15},
+        {"url": "https://veeam.example.com:9419/api/v1/backupObjects?limit=2000", "timeout": 120},
+    ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_retries_token_timeout_then_continues() -> None:
+    captured_urls: list[str] = []
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        if len(captured_urls) == 1:
+            raise TimeoutError("The read operation timed out")
+        if "/api/oauth2/token" in request.full_url:
+            return _FakeResponse({"access_token": "token-1"})
+        return _FakeResponse({"items": [], "next": None})
+
+    provider = HttpVeeamProvider(
+        timeout_seconds=120,
+        token_timeout_seconds=15,
+        token_retry_attempts=2,
+        token_retry_backoff_seconds=0,
+        opener=_fake_opener,
+    )
+
+    provider.list_machine_backups(
+        server_host="veeam.example.com",
+        server_port=9419,
+        username="DOMAIN\\user",
+        password="secret",
+        api_version="1.3-rev1",
+        match_machine_names={"db01.domain.com"},
+    )
+
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/oauth2/token",
+        "https://veeam.example.com:9419/api/oauth2/token",
+        "https://veeam.example.com:9419/api/v1/backupObjects?limit=2000",
+    ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_raises_token_timeout_after_retry_attempts() -> None:
+    captured_urls: list[str] = []
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        raise TimeoutError("The read operation timed out")
+
+    provider = HttpVeeamProvider(
+        timeout_seconds=120,
+        token_timeout_seconds=15,
+        token_retry_attempts=2,
+        token_retry_backoff_seconds=0,
+        opener=_fake_opener,
+    )
+
+    with pytest.raises(RuntimeError, match="Veeam API 请求超时") as exc_info:
+        provider.list_machine_backups(
+            server_host="veeam.example.com",
+            server_port=9419,
+            username="DOMAIN\\user",
+            password="secret",
+            api_version="1.3-rev1",
+            match_machine_names={"db01.domain.com"},
+        )
+
+    message = str(exc_info.value)
+    assert "timeout=15s" in message
+    assert "url=https://veeam.example.com:9419/api/oauth2/token" in message
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/oauth2/token",
+        "https://veeam.example.com:9419/api/oauth2/token",
+    ]
 
 
 @pytest.mark.unit
@@ -490,51 +602,31 @@ def test_http_veeam_provider_fetch_restore_point_records_skips_timeout_and_prese
         return _FakeResponse(payloads[len(captured_urls) - 1])
 
     provider = HttpVeeamProvider(opener=_fake_opener)
-    session = type(
-        "ProviderSession",
-        (),
-        {
-            "base_url": "https://veeam.example.com:9419",
-            "access_token": "token-1",
-            "api_version": "1.3-rev1",
-            "verify_ssl": True,
-        },
-    )()
-    match_result = type(
-        "MatchResult",
-        (),
-        {
-            "matched_backup_objects": [
-                type(
-                    "MatchedBackupObject",
-                    (),
-                    {
-                        "backup_object_id": "backup-object-1",
-                        "machine_name": "db01.domain.com",
-                        "backup_item": {"id": "backup-object-1", "name": "db01.domain.com"},
-                    },
-                )(),
-                type(
-                    "MatchedBackupObject",
-                    (),
-                    {
-                        "backup_object_id": "backup-object-2",
-                        "machine_name": "db02.domain.com",
-                        "backup_item": {"id": "backup-object-2", "name": "db02.domain.com"},
-                    },
-                )(),
-            ],
-            "backups_received_total": 2,
-            "backups_matched_total": 2,
-            "backups_unmatched_total": 0,
-            "backups_missing_machine_name": 0,
-            "matched_backup_ids_sample": ["backup-object-1", "backup-object-2"],
-            "unmatched_backup_ids_sample": [],
-            "unmatched_machine_names_sample": [],
-            "missing_machine_name_backup_ids_sample": [],
-            "missing_machine_name_backup_names_sample": [],
-        },
-    )()
+    session = VeeamProviderSession(
+        base_url="https://veeam.example.com:9419",
+        access_token="token-1",
+        api_version="1.3-rev1",
+        verify_ssl=True,
+    )
+    match_result = VeeamBackupObjectMatchResult(
+        matched_backup_objects=[
+            VeeamMatchedBackupObject(
+                backup_object_id="backup-object-1",
+                machine_name="db01.domain.com",
+                backup_item={"id": "backup-object-1", "name": "db01.domain.com"},
+            ),
+            VeeamMatchedBackupObject(
+                backup_object_id="backup-object-2",
+                machine_name="db02.domain.com",
+                backup_item={"id": "backup-object-2", "name": "db02.domain.com"},
+            ),
+        ],
+        backups_received_total=2,
+        backups_matched_total=2,
+        backups_unmatched_total=0,
+        backups_missing_machine_name=0,
+        matched_backup_ids_sample=["backup-object-1", "backup-object-2"],
+    )
 
     result = provider.fetch_restore_point_records(session=session, match_result=match_result)
 
@@ -629,16 +721,12 @@ def test_http_veeam_provider_fetch_backup_file_items_tracks_progress_and_normali
         return _FakeResponse(payloads[len(captured_urls) - 1])
 
     provider = HttpVeeamProvider(opener=_fake_opener)
-    session = type(
-        "ProviderSession",
-        (),
-        {
-            "base_url": "https://veeam.example.com:9419",
-            "access_token": "token-1",
-            "api_version": "1.3-rev1",
-            "verify_ssl": True,
-        },
-    )()
+    session = VeeamProviderSession(
+        base_url="https://veeam.example.com:9419",
+        access_token="token-1",
+        api_version="1.3-rev1",
+        verify_ssl=True,
+    )
 
     result = provider.fetch_backup_file_records(session=session, backup_ids=["backup-1", "backup-2"])
 
@@ -691,16 +779,12 @@ def test_http_veeam_provider_fetch_backup_file_items_skips_timeout_and_preserves
         return _FakeResponse(payloads[len(captured_urls) - 1])
 
     provider = HttpVeeamProvider(opener=_fake_opener)
-    session = type(
-        "ProviderSession",
-        (),
-        {
-            "base_url": "https://veeam.example.com:9419",
-            "access_token": "token-1",
-            "api_version": "1.3-rev1",
-            "verify_ssl": True,
-        },
-    )()
+    session = VeeamProviderSession(
+        base_url="https://veeam.example.com:9419",
+        access_token="token-1",
+        api_version="1.3-rev1",
+        verify_ssl=True,
+    )
 
     result = provider.fetch_backup_file_records(session=session, backup_ids=["backup-1", "backup-2"])
 
