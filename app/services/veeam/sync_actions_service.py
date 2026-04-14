@@ -924,6 +924,7 @@ class VeeamSyncActionsService:
         return VeeamMachineBackupRecord(
             machine_name=latest_record.machine_name,
             backup_at=latest_record.backup_at,
+            machine_ip=latest_record.machine_ip,
             backup_id=latest_record.backup_id,
             backup_file_id=latest_record.backup_file_id,
             job_name=latest_record.job_name,
@@ -1101,16 +1102,22 @@ class VeeamSyncActionsService:
             if exact_matches:
                 filtered_candidates = exact_matches
 
-        if record.backup_at is not None:
+        record_backup_at = record.backup_at
+        if record_backup_at is not None:
             candidates_with_time = [candidate for candidate in filtered_candidates if candidate.backup_at is not None]
             if candidates_with_time:
-                return min(
-                    candidates_with_time,
-                    key=lambda candidate: (
-                        abs((candidate.backup_at - record.backup_at).total_seconds()),
+                def _time_distance_key(candidate: VeeamBackupFileRecord) -> tuple[float, int, str]:
+                    if candidate.backup_at is None:
+                        return (float("inf"), 1, candidate.backup_file_id or "")
+                    return (
+                        abs((candidate.backup_at - record_backup_at).total_seconds()),
                         0 if candidate.backup_file_id == record.backup_file_id else 1,
                         candidate.backup_file_id or "",
-                    ),
+                    )
+
+                return min(
+                    candidates_with_time,
+                    key=_time_distance_key,
                 )
 
         return sorted(

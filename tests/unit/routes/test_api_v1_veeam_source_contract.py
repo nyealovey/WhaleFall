@@ -1,16 +1,17 @@
+from datetime import UTC, datetime
+
 import pytest
 
 from app import create_app, db
 from app.models.credential import Credential
-from datetime import UTC, datetime
-
 from app.models.instance import Instance
 from app.models.user import User
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.models.veeam_source_binding import VeeamSourceBinding
 from app.repositories.veeam_repository import VeeamRepository
-from app.services.veeam.provider import VeeamMachineBackupRecord
+from app.services.veeam.provider import VeeamBackupFileCollection, VeeamBackupFileRecord, VeeamMachineBackupRecord
 from app.services.veeam.sync_actions_service import VeeamSyncPreparedRun
+from app.settings import DEFAULT_VEEAM_API_VERSION
 
 
 @pytest.mark.unit
@@ -56,7 +57,7 @@ def test_api_v1_veeam_source_contract() -> None:
         assert "veeam_credentials" in data
         assert data.get("provider_ready") is True
         assert data.get("default_port") == 9419
-        assert data.get("default_api_version") == "1.3-rev1"
+        assert data.get("default_api_version") == DEFAULT_VEEAM_API_VERSION
         assert data.get("default_verify_ssl") is True
         assert data.get("default_match_domains") == []
         veeam_credentials = data.get("veeam_credentials")
@@ -203,7 +204,7 @@ def test_api_v1_veeam_sync_action_contract(monkeypatch) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_veeam_single_instance_sync_preserves_unrelated_snapshots(monkeypatch) -> None:
+def test_api_v1_veeam_single_instance_sync_preserves_unrelated_snapshots(monkeypatch) -> None:  # noqa: PLR0915
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
 
@@ -237,34 +238,29 @@ def test_api_v1_veeam_single_instance_sync_preserves_unrelated_snapshots(monkeyp
         )
         db.session.add_all([user, instance, veeam_credential])
         db.session.flush()
-        db.session.add(
-            VeeamSourceBinding(
-                credential_id=veeam_credential.id,
-                server_host="10.0.0.10",
-                server_port=9419,
-                api_version="1.3-rev1",
-                verify_ssl=False,
-                match_domains=["domain.com"],
-            )
-        )
-        db.session.add_all(
-            [
-                VeeamMachineBackupSnapshot(
-                    machine_name="db01.domain.com",
-                    normalized_machine_name="db01.domain.com",
-                    latest_backup_at=datetime(2026, 3, 25, 1, 0, tzinfo=UTC),
-                    raw_payload={"id": "rp-old-db01"},
-                    sync_run_id="old-run",
-                ),
-                VeeamMachineBackupSnapshot(
-                    machine_name="db02.domain.com",
-                    normalized_machine_name="db02.domain.com",
-                    latest_backup_at=datetime(2026, 3, 25, 1, 0, tzinfo=UTC),
-                    raw_payload={"id": "rp-old-db02"},
-                    sync_run_id="old-run",
-                ),
-            ]
-        )
+        binding = VeeamSourceBinding()
+        binding.credential_id = veeam_credential.id
+        binding.server_host = "10.0.0.10"
+        binding.server_port = 9419
+        binding.api_version = "1.3-rev1"
+        binding.verify_ssl = False
+        binding.match_domains = ["domain.com"]
+        db.session.add(binding)
+
+        db01_snapshot = VeeamMachineBackupSnapshot()
+        db01_snapshot.machine_name = "db01.domain.com"
+        db01_snapshot.normalized_machine_name = "db01.domain.com"
+        db01_snapshot.latest_backup_at = datetime(2026, 3, 25, 1, 0, tzinfo=UTC)
+        db01_snapshot.raw_payload = {"id": "rp-old-db01"}
+        db01_snapshot.sync_run_id = "old-run"
+
+        db02_snapshot = VeeamMachineBackupSnapshot()
+        db02_snapshot.machine_name = "db02.domain.com"
+        db02_snapshot.normalized_machine_name = "db02.domain.com"
+        db02_snapshot.latest_backup_at = datetime(2026, 3, 25, 1, 0, tzinfo=UTC)
+        db02_snapshot.raw_payload = {"id": "rp-old-db02"}
+        db02_snapshot.sync_run_id = "old-run"
+        db.session.add_all([db01_snapshot, db02_snapshot])
         db.session.commit()
 
         class _FakeSession:
@@ -305,7 +301,52 @@ def test_api_v1_veeam_single_instance_sync_preserves_unrelated_snapshots(monkeyp
             @staticmethod
             def _collect_paginated_items(**kwargs) -> list[dict[str, object]]:
                 del kwargs
-                return [{"id": "rp-new-db01"}]
+                return [
+                    {
+                        "id": "rp-new-db01-2",
+                        "backupId": "backup-db01",
+                        "creationTime": "2026-03-25T02:00:00+00:00",
+                    },
+                    {
+                        "id": "rp-new-db01-1",
+                        "backupId": "backup-db01",
+                        "creationTime": "2026-03-25T01:30:00+00:00",
+                    },
+                ]
+
+            @staticmethod
+            def fetch_backup_file_records(*, session, backup_ids: list[str]) -> VeeamBackupFileCollection:
+                del session
+                assert backup_ids == ["backup-db01"]
+                return VeeamBackupFileCollection(
+                    records=[
+                        VeeamBackupFileRecord(
+                            backup_id="backup-db01",
+                            backup_file_id="file-2",
+                            object_id="object-1",
+                            restore_point_ids=["rp-new-db01-2"],
+                            data_size_bytes=425819216,
+                            backup_size_bytes=117592064,
+                            compress_ratio=27,
+                            backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                            raw_payload={"id": "file-2"},
+                        ),
+                        VeeamBackupFileRecord(
+                            backup_id="backup-db01",
+                            backup_file_id="file-1",
+                            object_id="object-1",
+                            restore_point_ids=["rp-new-db01-1"],
+                            data_size_bytes=225819216,
+                            backup_size_bytes=17592064,
+                            compress_ratio=31,
+                            backup_at=datetime(2026, 3, 25, 1, 30, tzinfo=UTC),
+                            raw_payload={"id": "file-1"},
+                        ),
+                    ],
+                    received_total=2,
+                    backup_ids_total=1,
+                    backup_ids_completed=1,
+                )
 
             @staticmethod
             def _normalize_backup_record(
@@ -314,12 +355,18 @@ def test_api_v1_veeam_single_instance_sync_preserves_unrelated_snapshots(monkeyp
                 backup_item: dict[str, object] | None = None,
                 backup_machine_name: str | None = None,
             ) -> VeeamMachineBackupRecord:
-                del item, backup_item
+                del backup_item
+                backup_at = (
+                    datetime(2026, 3, 25, 2, 0, tzinfo=UTC)
+                    if item.get("id") == "rp-new-db01-2"
+                    else datetime(2026, 3, 25, 1, 30, tzinfo=UTC)
+                )
                 return VeeamMachineBackupRecord(
                     machine_name=backup_machine_name or "db01.domain.com",
-                    backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
-                    source_record_id="rp-new-db01",
-                    raw_payload={"id": "rp-new-db01"},
+                    backup_at=backup_at,
+                    backup_id="backup-db01",
+                    source_record_id=str(item["id"]),
+                    raw_payload=dict(item),
                 )
 
         captured_upsert: dict[str, object] = {}
@@ -358,5 +405,14 @@ def test_api_v1_veeam_single_instance_sync_preserves_unrelated_snapshots(monkeyp
         records = captured_upsert.get("records")
         assert isinstance(records, list)
         assert len(records) == 1
-        assert records[0].source_record_id == "rp-new-db01"
+        assert records[0].source_record_id == "rp-new-db01-2"
+        assert records[0].restore_point_count == 2
+        assert records[0].backup_chain_size_bytes == 135184128
+        assert records[0].raw_payload["restore_point_times"] == [
+            "2026-03-25T02:00:00+00:00",
+            "2026-03-25T01:30:00+00:00",
+        ]
+        assert len(records[0].raw_payload["restore_points"]) == 2
+        assert records[0].raw_payload["restore_points"][0]["backupSize"] == 117592064
+        assert records[0].raw_payload["restore_points"][1]["backupSize"] == 17592064
         assert captured_upsert["sync_run_id"] == f"single_sync_{instance.id}"
