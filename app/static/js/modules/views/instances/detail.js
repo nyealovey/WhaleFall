@@ -34,11 +34,6 @@
         loaded: false,
         loading: false,
         payload: null,
-        filters: {
-            includeDisabled: false,
-            scope: 'all',
-            search: '',
-        },
     };
     const backupInfoState = {
         loaded: false,
@@ -2363,21 +2358,7 @@ function renderAuditInfo(payload) {
         ? snapshot.database_audit_specifications
         : [];
     const warnings = Array.isArray(facts.warnings) ? facts.warnings : [];
-    const scope = auditInfoState.filters.scope || 'all';
-    const search = (auditInfoState.filters.search || '').trim().toLowerCase();
-    const includeDisabled = auditInfoState.filters.includeDisabled === true;
-
-    const filteredAudits = serverAudits.filter((item) => matchAuditTarget(item, { search, includeDisabled }));
-    const filteredServerSpecs = serverSpecs.filter((item) => matchAuditSpec(item, { search, includeDisabled }));
-    const filteredDatabaseSpecs = databaseSpecs.filter((item) => matchAuditSpec(item, { search, includeDisabled }));
-
-    const showAudits = scope === 'all' || scope === 'audit_targets';
-    const showSpecs = scope === 'all' || scope === 'server_specs' || scope === 'database_specs';
-    const visibleSpecs = scope === 'server_specs'
-        ? filteredServerSpecs
-        : scope === 'database_specs'
-            ? filteredDatabaseSpecs
-            : [...filteredServerSpecs, ...filteredDatabaseSpecs];
+    const allSpecifications = [...serverSpecs, ...databaseSpecs];
 
     contentDiv.html(`
         <section class="instance-overview-band instance-overview-band--audit">
@@ -2416,32 +2397,14 @@ function renderAuditInfo(payload) {
                 </article>
             </div>
             <div class="instance-overview-band__controls">
-                <form class="instance-overview-band__toolbar" action="#">
-                    <div class="form-check form-switch mb-0 instance-overview-band__toggle">
-                        <input class="form-check-input" type="checkbox" role="switch" id="showDisabledAudits" data-action="toggle-audit-disabled" ${includeDisabled ? 'checked' : ''}>
-                        <label class="form-check-label" for="showDisabledAudits">
-                            <i class="fas fa-eye me-1"></i>显示未启用项
-                        </label>
-                    </div>
-                    <select class="form-select form-select-sm" data-action="filter-audit-scope" style="max-width: 13rem;">
-                        <option value="all" ${scope === 'all' ? 'selected' : ''}>全部范围</option>
-                        <option value="audit_targets" ${scope === 'audit_targets' ? 'selected' : ''}>仅审计目标</option>
-                        <option value="server_specs" ${scope === 'server_specs' ? 'selected' : ''}>仅服务规范</option>
-                        <option value="database_specs" ${scope === 'database_specs' ? 'selected' : ''}>仅数据库规范</option>
-                    </select>
-                    <div class="input-group input-group-sm instance-overview-band__search">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" placeholder="搜索名称 / 数据库 / 目标" data-action="filter-audit-search" value="${escapeHtml(auditInfoState.filters.search || '')}" autocomplete="off">
-                    </div>
-                </form>
                 <div class="instance-overview-band__realtime">
                     <span class="chip-outline chip-outline--muted"><i class="fas fa-clock me-1"></i>${escapeHtml(formatAuditSyncTime(data.last_sync_time))}</span>
                 </div>
             </div>
         </section>
         ${renderAuditWarnings(warnings)}
-        ${showAudits ? renderAuditTargetsSection(filteredAudits, serverAudits.length) : ''}
-        ${showSpecs ? renderAuditSpecificationsSection(visibleSpecs, serverSpecs.length + databaseSpecs.length, scope) : ''}
+        ${renderAuditTargetsSection(serverAudits, serverAudits.length)}
+        ${renderAuditSpecificationsSection(allSpecifications, allSpecifications.length)}
     `);
 }
 
@@ -2530,12 +2493,12 @@ function renderAuditTargetsSection(audits, totalCount) {
                 <td>${escapeHtml(formatAuditTimestamp(audit.updated_at || audit.created_at))}</td>
             </tr>
         `).join('')
-        : `<tr><td colspan="6"><div class="instance-audit-empty">当前筛选条件下没有审计目标</div></td></tr>`;
+        : `<tr><td colspan="6"><div class="instance-audit-empty">没有审计目标</div></td></tr>`;
     return `
         <section class="instance-audit-section">
             <header class="instance-audit-section__header">
                 <h3 class="instance-audit-section__title"><i class="fas fa-shield-halved"></i>审计目标</h3>
-                <span class="instance-audit-section__meta">显示 ${escapeHtml(String(rows.length))} / ${escapeHtml(String(totalCount || 0))}</span>
+                <span class="instance-audit-section__meta">共 ${escapeHtml(String(totalCount || 0))} 项</span>
             </header>
             <div class="table-responsive">
                 <table class="table table-hover instance-audit-table">
@@ -2556,13 +2519,8 @@ function renderAuditTargetsSection(audits, totalCount) {
     `;
 }
 
-function renderAuditSpecificationsSection(specifications, totalCount, scope) {
+function renderAuditSpecificationsSection(specifications, totalCount) {
     const rows = Array.isArray(specifications) ? specifications : [];
-    const title = scope === 'server_specs'
-        ? '服务审计规范'
-        : scope === 'database_specs'
-            ? '数据库审计规范'
-            : '审计规范';
     const body = rows.length
         ? rows.map((spec) => `
             <tr>
@@ -2579,12 +2537,12 @@ function renderAuditSpecificationsSection(specifications, totalCount, scope) {
                 <td>${renderAuditActionList(spec.actions)}</td>
             </tr>
         `).join('')
-        : `<tr><td colspan="6"><div class="instance-audit-empty">当前筛选条件下没有审计规范</div></td></tr>`;
+        : `<tr><td colspan="6"><div class="instance-audit-empty">没有审计规范</div></td></tr>`;
     return `
         <section class="instance-audit-section">
             <header class="instance-audit-section__header">
-                <h3 class="instance-audit-section__title"><i class="fas fa-list-check"></i>${escapeHtml(title)}</h3>
-                <span class="instance-audit-section__meta">显示 ${escapeHtml(String(rows.length))} / ${escapeHtml(String(totalCount || 0))}</span>
+                <h3 class="instance-audit-section__title"><i class="fas fa-list-check"></i>审计规范</h3>
+                <span class="instance-audit-section__meta">共 ${escapeHtml(String(totalCount || 0))} 项</span>
             </header>
             <div class="table-responsive">
                 <table class="table table-hover instance-audit-table">
@@ -2605,51 +2563,6 @@ function renderAuditSpecificationsSection(specifications, totalCount, scope) {
     `;
 }
 
-function matchAuditTarget(item, options) {
-    const entry = item && typeof item === 'object' ? item : {};
-    const search = options?.search || '';
-    if (!options?.includeDisabled && entry.enabled !== true) {
-        return false;
-    }
-    if (!search) {
-        return true;
-    }
-    const haystack = [
-        entry.name,
-        entry.target_type,
-        entry.target_summary,
-        entry.file_path,
-        entry.on_failure,
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-    return haystack.includes(search);
-}
-
-function matchAuditSpec(item, options) {
-    const entry = item && typeof item === 'object' ? item : {};
-    const search = options?.search || '';
-    if (!options?.includeDisabled && entry.enabled !== true) {
-        return false;
-    }
-    if (!search) {
-        return true;
-    }
-    const actionPreview = renderAuditActionSearchText(entry.actions);
-    const haystack = [
-        entry.name,
-        entry.audit_name,
-        entry.database_name,
-        entry.scope,
-        actionPreview,
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-    return haystack.includes(search);
-}
-
 function renderAuditStatusPill(enabled) {
     return enabled
         ? '<span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>启用</span>'
@@ -2661,14 +2574,6 @@ function renderAuditScopePill(scope) {
         return '<span class="chip-outline chip-outline--info">DATABASE</span>';
     }
     return '<span class="chip-outline chip-outline--brand">SERVER</span>';
-}
-
-function renderAuditActionSearchText(actions) {
-    const list = Array.isArray(actions) ? actions : [];
-    return list
-        .map((action) => resolveAuditActionDisplayText(action))
-        .filter(Boolean)
-        .join(' ');
 }
 
 function renderAuditActionList(actions) {
@@ -3092,28 +2997,8 @@ function bindTemplateActions() {
             case 'toggle-deleted-databases':
                 toggleDeletedDatabases();
                 break;
-            case 'toggle-audit-disabled':
-                auditInfoState.filters.includeDisabled = Boolean(actionEl.checked);
-                renderAuditInfo(auditInfoState.payload);
-                break;
-            case 'filter-audit-scope':
-                auditInfoState.filters.scope = actionEl.value || 'all';
-                renderAuditInfo(auditInfoState.payload);
-                break;
             default:
                 break;
-        }
-    });
-
-    root.addEventListener('input', (event) => {
-        const actionEl = event.target.closest('[data-action]');
-        if (!actionEl) {
-            return;
-        }
-        const action = actionEl.getAttribute('data-action');
-        if (action === 'filter-audit-search') {
-            auditInfoState.filters.search = actionEl.value || '';
-            renderAuditInfo(auditInfoState.payload);
         }
     });
 }

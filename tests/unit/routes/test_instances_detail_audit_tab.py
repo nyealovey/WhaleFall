@@ -1,9 +1,66 @@
 from __future__ import annotations
 
+from html.parser import HTMLParser
+
 import pytest
 
 from app import db
 from app.models.instance import Instance
+
+
+class _DatabaseInfoTabContentParser(HTMLParser):
+    _VOID_TAGS = {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    }
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._stack: list[dict[str, str]] = []
+        self._tab_content_depth: int | None = None
+        self.direct_pane_ids: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr_map = {
+            key: value or ""
+            for key, value in attrs
+        }
+        if (
+            self._tab_content_depth is not None
+            and len(self._stack) == self._tab_content_depth + 1
+            and tag == "div"
+        ):
+            class_names = set(attr_map.get("class", "").split())
+            if {"tab-pane", "instance-data-pane"}.issubset(class_names):
+                self.direct_pane_ids.append(attr_map.get("id", ""))
+
+        if tag not in self._VOID_TAGS:
+            self._stack.append({"tag": tag, "id": attr_map.get("id", "")})
+        if attr_map.get("id") == "databaseInfoTabContent" and tag not in self._VOID_TAGS:
+            self._tab_content_depth = len(self._stack) - 1
+
+    def handle_endtag(self, tag: str) -> None:
+        while self._stack:
+            node = self._stack.pop()
+            if (
+                self._tab_content_depth is not None
+                and len(self._stack) < self._tab_content_depth + 1
+            ):
+                self._tab_content_depth = None
+            if node["tag"] == tag:
+                break
 
 
 def _ensure_tables(app) -> None:
@@ -57,6 +114,35 @@ def test_instances_detail_page_includes_audit_tab_and_sync_action(app, auth_clie
     assert '<div class="instance-data-pane__stack">' in backup_pane_html
     assert 'id="backupInfoContent"' in backup_pane_html
     assert "尚未加载备份信息" not in backup_pane_html
+
+
+@pytest.mark.unit
+def test_instances_detail_page_keeps_all_data_panes_under_same_tab_content(app, auth_client) -> None:
+    _ensure_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sqlserver-tabs-structure",
+            db_type="sqlserver",
+            host="127.0.0.1",
+            port=1433,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    response = auth_client.get(f"/instances/{instance_id}")
+
+    assert response.status_code == 200
+    parser = _DatabaseInfoTabContentParser()
+    parser.feed(response.get_data(as_text=True))
+    assert parser.direct_pane_ids == [
+        "accounts-pane",
+        "capacity-pane",
+        "audit-pane",
+        "backup-pane",
+    ]
 
 
 @pytest.mark.unit

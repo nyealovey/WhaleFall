@@ -1,0 +1,39 @@
+<!-- 数据库信息标签页 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card instance-data-card mb-4">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs instance-data-tabs" id="databaseInfoTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts-pane" type="button" role="tab" aria-controls="accounts-pane" aria-selected="true">
+                            <i class="fas fa-users me-2"></i>账户信息
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#capacity-pane" type="button" role="tab" aria-controls="capacity-pane" aria-selected="false">
+                            <i class="fas fa-chart-pie me-2"></i>容量信息
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit-pane" type="button" role="tab" aria-controls="audit-pane" aria-selected="false">
+                            <i class="fas fa-shield-halved me-2"></i>审计信息
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup-pane" type="button" role="tab" aria-controls="backup-pane" aria-selected="false">
+                            <i class="fas fa-hard-drive me-2"></i>备份信息
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body instance-data-panel">
+                <div class="tab-content" id="databaseInfoTabContent">
+                    {% include 'instances/partials/detail/_accounts_pane.html' %}
+                    {% include 'instances/partials/detail/_capacity_pane.html' %}
+                    {% include 'instances/partials/detail/_audit_pane.html' %}
+                    {% include 'instances/partials/detail/_backup_pane.html' %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
