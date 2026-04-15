@@ -1,0 +1,96 @@
+<!-- 账户信息标签页 -->
+<div class="tab-pane fade show active instance-data-pane" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
+    {% set active_accounts = account_summary.active or 0 %}
+    {% set deleted_accounts = account_summary.deleted or 0 %}
+    {% set superuser_accounts = account_summary.superuser or 0 %}
+    {% set total_accounts = active_accounts + deleted_accounts %}
+
+    <div class="instance-data-pane__stack">
+        <section class="instance-overview-band instance-overview-band--accounts">
+            <div class="instance-overview-band__facts">
+                <article class="instance-overview-band__fact" data-tone="brand">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">当前账户</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-users"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="accountTotalCount">{{ total_accounts }}</strong>
+                    <span class="status-pill status-pill--muted">
+                        <i class="fas fa-layer-group" aria-hidden="true"></i>当前结果
+                    </span>
+                </article>
+
+                <article class="instance-overview-band__fact" data-tone="success">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">活跃账户</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-user-check"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="accountActiveCount">{{ active_accounts }}</strong>
+                    <span class="status-pill status-pill--success">
+                        <i class="fas fa-user-check" aria-hidden="true"></i>活跃
+                    </span>
+                </article>
+
+                <article class="instance-overview-band__fact" data-tone="danger">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">已删除账户</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-user-slash"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="accountDeletedCount">{{ deleted_accounts }}</strong>
+                    <span class="status-pill status-pill--danger">
+                        <i class="fas fa-user-slash" aria-hidden="true"></i>已删除
+                    </span>
+                </article>
+
+                <article class="instance-overview-band__fact" data-tone="info">
+                    <div class="instance-overview-band__fact-header">
+                        <span class="instance-overview-band__fact-label">超管账户</span>
+                        <span class="instance-overview-band__fact-icon" aria-hidden="true">
+                            <i class="fas fa-crown"></i>
+                        </span>
+                    </div>
+                    <strong class="instance-overview-band__fact-value" id="accountSuperuserCount">{{ superuser_accounts }}</strong>
+                    <span class="status-pill status-pill--info">
+                        <i class="fas fa-crown" aria-hidden="true"></i>超管
+                    </span>
+                </article>
+            </div>
+
+            <div class="instance-overview-band__controls filter-band">
+                <form id="instance-accounts-filter-form" action="#" class="instance-overview-band__toolbar filter-band__form">
+                    <div class="form-check form-switch mb-0 instance-overview-band__toggle filter-band__toggle">
+                        <input class="form-check-input" type="checkbox" role="switch" id="showDeletedAccounts"
+                               name="include_deleted"
+                               value="true"
+                               data-action="toggle-deleted-accounts">
+                        <label class="form-check-label" for="showDeletedAccounts">
+                            <i class="fas fa-eye-slash me-1"></i>显示已删除账户
+                        </label>
+                    </div>
+                    <div class="input-group input-group-sm instance-overview-band__search filter-band__field filter-band__field--lg">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text"
+                               class="form-control"
+                               id="accountSearchInput"
+                               name="search"
+                               data-auto-submit
+                               placeholder="搜索账户"
+                               autocomplete="off">
+                    </div>
+                </form>
+                <div class="instance-overview-band__realtime filter-band__meta">
+                    <span class="chip-outline chip-outline--muted"><i class="fas fa-info-circle me-1"></i>实时</span>
+                </div>
+            </div>
+        </section>
+
+        <div id="instance-accounts-grid" class="instance-data-grid"></div>
+    </div>
+</div>

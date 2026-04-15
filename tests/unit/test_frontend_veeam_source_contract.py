@@ -36,6 +36,12 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
     instance_list_js = _read_text("app/static/js/modules/views/instances/list.js")
     instance_detail_js = _read_text("app/static/js/modules/views/instances/detail.js")
     instance_detail_css = _read_text("app/static/css/pages/instances/detail.css")
+    instance_detail_template = _read_text("app/templates/instances/detail.html")
+    instance_tabs_partial = _read_text("app/templates/instances/partials/detail/_data_tabs_card.html")
+    instance_accounts_partial = _read_text("app/templates/instances/partials/detail/_accounts_pane.html")
+    instance_capacity_partial = _read_text("app/templates/instances/partials/detail/_capacity_pane.html")
+    instance_audit_partial = _read_text("app/templates/instances/partials/detail/_audit_pane.html")
+    instance_backup_partial = _read_text("app/templates/instances/partials/detail/_backup_pane.html")
 
     source_fragments = (
         "function mountVeeamSourcePage",
@@ -90,6 +96,19 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
     for fragment in detail_fragments:
         assert fragment in instance_detail_js
 
+    assert "{% include 'instances/partials/detail/_data_tabs_card.html' %}" in instance_detail_template
+    assert "id=\"databaseInfoTabContent\"" in instance_tabs_partial
+    assert "{% include 'instances/partials/detail/_accounts_pane.html' %}" in instance_tabs_partial
+    assert "{% include 'instances/partials/detail/_capacity_pane.html' %}" in instance_tabs_partial
+    assert "{% include 'instances/partials/detail/_audit_pane.html' %}" in instance_tabs_partial
+    assert "{% include 'instances/partials/detail/_backup_pane.html' %}" in instance_tabs_partial
+    assert "id=\"accounts-pane\"" in instance_accounts_partial
+    assert "id=\"capacity-pane\"" in instance_capacity_partial
+    assert "id=\"audit-pane\"" in instance_audit_partial
+    assert "id=\"backup-pane\"" in instance_backup_partial
+    assert "id=\"backupInfoContent\"" in instance_backup_partial
+    assert "备份信息将在此展示" in instance_backup_partial
+
     assert (
         "contentDiv.html(`\n"
         '        <section class="instance-overview-band instance-overview-band--capacity">'
@@ -126,3 +145,24 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
     assert "#databaseInfoTabContent > .instance-data-pane.active" in instance_detail_css
     assert "#backup-pane .instance-data-pane__stack" not in instance_detail_css
     assert "#backupInfoContent {" not in instance_detail_css
+
+
+def test_instance_detail_audit_view_removes_filters_and_defaults_to_full_visibility() -> None:
+    instance_detail_js = _read_text("app/static/js/modules/views/instances/detail.js")
+
+    assert "showDisabledAudits" not in instance_detail_js
+    assert "toggle-audit-disabled" not in instance_detail_js
+    assert "filter-audit-scope" not in instance_detail_js
+    assert "filter-audit-search" not in instance_detail_js
+    assert "显示未启用项" not in instance_detail_js
+    assert "全部范围" not in instance_detail_js
+    assert "搜索名称 / 数据库 / 目标" not in instance_detail_js
+    assert "includeDisabled: false" not in instance_detail_js
+    assert "scope: 'all'" not in instance_detail_js
+    assert "search: ''" not in instance_detail_js
+    assert "matchAuditTarget(item" not in instance_detail_js
+    assert "matchAuditSpec(item" not in instance_detail_js
+    assert "当前筛选条件下没有审计目标" not in instance_detail_js
+    assert "当前筛选条件下没有审计规范" not in instance_detail_js
+    assert "没有审计目标" in instance_detail_js
+    assert "没有审计规范" in instance_detail_js

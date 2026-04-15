@@ -1,0 +1,30 @@
+<!-- 审计信息标签页 -->
+<div class="tab-pane fade instance-data-pane" id="audit-pane" role="tabpanel" aria-labelledby="audit-tab">
+    <div class="instance-data-pane__stack">
+        <div id="auditInfoContent">
+            {% if instance.db_type|lower == 'sqlserver' %}
+            <section class="instance-audit-placeholder">
+                <div class="instance-audit-placeholder__icon">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+                <div class="instance-audit-placeholder__content">
+                    <span class="chip-outline chip-outline--brand">SQL SERVER</span>
+                    <h3 class="instance-audit-placeholder__title">尚未采集审计信息</h3>
+                    <p class="instance-audit-placeholder__text">点击「同步审计」后，将在这里集中展示审计目标、审计规范和覆盖数据库概览。</p>
+                </div>
+            </section>
+            {% else %}
+            <section class="instance-audit-placeholder instance-audit-placeholder--muted">
+                <div class="instance-audit-placeholder__icon">
+                    <i class="fas fa-circle-info"></i>
+                </div>
+                <div class="instance-audit-placeholder__content">
+                    <span class="chip-outline chip-outline--muted">{{ instance.db_type.upper() }}</span>
+                    <h3 class="instance-audit-placeholder__title">当前实例暂不支持审计采集</h3>
+                    <p class="instance-audit-placeholder__text">审计页入口已预留。首期仅支持 SQL Server，后续可以在同一标签下继续扩展其他数据库的审计与安全配置。</p>
+                </div>
+            </section>
+            {% endif %}
+        </div>
+    </div>
+</div>
