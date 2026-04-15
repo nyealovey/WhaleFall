@@ -17,12 +17,14 @@ ALERT_TYPE_LABELS = {
     "database_sync_failure": "数据库同步异常",
     "account_sync_failure": "账户同步异常",
     "privileged_account_discovery": "新增高权限账户",
+    "backup_status_issue": "备份告警",
 }
 ALERT_RULES = (
     ("database_capacity_growth", "数据库容量异常增长", "database_capacity_enabled"),
     ("account_sync_failure", "账户同步异常", "account_sync_failure_enabled"),
     ("database_sync_failure", "数据库同步异常", "database_sync_failure_enabled"),
     ("privileged_account_discovery", "新增高权限账户", "privileged_account_enabled"),
+    ("backup_status_issue", "备份告警", "backup_issue_enabled"),
 )
 SEND_STEP_ITEM_KEY = "deliver_digest"
 SEND_STEP_ITEM_NAME = "发送汇总邮件"
@@ -188,6 +190,8 @@ class EmailAlertDigestService:
             return f"{payload.get('instance_name')} - {payload.get('error_message')}"
         if alert_type == "privileged_account_discovery":
             return f"{payload.get('instance_name')} / {payload.get('username')} - {payload.get('reason')}"
+        if alert_type == "backup_status_issue":
+            return f"{payload.get('instance_name')} - {payload.get('reason_text')}"
         return str(payload)
 
     @staticmethod

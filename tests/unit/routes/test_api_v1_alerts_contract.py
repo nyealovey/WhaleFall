@@ -88,6 +88,7 @@ def test_api_v1_alerts_email_settings_contract(app, auth_client) -> None:
             "account_sync_failure_enabled": True,
             "database_sync_failure_enabled": True,
             "privileged_account_enabled": True,
+            "backup_issue_enabled": True,
         },
         headers=headers,
     )
@@ -105,6 +106,7 @@ def test_api_v1_alerts_email_settings_contract(app, auth_client) -> None:
     assert updated_settings.get("account_sync_failure_enabled") is True
     assert updated_settings.get("database_sync_failure_enabled") is True
     assert updated_settings.get("privileged_account_enabled") is True
+    assert updated_settings.get("backup_issue_enabled") is True
 
 
 @pytest.mark.unit

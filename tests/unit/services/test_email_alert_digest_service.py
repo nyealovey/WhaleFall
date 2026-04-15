@@ -20,6 +20,7 @@ class _DummySettings:
     account_sync_failure_enabled: bool = False
     database_sync_failure_enabled: bool = False
     privileged_account_enabled: bool = False
+    backup_issue_enabled: bool = False
 
 
 @dataclass(slots=True)
@@ -149,6 +150,15 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
             "display_state": "disabled",
             "summary": "规则未启用",
         },
+        {
+            "item_key": "backup_status_issue",
+            "item_name": "备份告警",
+            "enabled": False,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "disabled",
+            "summary": "规则未启用",
+        },
     ]
     assert summary["send_step"] == {
         "item_key": "deliver_digest",
@@ -176,6 +186,7 @@ def test_email_alert_digest_service_reports_skip_structure_when_no_pending_event
         account_sync_failure_enabled=True,
         database_sync_failure_enabled=True,
         privileged_account_enabled=True,
+        backup_issue_enabled=True,
     )
     service = EmailAlertDigestService(
         repository=cast(EmailAlertsRepository, _StubRepository([])),
@@ -236,6 +247,15 @@ def test_email_alert_digest_service_reports_skip_structure_when_no_pending_event
             "display_state": "no_event",
             "summary": "当天未产生事件",
         },
+        {
+            "item_key": "backup_status_issue",
+            "item_name": "备份告警",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
+        },
     ]
 
 
@@ -248,6 +268,7 @@ def test_email_alert_digest_service_distinguishes_already_sent_from_no_event() -
         account_sync_failure_enabled=True,
         database_sync_failure_enabled=True,
         privileged_account_enabled=True,
+        backup_issue_enabled=True,
     )
     repository = _StubRepository(
         [],
@@ -314,4 +335,61 @@ def test_email_alert_digest_service_distinguishes_already_sent_from_no_event() -
             "display_state": "no_event",
             "summary": "当天未产生事件",
         },
+        {
+            "item_key": "backup_status_issue",
+            "item_name": "备份告警",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
+        },
     ]
+
+
+@pytest.mark.unit
+def test_email_alert_digest_service_renders_backup_issue_events() -> None:
+    settings = _DummySettings(global_enabled=True, recipients_json=["ops@example.com"], backup_issue_enabled=True)
+    events = [
+        _DummyEvent(
+            id=3,
+            alert_type="backup_status_issue",
+            payload_json={
+                "instance_name": "sqlserver-prod-1",
+                "reason_text": "当天没有备份",
+            },
+            occurred_at=datetime(2026, 3, 17, 3, 0, tzinfo=UTC),
+        ),
+        _DummyEvent(
+            id=4,
+            alert_type="backup_status_issue",
+            payload_json={
+                "instance_name": "sqlserver-prod-2",
+                "reason_text": "备份异常（最近备份超过24小时）",
+            },
+            occurred_at=datetime(2026, 3, 17, 4, 0, tzinfo=UTC),
+        ),
+    ]
+    repository = _StubRepository(events)
+    sender = _StubSender()
+    service = EmailAlertDigestService(
+        repository=cast(EmailAlertsRepository, repository),
+        sender=cast(EmailSender, sender),
+        settings_service=cast(EmailAlertSettingsService, _StubSettingsService(settings)),
+    )
+
+    summary = service.send_pending_digest(now=datetime(2026, 3, 17, 9, 0, tzinfo=UTC))
+
+    assert summary["sent"] is True
+    assert summary["rule_results"][-1] == {
+        "item_key": "backup_status_issue",
+        "item_name": "备份告警",
+        "enabled": True,
+        "pending_count": 2,
+        "sent_count": 0,
+        "display_state": "pending",
+        "summary": "待发送事件 2 条",
+    }
+    assert sender.calls
+    assert "sqlserver-prod-1 - 当天没有备份" in str(sender.calls[0]["text_body"])
+    assert "sqlserver-prod-2 - 备份异常（最近备份超过24小时）" in str(sender.calls[0]["text_body"])

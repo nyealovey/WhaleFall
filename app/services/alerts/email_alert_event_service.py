@@ -8,7 +8,10 @@ from typing import cast
 from sqlalchemy.exc import IntegrityError
 
 from app.repositories.email_alerts_repository import EmailAlertsRepository
+from app.repositories.instances_repository import InstancesRepository
+from app.repositories.veeam_repository import VeeamRepository
 from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
+from app.services.veeam.instance_backup_read_service import resolve_backup_status
 from app.utils.time_utils import time_utils
 
 LOOKBACK_DAYS = 3
@@ -22,9 +25,13 @@ class EmailAlertEventService:
         self,
         repository: EmailAlertsRepository | None = None,
         settings_service: EmailAlertSettingsService | None = None,
+        instances_repository: InstancesRepository | None = None,
+        veeam_repository: VeeamRepository | None = None,
     ) -> None:
         self._repository = repository or EmailAlertsRepository()
         self._settings_service = settings_service or EmailAlertSettingsService()
+        self._instances_repository = instances_repository or InstancesRepository()
+        self._veeam_repository = veeam_repository or VeeamRepository()
 
     def record_database_capacity_events(
         self,
@@ -169,6 +176,79 @@ class EmailAlertEventService:
             },
         )
 
+    def sync_backup_issue_events_for_active_instances(
+        self,
+        *,
+        occurred_at: datetime | None = None,
+    ) -> int:
+        instances = self._instances_repository.list_active_instances()
+        backup_summary_map = self._veeam_repository.fetch_backup_summary_map(instances)
+        backup_rows: list[dict[str, object]] = []
+        for instance in instances:
+            backup_summary = backup_summary_map.get(int(instance.id), {})
+            latest_backup_at = backup_summary.get("latest_backup_at") if isinstance(backup_summary, dict) else None
+            backup_last_time = latest_backup_at if isinstance(latest_backup_at, str) else None
+            backup_rows.append(
+                {
+                    "instance_id": int(instance.id),
+                    "instance_name": instance.name,
+                    "backup_status": resolve_backup_status(latest_backup_at=backup_last_time),
+                    "backup_last_time": backup_last_time,
+                },
+            )
+        return self.record_backup_issue_events(backup_rows=backup_rows, occurred_at=occurred_at)
+
+    def record_backup_issue_events(
+        self,
+        *,
+        backup_rows: list[dict[str, object]],
+        occurred_at: datetime | None = None,
+    ) -> int:
+        settings = self._settings_service.get_or_create_settings()
+        if not bool(settings.global_enabled) or not bool(getattr(settings, "backup_issue_enabled", False)):
+            return 0
+
+        resolved_occurred_at = occurred_at or time_utils.now()
+        bucket_date = self._resolve_bucket_date(resolved_occurred_at)
+        active_dedupe_keys: set[str] = set()
+        created = 0
+
+        for row in backup_rows:
+            raw_instance_id = row.get("instance_id")
+            if raw_instance_id is None:
+                continue
+            backup_status = str(row.get("backup_status") or "").strip()
+            reason_text = self._resolve_backup_issue_reason_text(backup_status)
+            if reason_text is None:
+                continue
+
+            instance_id = int(cast("int | str", raw_instance_id))
+            dedupe_key = str(instance_id)
+            active_dedupe_keys.add(dedupe_key)
+            payload_json = {
+                "instance_id": instance_id,
+                "instance_name": row.get("instance_name"),
+                "backup_status": backup_status,
+                "backup_last_time": row.get("backup_last_time"),
+                "reason_text": reason_text,
+            }
+            created_flag = self._repository.upsert_backup_issue_event(
+                alert_type="backup_status_issue",
+                occurred_at=resolved_occurred_at,
+                bucket_date=bucket_date,
+                dedupe_key=dedupe_key,
+                instance_id=instance_id,
+                payload_json=payload_json,
+            )
+            if created_flag:
+                created += 1
+
+        self._repository.delete_pending_backup_issue_events_not_in(
+            bucket_date=bucket_date,
+            dedupe_keys=active_dedupe_keys,
+        )
+        return created
+
     def _create_event(self, **payload: object) -> bool:
         try:
             self._repository.create_event(**payload)
@@ -182,3 +262,11 @@ class EmailAlertEventService:
         if china_time is None:
             return time_utils.now_china().date()
         return china_time.date()
+
+    @staticmethod
+    def _resolve_backup_issue_reason_text(backup_status: str) -> str | None:
+        if backup_status == "not_backed_up":
+            return "当天没有备份"
+        if backup_status == "backup_stale":
+            return "备份异常（最近备份超过24小时）"
+        return None

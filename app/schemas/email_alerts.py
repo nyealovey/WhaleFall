@@ -20,6 +20,7 @@ class EmailAlertSettingsPayload(PayloadSchema):
     account_sync_failure_enabled: bool
     database_sync_failure_enabled: bool
     privileged_account_enabled: bool
+    backup_issue_enabled: bool
 
     @field_validator("database_capacity_percent_threshold", "database_capacity_absolute_gb_threshold")
     @classmethod

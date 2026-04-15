@@ -26,6 +26,7 @@ class EmailAlertSetting(db.Model):
     account_sync_failure_enabled = db.Column(db.Boolean, nullable=False, default=False)
     database_sync_failure_enabled = db.Column(db.Boolean, nullable=False, default=False)
     privileged_account_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    backup_issue_enabled = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
 
@@ -40,4 +41,5 @@ class EmailAlertSetting(db.Model):
             "account_sync_failure_enabled": bool(self.account_sync_failure_enabled),
             "database_sync_failure_enabled": bool(self.database_sync_failure_enabled),
             "privileged_account_enabled": bool(self.privileged_account_enabled),
+            "backup_issue_enabled": bool(self.backup_issue_enabled),
         }
