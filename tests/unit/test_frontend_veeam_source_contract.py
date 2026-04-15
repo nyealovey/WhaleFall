@@ -90,6 +90,15 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
     for fragment in detail_fragments:
         assert fragment in instance_detail_js
 
+    assert (
+        "contentDiv.html(`\n"
+        '        <section class="instance-overview-band instance-overview-band--capacity">'
+        in instance_detail_js
+    )
+    assert "contentDiv.html(renderBackupEmptyState(data));" in instance_detail_js
+    assert "function renderBackupEmptyState(data)" in instance_detail_js
+    assert "尚未采集到匹配该实例的备份记录" in instance_detail_js
+
     removed_detail_fragments = (
         "最近还原点大小",
         "最近同步时间",

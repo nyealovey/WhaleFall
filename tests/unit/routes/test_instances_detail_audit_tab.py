@@ -53,8 +53,10 @@ def test_instances_detail_page_includes_audit_tab_and_sync_action(app, auth_clie
     assert 'id="accounts-pane"' in html and "show active instance-data-pane" in html
     assert 'id="backup-tab"' in html
     assert 'id="backup-pane"' in html
-    assert '<div class="instance-data-pane__stack">' in html.split('id="backup-pane"', 1)[1]
-    assert 'id="backupInfoContent"' in html.split('id="backup-pane"', 1)[1]
+    backup_pane_html = html.split('id="backup-pane"', 1)[1]
+    assert '<div class="instance-data-pane__stack">' in backup_pane_html
+    assert 'id="backupInfoContent"' in backup_pane_html
+    assert "尚未加载备份信息" not in backup_pane_html
 
 
 @pytest.mark.unit
