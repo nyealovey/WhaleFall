@@ -32,6 +32,44 @@ class EmailAlertsRepository:
             db.session.flush()
 
     @staticmethod
+    def upsert_backup_issue_event(**payload: object) -> bool:
+        alert_type = str(payload.get("alert_type") or "")
+        bucket_date = payload.get("bucket_date")
+        dedupe_key = str(payload.get("dedupe_key") or "")
+        existing = (
+            EmailAlertEvent.query.filter(
+                EmailAlertEvent.alert_type == alert_type,
+                EmailAlertEvent.bucket_date == bucket_date,
+                EmailAlertEvent.dedupe_key == dedupe_key,
+            )
+            .order_by(EmailAlertEvent.id.asc())
+            .first()
+        )
+        if existing is None:
+            EmailAlertsRepository.create_event(**payload)
+            return True
+        if existing.digest_sent_at is not None:
+            return False
+        for field_name, value in payload.items():
+            if hasattr(existing, str(field_name)):
+                setattr(existing, str(field_name), value)
+        db.session.flush()
+        return False
+
+    @staticmethod
+    def delete_pending_backup_issue_events_not_in(*, bucket_date: date, dedupe_keys: set[str]) -> int:
+        query = EmailAlertEvent.query.filter(
+            EmailAlertEvent.alert_type == "backup_status_issue",
+            EmailAlertEvent.bucket_date == bucket_date,
+            EmailAlertEvent.digest_sent_at.is_(None),
+        )
+        if dedupe_keys:
+            query = query.filter(EmailAlertEvent.dedupe_key.notin_(sorted(dedupe_keys)))
+        deleted = query.delete(synchronize_session=False)
+        db.session.flush()
+        return int(deleted or 0)
+
+    @staticmethod
     def list_pending_digest_events() -> list[EmailAlertEvent]:
         return (
             EmailAlertEvent.query.filter(EmailAlertEvent.digest_sent_at.is_(None))

@@ -22,6 +22,7 @@
         accountSyncFailureEnabled: document.getElementById('accountSyncFailureEnabled'),
         databaseSyncFailureEnabled: document.getElementById('databaseSyncFailureEnabled'),
         privilegedAccountEnabled: document.getElementById('privilegedAccountEnabled'),
+        backupIssueEnabled: document.getElementById('backupIssueEnabled'),
         sendTestButton: document.getElementById('sendTestEmailBtn'),
         saveButton: document.getElementById('saveEmailAlertSettingsBtn'),
     };
@@ -54,6 +55,13 @@
             iconClass: 'fas fa-shield-alt',
             activeHint: '高权限账户新增将进入汇总',
             idleHint: '权限变化信号',
+        },
+        {
+            input: elements.backupIssueEnabled,
+            card: pageRoot.querySelector('[data-rule-card="backupIssue"]'),
+            iconClass: 'fas fa-hard-drive',
+            activeHint: '未备份与备份异常实例将进入汇总',
+            idleHint: '备份状态信号',
         },
     ].map((rule) => ({
         ...rule,
@@ -141,6 +149,7 @@
         elements.accountSyncFailureEnabled.checked = Boolean(settings.account_sync_failure_enabled);
         elements.databaseSyncFailureEnabled.checked = Boolean(settings.database_sync_failure_enabled);
         elements.privilegedAccountEnabled.checked = Boolean(settings.privileged_account_enabled);
+        elements.backupIssueEnabled.checked = Boolean(settings.backup_issue_enabled);
 
         syncRuleState();
     }
@@ -182,6 +191,7 @@
             account_sync_failure_enabled: elements.accountSyncFailureEnabled.checked,
             database_sync_failure_enabled: elements.databaseSyncFailureEnabled.checked,
             privileged_account_enabled: elements.privilegedAccountEnabled.checked,
+            backup_issue_enabled: elements.backupIssueEnabled.checked,
         };
     }
 
@@ -232,6 +242,7 @@
             elements.accountSyncFailureEnabled,
             elements.databaseSyncFailureEnabled,
             elements.privilegedAccountEnabled,
+            elements.backupIssueEnabled,
         ];
 
         stateInputs.forEach((node) => {

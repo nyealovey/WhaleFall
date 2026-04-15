@@ -41,6 +41,7 @@ AlertSettingsPayloadModel = ns.model(
         "account_sync_failure_enabled": fields.Boolean(required=True),
         "database_sync_failure_enabled": fields.Boolean(required=True),
         "privileged_account_enabled": fields.Boolean(required=True),
+        "backup_issue_enabled": fields.Boolean(required=True),
     },
 )
 

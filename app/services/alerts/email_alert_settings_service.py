@@ -36,6 +36,7 @@ class EmailAlertSettingsService:
         settings.account_sync_failure_enabled = False
         settings.database_sync_failure_enabled = False
         settings.privileged_account_enabled = False
+        settings.backup_issue_enabled = False
         return settings
 
     def get_or_create_settings(self) -> EmailAlertSetting:
@@ -59,6 +60,7 @@ class EmailAlertSettingsService:
         settings.account_sync_failure_enabled = bool(payload_dict["account_sync_failure_enabled"])
         settings.database_sync_failure_enabled = bool(payload_dict["database_sync_failure_enabled"])
         settings.privileged_account_enabled = bool(payload_dict["privileged_account_enabled"])
+        settings.backup_issue_enabled = bool(payload_dict["backup_issue_enabled"])
         db.session.commit()
         return settings
 

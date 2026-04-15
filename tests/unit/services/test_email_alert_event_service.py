@@ -14,6 +14,7 @@ class _DummySettings:
     database_capacity_enabled: bool = True
     database_capacity_percent_threshold: int = 30
     database_capacity_absolute_gb_threshold: int = 20
+    backup_issue_enabled: bool = True
 
 
 @dataclass(slots=True)
@@ -40,6 +41,14 @@ class _StubRepository:
 
     def create_event(self, **payload: object) -> None:
         self.created_events.append(dict(payload))
+
+    def upsert_backup_issue_event(self, **payload: object) -> bool:
+        self.created_events.append(dict(payload))
+        return True
+
+    def delete_pending_backup_issue_events_not_in(self, *, bucket_date, dedupe_keys: set[str]) -> int:
+        _ = (bucket_date, dedupe_keys)
+        return 0
 
 
 class _StubSettingsService:
@@ -110,3 +119,42 @@ def test_email_alert_event_service_skips_capacity_alert_without_recent_baseline(
 
     assert created == 0
     assert repository.created_events == []
+
+
+@pytest.mark.unit
+def test_email_alert_event_service_records_backup_issue_events_for_not_backed_up_and_stale_instances() -> None:
+    repository = _StubRepository(baselines={})
+    service = EmailAlertEventService(
+        repository=repository,
+        settings_service=_StubSettingsService(_DummySettings()),
+    )
+
+    created = service.record_backup_issue_events(
+        backup_rows=[
+            {
+                "instance_id": 1,
+                "instance_name": "sqlserver-prod-1",
+                "backup_status": "not_backed_up",
+                "backup_last_time": None,
+            },
+            {
+                "instance_id": 2,
+                "instance_name": "sqlserver-prod-2",
+                "backup_status": "backup_stale",
+                "backup_last_time": "2026-03-15T03:00:00+00:00",
+            },
+            {
+                "instance_id": 3,
+                "instance_name": "sqlserver-prod-3",
+                "backup_status": "backed_up",
+                "backup_last_time": "2026-03-17T03:00:00+00:00",
+            },
+        ],
+        occurred_at=datetime(2026, 3, 17, 9, 0, tzinfo=UTC),
+    )
+
+    assert created == 2
+    assert [event["dedupe_key"] for event in repository.created_events] == ["1", "2"]
+    assert repository.created_events[0]["alert_type"] == "backup_status_issue"
+    assert repository.created_events[0]["payload_json"]["reason_text"] == "当天没有备份"
+    assert repository.created_events[1]["payload_json"]["reason_text"] == "备份异常（最近备份超过24小时）"

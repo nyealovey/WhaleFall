@@ -10,6 +10,7 @@ from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.alerts.email_alert_digest_service import EmailAlertDigestService
+from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
@@ -19,6 +20,7 @@ _RULE_ITEMS = (
     ("account_sync_failure", "账户同步异常"),
     ("database_sync_failure", "数据库同步异常"),
     ("privileged_account_discovery", "新增高权限账户"),
+    ("backup_status_issue", "备份告警"),
 )
 _SEND_STEP = ("deliver_digest", "发送汇总邮件")
 
@@ -223,6 +225,7 @@ def email_alert(
         _init_items(task_runs_service, resolved_run_id)
 
         try:
+            EmailAlertEventService().sync_backup_issue_events_for_active_instances()
             summary = EmailAlertDigestService().send_pending_digest()
             _complete_rule_items(task_runs_service, resolved_run_id, _as_rule_results(summary.get("rule_results")))
             _write_send_step(task_runs_service, resolved_run_id, _as_dict(summary.get("send_step")))

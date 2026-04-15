@@ -31,6 +31,12 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
     monkeypatch.setattr(email_alert_tasks, "create_app", lambda **_: _StubApp())
     monkeypatch.setattr(email_alert_tasks, "get_system_logger", lambda: _StubLogger())
 
+    class _StubEmailAlertEventService:
+        def sync_backup_issue_events_for_active_instances(self) -> int:
+            return 0
+
+    monkeypatch.setattr(email_alert_tasks, "EmailAlertEventService", lambda: _StubEmailAlertEventService())
+
     class _StubDigestService:
         def send_pending_digest(self) -> dict[str, object]:
             return {
@@ -60,6 +66,12 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
                     {
                         "item_key": "privileged_account_discovery",
                         "item_name": "新增高权限账户",
+                        "display_state": "no_event",
+                        "summary": "当天未产生事件",
+                    },
+                    {
+                        "item_key": "backup_status_issue",
+                        "item_name": "备份告警",
                         "display_state": "no_event",
                         "summary": "当天未产生事件",
                     },
@@ -141,6 +153,7 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
         ("rule", "account_sync_failure", "账户同步异常"),
         ("rule", "database_sync_failure", "数据库同步异常"),
         ("rule", "privileged_account_discovery", "新增高权限账户"),
+        ("rule", "backup_status_issue", "备份告警"),
         ("step", "deliver_digest", "发送汇总邮件"),
     ]
     assert any(
