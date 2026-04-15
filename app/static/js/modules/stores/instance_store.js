@@ -16,6 +16,11 @@
    * @property {number} inactive_instances - 非活跃实例数
    * @property {number} audit_enabled_instances - 已配置并启用审计的在线实例数
    * @property {number} high_availability_instances - 高可用在线实例数
+   * @property {number} managed_instances - 已托管实例数
+   * @property {number} unmanaged_instances - 未托管实例数
+   * @property {number} backed_up_instances - 24 小时内有备份实例数
+   * @property {number} backup_stale_instances - 备份过期实例数
+   * @property {number} not_backed_up_instances - 未备份实例数
    * @property {number} total_accounts - 账户总数
    * @property {number} total_databases - 数据库总数
    * @property {number} db_types_count - 数据库类型数
@@ -312,6 +317,12 @@
           inactive_instances: 0,
           audit_enabled_instances: 0,
           high_availability_instances: 0,
+          managed_instances: 0,
+          unmanaged_instances: 0,
+          backed_up_instances: 0,
+          backup_stale_instances: 0,
+          not_backed_up_instances: 0,
+          backup_status_stats: [],
           total_accounts: 0,
           total_databases: 0,
           db_types_count: 0,
@@ -900,6 +911,12 @@
           inactive_instances: 0,
           audit_enabled_instances: 0,
           high_availability_instances: 0,
+          managed_instances: 0,
+          unmanaged_instances: 0,
+          backed_up_instances: 0,
+          backup_stale_instances: 0,
+          not_backed_up_instances: 0,
+          backup_status_stats: [],
           total_accounts: 0,
           total_databases: 0,
           db_types_count: 0,

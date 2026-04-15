@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, cast
 
 from sqlalchemy import false, func, inspect, or_
@@ -31,6 +31,12 @@ from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
 from app.repositories.jumpserver_repository import JumpServerRepository
 from app.repositories.veeam_repository import VeeamRepository
+from app.utils.time_utils import time_utils
+
+BACKUP_STATUS_BACKED_UP = "backed_up"
+BACKUP_STATUS_STALE = "backup_stale"
+BACKUP_STATUS_NOT_BACKED_UP = "not_backed_up"
+BACKUP_STATUS_FILTERS = {BACKUP_STATUS_BACKED_UP, BACKUP_STATUS_STALE, BACKUP_STATUS_NOT_BACKED_UP}
 
 
 class InstancesRepository:
@@ -248,69 +254,123 @@ class InstancesRepository:
             elif filters.status == "inactive":
                 query = cast("Query[Any]", query).filter(Instance.is_active.is_(False))
 
-        if filters.audit_status:
-            if not inspect(db.engine).has_table(InstanceConfigSnapshot.__tablename__):
-                if filters.audit_status in {"enabled", "configured_disabled"}:
-                    query = cast("Query[Any]", query).filter(false())
-            else:
-                audit_facts_text = func.lower(func.replace(InstanceConfigSnapshot.facts.cast(db.Text), " ", ""))
-                has_audit_exists = (
-                    db.session.query(InstanceConfigSnapshot.id)
-                    .filter(InstanceConfigSnapshot.instance_id == Instance.id)
-                    .filter(InstanceConfigSnapshot.config_key == "audit_info")
-                    .filter(audit_facts_text.like('%"has_audit":true%'))
-                    .exists()
-                )
-                enabled_exists = (
-                    db.session.query(InstanceConfigSnapshot.id)
-                    .filter(InstanceConfigSnapshot.instance_id == Instance.id)
-                    .filter(InstanceConfigSnapshot.config_key == "audit_info")
-                    .filter(audit_facts_text.like('%"has_audit":true%'))
-                    .filter(~audit_facts_text.like('%"enabled_audit_count":0%'))
-                    .exists()
-                )
-                configured_disabled_exists = (
-                    db.session.query(InstanceConfigSnapshot.id)
-                    .filter(InstanceConfigSnapshot.instance_id == Instance.id)
-                    .filter(InstanceConfigSnapshot.config_key == "audit_info")
-                    .filter(audit_facts_text.like('%"has_audit":true%'))
-                    .filter(audit_facts_text.like('%"enabled_audit_count":0%'))
-                    .exists()
-                )
-                if filters.audit_status == "enabled":
-                    query = cast("Query[Any]", query).filter(enabled_exists)
-                elif filters.audit_status == "configured_disabled":
-                    query = cast("Query[Any]", query).filter(configured_disabled_exists)
-                elif filters.audit_status == "not_configured":
-                    query = cast("Query[Any]", query).filter(~has_audit_exists)
+        query = InstancesRepository._apply_audit_status_filter(query, filters.audit_status)
+        query = InstancesRepository._apply_managed_status_filter(query, filters.managed_status)
+        query = InstancesRepository._apply_backup_status_filter(query, filters.backup_status)
+        return InstancesRepository._apply_tag_filter(query, filters.tags)
 
-        if filters.managed_status:
-            if not JumpServerRepository._has_asset_snapshot_table():
-                if filters.managed_status == "managed":
-                    query = cast("Query[Any]", query).filter(false())
-            else:
-                managed_exists = (
-                    db.session.query(JumpServerAssetSnapshot.id)
-                    .filter(func.lower(JumpServerAssetSnapshot.db_type) == func.lower(Instance.db_type))
-                    .filter(func.trim(JumpServerAssetSnapshot.host) == func.trim(Instance.host))
-                    .filter(JumpServerAssetSnapshot.port == Instance.port)
-                    .exists()
-                )
-                if filters.managed_status == "managed":
-                    query = cast("Query[Any]", query).filter(managed_exists)
-                elif filters.managed_status == "unmanaged":
-                    query = cast("Query[Any]", query).filter(~managed_exists)
+    @staticmethod
+    def _apply_audit_status_filter(query: Query[Any], audit_status: str) -> Query[Any]:
+        if not audit_status:
+            return query
+        if not inspect(db.engine).has_table(InstanceConfigSnapshot.__tablename__):
+            return cast("Query[Any]", query).filter(false()) if audit_status in {"enabled", "configured_disabled"} else query
 
-        if filters.tags:
-            tag_name_column = cast(ColumnElement[str], Tag.name)
-            query = (
-                cast("Query[Any]", query)
-                .join(instance_tags, instance_tags.c.instance_id == Instance.id)
-                .join(Tag, Tag.id == instance_tags.c.tag_id)
-                .filter(tag_name_column.in_(filters.tags))
-            )
+        audit_facts_text = func.lower(func.replace(InstanceConfigSnapshot.facts.cast(db.Text), " ", ""))
+        has_audit_exists = (
+            db.session.query(InstanceConfigSnapshot.id)
+            .filter(InstanceConfigSnapshot.instance_id == Instance.id)
+            .filter(InstanceConfigSnapshot.config_key == "audit_info")
+            .filter(audit_facts_text.like('%"has_audit":true%'))
+            .exists()
+        )
+        enabled_exists = (
+            db.session.query(InstanceConfigSnapshot.id)
+            .filter(InstanceConfigSnapshot.instance_id == Instance.id)
+            .filter(InstanceConfigSnapshot.config_key == "audit_info")
+            .filter(audit_facts_text.like('%"has_audit":true%'))
+            .filter(~audit_facts_text.like('%"enabled_audit_count":0%'))
+            .exists()
+        )
+        configured_disabled_exists = (
+            db.session.query(InstanceConfigSnapshot.id)
+            .filter(InstanceConfigSnapshot.instance_id == Instance.id)
+            .filter(InstanceConfigSnapshot.config_key == "audit_info")
+            .filter(audit_facts_text.like('%"has_audit":true%'))
+            .filter(audit_facts_text.like('%"enabled_audit_count":0%'))
+            .exists()
+        )
+        audit_filters = {
+            "enabled": enabled_exists,
+            "configured_disabled": configured_disabled_exists,
+            "not_configured": ~has_audit_exists,
+        }
+        criterion = audit_filters.get(audit_status)
+        return cast("Query[Any]", query).filter(criterion) if criterion is not None else query
 
+    @staticmethod
+    def _apply_managed_status_filter(query: Query[Any], managed_status: str) -> Query[Any]:
+        if not managed_status:
+            return query
+        if not JumpServerRepository._has_asset_snapshot_table():
+            if managed_status == "managed":
+                return cast("Query[Any]", query).filter(false())
+            return query
+
+        managed_exists = (
+            db.session.query(JumpServerAssetSnapshot.id)
+            .filter(func.lower(JumpServerAssetSnapshot.db_type) == func.lower(Instance.db_type))
+            .filter(func.trim(JumpServerAssetSnapshot.host) == func.trim(Instance.host))
+            .filter(JumpServerAssetSnapshot.port == Instance.port)
+            .exists()
+        )
+        if managed_status == "managed":
+            return cast("Query[Any]", query).filter(managed_exists)
+        if managed_status == "unmanaged":
+            return cast("Query[Any]", query).filter(~managed_exists)
         return query
+
+    @staticmethod
+    def _apply_backup_status_filter(query: Query[Any], backup_status: str) -> Query[Any]:
+        if backup_status not in BACKUP_STATUS_FILTERS:
+            return query
+        matched_ids = InstancesRepository._filter_instance_ids_by_backup_status(
+            cast("list[Instance]", cast("Query[Any]", query).all()),
+            backup_status,
+        )
+        if not matched_ids:
+            return cast("Query[Any]", query).filter(false())
+        return cast("Query[Any]", query).filter(Instance.id.in_(matched_ids))
+
+    @staticmethod
+    def _apply_tag_filter(query: Query[Any], tags: list[str]) -> Query[Any]:
+        if not tags:
+            return query
+        tag_name_column = cast(ColumnElement[str], Tag.name)
+        return (
+            cast("Query[Any]", query)
+            .join(instance_tags, instance_tags.c.instance_id == Instance.id)
+            .join(Tag, Tag.id == instance_tags.c.tag_id)
+            .filter(tag_name_column.in_(tags))
+        )
+
+    @staticmethod
+    def _filter_instance_ids_by_backup_status(instances: list[Instance], backup_status: str) -> list[int]:
+        if not instances:
+            return []
+
+        backup_summary_map = VeeamRepository.fetch_backup_summary_map(instances)
+        matched_ids: list[int] = []
+        for instance in instances:
+            backup_summary = backup_summary_map.get(int(instance.id), {})
+            latest_backup_at = backup_summary.get("latest_backup_at") if isinstance(backup_summary, dict) else None
+            resolved_status = InstancesRepository._resolve_backup_status(
+                latest_backup_at=latest_backup_at if isinstance(latest_backup_at, str) else None,
+            )
+            if resolved_status == backup_status:
+                matched_ids.append(int(instance.id))
+        return matched_ids
+
+    @staticmethod
+    def _resolve_backup_status(*, latest_backup_at: str | None) -> str:
+        if not latest_backup_at:
+            return BACKUP_STATUS_NOT_BACKED_UP
+        resolved = time_utils.to_utc(latest_backup_at)
+        if resolved is None:
+            return BACKUP_STATUS_NOT_BACKED_UP
+        if time_utils.now() - resolved <= timedelta(hours=24):
+            return BACKUP_STATUS_BACKED_UP
+        return BACKUP_STATUS_STALE
 
     @staticmethod
     def _apply_instance_sorting(

@@ -115,3 +115,5 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
     assert "#databaseInfoTabContent > .instance-data-pane" in instance_detail_css
     assert "display: none;" in instance_detail_css
     assert "#databaseInfoTabContent > .instance-data-pane.active" in instance_detail_css
+    assert "#backup-pane .instance-data-pane__stack" not in instance_detail_css
+    assert "#backupInfoContent {" not in instance_detail_css

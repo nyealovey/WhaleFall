@@ -335,15 +335,8 @@
     min-width: 0;
 }
 
-#backup-pane .instance-data-pane__stack {
-    gap: 0;
-}
-
-#backupInfoContent {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    min-width: 0;
+#backupInfoContent > * + * {
+    margin-top: 1rem;
 }
 
 .instance-data-grid {

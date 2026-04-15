@@ -306,15 +306,32 @@ InstanceStatisticsVersionStatModel = ns.model(
     },
 )
 
+InstanceStatisticsBackupStatusStatModel = ns.model(
+    "InstanceStatisticsBackupStatusStat",
+    {
+        "backup_status": fields.String(),
+        "count": fields.Integer(),
+    },
+)
+
 InstanceStatisticsData = ns.model(
     "InstanceStatisticsData",
     {
         "total_instances": fields.Integer(),
+        "current_instances": fields.Integer(),
         "active_instances": fields.Integer(),
         "normal_instances": fields.Integer(),
         "disabled_instances": fields.Integer(),
         "deleted_instances": fields.Integer(),
         "inactive_instances": fields.Integer(),
+        "audit_enabled_instances": fields.Integer(),
+        "high_availability_instances": fields.Integer(),
+        "managed_instances": fields.Integer(),
+        "unmanaged_instances": fields.Integer(),
+        "backed_up_instances": fields.Integer(),
+        "backup_stale_instances": fields.Integer(),
+        "not_backed_up_instances": fields.Integer(),
+        "backup_status_stats": fields.List(fields.Nested(InstanceStatisticsBackupStatusStatModel)),
         "db_types_count": fields.Integer(),
         "db_type_stats": fields.List(fields.Nested(InstanceStatisticsDbTypeStatModel)),
         "port_stats": fields.List(fields.Nested(InstanceStatisticsPortStatModel)),
@@ -340,6 +357,7 @@ _instances_list_query_parser.add_argument("db_type", type=str, default="", locat
 _instances_list_query_parser.add_argument("status", type=str, default="", location="args")
 _instances_list_query_parser.add_argument("audit_status", type=str, default="", location="args")
 _instances_list_query_parser.add_argument("managed_status", type=str, default="", location="args")
+_instances_list_query_parser.add_argument("backup_status", type=str, default="", location="args")
 _instances_list_query_parser.add_argument("tags", type=str, action="append", location="args")
 _instances_list_query_parser.add_argument(
     "include_deleted",
@@ -496,6 +514,7 @@ class InstancesResource(BaseResource):
                 "status": filters.status,
                 "audit_status": filters.audit_status,
                 "managed_status": filters.managed_status,
+                "backup_status": filters.backup_status,
                 "include_deleted": filters.include_deleted,
             },
         )

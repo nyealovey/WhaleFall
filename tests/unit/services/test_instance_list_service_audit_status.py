@@ -23,6 +23,7 @@ def _build_filters() -> InstanceListFilters:
         status="",
         audit_status="",
         managed_status="",
+        backup_status="",
         tags=[],
         include_deleted=False,
     )

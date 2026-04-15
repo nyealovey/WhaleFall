@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -197,6 +197,112 @@ def test_api_v1_instances_list_marks_backup_status_via_instance_name_and_domains
         assert isinstance(items, list)
         assert items[0].get("backup_status") == "backed_up"
         assert items[0].get("backup_last_time") is not None
+
+
+@pytest.mark.unit
+def test_api_v1_instances_list_filters_by_backup_status() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["instance_databases"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["instance_config_snapshots"],
+                db.metadata.tables["sync_instance_records"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+                db.metadata.tables["credentials"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        backed_up = Instance(
+            name="backup-fresh",
+            db_type=DatabaseType.MYSQL,
+            host="10.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        backup_stale = Instance(
+            name="backup-stale",
+            db_type=DatabaseType.MYSQL,
+            host="10.0.0.2",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        not_backed_up = Instance(
+            name="backup-missing",
+            db_type=DatabaseType.MYSQL,
+            host="10.0.0.3",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        db.session.add_all([backed_up, backup_stale, not_backed_up])
+        db.session.flush()
+
+        db.session.add_all(
+            [
+                VeeamMachineBackupSnapshot(
+                    machine_name="backup-fresh",
+                    normalized_machine_name="backup-fresh",
+                    latest_backup_at=datetime.now(UTC),
+                    raw_payload={},
+                ),
+                VeeamMachineBackupSnapshot(
+                    machine_name="backup-stale",
+                    normalized_machine_name="backup-stale",
+                    latest_backup_at=datetime.now(UTC) - timedelta(days=2),
+                    raw_payload={},
+                ),
+            ]
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/api/v1/instances?backup_status=backed_up")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert [(item.get("name"), item.get("backup_status")) for item in items] == [
+            ("backup-fresh", "backed_up")
+        ]
+
+        response = client.get("/api/v1/instances?backup_status=backup_stale")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert [(item.get("name"), item.get("backup_status")) for item in items] == [
+            ("backup-stale", "backup_stale")
+        ]
+
+        response = client.get("/api/v1/instances?backup_status=not_backed_up")
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        items = payload.get("data", {}).get("items")
+        assert isinstance(items, list)
+        assert [(item.get("name"), item.get("backup_status")) for item in items] == [
+            ("backup-missing", "not_backed_up")
+        ]
 
 
 @pytest.mark.unit
