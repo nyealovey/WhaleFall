@@ -65,13 +65,22 @@ function mountInstanceStatisticsPage() {
         return true;
     }
 
+    const BACKUP_STATUS_ORDER = ['backed_up', 'backup_stale', 'not_backed_up'];
+    const BACKUP_STATUS_LABELS = {
+        backed_up: '24h内备份',
+        backup_stale: '备份过期',
+        not_backed_up: '未备份',
+    };
+
     let versionChart = null;
+    let backupStatusChart = null;
     let refreshInterval = null;
 
     ready(() => {
         bindTemplateActions();
         initializeInstanceStore();
         createVersionChart();
+        createBackupStatusChart();
         startAutoRefresh();
 
         from(global).on('beforeunload', () => {
@@ -237,6 +246,83 @@ function mountInstanceStatisticsPage() {
     }
 
     /**
+     * 基于备份状态统计渲染环状图。
+     *
+     * @returns {void} 若存在数据则绘制图表，否则展示空状态。
+     */
+    function createBackupStatusChart() {
+        const ctxWrapper = selectOne('#backupStatusChart');
+        if (!ctxWrapper.length) {
+            return;
+        }
+        const ctx = ctxWrapper.first();
+        const backupStatusStats = getBackupStatusStats();
+
+        if (!hasBackupStatusData(backupStatusStats)) {
+            showEmptyChart(ctx, '暂无备份统计');
+            return;
+        }
+
+        backupStatusChart = new global.Chart(ctx, {
+            type: 'doughnut',
+            data: createBackupStatusChartData(backupStatusStats),
+            options: getBackupStatusChartOptions(),
+        });
+    }
+
+    /**
+     * 从 data 属性读取备份状态统计。
+     *
+     * @returns {Array<Object>|null}
+     */
+    function getBackupStatusStats() {
+        const backupStatsElement = selectOne('[data-backup-status-stats]');
+        if (backupStatsElement.length) {
+            try {
+                return JSON.parse(backupStatsElement.first().dataset.backupStatusStats);
+            } catch (error) {
+                console.error('解析备份状态统计数据失败:', error);
+            }
+        }
+        return null;
+    }
+
+    function normalizeBackupStatusStats(stats) {
+        const source = Array.isArray(stats) ? stats : [];
+        return BACKUP_STATUS_ORDER.map((status) => {
+            const matched = source.find((item) => item?.backup_status === status);
+            return {
+                backup_status: status,
+                count: Number(matched?.count ?? 0) || 0,
+            };
+        });
+    }
+
+    function hasBackupStatusData(stats) {
+        return normalizeBackupStatusStats(stats).some((item) => item.count > 0);
+    }
+
+    function createBackupStatusChartData(stats) {
+        const normalized = normalizeBackupStatusStats(stats);
+        const colors = [
+            ColorTokens.getStatusColor('success') || ColorTokens.getChartColor(6),
+            ColorTokens.getStatusColor('warning') || ColorTokens.getChartColor(8),
+            ColorTokens.getStatusColor('danger') || ColorTokens.getChartColor(10),
+        ];
+        return {
+            labels: normalized.map((item) => BACKUP_STATUS_LABELS[item.backup_status] || item.backup_status),
+            datasets: [
+                {
+                    data: normalized.map((item) => item.count),
+                    backgroundColor: colors.map((color) => ColorTokens.withAlpha(color, 0.84)),
+                    borderColor: colors,
+                    borderWidth: 2,
+                },
+            ],
+        };
+    }
+
+    /**
      * 按数据库类型分组版本数据。
      *
      * @param {Array<Object>} versionStats 原始数据。
@@ -354,18 +440,53 @@ function mountInstanceStatisticsPage() {
         };
     }
 
+    function getBackupStatusChartOptions() {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '64%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                    },
+                },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const valueLabel = global.NumberFormat.formatInteger(context.parsed, { fallback: '0' });
+                            let percentLabel = '0%';
+                            if (total > 0) {
+                                percentLabel = global.NumberFormat.formatPercent(context.parsed / total, {
+                                    precision: 1,
+                                    trimZero: true,
+                                    inputType: 'ratio',
+                                });
+                            }
+                            return `${context.label}: ${valueLabel} 个实例 (${percentLabel})`;
+                        },
+                    },
+                },
+            },
+        };
+    }
+
     /**
      * 在画布上渲染“暂无数据”。
      *
      * @param {HTMLCanvasElement} ctx 画布。
+     * @param {string} [message] 提示文案。
      * @returns {void} 直接在画布上绘制提示文本。
      */
-    function showEmptyChart(ctx) {
+    function showEmptyChart(ctx, message) {
         const canvas = ctx.getContext('2d');
         canvas.font = '16px Arial';
         canvas.fillStyle = ColorTokens.resolveCssVar('--gray-600') || 'black';
         canvas.textAlign = 'center';
-        canvas.fillText('暂无版本数据', ctx.width / 2, ctx.height / 2);
+        canvas.fillText(message || '暂无版本数据', ctx.width / 2, ctx.height / 2);
     }
 
     /**
@@ -422,13 +543,14 @@ function mountInstanceStatisticsPage() {
     function updateStatistics(stats) {
         setStatValue('total_instances', stats.total_instances);
         setStatValue('audit_enabled_instances', stats.audit_enabled_instances);
-        setStatValue('high_availability_instances', stats.high_availability_instances);
-        setStatValue('db_types_count', stats.db_types_count);
+        setStatValue('managed_instances', stats.managed_instances);
+        setStatValue('backed_up_instances', stats.backed_up_instances);
         updateStatisticsMeta(stats);
 
         if (stats.version_stats && versionChart) {
             updateVersionChart(stats.version_stats);
         }
+        updateBackupStatusChart(stats.backup_status_stats);
     }
 
     function updateStatisticsMeta(stats) {
@@ -437,7 +559,11 @@ function mountInstanceStatisticsPage() {
         const inactive = Number(stats?.inactive_instances ?? 0) || 0;
         const deleted = Number(stats?.deleted_instances ?? 0) || 0;
         const auditEnabled = Number(stats?.audit_enabled_instances ?? 0) || 0;
-        const highAvailability = Number(stats?.high_availability_instances ?? 0) || 0;
+        const managed = Number(stats?.managed_instances ?? 0) || 0;
+        const unmanaged = Number(stats?.unmanaged_instances ?? 0) || 0;
+        const backedUp = Number(stats?.backed_up_instances ?? 0) || 0;
+        const backupStale = Number(stats?.backup_stale_instances ?? 0) || 0;
+        const notBackedUp = Number(stats?.not_backed_up_instances ?? 0) || 0;
 
         const setText = (id, value) => {
             const node = document.getElementById(id);
@@ -450,6 +576,9 @@ function mountInstanceStatisticsPage() {
         setText('instancesMetaActiveCount', global.NumberFormat.formatInteger(active, { fallback: active }));
         setText('instancesMetaInactiveCount', global.NumberFormat.formatInteger(inactive, { fallback: inactive }));
         setText('instancesMetaDeletedCount', global.NumberFormat.formatInteger(deleted, { fallback: deleted }));
+        setText('instancesMetaUnmanagedCount', global.NumberFormat.formatInteger(unmanaged, { fallback: unmanaged }));
+        setText('instancesMetaBackupStaleCount', global.NumberFormat.formatInteger(backupStale, { fallback: backupStale }));
+        setText('instancesMetaNotBackedUpCount', global.NumberFormat.formatInteger(notBackedUp, { fallback: notBackedUp }));
 
         const formatPercent = global.NumberFormat?.formatPercent;
         if (typeof formatPercent === 'function') {
@@ -458,23 +587,12 @@ function mountInstanceStatisticsPage() {
                 formatPercent(active > 0 ? auditEnabled / active : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
             );
             setText(
-                'instancesMetaHighAvailabilityRate',
-                formatPercent(active > 0 ? highAvailability / active : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+                'instancesMetaManagedRate',
+                formatPercent(current > 0 ? managed / current : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
             );
-        }
-
-        const dbTypeStats = Array.isArray(stats?.db_type_stats) ? stats.db_type_stats : [];
-        const sorted = dbTypeStats
-            .slice()
-            .sort((a, b) => (Number(b?.count ?? 0) || 0) - (Number(a?.count ?? 0) || 0));
-        const top1 = sorted[0] || null;
-        const topType = top1?.db_type ? String(top1.db_type).toUpperCase() : '-';
-        const topCount = Number(top1?.count ?? 0) || 0;
-        setText('instancesMetaTopDbType', topType);
-        if (typeof formatPercent === 'function') {
             setText(
-                'instancesMetaTopDbTypeShare',
-                formatPercent(current > 0 ? topCount / current : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+                'instancesMetaBackedUpRate',
+                formatPercent(current > 0 ? backedUp / current : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
             );
         }
     }
@@ -509,6 +627,27 @@ function mountInstanceStatisticsPage() {
         const groupedStats = groupStatsByDbType(versionStats);
         versionChart.data = createChartData(groupedStats);
         versionChart.update();
+    }
+
+    function updateBackupStatusChart(backupStatusStats) {
+        const ctxWrapper = selectOne('#backupStatusChart');
+        if (!ctxWrapper.length) {
+            return;
+        }
+        if (!backupStatusChart) {
+            if (!hasBackupStatusData(backupStatusStats)) {
+                return;
+            }
+            const ctx = ctxWrapper.first();
+            backupStatusChart = new global.Chart(ctx, {
+                type: 'doughnut',
+                data: createBackupStatusChartData(backupStatusStats),
+                options: getBackupStatusChartOptions(),
+            });
+            return;
+        }
+        backupStatusChart.data = createBackupStatusChartData(backupStatusStats);
+        backupStatusChart.update();
     }
 
     /**

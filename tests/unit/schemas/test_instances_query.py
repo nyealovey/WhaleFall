@@ -19,6 +19,7 @@ def test_instance_list_filters_query_defaults() -> None:
     assert filters.status == ""
     assert filters.audit_status == ""
     assert filters.managed_status == ""
+    assert filters.backup_status == ""
     assert filters.tags == []
     assert filters.include_deleted is False
 
@@ -37,6 +38,7 @@ def test_instance_list_filters_query_normalizes_and_clamps() -> None:
             "status": "  disabled ",
             "audit_status": " enabled ",
             "managed_status": " managed ",
+            "backup_status": " backup_stale ",
             "tags": [" a ", "", " b "],
             "include_deleted": True,
         },
@@ -52,6 +54,7 @@ def test_instance_list_filters_query_normalizes_and_clamps() -> None:
     assert filters.status == "disabled"
     assert filters.audit_status == "enabled"
     assert filters.managed_status == "managed"
+    assert filters.backup_status == "backup_stale"
     assert filters.tags == ["a", "b"]
     assert filters.include_deleted is True
 

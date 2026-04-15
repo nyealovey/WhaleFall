@@ -1,5 +1,8 @@
 import pytest
 
+import app.api.v1.namespaces.instances as api_module
+from app.api.v1.restx_models.instances import INSTANCE_STATISTICS_FIELDS
+
 
 @pytest.mark.unit
 def test_api_v1_instances_statistics_requires_auth(client) -> None:
@@ -12,8 +15,6 @@ def test_api_v1_instances_statistics_requires_auth(client) -> None:
 
 @pytest.mark.unit
 def test_api_v1_instances_statistics_contract(auth_client, monkeypatch) -> None:
-    import app.api.v1.namespaces.instances as api_module
-
     def _dummy_build_statistics():
         return {
             "total_instances": 2,
@@ -25,6 +26,16 @@ def test_api_v1_instances_statistics_contract(auth_client, monkeypatch) -> None:
             "inactive_instances": 0,
             "audit_enabled_instances": 1,
             "high_availability_instances": 1,
+            "managed_instances": 1,
+            "unmanaged_instances": 0,
+            "backed_up_instances": 1,
+            "backup_stale_instances": 0,
+            "not_backed_up_instances": 0,
+            "backup_status_stats": [
+                {"backup_status": "backed_up", "count": 1},
+                {"backup_status": "backup_stale", "count": 0},
+                {"backup_status": "not_backed_up", "count": 0},
+            ],
             "db_types_count": 1,
             "db_type_stats": [{"db_type": "mysql", "count": 1}],
             "port_stats": [{"port": 3306, "count": 1}],
@@ -50,8 +61,30 @@ def test_api_v1_instances_statistics_contract(auth_client, monkeypatch) -> None:
         "inactive_instances",
         "audit_enabled_instances",
         "high_availability_instances",
+        "managed_instances",
+        "unmanaged_instances",
+        "backed_up_instances",
+        "backup_stale_instances",
+        "not_backed_up_instances",
+        "backup_status_stats",
         "db_types_count",
         "db_type_stats",
         "port_stats",
         "version_stats",
     }.issubset(data.keys())
+
+    assert data["backup_status_stats"] == [
+        {"backup_status": "backed_up", "count": 1},
+        {"backup_status": "backup_stale", "count": 0},
+        {"backup_status": "not_backed_up", "count": 0},
+    ]
+
+    for field in (
+        "managed_instances",
+        "unmanaged_instances",
+        "backed_up_instances",
+        "backup_stale_instances",
+        "not_backed_up_instances",
+        "backup_status_stats",
+    ):
+        assert field in INSTANCE_STATISTICS_FIELDS

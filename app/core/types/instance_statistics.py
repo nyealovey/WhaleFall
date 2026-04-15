@@ -43,6 +43,12 @@ class InstanceStatisticsResult:
     inactive_instances: int
     audit_enabled_instances: int
     high_availability_instances: int
+    managed_instances: int
+    unmanaged_instances: int
+    backed_up_instances: int
+    backup_stale_instances: int
+    not_backed_up_instances: int
+    backup_status_stats: list[dict[str, object]]
     db_types_count: int
     db_type_stats: list[InstanceDbTypeStat]
     port_stats: list[InstancePortStat]

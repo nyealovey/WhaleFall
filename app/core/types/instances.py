@@ -21,6 +21,7 @@ class InstanceListFilters:
     status: str
     audit_status: str
     managed_status: str
+    backup_status: str
     tags: list[str]
     include_deleted: bool
 

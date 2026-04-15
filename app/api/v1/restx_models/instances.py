@@ -175,6 +175,11 @@ INSTANCE_VERSION_STAT_FIELDS = {
     "count": fields.Integer(description="数量", example=10),
 }
 
+INSTANCE_BACKUP_STATUS_STAT_FIELDS = {
+    "backup_status": fields.String(description="备份状态", example="backed_up"),
+    "count": fields.Integer(description="数量", example=7),
+}
+
 INSTANCE_STATISTICS_FIELDS = {
     "total_instances": fields.Integer(description="实例总数", example=10),
     "current_instances": fields.Integer(description="未删除实例数", example=9),
@@ -185,6 +190,15 @@ INSTANCE_STATISTICS_FIELDS = {
     "inactive_instances": fields.Integer(description="非活跃实例数", example=1),
     "audit_enabled_instances": fields.Integer(description="已配置并启用审计的在线实例数", example=5),
     "high_availability_instances": fields.Integer(description="高可用在线实例数", example=4),
+    "managed_instances": fields.Integer(description="JumpServer 已托管未删除实例数", example=6),
+    "unmanaged_instances": fields.Integer(description="JumpServer 未托管未删除实例数", example=3),
+    "backed_up_instances": fields.Integer(description="24 小时内有 Veeam 备份的未删除实例数", example=7),
+    "backup_stale_instances": fields.Integer(description="有 Veeam 备份但超过 24 小时的未删除实例数", example=1),
+    "not_backed_up_instances": fields.Integer(description="未匹配 Veeam 备份的未删除实例数", example=1),
+    "backup_status_stats": fields.List(
+        fields.Nested(INSTANCE_BACKUP_STATUS_STAT_FIELDS),
+        description="按备份状态聚合统计",
+    ),
     "db_types_count": fields.Integer(description="数据库类型数量", example=4),
     "db_type_stats": fields.List(fields.Nested(INSTANCE_DB_TYPE_STAT_FIELDS), description="按 db_type 聚合统计"),
     "port_stats": fields.List(fields.Nested(INSTANCE_PORT_STAT_FIELDS), description="按端口聚合统计"),

@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 
 from app import create_app, db
+from app.models.instance import Instance
+from app.models.instance_config_snapshot import InstanceConfigSnapshot
+from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
+from app.models.tag import Tag
+from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 from app.settings import Settings
 from app.utils.time_utils import time_utils
@@ -29,14 +36,16 @@ def _ensure_instance_statistics_tables(app) -> None:
                 db.metadata.tables["tags"],
                 db.metadata.tables["instance_tags"],
                 db.metadata.tables["instance_config_snapshots"],
+                db.metadata.tables["credentials"],
+                db.metadata.tables["jumpserver_asset_snapshots"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
             ],
         )
 
 
 @pytest.mark.unit
 def test_instance_statistics_repository_counts_total_current_active_inactive_and_deleted_instances(app) -> None:
-    from app.models.instance import Instance
-
     _ensure_instance_statistics_tables(app)
 
     with app.app_context():
@@ -70,10 +79,6 @@ def test_instance_statistics_repository_counts_total_current_active_inactive_and
 
 @pytest.mark.unit
 def test_instance_statistics_repository_counts_enabled_audit_and_non_standalone_architecture_as_ha(app) -> None:
-    from app.models.instance import Instance
-    from app.models.instance_config_snapshot import InstanceConfigSnapshot
-    from app.models.tag import Tag
-
     _ensure_instance_statistics_tables(app)
 
     with app.app_context():
@@ -131,3 +136,104 @@ def test_instance_statistics_repository_counts_enabled_audit_and_non_standalone_
         assert summary["disabled_instances"] == 1
         assert summary["audit_enabled_instances"] == 1
         assert summary["high_availability_instances"] == 1
+
+
+@pytest.mark.unit
+def test_instance_statistics_repository_counts_managed_and_backup_status_for_current_instances(app) -> None:
+    _ensure_instance_statistics_tables(app)
+
+    with app.app_context():
+        now = time_utils.now()
+        managed_backed_up = Instance(
+            name="managed-backed-up", db_type="mysql", host="10.0.0.1", port=3306, is_active=True
+        )
+        unmanaged_stale = Instance(
+            name="unmanaged-stale", db_type="mysql", host="10.0.0.2", port=3306, is_active=True
+        )
+        unmanaged_not_backed_up = Instance(
+            name="unmanaged-not-backed-up", db_type="mysql", host="10.0.0.3", port=3306, is_active=True
+        )
+        disabled_managed_not_backed_up = Instance(
+            name="disabled-managed-not-backed-up", db_type="mysql", host="10.0.0.4", port=3306, is_active=False
+        )
+        deleted_shadow = Instance(
+            name="deleted-shadow",
+            db_type="mysql",
+            host="10.0.0.5",
+            port=3306,
+            is_active=True,
+            deleted_at=now,
+        )
+        db.session.add_all(
+            [
+                managed_backed_up,
+                unmanaged_stale,
+                unmanaged_not_backed_up,
+                disabled_managed_not_backed_up,
+                deleted_shadow,
+            ]
+        )
+        db.session.flush()
+
+        db.session.add_all(
+            [
+                JumpServerAssetSnapshot(
+                    external_id="asset-managed",
+                    name="managed-backed-up",
+                    db_type="mysql",
+                    host="10.0.0.1",
+                    port=3306,
+                    raw_payload={},
+                ),
+                JumpServerAssetSnapshot(
+                    external_id="asset-disabled",
+                    name="disabled-managed-not-backed-up",
+                    db_type="mysql",
+                    host="10.0.0.4",
+                    port=3306,
+                    raw_payload={},
+                ),
+                JumpServerAssetSnapshot(
+                    external_id="asset-deleted",
+                    name="deleted-shadow",
+                    db_type="mysql",
+                    host="10.0.0.5",
+                    port=3306,
+                    raw_payload={},
+                ),
+                VeeamMachineBackupSnapshot(
+                    machine_name="managed-backed-up",
+                    normalized_machine_name="managed-backed-up",
+                    machine_ip="10.0.0.1",
+                    normalized_machine_ip="10.0.0.1",
+                    latest_backup_at=now - timedelta(hours=2),
+                    raw_payload={},
+                ),
+                VeeamMachineBackupSnapshot(
+                    machine_name="unmanaged-stale",
+                    normalized_machine_name="unmanaged-stale",
+                    machine_ip="10.0.0.2",
+                    normalized_machine_ip="10.0.0.2",
+                    latest_backup_at=now - timedelta(days=2),
+                    raw_payload={},
+                ),
+                VeeamMachineBackupSnapshot(
+                    machine_name="deleted-shadow",
+                    normalized_machine_name="deleted-shadow",
+                    machine_ip="10.0.0.5",
+                    normalized_machine_ip="10.0.0.5",
+                    latest_backup_at=now - timedelta(hours=2),
+                    raw_payload={},
+                ),
+            ]
+        )
+        db.session.commit()
+
+        summary = InstanceStatisticsRepository.fetch_summary()
+
+        assert summary["current_instances"] == 4
+        assert summary["managed_instances"] == 2
+        assert summary["unmanaged_instances"] == 2
+        assert summary["backed_up_instances"] == 1
+        assert summary["backup_stale_instances"] == 1
+        assert summary["not_backed_up_instances"] == 2

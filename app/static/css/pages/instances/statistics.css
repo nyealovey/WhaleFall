@@ -133,3 +133,7 @@
 .statistics-panel .chart-panel {
     min-height: 360px;
 }
+
+.statistics-panel .chart-panel--backup {
+    min-height: 320px;
+}

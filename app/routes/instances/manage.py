@@ -31,6 +31,12 @@ INSTANCE_MANAGED_FILTER_OPTIONS = [
     {"value": "managed", "label": "已托管"},
     {"value": "unmanaged", "label": "未托管"},
 ]
+INSTANCE_BACKUP_FILTER_OPTIONS = [
+    {"value": "all", "label": "全部备份"},
+    {"value": "backed_up", "label": "24h内备份"},
+    {"value": "backup_stale", "label": "备份过期"},
+    {"value": "not_backed_up", "label": "未备份"},
+]
 
 
 @instances_bp.route("/")
@@ -50,6 +56,7 @@ def index() -> str:
     status_param = (request.args.get("status") or "").strip()
     audit_status = (request.args.get("audit_status") or "").strip()
     managed_status = (request.args.get("managed_status") or "").strip()
+    backup_status = (request.args.get("backup_status") or "").strip()
     include_deleted_raw = (request.args.get("include_deleted") or "").strip().lower()
     include_deleted = include_deleted_raw in {"true", "1", "on", "yes"}
     tags_raw = request.args.getlist("tags")
@@ -77,11 +84,13 @@ def index() -> str:
             status_options=STATUS_ACTIVE_OPTIONS,
             audit_status_options=INSTANCE_AUDIT_FILTER_OPTIONS,
             managed_status_options=INSTANCE_MANAGED_FILTER_OPTIONS,
+            backup_status_options=INSTANCE_BACKUP_FILTER_OPTIONS,
             search=search,
             db_type=db_type,
             status=status_param,
             audit_status=audit_status,
             managed_status=managed_status,
+            backup_status=backup_status,
             include_deleted=include_deleted,
             selected_tags=tags,
         )
@@ -97,6 +106,7 @@ def index() -> str:
             "status": status_param,
             "audit_status": audit_status,
             "managed_status": managed_status,
+            "backup_status": backup_status,
             "include_deleted": include_deleted,
             "tags_count": len(tags),
         },

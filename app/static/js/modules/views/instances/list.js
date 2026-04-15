@@ -290,6 +290,7 @@ function mountInstancesListPage() {
                     'status',
                     'audit_status',
                     'managed_status',
+                    'backup_status',
                     'tags',
                     'include_deleted',
                     'page',
@@ -820,6 +821,7 @@ function mountInstancesListPage() {
             status: sanitizeText(source?.status),
             audit_status: sanitizeText(source?.audit_status),
             managed_status: sanitizeText(source?.managed_status),
+            backup_status: sanitizeText(source?.backup_status),
             tags: normalizeArrayValue(source?.tags),
             include_deleted: includeDeleted,
         };
@@ -856,6 +858,9 @@ function mountInstancesListPage() {
         }
         if (isMeaningful(filters.managed_status)) {
             normalized.managed_status = filters.managed_status;
+        }
+        if (isMeaningful(filters.backup_status)) {
+            normalized.backup_status = filters.backup_status;
         }
         if (isMeaningful(filters.tags)) {
             normalized.tags = filters.tags;

@@ -17,6 +17,23 @@ from app.core.types.instance_statistics import (
 )
 from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 
+BACKUP_STATUS_ORDER = ("backed_up", "backup_stale", "not_backed_up")
+BACKUP_STATUS_COUNT_KEYS = {
+    "backed_up": "backed_up_instances",
+    "backup_stale": "backup_stale_instances",
+    "not_backed_up": "not_backed_up_instances",
+}
+
+
+def _build_backup_status_stats(totals: dict[str, int]) -> list[dict[str, object]]:
+    return [
+        {
+            "backup_status": status,
+            "count": int(totals.get(BACKUP_STATUS_COUNT_KEYS[status], 0)),
+        }
+        for status in BACKUP_STATUS_ORDER
+    ]
+
 
 class InstanceStatisticsReadService:
     """实例统计读取服务."""
@@ -65,6 +82,12 @@ class InstanceStatisticsReadService:
             inactive_instances=totals["disabled_instances"],
             audit_enabled_instances=totals["audit_enabled_instances"],
             high_availability_instances=totals["high_availability_instances"],
+            managed_instances=totals["managed_instances"],
+            unmanaged_instances=totals["unmanaged_instances"],
+            backed_up_instances=totals["backed_up_instances"],
+            backup_stale_instances=totals["backup_stale_instances"],
+            not_backed_up_instances=totals["not_backed_up_instances"],
+            backup_status_stats=_build_backup_status_stats(totals),
             db_types_count=len(db_type_rows),
             db_type_stats=db_type_stats,
             port_stats=port_stats,
@@ -84,6 +107,12 @@ class InstanceStatisticsReadService:
             inactive_instances=0,
             audit_enabled_instances=0,
             high_availability_instances=0,
+            managed_instances=0,
+            unmanaged_instances=0,
+            backed_up_instances=0,
+            backup_stale_instances=0,
+            not_backed_up_instances=0,
+            backup_status_stats=_build_backup_status_stats({}),
             db_types_count=0,
             db_type_stats=[],
             port_stats=[],

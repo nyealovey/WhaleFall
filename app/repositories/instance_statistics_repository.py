@@ -8,15 +8,24 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
+from datetime import timedelta
+from typing import Any, cast
+
+from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.models.instance import Instance
 from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.tag import Tag, instance_tags
+from app.repositories.jumpserver_repository import JumpServerRepository
+from app.repositories.veeam_repository import VeeamRepository
+from app.utils.time_utils import time_utils
 
 AUDIT_INFO_CONFIG_KEY = "audit_info"
 _STANDALONE_ARCHITECTURE_ALIASES = {"standalone", "single", "单机"}
+BACKUP_STATUS_BACKED_UP = "backed_up"
+BACKUP_STATUS_STALE = "backup_stale"
+BACKUP_STATUS_NOT_BACKED_UP = "not_backed_up"
 
 
 class InstanceStatisticsRepository:
@@ -30,20 +39,25 @@ class InstanceStatisticsRepository:
             query = query.filter(Instance.db_type == db_type)
 
         current_query = query.filter(Instance.deleted_at.is_(None))
-        current_instances = current_query.count()
-        active_instances = current_query.filter(Instance.is_active.is_(True)).count()
+        current_instance_rows = current_query.all()
+        current_instances = len(current_instance_rows)
+        active_instances = sum(1 for instance in current_instance_rows if bool(instance.is_active))
         disabled_instances = max(current_instances - active_instances, 0)
         deleted_instances = query.filter(Instance.deleted_at.isnot(None)).count()
         total_instances = current_instances + deleted_instances
         normal_instances = active_instances
         active_instance_ids = [
-            int(instance_id)
-            for (instance_id,) in current_query.with_entities(Instance.id).filter(Instance.is_active.is_(True)).all()
+            int(instance.id)
+            for instance in current_instance_rows
+            if bool(instance.is_active)
         ]
         audit_enabled_instances = InstanceStatisticsRepository._count_audit_enabled_instances(active_instance_ids)
         high_availability_instances = InstanceStatisticsRepository._count_high_availability_instances(
             active_instance_ids
         )
+        managed_ids = JumpServerRepository.fetch_managed_instance_ids(current_instance_rows)
+        managed_instances = len(managed_ids)
+        backup_status_counts = InstanceStatisticsRepository._count_backup_statuses(current_instance_rows)
 
         return {
             "total_instances": total_instances,
@@ -54,7 +68,40 @@ class InstanceStatisticsRepository:
             "deleted_instances": deleted_instances,
             "audit_enabled_instances": audit_enabled_instances,
             "high_availability_instances": high_availability_instances,
+            "managed_instances": managed_instances,
+            "unmanaged_instances": max(current_instances - managed_instances, 0),
+            "backed_up_instances": backup_status_counts[BACKUP_STATUS_BACKED_UP],
+            "backup_stale_instances": backup_status_counts[BACKUP_STATUS_STALE],
+            "not_backed_up_instances": backup_status_counts[BACKUP_STATUS_NOT_BACKED_UP],
         }
+
+    @staticmethod
+    def _count_backup_statuses(instances: list[Instance]) -> dict[str, int]:
+        counts = {
+            BACKUP_STATUS_BACKED_UP: 0,
+            BACKUP_STATUS_STALE: 0,
+            BACKUP_STATUS_NOT_BACKED_UP: 0,
+        }
+        backup_summary_map = VeeamRepository.fetch_backup_summary_map(instances)
+        for instance in instances:
+            backup_summary = backup_summary_map.get(int(instance.id), {})
+            latest_backup_at = backup_summary.get("latest_backup_at") if isinstance(backup_summary, dict) else None
+            status = InstanceStatisticsRepository._resolve_backup_status(
+                latest_backup_at=latest_backup_at if isinstance(latest_backup_at, str) else None,
+            )
+            counts[status] += 1
+        return counts
+
+    @staticmethod
+    def _resolve_backup_status(*, latest_backup_at: str | None) -> str:
+        if not latest_backup_at:
+            return BACKUP_STATUS_NOT_BACKED_UP
+        resolved = time_utils.to_utc(latest_backup_at)
+        if resolved is None:
+            return BACKUP_STATUS_NOT_BACKED_UP
+        if time_utils.now() - resolved <= timedelta(hours=24):
+            return BACKUP_STATUS_BACKED_UP
+        return BACKUP_STATUS_STALE
 
     @staticmethod
     def _count_audit_enabled_instances(active_instance_ids: list[int]) -> int:
@@ -88,12 +135,18 @@ class InstanceStatisticsRepository:
         if not active_instance_ids:
             return 0
 
+        instance_id_column = cast(ColumnElement[int], instance_tags.c.instance_id)
+        instance_tag_id_column = cast(ColumnElement[int], instance_tags.c.tag_id)
+        tag_id_column = cast(ColumnElement[int], Tag.id)
+        tag_name_column = cast(ColumnElement[str], Tag.name)
+        tag_display_name_column = cast(ColumnElement[str], Tag.display_name)
+        tag_category_column = cast(ColumnElement[str], Tag.category)
         rows = (
-            db.session.query(instance_tags.c.instance_id, Tag.name, Tag.display_name)
-            .join(Tag, Tag.id == instance_tags.c.tag_id)
+            db.session.query(instance_id_column, tag_name_column, tag_display_name_column)
+            .join(Tag, tag_id_column == instance_tag_id_column)
             .filter(
-                instance_tags.c.instance_id.in_(active_instance_ids),
-                Tag.category == "architecture",
+                instance_id_column.in_(active_instance_ids),
+                tag_category_column == "architecture",
             )
             .all()
         )

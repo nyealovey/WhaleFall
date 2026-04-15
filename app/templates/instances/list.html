@@ -42,6 +42,7 @@
                     {{ status_active_filter(status_options, status, width_preset='sm') }}
                     {{ select_filter('审计', 'audit_status', 'audit_status', audit_status_options, audit_status, '全部审计', width_preset='sm', allow_empty=False) }}
                     {{ select_filter('托管', 'managed_status', 'managed_status', managed_status_options, managed_status, '全部托管', width_preset='sm', allow_empty=False) }}
+                    {{ select_filter('备份', 'backup_status', 'backup_status', backup_status_options, backup_status, '全部备份', width_preset='sm', allow_empty=False) }}
                     {{ tag_selector_filter(tag_options, selected_tags, field_id='instance-tag-selector', width_preset='md') }}
                 {% endcall %}
             </div>

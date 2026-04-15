@@ -53,6 +53,7 @@ class InstanceListFiltersQuery(PayloadSchema):
     status: str = ""
     audit_status: str = ""
     managed_status: str = ""
+    backup_status: str = ""
     tags: list[str] = Field(default_factory=list)
     include_deleted: bool = False
 
@@ -84,7 +85,7 @@ class InstanceListFiltersQuery(PayloadSchema):
     def _parse_sort_order(cls, value: Any) -> str:
         return _parse_sort_order(value, default="desc")
 
-    @field_validator("search", "db_type", "status", "audit_status", "managed_status", mode="before")
+    @field_validator("search", "db_type", "status", "audit_status", "managed_status", "backup_status", mode="before")
     @classmethod
     def _parse_strings(cls, value: Any) -> str:
         return parse_text(value)
@@ -111,6 +112,7 @@ class InstanceListFiltersQuery(PayloadSchema):
             status=self.status,
             audit_status=self.audit_status,
             managed_status=self.managed_status,
+            backup_status=self.backup_status,
             tags=list(self.tags),
             include_deleted=self.include_deleted,
         )
