@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from typing import Any
 
 import pytest
 
@@ -26,7 +27,7 @@ class _DummyBaseline:
 class _StubRepository:
     def __init__(self, baselines: dict[tuple[int, str], _DummyBaseline | None]) -> None:
         self.baselines = baselines
-        self.created_events: list[dict[str, object]] = []
+        self.created_events: list[dict[str, Any]] = []
 
     def find_recent_database_baseline(
         self,

@@ -1,0 +1,9 @@
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/instances/detail.js
+  2120:23  warning  Variable Assigned to Object Injection Sink  security/detect-object-injection
+  2133:26  warning  Variable Assigned to Object Injection Sink  security/detect-object-injection
+  2150:23  warning  Variable Assigned to Object Injection Sink  security/detect-object-injection
+
+✖ 3 problems (0 errors, 3 warnings)
+
+ESLint found too many warnings (maximum: 0).

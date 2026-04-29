@@ -78,10 +78,9 @@ def apple_touch_icon() -> RouteReturn:
     """
 
     def _execute() -> RouteReturn:
-        icon_name = "apple-touch-icon-precomposed.png" if "precomposed" in request.path else "apple-touch-icon.png"
         static_root = current_app.static_folder or str(Path(current_app.root_path) / "static")
         icon_path = Path(static_root) / "img"
-        return send_from_directory(str(icon_path), icon_name)
+        return send_from_directory(str(icon_path), "logo.png")
 
     return safe_route_call(
         _execute,

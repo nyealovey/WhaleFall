@@ -41,9 +41,9 @@ class InstanceAuditSyncActionsService:
     def __init__(
         self,
         *,
-        sync_service: SQLServerAuditInfoSyncService | None = None,
-        snapshot_repository: InstanceConfigSnapshotsRepository | None = None,
-        instances_repository: InstancesRepository | None = None,
+        sync_service: SQLServerAuditInfoSyncService | Any | None = None,
+        snapshot_repository: InstanceConfigSnapshotsRepository | Any | None = None,
+        instances_repository: InstancesRepository | Any | None = None,
     ) -> None:
         self._sync_service = sync_service or SQLServerAuditInfoSyncService()
         self._snapshot_repository = snapshot_repository or InstanceConfigSnapshotsRepository()

@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 import pymssql  # type: ignore[import-not-found]
 import pytest
@@ -195,7 +195,7 @@ def test_enrich_permissions_supports_sqlserver_without_openjson() -> None:
         },
     ]
 
-    enriched = adapter.enrich_permissions(instance, conn, accounts)
+    enriched = adapter.enrich_permissions(instance, conn, cast(Any, accounts))
 
     permissions = cast(dict[str, object], enriched[0]["permissions"])
     assert permissions["sqlserver_server_roles"] == ["sysadmin"]

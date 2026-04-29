@@ -355,6 +355,84 @@ def _finalize_task_failure(
     }
 
 
+def _calculate_rule_statistics(
+    *,
+    rules: list[Any],
+    accounts: list[Any],
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    resolved_date: date,
+    computed_at: Any,
+    sync_logger: Any,
+    daily_stats_repo: AccountClassificationDailyStatsRepository,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    accounts_by_db_type, instance_ids_by_db_type = _build_account_indexes(accounts)
+    classification_db_types = _build_classification_db_types(rules)
+    matched_accounts_by_classification_instance: dict[tuple[int, str, int], set[int]] = defaultdict(set)
+    rule_records: list[dict[str, object]] = []
+
+    for rule in rules:
+        if _is_cancelled(run_id):
+            sync_logger.info(
+                "任务已取消,提前退出规则循环",
+                module="account_classification_daily_stats",
+                run_id=run_id,
+            )
+            task_runs_service.finalize_run(run_id)
+            db.session.commit()
+            return rule_records, []
+
+        rule_id_value = getattr(rule, "id", None)
+        if rule_id_value is None:
+            continue
+        rule_id = int(rule_id_value)
+        rule_key = str(rule_id)
+
+        task_runs_service.start_item(run_id, item_type="rule", item_key=rule_key)
+        db.session.commit()
+
+        try:
+            records, metrics, details = _calculate_rule_records(
+                rule=rule,
+                rule_id=rule_id,
+                accounts_by_db_type=accounts_by_db_type,
+                instance_ids_by_db_type=instance_ids_by_db_type,
+                matched_accounts_by_classification_instance=matched_accounts_by_classification_instance,
+                resolved_date=resolved_date,
+                computed_at=computed_at,
+            )
+            rule_records.extend(records)
+            task_runs_service.complete_item(
+                run_id,
+                item_type="rule",
+                item_key=rule_key,
+                metrics_json=metrics,
+                details_json=details,
+            )
+            db.session.commit()
+        except Exception as rule_exc:
+            _finalize_rule_failure(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                rule_key=rule_key,
+                rule_id=rule_id,
+                rule=rule,
+                exc=rule_exc,
+            )
+            raise
+
+    classification_records = _build_classification_records(
+        classification_db_types=classification_db_types,
+        instance_ids_by_db_type=instance_ids_by_db_type,
+        matched_accounts_by_classification_instance=matched_accounts_by_classification_instance,
+        resolved_date=resolved_date,
+        computed_at=computed_at,
+    )
+    daily_stats_repo.upsert_rule_match_stats(rule_records, current_utc=computed_at)
+    daily_stats_repo.upsert_classification_match_stats(classification_records, current_utc=computed_at)
+    return rule_records, classification_records
+
+
 def calculate_account(
     *,
     manual_run: bool = False,
@@ -434,71 +512,19 @@ def calculate_account(
                     rules_count=len(rules),
                 )
 
-            accounts_by_db_type, instance_ids_by_db_type = _build_account_indexes(accounts)
-            classification_db_types = _build_classification_db_types(rules)
-            matched_accounts_by_classification_instance: dict[tuple[int, str, int], set[int]] = defaultdict(set)
-            rule_records: list[dict[str, object]] = []
-
-            for rule in rules:
-                if _is_cancelled(resolved_run_id):
-                    sync_logger.info(
-                        "任务已取消,提前退出规则循环",
-                        module="account_classification_daily_stats",
-                        run_id=resolved_run_id,
-                    )
-                    task_runs_service.finalize_run(resolved_run_id)
-                    db.session.commit()
-                    return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
-
-                rule_id_value = getattr(rule, "id", None)
-                if rule_id_value is None:
-                    continue
-                rule_id = int(rule_id_value)
-                rule_key = str(rule_id)
-
-                task_runs_service.start_item(resolved_run_id, item_type="rule", item_key=rule_key)
-                db.session.commit()
-
-                try:
-                    records, metrics, details = _calculate_rule_records(
-                        rule=rule,
-                        rule_id=rule_id,
-                        accounts_by_db_type=accounts_by_db_type,
-                        instance_ids_by_db_type=instance_ids_by_db_type,
-                        matched_accounts_by_classification_instance=matched_accounts_by_classification_instance,
-                        resolved_date=resolved_date,
-                        computed_at=computed_at,
-                    )
-                    rule_records.extend(records)
-                    task_runs_service.complete_item(
-                        resolved_run_id,
-                        item_type="rule",
-                        item_key=rule_key,
-                        metrics_json=metrics,
-                        details_json=details,
-                    )
-                    db.session.commit()
-                except Exception as rule_exc:
-                    _finalize_rule_failure(
-                        task_runs_service=task_runs_service,
-                        run_id=resolved_run_id,
-                        rule_key=rule_key,
-                        rule_id=rule_id,
-                        rule=rule,
-                        exc=rule_exc,
-                    )
-                    raise
-
-            classification_records = _build_classification_records(
-                classification_db_types=classification_db_types,
-                instance_ids_by_db_type=instance_ids_by_db_type,
-                matched_accounts_by_classification_instance=matched_accounts_by_classification_instance,
+            rule_records, classification_records = _calculate_rule_statistics(
+                rules=rules,
+                accounts=accounts,
+                task_runs_service=task_runs_service,
+                run_id=resolved_run_id,
                 resolved_date=resolved_date,
                 computed_at=computed_at,
+                sync_logger=sync_logger,
+                daily_stats_repo=daily_stats_repo,
             )
 
-            daily_stats_repo.upsert_rule_match_stats(rule_records, current_utc=computed_at)
-            daily_stats_repo.upsert_classification_match_stats(classification_records, current_utc=computed_at)
+            if _is_cancelled(resolved_run_id):
+                return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
 
             result = _finalize_success(
                 task_runs_service=task_runs_service,

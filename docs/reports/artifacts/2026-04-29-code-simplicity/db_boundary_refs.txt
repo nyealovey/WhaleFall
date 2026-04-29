@@ -1,0 +1,240 @@
+app/repositories/jumpserver_repository.py:27:        return JumpServerSourceBinding.query.order_by(JumpServerSourceBinding.id.asc()).first()
+app/repositories/jumpserver_repository.py:60:            for row in JumpServerAssetSnapshot.query.order_by(JumpServerAssetSnapshot.id.asc()).all()
+app/repositories/jumpserver_repository.py:100:            JumpServerAssetSnapshot.query.filter(JumpServerAssetSnapshot.host.in_(hosts))
+app/repositories/account_statistics_repository.py:193:        rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
+app/repositories/credentials_repository.py:37:        return cast("Credential | None", Credential.query.filter_by(name=normalized).first())
+app/repositories/credentials_repository.py:44:        query = Credential.query.filter(Credential.name == normalized)
+app/repositories/credentials_repository.py:62:        return Credential.query.filter_by(is_active=True).order_by(Credential.created_at.desc()).all()
+app/repositories/credentials_repository.py:68:            Credential.query.filter(Credential.is_active.is_(True))
+app/repositories/credentials_repository.py:78:            Credential.query.filter(Credential.is_active.is_(True))
+app/repositories/instance_accounts_repository.py:30:        return Instance.query.filter(
+app/repositories/instance_accounts_repository.py:123:            AccountChangeLog.query.filter_by(
+app/repositories/instance_config_snapshots_repository.py:15:            InstanceConfigSnapshot.query.filter_by(
+app/repositories/instance_database_sizes_repository.py:152:            inactive_query = InstanceDatabase.query.filter(
+app/repositories/database_table_size_stats_repository.py:64:        query = DatabaseTableSizeStat.query.filter(
+app/repositories/instances_repository.py:51:        return cast("Instance | None", Instance.query.filter_by(name=normalized).first())
+app/repositories/instances_repository.py:61:            Instance.query.filter(Instance.name == normalized, Instance.id != exclude_instance_id).first(),
+app/repositories/instances_repository.py:67:        return Instance.query.filter(
+app/repositories/instances_repository.py:86:            Instance.query.filter(
+app/repositories/instances_repository.py:98:            Instance.query.filter(
+app/repositories/instances_repository.py:107:        return Instance.query.filter(cast(Any, Instance.deleted_at).is_(None)).order_by(Instance.id.asc()).all()
+app/repositories/instances_repository.py:112:        return int(Instance.query.filter(cast(Any, Instance.deleted_at).is_(None)).count())
+app/repositories/instances_repository.py:121:        return Instance.query.filter(Instance.id.in_(normalized_ids)).all()
+app/repositories/email_alerts_repository.py:20:        return EmailAlertSetting.query.order_by(EmailAlertSetting.id.asc()).first()
+app/repositories/email_alerts_repository.py:40:            EmailAlertEvent.query.filter(
+app/repositories/email_alerts_repository.py:61:        query = EmailAlertEvent.query.filter(
+app/repositories/email_alerts_repository.py:75:            EmailAlertEvent.query.filter(EmailAlertEvent.digest_sent_at.is_(None))
+app/repositories/email_alerts_repository.py:83:        events = EmailAlertEvent.query.filter(EmailAlertEvent.bucket_date == bucket_date).all()
+app/repositories/email_alerts_repository.py:98:            EmailAlertEvent.query.filter(EmailAlertEvent.id.in_(event_ids)).update(
+app/repositories/email_alerts_repository.py:114:            DatabaseSizeStat.query.filter(
+app/repositories/aggregation_runner_repository.py:74:        return DatabaseSizeAggregation.query.filter(
+app/repositories/aggregation_runner_repository.py:83:        return InstanceSizeStat.query.filter(
+app/repositories/aggregation_runner_repository.py:98:        return InstanceSizeAggregation.query.filter(
+app/tasks/capacity_aggregation_tasks.py:96:        db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:103:            db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:123:            db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:147:        db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:182:            db.session.rollback()
+app/tasks/capacity_aggregation_tasks.py:191:        db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:212:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/capacity_aggregation_tasks.py:229:    db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:240:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_aggregation_tasks.py:256:    db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:273:    db.session.rollback()
+app/tasks/capacity_aggregation_tasks.py:275:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_aggregation_tasks.py:281:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/capacity_aggregation_tasks.py:287:        db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:332:            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/capacity_aggregation_tasks.py:389:            db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:398:            db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:424:                db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:437:            db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:439:            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/capacity_aggregation_tasks.py:454:            db.session.commit()
+app/tasks/capacity_aggregation_tasks.py:515:            db.session.remove()
+app/repositories/filter_options_repository.py:67:        query = InstanceDatabase.query.filter(InstanceDatabase.instance_id == instance_id).order_by(
+app/repositories/filter_options_repository.py:83:        query = InstanceDatabase.query.filter(
+app/repositories/filter_options_repository.py:106:            AccountClassification.query.filter(AccountClassification.is_active.is_(True))
+app/repositories/accounts_classifications_repository.py:47:        query = AccountClassification.query.filter(AccountClassification.code == normalized)
+app/repositories/accounts_classifications_repository.py:61:        query = ClassificationRule.query.filter_by(
+app/repositories/accounts_classifications_repository.py:78:        query = ClassificationRule.query.filter_by(
+app/repositories/accounts_classifications_repository.py:88:        rule_count = int(ClassificationRule.query.filter_by(classification_id=classification_id).count())
+app/repositories/accounts_classifications_repository.py:90:            AccountClassificationAssignment.query.filter_by(
+app/repositories/accounts_classifications_repository.py:100:            AccountClassification.query.filter_by(is_active=True)
+app/repositories/accounts_classifications_repository.py:153:        query = ClassificationRule.query.filter(ClassificationRule.classification_id == classification_id)
+app/repositories/accounts_classifications_repository.py:166:        return ClassificationRule.query.filter(ClassificationRule.id.in_(list(rule_ids))).all()
+app/repositories/accounts_classifications_repository.py:183:        rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
+app/repositories/users_repository.py:35:        return cast("User | None", User.query.filter_by(username=normalized).first())
+app/repositories/users_repository.py:58:        return int(User.query.filter_by(role=normalized).count())
+app/repositories/users_repository.py:64:        active_users = int(User.query.filter_by(is_active=True).count())
+app/repositories/users_repository.py:65:        admin_users = int(User.query.filter_by(role=UserRole.ADMIN).count())
+app/repositories/users_repository.py:66:        user_users = int(User.query.filter_by(role=UserRole.USER).count())
+app/repositories/scheduler_jobs_repository.py:36:            TaskRun.query.filter(TaskRun.task_key == job_id)
+app/repositories/history_logs_repository.py:73:        total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
+app/repositories/history_logs_repository.py:89:        error_count = UnifiedLog.query.filter(
+app/repositories/ledgers/accounts_ledger_repository.py:55:            AccountChangeLog.query.filter_by(
+app/repositories/instance_database_table_sizes_repository.py:36:        query = DatabaseTableSizeStat.query.filter(
+app/repositories/sync_sessions_repository.py:24:        return Instance.query.filter(Instance.id.in_(instance_ids)).all()
+app/repositories/sync_sessions_repository.py:39:        return SyncSession.query.filter_by(session_id=session_id).first()
+app/repositories/sync_sessions_repository.py:44:        return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
+app/repositories/sync_sessions_repository.py:50:            SyncSession.query.filter_by(sync_type=sync_type).order_by(SyncSession.created_at.desc()).limit(limit).all()
+app/repositories/sync_sessions_repository.py:57:            SyncSession.query.filter_by(sync_category=sync_category)
+app/repositories/instances_batch_repository.py:67:        stats["deleted_assignments"] += AccountClassificationAssignment.query.filter(
+app/repositories/instances_batch_repository.py:71:        stats["deleted_account_permissions"] += AccountPermission.query.filter_by(
+app/repositories/instances_batch_repository.py:75:        stats["deleted_sync_records"] += SyncInstanceRecord.query.filter_by(
+app/repositories/instances_batch_repository.py:79:        stats["deleted_change_logs"] += AccountChangeLog.query.filter_by(
+app/repositories/instances_batch_repository.py:83:        stats["deleted_instance_accounts"] += InstanceAccount.query.filter_by(
+app/repositories/instances_batch_repository.py:87:        stats["deleted_instance_databases"] += InstanceDatabase.query.filter_by(
+app/repositories/instances_batch_repository.py:91:        stats["deleted_instance_size_stats"] += InstanceSizeStat.query.filter_by(
+app/repositories/instances_batch_repository.py:95:        stats["deleted_instance_size_aggregations"] += InstanceSizeAggregation.query.filter_by(
+app/repositories/instances_batch_repository.py:99:        stats["deleted_database_size_stats"] += DatabaseSizeStat.query.filter_by(
+app/repositories/instances_batch_repository.py:103:        stats["deleted_database_size_aggregations"] += DatabaseSizeAggregation.query.filter_by(
+app/repositories/account_change_logs_repository.py:99:        log_entry = AccountChangeLog.query.filter_by(id=log_id).first()
+app/repositories/history_sessions_repository.py:61:        session = SyncSession.query.filter_by(session_id=session_id).first()
+app/repositories/accounts_sync_repository.py:65:        return InstanceAccount.query.filter_by(instance_id=instance_id).all()
+app/repositories/accounts_sync_repository.py:72:            AccountPermission.query.filter_by(instance_account_id=instance_account_id).first(),
+app/repositories/accounts_sync_repository.py:85:            AccountPermission.query.filter_by(
+app/repositories/veeam_repository.py:234:        return VeeamSourceBinding.query.order_by(VeeamSourceBinding.id.asc()).first()
+app/repositories/veeam_repository.py:389:            VeeamMachineBackupSnapshot.query.filter(
+app/repositories/veeam_repository.py:435:            VeeamMachineBackupSnapshot.query.filter(
+app/repositories/veeam_repository.py:442:            VeeamMachineBackupSnapshot.query.filter(
+app/repositories/aggregation_repository.py:88:        latest = DatabaseSizeAggregation.query.order_by(desc(DatabaseSizeAggregation.calculated_at)).first()
+app/repositories/aggregation_repository.py:114:        query = DatabaseSizeAggregation.query.filter(
+app/repositories/aggregation_repository.py:137:        query = InstanceSizeAggregation.query.filter(
+app/repositories/task_runs_repository.py:38:        query = TaskRun.query
+app/repositories/task_runs_repository.py:61:        run = TaskRun.query.filter_by(run_id=run_id).first()
+app/repositories/task_runs_repository.py:69:        item = TaskRunItem.query.filter_by(run_id=run_id, item_type=item_type, item_key=item_key).first()
+app/repositories/task_runs_repository.py:77:        return TaskRunItem.query.filter_by(run_id=run_id).order_by(TaskRunItem.id.asc()).all()
+app/repositories/instance_databases_repository.py:26:        return InstanceDatabase.query.filter_by(instance_id=instance_id).all()
+app/services/jumpserver/sync_actions_service.py:95:        db.session.commit()
+app/services/jumpserver/sync_actions_service.py:183:            db.session.commit()
+app/services/jumpserver/sync_actions_service.py:185:            db.session.rollback()
+app/services/jumpserver/sync_actions_service.py:214:            db.session.commit()
+app/services/jumpserver/sync_actions_service.py:228:        current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/email_alert_tasks.py:64:        existing_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/email_alert_tasks.py:85:    db.session.commit()
+app/tasks/email_alert_tasks.py:141:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/email_alert_tasks.py:185:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/email_alert_tasks.py:224:        db.session.commit()
+app/tasks/email_alert_tasks.py:234:            db.session.commit()
+app/tasks/email_alert_tasks.py:239:            db.session.rollback()
+app/tasks/email_alert_tasks.py:242:            db.session.commit()
+app/services/jumpserver/source_service.py:76:        db.session.commit()
+app/services/jumpserver/source_service.py:85:        db.session.commit()
+app/tasks/capacity_collection_tasks.py:45:        db.session.commit()
+app/tasks/capacity_collection_tasks.py:49:        current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_collection_tasks.py:54:            for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/capacity_collection_tasks.py:60:            db.session.commit()
+app/tasks/capacity_collection_tasks.py:78:    db.session.commit()
+app/tasks/capacity_collection_tasks.py:87:        db.session.rollback()
+app/tasks/capacity_collection_tasks.py:103:        db.session.commit()
+app/tasks/capacity_collection_tasks.py:113:        db.session.commit()
+app/tasks/capacity_collection_tasks.py:125:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_collection_tasks.py:139:    db.session.commit()
+app/tasks/capacity_collection_tasks.py:173:        db.session.commit()
+app/tasks/capacity_collection_tasks.py:234:        db.session.commit()
+app/tasks/capacity_collection_tasks.py:247:    db.session.commit()
+app/tasks/capacity_collection_tasks.py:259:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_collection_tasks.py:272:    db.session.commit()
+app/tasks/capacity_collection_tasks.py:312:            existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/capacity_collection_tasks.py:325:            db.session.commit()
+app/tasks/capacity_collection_tasks.py:328:            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/capacity_collection_tasks.py:389:            db.session.commit()
+app/tasks/capacity_collection_tasks.py:392:            db.session.commit()
+app/tasks/capacity_collection_tasks.py:437:            db.session.rollback()
+app/tasks/capacity_collection_tasks.py:448:            db.session.rollback()
+app/tasks/capacity_collection_tasks.py:463:                db.session.remove()
+app/services/alerts/email_alert_settings_service.py:64:        db.session.commit()
+app/tasks/account_classification_auto_tasks.py:44:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/account_classification_auto_tasks.py:61:    db.session.commit()
+app/tasks/account_classification_auto_tasks.py:66:    current = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_auto_tasks.py:121:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_auto_tasks.py:136:    db.session.commit()
+app/tasks/account_classification_auto_tasks.py:167:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_auto_tasks.py:183:    db.session.commit()
+app/tasks/account_classification_auto_tasks.py:233:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_auto_tasks.py:238:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/account_classification_auto_tasks.py:244:    db.session.commit()
+app/tasks/account_classification_auto_tasks.py:259:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_auto_tasks.py:273:    db.session.commit()
+app/tasks/account_classification_auto_tasks.py:341:            db.session.commit()
+app/tasks/account_classification_auto_tasks.py:354:            db.session.commit()
+app/tasks/account_classification_auto_tasks.py:371:                    db.session.commit()
+app/tasks/account_classification_auto_tasks.py:383:                db.session.commit()
+app/tasks/account_classification_auto_tasks.py:411:                    db.session.commit()
+app/tasks/account_classification_auto_tasks.py:436:            db.session.remove()
+app/services/veeam/sync_actions_service.py:571:            db.session.commit()
+app/services/veeam/sync_actions_service.py:613:            db.session.rollback()
+app/services/veeam/sync_actions_service.py:652:            db.session.commit()
+app/services/veeam/sync_actions_service.py:667:        db.session.commit()
+app/services/veeam/sync_actions_service.py:685:        db.session.commit()
+app/services/veeam/sync_actions_service.py:844:        current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/services/veeam/source_service.py:82:        db.session.commit()
+app/services/veeam/source_service.py:91:        db.session.commit()
+app/tasks/accounts_sync_tasks.py:71:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/accounts_sync_tasks.py:85:    db.session.commit()
+app/tasks/accounts_sync_tasks.py:90:    current = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/accounts_sync_tasks.py:95:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/accounts_sync_tasks.py:112:    db.session.commit()
+app/tasks/accounts_sync_tasks.py:128:    db.session.commit()
+app/tasks/accounts_sync_tasks.py:159:    db.session.commit()
+app/tasks/accounts_sync_tasks.py:178:    permissions = AccountPermission.query.filter(
+app/tasks/accounts_sync_tasks.py:225:        db.session.commit()
+app/tasks/accounts_sync_tasks.py:228:        db.session.commit()
+app/tasks/accounts_sync_tasks.py:237:        db.session.commit()
+app/tasks/accounts_sync_tasks.py:277:        db.session.commit()
+app/tasks/accounts_sync_tasks.py:296:    db.session.commit()
+app/tasks/accounts_sync_tasks.py:298:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/accounts_sync_tasks.py:314:    db.session.commit()
+app/tasks/accounts_sync_tasks.py:342:        db.session.commit()
+app/tasks/accounts_sync_tasks.py:345:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/accounts_sync_tasks.py:349:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/accounts_sync_tasks.py:355:        db.session.commit()
+app/tasks/accounts_sync_tasks.py:590:            db.session.remove()
+app/repositories/tags_repository.py:37:        return Tag.query.filter_by(name=normalized).first()
+app/repositories/tags_repository.py:46:        return Tag.query.filter(Tag.id.in_(normalized_ids)).all()
+app/tasks/veeam_backup_sync_tasks.py:34:            db.session.commit()
+app/repositories/partition_repository.py:32:            DatabaseSizeAggregation.query.filter(
+app/repositories/partition_repository.py:47:            InstanceSizeAggregation.query.filter(
+app/repositories/partition_repository.py:62:            DatabaseSizeStat.query.filter(
+app/repositories/partition_repository.py:76:            InstanceSizeStat.query.filter(
+app/services/capacity/capacity_collection_task_runner.py:6:- 不做 `db.session.commit/rollback`(由写边界入口负责).
+app/services/aggregation/capacity_aggregation_task_runner.py:6:- 不做 `db.session.commit/rollback`(由写边界入口负责).
+app/tasks/capacity_current_aggregation_tasks.py:50:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/capacity_current_aggregation_tasks.py:67:    db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:72:    current = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_current_aggregation_tasks.py:89:    db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:102:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_current_aggregation_tasks.py:117:    db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:135:    db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:147:    db.session.rollback()
+app/tasks/capacity_current_aggregation_tasks.py:158:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/capacity_current_aggregation_tasks.py:163:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/capacity_current_aggregation_tasks.py:169:        db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:194:        db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:224:        db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:236:        db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:366:            db.session.commit()
+app/tasks/capacity_current_aggregation_tasks.py:379:            db.session.remove()
+app/tasks/account_classification_daily_tasks.py:38:        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
+app/tasks/account_classification_daily_tasks.py:52:    db.session.commit()
+app/tasks/account_classification_daily_tasks.py:57:    current = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_daily_tasks.py:70:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_daily_tasks.py:85:    db.session.commit()
+app/tasks/account_classification_daily_tasks.py:98:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_daily_tasks.py:113:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/account_classification_daily_tasks.py:119:    db.session.commit()
+app/tasks/account_classification_daily_tasks.py:237:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_daily_tasks.py:242:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/account_classification_daily_tasks.py:249:    db.session.commit()
+app/tasks/account_classification_daily_tasks.py:295:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_daily_tasks.py:309:    db.session.commit()
+app/tasks/account_classification_daily_tasks.py:330:    db.session.rollback()
+app/tasks/account_classification_daily_tasks.py:338:    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+app/tasks/account_classification_daily_tasks.py:343:        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
+app/tasks/account_classification_daily_tasks.py:349:        db.session.commit()
+app/tasks/account_classification_daily_tasks.py:425:            db.session.commit()
+app/tasks/account_classification_daily_tasks.py:450:                    db.session.commit()
+app/tasks/account_classification_daily_tasks.py:460:                db.session.commit()
+app/tasks/account_classification_daily_tasks.py:480:                    db.session.commit()
+app/tasks/account_classification_daily_tasks.py:523:            db.session.remove()

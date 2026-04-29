@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import cast
+from typing import Any, cast
 
 from sqlalchemy.exc import IntegrityError
 
@@ -23,10 +23,10 @@ class EmailAlertEventService:
 
     def __init__(
         self,
-        repository: EmailAlertsRepository | None = None,
-        settings_service: EmailAlertSettingsService | None = None,
-        instances_repository: InstancesRepository | None = None,
-        veeam_repository: VeeamRepository | None = None,
+        repository: EmailAlertsRepository | Any | None = None,
+        settings_service: EmailAlertSettingsService | Any | None = None,
+        instances_repository: InstancesRepository | Any | None = None,
+        veeam_repository: VeeamRepository | Any | None = None,
     ) -> None:
         self._repository = repository or EmailAlertsRepository()
         self._settings_service = settings_service or EmailAlertSettingsService()

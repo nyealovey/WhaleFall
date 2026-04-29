@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Unpack
+
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.dialects import postgresql
 
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.core.types.orm_kwargs import InstanceConfigSnapshotOrmFields
 
 
 class InstanceConfigSnapshot(db.Model):
@@ -45,3 +50,9 @@ class InstanceConfigSnapshot(db.Model):
         Index("ix_instance_config_snapshots_config_key", "config_key"),
         Index("ix_instance_config_snapshots_last_sync_time", "last_sync_time"),
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[InstanceConfigSnapshotOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime
+from typing import Protocol
 
 from sqlalchemy import inspect
 
@@ -11,6 +12,29 @@ from app import db
 from app.models.instance import Instance
 from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.jumpserver_source_binding import JumpServerSourceBinding
+
+
+class JumpServerAssetRecord(Protocol):
+    """Repository 写入需要的 JumpServer 资产字段."""
+
+    @property
+    def external_id(self) -> str: ...
+
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def db_type(self) -> str: ...
+
+    @property
+    def host(self) -> str: ...
+
+    @property
+    def port(self) -> int: ...
+
+    @property
+    def raw_payload(self) -> dict[str, object]: ...
+
 
 
 class JumpServerRepository:
@@ -47,22 +71,18 @@ class JumpServerRepository:
 
     @staticmethod
     def replace_asset_snapshots(
-        assets: Iterable["JumpServerDatabaseAsset"],
+        assets: Iterable[JumpServerAssetRecord],
         *,
         sync_run_id: str,
         synced_at: datetime,
     ) -> None:
         """以本次同步结果替换快照内容."""
-        from app.services.jumpserver.provider import JumpServerDatabaseAsset
-
         existing = {
             row.external_id: row
             for row in JumpServerAssetSnapshot.query.order_by(JumpServerAssetSnapshot.id.asc()).all()
         }
         keep_external_ids: set[str] = set()
         for asset in assets:
-            if not isinstance(asset, JumpServerDatabaseAsset):
-                continue
             keep_external_ids.add(asset.external_id)
             row = existing.get(asset.external_id)
             if row is None:

@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from app.core.types.instances import InstanceListFilters, InstanceListItem
 from app.core.types.listing import PaginatedResult
 from app.repositories.instances_repository import InstancesRepository
@@ -19,10 +21,13 @@ def _resolve_audit_status(audit_facts: dict[str, object] | None) -> str:
         return "not_configured"
 
     has_audit = bool(audit_facts.get("has_audit"))
-    enabled_count_raw = audit_facts.get("enabled_audit_count", 0)
-    try:
-        enabled_count = int(enabled_count_raw or 0)
-    except (TypeError, ValueError):
+    enabled_count_raw = audit_facts.get("enabled_audit_count")
+    if isinstance(enabled_count_raw, (int, float, str)):
+        try:
+            enabled_count = int(enabled_count_raw or 0)
+        except ValueError:
+            enabled_count = 0
+    else:
         enabled_count = 0
 
     if has_audit and enabled_count > 0:
@@ -35,7 +40,7 @@ def _resolve_audit_status(audit_facts: dict[str, object] | None) -> str:
 class InstanceListService:
     """实例列表业务编排服务."""
 
-    def __init__(self, repository: InstancesRepository | None = None) -> None:
+    def __init__(self, repository: InstancesRepository | Any | None = None) -> None:
         """初始化服务并注入实例仓库."""
         self._repository = repository or InstancesRepository()
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 
 from app.core.constants.validation_limits import HOST_MAX_LENGTH, PORT_MAX, PORT_MIN
 from app.schemas.base import PayloadSchema
@@ -23,7 +23,7 @@ class VeeamSourceBindingPayload(PayloadSchema):
     server_port: int
     api_version: str
     verify_ssl: bool | None = None
-    match_domains: list[str] = []
+    match_domains: list[str] = Field(default_factory=list)
 
     @field_validator("credential_id", mode="before")
     @classmethod

@@ -269,3 +269,93 @@ class DatabaseTableSizeStatOrmFields(TypedDict, total=False):
     collected_at: datetime
     created_at: datetime
     updated_at: datetime
+
+
+class InstanceConfigSnapshotOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating InstanceConfigSnapshot ORM rows."""
+
+    id: int
+    instance_id: int
+    db_type: str
+    config_key: str
+    snapshot: object | None
+    facts: object | None
+    last_sync_time: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class VeeamSourceBindingOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating VeeamSourceBinding ORM rows."""
+
+    id: int
+    credential_id: int
+    server_host: str
+    server_port: int
+    api_version: str
+    verify_ssl: bool | None
+    match_domains: list[str]
+    is_enabled: bool
+    last_sync_at: datetime | None
+    last_sync_status: str | None
+    last_sync_run_id: str | None
+    last_error: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class VeeamMachineBackupSnapshotOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating VeeamMachineBackupSnapshot ORM rows."""
+
+    id: int
+    machine_name: str
+    normalized_machine_name: str
+    machine_ip: str | None
+    normalized_machine_ip: str | None
+    latest_backup_at: datetime
+    backup_id: str | None
+    backup_file_id: str | None
+    job_name: str | None
+    restore_point_name: str | None
+    source_record_id: str | None
+    restore_point_size_bytes: int | None
+    backup_chain_size_bytes: int | None
+    restore_point_count: int | None
+    raw_payload: dict[str, object]
+    sync_run_id: str | None
+    synced_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class JumpServerSourceBindingOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating JumpServerSourceBinding ORM rows."""
+
+    id: int
+    credential_id: int
+    base_url: str
+    org_id: str | None
+    verify_ssl: bool | None
+    is_enabled: bool
+    last_sync_at: datetime | None
+    last_sync_status: str | None
+    last_sync_run_id: str | None
+    last_error: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class JumpServerAssetSnapshotOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating JumpServerAssetSnapshot ORM rows."""
+
+    id: int
+    external_id: str
+    name: str
+    db_type: str
+    host: str
+    port: int
+    raw_payload: dict[str, object]
+    sync_run_id: str | None
+    synced_at: datetime
+    created_at: datetime
+    updated_at: datetime

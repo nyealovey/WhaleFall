@@ -1,0 +1,12 @@
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LC_ALL = (unset),
+	LANG = "en_CN.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to the standard locale ("C").
+4ea374a0f7070d3ec3dbda3d62c72fa16138da8eb1585877a93ae7f5c10bedfe  app/static/img/logo_backup.png
+4ea374a0f7070d3ec3dbda3d62c72fa16138da8eb1585877a93ae7f5c10bedfe  app/static/img/logo.png
+4ea374a0f7070d3ec3dbda3d62c72fa16138da8eb1585877a93ae7f5c10bedfe  app/static/img/favicon.png
+4ea374a0f7070d3ec3dbda3d62c72fa16138da8eb1585877a93ae7f5c10bedfe  app/static/img/apple-touch-icon.png
+4ea374a0f7070d3ec3dbda3d62c72fa16138da8eb1585877a93ae7f5c10bedfe  app/static/img/apple-touch-icon-precomposed.png
+d7aa25c9166ae413623f836ad092bcbad08478128836a576922161d140fc6752  app/static/img/logo.webp

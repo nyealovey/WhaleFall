@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+from email.message import Message
 from typing import Any
 from urllib.error import HTTPError, URLError
 
@@ -226,7 +227,7 @@ def test_http_jumpserver_provider_surfaces_http_error_status_url_and_response_bo
             url=request.full_url,
             code=503,
             msg="Service Unavailable",
-            hdrs=None,
+            hdrs=Message(),
             fp=io.BytesIO(b'{"detail":"jumpserver upstream unavailable"}'),
         )
 

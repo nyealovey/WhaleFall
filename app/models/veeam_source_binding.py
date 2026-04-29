@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Unpack
+
 from sqlalchemy.dialects import postgresql
 
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.core.types.orm_kwargs import VeeamSourceBindingOrmFields
 
 
 class VeeamSourceBinding(db.Model):
@@ -33,6 +38,12 @@ class VeeamSourceBinding(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
 
     credential = db.relationship("Credential")
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[VeeamSourceBindingOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def to_dict(self) -> dict[str, object]:
         """序列化绑定状态."""

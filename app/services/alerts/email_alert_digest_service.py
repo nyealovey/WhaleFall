@@ -44,7 +44,7 @@ class EmailAlertDigestService:
         self._sender = sender or EmailSender()
         self._settings_service = settings_service or EmailAlertSettingsService()
 
-    def send_pending_digest(self, now: datetime | None = None) -> dict[str, object]:
+    def send_pending_digest(self, now: datetime | None = None) -> dict[str, Any]:
         """发送待汇总事件，并返回规则级与发送步骤的结构化结果."""
         resolved_now = now or time_utils.now()
         bucket_date = self._resolve_bucket_date(resolved_now)
@@ -64,97 +64,97 @@ class EmailAlertDigestService:
         }
 
         if not bool(settings.global_enabled):
-            return {
-                **base_result,
-                "skipped": True,
-                "skip_reason": "global_disabled",
-                "send_step": self._build_send_step(
-                    status="completed",
-                    display_state="skipped_disabled",
-                    summary="总开关已关闭",
-                    skip_reason="global_disabled",
-                    recipient_count=len(recipients),
-                ),
-            }
+            return self._skip_result(
+                base_result,
+                display_state="skipped_disabled",
+                summary="总开关已关闭",
+                skip_reason="global_disabled",
+                recipient_count=len(recipients),
+            )
         if not recipients:
-            return {
-                **base_result,
-                "skipped": True,
-                "skip_reason": "no_recipients",
-                "send_step": self._build_send_step(
-                    status="completed",
-                    display_state="skipped_no_recipients",
-                    summary="未配置收件人",
-                    skip_reason="no_recipients",
-                    recipient_count=0,
-                ),
-            }
+            return self._skip_result(
+                base_result,
+                display_state="skipped_no_recipients",
+                summary="未配置收件人",
+                skip_reason="no_recipients",
+                recipient_count=0,
+            )
         if not events:
             sent_count = sum(item.get("sent_count", 0) for item in bucket_stats.values())
             if sent_count > 0:
-                return {
-                    **base_result,
-                    "skipped": True,
-                    "skip_reason": "already_sent_today",
-                    "send_step": self._build_send_step(
-                        status="completed",
-                        display_state="skipped_already_sent",
-                        summary=f"当天已发送 {sent_count} 条告警事件，本次无待发送事件",
-                        skip_reason="already_sent_today",
-                        recipient_count=len(recipients),
-                    ),
-                }
-            return {
-                **base_result,
-                "skipped": True,
-                "skip_reason": "no_pending_events",
-                "send_step": self._build_send_step(
-                    status="completed",
-                    display_state="skipped_no_event",
-                    summary="无待发送事件",
-                    skip_reason="no_pending_events",
+                return self._skip_result(
+                    base_result,
+                    display_state="skipped_already_sent",
+                    summary=f"当天已发送 {sent_count} 条告警事件，本次无待发送事件",
+                    skip_reason="already_sent_today",
                     recipient_count=len(recipients),
-                ),
-            }
+                )
+            return self._skip_result(
+                base_result,
+                display_state="skipped_no_event",
+                summary="无待发送事件",
+                skip_reason="no_pending_events",
+                recipient_count=len(recipients),
+            )
+        subject = None
+        sent = False
         if not self._sender.is_ready():
-            return {
-                **base_result,
-                "send_step": self._build_send_step(
-                    status="failed",
-                    display_state="failed",
-                    summary="SMTP 配置未完成",
-                    recipient_count=len(recipients),
-                    error_message="SMTP 配置未完成",
-                ),
-            }
-
-        subject = f"邮件告警汇总 - {self._format_subject_date(resolved_now)}"
-        text_body = self._build_text_body(events)
-        try:
-            self._sender.send_email(recipients=recipients, subject=subject, text_body=text_body)
-        except Exception as exc:
-            return {
-                **base_result,
-                "subject": subject,
-                "send_step": self._build_send_step(
+            send_step = self._build_send_step(
+                status="failed",
+                display_state="failed",
+                summary="SMTP 配置未完成",
+                recipient_count=len(recipients),
+                error_message="SMTP 配置未完成",
+            )
+        else:
+            subject = f"邮件告警汇总 - {self._format_subject_date(resolved_now)}"
+            text_body = self._build_text_body(events)
+            try:
+                self._sender.send_email(recipients=recipients, subject=subject, text_body=text_body)
+            except Exception as exc:
+                send_step = self._build_send_step(
                     status="failed",
                     display_state="failed",
                     summary="发送汇总邮件失败",
                     recipient_count=len(recipients),
                     error_message=str(exc),
-                ),
-            }
-        event_ids = [int(event.id) for event in events]
-        self._repository.mark_events_digest_sent(event_ids, resolved_now)
+                )
+            else:
+                event_ids = [int(event.id) for event in events]
+                self._repository.mark_events_digest_sent(event_ids, resolved_now)
+                sent = True
+                send_step = self._build_send_step(
+                    status="completed",
+                    display_state="sent",
+                    summary=f"已发送 {len(events)} 条事件到 {len(recipients)} 个收件人",
+                    recipient_count=len(recipients),
+                )
         return {
             **base_result,
-            "sent": True,
+            "sent": sent,
             "subject": subject,
+            "send_step": send_step,
+        }
+
+    def _skip_result(
+        self,
+        base_result: dict[str, object],
+        *,
+        display_state: str,
+        summary: str,
+        skip_reason: str,
+        recipient_count: int,
+    ) -> dict[str, object]:
+        return {
+            **base_result,
+            "skipped": True,
+            "skip_reason": skip_reason,
             "send_step": self._build_send_step(
                 status="completed",
-                display_state="sent",
-                summary=f"已发送 {len(events)} 条事件到 {len(recipients)} 个收件人",
-                recipient_count=len(recipients),
+                display_state=display_state,
+                summary=summary,
+                skip_reason=skip_reason,
+                recipient_count=recipient_count,
             ),
         }
 

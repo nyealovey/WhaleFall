@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Unpack
+
 from sqlalchemy.dialects import postgresql
 
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.core.types.orm_kwargs import VeeamMachineBackupSnapshotOrmFields
 
 
 class VeeamMachineBackupSnapshot(db.Model):
@@ -41,6 +46,12 @@ class VeeamMachineBackupSnapshot(db.Model):
         db.UniqueConstraint("normalized_machine_name", name="uq_veeam_snapshot_normalized_name"),
         db.UniqueConstraint("normalized_machine_ip", name="uq_veeam_snapshot_normalized_ip"),
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[VeeamMachineBackupSnapshotOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def to_dict(self) -> dict[str, object]:
         """序列化快照."""

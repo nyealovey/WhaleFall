@@ -37,7 +37,7 @@ def get_error_envelope_model(ns: Namespace):
 
 
 def make_success_envelope_model(ns: Namespace, name: str, data_model=None):
-    """构建成功封套 Model, data_model 可选."""
+    """构建成功封套 Model, data_model 仅用于文档说明."""
     envelope_fields: dict[str, fields.Raw] = {
         "success": fields.Boolean(required=True, description="是否成功", example=True),
         "error": fields.Boolean(required=True, description="是否错误", example=False),
@@ -46,9 +46,9 @@ def make_success_envelope_model(ns: Namespace, name: str, data_model=None):
         "meta": fields.Raw(required=False, description="元数据(可选)", example={}),
     }
 
-    if data_model is None:
-        envelope_fields["data"] = fields.Raw(required=False, description="响应数据(可选)", example={})
-    else:
-        envelope_fields["data"] = fields.Nested(data_model, required=False, description="响应数据(可选)")
+    data_description = "响应数据(可选)"
+    if data_model is not None:
+        data_description = f"响应数据({getattr(data_model, 'name', '业务载荷')})"
+    envelope_fields["data"] = fields.Raw(required=False, description=data_description, example={})
 
     return ns.model(name, envelope_fields)

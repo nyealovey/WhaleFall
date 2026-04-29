@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Unpack
+
 from sqlalchemy.dialects import postgresql
 
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.core.types.orm_kwargs import JumpServerAssetSnapshotOrmFields
 
 
 class JumpServerAssetSnapshot(db.Model):
@@ -28,6 +33,12 @@ class JumpServerAssetSnapshot(db.Model):
     synced_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, index=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[JumpServerAssetSnapshotOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def to_dict(self) -> dict[str, object]:
         """序列化快照."""

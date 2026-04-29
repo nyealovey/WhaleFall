@@ -19,8 +19,8 @@ class EmailAlertSettingsService:
 
     def __init__(
         self,
-        repository: EmailAlertsRepository | None = None,
-        sender: EmailSender | None = None,
+        repository: EmailAlertsRepository | Any | None = None,
+        sender: EmailSender | Any | None = None,
     ) -> None:
         self._repository = repository or EmailAlertsRepository()
         self._sender = sender or EmailSender()

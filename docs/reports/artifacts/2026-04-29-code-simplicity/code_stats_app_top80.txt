@@ -1,0 +1,100 @@
+正在分析目录: app
+排除模式: vendor, __pycache__, .git
+
+============================================================
+代码统计摘要
+============================================================
+总文件数: 706
+总代码行数: 128,844
+
+按文件类型统计:
+------------------------------------------------------------
+.py         466 个文件    70,474 行   54.7%
+.js         128 个文件    43,170 行   33.5%
+.css         47 个文件     8,090 行    6.3%
+.html        62 个文件     6,930 行    5.4%
+.yaml         3 个文件       180 行    0.1%
+
+代码行数最多的 80 个文件:
+------------------------------------------------------------
+ 1. static/js/modules/views/instances/detail.js         3,174 行
+ 2. static/js/modules/views/instances/list.js           1,499 行
+ 3. static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js  1,429 行
+ 4. services/accounts_sync/adapters/sqlserver_adapter.py  1,394 行
+ 5. services/veeam/sync_actions_service.py              1,185 行
+ 6. services/veeam/provider.py                          1,157 行
+ 7. services/accounts_sync/permission_manager.py        1,086 行
+ 8. static/js/modules/views/accounts/classification_statistics.js  1,055 行
+ 9. static/js/modules/views/components/charts/manager.js  1,023 行
+10. api/v1/namespaces/accounts.py                         965 行
+11. static/js/modules/stores/instance_store.js            942 行
+12. api/v1/namespaces/instances.py                        928 行
+13. static/js/modules/views/history/sessions/sync-sessions.js    916 行
+14. static/js/modules/views/admin/scheduler/index.js      907 行
+15. services/accounts_sync/adapters/mysql_adapter.py      887 行
+16. static/css/pages/instances/detail.css                 885 行
+17. services/aggregation/aggregation_service.py           841 行
+18. api/v1/namespaces/accounts_classifications.py         837 行
+19. static/js/modules/views/components/tags/tag-selector-controller.js    826 行
+20. static/js/modules/views/accounts/ledgers.js           825 行
+21. static/js/modules/views/accounts/account-classification/index.js    750 行
+22. static/js/modules/views/instances/statistics.js       748 行
+23. static/js/modules/views/history/sessions/session-detail.js    736 行
+24. static/js/modules/views/accounts/account-classification/modals/rule-modals.js    727 行
+25. api/v1/namespaces/tags.py                             721 行
+26. static/js/modules/views/admin/partitions/charts/partitions-chart.js    720 行
+27. static/js/modules/views/tags/batch-assign.js          706 行
+28. static/css/global.css                                 700 行
+29. api/v1/namespaces/databases.py                        675 行
+30. static/js/modules/views/history/logs/logs.js          660 行
+31. settings.py                                           657 行
+32. services/partition_management_service.py              635 行
+33. utils/structlog_config.py                             628 行
+34. static/js/modules/stores/tag_management_store.js      622 行
+35. static/js/modules/views/components/permissions/permission-modal.js    602 行
+36. static/js/modules/views/databases/ledgers.js          599 行
+37. tasks/accounts_sync_tasks.py                          591 行
+38. scheduler.py                                          585 行
+39. services/aggregation/instance_aggregation_runner.py    565 行
+40. static/js/modules/views/history/account-change-logs/account-change-logs.js    563 行
+41. services/aggregation/database_aggregation_runner.py    560 行
+42. static/js/modules/views/tags/index.js                 544 行
+43. tasks/account_classification_daily_tasks.py           539 行
+44. api/v1/namespaces/veeam.py                            539 行
+45. static/js/modules/views/auth/list.js                  527 行
+46. static/js/modules/stores/account_classification_statistics_store.js    522 行
+47. static/js/modules/views/admin/partitions/index.js     518 行
+48. static/js/modules/views/accounts/account-classification/modals/classification-modals.js    517 行
+49. tasks/capacity_aggregation_tasks.py                   516 行
+50. services/config_sync/sqlserver_audit_info_sync_service.py    515 行
+51. services/accounts/account_classifications_write_service.py    514 行
+52. static/js/modules/stores/partition_store.js           508 行
+53. static/js/modules/views/components/tags/tag-selector-view.js    501 行
+54. services/task_runs/task_run_summary_builders.py       501 行
+55. services/accounts_sync/accounts_sync_service.py       496 行
+56. repositories/instances_repository.py                  493 行
+57. static/css/components/tag-selector.css                493 行
+58. static/js/modules/views/components/charts/chart-renderer.js    487 行
+59. __init__.py                                           486 行
+60. static/js/modules/views/credentials/list.js           479 行
+61. repositories/veeam_repository.py                      476 行
+62. services/partition/partition_read_service.py          475 行
+63. static/js/modules/stores/tag_batch_store.js           470 行
+64. static/js/modules/views/credentials/modals/credential-modals.js    468 行
+65. services/accounts_sync/coordinator.py                 467 行
+66. tasks/capacity_collection_tasks.py                    464 行
+67. services/sync_session_service.py                      463 行
+68. schemas/account_classifications.py                    460 行
+69. services/account_classification/orchestrator.py       457 行
+70. services/accounts/account_classification_daily_stats_read_service.py    457 行
+71. services/accounts_sync/adapters/postgresql_adapter.py    457 行
+72. static/js/common/grid-wrapper.js                      448 行
+73. static/js/modules/stores/account_classification_store.js    447 行
+74. static/js/common/validation-rules.js                  441 行
+75. tasks/account_classification_auto_tasks.py            437 行
+76. services/database_sync/adapters/mysql_adapter.py      434 行
+77. static/js/modules/theme/color-tokens.js               433 行
+78. services/capacity/capacity_collection_task_runner.py    430 行
+79. api/v1/namespaces/partition.py                        429 行
+80. static/js/modules/views/components/charts/filters.js    428 行
+
