@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ipaddress
-import re
 
 
 def normalize_machine_name(value: str | None) -> str:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from typing import Any, cast
 
 import pytest
 
@@ -68,7 +69,7 @@ def test_dashboard_overview_uses_instance_total_that_includes_deleted(monkeypatc
     monkeypatch.setattr(dashboard_module, "log_info", lambda *args, **kwargs: None)
     monkeypatch.setattr(dashboard_module, "log_warning", lambda *args, **kwargs: None)
 
-    overview = dashboard_module.get_system_overview.__wrapped__()
+    overview = cast(Any, dashboard_module.get_system_overview).__wrapped__()
 
     assert overview["instances"] == {
         "total": 82,

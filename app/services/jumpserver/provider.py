@@ -35,6 +35,15 @@ def _default_open(request: Request, *, timeout: int, context: ssl.SSLContext):
     return urlopen(request, timeout=timeout, context=context)
 
 
+def _safe_int(value: object, default: int = 0) -> int:
+    if isinstance(value, (int, float, str)):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default
+
+
 @dataclass(frozen=True, slots=True)
 class JumpServerDatabaseAsset:
     """标准化后的 JumpServer 数据库资产."""
@@ -63,6 +72,7 @@ class JumpServerProvider(Protocol):
 
     def is_configured(self) -> bool:
         """返回 provider 是否已具备真实可用实现."""
+        ...
 
     def list_database_assets(
         self,
@@ -74,28 +84,7 @@ class JumpServerProvider(Protocol):
         verify_ssl: bool | None = None,
     ) -> JumpServerAssetCollection:
         """返回数据库类资产列表与统计."""
-
-
-class DeferredJumpServerProvider:
-    """占位 provider.
-
-    保留该类是为了兼容旧导出；默认实现已切换为真实 HTTP Provider。
-    """
-
-    def is_configured(self) -> bool:
-        return False
-
-    def list_database_assets(
-        self,
-        *,
-        base_url: str,
-        access_key_id: str,
-        access_key_secret: str,
-        org_id: str | None = None,
-        verify_ssl: bool | None = None,
-    ) -> JumpServerAssetCollection:
-        _ = (org_id, verify_ssl)
-        raise NotImplementedError("JumpServer Provider 尚未接入真实 API")
+        ...
 
 
 class HttpJumpServerProvider:
@@ -111,7 +100,8 @@ class HttpJumpServerProvider:
     ) -> None:
         resolved_settings = self._resolve_settings()
         self._org_id = str(org_id or resolved_settings["org_id"]).strip()
-        self._timeout_seconds = int(timeout_seconds or resolved_settings["timeout_seconds"])
+        resolved_timeout = resolved_settings["timeout_seconds"]
+        self._timeout_seconds = int(timeout_seconds) if timeout_seconds is not None else _safe_int(resolved_timeout)
         self._verify_ssl = bool(resolved_settings["verify_ssl"] if verify_ssl is None else verify_ssl)
         self._opener = opener
 

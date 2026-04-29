@@ -232,9 +232,6 @@ def email_alert(
             _write_summary(resolved_run_id, summary)
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
-            send_step = _as_dict(summary.get("send_step"))
-            success = str(send_step.get("status") or "completed") != "failed"
-            return {"success": success, "run_id": resolved_run_id, **summary}
         except Exception as exc:
             db.session.rollback()
             _fail_unexpected(task_runs_service=task_runs_service, run_id=resolved_run_id, exc=exc)
@@ -252,3 +249,7 @@ def email_alert(
                 "error": str(exc),
                 "run_id": resolved_run_id,
             }
+        else:
+            send_step = _as_dict(summary.get("send_step"))
+            success = str(send_step.get("status") or "completed") != "failed"
+            return {"success": success, "run_id": resolved_run_id, **summary}

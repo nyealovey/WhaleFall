@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
+from typing import Any, cast
 
-from flask import current_app, has_app_context
+from flask import Flask, current_app, has_app_context
 
 from app import db
 from app.core.exceptions import ValidationError
@@ -45,9 +46,9 @@ class JumpServerSyncActionsService:
     def __init__(
         self,
         *,
-        source_service: JumpServerSourceService | None = None,
+        source_service: JumpServerSourceService | Any | None = None,
         jumpserver_repository: JumpServerRepository | None = None,
-        provider: JumpServerProvider | None = None,
+        provider: JumpServerProvider | Any | None = None,
     ) -> None:
         self._source_service = source_service or JumpServerSourceService(provider=provider)
         self._jumpserver_repository = jumpserver_repository or JumpServerRepository()
@@ -91,7 +92,7 @@ class JumpServerSyncActionsService:
         prepared: JumpServerSyncPreparedRun,
     ) -> JumpServerSyncLaunchResult:
         """后台启动同步线程."""
-        base_app = current_app._get_current_object() if has_app_context() else None
+        base_app = cast(Flask, cast(Any, current_app)._get_current_object()) if has_app_context() else None
         db.session.commit()
 
         def _run_sync(captured_created_by: int | None, captured_run_id: str, credential_id: int) -> None:

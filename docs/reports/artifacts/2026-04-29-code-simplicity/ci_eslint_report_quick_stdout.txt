@@ -1,0 +1,4 @@
+运行 ESLint 命令: /Users/apple/Github/WhaleFall/node_modules/.bin/eslint app/static/js --ext .js --max-warnings 0 --quiet
+报告输出: /Users/apple/Github/WhaleFall/docs/reports/eslint_quick_2026-04-29_code_simplicity.txt
+ESLint found too many warnings (maximum: 0).
+ESLint 运行失败 (exit 1)，请查看报告文件以排查。

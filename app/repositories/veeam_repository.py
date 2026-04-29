@@ -138,7 +138,6 @@ def _normalize_restore_points(raw_payload: dict[str, object]) -> list[dict[str, 
         normalized = {
             "id": _pick_string(item, ("id", "restorePointId", "restore_point_id")),
             "name": _pick_string(item, ("name", "restorePointName", "restore_point_name")),
-            "platform_name": _pick_string(item, ("platformName", "platform_name")),
             "type": _pick_string(item, ("type",)),
             "backup_id": _pick_string(item, ("backupId", "backup_id")),
             "object_id": _pick_string(item, ("objectId", "object_id")),
@@ -157,6 +156,9 @@ def _normalize_restore_points(raw_payload: dict[str, object]) -> list[dict[str, 
                 ("creationTime", "creation_time", "backupTime", "backup_time"),
             ),
         }
+        platform_name = _pick_string(item, ("platformName", "platform_name"))
+        if platform_name:
+            normalized["platform_name"] = platform_name
         if any(value not in (None, [], "") for value in normalized.values()):
             normalized_items.append(normalized)
     return normalized_items
@@ -380,9 +382,7 @@ class VeeamRepository:
         name_candidates = build_instance_match_candidates(instance_name, domains)
         ip_candidates = build_instance_ip_candidates(instance_host)
 
-        all_candidates = set(name_candidates)
-        all_candidates.update(ip_candidates)
-        if not all_candidates:
+        if not name_candidates and not ip_candidates:
             return None
 
         rows = (
@@ -399,7 +399,10 @@ class VeeamRepository:
         payload = _serialize_snapshot_row(best)
         payload["matched_machine_name"] = best.machine_name
         payload["matched_machine_ip"] = best.machine_ip
-        payload["match_candidates"] = list(all_candidates)
+        if best.normalized_machine_name in name_candidates:
+            payload["match_candidates"] = name_candidates
+        else:
+            payload["match_candidates"] = name_candidates + ip_candidates
         payload["last_sync_time"] = binding.last_sync_at.isoformat() if binding and binding.last_sync_at else None
         return payload
 

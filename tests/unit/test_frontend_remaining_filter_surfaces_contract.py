@@ -30,7 +30,13 @@ def test_account_classification_statistics_template_uses_width_presets() -> None
 
 @pytest.mark.unit
 def test_instance_detail_filter_bands_use_shared_filter_band_semantics() -> None:
-    template_content = _read_text("app/templates/instances/detail.html")
+    template_content = "\n".join(
+        (
+            _read_text("app/templates/instances/detail.html"),
+            _read_text("app/templates/instances/partials/detail/_accounts_pane.html"),
+            _read_text("app/templates/instances/partials/detail/_capacity_pane.html"),
+        )
+    )
     shared_css = _read_text("app/static/css/components/filters/filter-common.css")
     page_css = _read_text("app/static/css/pages/instances/detail.css")
 

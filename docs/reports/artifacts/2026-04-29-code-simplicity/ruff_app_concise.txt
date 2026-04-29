@@ -1,0 +1,15 @@
+app/core/constants/http_headers.py:19:35: RUF100 [*] Unused `noqa` directive (non-enabled: `S105`)
+app/repositories/jumpserver_repository.py:50:26: UP037 [*] Remove quotes from type annotation
+app/repositories/jumpserver_repository.py:50:27: F821 Undefined name `JumpServerDatabaseAsset`
+app/repositories/jumpserver_repository.py:56:9: PLC0415 `import` should be at the top-level of a file
+app/schemas/veeam.py:26:32: RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
+app/services/alerts/email_alert_digest_service.py:47:9: PLR0911 Too many return statements (7 > 6)
+app/services/jumpserver/provider.py:91:9: ARG002 Unused method argument: `base_url`
+app/services/jumpserver/provider.py:92:9: ARG002 Unused method argument: `access_key_id`
+app/services/jumpserver/provider.py:93:9: ARG002 Unused method argument: `access_key_secret`
+app/services/veeam/matching.py:6:8: F401 [*] `re` imported but unused
+app/tasks/account_classification_daily_tasks.py:358:5: PLR0915 Too many statements (54 > 50)
+app/tasks/capacity_aggregation_tasks.py:303:5: PLR0915 Too many statements (51 > 50)
+app/tasks/email_alert_tasks.py:237:13: TRY300 Consider moving this statement to an `else` block
+Found 13 errors.
+[*] 3 fixable with the `--fix` option.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from flask import current_app, has_app_context
 
 from app import db
@@ -21,7 +23,7 @@ class JumpServerSourceService:
         *,
         credentials_repository: CredentialsRepository | None = None,
         jumpserver_repository: JumpServerRepository | None = None,
-        provider: JumpServerProvider | None = None,
+        provider: JumpServerProvider | Any | None = None,
     ) -> None:
         self._credentials_repository = credentials_repository or CredentialsRepository()
         self._jumpserver_repository = jumpserver_repository or JumpServerRepository()
@@ -117,7 +119,7 @@ class JumpServerSourceService:
     @staticmethod
     def _serialize_credential(credential: object) -> dict[str, object]:
         return {
-            "id": int(credential.id),
+            "id": int(getattr(credential, "id", 0) or 0),
             "name": str(getattr(credential, "name", "") or ""),
             "description": str(getattr(credential, "description", "") or ""),
         }

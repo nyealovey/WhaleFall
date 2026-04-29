@@ -1,0 +1,55 @@
+app/services/accounts_sync/accounts_sync_service.py:315:                except Exception as fail_exc:
+app/services/accounts_sync/permission_manager.py:438:        except Exception as exc:
+app/services/accounts_sync/adapters/mysql_adapter.py:205:        except Exception as exc:
+app/services/accounts_sync/adapters/mysql_adapter.py:801:        except Exception as exc:
+scripts/dev/docs/obsidian_frontmatter_duplicates.py:112:            except Exception:
+scripts/deploy/deploy-prod-all.sh:49:except Exception:
+scripts/deploy/deploy-prod-all.sh:560:except Exception as e:
+scripts/deploy/deploy-prod-all.sh:582:except Exception as e:
+scripts/deploy/deploy-prod-all.sh:626:	except Exception as e:
+scripts/deploy/deploy-prod-all.sh:652:except Exception as e:
+app/services/history_sessions/history_sessions_read_service.py:109:        except Exception as exc:
+scripts/admin/password/reset_admin_password.py:73:        except Exception as e:
+scripts/dev/code/analyze_code.py:31:    except:
+app/services/veeam/provider.py:488:            except Exception:
+app/services/veeam/provider.py:591:            except Exception:
+app/services/veeam/provider.py:761:            except Exception:
+app/services/veeam/sync_actions_service.py:612:        except Exception as exc:
+app/services/jumpserver/provider.py:277:        except Exception:
+app/services/sync_session_service.py:108:        except Exception as exc:
+app/services/sync_session_service.py:175:        except Exception as exc:
+app/services/sync_session_service.py:212:        except Exception as exc:
+app/services/sync_session_service.py:271:        except Exception as exc:
+app/services/sync_session_service.py:322:        except Exception as exc:
+app/services/sync_session_service.py:373:        except Exception as exc:
+app/services/sync_session_service.py:394:        except Exception as e:
+app/services/sync_session_service.py:415:        except Exception as e:
+app/services/sync_session_service.py:450:        except Exception as exc:
+app/services/jumpserver/sync_actions_service.py:108:                except Exception:
+app/services/jumpserver/sync_actions_service.py:184:        except Exception as exc:
+app/services/ledgers/accounts_ledger_change_history_service.py:66:                except Exception as exc:
+app/services/history_account_change_logs/history_account_change_logs_read_service.py:73:                except Exception as exc:
+app/services/history_account_change_logs/history_account_change_logs_read_service.py:129:            except Exception as exc:
+app/services/config_sync/sqlserver_audit_info_sync_service.py:403:            except Exception as exc:
+app/services/config_sync/sqlserver_audit_info_sync_service.py:472:        except Exception as exc:
+app/services/config_sync/instance_audit_sync_actions_service.py:104:        except Exception as exc:
+scripts/ci/ruff-style-guard.sh:80:    except Exception:
+app/services/alerts/email_alert_digest_service.py:135:        except Exception as exc:
+scripts/ci/pyright-guard.sh:82:    except Exception:
+app/services/capacity/instance_capacity_sync_actions_service.py:119:            except Exception as exc:
+app/services/connection_adapters/adapters/oracle_adapter.py:76:                except Exception as exc:
+app/services/database_sync/table_size_adapters/oracle_adapter.py:81:        except Exception as exc:
+app/utils/structlog_config.py:406:        ... except Exception as e:
+app/utils/structlog_config.py:545:        ... except Exception as e:
+app/tasks/email_alert_tasks.py:202:    except Exception:
+app/tasks/email_alert_tasks.py:238:        except Exception as exc:
+app/__init__.py:177:        except Exception as exc:
+app/tasks/capacity_collection_tasks.py:86:    except Exception as exc:
+app/tasks/capacity_collection_tasks.py:447:        except Exception as exc:
+app/tasks/account_classification_auto_tasks.py:412:                except Exception as rule_exc:
+app/tasks/capacity_current_aggregation_tasks.py:344:            except Exception as exc:
+app/tasks/account_classification_daily_tasks.py:481:                except Exception as rule_exc:
+app/tasks/account_classification_daily_tasks.py:514:        except Exception as exc:
+app/infra/logging/queue_worker.py:185:        except Exception as exc:
+app/infra/route_safety.py:178:    except Exception as exc:
+app/infra/route_safety.py:193:        except Exception as exc:

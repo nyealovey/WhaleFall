@@ -34,9 +34,11 @@ def _boolify(value: object) -> bool:
 def _intify(value: object) -> int | None:
     if value is None or value == "":
         return None
+    if not isinstance(value, (int, float, str)):
+        return None
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except ValueError:
         return None
 
 
@@ -66,7 +68,7 @@ def _extract_sqlserver_error_code(message: str) -> int | None:
     match = re.search(r"\((\d+),\s*b[\"']", message)
     if match:
         try:
-            return int(match.group(1))
+            return int(str(match.group(1)))
         except (TypeError, ValueError):
             return None
     return None
@@ -328,7 +330,7 @@ class SQLServerAuditInfoSyncService:
 
     @staticmethod
     def _collect_server_audit_specifications(
-        connection: DatabaseConnection,
+        connection: Any,
         audit_name_by_guid: Mapping[str, str],
     ) -> list[dict[str, Any]]:
         rows = connection.execute_query(
@@ -385,7 +387,7 @@ class SQLServerAuditInfoSyncService:
 
     def _collect_database_audit_specifications(
         self,
-        connection: DatabaseConnection,
+        connection: Any,
         audit_name_by_guid: Mapping[str, str],
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         databases = self._collect_online_databases(connection)
@@ -428,7 +430,7 @@ class SQLServerAuditInfoSyncService:
 
     @staticmethod
     def _collect_single_database_audit_specifications(
-        connection: DatabaseConnection,
+        connection: Any,
         *,
         database_name: str,
         audit_name_by_guid: Mapping[str, str],

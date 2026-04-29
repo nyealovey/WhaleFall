@@ -1,0 +1,435 @@
+运行 Pyright 命令: .venv/bin/pyright --project pyrightconfig.json
+报告输出: /Users/apple/Github/WhaleFall/docs/reports/pyright_full_2026-04-29_code_simplicity.txt
+/Users/apple/Github/WhaleFall/app/repositories/jumpserver_repository.py
+  /Users/apple/Github/WhaleFall/app/repositories/jumpserver_repository.py:50:27 - error: "JumpServerDatabaseAsset" is not defined (reportUndefinedVariable)
+  /Users/apple/Github/WhaleFall/app/repositories/jumpserver_repository.py:69:47 - error: No parameter named "external_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/repositories/jumpserver_repository.py:69:78 - error: No parameter named "name" (reportCallIssue)
+/Users/apple/Github/WhaleFall/app/services/config_sync/instance_audit_sync_actions_service.py
+  /Users/apple/Github/WhaleFall/app/services/config_sync/instance_audit_sync_actions_service.py:144:13 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/config_sync/instance_audit_sync_actions_service.py:145:13 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/config_sync/instance_audit_sync_actions_service.py:146:13 - error: No parameter named "config_key" (reportCallIssue)
+/Users/apple/Github/WhaleFall/app/services/config_sync/sqlserver_audit_info_sync_service.py
+  /Users/apple/Github/WhaleFall/app/services/config_sync/sqlserver_audit_info_sync_service.py:38:20 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/config_sync/sqlserver_audit_info_sync_service.py:38:20 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/instances/instance_list_service.py
+  /Users/apple/Github/WhaleFall/app/services/instances/instance_list_service.py:24:29 - error: Argument of type "object | Literal[0]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object | Literal[0]" is not assignable to type "ConvertibleToInt"
+      Type "object" is not assignable to type "ConvertibleToInt"
+        "object" is not assignable to "str"
+        "object" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "object" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "object" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/instances/instance_list_service.py:24:29 - error: Argument of type "object | Literal[0]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object | Literal[0]" is not assignable to type "ConvertibleToInt"
+      Type "object" is not assignable to type "ConvertibleToInt"
+        "object" is not assignable to "str"
+        "object" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "object" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "object" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/jumpserver/provider.py
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/provider.py:64:32 - error: Function with declared return type "bool" must return value on all code paths
+    "None" is not assignable to "bool" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/provider.py:75:10 - error: Function with declared return type "JumpServerAssetCollection" must return value on all code paths
+    "None" is not assignable to "JumpServerAssetCollection" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/provider.py:114:37 - error: Argument of type "int | object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "int | object" is not assignable to type "ConvertibleToInt"
+      Type "object" is not assignable to type "ConvertibleToInt"
+        "object" is not assignable to "str"
+        "object" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "object" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "object" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/provider.py:114:37 - error: Argument of type "int | object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "int | object" is not assignable to type "ConvertibleToInt"
+      Type "object" is not assignable to type "ConvertibleToInt"
+        "object" is not assignable to "str"
+        "object" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "object" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "object" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/jumpserver/source_service.py
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/source_service.py:61:17 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/source_service.py:62:17 - error: No parameter named "base_url" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/source_service.py:63:17 - error: No parameter named "org_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/source_service.py:64:17 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/source_service.py:120:34 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/jumpserver/sync_actions_service.py
+  /Users/apple/Github/WhaleFall/app/services/jumpserver/sync_actions_service.py:94:32 - error: Cannot access attribute "_get_current_object" for class "Flask"
+    Attribute "_get_current_object" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/statistics/database_statistics_read_service.py
+  /Users/apple/Github/WhaleFall/app/services/statistics/database_statistics_read_service.py:85:56 - error: "isoformat" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/statistics/database_statistics_read_service.py:99:48 - error: Cannot access attribute "get" for class "object"
+    Attribute "get" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/statistics/database_statistics_read_service.py:100:48 - error: Cannot access attribute "get" for class "object"
+    Attribute "get" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/statistics/database_statistics_read_service.py:101:46 - error: Cannot access attribute "get" for class "object"
+    Attribute "get" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/veeam/source_service.py
+  /Users/apple/Github/WhaleFall/app/services/veeam/source_service.py:65:17 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/veeam/source_service.py:66:17 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/veeam/source_service.py:67:17 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/veeam/source_service.py:68:17 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/veeam/source_service.py:69:17 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/veeam/source_service.py:70:17 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/veeam/source_service.py:111:34 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_audit_info_contract.py
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_audit_info_contract.py:86:17 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_audit_info_contract.py:87:17 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_audit_info_contract.py:88:17 - error: No parameter named "config_key" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_audit_info_contract.py:89:17 - error: No parameter named "snapshot" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_audit_info_contract.py:99:17 - error: No parameter named "facts" (reportCallIssue)
+/Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:52:17 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:53:17 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:54:17 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:55:17 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:56:17 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:57:17 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:58:17 - error: No parameter named "last_sync_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:63:17 - error: No parameter named "machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:64:17 - error: No parameter named "normalized_machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:65:17 - error: No parameter named "latest_backup_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:66:17 - error: No parameter named "backup_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:67:17 - error: No parameter named "backup_file_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:68:17 - error: No parameter named "job_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:69:17 - error: No parameter named "restore_point_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:70:17 - error: No parameter named "source_record_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:71:17 - error: No parameter named "restore_point_size_bytes" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:72:17 - error: No parameter named "backup_chain_size_bytes" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:73:17 - error: No parameter named "restore_point_count" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_backup_info_contract.py:74:17 - error: No parameter named "raw_payload" (reportCallIssue)
+/Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:167:17 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:168:17 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:169:17 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:170:17 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:171:17 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:172:17 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:177:17 - error: No parameter named "machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:178:17 - error: No parameter named "normalized_machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:179:17 - error: No parameter named "latest_backup_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:180:17 - error: No parameter named "job_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:181:17 - error: No parameter named "restore_point_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:182:17 - error: No parameter named "source_record_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:183:17 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:258:21 - error: No parameter named "machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:259:21 - error: No parameter named "normalized_machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:260:21 - error: No parameter named "latest_backup_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:261:21 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:264:21 - error: No parameter named "machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:265:21 - error: No parameter named "normalized_machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:266:21 - error: No parameter named "latest_backup_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:267:21 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:345:17 - error: No parameter named "external_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:346:17 - error: No parameter named "name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:347:17 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:348:17 - error: No parameter named "host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:349:17 - error: No parameter named "port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:350:17 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:403:17 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:404:17 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:405:17 - error: No parameter named "config_key" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:406:17 - error: No parameter named "snapshot" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:407:17 - error: No parameter named "facts" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:478:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:479:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:480:21 - error: No parameter named "config_key" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:481:21 - error: No parameter named "snapshot" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:482:21 - error: No parameter named "facts" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:485:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:486:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:487:21 - error: No parameter named "config_key" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:488:21 - error: No parameter named "snapshot" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:489:21 - error: No parameter named "facts" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:568:17 - error: No parameter named "external_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:569:17 - error: No parameter named "name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:570:17 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:571:17 - error: No parameter named "host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:572:17 - error: No parameter named "port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/routes/test_api_v1_instances_contract.py:573:17 - error: No parameter named "raw_payload" (reportCallIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_dashboard_overview_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_dashboard_overview_service.py:71:53 - error: Cannot access attribute "__wrapped__" for class "FunctionType"
+    Attribute "__wrapped__" is unknown (reportFunctionMemberAccess)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_digest_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_digest_service.py:384:12 - error: "__getitem__" method not defined on type "object" (reportIndexIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:70:20 - error: Argument of type "_StubRepository" cannot be assigned to parameter "repository" of type "EmailAlertsRepository | None" in function "__init__"
+    Type "_StubRepository" is not assignable to type "EmailAlertsRepository | None"
+      "_StubRepository" is not assignable to "EmailAlertsRepository"
+      "_StubRepository" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:71:26 - error: Argument of type "_StubSettingsService" cannot be assigned to parameter "settings_service" of type "EmailAlertSettingsService | None" in function "__init__"
+    Type "_StubSettingsService" is not assignable to type "EmailAlertSettingsService | None"
+      "_StubSettingsService" is not assignable to "EmailAlertSettingsService"
+      "_StubSettingsService" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:103:20 - error: Argument of type "_StubRepository" cannot be assigned to parameter "repository" of type "EmailAlertsRepository | None" in function "__init__"
+    Type "_StubRepository" is not assignable to type "EmailAlertsRepository | None"
+      "_StubRepository" is not assignable to "EmailAlertsRepository"
+      "_StubRepository" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:104:26 - error: Argument of type "_StubSettingsService" cannot be assigned to parameter "settings_service" of type "EmailAlertSettingsService | None" in function "__init__"
+    Type "_StubSettingsService" is not assignable to type "EmailAlertSettingsService | None"
+      "_StubSettingsService" is not assignable to "EmailAlertSettingsService"
+      "_StubSettingsService" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:128:20 - error: Argument of type "_StubRepository" cannot be assigned to parameter "repository" of type "EmailAlertsRepository | None" in function "__init__"
+    Type "_StubRepository" is not assignable to type "EmailAlertsRepository | None"
+      "_StubRepository" is not assignable to "EmailAlertsRepository"
+      "_StubRepository" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:129:26 - error: Argument of type "_StubSettingsService" cannot be assigned to parameter "settings_service" of type "EmailAlertSettingsService | None" in function "__init__"
+    Type "_StubSettingsService" is not assignable to type "EmailAlertSettingsService | None"
+      "_StubSettingsService" is not assignable to "EmailAlertSettingsService"
+      "_StubSettingsService" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:159:12 - error: "__getitem__" method not defined on type "object" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_event_service.py:160:12 - error: "__getitem__" method not defined on type "object" (reportIndexIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_settings_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_settings_service.py:42:52 - error: Argument of type "_StubRepository" cannot be assigned to parameter "repository" of type "EmailAlertsRepository | None" in function "__init__"
+    Type "_StubRepository" is not assignable to type "EmailAlertsRepository | None"
+      "_StubRepository" is not assignable to "EmailAlertsRepository"
+      "_StubRepository" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_email_alert_settings_service.py:42:78 - error: Argument of type "_StubSender" cannot be assigned to parameter "sender" of type "EmailSender | None" in function "__init__"
+    Type "_StubSender" is not assignable to type "EmailSender | None"
+      "_StubSender" is not assignable to "EmailSender"
+      "_StubSender" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_instance_audit_sync_actions_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_audit_sync_actions_service.py:90:64 - error: Argument of type "_FakeAuditSyncService" cannot be assigned to parameter "sync_service" of type "SQLServerAuditInfoSyncService | None" in function "__init__"
+    Type "_FakeAuditSyncService" is not assignable to type "SQLServerAuditInfoSyncService | None"
+      "_FakeAuditSyncService" is not assignable to "SQLServerAuditInfoSyncService"
+      "_FakeAuditSyncService" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_audit_sync_actions_service.py:126:64 - error: Argument of type "SimpleNamespace" cannot be assigned to parameter "sync_service" of type "SQLServerAuditInfoSyncService | None" in function "__init__"
+    Type "SimpleNamespace" is not assignable to type "SQLServerAuditInfoSyncService | None"
+      "SimpleNamespace" is not assignable to "SQLServerAuditInfoSyncService"
+      "SimpleNamespace" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_audit_sync_actions_service.py:198:64 - error: Argument of type "_FakeAuditSyncService" cannot be assigned to parameter "sync_service" of type "SQLServerAuditInfoSyncService | None" in function "__init__"
+    Type "_FakeAuditSyncService" is not assignable to type "SQLServerAuditInfoSyncService | None"
+      "_FakeAuditSyncService" is not assignable to "SQLServerAuditInfoSyncService"
+      "_FakeAuditSyncService" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_audit_sync_actions_service.py:269:64 - error: Argument of type "_FakeAuditSyncService" cannot be assigned to parameter "sync_service" of type "SQLServerAuditInfoSyncService | None" in function "__init__"
+    Type "_FakeAuditSyncService" is not assignable to type "SQLServerAuditInfoSyncService | None"
+      "_FakeAuditSyncService" is not assignable to "SQLServerAuditInfoSyncService"
+      "_FakeAuditSyncService" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_instance_list_service_audit_status.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_list_service_audit_status.py:70:5 - error: Expected 1 positional argument (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_list_service_audit_status.py:87:46 - error: Argument of type "_StubRepository" cannot be assigned to parameter "repository" of type "InstancesRepository | None" in function "__init__"
+    Type "_StubRepository" is not assignable to type "InstancesRepository | None"
+      "_StubRepository" is not assignable to "InstancesRepository"
+      "_StubRepository" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:110:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:111:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:112:21 - error: No parameter named "config_key" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:113:21 - error: No parameter named "facts" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:116:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:117:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:118:21 - error: No parameter named "config_key" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:119:21 - error: No parameter named "facts" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:122:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:123:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:124:21 - error: No parameter named "config_key" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:125:21 - error: No parameter named "facts" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:181:21 - error: No parameter named "external_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:182:21 - error: No parameter named "name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:183:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:184:21 - error: No parameter named "host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:185:21 - error: No parameter named "port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:186:21 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:189:21 - error: No parameter named "external_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:190:21 - error: No parameter named "name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:191:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:192:21 - error: No parameter named "host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:193:21 - error: No parameter named "port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:194:21 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:197:21 - error: No parameter named "external_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:198:21 - error: No parameter named "name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:199:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:200:21 - error: No parameter named "host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:201:21 - error: No parameter named "port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:202:21 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:205:21 - error: No parameter named "machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:206:21 - error: No parameter named "normalized_machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:207:21 - error: No parameter named "machine_ip" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:208:21 - error: No parameter named "normalized_machine_ip" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:209:21 - error: No parameter named "latest_backup_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:210:21 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:213:21 - error: No parameter named "machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:214:21 - error: No parameter named "normalized_machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:215:21 - error: No parameter named "machine_ip" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:216:21 - error: No parameter named "normalized_machine_ip" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:217:21 - error: No parameter named "latest_backup_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:218:21 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:221:21 - error: No parameter named "machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:222:21 - error: No parameter named "normalized_machine_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:223:21 - error: No parameter named "machine_ip" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:224:21 - error: No parameter named "normalized_machine_ip" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:225:21 - error: No parameter named "latest_backup_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_instance_statistics_repository.py:226:21 - error: No parameter named "raw_payload" (reportCallIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_provider.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_provider.py:229:18 - error: Argument of type "None" cannot be assigned to parameter "hdrs" of type "Message[str, str]" in function "__init__"
+    "None" is not assignable to "Message[str, str]" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:60:24 - error: Argument of type "_StubSourceService" cannot be assigned to parameter "source_service" of type "JumpServerSourceService | None" in function "__init__"
+    Type "_StubSourceService" is not assignable to type "JumpServerSourceService | None"
+      "_StubSourceService" is not assignable to "JumpServerSourceService"
+      "_StubSourceService" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:61:18 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "JumpServerProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "JumpServerProvider | None"
+      "_StubProvider" is incompatible with protocol "JumpServerProvider"
+        "list_database_assets" is not present
+      "_StubProvider" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:101:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:102:13 - error: No parameter named "base_url" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:103:13 - error: No parameter named "org_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:104:13 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:213:17 - error: No parameter named "external_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:214:17 - error: No parameter named "name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:215:17 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:216:17 - error: No parameter named "host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:217:17 - error: No parameter named "port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:218:17 - error: No parameter named "raw_payload" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:222:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_jumpserver_sync_actions_service_contract.py:223:13 - error: No parameter named "base_url" (reportCallIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:198:59 - error: Argument of type "list[dict[str, Unknown]]" cannot be assigned to parameter "accounts" of type "list[RemoteAccount]" in function "enrich_permissions"
+    "list[dict[str, Unknown]]" is not assignable to "list[RemoteAccount]"
+      Type parameter "_T@list" is invariant, but "dict[str, Unknown]" is not the same as "RemoteAccount"
+      Consider switching from "list" to "Sequence" which is covariant (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_audit_info_sync_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_audit_info_sync_service.py:162:9 - error: Argument of type "_FakeConnection" cannot be assigned to parameter "connection" of type "DatabaseConnection" in function "_collect_single_database_audit_specifications"
+    "_FakeConnection" is not assignable to "DatabaseConnection" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:65:24 - error: Argument of type "_StubSourceService" cannot be assigned to parameter "source_service" of type "VeeamSourceService | None" in function "__init__"
+    Type "_StubSourceService" is not assignable to type "VeeamSourceService | None"
+      "_StubSourceService" is not assignable to "VeeamSourceService"
+      "_StubSourceService" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:66:18 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "VeeamProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "VeeamProvider | None"
+      "_StubProvider" is incompatible with protocol "VeeamProvider"
+        "create_session" is not present
+        "fetch_backup_objects" is not present
+        "match_backup_objects" is not present
+        "fetch_restore_point_records" is not present
+        "fetch_backup_file_records" is not present
+        "list_machine_backups" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:153:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:154:13 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:155:13 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:156:13 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:157:13 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:158:13 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:367:52 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "VeeamProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "VeeamProvider | None"
+      "_StubProvider" is incompatible with protocol "VeeamProvider"
+        "list_machine_backups" is not present
+          "create_session" is an incompatible type
+            Type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> object" is not assignable to type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> VeeamProviderSession"
+          "match_backup_objects" is an incompatible type
+            Type "(*, backup_items: list[dict[str, object]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> object" is not assignable to type "(*, backup_items: list[dict[str, Any]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> VeeamBackupObjectMatchResult"
+          "fetch_restore_point_records" is an incompatible type
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:486:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:487:13 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:488:13 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:489:13 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:490:13 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:491:13 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:579:52 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "VeeamProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "VeeamProvider | None"
+      "_StubProvider" is incompatible with protocol "VeeamProvider"
+        "list_machine_backups" is not present
+          "create_session" is an incompatible type
+            Type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> object" is not assignable to type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> VeeamProviderSession"
+          "match_backup_objects" is an incompatible type
+            Type "(*, backup_items: list[dict[str, object]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> object" is not assignable to type "(*, backup_items: list[dict[str, Any]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> VeeamBackupObjectMatchResult"
+          "fetch_restore_point_records" is an incompatible type
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:640:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:641:13 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:642:13 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:643:13 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:644:13 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:645:13 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:743:52 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "VeeamProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "VeeamProvider | None"
+      "_StubProvider" is incompatible with protocol "VeeamProvider"
+        "list_machine_backups" is not present
+          "create_session" is an incompatible type
+            Type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> object" is not assignable to type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> VeeamProviderSession"
+          "match_backup_objects" is an incompatible type
+            Type "(*, backup_items: list[dict[str, object]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> object" is not assignable to type "(*, backup_items: list[dict[str, Any]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> VeeamBackupObjectMatchResult"
+          "fetch_restore_point_records" is an incompatible type
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:795:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:796:13 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:797:13 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:798:13 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:799:13 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:800:13 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:939:52 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "VeeamProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "VeeamProvider | None"
+      "_StubProvider" is incompatible with protocol "VeeamProvider"
+        "list_machine_backups" is not present
+          "create_session" is an incompatible type
+            Type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> object" is not assignable to type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> VeeamProviderSession"
+          "match_backup_objects" is an incompatible type
+            Type "(*, backup_items: list[dict[str, object]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> object" is not assignable to type "(*, backup_items: list[dict[str, Any]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> VeeamBackupObjectMatchResult"
+          "fetch_restore_point_records" is an incompatible type
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1008:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1009:13 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1010:13 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1011:13 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1012:13 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1013:13 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1114:52 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "VeeamProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "VeeamProvider | None"
+      "_StubProvider" is incompatible with protocol "VeeamProvider"
+        "list_machine_backups" is not present
+          "create_session" is an incompatible type
+            Type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> object" is not assignable to type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> VeeamProviderSession"
+          "match_backup_objects" is an incompatible type
+            Type "(*, backup_items: list[dict[str, object]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> object" is not assignable to type "(*, backup_items: list[dict[str, Any]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> VeeamBackupObjectMatchResult"
+          "fetch_restore_point_records" is an incompatible type
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1190:13 - error: No parameter named "credential_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1191:13 - error: No parameter named "server_host" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1192:13 - error: No parameter named "server_port" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1193:13 - error: No parameter named "api_version" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1194:13 - error: No parameter named "verify_ssl" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1195:13 - error: No parameter named "match_domains" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_veeam_sync_actions_service_contract.py:1285:52 - error: Argument of type "_StubProvider" cannot be assigned to parameter "provider" of type "VeeamProvider | None" in function "__init__"
+    Type "_StubProvider" is not assignable to type "VeeamProvider | None"
+      "_StubProvider" is incompatible with protocol "VeeamProvider"
+        "list_machine_backups" is not present
+          "create_session" is an incompatible type
+            Type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> object" is not assignable to type "(*, server_host: str, server_port: int, username: str, password: str, api_version: str, verify_ssl: bool | None = None) -> VeeamProviderSession"
+          "match_backup_objects" is an incompatible type
+            Type "(*, backup_items: list[dict[str, object]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> object" is not assignable to type "(*, backup_items: list[dict[str, Any]], match_machine_names: set[str] | None = None, match_machine_ips: set[str] | None = None) -> VeeamBackupObjectMatchResult"
+          "fetch_restore_point_records" is an incompatible type
+    ... (reportArgumentType)
+230 errors, 0 warnings, 0 informations
+Pyright 运行失败 (exit 1)，请查看报告文件以排查。

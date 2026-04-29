@@ -42,7 +42,8 @@ class DatabaseStatisticsReadService:
         sync_rows = self._repository.fetch_latest_sync_rows()
         capacity_rows = self._repository.fetch_capacity_rankings(limit=10)
         capacity_summary_reader = getattr(self._repository, "fetch_capacity_summary", None)
-        capacity_summary = (
+        capacity_summary = cast(
+            "dict[str, object]",
             capacity_summary_reader()
             if callable(capacity_summary_reader)
             else {
@@ -53,7 +54,7 @@ class DatabaseStatisticsReadService:
                     else 0
                 ),
                 "max_size_mb": max((int(getattr(row, "size_mb", 0) or 0) for row in capacity_rows), default=0),
-            }
+            },
         )
 
         db_type_stats = [
@@ -81,24 +82,22 @@ class DatabaseStatisticsReadService:
                 database_name=cast(str, getattr(row, "database_name", "")),
                 size_mb=int(getattr(row, "size_mb", 0) or 0),
                 size_label=self._ledger_service._format_size(int(getattr(row, "size_mb", 0) or 0)),
-                collected_at=(
-                    getattr(row, "collected_at", None).isoformat() if getattr(row, "collected_at", None) else None
-                ),
+                collected_at=self._format_optional_datetime(getattr(row, "collected_at", None)),
             )
             for row in capacity_rows
         ]
 
-        deleted_total = int(summary.get("deleted_databases", 0) or 0)
+        deleted_total = self._to_int(summary.get("deleted_databases"))
 
         return DatabaseStatisticsResult(
-            total_databases=int(summary.get("total_databases", 0) or 0),
-            active_databases=int(summary.get("active_databases", 0) or 0),
-            inactive_databases=int(summary.get("inactive_databases", 0) or 0),
+            total_databases=self._to_int(summary.get("total_databases")),
+            active_databases=self._to_int(summary.get("active_databases")),
+            inactive_databases=self._to_int(summary.get("inactive_databases")),
             deleted_databases=deleted_total,
-            total_instances=int(summary.get("total_instances", 0) or 0),
-            total_size_mb=int(capacity_summary.get("total_size_mb", 0) or 0),
-            avg_size_mb=float(capacity_summary.get("avg_size_mb", 0) or 0),
-            max_size_mb=int(capacity_summary.get("max_size_mb", 0) or 0),
+            total_instances=self._to_int(summary.get("total_instances")),
+            total_size_mb=self._to_int(capacity_summary.get("total_size_mb")),
+            avg_size_mb=self._to_float(capacity_summary.get("avg_size_mb")),
+            max_size_mb=self._to_int(capacity_summary.get("max_size_mb")),
             db_type_stats=db_type_stats,
             instance_stats=instance_stats,
             sync_status_stats=sync_status_stats,
@@ -122,6 +121,28 @@ class DatabaseStatisticsReadService:
             sync_status_stats=[],
             capacity_rankings=[],
         )
+
+    @staticmethod
+    def _format_optional_datetime(value: object) -> str | None:
+        return value.isoformat() if isinstance(value, datetime) else None
+
+    @staticmethod
+    def _to_int(value: object, default: int = 0) -> int:
+        if isinstance(value, (int, float, str)):
+            try:
+                return int(value)
+            except ValueError:
+                return default
+        return default
+
+    @staticmethod
+    def _to_float(value: object, default: float = 0) -> float:
+        if isinstance(value, (int, float, str)):
+            try:
+                return float(value)
+            except ValueError:
+                return default
+        return default
 
     def _build_sync_status_stats(self, rows: list[Any]) -> list[DatabaseSyncStatusStat]:
         stats_map: OrderedDict[tuple[str, str, str], int] = OrderedDict()

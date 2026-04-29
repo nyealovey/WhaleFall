@@ -11,7 +11,7 @@ from typing import Any, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.core.exceptions import ValidationError
+from app.core.exceptions import NotFoundError, ValidationError
 from app.infra.route_safety import log_with_context
 from app.models.task_run import TaskRun
 from app.repositories.instances_repository import InstancesRepository
@@ -81,6 +81,14 @@ class VeeamSyncLaunchResult:
     thread_name: str
 
 
+@dataclass(frozen=True, slots=True)
+class VeeamInstanceSyncResult:
+    """单实例同步结果."""
+
+    data: dict[str, object]
+    message: str
+
+
 def _resolve_default_task() -> Callable[..., Any]:
     """惰性加载默认任务函数,避免导入期循环依赖."""
     module = importlib.import_module("app.tasks.veeam_backup_sync_tasks")
@@ -129,10 +137,10 @@ class VeeamSyncActionsService:
     def __init__(
         self,
         *,
-        source_service: VeeamSourceService | None = None,
+        source_service: VeeamSourceService | Any | None = None,
         veeam_repository: VeeamRepository | None = None,
         instances_repository: InstancesRepository | None = None,
-        provider: VeeamProvider | None = None,
+        provider: VeeamProvider | Any | None = None,
         task: Callable[..., Any] | None = None,
     ) -> None:
         self._source_service = source_service or VeeamSourceService(provider=provider)
@@ -192,6 +200,121 @@ class VeeamSyncActionsService:
             task=self._task,
         )
         return VeeamSyncLaunchResult(run_id=prepared.run_id, thread_name=thread.name)
+
+    def sync_instance_now(self, *, instance_id: int, created_by: int | None) -> VeeamInstanceSyncResult:
+        """立即同步单个实例的 Veeam 备份快照."""
+        del created_by
+        instance = self._instances_repository.get_instance(instance_id)
+        if instance is None or instance.deleted_at is not None:
+            raise NotFoundError("实例不存在")
+        if not self._provider.is_configured():
+            raise ValidationError("Veeam Provider 尚未接入真实 API")
+
+        binding = self._source_service.get_binding_or_error()
+        credential = getattr(binding, "credential", None)
+        if credential is None:
+            raise ValidationError("Veeam 数据源未绑定有效凭据")
+
+        instance_name = str(instance.name)
+        instance_host = getattr(instance, "host", None)
+        domains = binding.match_domains if isinstance(binding.match_domains, list) else []
+        sync_context = {
+            "instance_id": instance_id,
+            "instance_name": instance_name,
+            "instance_host": instance_host,
+        }
+        log_with_context(
+            "info",
+            "单实例 Veeam 备份同步开始",
+            module="veeam",
+            action="sync_instance_backup",
+            extra={**sync_context, "match_domains": domains},
+            include_actor=False,
+        )
+
+        session = self._provider.create_session(
+            server_host=str(binding.server_host or ""),
+            server_port=int(binding.server_port),
+            username=str(credential.username or ""),
+            password=str(credential.get_plain_password() or ""),
+            api_version=str(binding.api_version or ""),
+            verify_ssl=bool(binding.verify_ssl),
+        )
+        name_candidates = build_instance_match_candidates(instance_name, domains)
+        ip_candidates = build_instance_ip_candidates(instance_host)
+        backup_items = self._provider.fetch_backup_objects(session=session)
+        match_result = self._provider.match_backup_objects(
+            backup_items=backup_items,
+            match_machine_names=set(name_candidates),
+            match_machine_ips=set(ip_candidates),
+        )
+        if not match_result.matched_backup_objects:
+            log_with_context(
+                "warning",
+                "单实例 Veeam 备份未匹配到",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    **sync_context,
+                    "name_candidates": name_candidates,
+                    "ip_candidates": ip_candidates,
+                    "backup_items_count": len(backup_items),
+                },
+                include_actor=False,
+            )
+            return VeeamInstanceSyncResult(
+                data={
+                    "instance_id": instance_id,
+                    "instance_name": instance_name,
+                    "backup_info": None,
+                    "matched": False,
+                },
+                message=f"实例 {instance_name} 未匹配到 Veeam 备份",
+            )
+
+        restore_points_result = self._provider.fetch_restore_point_records(
+            session=session,
+            match_result=match_result,
+        )
+        records = restore_points_result.records
+        if records:
+            backup_ids = self._collect_unique_strings([record.backup_id for record in records])
+            backup_files_result = self._provider.fetch_backup_file_records(session=session, backup_ids=backup_ids)
+            enriched_records = self._merge_backup_file_metrics_into_records(
+                records=records,
+                backup_files_result=backup_files_result,
+            )
+            snapshots_to_write = self._select_latest_records(enriched_records)
+            snapshots_written = self._veeam_repository.upsert_machine_backup_snapshots(
+                records=snapshots_to_write,
+                sync_run_id=f"single_sync_{instance_id}",
+                synced_at=time_utils.now(),
+            )
+            log_with_context(
+                "info",
+                "单实例 Veeam 备份同步完成",
+                module="veeam",
+                action="sync_instance_backup",
+                extra={
+                    **sync_context,
+                    "matched_backup_objects_total": len(match_result.matched_backup_objects),
+                    "restore_points_count": len(records),
+                    "backup_files_scanned_total": backup_files_result.received_total,
+                    "snapshots_written": snapshots_written,
+                },
+                include_actor=False,
+            )
+
+        matched = self._veeam_repository.find_best_backup_for_instance_name(instance_name, instance_host)
+        return VeeamInstanceSyncResult(
+            data={
+                "instance_id": instance_id,
+                "instance_name": instance_name,
+                "backup_info": matched,
+                "matched": True,
+            },
+            message=f"实例 {instance_name} 备份同步成功",
+        )
 
     def _sync_once(  # noqa: PLR0915
         self,

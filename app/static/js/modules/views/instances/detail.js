@@ -2097,65 +2097,40 @@ function normalizeBackupRestorePoints(data) {
     return items
         .filter((item) => item && typeof item === 'object')
         .map((item) => ({
-            id: pickBackupRestorePointString(item, ['id', 'restore_point_id', 'restorePointId']),
-            name: pickBackupRestorePointString(item, ['name', 'restore_point_name', 'restorePointName']),
-            platform_name: pickBackupRestorePointString(item, ['platform_name', 'platformName']),
-            type: pickBackupRestorePointString(item, ['type']),
-            backup_id: pickBackupRestorePointString(item, ['backup_id', 'backupId']),
-            object_id: pickBackupRestorePointString(item, ['object_id', 'objectId']),
-            restore_point_ids: pickBackupRestorePointList(item, ['restore_point_ids', 'restorePointIds']),
-            data_size_bytes: pickBackupRestorePointNumber(item, ['data_size_bytes', 'dataSizeBytes', 'dataSize']),
-            backup_size_bytes: pickBackupRestorePointNumber(item, ['backup_size_bytes', 'backupSizeBytes', 'backupSize']),
-            compress_ratio: pickBackupRestorePointNumber(item, ['compress_ratio', 'compressRatio']),
-            creation_time: pickBackupRestorePointString(item, ['creation_time', 'creationTime', 'backup_time', 'backupTime']),
+            id: normalizeBackupRestorePointString(item.id),
+            name: normalizeBackupRestorePointString(item.name),
+            platform_name: normalizeBackupRestorePointString(item.platform_name),
+            type: normalizeBackupRestorePointString(item.type),
+            backup_id: normalizeBackupRestorePointString(item.backup_id),
+            object_id: normalizeBackupRestorePointString(item.object_id),
+            restore_point_ids: normalizeBackupRestorePointList(item.restore_point_ids),
+            data_size_bytes: normalizeBackupRestorePointNumber(item.data_size_bytes),
+            backup_size_bytes: normalizeBackupRestorePointNumber(item.backup_size_bytes),
+            compress_ratio: normalizeBackupRestorePointNumber(item.compress_ratio),
+            creation_time: normalizeBackupRestorePointString(item.creation_time),
         }))
         .filter((item) => item.id || item.name || item.creation_time);
 }
 
-function pickBackupRestorePointString(item, keys) {
-    if (!item || typeof item !== 'object' || !Array.isArray(keys)) {
-        return '';
-    }
-    for (const key of keys) {
-        const value = item[key];
-        if (typeof value === 'string' && value.trim()) {
-            return value.trim();
-        }
-    }
-    return '';
+function normalizeBackupRestorePointString(value) {
+    return typeof value === 'string' ? value.trim() : '';
 }
 
-function pickBackupRestorePointNumber(item, keys) {
-    if (!item || typeof item !== 'object' || !Array.isArray(keys)) {
+function normalizeBackupRestorePointNumber(value) {
+    if (value === null || value === undefined || value === '') {
         return null;
     }
-    for (const key of keys) {
-        const rawValue = item[key];
-        if (rawValue === null || rawValue === undefined || rawValue === '') {
-            continue;
-        }
-        const numeric = Number(rawValue);
-        if (Number.isFinite(numeric)) {
-            return numeric;
-        }
-    }
-    return null;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
 }
 
-function pickBackupRestorePointList(item, keys) {
-    if (!item || typeof item !== 'object' || !Array.isArray(keys)) {
+function normalizeBackupRestorePointList(value) {
+    if (!Array.isArray(value)) {
         return [];
     }
-    for (const key of keys) {
-        const value = item[key];
-        if (!Array.isArray(value)) {
-            continue;
-        }
-        return value
-            .filter((entry) => typeof entry === 'string' && entry.trim())
-            .map((entry) => entry.trim());
-    }
-    return [];
+    return value
+        .filter((entry) => typeof entry === 'string' && entry.trim())
+        .map((entry) => entry.trim());
 }
 
 function groupRestorePointsByBackupId(restorePoints) {

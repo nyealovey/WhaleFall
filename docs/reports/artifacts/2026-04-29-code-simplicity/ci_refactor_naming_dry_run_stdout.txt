@@ -1,0 +1,11 @@
+🔍 正在检测命名规范...
+✅ 后端路由文件 无需处理
+✅ 后端视图文件 无需处理
+✅ api_ 前缀函数 正常
+✅ _api 后缀函数 正常
+✅ _optimized 函数名 正常
+✅ databases_aggregations 复数错误 正常
+✅ instances_aggregations 复数错误 正常
+
+🎉 无需要替换的内容
+报告已生成：/Users/apple/Github/WhaleFall/docs/reports/naming_guard_report.txt

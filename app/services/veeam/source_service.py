@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from flask import current_app, has_app_context
 
 from app import db
@@ -21,7 +23,7 @@ class VeeamSourceService:
         *,
         credentials_repository: CredentialsRepository | None = None,
         veeam_repository: VeeamRepository | None = None,
-        provider: VeeamProvider | None = None,
+        provider: VeeamProvider | Any | None = None,
     ) -> None:
         self._credentials_repository = credentials_repository or CredentialsRepository()
         self._veeam_repository = veeam_repository or VeeamRepository()
@@ -108,7 +110,7 @@ class VeeamSourceService:
     @staticmethod
     def _serialize_credential(credential: object) -> dict[str, object]:
         return {
-            "id": int(credential.id),
+            "id": int(getattr(credential, "id", 0) or 0),
             "name": str(getattr(credential, "name", "") or ""),
             "description": str(getattr(credential, "description", "") or ""),
         }

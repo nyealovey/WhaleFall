@@ -1,0 +1,643 @@
+运行 Ruff 模式: style
+规则选择: D,I,PLC,G
+自动修复: 关闭
+Unsafe fixes: 关闭
+报告输出: /Users/apple/Github/WhaleFall/docs/reports/ruff_style_2026-04-29_code_simplicity.txt
+warning: `incorrect-blank-line-before-class` (D203) and `no-blank-line-before-class` (D211) are incompatible. Ignoring `incorrect-blank-line-before-class`.
+warning: `multi-line-summary-first-line` (D212) and `multi-line-summary-second-line` (D213) are incompatible. Ignoring `multi-line-summary-second-line`.
+D102 Missing docstring in public method
+  --> app/api/v1/namespaces/instances_audit.py:70:9
+   |
+68 |     @ns.response(404, "Not Found", ErrorEnvelope)
+69 |     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+70 |     def get(self, instance_id: int):
+   |         ^^^
+71 |         def _execute():
+72 |             payload = InstanceAuditInfoReadService().get_audit_info(instance_id)
+   |
+
+D102 Missing docstring in public method
+   --> app/api/v1/namespaces/instances_audit.py:99:9
+    |
+ 97 |     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+ 98 |     @require_csrf
+ 99 |     def post(self, instance_id: int):
+    |         ^^^^
+100 |         def _execute():
+101 |             result = InstanceAuditSyncActionsService().sync_instance_audit_info(
+    |
+
+D102 Missing docstring in public method
+  --> app/api/v1/namespaces/instances_backup.py:87:9
+   |
+85 |     @ns.response(404, "Not Found", ErrorEnvelope)
+86 |     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+87 |     def get(self, instance_id: int):
+   |         ^^^
+88 |         def _execute():
+89 |             payload = InstanceBackupInfoReadService().get_backup_info(instance_id)
+   |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> app/api/v1/namespaces/veeam.py:3:1
+   |
+ 1 |   """Veeam 数据源 namespace."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from typing import ClassVar
+ 6 | |
+ 7 | | from flask_login import current_user
+ 8 | | from flask_restx import Namespace, fields
+ 9 | |
+10 | | from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
+11 | | from app.api.v1.resources.base import BaseResource, get_raw_payload
+12 | | from app.api.v1.resources.decorators import api_login_required, api_permission_required
+13 | | from app.schemas.validation import validate_or_raise
+14 | | from app.schemas.veeam import VeeamSourceBindingPayload
+15 | | from app.services.veeam.source_service import VeeamSourceService
+16 | | from app.services.veeam.sync_actions_service import VeeamSyncActionsService
+17 | | from app.repositories.instances_repository import InstancesRepository
+18 | | from app.repositories.veeam_repository import VeeamRepository
+19 | | from app.services.veeam.provider import HttpVeeamProvider, VeeamMachineBackupRecord
+20 | | from app.services.veeam.matching import (
+21 | |     build_instance_match_candidates,
+22 | |     build_instance_ip_candidates,
+23 | |     normalize_machine_name,
+24 | |     normalize_ip_address,
+25 | | )
+26 | | from app.core.exceptions import NotFoundError, ValidationError
+27 | | from app.infra.route_safety import log_with_context
+28 | | from app.utils.decorators import require_csrf
+29 | | from app.utils.time_utils import time_utils
+   | |___________________________________________^
+30 |
+31 |   ns = Namespace("veeam", description="Veeam 数据源")
+   |
+help: Organize imports
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:19:9
+   |
+18 |     @staticmethod
+19 |     def get_settings() -> EmailAlertSetting | None:
+   |         ^^^^^^^^^^^^
+20 |         return EmailAlertSetting.query.order_by(EmailAlertSetting.id.asc()).first()
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:23:9
+   |
+22 |     @staticmethod
+23 |     def add_settings(settings: EmailAlertSetting) -> None:
+   |         ^^^^^^^^^^^^
+24 |         db.session.add(settings)
+25 |         db.session.flush()
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:28:9
+   |
+27 |     @staticmethod
+28 |     def create_event(**payload: object) -> None:
+   |         ^^^^^^^^^^^^
+29 |         event = EmailAlertEvent(**payload)
+30 |         with db.session.begin_nested():
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:35:9
+   |
+34 |     @staticmethod
+35 |     def upsert_backup_issue_event(**payload: object) -> bool:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+36 |         alert_type = str(payload.get("alert_type") or "")
+37 |         bucket_date = payload.get("bucket_date")
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:60:9
+   |
+59 |     @staticmethod
+60 |     def delete_pending_backup_issue_events_not_in(*, bucket_date: date, dedupe_keys: set[str]) -> int:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+61 |         query = EmailAlertEvent.query.filter(
+62 |             EmailAlertEvent.alert_type == "backup_status_issue",
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:73:9
+   |
+72 |     @staticmethod
+73 |     def list_pending_digest_events() -> list[EmailAlertEvent]:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+74 |         return (
+75 |             EmailAlertEvent.query.filter(EmailAlertEvent.digest_sent_at.is_(None))
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:81:9
+   |
+80 |     @staticmethod
+81 |     def get_bucket_event_counts(bucket_date: date) -> dict[str, dict[str, int]]:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^
+82 |         stats: dict[str, dict[str, int]] = {}
+83 |         events = EmailAlertEvent.query.filter(EmailAlertEvent.bucket_date == bucket_date).all()
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/email_alerts_repository.py:94:9
+   |
+93 |     @staticmethod
+94 |     def mark_events_digest_sent(event_ids: list[int], sent_at) -> None:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^
+95 |         if not event_ids:
+96 |             return
+   |
+
+D102 Missing docstring in public method
+   --> app/repositories/email_alerts_repository.py:105:9
+    |
+104 |     @staticmethod
+105 |     def find_recent_database_baseline(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+106 |         *,
+107 |         instance_id: int,
+    |
+
+D102 Missing docstring in public method
+  --> app/repositories/instance_config_snapshots_repository.py:13:9
+   |
+12 |     @staticmethod
+13 |     def get_by_instance_and_key(*, instance_id: int, config_key: str) -> InstanceConfigSnapshot | None:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^
+14 |         return (
+15 |             InstanceConfigSnapshot.query.filter_by(
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/instance_config_snapshots_repository.py:24:9
+   |
+23 |     @staticmethod
+24 |     def add(snapshot: InstanceConfigSnapshot) -> InstanceConfigSnapshot:
+   |         ^^^
+25 |         db.session.add(snapshot)
+26 |         db.session.flush()
+   |
+
+D102 Missing docstring in public method
+  --> app/repositories/instance_config_snapshots_repository.py:30:9
+   |
+29 |     @staticmethod
+30 |     def flush() -> None:
+   |         ^^^^^
+31 |         db.session.flush()
+   |
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/repositories/jumpserver_repository.py:56:9
+   |
+54 |     ) -> None:
+55 |         """以本次同步结果替换快照内容."""
+56 |         from app.services.jumpserver.provider import JumpServerDatabaseAsset
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+57 |
+58 |         existing = {
+   |
+
+D107 Missing docstring in `__init__`
+  --> app/services/alerts/email_alert_event_service.py:24:9
+   |
+22 |     """邮件告警事件服务."""
+23 |
+24 |     def __init__(
+   |         ^^^^^^^^
+25 |         self,
+26 |         repository: EmailAlertsRepository | None = None,
+   |
+
+D102 Missing docstring in public method
+  --> app/services/alerts/email_alert_event_service.py:36:9
+   |
+34 |         self._veeam_repository = veeam_repository or VeeamRepository()
+35 |
+36 |     def record_database_capacity_events(
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+37 |         self,
+38 |         *,
+   |
+
+D102 Missing docstring in public method
+   --> app/services/alerts/email_alert_event_service.py:115:9
+    |
+113 |         return created
+114 |
+115 |     def record_sync_failure_event(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+116 |         self,
+117 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/alerts/email_alert_event_service.py:150:9
+    |
+148 |         )
+149 |
+150 |     def record_privileged_account_event(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+151 |         self,
+152 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/alerts/email_alert_event_service.py:179:9
+    |
+177 |         )
+178 |
+179 |     def sync_backup_issue_events_for_active_instances(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+180 |         self,
+181 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/alerts/email_alert_event_service.py:201:9
+    |
+199 |         return self.record_backup_issue_events(backup_rows=backup_rows, occurred_at=occurred_at)
+200 |
+201 |     def record_backup_issue_events(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+202 |         self,
+203 |         *,
+    |
+
+D107 Missing docstring in `__init__`
+  --> app/services/alerts/email_alert_settings_service.py:20:9
+   |
+18 |     """邮件告警配置服务."""
+19 |
+20 |     def __init__(
+   |         ^^^^^^^^
+21 |         self,
+22 |         repository: EmailAlertsRepository | None = None,
+   |
+
+D102 Missing docstring in public method
+  --> app/services/alerts/email_alert_settings_service.py:42:9
+   |
+40 |         return settings
+41 |
+42 |     def get_or_create_settings(self) -> EmailAlertSetting:
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+43 |         settings = self._repository.get_settings()
+44 |         if settings is not None:
+   |
+
+D102 Missing docstring in public method
+  --> app/services/alerts/email_alert_settings_service.py:48:9
+   |
+46 |         return self._build_default_settings()
+47 |
+48 |     def update_settings(self, payload: dict[str, object]) -> EmailAlertSetting:
+   |         ^^^^^^^^^^^^^^^
+49 |         payload_dict = cast("dict[str, Any]", payload)
+50 |         settings = self._repository.get_settings()
+   |
+
+D102 Missing docstring in public method
+  --> app/services/alerts/email_alert_settings_service.py:67:9
+   |
+65 |         return settings
+66 |
+67 |     def build_view_payload(self) -> dict[str, object]:
+   |         ^^^^^^^^^^^^^^^^^^
+68 |         settings = self.get_or_create_settings()
+69 |         return {
+   |
+
+D102 Missing docstring in public method
+  --> app/services/alerts/email_alert_settings_service.py:76:9
+   |
+74 |         }
+75 |
+76 |     def send_test_email(self, *, recipients: list[str]) -> dict[str, object]:
+   |         ^^^^^^^^^^^^^^^
+77 |         normalized_recipients = [item.strip() for item in recipients if item.strip()]
+78 |         if not normalized_recipients:
+   |
+
+D102 Missing docstring in public method
+  --> app/services/alerts/email_sender.py:14:9
+   |
+12 |     """使用 SMTP 发送邮件."""
+13 |
+14 |     def is_ready(self) -> bool:
+   |         ^^^^^^^^
+15 |         host = str(current_app.config.get("MAIL_SMTP_HOST") or "").strip()
+16 |         from_address = str(current_app.config.get("MAIL_FROM_ADDRESS") or "").strip()
+   |
+
+D102 Missing docstring in public method
+  --> app/services/alerts/email_sender.py:27:9
+   |
+25 |         return not ((username and not password) or (password and not username))
+26 |
+27 |     def send_email(self, *, recipients: list[str], subject: str, text_body: str) -> None:
+   |         ^^^^^^^^^^
+28 |         if not self.is_ready():
+29 |             raise RuntimeError("SMTP 配置未完成")
+   |
+
+D107 Missing docstring in `__init__`
+  --> app/services/config_sync/instance_audit_read_service.py:21:9
+   |
+19 |     """实例审计信息读取服务."""
+20 |
+21 |     def __init__(
+   |         ^^^^^^^^
+22 |         self,
+23 |         repository: InstanceConfigSnapshotsRepository | None = None,
+   |
+
+D102 Missing docstring in public method
+  --> app/services/config_sync/instance_audit_read_service.py:29:9
+   |
+27 |         self._instances_repository = instances_repository or InstancesRepository()
+28 |
+29 |     def get_audit_info(self, instance_id: int) -> dict[str, Any]:
+   |         ^^^^^^^^^^^^^^
+30 |         instance = self._instances_repository.get_instance(instance_id)
+31 |         if instance is None or instance.deleted_at is not None:
+   |
+
+D107 Missing docstring in `__init__`
+  --> app/services/config_sync/instance_audit_sync_actions_service.py:41:9
+   |
+39 |     """实例审计同步动作编排服务."""
+40 |
+41 |     def __init__(
+   |         ^^^^^^^^
+42 |         self,
+43 |         *,
+   |
+
+D102 Missing docstring in public method
+  --> app/services/config_sync/instance_audit_sync_actions_service.py:52:9
+   |
+50 |         self._instances_repository = instances_repository or InstancesRepository()
+51 |
+52 |     def sync_instance_audit_info(
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^
+53 |         self,
+54 |         *,
+   |
+
+D103 Missing docstring in public function
+   --> app/services/config_sync/sqlserver_audit_info_sync_service.py:113:5
+    |
+113 | def build_sqlserver_audit_facts(snapshot: Mapping[str, object]) -> dict[str, Any]:
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+114 |     server_audits_value = snapshot.get("server_audits")
+115 |     server_audits = server_audits_value if isinstance(server_audits_value, list) else []
+    |
+
+D107 Missing docstring in `__init__`
+   --> app/services/config_sync/sqlserver_audit_info_sync_service.py:199:9
+    |
+197 |     """采集 SQL Server 实例的审计配置."""
+198 |
+199 |     def __init__(self, connection_factory: type[ConnectionFactory] | None = None) -> None:
+    |         ^^^^^^^^
+200 |         self._connection_factory = connection_factory or ConnectionFactory
+    |
+
+D102 Missing docstring in public method
+   --> app/services/config_sync/sqlserver_audit_info_sync_service.py:202:9
+    |
+200 |         self._connection_factory = connection_factory or ConnectionFactory
+201 |
+202 |     def sync_instance_audit(self, *, instance) -> dict[str, Any]:  # type: ignore[no-untyped-def]
+    |         ^^^^^^^^^^^^^^^^^^^
+203 |         db_type = normalize_database_type(str(getattr(instance, "db_type", "") or ""))
+204 |         if db_type != DatabaseType.SQLSERVER:
+    |
+
+D102 Missing docstring in public method
+  --> app/services/jumpserver/provider.py:85:9
+   |
+83 |     """
+84 |
+85 |     def is_configured(self) -> bool:
+   |         ^^^^^^^^^^^^^
+86 |         return False
+   |
+
+D102 Missing docstring in public method
+  --> app/services/jumpserver/provider.py:88:9
+   |
+86 |         return False
+87 |
+88 |     def list_database_assets(
+   |         ^^^^^^^^^^^^^^^^^^^^
+89 |         self,
+90 |         *,
+   |
+
+D107 Missing docstring in `__init__`
+   --> app/services/jumpserver/provider.py:104:9
+    |
+102 |     """JumpServer v3 HTTP Provider."""
+103 |
+104 |     def __init__(
+    |         ^^^^^^^^
+105 |         self,
+106 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/jumpserver/provider.py:141:9
+    |
+139 |         }
+140 |
+141 |     def is_configured(self) -> bool:
+    |         ^^^^^^^^^^^^^
+142 |         return self._timeout_seconds > 0
+    |
+
+D102 Missing docstring in public method
+   --> app/services/jumpserver/provider.py:144:9
+    |
+142 |         return self._timeout_seconds > 0
+143 |
+144 |     def list_database_assets(
+    |         ^^^^^^^^^^^^^^^^^^^^
+145 |         self,
+146 |         *,
+    |
+
+D107 Missing docstring in `__init__`
+  --> app/services/jumpserver/source_service.py:19:9
+   |
+17 |     """管理 JumpServer 数据源绑定与视图载荷."""
+18 |
+19 |     def __init__(
+   |         ^^^^^^^^
+20 |         self,
+21 |         *,
+   |
+
+D107 Missing docstring in `__init__`
+  --> app/services/jumpserver/sync_actions_service.py:45:9
+   |
+43 |     """JumpServer 资源同步动作编排."""
+44 |
+45 |     def __init__(
+   |         ^^^^^^^^
+46 |         self,
+47 |         *,
+   |
+
+D107 Missing docstring in `__init__`
+  --> app/services/statistics/database_statistics_read_service.py:29:9
+   |
+27 |     """数据库统计读取服务."""
+28 |
+29 |     def __init__(
+   |         ^^^^^^^^
+30 |         self,
+31 |         repository: DatabaseStatisticsRepository | None = None,
+   |
+
+D107 Missing docstring in `__init__`
+  --> app/services/veeam/instance_backup_read_service.py:29:9
+   |
+27 |     """实例备份信息读取服务."""
+28 |
+29 |     def __init__(
+   |         ^^^^^^^^
+30 |         self,
+31 |         *,
+   |
+
+D107 Missing docstring in `__init__`
+   --> app/services/veeam/provider.py:158:9
+    |
+156 |     """restorePoints 拉取失败时携带阶段进度."""
+157 |
+158 |     def __init__(
+    |         ^^^^^^^^
+159 |         self,
+160 |         message: str,
+    |
+
+D107 Missing docstring in `__init__`
+   --> app/services/veeam/provider.py:250:9
+    |
+248 |     """VBR HTTP Provider."""
+249 |
+250 |     def __init__(
+    |         ^^^^^^^^
+251 |         self,
+252 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/veeam/provider.py:320:9
+    |
+318 |         }
+319 |
+320 |     def is_configured(self) -> bool:
+    |         ^^^^^^^^^^^^^
+321 |         return self._timeout_seconds > 0
+    |
+
+D102 Missing docstring in public method
+   --> app/services/veeam/provider.py:323:9
+    |
+321 |         return self._timeout_seconds > 0
+322 |
+323 |     def create_session(
+    |         ^^^^^^^^^^^^^^
+324 |         self,
+325 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/veeam/provider.py:349:9
+    |
+347 |         )
+348 |
+349 |     def fetch_backup_objects(self, *, session: VeeamProviderSession) -> list[dict[str, Any]]:
+    |         ^^^^^^^^^^^^^^^^^^^^
+350 |         return self._collect_paginated_items(
+351 |             url=self._build_backup_objects_url(base_url=session.base_url, limit=self._backup_objects_limit),
+    |
+
+D102 Missing docstring in public method
+   --> app/services/veeam/provider.py:357:9
+    |
+355 |         )
+356 |
+357 |     def match_backup_objects(  # noqa: PLR0912
+    |         ^^^^^^^^^^^^^^^^^^^^
+358 |         self,
+359 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/veeam/provider.py:450:9
+    |
+448 |         )
+449 |
+450 |     def fetch_restore_point_records(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+451 |         self,
+452 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/veeam/provider.py:532:9
+    |
+530 |         )
+531 |
+532 |     def list_machine_backups(
+    |         ^^^^^^^^^^^^^^^^^^^^
+533 |         self,
+534 |         *,
+    |
+
+D102 Missing docstring in public method
+   --> app/services/veeam/provider.py:558:9
+    |
+556 |         return self.fetch_restore_point_records(session=session, match_result=match_result)
+557 |
+558 |     def fetch_backup_file_records(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+559 |         self,
+560 |         *,
+    |
+
+D107 Missing docstring in `__init__`
+  --> app/services/veeam/source_service.py:19:9
+   |
+17 |     """管理 Veeam 数据源绑定与视图载荷."""
+18 |
+19 |     def __init__(
+   |         ^^^^^^^^
+20 |         self,
+21 |         *,
+   |
+
+D107 Missing docstring in `__init__`
+   --> app/services/veeam/sync_actions_service.py:129:9
+    |
+127 |     """Veeam 备份同步动作编排."""
+128 |
+129 |     def __init__(
+    |         ^^^^^^^^
+130 |         self,
+131 |         *,
+    |
+
+Found 57 errors.
+[*] 1 fixable with the `--fix` option.

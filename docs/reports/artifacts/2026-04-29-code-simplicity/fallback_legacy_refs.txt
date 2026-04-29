@@ -1,0 +1,571 @@
+app/services/connection_adapters/adapters/oracle_adapter.py:12:from app.utils.structlog_config import log_fallback
+app/services/connection_adapters/adapters/oracle_adapter.py:77:                    log_fallback(
+app/services/connection_adapters/adapters/oracle_adapter.py:79:                        "oracle_is_thin_check_failed_fallback",
+app/services/connection_adapters/adapters/oracle_adapter.py:83:                        fallback_reason="oracledb_is_thin_check_failed",
+app/services/connection_adapters/adapters/oracle_adapter.py:235:            log_fallback(
+app/services/connection_adapters/adapters/oracle_adapter.py:242:                fallback_reason="DB_VERSION_QUERY_FAILED",
+app/models/account_classification.py:96:            # 兼容旧前端：name 继续返回展示名
+tests/integration/conftest.py:15:    """集成测试必须显式配置真实数据库（禁止默认 sqlite fallback）。"""
+app/services/connection_adapters/adapters/mysql_adapter.py:10:from app.utils.structlog_config import log_fallback
+app/services/connection_adapters/adapters/mysql_adapter.py:188:            log_fallback(
+app/services/connection_adapters/adapters/mysql_adapter.py:193:                fallback_reason="DB_VERSION_QUERY_FAILED",
+scripts/ci/error-message-drift-guard.sh:59:  echo "请按 docs/Obsidian/standards/backend/standard/error-message-schema-unification.md 统一结果结构，避免在读端写互兜底链。" >&2
+app/services/connection_adapters/adapters/postgresql_adapter.py:16:from app.utils.structlog_config import log_fallback
+app/services/connection_adapters/adapters/postgresql_adapter.py:174:            log_fallback(
+app/services/connection_adapters/adapters/postgresql_adapter.py:181:                fallback_reason="DB_VERSION_QUERY_FAILED",
+app/services/account_classification/dsl_v4.py:6:- 本模块保留为向后兼容的 re-export, 避免大量改动 import 路径.
+app/services/connection_adapters/adapters/sqlserver_adapter.py:11:from app.utils.structlog_config import log_fallback
+app/services/connection_adapters/adapters/sqlserver_adapter.py:226:            log_fallback(
+app/services/connection_adapters/adapters/sqlserver_adapter.py:233:                fallback_reason="DB_VERSION_QUERY_FAILED",
+scripts/dev/openapi/export_api_contract_canvas.py:2:"""(Deprecated) 生成 `/api/v1` API contract 索引画布, 并校验 contract 覆盖率.
+scripts/dev/openapi/export_api_contract_canvas.py:4:Deprecated:
+scripts/dev/openapi/export_api_contract_canvas.py:259:                f"- (Legacy) 本画布仅作为 `{base_path}/**` contract canvas 的索引\n"
+scripts/dev/openapi/export_api_contract_canvas.py:262:                "- (Legacy) 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py "
+scripts/dev/openapi/export_api_contract_canvas.py:264:                "- (Legacy) 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\n"
+app/services/accounts_sync/adapters/mysql_adapter.py:15:from app.utils.structlog_config import get_sync_logger, log_fallback
+app/services/accounts_sync/adapters/mysql_adapter.py:62:        - 部分兼容实现/托管版会隐藏该列,直接 SELECT 会触发 1054 并产生错误日志。
+app/services/accounts_sync/adapters/mysql_adapter.py:68:            log_fallback(
+app/services/accounts_sync/adapters/mysql_adapter.py:74:                fallback_reason="SHOW_COLUMNS_FAILED",
+app/services/accounts_sync/adapters/mysql_adapter.py:242:            log_fallback(
+app/services/accounts_sync/adapters/mysql_adapter.py:247:                fallback_reason="instance.main_version/detailed_version missing",
+app/services/accounts_sync/adapters/sqlserver_adapter.py:12:from app.infra.route_safety import log_fallback
+app/services/accounts_sync/adapters/sqlserver_adapter.py:690:                    log_fallback(
+app/services/accounts_sync/adapters/sqlserver_adapter.py:692:                        "sqlserver_batch_permissions_sid_empty_fallback",
+app/services/accounts_sync/adapters/sqlserver_adapter.py:695:                        fallback_reason="sid_path_empty_permissions",
+app/services/accounts_sync/adapters/sqlserver_adapter.py:707:                log_fallback(
+app/services/accounts_sync/adapters/sqlserver_adapter.py:709:                    "sqlserver_batch_permissions_sid_unavailable_fallback",
+app/services/accounts_sync/adapters/sqlserver_adapter.py:712:                    fallback_reason="sid_mapping_unavailable",
+app/services/accounts_sync/adapters/sqlserver_adapter.py:787:        """构建兼容 SQL Server 2008 的 target_logins CTE."""
+app/services/accounts_sync/adapters/sqlserver_adapter.py:806:        """构建兼容 SQL Server 2008 的 target_sids CTE."""
+app/models/user.py:40:    is_active = db.Column(db.Boolean, default=True, nullable=False)  # pyright: ignore[reportIncompatibleMethodOverride]
+app/models/account_permission.py:13:from app.utils.structlog_config import log_fallback
+app/models/account_permission.py:21:def _log_dialect_detection_fallback(fallback_reason: str) -> None:
+app/models/account_permission.py:22:    log_fallback(
+app/models/account_permission.py:24:        "account_permission_dialect_detection_fallback",
+app/models/account_permission.py:27:        fallback_reason=fallback_reason,
+app/models/account_permission.py:35:    不再使用按 db_type 固定列的 legacy 权限字段.继承自 BaseSyncData.
+app/models/account_permission.py:106:            _log_dialect_detection_fallback(exc.__class__.__name__)
+app/services/accounts_permissions/facts_builder.py:44:        # Fallback shape: mapping of privilege -> enabled boolean.
+app/services/task_runs/task_run_summary_builders.py:361:    """兼容新的调度任务命名."""
+app/services/task_runs/task_run_summary_builders.py:411:    """兼容新的调度任务命名."""
+app/services/accounts_permissions/snapshot_view.py:4:- 不兼容 legacy 旧数据
+app/services/accounts_permissions/snapshot_view.py:5:- snapshot 缺失时必须直接抛出错误,避免静默兜底
+app/services/partition/partition_read_service.py:41:        # 仅将 None/空串视为缺省，等价替代 `int(value or 0)`，避免 truthy 兜底链扩散。
+scripts/deploy/deploy-prod-all.sh:64:    # fallback: 无 python3 时，做严格字符串匹配（避免 "unhealthy" 被误判为健康）
+app/services/database_sync/table_size_adapters/oracle_adapter.py:11:from app.utils.structlog_config import log_fallback
+app/services/database_sync/table_size_adapters/oracle_adapter.py:54:                        "oracle_tablespace_check_fallback",
+app/services/database_sync/table_size_adapters/oracle_adapter.py:82:            log_fallback(
+app/services/database_sync/table_size_adapters/oracle_adapter.py:84:                "oracle_current_schema_resolve_fallback",
+app/services/database_sync/table_size_adapters/oracle_adapter.py:87:                fallback_reason="oracle_current_schema_query_failed",
+app/services/database_sync/table_size_adapters/oracle_adapter.py:168:                        "oracle_segments_query_fallback",
+scripts/ci/ops-legacy-guard.sh:13:  ./scripts/ci/ops-legacy-guard.sh
+scripts/ci/ops-legacy-guard.sh:27:  echo "未检测到 rg 命令，无法执行 ops legacy 门禁检查。" >&2
+scripts/ci/ops-legacy-guard.sh:31:# --- 1) legacy health api paths ---
+scripts/ci/ops-legacy-guard.sh:67:# --- 2) legacy userdata->volume migration remnants ---
+scripts/ci/ops-legacy-guard.sh:106:echo "✅ ops legacy 门禁通过。"
+scripts/ci/pagination-param-guard.sh:43:# --- TableQueryParams: 禁止 legacy page_size/pageSize，必须 normalize 为 limit ---
+scripts/ci/pagination-param-guard.sh:55:  'pagination:legacy-page-size-param'
+scripts/ci/pagination-param-guard.sh:61:    echo "检测到 TableQueryParams 仍在解析/输出 legacy page_size/pageSize（禁止）。" >&2
+scripts/ci/pagination-param-guard.sh:83:echo "✅ 分页参数门禁通过：TableQueryParams 使用 limit 且已清理 legacy page_size/pageSize。"
+scripts/ci/ui-standards-audit-guard.sh:210:def _check_instances_detail_no_legacy_instance_stat_card() -> None:
+scripts/ci/ui-standards-audit-guard.sh:439:        _check_instances_detail_no_legacy_instance_stat_card,
+app/services/statistics/accounts_statistics_page_service.py:53:    def build_fallback_context(self) -> AccountsStatisticsPageContext:
+app/services/statistics/accounts_statistics_page_service.py:54:        """构造失败时的兜底上下文."""
+app/services/history_sessions/history_sessions_read_service.py:110:            # fail-fast: 数据形状异常属于数据一致性问题，不应 silent fallback。
+scripts/ci/or-fallback-pattern-guard.sh:2:# `or` 兜底高风险形态门禁（初期只覆盖最危险/最易语义漂移的形态）
+scripts/ci/or-fallback-pattern-guard.sh:6:# - 禁止 internal contract 相关模块在 version 不匹配时 silent fallback 为 `{}`/`[]`
+scripts/ci/or-fallback-pattern-guard.sh:9:# - docs/Obsidian/standards/backend/gate/or-fallback-decision-table.md
+scripts/ci/or-fallback-pattern-guard.sh:34:  echo "检测到 services/repositories 中的字段 alias/迁移 or 兜底链（禁止）：" >&2
+scripts/ci/or-fallback-pattern-guard.sh:38:  echo "参考：docs/Obsidian/standards/backend/gate/or-fallback-decision-table.md" >&2
+scripts/ci/or-fallback-pattern-guard.sh:45:empty_fallback_hits="$("${RG_BIN}" -n --hidden --type py -- "${EMPTY_COLLECTION_FALLBACK_PATTERN}" "${TARGETS_ALIAS_CHAIN[@]}" || true)"
+scripts/ci/or-fallback-pattern-guard.sh:46:if [[ -n "${empty_fallback_hits}" ]]; then
+scripts/ci/or-fallback-pattern-guard.sh:47:  echo "检测到 services/repositories 中的空集合 or 兜底（禁止）：" >&2
+scripts/ci/or-fallback-pattern-guard.sh:48:  echo "${empty_fallback_hits}" >&2
+scripts/ci/or-fallback-pattern-guard.sh:51:  echo "参考：docs/Obsidian/standards/backend/gate/or-fallback-decision-table.md" >&2
+scripts/ci/or-fallback-pattern-guard.sh:67:  echo "检测到 internal contract 版本不匹配时 silent fallback 为 {} / []（禁止）：" >&2
+scripts/ci/or-fallback-pattern-guard.sh:75:echo "✅ or 兜底高风险形态门禁通过。"
+tests/unit/schemas/test_credentials_query.py:68:def test_credential_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:33:def test_process_instance_with_fallback_rolls_back_and_marks_failed(monkeypatch) -> None:
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:57:    fallback_calls: list[tuple[str, str, dict[str, object]]] = []
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:59:    def _log_fallback(level: str, event: str, **kwargs: object) -> None:
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:60:        fallback_calls.append((level, event, dict(kwargs)))
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:62:    monkeypatch.setattr(capacity_collection_tasks, "log_fallback", _log_fallback)
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:69:    payload, totals = capacity_collection_tasks._process_instance_with_fallback(
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:88:    assert fallback_calls
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:89:    level, event, fields = fallback_calls[0]
+tests/unit/tasks/test_capacity_collection_tasks_no_cover_branches.py:92:    assert fields.get("fallback_reason") == "capacity_instance_sync_failed"
+scripts/ci/frontend-contracts-guard.sh:2:# Frontend contracts 门禁：modules 分层/注入/迁移约束（避免页面脚本回退为直连 service 或 legacy token）
+scripts/ci/frontend-contracts-guard.sh:470:def _check_no_legacy_stat_card_classes() -> None:
+scripts/ci/frontend-contracts-guard.sh:502:def _check_no_legacy_api_paths() -> None:
+scripts/ci/frontend-contracts-guard.sh:503:    legacy_api = re.compile(r"/api(?!/v1)(?:/|$)")
+scripts/ci/frontend-contracts-guard.sh:517:                if legacy_api.search(line):
+scripts/ci/frontend-contracts-guard.sh:570:        _check_no_legacy_stat_card_classes,
+scripts/ci/frontend-contracts-guard.sh:571:        _check_no_legacy_api_paths,
+tests/unit/schemas/test_partition_query.py:51:def test_partition_core_metrics_query_normalizes_and_compat_days_zero() -> None:
+tests/unit/schemas/test_account_change_logs_query.py:57:def test_account_change_logs_list_query_fallbacks_invalid_sort_order_to_default() -> None:
+tests/unit/schemas/test_users_query.py:49:def test_user_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
+tests/unit/services/test_cache_fallback_observability.py:14:def test_cache_manager_get_failure_logs_fallback() -> None:
+tests/unit/services/test_cache_fallback_observability.py:34:    assert payload.get("fallback") is True
+tests/unit/services/test_cache_fallback_observability.py:35:    assert payload.get("fallback_reason") == "cache_get_failed"
+tests/unit/services/test_cache_fallback_observability.py:39:def test_cache_manager_set_failure_logs_fallback() -> None:
+tests/unit/services/test_cache_fallback_observability.py:59:    assert payload.get("fallback") is True
+tests/unit/services/test_cache_fallback_observability.py:60:    assert payload.get("fallback_reason") == "cache_set_failed"
+tests/unit/services/test_cache_fallback_observability.py:64:def test_cache_manager_delete_failure_logs_fallback() -> None:
+tests/unit/services/test_cache_fallback_observability.py:85:    assert payload.get("fallback") is True
+tests/unit/services/test_cache_fallback_observability.py:86:    assert payload.get("fallback_reason") == "cache_delete_failed"
+app/services/accounts/account_classification_daily_stats_read_service.py:279:        - 兼容字段: 保留窗口累计(window_value_sum), 便于排查
+app/services/jumpserver/provider.py:82:    保留该类是为了兼容旧导出；默认实现已切换为真实 HTTP Provider。
+app/services/dashboard/dashboard_overview_service.py:47:        log_warning("获取容量统计汇总失败,已使用兜底值", module="dashboard", exception=exc)
+tests/unit/infra/test_log_fallback_helper.py:8:def test_log_fallback_always_sets_fallback_fields(monkeypatch) -> None:
+tests/unit/infra/test_log_fallback_helper.py:22:    route_safety.log_fallback(
+tests/unit/infra/test_log_fallback_helper.py:24:        "fallback_event",
+tests/unit/infra/test_log_fallback_helper.py:27:        fallback_reason="reason",
+tests/unit/infra/test_log_fallback_helper.py:32:    assert payload.get("fallback") is True
+tests/unit/infra/test_log_fallback_helper.py:33:    assert payload.get("fallback_reason") == "reason"
+app/services/capacity/capacity_collection_task_runner.py:65:    该 runner 的外部输入可能来自 legacy/字符串化数据源；这里返回 0 用于统计字段兜底。
+app/services/capacity/instance_capacity_sync_actions_service.py:23:from app.utils.structlog_config import log_fallback
+app/services/capacity/instance_capacity_sync_actions_service.py:120:                log_fallback(
+app/services/capacity/instance_capacity_sync_actions_service.py:125:                    fallback_reason="aggregation_calculation_failed",
+tests/unit/services/test_account_permission_manager.py:131:def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
+scripts/audits/python_or_fallback_scan.py:2:"""AST-based `or` fallback scan for Python code.
+scripts/audits/python_or_fallback_scan.py:4:Goals (per docs/plans/2026-01-16-backend-or-fallback-downshift-to-schemas.md):
+scripts/audits/python_or_fallback_scan.py:5:- Quantify `or` fallback chains (BoolOp(Or)) over time.
+scripts/audits/python_or_fallback_scan.py:11:  distinguish "boolean condition" vs "fallback defaulting" intent; use the
+scripts/audits/python_or_fallback_scan.py:36:class OrFallbackHit:
+scripts/audits/python_or_fallback_scan.py:122:class _OrFallbackVisitor(ast.NodeVisitor):
+scripts/audits/python_or_fallback_scan.py:127:        self.hits: list[OrFallbackHit] = []
+scripts/audits/python_or_fallback_scan.py:167:                OrFallbackHit(
+scripts/audits/python_or_fallback_scan.py:183:def _scan_file(path: Path) -> tuple[list[OrFallbackHit], str | None]:
+scripts/audits/python_or_fallback_scan.py:194:    # The audit plan tracks "or fallback chains (non-test positions)". Exclude BoolOp(Or)
+scripts/audits/python_or_fallback_scan.py:217:    visitor = _OrFallbackVisitor(
+scripts/audits/python_or_fallback_scan.py:231:    hits: list[OrFallbackHit],
+scripts/audits/python_or_fallback_scan.py:258:    hits: list[OrFallbackHit],
+scripts/audits/python_or_fallback_scan.py:268:    lines.append("# Python `or` Fallback Scan (AST)")
+scripts/audits/python_or_fallback_scan.py:320:    parser = argparse.ArgumentParser(description="AST-based scan for Python `or` fallback chains.")
+scripts/audits/python_or_fallback_scan.py:343:    hits: list[OrFallbackHit] = []
+scripts/audits/README.md:5:## python_or_fallback_scan.py
+scripts/audits/README.md:7:AST 扫描 Python 的 `or` 兜底链（`ast.BoolOp(op=Or)`），并统计包含 `""/0/False/[]/{}` 的候选（可能覆盖合法 falsy 值）。
+scripts/audits/README.md:13:uv run python scripts/audits/python_or_fallback_scan.py --paths app --exclude 'tests/**' --format md
+scripts/audits/README.md:16:uv run python scripts/audits/python_or_fallback_scan.py --paths app --exclude 'tests/**' --format json > /tmp/or-scan.json
+scripts/audits/README.md:21:- 该脚本把每个 `BoolOp(Or)` 计为 1 条“or 链”，不强行区分“条件表达式”还是“默认值兜底”；建议结合：
+app/services/tags/tag_options_service.py:29:        # 仅将 None 视为缺省；避免 `value or 0` 这类 truthy 兜底链混淆语义。
+tests/unit/schemas/internal_contracts/test_account_change_log_diff_v1.py:7:def test_extract_diff_entries_rejects_legacy_list_shape() -> None:
+tests/unit/schemas/test_instances_query.py:63:def test_instance_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
+tests/unit/test_settings_database_url_policy.py:33:def test_settings_does_not_log_database_url_when_sqlite_fallback(monkeypatch, caplog) -> None:
+tests/unit/test_frontend_database_table_sizes_modal_payload_contract.py:82:            resolveErrorMessage(error, fallback) {{
+tests/unit/test_frontend_database_table_sizes_modal_payload_contract.py:83:              return error?.message || fallback;
+app/routes/auth.py:28:    - 保留该 URL 兼容旧入口.
+app/routes/auth.py:101:                        fallback=url_for("dashboard.index"),
+app/routes/auth.py:181:# legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 旧路径不再提供路由.
+tests/unit/services/test_oracle_table_size_adapter.py:23:def test_oracle_table_size_adapter_fallback_to_sys_dba_segments() -> None:
+tests/unit/services/test_account_classification_orchestrator_dsl_guard.py:28:def test_orchestrator_rejects_legacy_rule_expressions() -> None:
+app/scheduler.py:443:    兼容历史调用点(包括测试 monkeypatch)。
+tests/unit/schemas/test_history_sessions_query.py:49:def test_history_sessions_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
+tests/unit/services/test_oracle_connection_adapter_is_thin_fallback.py:23:def test_oracle_connection_is_thin_probe_failure_logs_fallback(monkeypatch) -> None:
+tests/unit/services/test_oracle_connection_adapter_is_thin_fallback.py:28:    def _log_fallback(level: str, event: str, **kwargs: object) -> None:
+tests/unit/services/test_oracle_connection_adapter_is_thin_fallback.py:37:    monkeypatch.setattr(oracle_adapter, "log_fallback", _log_fallback)
+tests/unit/services/test_oracle_connection_adapter_is_thin_fallback.py:47:    assert event == "oracle_is_thin_check_failed_fallback"
+tests/unit/services/test_oracle_connection_adapter_is_thin_fallback.py:48:    assert payload.get("fallback_reason") == "oracledb_is_thin_check_failed"
+tests/unit/utils/test_redirect_safety.py:25:def test_resolve_safe_redirect_target_returns_fallback_when_target_missing() -> None:
+tests/unit/utils/test_redirect_safety.py:27:    assert resolve_safe_redirect_target(None, fallback="/dashboard") == "/dashboard"
+tests/unit/utils/test_redirect_safety.py:31:def test_resolve_safe_redirect_target_returns_fallback_when_target_unsafe() -> None:
+tests/unit/utils/test_redirect_safety.py:33:    assert resolve_safe_redirect_target("https://evil.com", fallback="/dashboard") == "/dashboard"
+tests/unit/utils/test_redirect_safety.py:39:    assert resolve_safe_redirect_target(" /dashboard ", fallback="/") == "/dashboard"
+tests/unit/models/test_database_type_config_features_list.py:9:def test_features_list_invalid_json_is_not_silent_fallback() -> None:
+tests/unit/utils/test_structlog_log_entry_schema.py:32:    """当 module 缺失时应能从 logger 名提取兜底模块名."""
+tests/unit/utils/test_structlog_log_entry_schema.py:62:    """非法 level 字符串应兜底为 INFO，避免写入失败."""
+tests/unit/models/test_account_classification_rule_expression.py:9:def test_get_rule_expression_invalid_json_is_not_silent_fallback() -> None:
+tests/unit/models/test_account_permission.py:51:def test_account_permission_capability_expression_logs_fallback_when_bind_unavailable(monkeypatch) -> None:
+tests/unit/models/test_account_permission.py:60:    monkeypatch.setattr(account_permission_module, "_log_dialect_detection_fallback", _capture)
+tests/unit/services/test_aggregation_tasks_read_service_period_completeness.py:40:        raise AssertionError("legacy has_aggregation_for_period should not be called")
+app/utils/response_utils.py:27:    目前主要处理 date/datetime,用于兼容 Flask-RESTX 默认 `json.dumps` 序列化器.
+tests/unit/services/test_permission_snapshot_view.py:24:def test_permission_snapshot_view_does_not_fallback_to_legacy_columns() -> None:
+app/utils/cache_utils.py:14:from app.utils.structlog_config import get_system_logger, log_fallback
+app/utils/cache_utils.py:85:            log_fallback(
+app/utils/cache_utils.py:90:                fallback_reason="cache_get_failed",
+app/utils/cache_utils.py:115:            log_fallback(
+app/utils/cache_utils.py:120:                fallback_reason="cache_set_failed",
+app/utils/cache_utils.py:142:            log_fallback(
+app/utils/cache_utils.py:147:                fallback_reason="cache_delete_failed",
+app/utils/cache_utils.py:162:            log_fallback(
+app/utils/cache_utils.py:167:                fallback_reason="cache_stats_failed",
+app/utils/redirect_safety.py:43:def resolve_safe_redirect_target(target: str | None, *, fallback: str) -> str:
+app/utils/redirect_safety.py:48:        fallback: 兜底跳转目标,必须是站内安全路径.
+app/utils/redirect_safety.py:55:        return fallback
+app/utils/redirect_safety.py:58:        return fallback
+app/utils/redirect_safety.py:59:    return normalized if is_safe_redirect_target(normalized) else fallback
+app/utils/request_payload.py:45:        payload: JSON dict 或 MultiDict 兼容对象.
+app/utils/request_payload.py:49:        preserve_raw_password_fields_by_name: 为了兼容旧行为,默认对字段名包含 "password" 的字段保留 raw.
+app/utils/request_payload.py:82:    raise TypeError("payload 必须为 mapping 或 MultiDict 兼容对象")
+app/utils/structlog_config.py:349:def log_fallback(
+app/utils/structlog_config.py:355:    fallback_reason: str,
+app/utils/structlog_config.py:362:    """记录降级/回退/Workaround 日志(强制 `fallback=true`).
+app/utils/structlog_config.py:365:    - 统一 fallback 字段口径,避免散落的自定义 key 导致不可检索.
+app/utils/structlog_config.py:375:        "fallback": True,
+app/utils/structlog_config.py:376:        "fallback_reason": fallback_reason,
+app/utils/structlog_config.py:624:    "log_fallback",
+tests/unit/test_frontend_tags_color_removal_contract.py:12:def test_tags_modal_template_removes_legacy_color_inputs() -> None:
+app/api/v1/restx_models/accounts.py:70:    # 兼容旧前端：name 继续作为展示名输出
+app/api/v1/namespaces/accounts_classifications.py:40:        # 兼容旧前端：name 视为展示名；若未提供 code，则默认 code=name
+app/api/v1/namespaces/accounts_classifications.py:41:        "name": fields.String(required=False, description="分类展示名(兼容字段)"),
+app/api/v1/namespaces/accounts_classifications.py:242:        # 兼容旧前端：name 继续作为展示名输出
+app/core/types/accounts_classifications.py:15:    # 兼容旧前端：name 作为展示名使用
+app/core/types/structures.py:89:    fallback_exception: type[Exception]
+app/infra/logging/queue_worker.py:189:                    "fallback": True,
+app/infra/logging/queue_worker.py:190:                    "fallback_reason": "unified_log_persist_failed",
+tests/unit/services/test_yaml_config_validation_scheduler_tasks.py:45:    """当缺少必填字段时应抛出 ValueError，避免 silent fallback."""
+app/settings.py:130:def _resolve_sqlite_fallback_url() -> str:
+app/settings.py:131:    db_path = _resolve_sqlite_fallback_path()
+app/settings.py:135:def _resolve_sqlite_fallback_path() -> Path:
+app/settings.py:145:        # 同时兼容 JSON 数组格式（如 '["a","b"]'）。
+app/settings.py:557:        database_url = _resolve_sqlite_fallback_url()
+app/settings.py:560:            sqlite_db_file = _resolve_sqlite_fallback_path().name
+app/settings.py:563:                "(fallback_sqlite_enabled=true, sqlite_db_file=%s)",
+app/infra/rate_limiting.py:46:    # 约束: Settings -> app.config 是唯一真源，因此这里不做额外兜底链。
+app/api/v1/resources/query_parsers.py:26:    """构造布尔解析器,兼容常见 truthy/falsey 字符串."""
+app/infra/route_safety.py:17:from app.utils.structlog_config import get_logger, log_fallback as _structlog_log_fallback
+app/infra/route_safety.py:78:def log_fallback(
+app/infra/route_safety.py:84:    fallback_reason: str,
+app/infra/route_safety.py:87:    """记录降级/回退/Workaround 的结构化日志(强制 `fallback=true`).
+app/infra/route_safety.py:91:    - 实际 payload 生成与写日志逻辑委托给 `app.utils.structlog_config.log_fallback`，
+app/infra/route_safety.py:114:    for key in ("module", "action", "fallback", "fallback_reason"):
+app/infra/route_safety.py:117:    _structlog_log_fallback(
+app/infra/route_safety.py:122:        fallback_reason=fallback_reason,
+app/infra/route_safety.py:144:            fallback_exception, log_event, include_actor 等键.
+app/infra/route_safety.py:150:        AppError: 当业务逻辑主动抛出或 fallback_exception 包装时.
+app/infra/route_safety.py:158:    fallback_exception = options.get("fallback_exception", SystemError)
+app/infra/route_safety.py:189:        raise fallback_exception(public_error) from exc
+app/infra/route_safety.py:209:            raise fallback_exception(public_error) from exc
+app/schemas/base.py:15:    - 默认忽略未知字段, 以兼容前端/客户端的扩展字段.
+app/schemas/yaml_configs.py:5:- 下游逻辑只消费已规整的 typed config，避免运行期散落 `or` 兜底链
+app/tasks/capacity_collection_tasks.py:21:from app.utils.structlog_config import get_sync_logger, log_fallback
+app/tasks/capacity_collection_tasks.py:69:def _process_instance_with_fallback(
+app/tasks/capacity_collection_tasks.py:89:        log_fallback(
+app/tasks/capacity_collection_tasks.py:98:            fallback_reason="capacity_instance_sync_failed",
+app/tasks/capacity_collection_tasks.py:175:        payload, delta = _process_instance_with_fallback(
+app/static/css/variables.css:125:    /* Sidebar compatibility */
+app/static/js/core/http-u.js:211:     * @param {number} fallbackStatus HTTP 状态码，用于推断消息。
+app/static/js/core/http-u.js:214:    function resolveErrorMessage(body, fallbackStatus) {
+app/static/js/core/http-u.js:216:            return fallbackStatus >= 500 ? '服务器错误' : '请求失败';
+app/static/js/core/http-u.js:221:        return body.message || body.error || (fallbackStatus >= 500 ? '服务器错误' : '请求失败');
+app/schemas/users_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/history_logs_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/history_sessions_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/instances_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/task_run_summary.py:124:        # 使用 mode="json" 以确保 date 等类型序列化为 JSON 兼容值
+app/schemas/capacity_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/credentials_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/static/js/modules/stores/instance_store.js:265:   * @param {string} [fallbackMessage] 默认错误提示。
+app/static/js/modules/stores/instance_store.js:269:  function ensureSuccess(response, fallbackMessage) {
+app/static/js/modules/stores/instance_store.js:271:      const error = new Error(response.message || fallbackMessage || "操作失败");
+app/schemas/partition_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/databases_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/databases_query.py:28:    """Parse optional string without stripping to preserve legacy behavior."""
+app/schemas/tags_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/account_classifications.py:58:def _parse_description(value: Any, *, fallback: str | None) -> str:
+app/schemas/account_classifications.py:60:        return fallback or ""
+app/schemas/account_classifications.py:66:def _parse_priority(value: Any, *, fallback: int | None) -> int | None:
+app/schemas/account_classifications.py:68:        return fallback
+app/schemas/account_classifications.py:163:        return _parse_description(value, fallback="")
+app/schemas/account_classifications.py:203:        parsed = _parse_priority(value, fallback=0)
+app/schemas/account_classifications.py:248:        return _parse_description(value, fallback=None)
+app/schemas/account_classifications.py:288:        return _parse_priority(value, fallback=None)
+app/schemas/external_contracts/sqlserver_account.py:5:- Adapter/Service 层不再出现 `account.get(...) or {}` 这类 truthy 兜底链。
+app/schemas/internal_contracts/permission_snapshot_v4.py:4:- 收敛 `permission_snapshot(v4)` 的形状兼容与类型规整到 schema 层单入口。
+app/schemas/internal_contracts/permission_snapshot_v4.py:5:- 业务层只消费 canonical 形状，避免在 Service 内出现 `or` 兜底链与字段 alias。
+app/schemas/external_contracts/postgresql_account.py:5:- Adapter/Service 层不再出现 `account.get(...) or {}` 这类 truthy 兜底链。
+app/schemas/internal_contracts/type_specific_v1.py:5:- 读入口只允许在 schema 单入口补齐 legacy payload，避免业务层散落兼容分支与 `or` 兜底链。
+app/static/js/modules/views/credentials/modals/credential-modals.js:430:    function resolveErrorMessage(error, fallback) {
+app/static/js/modules/views/credentials/modals/credential-modals.js:433:        return resolver(error, fallback);
+app/static/js/modules/views/credentials/modals/credential-modals.js:436:        return fallback;
+app/static/js/modules/views/credentials/modals/credential-modals.js:441:      return error.message || fallback;
+app/schemas/account_change_logs_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/internal_contracts/__init__.py:5:- 业务层/Service/Repository 禁止出现结构兼容链（如 `data.get("new") or data.get("old")`）。
+app/schemas/external_contracts/__init__.py:5:- Service/Adapter 层应尽量只做 IO 与编排，避免散落 `or` 兜底链与字段/形状兼容逻辑。
+app/schemas/accounts_query.py:5:- 避免 `or` truthy 兜底链覆盖合法 falsy 值,并提供可测试的 canonicalization
+app/schemas/external_contracts/mysql_account.py:5:- Adapter/Service 层不再出现 `account.get(...) or {}` 这类 truthy 兜底链。
+app/schemas/external_contracts/mysql_account.py:53:    # 兼容旧形状：list[str] 作为 direct roles。
+app/schemas/external_contracts/oracle_account.py:5:- Adapter/Service 层不再出现 `account.get(...) or {}` 这类 truthy 兜底链。
+app/schemas/internal_contracts/sync_details_v1.py:5:- 业务层禁止散落“缺字段就 or 兜底”的兼容逻辑；兼容只允许在 schema 单入口处理。
+app/schemas/internal_contracts/account_change_log_diff_v1.py:4:- 写入口：统一写入 v1 dict 形状，避免继续持久化 legacy list。
+app/schemas/internal_contracts/account_change_log_diff_v1.py:22:    """Extract diff entries from legacy(list) or v1(dict) payload (read entry)."""
+app/static/js/modules/ui/danger-confirm.js:41:  function normalizeButtonClass(value, fallback = 'btn-danger') {
+app/static/js/modules/ui/danger-confirm.js:50:      return fallback;
+app/static/js/modules/ui/danger-confirm.js:53:    return allowed.has(trimmed) ? trimmed : fallback;
+app/static/js/modules/stores/tag_batch_store.js:48:  function ensureSuccess(response, fallbackMessage) {
+app/static/js/modules/stores/tag_batch_store.js:50:      const error = new Error(response.message || response.error || fallbackMessage || "操作失败");
+app/static/js/modules/stores/instance_crud_store.js:44:  function ensureSuccessResponse(response, fallbackMessage) {
+app/static/js/modules/stores/instance_crud_store.js:46:      const error = new Error(response.message || fallbackMessage || "操作失败");
+app/static/js/modules/stores/tag_list_store.js:38:  function ensureSuccessResponse(resp, fallbackMessage) {
+app/static/js/modules/stores/tag_list_store.js:40:      const error = new Error(resp.message || resp.error || fallbackMessage || "操作失败");
+app/static/js/modules/stores/partition_store.js:221:   * @param {string} fallbackMessage - 默认错误消息
+app/static/js/modules/stores/partition_store.js:225:  function ensureSuccess(response, fallbackMessage) {
+app/static/js/modules/stores/partition_store.js:227:      const error = new Error(response.message || fallbackMessage || "操作失败");
+app/static/js/modules/ui/async-action-feedback.js:48:   * 规范化 sync/batch 异步动作的返回值，避免各调用点自行写兜底链。
+app/static/js/modules/ui/async-action-feedback.js:53:   * @param {string} [options.startedMessage] started 兜底文案。
+app/static/js/modules/ui/async-action-feedback.js:54:   * @param {string} [options.failedMessage] failed 兜底文案。
+app/static/js/modules/ui/async-action-feedback.js:55:   * @param {string} [options.unknownMessage] unknown 兜底文案。
+app/static/js/modules/stores/task_runs_store.js:36:  function ensureSuccessResponse(resp, fallbackMessage) {
+app/static/js/modules/stores/task_runs_store.js:38:      const error = new Error(resp.message || resp.error || fallbackMessage || "操作失败");
+app/static/js/modules/stores/credentials_store.js:44:  function ensureSuccessResponse(response, fallbackMessage) {
+app/static/js/modules/stores/credentials_store.js:46:      const error = new Error(response.message || fallbackMessage || "操作失败");
+app/static/js/modules/stores/account_change_logs_store.js:36:  function normalizeInt(value, fallback) {
+app/static/js/modules/stores/account_change_logs_store.js:39:      return fallback;
+app/static/js/modules/stores/account_change_logs_store.js:63:  function ensureSuccessResponse(resp, fallbackMessage) {
+app/static/js/modules/stores/account_change_logs_store.js:65:      const error = new Error(resp.message || resp.error || fallbackMessage || "操作失败");
+app/static/js/modules/ui/ui-helpers.js:16:  function resolveErrorMessage(error, fallback = "操作失败") {
+app/static/js/modules/ui/ui-helpers.js:17:    const fallbackText = fallback || "操作失败";
+app/static/js/modules/ui/ui-helpers.js:19:      return fallbackText;
+app/static/js/modules/ui/ui-helpers.js:50:    return fallbackText;
+app/static/js/modules/stores/scheduler_store.js:78:   * @param {string} fallbackMessage - 回退错误消息
+app/static/js/modules/stores/scheduler_store.js:82:  function ensureSuccess(response, fallbackMessage) {
+app/static/js/modules/stores/scheduler_store.js:84:      const error = new Error(response?.message || fallbackMessage || "操作失败");
+app/schemas/__init__.py:6:- 兼容字段 alias 与 canonicalization
+app/static/js/modules/stores/users_store.js:38:  function ensureSuccessResponse(resp, fallbackMessage) {
+app/static/js/modules/stores/users_store.js:40:      const error = new Error(resp.message || resp.error || fallbackMessage || "操作失败");
+app/static/js/modules/stores/auth_store.js:39:  function ensureSuccessResponse(response, fallbackMessage) {
+app/static/js/modules/stores/auth_store.js:41:      const error = new Error(response.message || fallbackMessage || "操作失败");
+app/static/js/modules/ui/button-loading.js:108:   * @param {string} [options.fallbackText] 找不到缓存内容时的兜底文本。
+app/static/js/modules/ui/button-loading.js:117:    const fallbackText = options?.fallbackText || "";
+app/static/js/modules/ui/button-loading.js:129:      } else if (fallbackText) {
+app/static/js/modules/ui/button-loading.js:130:        node.textContent = fallbackText;
+app/static/js/common/lodash-utils.js:86:   * 安全读取，兼容 get 缺失时返回默认值。
+app/static/js/common/grid-wrapper.js:262:    // 兜底：旧版本 Grid.js 缺少 pipeline.emit 时，回退到 forceRender/render。
+app/static/js/common/grid-wrapper.js:287:  GridWrapper.prototype.normalizeBaseUrl = function normalizeBaseUrl(baseUrl, fallbackUrl) {
+app/static/js/common/grid-wrapper.js:291:    if (!fallbackUrl) {
+app/static/js/common/grid-wrapper.js:294:    const trimmed = fallbackUrl.trim();
+app/static/js/common/number-format.js:47:   * 通用格式化函数，value 不可解析时返回 fallback。
+app/static/js/common/number-format.js:51:   * @param {string} [fallback] 失败时的回退文本。
+app/static/js/common/number-format.js:54:  function formatWithPattern(value, pattern, fallback) {
+app/static/js/common/number-format.js:57:      return fallback ?? "--";
+app/static/js/common/number-format.js:63:   * 千分位整数格式化，非数字时回退 fallback。
+app/static/js/common/number-format.js:67:   * @param {string} [options.fallback="0"] 非数字回退文本。
+app/static/js/common/number-format.js:73:      return options.fallback ?? "0";
+app/static/js/common/number-format.js:86:   * @param {string} [options.fallback] 失败时回退文本。
+app/static/js/common/number-format.js:96:    return formatWithPattern(value, pattern, options.fallback);
+app/static/js/common/number-format.js:104:   * @param {string} [fallback] 失败回退。
+app/static/js/common/number-format.js:107:  function formatPlain(value, pattern = "0,0.00", fallback) {
+app/static/js/common/number-format.js:108:    return formatWithPattern(value, pattern, fallback);
+app/static/js/common/number-format.js:150:   * @param {string} [options.fallback="0 B"] 失败时文本。
+app/static/js/common/number-format.js:156:      return options.fallback ?? "0 B";
+app/static/js/common/number-format.js:169:      return options.fallback ?? "0 B";
+app/static/js/common/number-format.js:186:      return options.fallback ?? "0 B";
+app/static/js/common/number-format.js:207:      fallback: options.fallback ?? "0",
+app/static/js/common/number-format.js:221:   * @param {string} [options.fallback="0%"] 失败回退。
+app/static/js/common/number-format.js:227:      return options.fallback ?? "0%";
+app/static/js/modules/stores/account_classification_store.js:52:  function ensureSuccess(response, fallbackMessage) {
+app/static/js/modules/stores/account_classification_store.js:54:      const error = new Error(response.message || response.error || fallbackMessage || "操作失败");
+app/static/js/modules/stores/logs_store.js:36:  function normalizeInt(value, fallback) {
+app/static/js/modules/stores/logs_store.js:39:      return fallback;
+app/static/js/modules/views/auth/modals/change-password-modals.js:6:  function resolveErrorMessage(error, fallback) {
+app/static/js/modules/views/auth/modals/change-password-modals.js:7:    const fallbackText = fallback || "操作失败";
+app/static/js/modules/views/auth/modals/change-password-modals.js:9:      return fallbackText;
+app/static/js/modules/views/auth/modals/change-password-modals.js:21:    return fallbackText;
+app/static/js/modules/views/tags/index.js:498:        ? formatPercent(total > 0 ? active / total : 0, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" })
+app/static/js/modules/views/tags/index.js:504:        ? formatPercent(total > 0 ? inactive / total : 0, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" })
+app/static/js/modules/views/tags/index.js:524:      setText("tagsMetaAvgPerCategory", formatDecimal(avgPerCategory, { precision: 1, trimZero: true, fallback: "0" }));
+app/static/js/modules/views/tags/index.js:525:      setText("tagsMetaActivePerCategory", formatDecimal(activePerCategory, { precision: 1, trimZero: true, fallback: "0" }));
+app/static/js/modules/theme/color-tokens.js:234:    function readChartFallbackFromTokens() {
+app/static/js/modules/theme/color-tokens.js:248:            effective = readChartFallbackFromTokens();
+app/static/js/modules/theme/color-tokens.js:254:                console.warn('图表色板 token 缺失且无法读取 fallback token，将退回到当前文本色生成色板。');
+app/static/js/modules/theme/color-tokens.js:256:            const fallback = getComputedStyle(document.documentElement).color;
+app/static/js/modules/theme/color-tokens.js:257:            effective = fallback ? [fallback] : [];
+app/static/js/modules/views/auth/modals/user-modals.js:344:    function resolveErrorMessage(error, fallback) {
+app/static/js/modules/views/auth/modals/user-modals.js:346:        return fallback;
+app/static/js/modules/views/auth/modals/user-modals.js:351:      return error.message || fallback;
+app/static/js/modules/views/integrations/veeam/source.js:228:      const fallbackStatus =
+app/static/js/modules/views/integrations/veeam/source.js:234:      const fallbackOutcome = {
+app/static/js/modules/views/integrations/veeam/source.js:235:        status: fallbackStatus,
+app/static/js/modules/views/integrations/veeam/source.js:237:          fallbackStatus === "started"
+app/static/js/modules/views/integrations/veeam/source.js:239:            : fallbackStatus === "failed"
+app/static/js/modules/views/integrations/veeam/source.js:243:          fallbackStatus === "started"
+app/static/js/modules/views/integrations/veeam/source.js:245:            : fallbackStatus === "failed"
+app/static/js/modules/views/integrations/veeam/source.js:250:      const resolved = outcome || fallbackOutcome;
+app/static/js/modules/views/instances/detail.js:243:    const fallbackBtn = selectOne('[data-action="test-connection"]').first();
+app/static/js/modules/views/instances/detail.js:244:    const testBtn = event?.currentTarget || event?.target || fallbackBtn;
+app/static/js/modules/views/instances/detail.js:331:    const fallbackBtn = selectOne('[data-action="sync-accounts"]').first();
+app/static/js/modules/views/instances/detail.js:332:    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+app/static/js/modules/views/instances/detail.js:366:            const fallbackStatus = data?.success === true ? 'started' : data?.success === false || data?.error === true ? 'failed' : 'unknown';
+app/static/js/modules/views/instances/detail.js:367:            const fallbackOutcome = {
+app/static/js/modules/views/instances/detail.js:368:                status: fallbackStatus,
+app/static/js/modules/views/instances/detail.js:369:                tone: fallbackStatus === 'started' ? 'success' : fallbackStatus === 'failed' ? 'error' : 'warning',
+app/static/js/modules/views/instances/detail.js:370:                message: fallbackStatus === 'started'
+app/static/js/modules/views/instances/detail.js:372:                    : fallbackStatus === 'failed'
+app/static/js/modules/views/instances/detail.js:376:            const resolved = outcome || fallbackOutcome;
+app/static/js/modules/views/instances/detail.js:470:    const fallbackBtn = selectOne('[data-action="delete-instance"]').first();
+app/static/js/modules/views/instances/detail.js:471:    const button = event?.currentTarget || fallbackBtn;
+app/static/js/modules/views/instances/detail.js:507:    const fallbackBtn = selectOne('[data-action="sync-capacity"]').first();
+app/static/js/modules/views/instances/detail.js:508:    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+app/static/js/modules/views/instances/detail.js:540:            const fallbackStatus = data?.success === true ? 'started' : data?.success === false || data?.error === true ? 'failed' : 'unknown';
+app/static/js/modules/views/instances/detail.js:541:            const fallbackOutcome = {
+app/static/js/modules/views/instances/detail.js:542:                status: fallbackStatus,
+app/static/js/modules/views/instances/detail.js:543:                tone: fallbackStatus === 'started' ? 'success' : fallbackStatus === 'failed' ? 'error' : 'warning',
+app/static/js/modules/views/instances/detail.js:544:                message: fallbackStatus === 'started'
+app/static/js/modules/views/instances/detail.js:546:                    : fallbackStatus === 'failed'
+app/static/js/modules/views/instances/detail.js:550:            const resolved = outcome || fallbackOutcome;
+app/static/js/modules/views/instances/detail.js:619:    const fallbackBtn = selectOne('[data-action="sync-audit-info"]').first();
+app/static/js/modules/views/instances/detail.js:620:    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+app/static/js/modules/views/instances/detail.js:657:    const fallbackBtn = selectOne('[data-action="sync-backup"]').first();
+app/static/js/modules/views/instances/detail.js:658:    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+app/static/js/modules/views/instances/detail.js:1445:function formatHistoryMeta(account, fallback) {
+app/static/js/modules/views/instances/detail.js:1447:        return fallback;
+app/static/js/modules/views/instances/detail.js:1459:    return parts.length ? parts.join(' · ') : fallback;
+app/static/js/modules/views/instances/detail.js:1797:        fallback: '0 GB',
+app/static/js/modules/views/instances/detail.js:1951:    const legacyRestorePointWarning = displayedRestorePointCount > 0 && restorePointTimes.length === 0
+app/static/js/modules/views/instances/detail.js:1995:            legacyRestorePointWarning,
+app/static/js/modules/views/instances/detail.js:2058:    return formatter(bytesValue, { precision: 2, trimZero: false, fallback: '-' });
+app/static/js/modules/views/instances/detail.js:2069:    return formatter(value, { fallback: '-' });
+app/static/js/modules/views/instances/detail.js:2177:    legacyRestorePointWarning,
+app/static/js/modules/views/instances/detail.js:2181:            ? restorePointTimes.map((item, index) => renderBackupRestorePointFallbackRow(item, index)).join('')
+app/static/js/modules/views/instances/detail.js:2182:            : `<tr><td colspan="6"><div class="instance-audit-empty">${escapeHtml(legacyRestorePointWarning)}</div></td></tr>`;
+app/static/js/modules/views/instances/detail.js:2308:function renderBackupRestorePointFallbackRow(value, index) {
+app/static/js/common/time-utils.js:209:   * @param {string} [fallback="-"] 回退文本。
+app/static/js/common/time-utils.js:212:  function formatWithPattern(value, pattern, fallback = "-") {
+app/static/js/common/time-utils.js:215:      return fallback;
+app/static/js/common/time-utils.js:323:    formatPattern(value, pattern, fallback = "-") {
+app/static/js/common/time-utils.js:324:      return formatWithPattern(value, pattern, fallback);
+app/static/js/modules/views/databases/ledgers.js:51:      ["mysql", { fallbackIcon: "fa-database", tone: "primary" }],
+app/static/js/modules/views/databases/ledgers.js:52:      ["postgresql", { fallbackIcon: "fa-database", tone: "info" }],
+app/static/js/modules/views/databases/ledgers.js:53:      ["sqlserver", { fallbackIcon: "fa-server", tone: "warning" }],
+app/static/js/modules/views/databases/ledgers.js:54:      ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
+app/static/js/modules/views/databases/ledgers.js:247:        icon: visual.fallbackIcon || meta?.icon || "fa-database",
+app/static/js/modules/views/databases/ledgers.js:534:        const fallbackStatus =
+app/static/js/modules/views/databases/ledgers.js:540:        const fallbackOutcome = {
+app/static/js/modules/views/databases/ledgers.js:541:          status: fallbackStatus,
+app/static/js/modules/views/databases/ledgers.js:543:            fallbackStatus === "started"
+app/static/js/modules/views/databases/ledgers.js:545:              : fallbackStatus === "failed"
+app/static/js/modules/views/databases/ledgers.js:549:            fallbackStatus === "started"
+app/static/js/modules/views/databases/ledgers.js:551:              : fallbackStatus === "failed"
+app/static/js/modules/views/databases/ledgers.js:556:        const resolved = outcome || fallbackOutcome;
+app/static/js/modules/views/databases/ledgers.js:586:    function safeParseJSON(value, fallback) {
+app/static/js/modules/views/databases/ledgers.js:588:        return value ? JSON.parse(value) : fallback;
+app/static/js/modules/views/databases/ledgers.js:591:        return fallback;
+app/static/js/modules/views/integrations/jumpserver/source.js:14:  const escapeHtml = global.UI?.escapeHtml || function fallbackEscapeHtml(value) {
+app/static/js/modules/views/databases/statistics.js:37:  const escapeHtml = global.UI?.escapeHtml || fallbackEscapeHtml;
+app/static/js/modules/views/databases/statistics.js:279:      return global.NumberFormat.formatInteger(value, { fallback: value || 0 });
+app/static/js/modules/views/databases/statistics.js:290:      return global.NumberFormat.formatDecimal(value, { precision: 1, trimZero: true, fallback: "0" });
+app/static/js/modules/views/databases/statistics.js:347:  function fallbackEscapeHtml(value) {
+app/static/js/modules/views/admin/scheduler/index.js:737:        clearButtonLoading(element, { fallbackText: originalText });
+app/static/js/modules/views/instances/statistics.js:425:                            const valueLabel = global.NumberFormat.formatInteger(context.parsed, { fallback: '0' });
+app/static/js/modules/views/instances/statistics.js:460:                            const valueLabel = global.NumberFormat.formatInteger(context.parsed, { fallback: '0' });
+app/static/js/modules/views/instances/statistics.js:576:        setText('instancesMetaActiveCount', global.NumberFormat.formatInteger(active, { fallback: active }));
+app/static/js/modules/views/instances/statistics.js:577:        setText('instancesMetaInactiveCount', global.NumberFormat.formatInteger(inactive, { fallback: inactive }));
+app/static/js/modules/views/instances/statistics.js:578:        setText('instancesMetaDeletedCount', global.NumberFormat.formatInteger(deleted, { fallback: deleted }));
+app/static/js/modules/views/instances/statistics.js:579:        setText('instancesMetaUnmanagedCount', global.NumberFormat.formatInteger(unmanaged, { fallback: unmanaged }));
+app/static/js/modules/views/instances/statistics.js:580:        setText('instancesMetaBackupStaleCount', global.NumberFormat.formatInteger(backupStale, { fallback: backupStale }));
+app/static/js/modules/views/instances/statistics.js:581:        setText('instancesMetaNotBackedUpCount', global.NumberFormat.formatInteger(notBackedUp, { fallback: notBackedUp }));
+app/static/js/modules/views/instances/statistics.js:587:                formatPercent(active > 0 ? auditEnabled / active : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+app/static/js/modules/views/instances/statistics.js:591:                formatPercent(current > 0 ? managed / current : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+app/static/js/modules/views/instances/statistics.js:595:                formatPercent(current > 0 ? backedUp / current : 0, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+app/static/js/modules/views/instances/statistics.js:613:        const formatted = global.NumberFormat?.formatInteger?.(resolved, { fallback: resolved }) ?? resolved;
+app/static/js/modules/views/admin/partitions/charts/partitions-chart.js:42:function getSafe(map, key, fallback) {
+app/static/js/modules/views/admin/partitions/charts/partitions-chart.js:44:        return fallback;
+app/static/js/modules/views/admin/partitions/charts/partitions-chart.js:47:    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+app/static/js/modules/views/admin/partitions/charts/partitions-chart.js:682:            fallback: '0 B'
+app/static/js/modules/views/admin/partitions/index.js:233:                ? formatDecimal(avgRecordsPerPartition, { precision: 1, trimZero: true, fallback: '0' })
+app/static/js/modules/views/admin/partitions/index.js:278:            fallback: '0 B',
+app/static/js/modules/views/instances/list.js:46:        ['mysql', { fallbackIcon: 'fa-database', tone: 'primary' }],
+app/static/js/modules/views/instances/list.js:47:        ['postgresql', { fallbackIcon: 'fa-database', tone: 'info' }],
+app/static/js/modules/views/instances/list.js:48:        ['sqlserver', { fallbackIcon: 'fa-server', tone: 'warning' }],
+app/static/js/modules/views/instances/list.js:49:        ['oracle', { fallbackIcon: 'fa-circle', tone: 'danger' }],
+app/static/js/modules/views/instances/list.js:596:            icon: visual.fallbackIcon || meta.icon || 'fa-database',
+app/static/js/modules/views/instances/list.js:1413:     * 安全解析 JSON，失败时返回 fallback。
+app/static/js/modules/views/instances/list.js:1416:     * @param {any} fallback 解析失败时返回的默认值。
+app/static/js/modules/views/instances/list.js:1417:     * @returns {any} JSON 对应的对象或提供的 fallback。
+app/static/js/modules/views/instances/list.js:1419:    function safeParseJSON(value, fallback) {
+app/static/js/modules/views/instances/list.js:1421:            return value ? JSON.parse(value) : fallback;
+app/static/js/modules/views/instances/list.js:1424:            return fallback;
+app/static/js/modules/views/components/tags/tag-selector-controller.js:51:   * 解析输入为 DOM 元素，兼容字符串/Element/umbrella 对象。
+app/static/js/modules/views/components/tags/tag-selector-view.js:137:      return NumberFormat.formatInteger(value, { fallback: "0" });
+app/static/js/modules/views/admin/partitions/partition-list.js:174:  function renderTableTypeChip(meta, fallback, gridHtml) {
+app/static/js/modules/views/admin/partitions/partition-list.js:175:    const label = meta.display_name || fallback || "-";
+app/static/js/modules/views/instances/modals/instance-modals.js:295:    function resolveErrorMessage(error, fallback) {
+app/static/js/modules/views/instances/modals/instance-modals.js:298:        return resolver(error, fallback);
+app/static/js/modules/views/instances/modals/instance-modals.js:300:      if (!error) return fallback;
+app/static/js/modules/views/instances/modals/instance-modals.js:302:      return error.message || fallback;
+app/static/js/modules/views/components/charts/chart-renderer.js:284:                  const fallback = window.NumberFormat.formatPlain(value, "0,0.[00]", "0");
+app/static/js/modules/views/components/charts/chart-renderer.js:285:                  return `${label}: ${fallback}`;
+app/static/js/modules/views/instances/modals/batch-create-modal.js:100:            fallback: '0 KB',
+app/static/js/modules/views/accounts/ledgers.js:73:    ["mysql", { fallbackIcon: "fa-database", tone: "primary" }],
+app/static/js/modules/views/accounts/ledgers.js:74:    ["postgresql", { fallbackIcon: "fa-database", tone: "info" }],
+app/static/js/modules/views/accounts/ledgers.js:75:    ["sqlserver", { fallbackIcon: "fa-server", tone: "warning" }],
+app/static/js/modules/views/accounts/ledgers.js:76:    ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
+app/static/js/modules/views/accounts/ledgers.js:476:      icon: visual.fallbackIcon || meta?.icon || "fa-database",
+app/static/js/modules/views/accounts/ledgers.js:664:      : buildSearchParamsFallback(filters);
+app/static/js/modules/views/accounts/ledgers.js:669:  function buildSearchParamsFallback(filters) {
+app/static/js/modules/views/accounts/ledgers.js:755:      const fallbackStatus =
+app/static/js/modules/views/accounts/ledgers.js:761:      const fallbackOutcome = {
+app/static/js/modules/views/accounts/ledgers.js:762:        status: fallbackStatus,
+app/static/js/modules/views/accounts/ledgers.js:763:        tone: fallbackStatus === "started" ? "success" : fallbackStatus === "failed" ? "error" : "warning",
+app/static/js/modules/views/accounts/ledgers.js:765:          fallbackStatus === "started"
+app/static/js/modules/views/accounts/ledgers.js:767:            : fallbackStatus === "failed"
+app/static/js/modules/views/accounts/ledgers.js:772:      const resolved = outcome || fallbackOutcome;
+app/static/js/modules/views/accounts/ledgers.js:811:  function safeParseJSON(value, fallback) {
+app/static/js/modules/views/accounts/ledgers.js:813:      return value ? JSON.parse(value) : fallback;
+app/static/js/modules/views/accounts/ledgers.js:816:      return fallback;
+app/static/js/modules/views/history/account-change-logs/account-change-logs.js:444:      formatPercent(successRatio, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+app/static/js/modules/views/history/account-change-logs/account-change-logs.js:448:      formatPercent(failedRatio, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+app/static/js/modules/views/history/account-change-logs/account-change-logs.js:454:      global.NumberFormat.formatDecimal(avgPerAccount, { precision: 1, trimZero: true, fallback: "0" }),
+app/static/js/modules/views/history/account-change-logs/account-change-logs.js:462:      global.NumberFormat.formatDecimal(successPerAccount, { precision: 1, trimZero: true, fallback: "0" }),
+app/static/js/modules/views/history/account-change-logs/account-change-logs.js:468:      global.NumberFormat.formatDecimal(failedPerAccount, { precision: 1, trimZero: true, fallback: "0" }),
+app/static/js/modules/views/history/account-change-logs/account-change-logs.js:474:      global.NumberFormat.formatDecimal(changesPerHour, { precision: 1, trimZero: true, fallback: "0" }),
+app/static/js/modules/views/components/charts/summary-cards.js:28:      return window.NumberFormat.formatInteger(value, { fallback: "0" });
+app/static/js/modules/views/components/charts/summary-cards.js:46:        fallback: "0 B",
+app/static/js/modules/views/components/charts/filters.js:58:   * 获取 radio 组当前选中值，无则返回 fallback。
+app/static/js/modules/views/components/charts/filters.js:61:   * @param {string} fallback - 默认值
+app/static/js/modules/views/components/charts/filters.js:64:  function readRadioValue(name, fallback) {
+app/static/js/modules/views/components/charts/filters.js:66:      return fallback;
+app/static/js/modules/views/components/charts/filters.js:69:    return checked ? checked.value : fallback;
+app/static/js/modules/views/accounts/statistics.js:102:      setText("accountsMetaAvgPerInstance", formatDecimal(avgPerInstance, { precision: 1, trimZero: true, fallback: "0" }));
+app/static/js/modules/views/accounts/statistics.js:103:      setText("accountsMetaNormalPerInstance", formatDecimal(normalPerInstance, { precision: 1, trimZero: true, fallback: "0" }));
+app/static/js/modules/views/accounts/statistics.js:104:      setText("accountsMetaLockedPerInstance", formatDecimal(lockedPerInstance, { precision: 1, trimZero: true, fallback: "0" }));
+app/static/js/modules/views/accounts/statistics.js:227:      return global.NumberFormat.formatInteger(value, { fallback: value });
+app/static/js/modules/views/accounts/classification_statistics.js:907:      return global.NumberFormat.formatInteger(value, { fallback: value });
+app/static/js/modules/views/accounts/classification_statistics.js:919:      return global.NumberFormat.formatDecimal(value, { precision: 1, trimZero: false, fallback: "0" });
+app/static/js/modules/views/history/sessions/sync-sessions.js:299:   * @returns {Array<Array>} gridjs 兼容的行数据。
+app/static/js/modules/views/capacity/instances.js:128:                window.NumberFormat.formatPercent(value, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+app/static/js/modules/views/capacity/instances.js:145:                `${window.NumberFormat.formatDecimal(value, { precision: 1, trimZero: true, fallback: "0" })}x`,
+app/static/js/modules/views/capacity/databases.js:135:                window.NumberFormat.formatDecimal(value, { precision: 1, trimZero: true, fallback: "0" }),
+app/static/js/modules/views/capacity/databases.js:148:                window.NumberFormat.formatPercent(value, { precision: 1, trimZero: true, inputType: "percent", fallback: "0%" }),
+app/static/js/modules/views/capacity/databases.js:165:                `${window.NumberFormat.formatDecimal(value, { precision: 1, trimZero: true, fallback: "0" })}x`,
+app/static/js/modules/views/capacity/databases.js:182:                window.NumberFormat.formatPercent(value, { precision: 1, trimZero: true, inputType: "ratio", fallback: "0%" }),
+app/static/js/modules/views/history/sessions/session-detail.js:426:    const fallback = session && typeof session === 'object' ? session : {};
+app/static/js/modules/views/history/sessions/session-detail.js:427:    const run = fallback.run && typeof fallback.run === 'object' ? fallback.run : {};
+app/static/js/modules/views/history/sessions/session-detail.js:428:    const items = Array.isArray(fallback.items) ? fallback.items : [];
+app/static/js/modules/views/accounts/account-classification/index.js:67:     * 将 store actions 封装为页面调用入口(兼容现有 modal controller 的 api 形态)。
+app/static/js/modules/views/accounts/account-classification/index.js:166:        const fallback = resolveActionErrorMessage(action);
+app/static/js/modules/views/accounts/account-classification/index.js:167:        handleRequestError(error, fallback, action || 'account_classification_store');
+app/static/js/modules/views/accounts/account-classification/index.js:730:     * @param {string} [fallbackMessage] 默认提示文本。
+app/static/js/modules/views/accounts/account-classification/index.js:734:    function handleRequestError(error, fallbackMessage, context) {
+app/static/js/modules/views/accounts/account-classification/index.js:736:            fallbackMessage,
+app/static/js/modules/views/accounts/account-classification/index.js:738:        const message = error?.response?.error || error?.message || fallbackMessage || '操作失败';
+app/static/js/modules/views/accounts/account-classification/index.js:739:        if (fallbackMessage) {
+app/static/js/modules/views/accounts/account-classification/modals/rule-modals.js:543:    function resolveFormArg(formElement, fallbackId) {
+app/static/js/modules/views/accounts/account-classification/modals/rule-modals.js:545:        return formElement || document.getElementById(fallbackId);
+app/static/js/modules/views/accounts/account-classification/modals/rule-modals.js:548:        return document.getElementById(fallbackId);
+app/static/js/modules/views/accounts/account-classification/modals/rule-modals.js:550:      return document.getElementById(fallbackId);
+app/static/js/modules/views/accounts/account-classification/modals/rule-modals.js:669:      const fallback = document.querySelector(selector || '#createRuleForm');
+app/static/js/modules/views/accounts/account-classification/modals/rule-modals.js:670:      return fallback instanceof HTMLFormElement ? fallback : null;
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:228:    function parseRiskLevel(value, fallback) {
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:229:      const resolvedFallback = Number.isInteger(fallback) ? fallback : 4;
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:232:        return resolvedFallback;
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:341:        const fallback = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:342:        if (fallback) {
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:343:          fallback.checked = true;
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:441:    function resolveFormArg(formElement, fallbackId) {
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:443:        return formElement || document.getElementById(fallbackId);
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:446:        return document.getElementById(fallbackId);
+app/static/js/modules/views/accounts/account-classification/modals/classification-modals.js:448:      return document.getElementById(fallbackId);
+app/static/js/modules/views/history/logs/logs.js:524:            formatPercent(stats.error_rate, { precision: 1, trimZero: true, inputType: 'percent', fallback: '0%' }),
+app/static/js/modules/views/history/logs/logs.js:529:            formatPercent(warningRatio, { precision: 1, trimZero: true, inputType: 'ratio', fallback: '0%' }),
+app/static/js/modules/views/history/logs/logs.js:539:            global.NumberFormat.formatDecimal(errorPerHour, { precision: 1, trimZero: true, fallback: '0' }),
+app/static/js/modules/views/history/logs/logs.js:543:            global.NumberFormat.formatDecimal(warningPerHour, { precision: 1, trimZero: true, fallback: '0' }),
+app/static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js:22:   * @param {string} fallback 空态文本。
+app/static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js:25:  function renderPermissionGroup(prefix, items, idPrefix, icon, color, fallback) {
+app/static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js:39:              <small class="text-muted">${item.description || fallback}</small>
+app/static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js:45:        .join('') || `<div class="text-muted">${fallback}暂无配置</div>`
+app/static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js:577:       * @param {string} fallback 当集合为空时展示的提示。
+app/static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js:587:       * @param {string} fallback 空态提示。
+app/static/js/modules/views/accounts/account-classification/permissions/permission-policy-center.js:802:       * @param {string} fallback 空态文案。
+app/static/js/modules/views/instances/modals/database-table-sizes-modal.js:57:      fallback: '-',
+app/static/js/modules/views/instances/modals/database-table-sizes-modal.js:67:    return formatter(value, { fallback: '-' });

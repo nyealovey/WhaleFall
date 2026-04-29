@@ -300,6 +300,94 @@ def _handle_aggregation_task_failure(
     return result
 
 
+def _finalize_aggregation_success(
+    *,
+    session: Any,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    periods: list[str] | None,
+    selected_periods: list[str],
+    active_instances: list[Any],
+    successful_instances: int,
+    failed_instances: int,
+    total_instance_aggregations: int,
+    total_database_aggregations: int,
+    period_summaries: list[dict[str, Any]],
+    instance_details: dict[int, dict[str, Any]],
+    manual_run: bool,
+    task_started_at: float,
+    sync_logger: Any,
+) -> dict[str, Any]:
+    session.successful_instances = successful_instances
+    session.failed_instances = failed_instances
+    session.status = "completed" if failed_instances == 0 else "failed"
+    session.completed_at = time_utils.now()
+    db.session.commit()
+
+    current_run = TaskRun.query.filter_by(run_id=run_id).first()
+    if current_run is not None and current_run.status != "cancelled":
+        current_run.summary_json = build_calculate_database_summary(
+            task_key="calculate_database",
+            inputs={"requested_periods": periods},
+            periods_executed=selected_periods,
+            instances_total=len(active_instances),
+            instances_successful=successful_instances,
+            instances_failed=failed_instances,
+            record_instance=total_instance_aggregations,
+            record_database=total_database_aggregations,
+            session_id=session.session_id if session is not None else None,
+        )
+
+    task_runs_service.finalize_run(run_id)
+    db.session.commit()
+
+    session_id = getattr(session, "session_id", None)
+    overall_status = STATUS_COMPLETED if failed_instances == 0 else STATUS_FAILED
+    message = (
+        f"统计聚合完成: 成功 {successful_instances} 个实例,失败 {failed_instances} 个实例"
+        if failed_instances
+        else f"统计聚合完成,共处理 {successful_instances} 个实例"
+    )
+    duration_seconds = round(time.perf_counter() - task_started_at, 2)
+
+    sync_logger.info(
+        "统计聚合任务完成",
+        module="aggregation_sync",
+        session_id=session_id,
+        run_id=run_id,
+        successful_instances=successful_instances,
+        failed_instances=failed_instances,
+        total_instance_aggregations=total_instance_aggregations,
+        total_database_aggregations=total_database_aggregations,
+        manual_run=manual_run,
+        duration_seconds=duration_seconds,
+    )
+
+    return {
+        "status": overall_status,
+        "message": message,
+        "run_id": run_id,
+        "session_id": session_id,
+        "periods_executed": selected_periods,
+        "details": {
+            "periods": period_summaries,
+            "instances": instance_details,
+        },
+        "metrics": {
+            "instances": {
+                "total": len(active_instances),
+                "successful": successful_instances,
+                "failed": failed_instances,
+            },
+            "records": {
+                "instance": total_instance_aggregations,
+                "database": total_database_aggregations,
+                "total": total_instance_aggregations + total_database_aggregations,
+            },
+        },
+    }
+
+
 def calculate_database(
     *,
     manual_run: bool = False,
@@ -430,73 +518,23 @@ def calculate_database(
                 logger=sync_logger,
             )
 
-            session.successful_instances = successful_instances
-            session.failed_instances = failed_instances
-            session.status = "completed" if failed_instances == 0 else "failed"
-            session.completed_at = time_utils.now()
-            db.session.commit()
-
-            current_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if current_run is not None and current_run.status != "cancelled":
-                current_run.summary_json = build_calculate_database_summary(
-                    task_key="calculate_database",
-                    inputs={"requested_periods": periods},
-                    periods_executed=selected_periods,
-                    instances_total=len(active_instances),
-                    instances_successful=successful_instances,
-                    instances_failed=failed_instances,
-                    record_instance=total_instance_aggregations,
-                    record_database=total_database_aggregations,
-                    session_id=session.session_id if session is not None else None,
-                )
-
-            task_runs_service.finalize_run(resolved_run_id)
-            db.session.commit()
-
-            overall_status = STATUS_COMPLETED if failed_instances == 0 else STATUS_FAILED
-            message = (
-                f"统计聚合完成: 成功 {successful_instances} 个实例,失败 {failed_instances} 个实例"
-                if failed_instances
-                else f"统计聚合完成,共处理 {successful_instances} 个实例"
-            )
-            duration_seconds = round(time.perf_counter() - task_started_at, 2)
-
-            sync_logger.info(
-                "统计聚合任务完成",
-                module="aggregation_sync",
-                session_id=session.session_id,
+            return _finalize_aggregation_success(
+                session=session,
+                task_runs_service=task_runs_service,
                 run_id=resolved_run_id,
+                periods=periods,
+                selected_periods=selected_periods,
+                active_instances=active_instances,
                 successful_instances=successful_instances,
                 failed_instances=failed_instances,
                 total_instance_aggregations=total_instance_aggregations,
                 total_database_aggregations=total_database_aggregations,
+                period_summaries=period_summaries,
+                instance_details=instance_details,
                 manual_run=manual_run,
-                duration_seconds=duration_seconds,
+                task_started_at=task_started_at,
+                sync_logger=sync_logger,
             )
-
-            return {
-                "status": overall_status,
-                "message": message,
-                "run_id": resolved_run_id,
-                "session_id": session.session_id,
-                "periods_executed": selected_periods,
-                "details": {
-                    "periods": period_summaries,
-                    "instances": instance_details,
-                },
-                "metrics": {
-                    "instances": {
-                        "total": len(active_instances),
-                        "successful": successful_instances,
-                        "failed": failed_instances,
-                    },
-                    "records": {
-                        "instance": total_instance_aggregations,
-                        "database": total_database_aggregations,
-                        "total": total_instance_aggregations + total_database_aggregations,
-                    },
-                },
-            }
         except AGGREGATION_TASK_EXCEPTIONS as exc:
             return _handle_aggregation_task_failure(
                 exc=exc,
