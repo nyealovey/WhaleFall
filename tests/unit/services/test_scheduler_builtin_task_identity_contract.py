@@ -89,3 +89,47 @@ def test_scheduler_default_task_loading_adds_missing_tasks_without_replacing_exi
     scheduler._load_tasks_from_config(force=False)
 
     assert fake_scheduler.added_job_ids == ["sync_veeam_backups"]
+
+
+@pytest.mark.unit
+def test_scheduler_force_remove_skips_missing_job(monkeypatch) -> None:
+    class _FakeScheduler:
+        def __init__(self) -> None:
+            self.removed_job_ids: list[str] = []
+
+        def get_job(self, job_id: str) -> object | None:
+            assert job_id == "email_alert"
+            return None
+
+        def remove_job(self, job_id: str) -> None:
+            self.removed_job_ids.append(job_id)
+
+    fake_scheduler = _FakeScheduler()
+
+    monkeypatch.setattr(scheduler, "scheduler", fake_scheduler)
+
+    scheduler._remove_existing_job("email_alert", "邮件告警汇总")
+
+    assert fake_scheduler.removed_job_ids == []
+
+
+@pytest.mark.unit
+def test_scheduler_force_remove_deletes_existing_job(monkeypatch) -> None:
+    class _FakeScheduler:
+        def __init__(self) -> None:
+            self.removed_job_ids: list[str] = []
+
+        def get_job(self, job_id: str) -> object | None:
+            assert job_id == "email_alert"
+            return object()
+
+        def remove_job(self, job_id: str) -> None:
+            self.removed_job_ids.append(job_id)
+
+    fake_scheduler = _FakeScheduler()
+
+    monkeypatch.setattr(scheduler, "scheduler", fake_scheduler)
+
+    scheduler._remove_existing_job("email_alert", "邮件告警汇总")
+
+    assert fake_scheduler.removed_job_ids == ["email_alert"]

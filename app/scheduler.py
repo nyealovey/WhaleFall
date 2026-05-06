@@ -535,6 +535,9 @@ def _register_task_from_config(task_config: SchedulerTaskConfig, *, force: bool)
 def _remove_existing_job(task_id: str, task_name: str) -> None:
     """在强制模式下删除已存在的任务."""
     try:
+        if scheduler.get_job(task_id) is None:
+            logger.info("强制模式任务不存在,跳过删除", task_name=task_name, task_id=task_id)
+            return
         scheduler.remove_job(task_id)
         logger.info("强制模式删除现有任务", task_name=task_name, task_id=task_id)
     except JOB_REMOVAL_EXCEPTIONS as remove_error:
