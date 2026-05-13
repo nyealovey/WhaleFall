@@ -9,12 +9,15 @@
   const toast = global.toast;
   const csrfToken = document.getElementById("veeam-source-csrf-token")?.value || "";
   const apiUrl = pageRoot.dataset.apiUrl;
+  const sourcesApiUrl = pageRoot.dataset.sourcesApiUrl;
   const syncApiUrl = pageRoot.dataset.syncApiUrl;
-  const service = new global.VeeamSourceService(apiUrl, syncApiUrl);
+  const service = new global.VeeamSourceService(apiUrl, syncApiUrl, sourcesApiUrl);
   const setButtonLoading = global.UI?.setButtonLoading;
   const clearButtonLoading = global.UI?.clearButtonLoading;
 
   const elements = {
+    sourceName: document.getElementById("veeamSourceName"),
+    formTitle: document.getElementById("veeamSourceFormTitle"),
     credentialId: document.getElementById("veeamCredentialId"),
     serverHost: document.getElementById("veeamServerHost"),
     serverPort: document.getElementById("veeamServerPort"),
@@ -24,9 +27,16 @@
     providerStatus: document.getElementById("veeamProviderStatus"),
     bindingSummary: document.getElementById("veeamBindingSummary"),
     syncStatusSummary: document.getElementById("veeamSyncStatusSummary"),
+    sourcesList: document.getElementById("veeamSourcesList"),
     saveButton: document.getElementById("saveVeeamSourceBtn"),
     unbindButton: document.getElementById("unbindVeeamSourceBtn"),
+    cancelEditButton: document.getElementById("cancelEditVeeamSourceBtn"),
     syncButton: document.getElementById("syncVeeamBackupsBtn"),
+  };
+  const state = {
+    editingSourceId: null,
+    sources: [],
+    lastPayload: null,
   };
 
   function setButtonBusy(button, loadingText) {
@@ -59,6 +69,15 @@
     return Array.isArray(domains) ? domains.join("\n") : "";
   }
 
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function renderCredentialOptions(options, selectedId) {
     if (!(elements.credentialId instanceof HTMLSelectElement)) {
       return;
@@ -79,9 +98,20 @@
   }
 
   function fillPage(payload) {
-    const binding = payload?.binding || null;
+    state.lastPayload = payload || {};
+    state.sources = Array.isArray(payload?.sources) ? payload.sources : [];
+    const binding =
+      state.editingSourceId !== null
+        ? state.sources.find((item) => Number(item?.id) === Number(state.editingSourceId)) || null
+        : payload?.binding || state.sources[0] || null;
     const selectedId = binding?.credential_id || binding?.credential?.id || "";
     renderCredentialOptions(payload?.veeam_credentials, selectedId);
+    if (elements.sourceName) {
+      elements.sourceName.value = binding?.name || "";
+    }
+    if (elements.formTitle) {
+      elements.formTitle.textContent = binding && state.editingSourceId !== null ? "编辑数据源" : "新增数据源";
+    }
     if (elements.serverHost) {
       elements.serverHost.value = binding?.server_host || "";
     }
@@ -105,31 +135,107 @@
       elements.providerStatus.textContent = payload?.provider_ready ? "Provider 已接入" : "Provider 待接入";
     }
     if (elements.bindingSummary) {
-      if (!binding || !binding.credential) {
-        elements.bindingSummary.textContent = "当前未绑定 Veeam 凭据";
+      if (!state.sources.length) {
+        elements.bindingSummary.textContent = "当前未配置 Veeam 数据源";
       } else {
-        const domainSummary = Array.isArray(binding.match_domains) && binding.match_domains.length
-          ? binding.match_domains.join(", ")
-          : "无";
-        elements.bindingSummary.textContent =
-          `${binding.credential.name} · ${binding.server_host}:${binding.server_port} · ${binding.api_version} · 域名=${domainSummary}`;
+        const enabledCount = state.sources.filter((item) => item?.is_enabled).length;
+        elements.bindingSummary.textContent = `${state.sources.length} 个数据源 · ${enabledCount} 个启用`;
       }
     }
     if (elements.syncStatusSummary) {
-      if (!binding) {
+      if (!state.sources.length) {
         elements.syncStatusSummary.textContent = "未执行同步";
       } else {
-        const status = binding.last_sync_status || "未执行同步";
-        const lastSyncAt = binding.last_sync_at || "-";
-        elements.syncStatusSummary.textContent = `${status} · ${lastSyncAt}`;
+        const latest = state.sources
+          .filter((item) => item?.last_sync_at)
+          .sort((a, b) => String(b.last_sync_at).localeCompare(String(a.last_sync_at)))[0];
+        const failedCount = state.sources.filter((item) => item?.last_sync_status === "failed").length;
+        const status = failedCount > 0 ? `${failedCount} 个失败` : latest?.last_sync_status || "未执行同步";
+        elements.syncStatusSummary.textContent = `${status} · ${latest?.last_sync_at || "-"}`;
       }
     }
     if (elements.unbindButton) {
-      elements.unbindButton.disabled = !binding;
+      elements.unbindButton.disabled = state.editingSourceId === null;
     }
     if (elements.syncButton) {
-      elements.syncButton.disabled = !binding || !payload?.provider_ready;
+      elements.syncButton.disabled = !state.sources.some((item) => item?.is_enabled) || !payload?.provider_ready;
       elements.syncButton.title = payload?.provider_ready ? "同步 Veeam 备份" : "Veeam Provider 待接入";
+    }
+    renderSourcesList();
+  }
+
+  function renderSourcesList() {
+    const container = elements.sourcesList;
+    if (!container) {
+      return;
+    }
+    const tbody = container.querySelector("tbody");
+    if (!tbody) {
+      return;
+    }
+    if (!state.sources.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-muted">当前未配置 Veeam 数据源</td></tr>';
+      return;
+    }
+    tbody.innerHTML = state.sources
+      .map((source) => {
+        const sourceId = Number(source?.id || 0);
+        const statusText = source?.is_enabled ? "启用" : "停用";
+        const statusClass = source?.is_enabled ? "text-success" : "text-muted";
+        const syncText = source?.last_sync_status
+          ? `${escapeHtml(source.last_sync_status)} · ${escapeHtml(source.last_sync_at || "-")}`
+          : "未执行";
+        const credentialName = source?.credential?.name || "-";
+        return `
+          <tr data-source-id="${sourceId}">
+            <td><strong>${escapeHtml(source?.name || "未命名 Veeam")}</strong></td>
+            <td>${escapeHtml(source?.server_host || "-")}:${escapeHtml(source?.server_port || "-")}</td>
+            <td>${escapeHtml(credentialName)}</td>
+            <td><span class="${statusClass}">${statusText}</span></td>
+            <td>${syncText}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary" type="button" data-veeam-source-action="edit" data-source-id="${sourceId}">编辑</button>
+              <button class="btn btn-sm btn-outline-secondary" type="button" data-veeam-source-action="${source?.is_enabled ? "disable" : "enable"}" data-source-id="${sourceId}">
+                ${source?.is_enabled ? "停用" : "启用"}
+              </button>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  function resetForm(payload) {
+    state.editingSourceId = null;
+    renderCredentialOptions(payload?.veeam_credentials || state.lastPayload?.veeam_credentials, "");
+    if (elements.sourceName) {
+      elements.sourceName.value = "";
+    }
+    if (elements.serverHost) {
+      elements.serverHost.value = "";
+    }
+    if (elements.serverPort) {
+      elements.serverPort.value = payload?.default_port || state.lastPayload?.default_port || 9419;
+    }
+    if (elements.apiVersion) {
+      elements.apiVersion.value =
+        payload?.default_api_version || state.lastPayload?.default_api_version || "v1.2-rev0";
+    }
+    if (elements.verifySsl instanceof HTMLInputElement) {
+      elements.verifySsl.checked = Boolean(
+        payload?.default_verify_ssl ?? state.lastPayload?.default_verify_ssl ?? true,
+      );
+    }
+    if (elements.matchDomains) {
+      elements.matchDomains.value = domainsToLines(
+        payload?.default_match_domains || state.lastPayload?.default_match_domains || [],
+      );
+    }
+    if (elements.formTitle) {
+      elements.formTitle.textContent = "新增数据源";
+    }
+    if (elements.unbindButton) {
+      elements.unbindButton.disabled = true;
     }
   }
 
@@ -144,6 +250,7 @@
   async function handleSaveBinding(event) {
     event.preventDefault();
     const credentialId = Number(elements.credentialId?.value || 0);
+    const name = String(elements.sourceName?.value || "").trim();
     const serverHost = String(elements.serverHost?.value || "").trim();
     const serverPort = Number(elements.serverPort?.value || 0);
     const apiVersion = String(elements.apiVersion?.value || "").trim();
@@ -169,40 +276,80 @@
 
     const stop = setButtonBusy(elements.saveButton, "保存中...");
     try {
-      const response = await service.updateBinding(
-        {
-          credential_id: credentialId,
-          server_host: serverHost,
-          server_port: serverPort,
-          api_version: apiVersion,
-          verify_ssl: verifySsl,
-          match_domains: matchDomains,
-        },
-        csrfToken,
-      );
+      const payload = {
+        name,
+        credential_id: credentialId,
+        server_host: serverHost,
+        server_port: serverPort,
+        api_version: apiVersion,
+        verify_ssl: verifySsl,
+        match_domains: matchDomains,
+      };
+      const response = state.editingSourceId
+        ? await service.updateSource(state.editingSourceId, payload, csrfToken)
+        : await service.createSource(payload, csrfToken);
       if (!response?.success) {
-        throw new Error(response?.message || "绑定 Veeam 数据源失败");
+        throw new Error(response?.message || "保存 Veeam 数据源失败");
       }
       fillPage(response.data || {});
-      toast?.success?.("Veeam 数据源绑定成功");
+      toast?.success?.("Veeam 数据源保存成功");
     } catch (error) {
-      toast?.error?.(error?.message || "绑定 Veeam 数据源失败");
+      toast?.error?.(error?.message || "保存 Veeam 数据源失败");
     } finally {
       stop();
     }
   }
 
   async function handleUnbindSource() {
+    if (state.editingSourceId === null) {
+      toast?.error?.("请先选择要删除的数据源");
+      return;
+    }
     const stop = setButtonBusy(elements.unbindButton, "解绑中...");
     try {
-      const response = await service.deleteBinding(csrfToken);
+      const response = await service.deleteSource(state.editingSourceId, csrfToken);
       if (!response?.success) {
         throw new Error(response?.message || "解绑数据源失败");
       }
+      state.editingSourceId = null;
       fillPage(response.data || {});
       toast?.success?.("解绑 Veeam 数据源成功");
     } catch (error) {
       toast?.error?.(error?.message || "解绑 Veeam 数据源失败");
+    } finally {
+      stop();
+    }
+  }
+
+  async function handleSourcesListClick(event) {
+    const target = event.target instanceof Element ? event.target.closest("[data-veeam-source-action]") : null;
+    if (!target) {
+      return;
+    }
+    const sourceId = Number(target.getAttribute("data-source-id") || 0);
+    const action = target.getAttribute("data-veeam-source-action");
+    const source = state.sources.find((item) => Number(item?.id) === sourceId);
+    if (!source) {
+      return;
+    }
+    if (action === "edit") {
+      state.editingSourceId = sourceId;
+      fillPage(state.lastPayload || {});
+      return;
+    }
+    if (action !== "enable" && action !== "disable") {
+      return;
+    }
+    const stop = setButtonBusy(target, action === "enable" ? "启用中..." : "停用中...");
+    try {
+      const response = await service.setSourceEnabled(sourceId, action === "enable", csrfToken);
+      if (!response?.success) {
+        throw new Error(response?.message || "更新数据源状态失败");
+      }
+      fillPage(response.data || {});
+      toast?.success?.(action === "enable" ? "Veeam 数据源已启用" : "Veeam 数据源已停用");
+    } catch (error) {
+      toast?.error?.(error?.message || "更新数据源状态失败");
     } finally {
       stop();
     }
@@ -266,7 +413,9 @@
 
   elements.saveButton?.addEventListener("click", handleSaveBinding);
   elements.unbindButton?.addEventListener("click", handleUnbindSource);
+  elements.cancelEditButton?.addEventListener("click", () => resetForm(state.lastPayload || {}));
   elements.syncButton?.addEventListener("click", handleSyncBackups);
+  elements.sourcesList?.addEventListener("click", handleSourcesListClick);
 
   loadSource().catch((error) => {
     toast?.error?.(error?.message || "加载 Veeam 数据源失败");

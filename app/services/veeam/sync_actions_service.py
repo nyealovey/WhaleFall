@@ -14,6 +14,7 @@ from app import db
 from app.core.exceptions import NotFoundError, ValidationError
 from app.infra.route_safety import log_with_context
 from app.models.task_run import TaskRun
+from app.models.veeam_source_binding import VeeamSourceBinding
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
 from app.services.task_runs.task_run_summary_builders import build_sync_veeam_backups_summary
@@ -201,7 +202,13 @@ class VeeamSyncActionsService:
         )
         return VeeamSyncLaunchResult(run_id=prepared.run_id, thread_name=thread.name)
 
-    def sync_instance_now(self, *, instance_id: int, created_by: int | None) -> VeeamInstanceSyncResult:
+    def sync_instance_now(
+        self,
+        *,
+        instance_id: int,
+        created_by: int | None,
+        source_binding_id: int | None = None,
+    ) -> VeeamInstanceSyncResult:
         """立即同步单个实例的 Veeam 备份快照."""
         del created_by
         instance = self._instances_repository.get_instance(instance_id)
@@ -210,7 +217,7 @@ class VeeamSyncActionsService:
         if not self._provider.is_configured():
             raise ValidationError("Veeam Provider 尚未接入真实 API")
 
-        binding = self._source_service.get_binding_or_error()
+        binding = self._source_service.get_binding_or_error(source_binding_id)
         credential = getattr(binding, "credential", None)
         if credential is None:
             raise ValidationError("Veeam 数据源未绑定有效凭据")
@@ -287,6 +294,7 @@ class VeeamSyncActionsService:
             snapshots_to_write = self._select_latest_records(enriched_records)
             snapshots_written = self._veeam_repository.upsert_machine_backup_snapshots(
                 records=snapshots_to_write,
+                source_binding_id=int(binding.id),
                 sync_run_id=f"single_sync_{instance_id}",
                 synced_at=time_utils.now(),
             )
@@ -316,16 +324,62 @@ class VeeamSyncActionsService:
             message=f"实例 {instance_name} 备份同步成功",
         )
 
-    def _sync_once(  # noqa: PLR0915
+    def _sync_once(
         self,
         *,
         created_by: int | None,
         run_id: str,
-        credential_id: int,
+        credential_id: int | None = None,
     ) -> None:
-        binding = self._source_service.get_binding_or_error()
+        del credential_id
+        bindings = self._veeam_repository.list_enabled_bindings()
+        if not bindings:
+            raise ValidationError("请先启用至少一个 Veeam 数据源")
+
+        failures: list[Exception] = []
+        source_results: list[dict[str, object]] = []
+        successes = 0
+        for binding in bindings:
+            try:
+                snapshots_written_total = self._sync_source_once(created_by=created_by, run_id=run_id, binding=binding)
+                source_results.append(
+                    self._build_source_summary(
+                        binding=binding,
+                        status="completed",
+                        snapshots_written_total=snapshots_written_total,
+                        error_message=None,
+                    )
+                )
+                successes += 1
+            except Exception as exc:
+                source_results.append(
+                    self._build_source_summary(
+                        binding=binding,
+                        status="failed",
+                        snapshots_written_total=0,
+                        error_message=str(exc),
+                    )
+                )
+                failures.append(exc)
+                continue
+
+        self._append_sources_to_run_summary(
+            run_id=run_id,
+            sources=source_results,
+            partial_success=successes > 0 and bool(failures),
+        )
+        if successes <= 0 and failures:
+            raise failures[0]
+
+    def _sync_source_once(  # noqa: PLR0915
+        self,
+        *,
+        created_by: int | None,
+        run_id: str,
+        binding: VeeamSourceBinding,
+    ) -> int:
         credential = getattr(binding, "credential", None)
-        if credential is None or int(binding.credential_id) != int(credential_id):
+        if credential is None:
             raise ValidationError("Veeam 数据源凭据已变更，请重新发起同步")
 
         task_runs_service = TaskRunsWriteService()
@@ -634,6 +688,7 @@ class VeeamSyncActionsService:
             self._validate_records_to_write(latest_records)
             snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
                 latest_records,
+                source_binding_id=int(binding.id),
                 sync_run_id=run_id,
                 synced_at=synced_at,
             )
@@ -732,9 +787,9 @@ class VeeamSyncActionsService:
                 },
                 include_actor=False,
             )
+            return snapshots_written_total
         except Exception as exc:
             db.session.rollback()
-            binding = self._source_service.get_binding_or_error()
             binding.last_sync_at = synced_at
             binding.last_sync_status = "failed"
             binding.last_sync_run_id = run_id
@@ -783,6 +838,49 @@ class VeeamSyncActionsService:
                 include_actor=False,
             )
             raise
+
+    @staticmethod
+    def _build_source_summary(
+        *,
+        binding: VeeamSourceBinding,
+        status: str,
+        snapshots_written_total: int,
+        error_message: str | None,
+    ) -> dict[str, object]:
+        return {
+            "source_binding_id": int(binding.id),
+            "source_name": str(binding.name or ""),
+            "status": status,
+            "snapshots_written_total": snapshots_written_total,
+            "error_message": error_message,
+        }
+
+    @staticmethod
+    def _append_sources_to_run_summary(
+        *,
+        run_id: str,
+        sources: list[dict[str, object]],
+        partial_success: bool,
+    ) -> None:
+        try:
+            run = TaskRun.query.filter_by(run_id=run_id).first()
+        except SQLAlchemyError:
+            return
+        if run is None:
+            return
+        raw_summary: object = run.summary_json
+        summary: dict[str, Any] = dict(cast("dict[str, Any]", raw_summary)) if isinstance(raw_summary, dict) else {}
+        raw_ext: object = summary.get("ext")
+        ext: dict[str, Any] = dict(cast("dict[str, Any]", raw_ext)) if isinstance(raw_ext, dict) else {}
+        raw_data: object = ext.get("data")
+        data: dict[str, Any] = dict(cast("dict[str, Any]", raw_data)) if isinstance(raw_data, dict) else {}
+        data["sources"] = sources
+        data["partial_success"] = bool(data.get("partial_success")) or partial_success
+        ext["data"] = data
+        summary["ext"] = ext
+        run.summary_json = summary
+        db.session.add(run)
+        db.session.commit()
 
     @staticmethod
     def _start_stage(*, task_runs_service: TaskRunsWriteService, run_id: str, item_key: str) -> None:

@@ -19,6 +19,7 @@ class VeeamMachineBackupSnapshot(db.Model):
     __tablename__ = "veeam_machine_backup_snapshots"
 
     id = db.Column(db.Integer, primary_key=True)
+    source_binding_id = db.Column(db.Integer, db.ForeignKey("veeam_source_bindings.id"), nullable=False, index=True)
     machine_name = db.Column(db.String(255), nullable=False)
     normalized_machine_name = db.Column(db.String(255), nullable=False, index=True)
     machine_ip = db.Column(db.String(64), nullable=True)
@@ -42,9 +43,19 @@ class VeeamMachineBackupSnapshot(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
 
+    source_binding = db.relationship("VeeamSourceBinding")
+
     __table_args__ = (
-        db.UniqueConstraint("normalized_machine_name", name="uq_veeam_snapshot_normalized_name"),
-        db.UniqueConstraint("normalized_machine_ip", name="uq_veeam_snapshot_normalized_ip"),
+        db.UniqueConstraint(
+            "source_binding_id",
+            "normalized_machine_name",
+            name="uq_veeam_snapshot_source_normalized_name",
+        ),
+        db.UniqueConstraint(
+            "source_binding_id",
+            "normalized_machine_ip",
+            name="uq_veeam_snapshot_source_normalized_ip",
+        ),
     )
 
     if TYPE_CHECKING:
@@ -58,6 +69,7 @@ class VeeamMachineBackupSnapshot(db.Model):
         raw_payload = self.raw_payload if isinstance(self.raw_payload, dict) else {}
         restore_point_times = raw_payload.get("restore_point_times")
         return {
+            "source_binding_id": self.source_binding_id,
             "machine_name": self.machine_name,
             "normalized_machine_name": self.normalized_machine_name,
             "machine_ip": self.machine_ip,

@@ -69,6 +69,9 @@ class InstanceBackupInfoReadService:
             "backup_metrics_coverage": matched.get("backup_metrics_coverage") if isinstance(matched, dict) else None,
             "restore_point_times": restore_point_times if isinstance(restore_point_times, list) else [],
             "restore_points": restore_points if isinstance(restore_points, list) else [],
+            "source_binding_id": matched.get("source_binding_id") if isinstance(matched, dict) else None,
+            "source_name": matched.get("source_name") if isinstance(matched, dict) else None,
+            "source_server_host": matched.get("source_server_host") if isinstance(matched, dict) else None,
             "last_sync_time": matched.get("last_sync_time") if isinstance(matched, dict) else None,
             "message": "获取备份信息成功",
         }

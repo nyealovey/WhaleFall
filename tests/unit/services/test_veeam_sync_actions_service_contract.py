@@ -121,6 +121,74 @@ def test_launch_background_sync_runs_sync_task_with_prepared_run_id(monkeypatch)
 
 
 @pytest.mark.unit
+def test_sync_once_iterates_enabled_sources(monkeypatch) -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+                db.metadata.tables["veeam_source_bindings"],
+            ],
+        )
+
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            is_active=True,
+        )
+        db.session.add(credential)
+        db.session.flush()
+        enabled_a = VeeamSourceBinding(
+            name="Veeam A",
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+            is_enabled=True,
+        )
+        disabled = VeeamSourceBinding(
+            name="Veeam Disabled",
+            credential_id=credential.id,
+            server_host="10.0.0.11",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+            is_enabled=False,
+        )
+        enabled_b = VeeamSourceBinding(
+            name="Veeam B",
+            credential_id=credential.id,
+            server_host="10.0.0.12",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+            is_enabled=True,
+        )
+        db.session.add_all([enabled_a, disabled, enabled_b])
+        db.session.commit()
+
+        synced_source_ids: list[int] = []
+
+        def _fake_sync_source_once(self, *, created_by: int | None, run_id: str, binding: VeeamSourceBinding) -> None:
+            del self
+            assert created_by == 7
+            assert run_id == "run-multi"
+            synced_source_ids.append(int(binding.id))
+
+        monkeypatch.setattr(VeeamSyncActionsService, "_sync_source_once", _fake_sync_source_once, raising=True)
+
+        VeeamSyncActionsService()._sync_once(created_by=7, run_id="run-multi")
+
+        assert synced_source_ids == [enabled_a.id, enabled_b.id]
+
+
+@pytest.mark.unit
 def test_sync_instance_now_uses_service_pipeline_and_upserts_latest_snapshot() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
@@ -300,9 +368,17 @@ def test_sync_instance_now_uses_service_pipeline_and_upserts_latest_snapshot() -
                 )
 
         class _FakeRepository:
-            def upsert_machine_backup_snapshots(self, records, *, sync_run_id: str, synced_at: datetime) -> int:
+            def upsert_machine_backup_snapshots(
+                self,
+                records,
+                *,
+                source_binding_id: int,
+                sync_run_id: str,
+                synced_at: datetime,
+            ) -> int:
                 records_list = list(records)
                 captured["upsert_records"] = records_list
+                captured["upsert_source_binding_id"] = source_binding_id
                 captured["upsert_sync_run_id"] = sync_run_id
                 captured["upsert_synced_at"] = synced_at
                 return len(records_list)
@@ -336,6 +412,7 @@ def test_sync_instance_now_uses_service_pipeline_and_upserts_latest_snapshot() -
         assert captured["match_machine_names"] == {"db01", "db01.domain.com"}
         assert captured["match_machine_ips"] == {"10.0.0.1"}
         assert captured["backup_ids"] == ["backup-db01"]
+        assert captured["upsert_source_binding_id"] == binding.id
         assert captured["upsert_sync_run_id"] == f"single_sync_{instance.id}"
         assert captured["lookup_instance_name"] == "db01"
         assert captured["lookup_instance_host"] == "10.0.0.1"

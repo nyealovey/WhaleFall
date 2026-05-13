@@ -289,6 +289,7 @@ class VeeamSourceBindingOrmFields(TypedDict, total=False):
     """Keyword arguments for creating/updating VeeamSourceBinding ORM rows."""
 
     id: int
+    name: str
     credential_id: int
     server_host: str
     server_port: int
@@ -308,6 +309,7 @@ class VeeamMachineBackupSnapshotOrmFields(TypedDict, total=False):
     """Keyword arguments for creating/updating VeeamMachineBackupSnapshot ORM rows."""
 
     id: int
+    source_binding_id: int
     machine_name: str
     normalized_machine_name: str
     machine_ip: str | None

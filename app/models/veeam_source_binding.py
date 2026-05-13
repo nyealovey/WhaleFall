@@ -14,12 +14,13 @@ if TYPE_CHECKING:
 
 
 class VeeamSourceBinding(db.Model):
-    """全局唯一的 Veeam 数据源绑定."""
+    """Veeam 数据源绑定."""
 
     __tablename__ = "veeam_source_bindings"
 
     id = db.Column(db.Integer, primary_key=True)
-    credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=False, unique=True)
+    name = db.Column(db.String(128), nullable=False, default="默认 Veeam")
+    credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=False)
     server_host = db.Column(db.String(255), nullable=False)
     server_port = db.Column(db.Integer, nullable=False)
     api_version = db.Column(db.String(32), nullable=False)
@@ -49,6 +50,8 @@ class VeeamSourceBinding(db.Model):
         """序列化绑定状态."""
         domains = self.match_domains if isinstance(self.match_domains, list) else []
         return {
+            "id": self.id,
+            "name": str(self.name or "").strip() or "默认 Veeam",
             "credential_id": self.credential_id,
             "server_host": self.server_host,
             "server_port": self.server_port,

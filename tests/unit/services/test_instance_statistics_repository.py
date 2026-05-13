@@ -10,6 +10,7 @@ from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.tag import Tag
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
+from app.models.veeam_source_binding import VeeamSourceBinding
 from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 from app.settings import Settings
 from app.utils.time_utils import time_utils
@@ -103,7 +104,6 @@ def test_instance_statistics_repository_counts_enabled_audit_and_non_standalone_
         active_standalone.tags.append(standalone)
         disabled_with_arch.tags.append(geo_redundant)
         db.session.flush()
-
         db.session.add_all(
             [
                 InstanceConfigSnapshot(
@@ -174,6 +174,16 @@ def test_instance_statistics_repository_counts_managed_and_backup_status_for_cur
             ]
         )
         db.session.flush()
+        veeam_source = VeeamSourceBinding(
+            name="统计 Veeam",
+            credential_id=1,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+        )
+        db.session.add(veeam_source)
+        db.session.flush()
 
         db.session.add_all(
             [
@@ -202,6 +212,7 @@ def test_instance_statistics_repository_counts_managed_and_backup_status_for_cur
                     raw_payload={},
                 ),
                 VeeamMachineBackupSnapshot(
+                    source_binding_id=veeam_source.id,
                     machine_name="managed-backed-up",
                     normalized_machine_name="managed-backed-up",
                     machine_ip="10.0.0.1",
@@ -210,6 +221,7 @@ def test_instance_statistics_repository_counts_managed_and_backup_status_for_cur
                     raw_payload={},
                 ),
                 VeeamMachineBackupSnapshot(
+                    source_binding_id=veeam_source.id,
                     machine_name="unmanaged-stale",
                     normalized_machine_name="unmanaged-stale",
                     machine_ip="10.0.0.2",
@@ -218,6 +230,7 @@ def test_instance_statistics_repository_counts_managed_and_backup_status_for_cur
                     raw_payload={},
                 ),
                 VeeamMachineBackupSnapshot(
+                    source_binding_id=veeam_source.id,
                     machine_name="deleted-shadow",
                     normalized_machine_name="deleted-shadow",
                     machine_ip="10.0.0.5",

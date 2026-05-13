@@ -154,6 +154,22 @@ def test_build_sync_veeam_backups_summary_has_coverage_counts() -> None:
         backup_ids_fully_covered_total=18,
         backup_ids_partially_covered_total=8,
         partial_success=True,
+        sources=[
+            {
+                "source_binding_id": 1,
+                "source_name": "Veeam A",
+                "status": "completed",
+                "snapshots_written_total": 67,
+                "error_message": None,
+            },
+            {
+                "source_binding_id": 2,
+                "source_name": "Veeam B",
+                "status": "failed",
+                "snapshots_written_total": 0,
+                "error_message": "token error",
+            },
+        ],
         error_message=None,
     )
 
@@ -164,3 +180,19 @@ def test_build_sync_veeam_backups_summary_has_coverage_counts() -> None:
     assert payload["ext"]["data"]["backups"]["restore_points_missing_metrics_total"] == 1141
     assert payload["ext"]["data"]["backups"]["backup_ids_fully_covered_total"] == 18
     assert payload["ext"]["data"]["backups"]["backup_ids_partially_covered_total"] == 8
+    assert payload["ext"]["data"]["sources"] == [
+        {
+            "source_binding_id": 1,
+            "source_name": "Veeam A",
+            "status": "completed",
+            "snapshots_written_total": 67,
+            "error_message": None,
+        },
+        {
+            "source_binding_id": 2,
+            "source_name": "Veeam B",
+            "status": "failed",
+            "snapshots_written_total": 0,
+            "error_message": "token error",
+        },
+    ]

@@ -28,6 +28,8 @@ VeeamSourceData = ns.model(
     "VeeamSourceData",
     {
         "binding": fields.Raw(required=False),
+        "source": fields.Raw(required=False),
+        "sources": fields.List(fields.Raw, required=False),
         "veeam_credentials": fields.List(fields.Raw, required=True),
         "provider_ready": fields.Boolean(required=True),
         "default_port": fields.Integer(required=True),
@@ -46,6 +48,7 @@ VeeamSourceSuccessEnvelope = make_success_envelope_model(
 VeeamSourceBindingPayloadModel = ns.model(
     "VeeamSourceBindingPayloadModel",
     {
+        "name": fields.String(required=False, description="Veeam 数据源名称", example="生产 Veeam"),
         "credential_id": fields.Integer(required=True, description="Veeam 凭据 ID", example=1),
         "server_host": fields.String(required=True, description="Veeam 服务器 IP/主机名", example="10.0.0.10"),
         "server_port": fields.Integer(required=True, description="Veeam 服务器端口", example=9419),
@@ -112,6 +115,7 @@ class VeeamSourceResource(BaseResource):
             payload = validate_or_raise(VeeamSourceBindingPayload, get_raw_payload() or {})
             service = VeeamSourceService()
             service.bind_source(
+                name=payload.name,
                 credential_id=payload.credential_id,
                 server_host=payload.server_host,
                 server_port=payload.server_port,
@@ -148,6 +152,179 @@ class VeeamSourceResource(BaseResource):
             module="veeam",
             action="unbind_source",
             public_error="解绑 Veeam 数据源失败",
+        )
+
+
+@ns.route("/sources")
+class VeeamSourcesResource(BaseResource):
+    """Veeam 多数据源集合资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", VeeamSourceSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        """获取 Veeam 数据源列表."""
+
+        def _execute():
+            data = VeeamSourceService().list_sources_payload()
+            return self.success(data=data, message="获取 Veeam 数据源成功")
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="list_sources",
+            public_error="获取 Veeam 数据源失败",
+        )
+
+    @ns.response(200, "OK", VeeamSourceSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(VeeamSourceBindingPayloadModel, validate=False)
+    @require_csrf
+    def post(self):
+        """新增 Veeam 数据源."""
+
+        def _execute():
+            payload = validate_or_raise(VeeamSourceBindingPayload, get_raw_payload() or {})
+            service = VeeamSourceService()
+            source = service.create_source(
+                name=payload.name,
+                credential_id=payload.credential_id,
+                server_host=payload.server_host,
+                server_port=payload.server_port,
+                api_version=payload.api_version,
+                verify_ssl=payload.verify_ssl,
+                match_domains=payload.match_domains,
+            )
+            data = service.list_sources_payload()
+            data["source"] = service._serialize_binding(source)
+            return self.success(data=data, message="Veeam 数据源创建成功")
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="create_source",
+            public_error="创建 Veeam 数据源失败",
+        )
+
+
+@ns.route("/sources/<int:source_id>")
+class VeeamSourceItemResource(BaseResource):
+    """Veeam 单个数据源资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", VeeamSourceSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(VeeamSourceBindingPayloadModel, validate=False)
+    @require_csrf
+    def put(self, source_id: int):
+        """更新 Veeam 数据源."""
+
+        def _execute():
+            payload = validate_or_raise(VeeamSourceBindingPayload, get_raw_payload() or {})
+            service = VeeamSourceService()
+            source = service.update_source(
+                source_id,
+                name=payload.name,
+                credential_id=payload.credential_id,
+                server_host=payload.server_host,
+                server_port=payload.server_port,
+                api_version=payload.api_version,
+                verify_ssl=payload.verify_ssl,
+                match_domains=payload.match_domains,
+            )
+            data = service.list_sources_payload()
+            data["source"] = service._serialize_binding(source)
+            return self.success(data=data, message="Veeam 数据源更新成功")
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="update_source",
+            public_error="更新 Veeam 数据源失败",
+        )
+
+    @ns.response(200, "OK", VeeamSourceSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def delete(self, source_id: int):
+        """删除 Veeam 数据源."""
+
+        def _execute():
+            service = VeeamSourceService()
+            service.delete_source(source_id)
+            return self.success(data=service.list_sources_payload(), message="Veeam 数据源已删除")
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="delete_source",
+            public_error="删除 Veeam 数据源失败",
+        )
+
+
+@ns.route("/sources/<int:source_id>/actions/enable")
+class VeeamSourceEnableActionResource(BaseResource):
+    """启用 Veeam 数据源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", VeeamSourceSuccessEnvelope)
+    @require_csrf
+    def post(self, source_id: int):
+        """启用 Veeam 数据源."""
+
+        def _execute():
+            service = VeeamSourceService()
+            source = service.set_source_enabled(source_id, is_enabled=True)
+            data = service.list_sources_payload()
+            data["source"] = service._serialize_binding(source)
+            return self.success(data=data, message="Veeam 数据源已启用")
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="enable_source",
+            public_error="启用 Veeam 数据源失败",
+        )
+
+
+@ns.route("/sources/<int:source_id>/actions/disable")
+class VeeamSourceDisableActionResource(BaseResource):
+    """停用 Veeam 数据源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", VeeamSourceSuccessEnvelope)
+    @require_csrf
+    def post(self, source_id: int):
+        """停用 Veeam 数据源."""
+
+        def _execute():
+            service = VeeamSourceService()
+            source = service.set_source_enabled(source_id, is_enabled=False)
+            data = service.list_sources_payload()
+            data["source"] = service._serialize_binding(source)
+            return self.success(data=data, message="Veeam 数据源已停用")
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="disable_source",
+            public_error="停用 Veeam 数据源失败",
         )
 
 
@@ -271,4 +448,35 @@ class VeeamSyncInstanceActionResource(BaseResource):
             module="veeam",
             action="get_instance_backup",
             public_error="获取实例备份信息失败",
+        )
+
+
+@ns.route("/sources/<int:source_id>/instances/<int:instance_id>/actions/sync")
+class VeeamSourceInstanceSyncActionResource(BaseResource):
+    """指定 Veeam 数据源的单实例同步动作资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", VeeamSyncResultSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def post(self, source_id: int, instance_id: int):
+        """使用指定 Veeam 数据源同步实例备份."""
+
+        def _execute():
+            result = VeeamSyncActionsService().sync_instance_now(
+                instance_id=instance_id,
+                created_by=getattr(current_user, "id", None),
+                source_binding_id=source_id,
+            )
+            return self.success(data=result.data, message=result.message)
+
+        return self.safe_call(
+            _execute,
+            module="veeam",
+            action="sync_source_instance_backup",
+            public_error="同步实例备份失败",
         )

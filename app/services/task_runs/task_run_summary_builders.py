@@ -176,6 +176,7 @@ def build_sync_veeam_backups_summary(
     backup_ids_fully_covered_total: int = 0,
     backup_ids_partially_covered_total: int = 0,
     partial_success: bool = False,
+    sources: list[dict[str, Any]] | None = None,
     skipped: bool = False,
     skip_reason: str | None = None,
     error_message: str | None = None,
@@ -308,6 +309,7 @@ def build_sync_veeam_backups_summary(
             "backup_ids_fully_covered_total": backup_ids_fully_covered_total,
             "backup_ids_partially_covered_total": backup_ids_partially_covered_total,
         },
+        "sources": list(sources or []),
         "partial_success": partial_success,
         "error_message": error_message,
     }

@@ -3,16 +3,22 @@
     id="veeam-source-page"
     class="veeam-source-page"
     data-api-url="/api/v1/integrations/veeam/source"
+    data-sources-api-url="/api/v1/integrations/veeam/sources"
     data-sync-api-url="/api/v1/integrations/veeam/actions/sync"
 >
     <div class="jumpserver-source-layout">
         <section class="card jumpserver-source-card">
             <div class="card-header jumpserver-source-card__header">
                 <div>
-                    <h2 class="jumpserver-source-card__title">绑定配置</h2>
+                    <h2 id="veeamSourceFormTitle" class="jumpserver-source-card__title">新增数据源</h2>
                 </div>
             </div>
             <div class="card-body jumpserver-source-card__body">
+                <div class="jumpserver-source-field">
+                    <label for="veeamSourceName" class="form-label">数据源名称</label>
+                    <input id="veeamSourceName" class="form-control" type="text" placeholder="例如：生产 Veeam">
+                </div>
+
                 <div class="jumpserver-source-field">
                     <label for="veeamCredentialId" class="form-label">Veeam 凭据</label>
                     <select id="veeamCredentialId" class="form-select">
@@ -56,10 +62,13 @@
 
                 <div class="jumpserver-source-actions">
                     <button id="saveVeeamSourceBtn" class="btn btn-primary" type="button">
-                        <i class="fas fa-link me-2"></i>保存绑定
+                        <i class="fas fa-link me-2"></i>保存数据源
                     </button>
                     <button id="unbindVeeamSourceBtn" class="btn btn-outline-secondary" type="button">
-                        <i class="fas fa-link-slash me-2"></i>解绑数据源
+                        <i class="fas fa-trash me-2"></i>删除数据源
+                    </button>
+                    <button id="cancelEditVeeamSourceBtn" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-plus me-2"></i>新增模式
                     </button>
                     <button id="syncVeeamBackupsBtn" class="btn btn-outline-secondary" type="button">
                         <i class="fas fa-rotate me-2"></i>同步 Veeam 备份
@@ -71,10 +80,29 @@
         <section class="card jumpserver-source-card jumpserver-source-card--summary">
             <div class="card-header jumpserver-source-card__header">
                 <div>
-                    <h2 class="jumpserver-source-card__title">运行状态</h2>
+                    <h2 class="jumpserver-source-card__title">数据源列表</h2>
                 </div>
             </div>
             <div class="card-body jumpserver-source-card__body jumpserver-source-card__body--summary">
+                <div id="veeamSourcesList" class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>地址</th>
+                                <th>凭据</th>
+                                <th>状态</th>
+                                <th>最近同步</th>
+                                <th class="text-end">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-muted">正在加载 Veeam 数据源...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <div class="jumpserver-summary-item">
                     <span class="jumpserver-summary-item__label">Provider</span>
                     <strong id="veeamProviderStatus">Provider 已接入</strong>
