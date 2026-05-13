@@ -37,6 +37,8 @@ class EmailAlertSettingsService:
         settings.database_sync_failure_enabled = False
         settings.privileged_account_enabled = False
         settings.backup_issue_enabled = False
+        settings.feishu_enabled = False
+        settings.feishu_webhook_url_encrypted = None
         return settings
 
     def get_or_create_settings(self) -> EmailAlertSetting:
@@ -61,6 +63,16 @@ class EmailAlertSettingsService:
         settings.database_sync_failure_enabled = bool(payload_dict["database_sync_failure_enabled"])
         settings.privileged_account_enabled = bool(payload_dict["privileged_account_enabled"])
         settings.backup_issue_enabled = bool(payload_dict["backup_issue_enabled"])
+        settings.feishu_enabled = bool(payload_dict.get("feishu_enabled", False))
+
+        feishu_webhook_url = str(payload_dict.get("feishu_webhook_url") or "").strip()
+        clear_feishu_webhook_url = bool(payload_dict.get("clear_feishu_webhook_url", False))
+        if clear_feishu_webhook_url:
+            settings.feishu_webhook_url_encrypted = None
+        elif feishu_webhook_url:
+            settings.set_feishu_webhook_url(feishu_webhook_url)
+        if bool(settings.feishu_enabled) and not settings.get_feishu_webhook_url():
+            raise ValidationError("启用飞书通知前必须配置飞书机器人 URL")
         db.session.commit()
         return settings
 
@@ -72,6 +84,10 @@ class EmailAlertSettingsService:
             "from_name": current_app.config.get("MAIL_FROM_NAME"),
             "settings": settings.to_dict(),
         }
+
+    def get_feishu_webhook_url(self) -> str:
+        settings = self.get_or_create_settings()
+        return settings.get_feishu_webhook_url()
 
     def send_test_email(self, *, recipients: list[str]) -> dict[str, object]:
         normalized_recipients = [item.strip() for item in recipients if item.strip()]

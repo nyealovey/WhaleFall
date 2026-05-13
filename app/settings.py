@@ -73,6 +73,7 @@ DEFAULT_DB_SIZE_COLLECTION_INTERVAL_HOURS = 24
 DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS = 300
 DEFAULT_MAIL_SMTP_PORT = 25
 DEFAULT_MAIL_TIMEOUT_SECONDS = 10
+DEFAULT_FEISHU_REQUEST_TIMEOUT_SECONDS = 10
 
 DEFAULT_PROXY_FIX_TRUSTED_IPS = ("127.0.0.1", "::1")
 
@@ -321,6 +322,10 @@ class Settings(BaseSettings):
     mail_timeout_seconds: int = Field(default=DEFAULT_MAIL_TIMEOUT_SECONDS, validation_alias="MAIL_TIMEOUT_SECONDS")
     mail_from_address: str | None = Field(default=None, validation_alias="MAIL_FROM_ADDRESS")
     mail_from_name: str | None = Field(default=None, validation_alias="MAIL_FROM_NAME")
+    feishu_request_timeout_seconds: int = Field(
+        default=DEFAULT_FEISHU_REQUEST_TIMEOUT_SECONDS,
+        validation_alias="FEISHU_REQUEST_TIMEOUT_SECONDS",
+    )
 
     @field_validator("cache_type")
     @classmethod
@@ -339,8 +344,8 @@ class Settings(BaseSettings):
         "mail_smtp_host",
         "mail_smtp_username",
         "mail_smtp_password",
-        "mail_from_address",
-        "mail_from_name",
+            "mail_from_address",
+            "mail_from_name",
         mode="before",
     )
     @classmethod
@@ -470,6 +475,7 @@ class Settings(BaseSettings):
             "MAIL_TIMEOUT_SECONDS": self.mail_timeout_seconds,
             "MAIL_FROM_ADDRESS": self.mail_from_address,
             "MAIL_FROM_NAME": self.mail_from_name,
+            "FEISHU_REQUEST_TIMEOUT_SECONDS": self.feishu_request_timeout_seconds,
         }
         payload["RATELIMIT_STORAGE_URI"] = (
             self.cache_redis_url if self.cache_type == "redis" and self.cache_redis_url else "memory://"
@@ -634,6 +640,7 @@ class Settings(BaseSettings):
             ("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)", self.db_size_collection_timeout_seconds <= 0),
             ("MAIL_SMTP_PORT 必须为正整数", self.mail_smtp_port <= 0),
             ("MAIL_TIMEOUT_SECONDS 必须为正整数(秒)", self.mail_timeout_seconds <= 0),
+            ("FEISHU_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.feishu_request_timeout_seconds <= 0),
             ("JUMPSERVER_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.jumpserver_request_timeout_seconds <= 0),
             ("VEEAM_PORT 必须为正整数", self.veeam_port <= 0),
             ("VEEAM_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.veeam_request_timeout_seconds <= 0),

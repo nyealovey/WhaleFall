@@ -16,13 +16,34 @@
                 <div class="card-body email-alert-settings-card__body">
                     <form id="email-alert-settings-form" class="email-alert-settings-form">
                         <section class="email-alert-setting-block">
-                            <h3 class="email-alert-setting-block__title">总开关</h3>
+                            <h3 class="email-alert-setting-block__title">投递通道</h3>
                             <label class="email-alert-master-toggle" for="globalEnabled">
                                 <input type="checkbox" id="globalEnabled" class="form-check-input mt-0">
                                 <span class="email-alert-master-toggle__text">
                                     <strong>启用邮件告警</strong>
                                 </span>
                             </label>
+                            <label class="email-alert-master-toggle mt-3" for="feishuEnabled">
+                                <input type="checkbox" id="feishuEnabled" class="form-check-input mt-0">
+                                <span class="email-alert-master-toggle__text">
+                                    <strong>发送到飞书</strong>
+                                </span>
+                            </label>
+                            <div class="mt-3">
+                                <label class="form-label" for="feishuWebhookUrl">飞书机器人 URL</label>
+                                <input
+                                    id="feishuWebhookUrl"
+                                    class="form-control"
+                                    type="password"
+                                    autocomplete="off"
+                                    placeholder="已配置时留空表示不修改"
+                                >
+                                <div class="form-text" id="feishuWebhookUrlStatus">未配置飞书机器人 URL</div>
+                                <label class="form-check mt-2" for="clearFeishuWebhookUrl">
+                                    <input id="clearFeishuWebhookUrl" class="form-check-input" type="checkbox">
+                                    <span class="form-check-label">清空飞书机器人 URL</span>
+                                </label>
+                            </div>
                         </section>
 
                         <section class="email-alert-setting-block">

@@ -22,7 +22,10 @@ _RULE_ITEMS = (
     ("privileged_account_discovery", "新增高权限账户"),
     ("backup_status_issue", "备份告警"),
 )
-_SEND_STEP = ("deliver_digest", "发送汇总邮件")
+_DELIVERY_STEPS = (
+    ("deliver_email_digest", "发送汇总邮件"),
+    ("deliver_feishu_digest", "发送飞书通知"),
+)
 
 
 def _as_int(value: object) -> int:
@@ -80,7 +83,7 @@ def _init_items(task_runs_service: TaskRunsWriteService, run_id: str) -> None:
     items = [
         TaskRunItemInit(item_type="rule", item_key=item_key, item_name=item_name) for item_key, item_name in _RULE_ITEMS
     ]
-    items.append(TaskRunItemInit(item_type="step", item_key=_SEND_STEP[0], item_name=_SEND_STEP[1]))
+    items.extend(TaskRunItemInit(item_type="step", item_key=item_key, item_name=item_name) for item_key, item_name in _DELIVERY_STEPS)
     task_runs_service.init_items(run_id, items=items)
     db.session.commit()
 
@@ -111,7 +114,10 @@ def _complete_rule_items(
 
 
 def _write_send_step(task_runs_service: TaskRunsWriteService, run_id: str, send_step: dict[str, object]) -> None:
-    task_runs_service.start_item(run_id, item_type="step", item_key=_SEND_STEP[0])
+    item_key = str(send_step.get("item_key") or "")
+    if not item_key:
+        return
+    task_runs_service.start_item(run_id, item_type="step", item_key=item_key)
     details_json = {
         "display_state": send_step.get("display_state"),
         "summary": send_step.get("summary"),
@@ -123,7 +129,7 @@ def _write_send_step(task_runs_service: TaskRunsWriteService, run_id: str, send_
         task_runs_service.fail_item(
             run_id,
             item_type="step",
-            item_key=_SEND_STEP[0],
+            item_key=item_key,
             error_message=str(send_step.get("error_message") or send_step.get("summary") or "发送汇总邮件失败"),
             details_json=details_json,
         )
@@ -131,10 +137,17 @@ def _write_send_step(task_runs_service: TaskRunsWriteService, run_id: str, send_
     task_runs_service.complete_item(
         run_id,
         item_type="step",
-        item_key=_SEND_STEP[0],
+        item_key=item_key,
         metrics_json=metrics_json,
         details_json=details_json,
     )
+
+
+def _write_delivery_steps(
+    task_runs_service: TaskRunsWriteService, run_id: str, delivery_steps: list[dict[str, object]]
+) -> None:
+    for send_step in delivery_steps:
+        _write_send_step(task_runs_service, run_id, send_step)
 
 
 def _write_summary(run_id: str, summary: dict[str, Any]) -> None:
@@ -142,11 +155,14 @@ def _write_summary(run_id: str, summary: dict[str, Any]) -> None:
     if current_run is None or current_run.status == "cancelled":
         return
 
+    delivery_steps = [_as_dict(item) for item in summary.get("delivery_steps") or [] if isinstance(item, Mapping)]
+    failed_steps = [step for step in delivery_steps if step.get("status") == "failed"]
+    sent_steps = [step for step in delivery_steps if step.get("display_state") == "sent"]
     send_step = _as_dict(summary.get("send_step"))
-    if send_step.get("status") == "failed":
+    if failed_steps and not sent_steps:
         current_run.status = "failed"
         current_run.error_message = str(
-            send_step.get("error_message") or send_step.get("summary") or "发送汇总邮件失败"
+            failed_steps[0].get("error_message") or failed_steps[0].get("summary") or "发送告警汇总失败"
         )
         current_run.completed_at = time_utils.now()
 
@@ -172,6 +188,7 @@ def _write_summary(run_id: str, summary: dict[str, Any]) -> None:
             "recipient_count": _as_int(summary.get("recipient_count")),
             "rule_results": summary.get("rule_results") or [],
             "send_step": send_step,
+            "delivery_steps": delivery_steps,
         },
     )
 
@@ -195,7 +212,7 @@ def _fail_unexpected(
         task_runs_service.fail_item(
             run_id,
             item_type="step",
-            item_key=_SEND_STEP[0],
+            item_key=_DELIVERY_STEPS[0][0],
             error_message=str(exc),
             details_json={"display_state": "failed", "summary": "发送汇总邮件失败"},
         )
@@ -228,7 +245,7 @@ def email_alert(
             EmailAlertEventService().sync_backup_issue_events_for_active_instances()
             summary = EmailAlertDigestService().send_pending_digest()
             _complete_rule_items(task_runs_service, resolved_run_id, _as_rule_results(summary.get("rule_results")))
-            _write_send_step(task_runs_service, resolved_run_id, _as_dict(summary.get("send_step")))
+            _write_delivery_steps(task_runs_service, resolved_run_id, _as_rule_results(summary.get("delivery_steps")))
             _write_summary(resolved_run_id, summary)
             task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
@@ -250,6 +267,8 @@ def email_alert(
                 "run_id": resolved_run_id,
             }
         else:
-            send_step = _as_dict(summary.get("send_step"))
-            success = str(send_step.get("status") or "completed") != "failed"
+            delivery_steps = [_as_dict(item) for item in summary.get("delivery_steps") or [] if isinstance(item, Mapping)]
+            failed_steps = [step for step in delivery_steps if step.get("status") == "failed"]
+            sent_steps = [step for step in delivery_steps if step.get("display_state") == "sent"]
+            success = not failed_steps or bool(sent_steps)
             return {"success": success, "run_id": resolved_run_id, **summary}

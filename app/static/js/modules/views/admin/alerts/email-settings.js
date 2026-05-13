@@ -15,6 +15,10 @@
     const elements = {
         form: document.getElementById('email-alert-settings-form'),
         globalEnabled: document.getElementById('globalEnabled'),
+        feishuEnabled: document.getElementById('feishuEnabled'),
+        feishuWebhookUrl: document.getElementById('feishuWebhookUrl'),
+        feishuWebhookUrlStatus: document.getElementById('feishuWebhookUrlStatus'),
+        clearFeishuWebhookUrl: document.getElementById('clearFeishuWebhookUrl'),
         recipientsInput: document.getElementById('recipientsInput'),
         databaseCapacityEnabled: document.getElementById('databaseCapacityEnabled'),
         databaseCapacityPercentThreshold: document.getElementById('databaseCapacityPercentThreshold'),
@@ -138,10 +142,26 @@
         });
     }
 
+    function syncFeishuWebhookState(settings) {
+        const maskedUrl = settings?.feishu_webhook_url_masked || '';
+        const configured = Boolean(settings?.feishu_webhook_url_configured);
+        if (elements.feishuWebhookUrlStatus) {
+            elements.feishuWebhookUrlStatus.textContent = configured ? `已配置：${maskedUrl}` : '未配置飞书机器人 URL';
+        }
+        if (elements.feishuWebhookUrl) {
+            elements.feishuWebhookUrl.placeholder = configured ? '已配置，留空表示不修改' : '请输入飞书机器人 URL';
+        }
+    }
+
     function fillForm(data) {
         const settings = data?.settings || {};
 
         elements.globalEnabled.checked = Boolean(settings.global_enabled);
+        elements.feishuEnabled.checked = Boolean(settings.feishu_enabled);
+        elements.feishuWebhookUrl.value = '';
+        elements.clearFeishuWebhookUrl.checked = false;
+        elements.feishuWebhookUrl.disabled = false;
+        syncFeishuWebhookState(settings);
         elements.recipientsInput.value = recipientsToLines(settings.recipients);
         elements.databaseCapacityEnabled.checked = Boolean(settings.database_capacity_enabled);
         elements.databaseCapacityPercentThreshold.value = settings.database_capacity_percent_threshold || 30;
@@ -192,6 +212,9 @@
             database_sync_failure_enabled: elements.databaseSyncFailureEnabled.checked,
             privileged_account_enabled: elements.privilegedAccountEnabled.checked,
             backup_issue_enabled: elements.backupIssueEnabled.checked,
+            feishu_enabled: elements.feishuEnabled.checked,
+            feishu_webhook_url: elements.feishuWebhookUrl.value.trim(),
+            clear_feishu_webhook_url: elements.clearFeishuWebhookUrl.checked,
         };
     }
 
@@ -206,9 +229,9 @@
             }
 
             fillForm(response.data || {});
-            toast?.success?.('邮件告警配置已保存');
+            toast?.success?.('告警配置已保存');
         } catch (error) {
-            toast?.error?.(error?.message || '保存邮件告警配置失败');
+            toast?.error?.(error?.message || '保存告警配置失败');
         } finally {
             stopLoading();
         }
@@ -238,6 +261,7 @@
     function bindLiveState() {
         const stateInputs = [
             elements.globalEnabled,
+            elements.feishuEnabled,
             elements.databaseCapacityEnabled,
             elements.accountSyncFailureEnabled,
             elements.databaseSyncFailureEnabled,
@@ -248,6 +272,11 @@
         stateInputs.forEach((node) => {
             node?.addEventListener('change', syncRuleState);
         });
+        elements.clearFeishuWebhookUrl?.addEventListener('change', () => {
+            if (elements.feishuWebhookUrl) {
+                elements.feishuWebhookUrl.disabled = Boolean(elements.clearFeishuWebhookUrl.checked);
+            }
+        });
     }
 
     elements.form?.addEventListener('submit', handleSubmit);
@@ -255,6 +284,6 @@
     bindLiveState();
     syncRuleState();
     loadSettings().catch((error) => {
-        toast?.error?.(error?.message || '加载邮件告警配置失败');
+        toast?.error?.(error?.message || '加载告警配置失败');
     });
 })(window);

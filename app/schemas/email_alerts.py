@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import Field, field_validator
+from pydantic import model_validator
 
 from app.schemas.base import PayloadSchema
 
@@ -21,6 +22,9 @@ class EmailAlertSettingsPayload(PayloadSchema):
     database_sync_failure_enabled: bool
     privileged_account_enabled: bool
     backup_issue_enabled: bool
+    feishu_enabled: bool = False
+    feishu_webhook_url: str = ""
+    clear_feishu_webhook_url: bool = False
 
     @field_validator("database_capacity_percent_threshold", "database_capacity_absolute_gb_threshold")
     @classmethod
@@ -44,6 +48,21 @@ class EmailAlertSettingsPayload(PayloadSchema):
             if email:
                 normalized.append(email)
         return normalized
+
+    @field_validator("feishu_webhook_url", mode="before")
+    @classmethod
+    def _normalize_feishu_webhook_url(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        if not isinstance(value, str):
+            raise TypeError("feishu_webhook_url 必须为字符串")
+        return value.strip()
+
+    @model_validator(mode="after")
+    def _validate_feishu_webhook_url(self) -> EmailAlertSettingsPayload:
+        if self.feishu_webhook_url and not self.feishu_webhook_url.startswith(("http://", "https://")):
+            raise ValueError("飞书机器人 URL 必须以 http:// 或 https:// 开头")
+        return self
 
 
 class EmailAlertTestPayload(PayloadSchema):

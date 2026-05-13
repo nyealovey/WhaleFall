@@ -42,6 +42,9 @@ AlertSettingsPayloadModel = ns.model(
         "database_sync_failure_enabled": fields.Boolean(required=True),
         "privileged_account_enabled": fields.Boolean(required=True),
         "backup_issue_enabled": fields.Boolean(required=True),
+        "feishu_enabled": fields.Boolean(required=False),
+        "feishu_webhook_url": fields.String(required=False),
+        "clear_feishu_webhook_url": fields.Boolean(required=False),
     },
 )
 
