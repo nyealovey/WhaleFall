@@ -3,25 +3,34 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from flask import current_app
 
-from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
+from app.repositories.email_alerts_repository import EmailAlertsRepository
+
+if TYPE_CHECKING:
+    from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
 
 
 class FeishuSender:
     """使用飞书自定义机器人发送文本通知."""
 
-    def __init__(self, settings_service: EmailAlertSettingsService | None = None) -> None:
-        self._settings_service = settings_service or EmailAlertSettingsService()
+    def __init__(
+        self,
+        settings_service: EmailAlertSettingsService | None = None,
+        repository: EmailAlertsRepository | None = None,
+    ) -> None:
+        self._settings_service = settings_service
+        self._repository = repository or EmailAlertsRepository()
 
     def is_ready(self) -> bool:
-        return bool(self._settings_service.get_feishu_webhook_url())
+        return bool(self._get_saved_webhook_url())
 
-    def send_text(self, *, title: str, text_body: str) -> None:
-        webhook_url = self._settings_service.get_feishu_webhook_url()
+    def send_text(self, *, title: str, text_body: str, webhook_url: str | None = None) -> None:
+        webhook_url = webhook_url or self._get_saved_webhook_url()
         if not webhook_url:
             raise RuntimeError("飞书机器人 URL 未配置")
 
@@ -61,3 +70,12 @@ class FeishuSender:
         if status_code not in {0, "0"}:
             message = payload.get("StatusMessage") or payload.get("msg") or payload.get("message") or "未知错误"
             raise RuntimeError(f"飞书机器人返回失败: {message}")
+
+    def _get_saved_webhook_url(self) -> str:
+        settings_service = self._settings_service
+        if settings_service is None:
+            settings = self._repository.get_settings()
+            if settings is None:
+                return ""
+            return settings.get_feishu_webhook_url()
+        return settings_service.get_feishu_webhook_url()

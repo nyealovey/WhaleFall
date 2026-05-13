@@ -87,6 +87,20 @@ class _StubSender:
         )
 
 
+class _StubFeishuSender:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def send_text(self, *, title: str, text_body: str, webhook_url: str | None = None) -> None:
+        self.calls.append(
+            {
+                "title": title,
+                "text_body": text_body,
+                "webhook_url": webhook_url,
+            },
+        )
+
+
 @pytest.mark.unit
 def test_email_alert_settings_service_send_test_email_uses_given_recipients() -> None:
     sender = _StubSender()
@@ -177,3 +191,58 @@ def test_email_alert_settings_service_encrypts_masks_and_clears_feishu_webhook_u
             },
         )
         assert service.get_feishu_webhook_url() == ""
+
+
+@pytest.mark.unit
+def test_email_alert_settings_service_send_test_feishu_uses_given_webhook_url() -> None:
+    feishu_sender = _StubFeishuSender()
+    service = EmailAlertSettingsService(
+        repository=_StubRepository(),
+        sender=_StubSender(),
+        feishu_sender=feishu_sender,
+    )
+    app = create_app(init_scheduler_on_start=False, settings=Settings.load())
+    webhook_url = "https://open.feishu.cn/open-apis/bot/v2/hook/typed-token"
+
+    with app.app_context():
+        result = service.send_test_feishu(webhook_url=webhook_url)
+
+    assert result["sent"] is True
+    assert result["webhook_url_configured"] is True
+    assert feishu_sender.calls
+    assert feishu_sender.calls[0]["webhook_url"] == webhook_url
+    assert "飞书测试" in str(feishu_sender.calls[0]["title"])
+
+
+@pytest.mark.unit
+def test_email_alert_settings_service_send_test_feishu_uses_saved_webhook_url_when_input_empty() -> None:
+    repository = _StubRepository()
+    saved_webhook_url = "https://open.feishu.cn/open-apis/bot/v2/hook/saved-token"
+    feishu_sender = _StubFeishuSender()
+    service = EmailAlertSettingsService(
+        repository=repository,
+        sender=_StubSender(),
+        feishu_sender=feishu_sender,
+    )
+    app = create_app(init_scheduler_on_start=False, settings=Settings.load())
+
+    with app.app_context():
+        repository.settings.set_feishu_webhook_url(saved_webhook_url)
+        result = service.send_test_feishu(webhook_url="")
+
+    assert result["sent"] is True
+    assert result["webhook_url_configured"] is True
+    assert feishu_sender.calls[0]["webhook_url"] is None
+
+
+@pytest.mark.unit
+def test_email_alert_settings_service_send_test_feishu_requires_webhook_url() -> None:
+    service = EmailAlertSettingsService(
+        repository=_StubRepository(),
+        sender=_StubSender(),
+        feishu_sender=_StubFeishuSender(),
+    )
+    app = create_app(init_scheduler_on_start=False, settings=Settings.load())
+
+    with app.app_context(), pytest.raises(Exception, match="飞书机器人 URL"):
+        service.send_test_feishu(webhook_url="")

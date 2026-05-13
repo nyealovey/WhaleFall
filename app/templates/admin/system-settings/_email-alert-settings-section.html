@@ -4,6 +4,7 @@
     class="email-alert-settings-page"
     data-api-url="/api/v1/alerts/email-settings"
     data-test-api-url="/api/v1/alerts/email-settings/actions/send-test"
+    data-feishu-test-api-url="/api/v1/alerts/email-settings/actions/send-feishu-test"
 >
     <div class="email-alert-settings-layout">
         <div class="email-alert-settings-column email-alert-settings-column--delivery">
@@ -62,6 +63,9 @@
                             <div class="email-alert-actions">
                                 <button id="sendTestEmailBtn" class="btn btn-outline-secondary" type="button">
                                     <i class="fas fa-paper-plane me-2"></i>发送测试邮件
+                                </button>
+                                <button id="sendTestFeishuBtn" class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-comment-dots me-2"></i>发送飞书测试
                                 </button>
                                 <button id="saveEmailAlertSettingsBtn" class="btn btn-primary" type="submit">
                                     <i class="fas fa-save me-2"></i>保存配置

@@ -11,6 +11,7 @@ from app.core.exceptions import ValidationError
 from app.models.email_alert_setting import EmailAlertSetting
 from app.repositories.email_alerts_repository import EmailAlertsRepository
 from app.services.alerts.email_sender import EmailSender
+from app.services.alerts.feishu_sender import FeishuSender
 from app.utils.time_utils import time_utils
 
 
@@ -21,9 +22,13 @@ class EmailAlertSettingsService:
         self,
         repository: EmailAlertsRepository | Any | None = None,
         sender: EmailSender | Any | None = None,
+        feishu_sender: Any | None = None,
     ) -> None:
         self._repository = repository or EmailAlertsRepository()
         self._sender = sender or EmailSender()
+        if feishu_sender is None:
+            feishu_sender = FeishuSender(settings_service=self)
+        self._feishu_sender = feishu_sender
 
     @staticmethod
     def _build_default_settings() -> EmailAlertSetting:
@@ -116,6 +121,32 @@ class EmailAlertSettingsService:
             "sent": True,
             "recipient_count": len(normalized_recipients),
             "recipients": normalized_recipients,
+        }
+
+    def send_test_feishu(self, *, webhook_url: str = "") -> dict[str, object]:
+        normalized_webhook_url = webhook_url.strip()
+        saved_webhook_url = self.get_feishu_webhook_url()
+        if not normalized_webhook_url and not saved_webhook_url:
+            raise ValidationError("飞书机器人 URL 未配置，无法发送测试消息")
+
+        now = time_utils.now_china()
+        title = f"WhaleFall 飞书测试 - {now.strftime('%Y-%m-%d %H:%M:%S')}"
+        body = "\n".join(
+            [
+                "这是一条来自 WhaleFall 的飞书测试消息。",
+                "",
+                f"发送时间: {now.strftime('%Y-%m-%d %H:%M:%S')} (Asia/Shanghai)",
+                f"应用: {current_app.config.get('APP_NAME') or 'WhaleFall'}",
+            ],
+        )
+        self._feishu_sender.send_text(
+            title=title,
+            text_body=body,
+            webhook_url=normalized_webhook_url or None,
+        )
+        return {
+            "sent": True,
+            "webhook_url_configured": True,
         }
 
     @staticmethod

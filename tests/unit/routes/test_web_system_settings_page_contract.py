@@ -24,13 +24,16 @@ def test_web_system_settings_page_renders_aggregated_sections(auth_client) -> No
     assert 'id="jumpserver-source-page"' in html
     assert 'id="veeam-source-page"' in html
     assert "/api/v1/alerts/email-settings" in html
+    assert "/api/v1/alerts/email-settings/actions/send-feishu-test" in html
     assert "/api/v1/integrations/jumpserver/source" in html
     assert "/api/v1/integrations/veeam/source" in html
     assert "发送测试邮件" in html
+    assert "发送飞书测试" in html
     assert "备份告警" in html
     assert 'id="feishuEnabled"' in html
     assert 'id="feishuWebhookUrl"' in html
     assert 'id="clearFeishuWebhookUrl"' in html
+    assert 'id="sendTestFeishuBtn"' in html
     assert "同步 JumpServer 资源" in html
     assert "同步 Veeam 备份" in html
     assert 'id="backupIssueEnabled"' in html

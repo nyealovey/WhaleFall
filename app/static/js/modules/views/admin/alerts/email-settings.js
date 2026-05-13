@@ -7,8 +7,9 @@
     const toast = global.toast;
     const apiUrl = pageRoot.dataset.apiUrl;
     const testApiUrl = pageRoot.dataset.testApiUrl;
+    const feishuTestApiUrl = pageRoot.dataset.feishuTestApiUrl;
     const csrfToken = document.getElementById('email-alert-csrf-token')?.value || '';
-    const service = new global.EmailAlertSettingsService(apiUrl, testApiUrl);
+    const service = new global.EmailAlertSettingsService(apiUrl, testApiUrl, feishuTestApiUrl);
     const setButtonLoading = global.UI?.setButtonLoading;
     const clearButtonLoading = global.UI?.clearButtonLoading;
 
@@ -28,6 +29,7 @@
         privilegedAccountEnabled: document.getElementById('privilegedAccountEnabled'),
         backupIssueEnabled: document.getElementById('backupIssueEnabled'),
         sendTestButton: document.getElementById('sendTestEmailBtn'),
+        sendTestFeishuButton: document.getElementById('sendTestFeishuBtn'),
         saveButton: document.getElementById('saveEmailAlertSettingsBtn'),
     };
 
@@ -258,6 +260,27 @@
         }
     }
 
+    async function handleSendTestFeishu() {
+        const stopLoading = startButtonLoading(elements.sendTestFeishuButton, '发送中...');
+
+        try {
+            const response = await service.sendFeishuTest(
+                {
+                    feishu_webhook_url: elements.feishuWebhookUrl.value.trim(),
+                },
+                csrfToken,
+            );
+            if (!response?.success) {
+                throw new Error(response?.message || '发送飞书测试消息失败');
+            }
+            toast?.success?.('飞书测试消息已发送');
+        } catch (error) {
+            toast?.error?.(error?.message || '发送飞书测试消息失败');
+        } finally {
+            stopLoading();
+        }
+    }
+
     function bindLiveState() {
         const stateInputs = [
             elements.globalEnabled,
@@ -281,6 +304,7 @@
 
     elements.form?.addEventListener('submit', handleSubmit);
     elements.sendTestButton?.addEventListener('click', handleSendTestEmail);
+    elements.sendTestFeishuButton?.addEventListener('click', handleSendTestFeishu);
     bindLiveState();
     syncRuleState();
     loadSettings().catch((error) => {

@@ -1,8 +1,9 @@
 (function initEmailAlertSettingsService(global) {
     class EmailAlertSettingsService {
-        constructor(apiUrl, testApiUrl) {
+        constructor(apiUrl, testApiUrl, feishuTestApiUrl) {
             this.apiUrl = apiUrl;
             this.testApiUrl = testApiUrl;
+            this.feishuTestApiUrl = feishuTestApiUrl;
         }
 
         async load() {
@@ -30,6 +31,20 @@
 
         async sendTest(payload, csrfToken) {
             const response = await fetch(this.testApiUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify(payload),
+            });
+            return response.json();
+        }
+
+        async sendFeishuTest(payload, csrfToken) {
+            const response = await fetch(this.feishuTestApiUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
