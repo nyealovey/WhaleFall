@@ -136,6 +136,126 @@ def test_api_v1_veeam_source_bind_and_unbind_contract() -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_veeam_sources_crud_contract() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["credentials"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        credential_a = Credential(
+            name="veeam-admin-a",
+            credential_type="veeam",
+            username="backup-admin-a",
+            password="VeeamPass123",
+            is_active=True,
+        )
+        credential_b = Credential(
+            name="veeam-admin-b",
+            credential_type="veeam",
+            username="backup-admin-b",
+            password="VeeamPass123",
+            is_active=True,
+        )
+        db.session.add_all([user, credential_a, credential_b])
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        csrf_response = client.get("/api/v1/auth/csrf-token")
+        assert csrf_response.status_code == 200
+        csrf_token = csrf_response.get_json().get("data", {}).get("csrf_token")
+        assert isinstance(csrf_token, str)
+
+        create_a = client.post(
+            "/api/v1/integrations/veeam/sources",
+            json={
+                "name": "Veeam A",
+                "credential_id": credential_a.id,
+                "server_host": "10.0.0.10",
+                "server_port": 9419,
+                "api_version": "1.3-rev1",
+                "verify_ssl": False,
+                "match_domains": ["domain.com"],
+            },
+            headers={"X-CSRFToken": csrf_token},
+        )
+        assert create_a.status_code == 200
+        source_a = create_a.get_json().get("data", {}).get("source")
+        assert source_a["name"] == "Veeam A"
+        assert source_a["credential_id"] == credential_a.id
+
+        create_b = client.post(
+            "/api/v1/integrations/veeam/sources",
+            json={
+                "name": "Veeam B",
+                "credential_id": credential_b.id,
+                "server_host": "10.0.0.11",
+                "server_port": 9419,
+                "api_version": "1.3-rev1",
+                "verify_ssl": True,
+                "match_domains": ["corp.local"],
+            },
+            headers={"X-CSRFToken": csrf_token},
+        )
+        assert create_b.status_code == 200
+        source_b = create_b.get_json().get("data", {}).get("source")
+
+        list_response = client.get("/api/v1/integrations/veeam/sources")
+        assert list_response.status_code == 200
+        sources = list_response.get_json().get("data", {}).get("sources")
+        assert [source["name"] for source in sources] == ["Veeam A", "Veeam B"]
+
+        update_response = client.put(
+            f"/api/v1/integrations/veeam/sources/{source_b['id']}",
+            json={
+                "name": "Veeam B Updated",
+                "credential_id": credential_b.id,
+                "server_host": "10.0.0.12",
+                "server_port": 9419,
+                "api_version": "1.3-rev2",
+                "verify_ssl": False,
+                "match_domains": ["corp.local", "db.local"],
+            },
+            headers={"X-CSRFToken": csrf_token},
+        )
+        assert update_response.status_code == 200
+        updated = update_response.get_json().get("data", {}).get("source")
+        assert updated["name"] == "Veeam B Updated"
+        assert updated["server_host"] == "10.0.0.12"
+        assert updated["match_domains"] == ["corp.local", "db.local"]
+
+        disable_response = client.post(
+            f"/api/v1/integrations/veeam/sources/{source_a['id']}/actions/disable",
+            json={},
+            headers={"X-CSRFToken": csrf_token},
+        )
+        assert disable_response.status_code == 200
+        assert disable_response.get_json().get("data", {}).get("source", {}).get("is_enabled") is False
+
+        delete_response = client.delete(
+            f"/api/v1/integrations/veeam/sources/{source_b['id']}",
+            headers={"X-CSRFToken": csrf_token},
+        )
+        assert delete_response.status_code == 200
+
+        list_after_delete = client.get("/api/v1/integrations/veeam/sources")
+        sources_after_delete = list_after_delete.get_json().get("data", {}).get("sources")
+        assert [source["id"] for source in sources_after_delete] == [source_a["id"]]
+
+
+@pytest.mark.unit
 def test_api_v1_veeam_sync_action_contract(monkeypatch) -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
@@ -262,3 +382,72 @@ def test_api_v1_veeam_single_instance_sync_delegates_to_actions_service(monkeypa
         assert payload.get("message") == "实例 db01 备份同步成功"
         assert payload.get("data", {}).get("matched") is True
         assert payload.get("data", {}).get("backup_info") == {"machine_name": "db01.domain.com"}
+
+
+@pytest.mark.unit
+def test_api_v1_veeam_source_instance_sync_passes_source_id(monkeypatch) -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        instance = Instance(
+            name="db01",
+            db_type="mysql",
+            host="10.0.0.1",
+            port=3306,
+            is_active=True,
+        )
+        db.session.add_all([user, instance])
+        db.session.commit()
+
+        captured: dict[str, object] = {}
+
+        def _fake_sync(
+            self,
+            *,
+            instance_id: int,
+            created_by: int | None,
+            source_binding_id: int | None = None,
+        ) -> VeeamInstanceSyncResult:
+            del self
+            captured["instance_id"] = instance_id
+            captured["created_by"] = created_by
+            captured["source_binding_id"] = source_binding_id
+            return VeeamInstanceSyncResult(
+                data={
+                    "instance_id": instance_id,
+                    "instance_name": "db01",
+                    "backup_info": {"source_binding_id": source_binding_id},
+                    "matched": True,
+                },
+                message="实例 db01 备份同步成功",
+            )
+
+        monkeypatch.setattr("app.api.v1.namespaces.veeam.VeeamSyncActionsService.sync_instance_now", _fake_sync)
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        csrf_response = client.get("/api/v1/auth/csrf-token")
+        assert csrf_response.status_code == 200
+        csrf_token = csrf_response.get_json().get("data", {}).get("csrf_token")
+        assert isinstance(csrf_token, str)
+
+        response = client.post(
+            f"/api/v1/integrations/veeam/sources/42/instances/{instance.id}/actions/sync",
+            json={},
+            headers={"X-CSRFToken": csrf_token},
+        )
+
+        assert response.status_code == 200
+        assert captured == {"instance_id": instance.id, "created_by": user.id, "source_binding_id": 42}

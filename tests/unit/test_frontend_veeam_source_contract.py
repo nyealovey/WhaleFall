@@ -15,6 +15,8 @@ def test_veeam_source_template_contract() -> None:
     template_fragments = (
         'id="veeam-source-page"',
         'data-api-url="/api/v1/integrations/veeam/source"',
+        'data-sources-api-url="/api/v1/integrations/veeam/sources"',
+        'id="veeamSourceName"',
         'id="veeamCredentialId"',
         'id="veeamServerHost"',
         'id="veeamServerPort"',
@@ -23,8 +25,10 @@ def test_veeam_source_template_contract() -> None:
         'id="veeamMatchDomains"',
         'id="saveVeeamSourceBtn"',
         'id="syncVeeamBackupsBtn"',
+        'id="veeamSourcesList"',
         "Veeam IP",
         "域名列表",
+        "数据源列表",
         "同步 Veeam 备份",
     )
     for fragment in template_fragments:
@@ -45,6 +49,12 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
 
     source_fragments = (
         "function mountVeeamSourcePage",
+        "createSource",
+        "updateSource",
+        "deleteSource",
+        "setSourceEnabled",
+        "veeamSourcesList",
+        "data-veeam-source-action",
         "veeamMatchDomains",
         "linesToDomains",
         "saveVeeamSourceBtn",

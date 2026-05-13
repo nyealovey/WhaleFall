@@ -47,19 +47,21 @@ def test_api_v1_instance_backup_info_contract() -> None:
         )
         db.session.add_all([instance, credential])
         db.session.flush()
-        db.session.add(
-            VeeamSourceBinding(
-                credential_id=credential.id,
-                server_host="10.0.0.10",
-                server_port=9419,
-                api_version="1.3-rev1",
-                verify_ssl=True,
-                match_domains=["domain.com"],
-                last_sync_at=time_utils.now(),
-            )
+        source = VeeamSourceBinding(
+            name="生产 Veeam",
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=True,
+            match_domains=["domain.com"],
+            last_sync_at=time_utils.now(),
         )
+        db.session.add(source)
+        db.session.flush()
         db.session.add(
             VeeamMachineBackupSnapshot(
+                source_binding_id=source.id,
                 machine_name="db01.domain.com",
                 normalized_machine_name="db01.domain.com",
                 latest_backup_at=time_utils.now(),
@@ -121,6 +123,9 @@ def test_api_v1_instance_backup_info_contract() -> None:
         assert data.get("instance_id") == instance.id
         assert data.get("backup_status") == "backed_up"
         assert data.get("matched_machine_name") == "db01.domain.com"
+        assert data.get("source_binding_id") == source.id
+        assert data.get("source_name") == "生产 Veeam"
+        assert data.get("source_server_host") == "10.0.0.10"
         assert data.get("job_name") == "daily-job"
         assert data.get("restore_point_name") == "rp-2"
         assert data.get("restore_point_size_bytes") == 1024

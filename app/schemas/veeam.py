@@ -18,12 +18,25 @@ def _normalize_domain(value: str) -> str:
 class VeeamSourceBindingPayload(PayloadSchema):
     """Veeam 数据源绑定 payload."""
 
+    name: str | None = None
     credential_id: int
     server_host: str
     server_port: int
     api_version: str
     verify_ssl: bool | None = None
     match_domains: list[str] = Field(default_factory=list)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _parse_name(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        resolved = str(value).strip()
+        if not resolved:
+            return None
+        if len(resolved) > 128:
+            raise ValueError("name长度不能超过128个字符")
+        return resolved
 
     @field_validator("credential_id", mode="before")
     @classmethod

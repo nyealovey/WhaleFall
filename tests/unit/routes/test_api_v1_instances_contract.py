@@ -162,18 +162,19 @@ def test_api_v1_instances_list_marks_backup_status_via_instance_name_and_domains
         )
         db.session.add_all([instance, credential])
         db.session.flush()
-        db.session.add(
-            VeeamSourceBinding(
-                credential_id=credential.id,
-                server_host="10.0.0.10",
-                server_port=9419,
-                api_version="1.3-rev1",
-                verify_ssl=True,
-                match_domains=["domain.com"],
-            )
+        source = VeeamSourceBinding(
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=True,
+            match_domains=["domain.com"],
         )
+        db.session.add(source)
+        db.session.flush()
         db.session.add(
             VeeamMachineBackupSnapshot(
+                source_binding_id=source.id,
                 machine_name="db01.domain.com",
                 normalized_machine_name="db01.domain.com",
                 latest_backup_at=datetime.now(UTC),
@@ -252,15 +253,36 @@ def test_api_v1_instances_list_filters_by_backup_status() -> None:
         db.session.add_all([backed_up, backup_stale, not_backed_up])
         db.session.flush()
 
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            is_active=True,
+        )
+        db.session.add(credential)
+        db.session.flush()
+        source = VeeamSourceBinding(
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=True,
+            match_domains=[],
+        )
+        db.session.add(source)
+        db.session.flush()
         db.session.add_all(
             [
                 VeeamMachineBackupSnapshot(
+                    source_binding_id=source.id,
                     machine_name="backup-fresh",
                     normalized_machine_name="backup-fresh",
                     latest_backup_at=datetime.now(UTC),
                     raw_payload={},
                 ),
                 VeeamMachineBackupSnapshot(
+                    source_binding_id=source.id,
                     machine_name="backup-stale",
                     normalized_machine_name="backup-stale",
                     latest_backup_at=datetime.now(UTC) - timedelta(days=2),
