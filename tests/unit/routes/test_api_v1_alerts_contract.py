@@ -56,6 +56,16 @@ def test_api_v1_alerts_requires_auth(client) -> None:
     assert isinstance(test_payload, dict)
     assert test_payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
+    feishu_test_response = client.post(
+        "/api/v1/alerts/email-settings/actions/send-feishu-test",
+        json={"feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/test-token"},
+        headers=headers,
+    )
+    assert feishu_test_response.status_code == 401
+    feishu_test_payload = feishu_test_response.get_json()
+    assert isinstance(feishu_test_payload, dict)
+    assert feishu_test_payload.get("message_code") == "AUTHENTICATION_REQUIRED"
+
 
 @pytest.mark.unit
 def test_api_v1_alerts_email_settings_contract(app, auth_client) -> None:
@@ -156,3 +166,38 @@ def test_api_v1_alerts_send_test_email_contract(app, auth_client, monkeypatch) -
     assert data.get("recipient_count") == 2
     assert data.get("recipients") == ["ops@example.com", "dba@example.com"]
     assert sent_payloads == [{"recipients": ["ops@example.com", "dba@example.com"]}]
+
+
+@pytest.mark.unit
+def test_api_v1_alerts_send_feishu_test_contract(app, auth_client, monkeypatch) -> None:
+    _ensure_alert_tables(app)
+
+    sent_payloads: list[dict[str, object]] = []
+
+    class _StubEmailAlertSettingsService:
+        def send_test_feishu(self, *, webhook_url: str = "") -> dict[str, object]:
+            sent_payloads.append({"webhook_url": webhook_url})
+            return {
+                "sent": True,
+                "webhook_url_configured": True,
+            }
+
+    monkeypatch.setattr(alerts_module, "EmailAlertSettingsService", _StubEmailAlertSettingsService)
+
+    csrf_token = _get_csrf_token(auth_client)
+    headers = {"X-CSRFToken": csrf_token}
+
+    response = auth_client.post(
+        "/api/v1/alerts/email-settings/actions/send-feishu-test",
+        json={"feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/test-token"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert data.get("sent") is True
+    assert data.get("webhook_url_configured") is True
+    assert sent_payloads == [{"webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/test-token"}]

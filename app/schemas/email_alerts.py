@@ -81,3 +81,20 @@ class EmailAlertTestPayload(PayloadSchema):
         if not value:
             raise ValueError("测试邮件至少需要一个收件人")
         return value
+
+
+class FeishuAlertTestPayload(PayloadSchema):
+    """测试飞书发送 payload."""
+
+    feishu_webhook_url: str = ""
+
+    @field_validator("feishu_webhook_url", mode="before")
+    @classmethod
+    def _normalize_feishu_webhook_url(cls, value: Any) -> str:
+        return EmailAlertSettingsPayload._normalize_feishu_webhook_url(value)
+
+    @model_validator(mode="after")
+    def _validate_feishu_webhook_url(self) -> FeishuAlertTestPayload:
+        if self.feishu_webhook_url and not self.feishu_webhook_url.startswith(("http://", "https://")):
+            raise ValueError("飞书机器人 URL 必须以 http:// 或 https:// 开头")
+        return self
