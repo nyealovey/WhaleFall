@@ -52,7 +52,7 @@ VeeamSourceBindingPayloadModel = ns.model(
         "credential_id": fields.Integer(required=True, description="Veeam 凭据 ID", example=1),
         "server_host": fields.String(required=True, description="Veeam 服务器 IP/主机名", example="10.0.0.10"),
         "server_port": fields.Integer(required=True, description="Veeam 服务器端口", example=9419),
-        "api_version": fields.String(required=True, description="Veeam API 版本", example="v1.2-rev0"),
+        "api_version": fields.String(required=True, description="Veeam API 版本", example="1.2-rev0"),
         "verify_ssl": fields.Boolean(required=False, description="是否校验 Veeam HTTPS 证书", example=False),
         "match_domains": fields.List(
             fields.String,

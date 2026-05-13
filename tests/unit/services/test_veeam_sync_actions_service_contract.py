@@ -38,12 +38,14 @@ def test_prepare_background_sync_uses_system_settings_anchor(monkeypatch) -> Non
         id = 21
 
     class _StubBinding:
+        id = 11
+        name = "默认 Veeam"
         credential_id = 21
         credential = _StubCredential()
 
-    class _StubSourceService:
-        def get_binding_or_error(self) -> _StubBinding:
-            return _StubBinding()
+    class _StubRepository:
+        def list_enabled_bindings(self) -> list[_StubBinding]:
+            return [_StubBinding()]
 
     def _fake_start_run(
         _self: TaskRunsWriteService,
@@ -69,7 +71,7 @@ def test_prepare_background_sync_uses_system_settings_anchor(monkeypatch) -> Non
     monkeypatch.setattr(TaskRunsWriteService, "init_items", _fake_init_items, raising=True)
 
     service = VeeamSyncActionsService(
-        source_service=_StubSourceService(),
+        veeam_repository=cast(Any, _StubRepository()),
         provider=_StubProvider(),
     )
 
@@ -131,6 +133,8 @@ def test_sync_once_iterates_enabled_sources(monkeypatch) -> None:
             tables=[
                 db.metadata.tables["credentials"],
                 db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
             ],
         )
 
@@ -175,17 +179,380 @@ def test_sync_once_iterates_enabled_sources(monkeypatch) -> None:
 
         synced_source_ids: list[int] = []
 
-        def _fake_sync_source_once(self, *, created_by: int | None, run_id: str, binding: VeeamSourceBinding) -> None:
+        run_id = TaskRunsWriteService().start_run(
+            task_key="sync_veeam_backups",
+            task_name="Veeam 备份同步",
+            task_category="other",
+            trigger_source="manual",
+        )
+        db.session.commit()
+
+        def _fake_sync_source_once(
+            self,
+            *,
+            created_by: int | None,
+            run_id: str,
+            binding: VeeamSourceBinding,
+            stage_key_prefix: str = "",
+            finalize_run: bool = True,
+        ) -> int:
             del self
+            _ = (stage_key_prefix, finalize_run)
             assert created_by == 7
-            assert run_id == "run-multi"
+            assert run_id == run_id
             synced_source_ids.append(int(binding.id))
+            return 0
 
         monkeypatch.setattr(VeeamSyncActionsService, "_sync_source_once", _fake_sync_source_once, raising=True)
 
-        VeeamSyncActionsService()._sync_once(created_by=7, run_id="run-multi")
+        VeeamSyncActionsService()._sync_once(created_by=7, run_id=run_id)
 
         assert synced_source_ids == [enabled_a.id, enabled_b.id]
+
+
+@pytest.mark.unit
+def test_prepare_background_sync_initializes_source_scoped_items_for_multiple_sources(monkeypatch) -> None:
+    captured_items: list[tuple[str, str, str]] = []
+
+    class _StubProvider:
+        def is_configured(self) -> bool:
+            return True
+
+    class _StubCredential:
+        id = 21
+
+    class _StubBinding:
+        def __init__(self, binding_id: int, name: str) -> None:
+            self.id = binding_id
+            self.name = name
+            self.credential_id = 21
+            self.credential = _StubCredential()
+
+    class _StubRepository:
+        def list_enabled_bindings(self) -> list[_StubBinding]:
+            return [_StubBinding(11, "生产 Veeam"), _StubBinding(12, "容灾 Veeam")]
+
+    def _fake_start_run(
+        _self: TaskRunsWriteService,
+        *,
+        task_key: str,
+        task_name: str,
+        task_category: str,
+        trigger_source: str,
+        created_by: int | None = None,
+        summary_json: dict[str, object] | None = None,
+        result_url: str | None = None,
+    ) -> str:
+        _ = (task_key, task_name, task_category, trigger_source, created_by, summary_json, result_url)
+        return "run-veeam-multi"
+
+    def _fake_init_items(_self: TaskRunsWriteService, run_id: str, *, items) -> None:
+        assert run_id == "run-veeam-multi"
+        captured_items.extend((item.item_type, item.item_key, item.item_name) for item in items)
+
+    monkeypatch.setattr(TaskRunsWriteService, "start_run", _fake_start_run, raising=True)
+    monkeypatch.setattr(TaskRunsWriteService, "init_items", _fake_init_items, raising=True)
+
+    service = VeeamSyncActionsService(
+        veeam_repository=cast(Any, _StubRepository()),
+        provider=_StubProvider(),
+    )
+
+    prepared = service.prepare_background_sync(created_by=1)
+
+    assert prepared.run_id == "run-veeam-multi"
+    assert captured_items == [
+        ("step", "veeam_source_11_fetch_backup_objects", "生产 Veeam / 获取 backupObjects"),
+        ("step", "veeam_source_11_match_backup_objects", "生产 Veeam / 匹配目标备份对象"),
+        ("step", "veeam_source_11_fetch_restore_points", "生产 Veeam / 拉取 restorePoints"),
+        ("step", "veeam_source_11_fetch_backup_files", "生产 Veeam / 拉取 backupFiles"),
+        ("step", "veeam_source_11_write_snapshots", "生产 Veeam / 写入快照"),
+        ("step", "veeam_source_12_fetch_backup_objects", "容灾 Veeam / 获取 backupObjects"),
+        ("step", "veeam_source_12_match_backup_objects", "容灾 Veeam / 匹配目标备份对象"),
+        ("step", "veeam_source_12_fetch_restore_points", "容灾 Veeam / 拉取 restorePoints"),
+        ("step", "veeam_source_12_fetch_backup_files", "容灾 Veeam / 拉取 backupFiles"),
+        ("step", "veeam_source_12_write_snapshots", "容灾 Veeam / 写入快照"),
+    ]
+
+
+@pytest.mark.unit
+def test_sync_once_completes_partial_success_with_source_scoped_items() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
+            ],
+        )
+
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            is_active=True,
+        )
+        instance = Instance(
+            name="db01",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            is_active=True,
+        )
+        db.session.add_all([credential, instance])
+        db.session.flush()
+        failed_source = VeeamSourceBinding(
+            name="失败 Veeam",
+            credential_id=credential.id,
+            server_host="10.0.0.11",
+            server_port=9419,
+            api_version="1.2-rev0",
+            verify_ssl=False,
+            match_domains=["domain.com"],
+            is_enabled=True,
+        )
+        success_source = VeeamSourceBinding(
+            name="成功 Veeam",
+            credential_id=credential.id,
+            server_host="10.0.0.12",
+            server_port=9419,
+            api_version="1.2-rev0",
+            verify_ssl=False,
+            match_domains=["domain.com"],
+            is_enabled=True,
+        )
+        disabled_source = VeeamSourceBinding(
+            name="停用 Veeam",
+            credential_id=credential.id,
+            server_host="10.0.0.13",
+            server_port=9419,
+            api_version="1.2-rev0",
+            verify_ssl=False,
+            is_enabled=False,
+        )
+        db.session.add_all([failed_source, success_source, disabled_source])
+        db.session.commit()
+
+        class _StubProvider:
+            def is_configured(self) -> bool:
+                return True
+
+            def create_session(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                verify_ssl: bool | None = None,
+            ) -> str:
+                _ = (server_port, username, password, api_version, verify_ssl)
+                return server_host
+
+            def fetch_backup_objects(self, *, session: str) -> list[dict[str, object]]:
+                if session == "10.0.0.11":
+                    raise RuntimeError("token eof")
+                return [{"id": "backup-1", "name": "db01.domain.com"}]
+
+            def match_backup_objects(
+                self,
+                *,
+                backup_items: list[dict[str, object]],
+                match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
+            ) -> VeeamBackupObjectMatchResult:
+                _ = (backup_items, match_machine_names, match_machine_ips)
+                return VeeamBackupObjectMatchResult(
+                    matched_backup_objects=[
+                        VeeamMatchedBackupObject(
+                            backup_object_id="backup-1",
+                            machine_name="db01.domain.com",
+                            backup_item={"id": "backup-1", "name": "db01.domain.com"},
+                        )
+                    ],
+                    backups_received_total=1,
+                    backups_matched_total=1,
+                    backups_unmatched_total=0,
+                    backups_missing_machine_name=0,
+                    matched_backup_ids_sample=["backup-1"],
+                )
+
+            def fetch_restore_point_records(
+                self,
+                *,
+                session: str,
+                match_result: VeeamBackupObjectMatchResult,
+            ) -> VeeamMachineBackupCollection:
+                _ = (session, match_result)
+                record = VeeamMachineBackupRecord(
+                    machine_name="db01.domain.com",
+                    backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                    backup_id="backup-1",
+                    backup_file_id="file-1",
+                    restore_point_name="rp-1",
+                    source_record_id="rp-1",
+                    raw_payload={"id": "rp-1"},
+                )
+                return VeeamMachineBackupCollection(
+                    records=[record],
+                    received_total=1,
+                    snapshots_written_total=1,
+                    skipped_invalid=0,
+                    backups_received_total=1,
+                    backups_matched_total=1,
+                    backups_unmatched_total=0,
+                    backups_missing_machine_name=0,
+                    restore_points_backup_objects_total=1,
+                    restore_points_backup_objects_completed=1,
+                )
+
+            def fetch_backup_file_records(self, *, session: str, backup_ids: list[str]) -> VeeamBackupFileCollection:
+                _ = (session, backup_ids)
+                return VeeamBackupFileCollection(
+                    records=[],
+                    received_total=0,
+                    backup_ids_total=1,
+                    backup_ids_completed=1,
+                )
+
+        service = VeeamSyncActionsService(provider=_StubProvider())
+        prepared = service.prepare_background_sync(created_by=1)
+        db.session.commit()
+
+        service._sync_once(created_by=1, run_id=prepared.run_id)
+        db.session.commit()
+
+        run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
+        assert run is not None
+        assert run.status == "completed"
+        assert run.summary_json["ext"]["data"]["partial_success"] is True
+        assert run.summary_json["ext"]["data"]["sources"] == [
+            {
+                "source_binding_id": failed_source.id,
+                "source_name": "失败 Veeam",
+                "status": "failed",
+                "snapshots_written_total": 0,
+                "error_message": "token eof",
+            },
+            {
+                "source_binding_id": success_source.id,
+                "source_name": "成功 Veeam",
+                "status": "completed",
+                "snapshots_written_total": 1,
+                "error_message": None,
+            },
+        ]
+
+        items = {
+            item.item_key: item for item in TaskRunItem.query.filter_by(run_id=prepared.run_id, item_type="step").all()
+        }
+        assert set(items) == {
+            f"veeam_source_{failed_source.id}_fetch_backup_objects",
+            f"veeam_source_{failed_source.id}_match_backup_objects",
+            f"veeam_source_{failed_source.id}_fetch_restore_points",
+            f"veeam_source_{failed_source.id}_fetch_backup_files",
+            f"veeam_source_{failed_source.id}_write_snapshots",
+            f"veeam_source_{success_source.id}_fetch_backup_objects",
+            f"veeam_source_{success_source.id}_match_backup_objects",
+            f"veeam_source_{success_source.id}_fetch_restore_points",
+            f"veeam_source_{success_source.id}_fetch_backup_files",
+            f"veeam_source_{success_source.id}_write_snapshots",
+        }
+        assert items[f"veeam_source_{failed_source.id}_fetch_backup_objects"].status == "failed"
+        assert items[f"veeam_source_{failed_source.id}_match_backup_objects"].status == "cancelled"
+        assert items[f"veeam_source_{success_source.id}_fetch_backup_objects"].status == "completed"
+        assert items[f"veeam_source_{success_source.id}_write_snapshots"].status == "completed"
+        assert items[f"veeam_source_{success_source.id}_fetch_backup_objects"].item_name == "成功 Veeam / 获取 backupObjects"
+
+
+@pytest.mark.unit
+def test_sync_once_raises_first_error_when_all_sources_fail() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
+            ],
+        )
+
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            is_active=True,
+        )
+        db.session.add(credential)
+        db.session.flush()
+        source_a = VeeamSourceBinding(
+            name="Veeam A",
+            credential_id=credential.id,
+            server_host="10.0.0.11",
+            server_port=9419,
+            api_version="1.2-rev0",
+            verify_ssl=False,
+            is_enabled=True,
+        )
+        source_b = VeeamSourceBinding(
+            name="Veeam B",
+            credential_id=credential.id,
+            server_host="10.0.0.12",
+            server_port=9419,
+            api_version="1.2-rev0",
+            verify_ssl=False,
+            is_enabled=True,
+        )
+        db.session.add_all([source_a, source_b])
+        db.session.commit()
+
+        class _FailingProvider:
+            def is_configured(self) -> bool:
+                return True
+
+            def create_session(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                verify_ssl: bool | None = None,
+            ) -> str:
+                _ = (server_port, username, password, api_version, verify_ssl)
+                return server_host
+
+            def fetch_backup_objects(self, *, session: str) -> list[dict[str, object]]:
+                raise RuntimeError(f"{session} token eof")
+
+        service = VeeamSyncActionsService(provider=_FailingProvider())
+        prepared = service.prepare_background_sync(created_by=1)
+        db.session.commit()
+
+        with pytest.raises(RuntimeError, match="10.0.0.11 token eof"):
+            service._sync_once(created_by=1, run_id=prepared.run_id)
+
+        run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
+        assert run is not None
+        assert run.status == "failed"
+        assert run.summary_json["ext"]["data"]["partial_success"] is False
+        assert [source["status"] for source in run.summary_json["ext"]["data"]["sources"]] == ["failed", "failed"]
 
 
 @pytest.mark.unit
