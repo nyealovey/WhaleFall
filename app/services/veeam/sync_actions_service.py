@@ -160,10 +160,13 @@ class VeeamSyncActionsService:
         """创建 TaskRun 并校验同步前置条件."""
         if not self._provider.is_configured():
             raise ValidationError("Veeam Provider 尚未接入真实 API")
-        binding = self._source_service.get_binding_or_error()
-        credential = getattr(binding, "credential", None)
-        if credential is None:
-            raise ValidationError("Veeam 数据源未绑定有效凭据")
+        bindings = self._veeam_repository.list_enabled_bindings()
+        if not bindings:
+            raise ValidationError("请先启用至少一个 Veeam 数据源")
+        for binding in bindings:
+            credential = getattr(binding, "credential", None)
+            if credential is None:
+                raise ValidationError(f"Veeam 数据源 {self._source_name(binding)} 未绑定有效凭据")
 
         task_runs_service = TaskRunsWriteService()
         run_id = task_runs_service.start_run(
@@ -177,16 +180,9 @@ class VeeamSyncActionsService:
         )
         task_runs_service.init_items(
             run_id,
-            items=[
-                TaskRunItemInit(
-                    item_type=_SYNC_ITEM_TYPE,
-                    item_key=item_key,
-                    item_name=item_name,
-                )
-                for item_key, item_name in _SYNC_STAGE_ITEMS
-            ],
+            items=self._build_stage_items_for_bindings(bindings),
         )
-        return VeeamSyncPreparedRun(run_id=run_id, credential_id=int(binding.credential_id))
+        return VeeamSyncPreparedRun(run_id=run_id, credential_id=int(bindings[0].credential_id))
 
     def launch_background_sync(
         self,
@@ -201,6 +197,39 @@ class VeeamSyncActionsService:
             task=self._task,
         )
         return VeeamSyncLaunchResult(run_id=prepared.run_id, thread_name=thread.name)
+
+    @classmethod
+    def _build_stage_items_for_bindings(cls, bindings: list[VeeamSourceBinding]) -> list[TaskRunItemInit]:
+        is_multi_source = len(bindings) > 1
+        items: list[TaskRunItemInit] = []
+        for binding in bindings:
+            prefix = cls._source_stage_prefix(binding) if is_multi_source else ""
+            source_name = cls._source_name(binding) if is_multi_source else None
+            for item_key, item_name in _SYNC_STAGE_ITEMS:
+                items.append(
+                    TaskRunItemInit(
+                        item_type=_SYNC_ITEM_TYPE,
+                        item_key=cls._stage_item_key(item_key, prefix),
+                        item_name=cls._stage_item_name(item_name, source_name),
+                    )
+                )
+        return items
+
+    @staticmethod
+    def _source_name(binding: VeeamSourceBinding) -> str:
+        return str(getattr(binding, "name", "") or "").strip() or f"Veeam 数据源 {int(binding.id)}"
+
+    @staticmethod
+    def _source_stage_prefix(binding: VeeamSourceBinding) -> str:
+        return f"veeam_source_{int(binding.id)}_"
+
+    @staticmethod
+    def _stage_item_key(item_key: str, prefix: str) -> str:
+        return f"{prefix}{item_key}" if prefix else item_key
+
+    @staticmethod
+    def _stage_item_name(item_name: str, source_name: str | None) -> str:
+        return f"{source_name} / {item_name}" if source_name else item_name
 
     def sync_instance_now(
         self,
@@ -339,9 +368,17 @@ class VeeamSyncActionsService:
         failures: list[Exception] = []
         source_results: list[dict[str, object]] = []
         successes = 0
+        is_multi_source = len(bindings) > 1
+        snapshots_written_sum = 0
         for binding in bindings:
             try:
-                snapshots_written_total = self._sync_source_once(created_by=created_by, run_id=run_id, binding=binding)
+                snapshots_written_total = self._sync_source_once(
+                    created_by=created_by,
+                    run_id=run_id,
+                    binding=binding,
+                    stage_key_prefix=self._source_stage_prefix(binding) if is_multi_source else "",
+                    finalize_run=not is_multi_source,
+                )
                 source_results.append(
                     self._build_source_summary(
                         binding=binding,
@@ -351,6 +388,7 @@ class VeeamSyncActionsService:
                     )
                 )
                 successes += 1
+                snapshots_written_sum += snapshots_written_total
             except Exception as exc:
                 source_results.append(
                     self._build_source_summary(
@@ -363,11 +401,20 @@ class VeeamSyncActionsService:
                 failures.append(exc)
                 continue
 
-        self._append_sources_to_run_summary(
-            run_id=run_id,
-            sources=source_results,
-            partial_success=successes > 0 and bool(failures),
-        )
+        if is_multi_source:
+            self._write_multi_source_run_result(
+                run_id=run_id,
+                sources=source_results,
+                partial_success=successes > 0 and bool(failures),
+                snapshots_written_total=snapshots_written_sum,
+                error_message=str(failures[0]) if successes <= 0 and failures else None,
+            )
+        else:
+            self._append_sources_to_run_summary(
+                run_id=run_id,
+                sources=source_results,
+                partial_success=successes > 0 and bool(failures),
+            )
         if successes <= 0 and failures:
             raise failures[0]
 
@@ -377,6 +424,8 @@ class VeeamSyncActionsService:
         created_by: int | None,
         run_id: str,
         binding: VeeamSourceBinding,
+        stage_key_prefix: str = "",
+        finalize_run: bool = True,
     ) -> int:
         credential = getattr(binding, "credential", None)
         if credential is None:
@@ -426,7 +475,11 @@ class VeeamSyncActionsService:
                 include_actor=False,
             )
             current_stage_key = _FETCH_BACKUP_OBJECTS_ITEM_KEY
-            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            self._start_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
+            )
             session = self._provider.create_session(
                 server_host=str(binding.server_host or ""),
                 server_port=int(binding.server_port),
@@ -439,13 +492,17 @@ class VeeamSyncActionsService:
             self._complete_stage(
                 task_runs_service=task_runs_service,
                 run_id=run_id,
-                item_key=current_stage_key,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
                 metrics_json={"backup_objects_received_total": len(backup_items)},
                 details_json=self._build_fetch_backup_objects_details(backup_objects_received_total=len(backup_items)),
             )
 
             current_stage_key = _MATCH_BACKUP_OBJECTS_ITEM_KEY
-            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            self._start_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
+            )
             match_result = self._provider.match_backup_objects(
                 backup_items=cast("list[dict[str, object]]", backup_items),
                 match_machine_names=match_machine_names,
@@ -481,7 +538,7 @@ class VeeamSyncActionsService:
             self._complete_stage(
                 task_runs_service=task_runs_service,
                 run_id=run_id,
-                item_key=current_stage_key,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
                 metrics_json={
                     "candidate_machine_count": len(match_machine_names),
                     "backups_received_total": getattr(match_result, "backups_received_total", 0),
@@ -524,7 +581,11 @@ class VeeamSyncActionsService:
                 )
 
             current_stage_key = _FETCH_RESTORE_POINTS_ITEM_KEY
-            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            self._start_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
+            )
             restore_points_result = self._provider.fetch_restore_point_records(
                 session=cast("VeeamProviderSession", session),
                 match_result=cast("VeeamBackupObjectMatchResult", match_result),
@@ -574,7 +635,7 @@ class VeeamSyncActionsService:
             self._complete_stage(
                 task_runs_service=task_runs_service,
                 run_id=run_id,
-                item_key=current_stage_key,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
                 metrics_json={
                     "matched_backup_objects_total": getattr(
                         restore_points_result, "restore_points_backup_objects_total", 0
@@ -596,7 +657,11 @@ class VeeamSyncActionsService:
             )
 
             current_stage_key = _FETCH_BACKUP_FILES_ITEM_KEY
-            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            self._start_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
+            )
             restore_point_records = list(cast("VeeamMachineBackupCollection", restore_points_result).records)
             backup_ids = self._collect_unique_strings([record.backup_id for record in restore_point_records])
             backup_files_result = self._provider.fetch_backup_file_records(
@@ -644,7 +709,7 @@ class VeeamSyncActionsService:
             self._complete_stage(
                 task_runs_service=task_runs_service,
                 run_id=run_id,
-                item_key=current_stage_key,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
                 metrics_json={
                     "backup_ids_total": getattr(backup_files_result, "backup_ids_total", 0),
                     "backup_ids_completed": getattr(backup_files_result, "backup_ids_completed", 0),
@@ -684,7 +749,11 @@ class VeeamSyncActionsService:
                 include_actor=False,
             )
             current_stage_key = _WRITE_SNAPSHOTS_ITEM_KEY
-            self._start_stage(task_runs_service=task_runs_service, run_id=run_id, item_key=current_stage_key)
+            self._start_stage(
+                task_runs_service=task_runs_service,
+                run_id=run_id,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
+            )
             self._validate_records_to_write(latest_records)
             snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
                 latest_records,
@@ -709,7 +778,7 @@ class VeeamSyncActionsService:
             task_runs_service.complete_item(
                 run_id,
                 item_type=_SYNC_ITEM_TYPE,
-                item_key=current_stage_key,
+                item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
                 metrics_json={
                     "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
@@ -719,33 +788,38 @@ class VeeamSyncActionsService:
                     snapshots_written_total=snapshots_written_total,
                 ),
             )
-            self._write_run_summary(
-                run_id=run_id,
-                payload=build_sync_veeam_backups_summary(
-                    task_key="sync_veeam_backups",
-                    inputs={"credential_id": int(binding.credential_id)},
-                    received_total=cast("VeeamMachineBackupCollection", restore_points_result).received_total,
-                    snapshots_written_total=snapshots_written_total,
-                    skipped_invalid=cast("VeeamMachineBackupCollection", restore_points_result).skipped_invalid,
-                    timed_out_backup_objects_total=timed_out_backup_objects_total,
-                    backup_files_scanned_total=int(getattr(backup_files_result, "received_total", 0) or 0),
-                    backup_ids_total=int(getattr(backup_files_result, "backup_ids_total", 0) or 0),
-                    backup_ids_completed=int(getattr(backup_files_result, "backup_ids_completed", 0) or 0),
-                    timed_out_backup_ids_total=int(getattr(backup_files_result, "timed_out_backup_ids_total", 0) or 0),
-                    failed_backup_ids_total=int(getattr(backup_files_result, "failed_backup_ids_total", 0) or 0),
-                    restore_points_expected_total=int(backup_file_coverage["restore_points_expected_total"]),
-                    restore_points_enriched_total=int(backup_file_coverage["restore_points_enriched_total"]),
-                    restore_points_missing_metrics_total=int(
-                        backup_file_coverage["restore_points_missing_metrics_total"]
+            if finalize_run:
+                self._write_run_summary(
+                    run_id=run_id,
+                    payload=build_sync_veeam_backups_summary(
+                        task_key="sync_veeam_backups",
+                        inputs={"credential_id": int(binding.credential_id)},
+                        received_total=cast("VeeamMachineBackupCollection", restore_points_result).received_total,
+                        snapshots_written_total=snapshots_written_total,
+                        skipped_invalid=cast("VeeamMachineBackupCollection", restore_points_result).skipped_invalid,
+                        timed_out_backup_objects_total=timed_out_backup_objects_total,
+                        backup_files_scanned_total=int(getattr(backup_files_result, "received_total", 0) or 0),
+                        backup_ids_total=int(getattr(backup_files_result, "backup_ids_total", 0) or 0),
+                        backup_ids_completed=int(getattr(backup_files_result, "backup_ids_completed", 0) or 0),
+                        timed_out_backup_ids_total=int(
+                            getattr(backup_files_result, "timed_out_backup_ids_total", 0) or 0
+                        ),
+                        failed_backup_ids_total=int(getattr(backup_files_result, "failed_backup_ids_total", 0) or 0),
+                        restore_points_expected_total=int(backup_file_coverage["restore_points_expected_total"]),
+                        restore_points_enriched_total=int(backup_file_coverage["restore_points_enriched_total"]),
+                        restore_points_missing_metrics_total=int(
+                            backup_file_coverage["restore_points_missing_metrics_total"]
+                        ),
+                        backup_ids_fully_covered_total=int(backup_file_coverage["backup_ids_fully_covered_total"]),
+                        backup_ids_partially_covered_total=int(
+                            backup_file_coverage["backup_ids_partially_covered_total"]
+                        ),
+                        partial_success=(skipped_backup_objects_total > 0 or backup_files_partial_success),
+                        error_message=None,
                     ),
-                    backup_ids_fully_covered_total=int(backup_file_coverage["backup_ids_fully_covered_total"]),
-                    backup_ids_partially_covered_total=int(backup_file_coverage["backup_ids_partially_covered_total"]),
-                    partial_success=(skipped_backup_objects_total > 0 or backup_files_partial_success),
                     error_message=None,
-                ),
-                error_message=None,
-            )
-            task_runs_service.finalize_run(run_id)
+                )
+                task_runs_service.finalize_run(run_id)
             db.session.commit()
             log_with_context(
                 "info",
@@ -798,7 +872,10 @@ class VeeamSyncActionsService:
             task_runs_service.fail_item(
                 run_id,
                 item_type=_SYNC_ITEM_TYPE,
-                item_key=current_stage_key or _FETCH_BACKUP_OBJECTS_ITEM_KEY,
+                item_key=self._stage_item_key(
+                    current_stage_key or _FETCH_BACKUP_OBJECTS_ITEM_KEY,
+                    stage_key_prefix,
+                ),
                 error_message=str(exc),
                 details_json=self._build_failed_stage_details(
                     stage_key=current_stage_key,
@@ -811,22 +888,24 @@ class VeeamSyncActionsService:
                 task_runs_service=task_runs_service,
                 run_id=run_id,
                 current_stage_key=current_stage_key,
+                stage_key_prefix=stage_key_prefix,
             )
-            self._write_run_summary(
-                run_id=run_id,
-                payload=build_sync_veeam_backups_summary(
-                    task_key="sync_veeam_backups",
-                    inputs={"credential_id": int(binding.credential_id)},
-                    received_total=0,
-                    snapshots_written_total=0,
-                    skipped_invalid=0,
-                    timed_out_backup_objects_total=0,
-                    partial_success=False,
+            if finalize_run:
+                self._write_run_summary(
+                    run_id=run_id,
+                    payload=build_sync_veeam_backups_summary(
+                        task_key="sync_veeam_backups",
+                        inputs={"credential_id": int(binding.credential_id)},
+                        received_total=0,
+                        snapshots_written_total=0,
+                        skipped_invalid=0,
+                        timed_out_backup_objects_total=0,
+                        partial_success=False,
+                        error_message=str(exc),
+                    ),
                     error_message=str(exc),
-                ),
-                error_message=str(exc),
-            )
-            task_runs_service.finalize_run(run_id)
+                )
+                task_runs_service.finalize_run(run_id)
             db.session.commit()
             log_with_context(
                 "error",
@@ -880,6 +959,38 @@ class VeeamSyncActionsService:
         summary["ext"] = ext
         run.summary_json = summary
         db.session.add(run)
+        db.session.commit()
+
+    @staticmethod
+    def _write_multi_source_run_result(
+        *,
+        run_id: str,
+        sources: list[dict[str, object]],
+        partial_success: bool,
+        snapshots_written_total: int,
+        error_message: str | None,
+    ) -> None:
+        task_runs_service = TaskRunsWriteService()
+        VeeamSyncActionsService._write_run_summary(
+            run_id=run_id,
+            payload=build_sync_veeam_backups_summary(
+                task_key="sync_veeam_backups",
+                inputs={"source_binding_ids": [source["source_binding_id"] for source in sources]},
+                received_total=0,
+                snapshots_written_total=snapshots_written_total,
+                skipped_invalid=0,
+                sources=sources,
+                partial_success=partial_success,
+                error_message=error_message,
+            ),
+            error_message=error_message,
+        )
+        task_runs_service.finalize_run(run_id)
+        if partial_success:
+            run = TaskRun.query.filter_by(run_id=run_id).first()
+            if run is not None and run.status != "cancelled":
+                run.status = "completed"
+                run.error_message = None
         db.session.commit()
 
     @staticmethod
@@ -1047,6 +1158,7 @@ class VeeamSyncActionsService:
         task_runs_service: TaskRunsWriteService,
         run_id: str,
         current_stage_key: str | None,
+        stage_key_prefix: str = "",
     ) -> None:
         stage_keys = [item_key for item_key, _ in _SYNC_STAGE_ITEMS]
         if current_stage_key not in stage_keys:
@@ -1056,7 +1168,7 @@ class VeeamSyncActionsService:
             task_runs_service.cancel_item(
                 run_id,
                 item_type=_SYNC_ITEM_TYPE,
-                item_key=item_key,
+                item_key=VeeamSyncActionsService._stage_item_key(item_key, stage_key_prefix),
                 details_json={"summary": "前序步骤失败，未继续执行"},
             )
 

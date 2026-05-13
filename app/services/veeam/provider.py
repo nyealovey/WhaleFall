@@ -332,17 +332,18 @@ class HttpVeeamProvider:
     ) -> VeeamProviderSession:
         base_url = self._build_base_url(server_host=server_host, server_port=server_port)
         resolved_verify_ssl = self._verify_ssl if verify_ssl is None else bool(verify_ssl)
+        resolved_api_version = self._normalize_api_version(api_version)
         access_token = self._request_access_token(
             base_url=base_url,
             username=username,
             password=password,
-            api_version=api_version,
+            api_version=resolved_api_version,
             verify_ssl=resolved_verify_ssl,
         )
         return VeeamProviderSession(
             base_url=base_url,
             access_token=access_token,
-            api_version=api_version,
+            api_version=resolved_api_version,
             verify_ssl=resolved_verify_ssl,
         )
 
@@ -645,6 +646,13 @@ class HttpVeeamProvider:
             netloc = parsed.netloc or parsed.path
             return f"{scheme}://{netloc}".rstrip("/")
         return f"https://{host}:{int(server_port)}"
+
+    @staticmethod
+    def _normalize_api_version(api_version: str) -> str:
+        resolved = str(api_version or "").strip()
+        if len(resolved) > 1 and resolved[0].lower() == "v" and resolved[1].isdigit():
+            return resolved[1:]
+        return resolved
 
     def _request_access_token(
         self,

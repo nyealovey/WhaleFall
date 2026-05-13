@@ -29,6 +29,44 @@ class _FakeResponse:
 
 
 @pytest.mark.unit
+def test_http_veeam_provider_normalizes_api_version_header() -> None:
+    captured_versions: list[str] = []
+    payloads = [
+        {"access_token": "token-1"},
+        {"items": [], "next": None},
+        {"access_token": "token-2"},
+        {"items": [], "next": None},
+    ]
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        headers = {key.lower(): value for key, value in request.header_items()}
+        captured_versions.append(str(headers.get("x-api-version")))
+        return _FakeResponse(payloads[len(captured_versions) - 1])
+
+    provider = HttpVeeamProvider(opener=_fake_opener)
+
+    provider.list_machine_backups(
+        server_host="veeam.example.com",
+        server_port=9419,
+        username="DOMAIN\\user",
+        password="secret",
+        api_version="v1.2-rev0",
+        match_machine_names={"db01.domain.com"},
+    )
+    provider.list_machine_backups(
+        server_host="veeam.example.com",
+        server_port=9419,
+        username="DOMAIN\\user",
+        password="secret",
+        api_version="1.2-rev0",
+        match_machine_names={"db01.domain.com"},
+    )
+
+    assert captured_versions == ["1.2-rev0", "1.2-rev0", "1.2-rev0", "1.2-rev0"]
+
+
+@pytest.mark.unit
 def test_http_veeam_provider_requests_backups_first_then_restore_points_across_next_links() -> None:
     captured_requests: list[dict[str, Any]] = []
     payloads = [
