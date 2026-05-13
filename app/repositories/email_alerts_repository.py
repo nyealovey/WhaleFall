@@ -9,6 +9,7 @@ from sqlalchemy import asc, desc
 from app import db
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.email_alert_event import EmailAlertEvent
+from app.models.email_alert_event_delivery import EmailAlertEventDelivery
 from app.models.email_alert_setting import EmailAlertSetting
 
 
@@ -58,10 +59,19 @@ class EmailAlertsRepository:
 
     @staticmethod
     def delete_pending_backup_issue_events_not_in(*, bucket_date: date, dedupe_keys: set[str]) -> int:
+        sent_delivery_exists = (
+            db.session.query(EmailAlertEventDelivery.id)
+            .filter(
+                EmailAlertEventDelivery.event_id == EmailAlertEvent.id,
+                EmailAlertEventDelivery.status == "sent",
+            )
+            .exists()
+        )
         query = EmailAlertEvent.query.filter(
             EmailAlertEvent.alert_type == "backup_status_issue",
             EmailAlertEvent.bucket_date == bucket_date,
             EmailAlertEvent.digest_sent_at.is_(None),
+            ~sent_delivery_exists,
         )
         if dedupe_keys:
             query = query.filter(EmailAlertEvent.dedupe_key.notin_(sorted(dedupe_keys)))
@@ -70,17 +80,52 @@ class EmailAlertsRepository:
         return int(deleted or 0)
 
     @staticmethod
-    def list_pending_digest_events() -> list[EmailAlertEvent]:
-        return (
-            EmailAlertEvent.query.filter(EmailAlertEvent.digest_sent_at.is_(None))
-            .order_by(asc(EmailAlertEvent.occurred_at), asc(EmailAlertEvent.id))
-            .all()
-        )
+    def list_pending_digest_events(channel: str | None = None) -> list[EmailAlertEvent]:
+        query = EmailAlertEvent.query
+        if channel:
+            sent_exists = (
+                db.session.query(EmailAlertEventDelivery.id)
+                .filter(
+                    EmailAlertEventDelivery.event_id == EmailAlertEvent.id,
+                    EmailAlertEventDelivery.channel == channel,
+                    EmailAlertEventDelivery.status == "sent",
+                )
+                .exists()
+            )
+            query = query.filter(~sent_exists)
+        else:
+            query = query.filter(EmailAlertEvent.digest_sent_at.is_(None))
+        return query.order_by(asc(EmailAlertEvent.occurred_at), asc(EmailAlertEvent.id)).all()
 
     @staticmethod
-    def get_bucket_event_counts(bucket_date: date) -> dict[str, dict[str, int]]:
+    def get_bucket_event_counts(bucket_date: date, channels: list[str] | None = None) -> dict[str, dict[str, int]]:
         stats: dict[str, dict[str, int]] = {}
         events = EmailAlertEvent.query.filter(EmailAlertEvent.bucket_date == bucket_date).all()
+        if channels:
+            event_ids = [int(event.id) for event in events]
+            deliveries = (
+                EmailAlertEventDelivery.query.filter(
+                    EmailAlertEventDelivery.event_id.in_(event_ids),
+                    EmailAlertEventDelivery.channel.in_(channels),
+                    EmailAlertEventDelivery.status == "sent",
+                ).all()
+                if event_ids
+                else []
+            )
+            sent_channels_by_event: dict[int, set[str]] = {}
+            for delivery in deliveries:
+                sent_channels_by_event.setdefault(int(delivery.event_id), set()).add(str(delivery.channel))
+            required_channels = set(channels)
+            for event in events:
+                alert_type = str(event.alert_type)
+                bucket = stats.setdefault(alert_type, {"pending_count": 0, "sent_count": 0})
+                sent_channels = sent_channels_by_event.get(int(event.id), set())
+                if required_channels and required_channels <= sent_channels:
+                    bucket["sent_count"] += 1
+                else:
+                    bucket["pending_count"] += 1
+            return stats
+
         for event in events:
             alert_type = str(event.alert_type)
             bucket = stats.setdefault(alert_type, {"pending_count": 0, "sent_count": 0})
@@ -99,6 +144,37 @@ class EmailAlertsRepository:
                 {"digest_sent_at": sent_at}, synchronize_session=False
             )
         )
+        db.session.flush()
+
+    @staticmethod
+    def record_digest_delivery(
+        *,
+        channel: str,
+        event_ids: list[int],
+        delivered_at,
+        status: str,
+        error_message: str | None = None,
+    ) -> None:
+        if not event_ids:
+            return
+        existing_rows = EmailAlertEventDelivery.query.filter(
+            EmailAlertEventDelivery.event_id.in_(event_ids),
+            EmailAlertEventDelivery.channel == channel,
+        ).all()
+        existing_by_event_id = {int(row.event_id): row for row in existing_rows}
+        for event_id in event_ids:
+            delivery = existing_by_event_id.get(int(event_id))
+            if delivery is None:
+                delivery = EmailAlertEventDelivery()
+                delivery.event_id = int(event_id)
+                delivery.channel = channel
+                db.session.add(delivery)
+            delivery.status = status
+            delivery.delivered_at = delivered_at if status == "sent" else None
+            delivery.error_message = error_message
+            delivery.details_json = {}
+        if channel == "email" and status == "sent":
+            EmailAlertsRepository.mark_events_digest_sent(event_ids, delivered_at)
         db.session.flush()
 
     @staticmethod

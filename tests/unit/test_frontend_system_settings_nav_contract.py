@@ -30,6 +30,9 @@ def test_system_settings_template_base_nav_and_assets_contract() -> None:
     for fragment in template_fragments:
         assert fragment in template
 
+    assert "告警设置" in template
+    assert "邮件设置" not in template
+
     assert "系统设置" in base_template
     assert "url_for('system_settings.index')" in base_template
     assert "url_for('alerts.email_settings')" not in base_template

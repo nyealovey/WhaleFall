@@ -14,6 +14,7 @@ def _ensure_alert_tables(app) -> None:
                 db.metadata.tables["users"],
                 db.metadata.tables["email_alert_settings"],
                 db.metadata.tables["email_alert_events"],
+                db.metadata.tables["email_alert_event_deliveries"],
             ],
         )
 
@@ -76,6 +77,10 @@ def test_api_v1_alerts_email_settings_contract(app, auth_client) -> None:
     assert isinstance(settings, dict)
     assert settings.get("global_enabled") is False
     assert settings.get("recipients") == []
+    assert settings.get("feishu_enabled") is False
+    assert settings.get("feishu_webhook_url_configured") is False
+    assert settings.get("feishu_webhook_url_masked") is None
+    assert "feishu_webhook_url" not in settings
 
     update_response = auth_client.put(
         "/api/v1/alerts/email-settings",
@@ -89,6 +94,9 @@ def test_api_v1_alerts_email_settings_contract(app, auth_client) -> None:
             "database_sync_failure_enabled": True,
             "privileged_account_enabled": True,
             "backup_issue_enabled": True,
+            "feishu_enabled": True,
+            "feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/test-token",
+            "clear_feishu_webhook_url": False,
         },
         headers=headers,
     )
@@ -107,6 +115,10 @@ def test_api_v1_alerts_email_settings_contract(app, auth_client) -> None:
     assert updated_settings.get("database_sync_failure_enabled") is True
     assert updated_settings.get("privileged_account_enabled") is True
     assert updated_settings.get("backup_issue_enabled") is True
+    assert updated_settings.get("feishu_enabled") is True
+    assert updated_settings.get("feishu_webhook_url_configured") is True
+    assert updated_settings.get("feishu_webhook_url_masked") == "https://open.feishu.cn/open-apis/bot/v2/hook/**********oken"
+    assert "feishu_webhook_url" not in updated_settings
 
 
 @pytest.mark.unit

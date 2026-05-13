@@ -18,6 +18,10 @@ LOOKBACK_DAYS = 3
 MB_PER_GB = 1024
 
 
+def _has_enabled_delivery_channel(settings: object) -> bool:
+    return bool(getattr(settings, "global_enabled", False)) or bool(getattr(settings, "feishu_enabled", False))
+
+
 class EmailAlertEventService:
     """邮件告警事件服务."""
 
@@ -40,7 +44,7 @@ class EmailAlertEventService:
         occurred_at: datetime | None = None,
     ) -> int:
         settings = self._settings_service.get_or_create_settings()
-        if not bool(settings.global_enabled) or not bool(settings.database_capacity_enabled):
+        if not _has_enabled_delivery_channel(settings) or not bool(settings.database_capacity_enabled):
             return 0
 
         resolved_occurred_at = occurred_at or time_utils.now()
@@ -124,7 +128,7 @@ class EmailAlertEventService:
         occurred_at: datetime | None = None,
     ) -> bool:
         settings = self._settings_service.get_or_create_settings()
-        if not bool(settings.global_enabled):
+        if not _has_enabled_delivery_channel(settings):
             return False
         if alert_type == "account_sync_failure" and not bool(settings.account_sync_failure_enabled):
             return False
@@ -157,7 +161,7 @@ class EmailAlertEventService:
         occurred_at: datetime | None = None,
     ) -> bool:
         settings = self._settings_service.get_or_create_settings()
-        if not bool(settings.global_enabled) or not bool(settings.privileged_account_enabled):
+        if not _has_enabled_delivery_channel(settings) or not bool(settings.privileged_account_enabled):
             return False
 
         resolved_occurred_at = occurred_at or time_utils.now()
@@ -205,7 +209,7 @@ class EmailAlertEventService:
         occurred_at: datetime | None = None,
     ) -> int:
         settings = self._settings_service.get_or_create_settings()
-        if not bool(settings.global_enabled) or not bool(getattr(settings, "backup_issue_enabled", False)):
+        if not _has_enabled_delivery_channel(settings) or not bool(getattr(settings, "backup_issue_enabled", False)):
             return 0
 
         resolved_occurred_at = occurred_at or time_utils.now()

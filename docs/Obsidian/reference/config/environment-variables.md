@@ -167,9 +167,10 @@ CACHE_TYPE=simple
 | `MAIL_TIMEOUT_SECONDS` | 否 | `10`(秒) | SMTP 连接与发送超时. |
 | `MAIL_FROM_ADDRESS` | 条件必填 | 空 | 发件人邮箱地址. |
 | `MAIL_FROM_NAME` | 否 | 空 | 发件人展示名称. 若值包含空格, 需要写成带引号的 shell 合法形式, 例如 `MAIL_FROM_NAME="WhaleFall Alerts"`. |
+| `FEISHU_REQUEST_TIMEOUT_SECONDS` | 否 | `10`(秒) | 飞书机器人 webhook 请求超时. 机器人 URL 在系统“告警设置”页面中维护并加密保存. |
 
 > [!note]
-> 邮件告警的业务配置（总开关、收件人、容量阈值、各类型启停）不走环境变量，统一在系统“邮件告警配置”页面中维护；环境变量仅负责 SMTP 连接与发件人信息。
+> 告警的业务配置（邮件开关、飞书开关、飞书机器人 URL、收件人、容量阈值、各类型启停）不走环境变量，统一在系统“告警设置”页面中维护；环境变量仅负责 SMTP 连接、发件人信息与飞书请求超时。
 
 ## Oracle 客户端库定位(可选)
 

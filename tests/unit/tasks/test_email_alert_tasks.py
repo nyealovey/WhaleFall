@@ -77,13 +77,31 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
                     },
                 ],
                 "send_step": {
-                    "item_key": "deliver_digest",
+                    "item_key": "deliver_email_digest",
                     "item_name": "发送汇总邮件",
                     "status": "completed",
                     "display_state": "skipped_no_event",
                     "summary": "无待发送事件",
                     "skip_reason": "no_pending_events",
                 },
+                "delivery_steps": [
+                    {
+                        "item_key": "deliver_email_digest",
+                        "item_name": "发送汇总邮件",
+                        "status": "completed",
+                        "display_state": "skipped_no_event",
+                        "summary": "无待发送事件",
+                        "skip_reason": "no_pending_events",
+                    },
+                    {
+                        "item_key": "deliver_feishu_digest",
+                        "item_name": "发送飞书通知",
+                        "status": "completed",
+                        "display_state": "skipped_disabled",
+                        "summary": "飞书通道未启用",
+                        "skip_reason": None,
+                    },
+                ],
             }
 
     monkeypatch.setattr(email_alert_tasks, "EmailAlertDigestService", lambda: _StubDigestService())
@@ -114,7 +132,7 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
             self.init_calls.append((run_id, list(items)))
 
         def start_item(self, run_id: str, **kwargs: object) -> None:
-            return None
+            _ = (run_id, kwargs)
 
         def complete_item(self, run_id: str, **kwargs: object) -> None:
             payload: dict[str, object] = {"run_id": run_id}
@@ -154,10 +172,11 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
         ("rule", "database_sync_failure", "数据库同步异常"),
         ("rule", "privileged_account_discovery", "新增高权限账户"),
         ("rule", "backup_status_issue", "备份告警"),
-        ("step", "deliver_digest", "发送汇总邮件"),
+        ("step", "deliver_email_digest", "发送汇总邮件"),
+        ("step", "deliver_feishu_digest", "发送飞书通知"),
     ]
     assert any(
-        call["item_key"] == "deliver_digest"
+        call["item_key"] == "deliver_email_digest"
         and call["details_json"]
         == {
             "display_state": "skipped_no_event",

@@ -16,6 +16,7 @@ from app.services.alerts.email_sender import EmailSender
 class _DummySettings:
     global_enabled: bool = True
     recipients_json: list[str] = None  # type: ignore[assignment]
+    feishu_enabled: bool = False
     database_capacity_enabled: bool = False
     account_sync_failure_enabled: bool = False
     database_sync_failure_enabled: bool = False
@@ -40,16 +41,18 @@ class _StubRepository:
     ) -> None:
         self.events = events
         self.marked: list[tuple[list[int], datetime]] = []
+        self.delivery_records: list[tuple[str, list[int], datetime, str, str | None]] = []
         self.daily_stats = daily_stats or {}
 
-    def list_pending_digest_events(self) -> list[_DummyEvent]:
+    def list_pending_digest_events(self, channel: str | None = None) -> list[_DummyEvent]:
+        _ = channel
         return list(self.events)
 
     def mark_events_digest_sent(self, event_ids: list[int], sent_at: datetime) -> None:
         self.marked.append((list(event_ids), sent_at))
 
-    def get_bucket_event_counts(self, bucket_date) -> dict[str, dict[str, int]]:
-        _ = bucket_date
+    def get_bucket_event_counts(self, bucket_date, channels: list[str] | None = None) -> dict[str, dict[str, int]]:
+        _ = (bucket_date, channels)
         return {
             alert_type: {
                 "pending_count": int(values.get("pending_count", 0)),
@@ -57,6 +60,19 @@ class _StubRepository:
             }
             for alert_type, values in self.daily_stats.items()
         }
+
+    def record_digest_delivery(
+        self,
+        *,
+        channel: str,
+        event_ids: list[int],
+        delivered_at: datetime,
+        status: str,
+        error_message: str | None = None,
+    ) -> None:
+        self.delivery_records.append((channel, list(event_ids), delivered_at, status, error_message))
+        if channel == "email" and status == "sent":
+            self.mark_events_digest_sent(event_ids, delivered_at)
 
 
 class _StubSender:
@@ -76,12 +92,30 @@ class _StubSender:
         )
 
 
+class _StubFeishuSender:
+    def __init__(self, *, ready: bool = True, should_fail: bool = False) -> None:
+        self.ready = ready
+        self.should_fail = should_fail
+        self.calls: list[dict[str, object]] = []
+
+    def is_ready(self) -> bool:
+        return self.ready
+
+    def send_text(self, *, title: str, text_body: str) -> None:
+        self.calls.append({"title": title, "text_body": text_body})
+        if self.should_fail:
+            raise RuntimeError("飞书发送失败")
+
+
 class _StubSettingsService:
     def __init__(self, settings: _DummySettings) -> None:
         self.settings = settings
 
     def get_or_create_settings(self) -> _DummySettings:
         return self.settings
+
+    def get_feishu_webhook_url(self) -> str:
+        return "https://open.feishu.cn/open-apis/bot/v2/hook/test-token"
 
 
 @pytest.mark.unit
@@ -161,7 +195,7 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
         },
     ]
     assert summary["send_step"] == {
-        "item_key": "deliver_digest",
+        "item_key": "deliver_email_digest",
         "item_name": "发送汇总邮件",
         "status": "completed",
         "display_state": "sent",
@@ -172,9 +206,68 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
     }
     assert sender.calls
     assert sender.calls[0]["recipients"] == ["ops@example.com"]
-    assert "邮件告警汇总" in str(sender.calls[0]["subject"])
+    assert "告警汇总" in str(sender.calls[0]["subject"])
     assert "orders" in str(sender.calls[0]["text_body"])
     assert repository.marked == [([1, 2], datetime(2026, 3, 17, 9, 0, tzinfo=UTC))]
+
+
+@pytest.mark.unit
+def test_email_alert_digest_service_records_email_and_feishu_delivery_independently() -> None:
+    settings = _DummySettings(
+        global_enabled=True,
+        recipients_json=["ops@example.com"],
+        feishu_enabled=True,
+        database_sync_failure_enabled=True,
+    )
+    events = [
+        _DummyEvent(
+            id=7,
+            alert_type="database_sync_failure",
+            payload_json={"instance_name": "prod-mysql-1", "error_message": "连接失败"},
+            occurred_at=datetime(2026, 3, 17, 2, 0, tzinfo=UTC),
+        ),
+    ]
+    repository = _StubRepository(events)
+    email_sender = _StubSender()
+    feishu_sender = _StubFeishuSender(should_fail=True)
+    service = EmailAlertDigestService(
+        repository=cast(EmailAlertsRepository, repository),
+        sender=cast(EmailSender, email_sender),
+        feishu_sender=feishu_sender,
+        settings_service=cast(EmailAlertSettingsService, _StubSettingsService(settings)),
+    )
+
+    summary = service.send_pending_digest(now=datetime(2026, 3, 17, 9, 0, tzinfo=UTC))
+
+    assert summary["sent"] is True
+    assert email_sender.calls
+    assert feishu_sender.calls
+    assert summary["delivery_steps"] == [
+        {
+            "item_key": "deliver_email_digest",
+            "item_name": "发送汇总邮件",
+            "status": "completed",
+            "display_state": "sent",
+            "summary": "已发送 1 条事件到 1 个收件人",
+            "skip_reason": None,
+            "recipient_count": 1,
+            "error_message": None,
+        },
+        {
+            "item_key": "deliver_feishu_digest",
+            "item_name": "发送飞书通知",
+            "status": "failed",
+            "display_state": "failed",
+            "summary": "发送飞书通知失败",
+            "skip_reason": None,
+            "recipient_count": 0,
+            "error_message": "飞书发送失败",
+        },
+    ]
+    assert repository.delivery_records == [
+        ("email", [7], datetime(2026, 3, 17, 9, 0, tzinfo=UTC), "sent", None),
+        ("feishu", [7], datetime(2026, 3, 17, 9, 0, tzinfo=UTC), "failed", "飞书发送失败"),
+    ]
 
 
 @pytest.mark.unit
@@ -201,7 +294,7 @@ def test_email_alert_digest_service_reports_skip_structure_when_no_pending_event
     assert summary["skip_reason"] == "no_pending_events"
     assert summary["event_count"] == 0
     assert summary["send_step"] == {
-        "item_key": "deliver_digest",
+        "item_key": "deliver_email_digest",
         "item_name": "发送汇总邮件",
         "status": "completed",
         "summary": "无待发送事件",
@@ -289,7 +382,7 @@ def test_email_alert_digest_service_distinguishes_already_sent_from_no_event() -
     assert summary["skipped"] is True
     assert summary["skip_reason"] == "already_sent_today"
     assert summary["send_step"] == {
-        "item_key": "deliver_digest",
+        "item_key": "deliver_email_digest",
         "item_name": "发送汇总邮件",
         "status": "completed",
         "summary": "当天已发送 3 条告警事件，本次无待发送事件",
