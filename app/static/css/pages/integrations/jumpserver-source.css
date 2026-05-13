@@ -4,6 +4,10 @@
     gap: 1.25rem;
 }
 
+.veeam-source-page .jumpserver-source-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .jumpserver-source-card__header,
 .jumpserver-source-card__body {
     padding: 1.25rem 1.5rem;
