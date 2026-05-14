@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import cast
 
 import pytest
@@ -43,9 +43,14 @@ class _StubRepository:
         self.marked: list[tuple[list[int], datetime]] = []
         self.delivery_records: list[tuple[str, list[int], datetime, str, str | None]] = []
         self.daily_stats = daily_stats or {}
+        self.list_calls: list[dict[str, object]] = []
 
-    def list_pending_digest_events(self, channel: str | None = None) -> list[_DummyEvent]:
-        _ = channel
+    def list_pending_digest_events(
+        self,
+        channel: str | None = None,
+        bucket_date: date | None = None,
+    ) -> list[_DummyEvent]:
+        self.list_calls.append({"channel": channel, "bucket_date": bucket_date})
         return list(self.events)
 
     def mark_events_digest_sent(self, event_ids: list[int], sent_at: datetime) -> None:
@@ -268,6 +273,59 @@ def test_email_alert_digest_service_records_email_and_feishu_delivery_independen
         ("email", [7], datetime(2026, 3, 17, 9, 0, tzinfo=UTC), "sent", None),
         ("feishu", [7], datetime(2026, 3, 17, 9, 0, tzinfo=UTC), "failed", "飞书发送失败"),
     ]
+
+
+@pytest.mark.unit
+def test_email_alert_digest_service_only_sends_events_from_current_bucket_date() -> None:
+    class _BucketAwareRepository(_StubRepository):
+        def __init__(self, current_events: list[_DummyEvent], historical_events: list[_DummyEvent]) -> None:
+            super().__init__(current_events + historical_events)
+            self.current_events = current_events
+            self.historical_events = historical_events
+
+        def list_pending_digest_events(
+            self,
+            channel: str | None = None,
+            bucket_date: date | None = None,
+        ) -> list[_DummyEvent]:
+            self.list_calls.append({"channel": channel, "bucket_date": bucket_date})
+            if bucket_date == date(2026, 3, 17):
+                return list(self.current_events)
+            return list(self.current_events + self.historical_events)
+
+    settings = _DummySettings(global_enabled=True, recipients_json=["ops@example.com"], backup_issue_enabled=True)
+    current_events = [
+        _DummyEvent(
+            id=10,
+            alert_type="backup_status_issue",
+            payload_json={"instance_name": "today-db", "reason_text": "当天没有备份"},
+            occurred_at=datetime(2026, 3, 17, 1, 0, tzinfo=UTC),
+        ),
+    ]
+    historical_events = [
+        _DummyEvent(
+            id=9,
+            alert_type="backup_status_issue",
+            payload_json={"instance_name": "old-db", "reason_text": "备份异常（最近备份超过24小时）"},
+            occurred_at=datetime(2026, 3, 16, 1, 0, tzinfo=UTC),
+        ),
+    ]
+    repository = _BucketAwareRepository(current_events, historical_events)
+    sender = _StubSender()
+    service = EmailAlertDigestService(
+        repository=cast(EmailAlertsRepository, repository),
+        sender=cast(EmailSender, sender),
+        settings_service=cast(EmailAlertSettingsService, _StubSettingsService(settings)),
+    )
+
+    summary = service.send_pending_digest(now=datetime(2026, 3, 17, 9, 0, tzinfo=UTC))
+
+    assert repository.list_calls == [{"channel": "email", "bucket_date": date(2026, 3, 17)}]
+    assert summary["event_count"] == 1
+    assert repository.marked == [([10], datetime(2026, 3, 17, 9, 0, tzinfo=UTC))]
+    text_body = str(sender.calls[0]["text_body"])
+    assert "today-db - 当天没有备份" in text_body
+    assert "old-db" not in text_body
 
 
 @pytest.mark.unit

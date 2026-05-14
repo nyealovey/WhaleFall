@@ -80,8 +80,13 @@ class EmailAlertsRepository:
         return int(deleted or 0)
 
     @staticmethod
-    def list_pending_digest_events(channel: str | None = None) -> list[EmailAlertEvent]:
+    def list_pending_digest_events(
+        channel: str | None = None,
+        bucket_date: date | None = None,
+    ) -> list[EmailAlertEvent]:
         query = EmailAlertEvent.query
+        if bucket_date is not None:
+            query = query.filter(EmailAlertEvent.bucket_date == bucket_date)
         if channel:
             sent_exists = (
                 db.session.query(EmailAlertEventDelivery.id)
@@ -93,6 +98,8 @@ class EmailAlertsRepository:
                 .exists()
             )
             query = query.filter(~sent_exists)
+            if channel == "email":
+                query = query.filter(EmailAlertEvent.digest_sent_at.is_(None))
         else:
             query = query.filter(EmailAlertEvent.digest_sent_at.is_(None))
         return query.order_by(asc(EmailAlertEvent.occurred_at), asc(EmailAlertEvent.id)).all()
@@ -120,6 +127,8 @@ class EmailAlertsRepository:
                 alert_type = str(event.alert_type)
                 bucket = stats.setdefault(alert_type, {"pending_count": 0, "sent_count": 0})
                 sent_channels = sent_channels_by_event.get(int(event.id), set())
+                if "email" in required_channels and event.digest_sent_at is not None:
+                    sent_channels.add("email")
                 if required_channels and required_channels <= sent_channels:
                     bucket["sent_count"] += 1
                 else:
