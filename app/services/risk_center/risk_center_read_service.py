@@ -588,19 +588,7 @@ class RiskCenterReadService:
         risks: list[dict[str, object]] = []
         label = "正常"
         tone = "success"
-        if locked_count > 0:
-            label = f"{locked_count} 锁定"
-            tone = "warning"
-            risks.append(
-                _risk(
-                    category="access",
-                    severity="warning",
-                    label="存在锁定账号",
-                    detail=f"{locked_count} 个账号处于锁定状态",
-                    target_url=f"/accounts/ledgers?instance_id={int(instance.id)}",
-                )
-            )
-        elif superuser_count > 0:
+        if superuser_count > 0:
             label = f"{superuser_count} 高权"
             tone = "info"
             risks.append(

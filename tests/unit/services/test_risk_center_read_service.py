@@ -410,3 +410,32 @@ def test_risk_center_builds_access_and_task_risks(app) -> None:
         assert card["tasks"]["label"] == "任务失败"
         assert any(item["category"] == "task" for item in card["risk_flags"])
         assert any(item["category"] == "access" for item in card["risk_flags"])
+
+
+@pytest.mark.unit
+def test_risk_center_does_not_treat_locked_accounts_as_access_risk() -> None:
+    instance = Instance(id=42, name="db-locked", db_type="mysql", host="10.0.0.42", port=3306, is_active=True)
+
+    access_metric, access_risks = RiskCenterReadService._build_access_metric(
+        instance,
+        {"locked_count": 2, "superuser_count": 0, "recent_change_count": 0},
+    )
+
+    assert access_metric["label"] == "正常"
+    assert access_metric["tone"] == "success"
+    assert access_metric["locked_count"] == 2
+    assert access_risks == []
+
+
+@pytest.mark.unit
+def test_risk_center_locked_accounts_do_not_hide_superuser_access_risk() -> None:
+    instance = Instance(id=43, name="db-super", db_type="mysql", host="10.0.0.43", port=3306, is_active=True)
+
+    access_metric, access_risks = RiskCenterReadService._build_access_metric(
+        instance,
+        {"locked_count": 2, "superuser_count": 1, "recent_change_count": 0},
+    )
+
+    assert access_metric["label"] == "1 高权"
+    assert access_metric["tone"] == "info"
+    assert [risk["label"] for risk in access_risks] == ["存在高权账号"]
