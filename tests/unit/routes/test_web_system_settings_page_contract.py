@@ -14,6 +14,11 @@ def test_web_system_settings_page_renders_aggregated_sections(auth_client) -> No
     assert "JumpServer 数据源设置" in html
     assert "Veeam 数据源设置" in html
     assert 'data-system-settings-nav="true"' in html
+    assert 'role="tablist"' in html
+    assert 'role="tab"' in html
+    assert 'role="tabpanel"' in html
+    assert 'aria-selected="true"' in html
+    assert 'aria-selected="false"' in html
     assert 'href="#system-settings-email-alerts"' in html
     assert 'href="#system-settings-jumpserver"' in html
     assert 'href="#system-settings-veeam"' in html

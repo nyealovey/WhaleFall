@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'SystemSettingsPage' %}
+{% set page_density = 'compact' %}
 
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -18,58 +19,71 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div id="system-settings-page" class="system-settings-page">
-                <aside class="system-settings-page__sidebar">
-                    <div class="system-settings-page__sidebar-card" data-system-settings-nav="true">
-                        <div class="system-settings-page__sidebar-head">
-                            <strong>快速跳转</strong>
-                        </div>
-
-                        <nav class="system-settings-page__nav" aria-label="系统设置页内导航">
-                            <a
-                                class="system-settings-page__nav-link is-active"
-                                href="#system-settings-email-alerts"
-                                data-system-settings-nav-link="system-settings-email-alerts"
-                            >
-                                <span class="system-settings-page__nav-icon">
-                                    <i class="fas fa-envelope-open-text" aria-hidden="true"></i>
-                                </span>
-                                <span class="system-settings-page__nav-text">
-                                    <strong>告警设置</strong>
-                                </span>
-                            </a>
-                            <a
-                                class="system-settings-page__nav-link"
-                                href="#system-settings-jumpserver"
-                                data-system-settings-nav-link="system-settings-jumpserver"
-                            >
-                                <span class="system-settings-page__nav-icon">
-                                    <i class="fas fa-anchor" aria-hidden="true"></i>
-                                </span>
-                                <span class="system-settings-page__nav-text">
-                                    <strong>JumpServer</strong>
-                                </span>
-                            </a>
-                            <a
-                                class="system-settings-page__nav-link"
-                                href="#system-settings-veeam"
-                                data-system-settings-nav-link="system-settings-veeam"
-                            >
-                                <span class="system-settings-page__nav-icon">
-                                    <i class="fas fa-hard-drive" aria-hidden="true"></i>
-                                </span>
-                                <span class="system-settings-page__nav-text">
-                                    <strong>Veeam</strong>
-                                </span>
-                            </a>
-                        </nav>
+                <div class="system-settings-page__tabs-card" data-system-settings-nav="true">
+                    <div class="system-settings-page__sidebar-head">
+                        <strong>设置模块</strong>
                     </div>
-                </aside>
+
+                    <nav class="system-settings-page__nav" aria-label="系统设置模块" role="tablist">
+                        <a
+                            class="system-settings-page__nav-link is-active"
+                            id="system-settings-email-alerts-tab"
+                            href="#system-settings-email-alerts"
+                            data-system-settings-nav-link="system-settings-email-alerts"
+                            role="tab"
+                            aria-controls="system-settings-email-alerts"
+                            aria-selected="true"
+                            aria-current="location"
+                        >
+                            <span class="system-settings-page__nav-icon">
+                                <i class="fas fa-envelope-open-text" aria-hidden="true"></i>
+                            </span>
+                            <span class="system-settings-page__nav-text">
+                                <strong>告警设置</strong>
+                            </span>
+                        </a>
+                        <a
+                            class="system-settings-page__nav-link"
+                            id="system-settings-jumpserver-tab"
+                            href="#system-settings-jumpserver"
+                            data-system-settings-nav-link="system-settings-jumpserver"
+                            role="tab"
+                            aria-controls="system-settings-jumpserver"
+                            aria-selected="false"
+                        >
+                            <span class="system-settings-page__nav-icon">
+                                <i class="fas fa-anchor" aria-hidden="true"></i>
+                            </span>
+                            <span class="system-settings-page__nav-text">
+                                <strong>JumpServer</strong>
+                            </span>
+                        </a>
+                        <a
+                            class="system-settings-page__nav-link"
+                            id="system-settings-veeam-tab"
+                            href="#system-settings-veeam"
+                            data-system-settings-nav-link="system-settings-veeam"
+                            role="tab"
+                            aria-controls="system-settings-veeam"
+                            aria-selected="false"
+                        >
+                            <span class="system-settings-page__nav-icon">
+                                <i class="fas fa-hard-drive" aria-hidden="true"></i>
+                            </span>
+                            <span class="system-settings-page__nav-text">
+                                <strong>Veeam</strong>
+                            </span>
+                        </a>
+                    </nav>
+                </div>
 
                 <div class="system-settings-page__content">
                     <section
                         id="system-settings-email-alerts"
-                        class="system-settings-page__section"
+                        class="system-settings-page__section system-settings-page__panel is-active"
                         data-system-settings-section
+                        role="tabpanel"
+                        aria-labelledby="system-settings-email-alerts-tab"
                     >
                         <header class="system-settings-page__section-header">
                             <h2>告警设置</h2>
@@ -81,8 +95,11 @@
 
                     <section
                         id="system-settings-jumpserver"
-                        class="system-settings-page__section"
+                        class="system-settings-page__section system-settings-page__panel"
                         data-system-settings-section
+                        role="tabpanel"
+                        aria-labelledby="system-settings-jumpserver-tab"
+                        hidden
                     >
                         <header class="system-settings-page__section-header">
                             <h2>JumpServer 数据源设置</h2>
@@ -94,8 +111,11 @@
 
                     <section
                         id="system-settings-veeam"
-                        class="system-settings-page__section"
+                        class="system-settings-page__section system-settings-page__panel"
                         data-system-settings-section
+                        role="tabpanel"
+                        aria-labelledby="system-settings-veeam-tab"
+                        hidden
                     >
                         <header class="system-settings-page__section-header">
                             <h2>Veeam 数据源设置</h2>
