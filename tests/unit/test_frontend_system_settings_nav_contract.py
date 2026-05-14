@@ -20,12 +20,18 @@ def test_system_settings_template_base_nav_and_assets_contract() -> None:
         'data-system-settings-nav-link="system-settings-email-alerts"',
         'data-system-settings-nav-link="system-settings-jumpserver"',
         'data-system-settings-nav-link="system-settings-veeam"',
+        'role="tablist"',
+        'role="tab"',
+        'role="tabpanel"',
+        'aria-selected="true"',
+        'aria-selected="false"',
         'href="#system-settings-email-alerts"',
         'href="#system-settings-jumpserver"',
         'href="#system-settings-veeam"',
         'id="system-settings-email-alerts"',
         'id="system-settings-jumpserver"',
         'id="system-settings-veeam"',
+        'hidden',
     )
     for fragment in template_fragments:
         assert fragment in template
@@ -39,8 +45,10 @@ def test_system_settings_template_base_nav_and_assets_contract() -> None:
     assert "url_for('jumpserver_source.source_settings')" not in base_template
 
     js_fragments = (
-        "IntersectionObserver",
-        "scrollIntoView",
+        "hashchange",
+        "replaceState",
+        "panel.hidden",
+        "aria-selected",
         "data-system-settings-nav",
         "data-system-settings-nav-link",
         "is-active",
@@ -48,10 +56,13 @@ def test_system_settings_template_base_nav_and_assets_contract() -> None:
     for fragment in js_fragments:
         assert fragment in nav_js
 
+    assert "IntersectionObserver" not in nav_js
+    assert "scrollIntoView" not in nav_js
+
     css_fragments = (
         ".system-settings-page",
-        ".system-settings-page__sidebar",
-        "position: sticky",
+        ".system-settings-page__tabs-card",
+        ".system-settings-page__panel",
         ".system-settings-page__nav-link.is-active",
     )
     for fragment in css_fragments:

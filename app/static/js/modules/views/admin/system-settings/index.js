@@ -10,81 +10,76 @@
     }
 
     const navLinks = Array.from(navRoot.querySelectorAll('[data-system-settings-nav-link]'));
-    const sections = navLinks
-        .map((link) => document.getElementById(link.dataset.systemSettingsNavLink || ''))
-        .filter(Boolean);
+    const panels = Array.from(pageRoot.querySelectorAll('[data-system-settings-section]'));
+    const panelIds = new Set(panels.map((panel) => panel.id).filter(Boolean));
 
-    if (!navLinks.length || !sections.length) {
+    if (!navLinks.length || !panels.length) {
         return;
     }
 
     let activeSectionId = '';
 
-    function setActiveSection(sectionId) {
-        if (!sectionId || activeSectionId === sectionId) {
+    function resolveSectionId(sectionId) {
+        if (sectionId && panelIds.has(sectionId)) {
+            return sectionId;
+        }
+        return panels[0]?.id || '';
+    }
+
+    function updateLocationHash(sectionId) {
+        if (window.history?.replaceState) {
+            window.history.replaceState(null, '', `#${sectionId}`);
+        }
+    }
+
+    function setActiveSection(sectionId, options = {}) {
+        const resolvedSectionId = resolveSectionId(sectionId);
+        if (!resolvedSectionId) {
             return;
         }
 
-        activeSectionId = sectionId;
+        if (activeSectionId === resolvedSectionId) {
+            if (options.updateHash !== false) {
+                updateLocationHash(resolvedSectionId);
+            }
+            return;
+        }
+
+        activeSectionId = resolvedSectionId;
+
         navLinks.forEach((link) => {
-            const isActive = link.dataset.systemSettingsNavLink === sectionId;
+            const isActive = link.dataset.systemSettingsNavLink === resolvedSectionId;
             link.classList.toggle('is-active', isActive);
+            link.setAttribute('aria-selected', isActive ? 'true' : 'false');
             if (isActive) {
                 link.setAttribute('aria-current', 'location');
             } else {
                 link.removeAttribute('aria-current');
             }
         });
+
+        panels.forEach((panel) => {
+            const isActive = panel.id === resolvedSectionId;
+            panel.classList.toggle('is-active', isActive);
+            panel.hidden = !isActive;
+            panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+        });
+
+        if (options.updateHash !== false) {
+            updateLocationHash(resolvedSectionId);
+        }
     }
 
     navLinks.forEach((link) => {
         link.addEventListener('click', (event) => {
-            const sectionId = link.dataset.systemSettingsNavLink || '';
-            const target = document.getElementById(sectionId);
-            if (!target) {
-                return;
-            }
-
             event.preventDefault();
-            setActiveSection(sectionId);
-            window.history.replaceState(null, '', `#${sectionId}`);
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-            });
+            setActiveSection(link.dataset.systemSettingsNavLink || '');
         });
     });
 
-    const observer = new IntersectionObserver(
-        (entries) => {
-            const visibleEntries = entries
-                .filter((entry) => entry.isIntersecting)
-                .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
+    window.addEventListener('hashchange', () => {
+        setActiveSection(window.location.hash.replace('#', ''), { updateHash: false });
+    });
 
-            const activeEntry = visibleEntries[0];
-            if (activeEntry?.target?.id) {
-                setActiveSection(activeEntry.target.id);
-            }
-        },
-        {
-            rootMargin: '-18% 0px -52% 0px',
-            threshold: [0.2, 0.35, 0.55],
-        },
-    );
-
-    sections.forEach((section) => observer.observe(section));
-
-    const initialHash = window.location.hash.replace('#', '');
-    const initialSection = sections.find((section) => section.id === initialHash) || sections[0];
-    if (initialSection) {
-        setActiveSection(initialSection.id);
-        if (initialHash) {
-            window.requestAnimationFrame(() => {
-                initialSection.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                });
-            });
-        }
-    }
+    setActiveSection(window.location.hash.replace('#', ''), { updateHash: false });
 })();
