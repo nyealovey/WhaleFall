@@ -27,6 +27,8 @@ VEEAM_RESTORE_POINTS_PATH = "/api/v1/restorePoints"
 VEEAM_BACKUP_OBJECTS_PATH = "/api/v1/backupObjects"
 VEEAM_BACKUPS_PATH = "/api/v1/backups"
 VEEAM_ACCEPT_HEADER = "application/json"
+_VEEAM_DATA_REQUEST_ATTEMPTS = 2
+_VEEAM_DATA_REQUEST_INTERVAL_SECONDS = 1
 
 
 class _ProviderSettings(TypedDict):
@@ -795,7 +797,45 @@ class HttpVeeamProvider:
             },
             method="GET",
         )
-        return self._read_json_response(request=request, verify_ssl=verify_ssl, stage=stage)
+        max_attempts = _VEEAM_DATA_REQUEST_ATTEMPTS
+        for attempt in range(1, max_attempts + 1):
+            try:
+                return self._read_json_response(
+                    request=request,
+                    verify_ssl=verify_ssl,
+                    stage=stage,
+                    attempt=attempt,
+                )
+            except VeeamRequestTimeoutError as exc:
+                if attempt >= max_attempts:
+                    raise
+                log_with_context(
+                    "warning",
+                    "Veeam API 请求超时，准备重试",
+                    module="veeam",
+                    action="api_request_retry",
+                    extra={
+                        "stage": stage,
+                        "url": url,
+                        "timeout_seconds": exc.timeout_seconds,
+                        "elapsed_ms": exc.elapsed_ms,
+                        "attempt": attempt,
+                        "next_attempt": attempt + 1,
+                        "max_attempts": max_attempts,
+                        "retry_after_seconds": _VEEAM_DATA_REQUEST_INTERVAL_SECONDS,
+                        "reason_type": exc.reason_type,
+                        "reason_repr": exc.reason_repr,
+                    },
+                    include_actor=False,
+                )
+            finally:
+                self._pause_after_data_request()
+        raise RuntimeError("Veeam API 请求重试流程异常")
+
+    @staticmethod
+    def _pause_after_data_request() -> None:
+        if _VEEAM_DATA_REQUEST_INTERVAL_SECONDS > 0:
+            time.sleep(_VEEAM_DATA_REQUEST_INTERVAL_SECONDS)
 
     def _read_json_response(
         self,

@@ -30,6 +30,11 @@ class _FakeResponse:
         return False
 
 
+@pytest.fixture(autouse=True)
+def _skip_provider_request_sleep(monkeypatch) -> None:
+    monkeypatch.setattr(veeam_provider_module.time, "sleep", lambda _seconds: None)
+
+
 @pytest.mark.unit
 def test_http_veeam_provider_normalizes_api_version_header() -> None:
     captured_versions: list[str] = []
@@ -680,7 +685,70 @@ def test_http_veeam_provider_fetch_restore_point_records_skips_timeout_and_prese
     assert captured_urls == [
         "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints",
         "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints",
+        "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints",
     ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_retries_restore_points_timeout_once_after_delay(monkeypatch) -> None:
+    captured_urls: list[str] = []
+    sleep_calls: list[float] = []
+    payload = {
+        "items": [
+            {
+                "machineName": "db01.domain.com",
+                "creationTime": "2026-03-25T01:00:00Z",
+                "id": "rp-1",
+                "backupId": "backup-1",
+            }
+        ],
+        "next": None,
+    }
+
+    def _fake_sleep(seconds: float) -> None:
+        sleep_calls.append(seconds)
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (timeout, context)
+        captured_urls.append(request.full_url)
+        if len(captured_urls) == 1:
+            raise TimeoutError("The read operation timed out")
+        return _FakeResponse(payload)
+
+    monkeypatch.setattr(veeam_provider_module.time, "sleep", _fake_sleep)
+    provider = HttpVeeamProvider(opener=_fake_opener)
+    session = VeeamProviderSession(
+        base_url="https://veeam.example.com:9419",
+        access_token="token-1",
+        api_version="1.3-rev1",
+        verify_ssl=True,
+    )
+    match_result = VeeamBackupObjectMatchResult(
+        matched_backup_objects=[
+            VeeamMatchedBackupObject(
+                backup_object_id="backup-object-1",
+                machine_name="db01.domain.com",
+                backup_item={"id": "backup-object-1", "name": "db01.domain.com"},
+            )
+        ],
+        backups_received_total=1,
+        backups_matched_total=1,
+        backups_unmatched_total=0,
+        backups_missing_machine_name=0,
+        matched_backup_ids_sample=["backup-object-1"],
+    )
+
+    result = provider.fetch_restore_point_records(session=session, match_result=match_result)
+
+    assert result.received_total == 1
+    assert len(result.records) == 1
+    assert result.restore_points_backup_objects_completed == 1
+    assert result.timed_out_backup_objects_total == 0
+    assert captured_urls == [
+        "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints",
+        "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints",
+    ]
+    assert sleep_calls == [1, 1]
 
 
 @pytest.mark.unit
@@ -821,6 +889,7 @@ def test_http_veeam_provider_surfaces_timeout_with_url_and_timeout_seconds() -> 
     assert captured_urls == [
         "https://veeam.example.com:9419/api/oauth2/token",
         "https://veeam.example.com:9419/api/v1/backupObjects?limit=2000",
+        "https://veeam.example.com:9419/api/v1/backupObjects?limit=2000",
     ]
 
 
@@ -946,5 +1015,6 @@ def test_http_veeam_provider_fetch_backup_file_items_skips_timeout_and_preserves
     assert result.failed_backup_ids_total == 0
     assert captured_urls == [
         "https://veeam.example.com:9419/api/v1/backups/backup-1/backupFiles",
+        "https://veeam.example.com:9419/api/v1/backups/backup-2/backupFiles",
         "https://veeam.example.com:9419/api/v1/backups/backup-2/backupFiles",
     ]
