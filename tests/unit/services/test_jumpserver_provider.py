@@ -174,7 +174,7 @@ def test_http_jumpserver_provider_normalizes_api_docs_url_to_site_root() -> None
 
 @pytest.mark.unit
 def test_http_jumpserver_provider_allows_per_request_ssl_verification_override() -> None:
-    captured_contexts: list[object] = []
+    captured_contexts: list[Any] = []
 
     def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
         _ = (request, timeout)
@@ -192,7 +192,7 @@ def test_http_jumpserver_provider_allows_per_request_ssl_verification_override()
 
     assert len(captured_contexts) == 1
     assert getattr(captured_contexts[0], "check_hostname", True) is False
-    assert int(getattr(captured_contexts[0], "verify_mode")) == 0
+    assert int(captured_contexts[0].verify_mode) == 0
 
 
 @pytest.mark.unit

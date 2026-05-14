@@ -9,13 +9,14 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Protocol, TypedDict
+from typing import Any, Literal, Protocol, TypedDict
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from flask import current_app, has_app_context
 
+from app.core.types import JsonValue
 from app.infra.route_safety import log_with_context
 from app.services.veeam.matching import normalize_ip_address, normalize_machine_name
 from app.settings import Settings
@@ -81,6 +82,9 @@ class VeeamMachineBackupCollection:
     timed_out_backup_objects_total: int = 0
     timed_out_backup_ids_sample: list[str] = field(default_factory=list)
     timed_out_machine_names_sample: list[str] = field(default_factory=list)
+    timed_out_urls_sample: list[str] = field(default_factory=list)
+    timed_out_reason_types_sample: list[str] = field(default_factory=list)
+    timed_out_elapsed_ms_sample: list[int] = field(default_factory=list)
     failed_backup_objects_total: int = 0
     failed_backup_ids_sample: list[str] = field(default_factory=list)
     failed_machine_names_sample: list[str] = field(default_factory=list)
@@ -112,6 +116,9 @@ class VeeamBackupFileCollection:
     backup_ids_completed: int
     timed_out_backup_ids_total: int = 0
     timed_out_backup_ids_sample: list[str] = field(default_factory=list)
+    timed_out_urls_sample: list[str] = field(default_factory=list)
+    timed_out_reason_types_sample: list[str] = field(default_factory=list)
+    timed_out_elapsed_ms_sample: list[int] = field(default_factory=list)
     failed_backup_ids_total: int = 0
     failed_backup_ids_sample: list[str] = field(default_factory=list)
     failed_urls_sample: list[str] = field(default_factory=list)
@@ -175,6 +182,23 @@ class VeeamRestorePointsFetchError(RuntimeError):
 
 class VeeamRequestTimeoutError(RuntimeError):
     """Veeam 单次请求超时."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        url: str,
+        timeout_seconds: int,
+        elapsed_ms: int,
+        reason_type: str | None,
+        reason_repr: str | None,
+    ) -> None:
+        super().__init__(message)
+        self.url = url
+        self.timeout_seconds = timeout_seconds
+        self.elapsed_ms = elapsed_ms
+        self.reason_type = reason_type
+        self.reason_repr = reason_repr
 
 
 class VeeamProvider(Protocol):
@@ -353,6 +377,7 @@ class HttpVeeamProvider:
             access_token=session.access_token,
             api_version=session.api_version,
             verify_ssl=session.verify_ssl,
+            stage="backup_objects",
         )
 
     def match_backup_objects(  # noqa: PLR0912
@@ -462,6 +487,9 @@ class HttpVeeamProvider:
         timed_out_backup_objects_total = 0
         timed_out_backup_ids_sample: list[str] = []
         timed_out_machine_names_sample: list[str] = []
+        timed_out_urls_sample: list[str] = []
+        timed_out_reason_types_sample: list[str] = []
+        timed_out_elapsed_ms_sample: list[int] = []
 
         failed_backup_objects_total = 0
         failed_backup_ids_sample: list[str] = []
@@ -478,13 +506,21 @@ class HttpVeeamProvider:
                     access_token=session.access_token,
                     api_version=session.api_version,
                     verify_ssl=session.verify_ssl,
+                    stage="restore_points",
                 )
-            except VeeamRequestTimeoutError:
+            except VeeamRequestTimeoutError as exc:
                 timed_out_backup_objects_total += 1
                 if len(timed_out_backup_ids_sample) < 20:
                     timed_out_backup_ids_sample.append(matched_backup_object.backup_object_id)
                 if matched_backup_object.machine_name and len(timed_out_machine_names_sample) < 20:
                     timed_out_machine_names_sample.append(str(matched_backup_object.machine_name))
+                self._append_timeout_diagnostics(
+                    error=exc,
+                    urls_sample=timed_out_urls_sample,
+                    reason_types_sample=timed_out_reason_types_sample,
+                    elapsed_ms_sample=timed_out_elapsed_ms_sample,
+                    fallback_url=failed_url,
+                )
                 continue
             except Exception:
                 failed_backup_objects_total += 1
@@ -525,6 +561,9 @@ class HttpVeeamProvider:
             timed_out_backup_objects_total=timed_out_backup_objects_total,
             timed_out_backup_ids_sample=timed_out_backup_ids_sample,
             timed_out_machine_names_sample=timed_out_machine_names_sample,
+            timed_out_urls_sample=timed_out_urls_sample,
+            timed_out_reason_types_sample=timed_out_reason_types_sample,
+            timed_out_elapsed_ms_sample=timed_out_elapsed_ms_sample,
             failed_backup_objects_total=failed_backup_objects_total,
             failed_backup_ids_sample=failed_backup_ids_sample,
             failed_machine_names_sample=failed_machine_names_sample,
@@ -573,6 +612,9 @@ class HttpVeeamProvider:
         received_total = 0
         backup_ids_completed = 0
         timed_out_backup_ids_sample: list[str] = []
+        timed_out_urls_sample: list[str] = []
+        timed_out_reason_types_sample: list[str] = []
+        timed_out_elapsed_ms_sample: list[int] = []
         failed_backup_ids_sample: list[str] = []
         failed_urls_sample: list[str] = []
 
@@ -584,10 +626,18 @@ class HttpVeeamProvider:
                     access_token=session.access_token,
                     api_version=session.api_version,
                     verify_ssl=session.verify_ssl,
+                    stage="backup_files",
                 )
-            except VeeamRequestTimeoutError:
+            except VeeamRequestTimeoutError as exc:
                 if len(timed_out_backup_ids_sample) < 20:
                     timed_out_backup_ids_sample.append(backup_id)
+                self._append_timeout_diagnostics(
+                    error=exc,
+                    urls_sample=timed_out_urls_sample,
+                    reason_types_sample=timed_out_reason_types_sample,
+                    elapsed_ms_sample=timed_out_elapsed_ms_sample,
+                    fallback_url=failed_url,
+                )
                 continue
             except Exception:
                 if len(failed_backup_ids_sample) < 20:
@@ -610,6 +660,9 @@ class HttpVeeamProvider:
             backup_ids_completed=backup_ids_completed,
             timed_out_backup_ids_total=len(timed_out_backup_ids_sample),
             timed_out_backup_ids_sample=timed_out_backup_ids_sample,
+            timed_out_urls_sample=timed_out_urls_sample,
+            timed_out_reason_types_sample=timed_out_reason_types_sample,
+            timed_out_elapsed_ms_sample=timed_out_elapsed_ms_sample,
             failed_backup_ids_total=len(failed_backup_ids_sample),
             failed_backup_ids_sample=failed_backup_ids_sample,
             failed_urls_sample=failed_urls_sample,
@@ -622,6 +675,7 @@ class HttpVeeamProvider:
         access_token: str,
         api_version: str,
         verify_ssl: bool,
+        stage: str,
     ) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         next_url: str | None = url
@@ -631,6 +685,7 @@ class HttpVeeamProvider:
                 access_token=access_token,
                 api_version=api_version,
                 verify_ssl=verify_ssl,
+                stage=stage,
             )
             page_items = self._parse_page_payload(payload)
             items.extend(page_items)
@@ -689,6 +744,8 @@ class HttpVeeamProvider:
                     request=request,
                     verify_ssl=verify_ssl,
                     timeout_seconds=self._token_timeout_seconds,
+                    stage="token",
+                    attempt=attempt,
                 )
                 break
             except VeeamRequestTimeoutError:
@@ -727,6 +784,7 @@ class HttpVeeamProvider:
         access_token: str,
         api_version: str,
         verify_ssl: bool,
+        stage: str,
     ) -> object:
         request = Request(
             url=url,
@@ -737,27 +795,179 @@ class HttpVeeamProvider:
             },
             method="GET",
         )
-        return self._read_json_response(request=request, verify_ssl=verify_ssl)
+        return self._read_json_response(request=request, verify_ssl=verify_ssl, stage=stage)
 
-    def _read_json_response(self, *, request: Request, verify_ssl: bool, timeout_seconds: int | None = None) -> object:
+    def _read_json_response(
+        self,
+        *,
+        request: Request,
+        verify_ssl: bool,
+        timeout_seconds: int | None = None,
+        stage: str,
+        attempt: int = 1,
+    ) -> object:
         context = ssl.create_default_context() if verify_ssl else ssl._create_unverified_context()
         resolved_timeout_seconds = self._timeout_seconds if timeout_seconds is None else timeout_seconds
+        started_at = time.monotonic()
         try:
             with self._opener(request, timeout=resolved_timeout_seconds, context=context) as response:
                 payload_bytes = response.read()
         except TimeoutError as exc:
+            elapsed_ms = int((time.monotonic() - started_at) * 1000)
+            reason_type, reason_repr = self._describe_error_reason(exc)
+            self._log_api_request_completion(
+                stage=stage,
+                request=request,
+                timeout_seconds=resolved_timeout_seconds,
+                elapsed_ms=elapsed_ms,
+                outcome="timeout",
+                level="warning",
+                exception=exc,
+                reason_type=reason_type,
+                reason_repr=reason_repr,
+                classified_as_timeout=True,
+                attempt=attempt,
+            )
             raise VeeamRequestTimeoutError(
-                f"Veeam API 请求超时: timeout={resolved_timeout_seconds}s url={request.full_url}"
+                f"Veeam API 请求超时: timeout={resolved_timeout_seconds}s url={request.full_url}",
+                url=request.full_url,
+                timeout_seconds=resolved_timeout_seconds,
+                elapsed_ms=elapsed_ms,
+                reason_type=reason_type,
+                reason_repr=reason_repr,
             ) from exc
         except HTTPError as exc:
+            elapsed_ms = int((time.monotonic() - started_at) * 1000)
+            reason_type, reason_repr = self._describe_error_reason(exc)
+            self._log_api_request_completion(
+                stage=stage,
+                request=request,
+                timeout_seconds=resolved_timeout_seconds,
+                elapsed_ms=elapsed_ms,
+                outcome="http_error",
+                level="error",
+                exception=exc,
+                reason_type=reason_type,
+                reason_repr=reason_repr,
+                classified_as_timeout=False,
+                attempt=attempt,
+                http_status=getattr(exc, "code", None),
+            )
             raise RuntimeError(self._build_http_error_message(exc)) from exc
         except URLError as exc:
-            if self._is_timeout_url_error(exc):
+            elapsed_ms = int((time.monotonic() - started_at) * 1000)
+            reason_type, reason_repr = self._describe_error_reason(exc)
+            classified_as_timeout = self._is_timeout_url_error(exc)
+            self._log_api_request_completion(
+                stage=stage,
+                request=request,
+                timeout_seconds=resolved_timeout_seconds,
+                elapsed_ms=elapsed_ms,
+                outcome="timeout" if classified_as_timeout else "url_error",
+                level="warning" if classified_as_timeout else "error",
+                exception=exc,
+                reason_type=reason_type,
+                reason_repr=reason_repr,
+                classified_as_timeout=classified_as_timeout,
+                attempt=attempt,
+            )
+            if classified_as_timeout:
                 raise VeeamRequestTimeoutError(
-                    f"Veeam API 请求超时: timeout={resolved_timeout_seconds}s url={request.full_url}"
+                    f"Veeam API 请求超时: timeout={resolved_timeout_seconds}s url={request.full_url}",
+                    url=request.full_url,
+                    timeout_seconds=resolved_timeout_seconds,
+                    elapsed_ms=elapsed_ms,
+                    reason_type=reason_type,
+                    reason_repr=reason_repr,
                 ) from exc
             raise RuntimeError(self._build_url_error_message(url=request.full_url, error=exc)) from exc
+        elapsed_ms = int((time.monotonic() - started_at) * 1000)
+        self._log_api_request_completion(
+            stage=stage,
+            request=request,
+            timeout_seconds=resolved_timeout_seconds,
+            elapsed_ms=elapsed_ms,
+            outcome="success",
+            level="info",
+            exception=None,
+            reason_type=None,
+            reason_repr=None,
+            classified_as_timeout=False,
+            attempt=attempt,
+            response_bytes=len(payload_bytes),
+        )
         return json.loads(payload_bytes.decode("utf-8"))
+
+    @staticmethod
+    def _describe_error_reason(error: BaseException) -> tuple[str, str]:
+        reason = getattr(error, "reason", error)
+        return reason.__class__.__name__, repr(reason)
+
+    @staticmethod
+    def _append_timeout_diagnostics(
+        *,
+        error: VeeamRequestTimeoutError,
+        urls_sample: list[str],
+        reason_types_sample: list[str],
+        elapsed_ms_sample: list[int],
+        fallback_url: str,
+    ) -> None:
+        if len(urls_sample) < 20:
+            urls_sample.append(error.url or fallback_url)
+        if error.reason_type and len(reason_types_sample) < 20:
+            reason_types_sample.append(error.reason_type)
+        if len(elapsed_ms_sample) < 20:
+            elapsed_ms_sample.append(error.elapsed_ms)
+
+    @staticmethod
+    def _log_api_request_completion(
+        *,
+        stage: str,
+        request: Request,
+        timeout_seconds: int,
+        elapsed_ms: int,
+        outcome: str,
+        level: Literal["info", "warning", "error"],
+        exception: BaseException | None,
+        reason_type: str | None,
+        reason_repr: str | None,
+        classified_as_timeout: bool,
+        attempt: int,
+        response_bytes: int | None = None,
+        http_status: int | None = None,
+    ) -> None:
+        extra: dict[str, JsonValue] = {
+            "stage": stage,
+            "url": request.full_url,
+            "method": str(getattr(request, "method", None) or request.get_method()),
+            "timeout_seconds": timeout_seconds,
+            "elapsed_ms": elapsed_ms,
+            "outcome": outcome,
+            "attempt": attempt,
+            "classified_as_timeout": classified_as_timeout,
+        }
+        if response_bytes is not None:
+            extra["response_bytes"] = response_bytes
+        if http_status is not None:
+            extra["http_status"] = http_status
+        if exception is not None:
+            extra["exception_type"] = exception.__class__.__name__
+        if reason_type is not None:
+            extra["reason_type"] = reason_type
+        if reason_repr is not None:
+            extra["reason_repr"] = reason_repr[:500]
+        try:
+            log_with_context(
+                level,
+                "Veeam API 请求完成",
+                module="veeam",
+                action="api_request",
+                extra=extra,
+                include_actor=False,
+            )
+        except (KeyError, RuntimeError):
+            # 测试/脚本可能只提供最小 app context，诊断日志不能反向中断 API 请求。
+            return
 
     @staticmethod
     def _build_http_error_message(error: HTTPError) -> str:

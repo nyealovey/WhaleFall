@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 from typing import Any, cast
 
 import pytest
@@ -66,7 +66,7 @@ def test_summarize_latest_aggregations_returns_latest_values_within_range() -> N
         ],
     )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     session.add_all(
         [
             DatabaseSizeAggregation(

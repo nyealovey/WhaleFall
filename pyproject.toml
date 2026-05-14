@@ -206,7 +206,18 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 builtins-ignorelist = ["SystemError"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["T201", "S101", "S106"]
+"tests/**" = [
+    "T201",
+    "S101",
+    "S106",
+    "E402",
+    "PLC0415",
+    "ARG001",
+    "ARG005",
+    "PLR0912",
+    "PLR0915",
+    "RUF012",
+]
 "**/migrations/**" = ["E501"]
 
 [tool.ruff.lint.isort]

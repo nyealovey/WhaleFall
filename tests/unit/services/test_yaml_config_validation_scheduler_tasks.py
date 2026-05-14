@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-import app.scheduler as scheduler
+from app import scheduler
 
 
 @pytest.mark.unit

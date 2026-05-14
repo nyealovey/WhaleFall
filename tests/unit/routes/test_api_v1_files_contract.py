@@ -44,7 +44,7 @@ def test_api_v1_files_endpoints_contract(auth_client, monkeypatch) -> None:
     monkeypatch.setattr(
         DatabaseLedgerService,
         "iterate_all",
-        lambda self, *, search, db_type, instance_id=None, tags=None: [],  # noqa: ARG005
+        lambda self, *, search, db_type, instance_id=None, tags=None: [],
     )
 
     response = auth_client.get("/api/v1/accounts/ledgers/exports")

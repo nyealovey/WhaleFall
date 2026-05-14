@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 import pytest
 
@@ -46,7 +46,7 @@ def test_partition_management_service_create_partition_from_payload_rejects_past
     monkeypatch.setattr(
         partition_management_service_module.time_utils,
         "now_china",
-        lambda: datetime(2026, 1, 15, 0, 0, 0, tzinfo=timezone.utc),
+        lambda: datetime(2026, 1, 15, 0, 0, 0, tzinfo=UTC),
         raising=False,
     )
 

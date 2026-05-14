@@ -36,7 +36,7 @@ def test_api_v1_partition_requires_auth(client) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:  # noqa: PLR0915
+def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
     def _dummy_info(self):
         del self
         return PartitionInfoSnapshot(

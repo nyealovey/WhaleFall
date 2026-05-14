@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from urllib.error import URLError
 
 import pytest
 from flask import Flask
 
+import app.services.veeam.provider as veeam_provider_module
 from app.services.veeam.provider import (
     HttpVeeamProvider,
     VeeamBackupObjectMatchResult,
@@ -679,6 +681,115 @@ def test_http_veeam_provider_fetch_restore_point_records_skips_timeout_and_prese
         "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints",
         "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-2/restorePoints",
     ]
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_logs_restore_points_timeout_classification(monkeypatch) -> None:
+    captured_logs: list[dict[str, object]] = []
+
+    def _fake_log_with_context(level: str, event: str, **kwargs: object) -> None:
+        captured_logs.append({"level": level, "event": event, **kwargs})
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (request, timeout, context)
+        raise TimeoutError("The read operation timed out")
+
+    monkeypatch.setattr(veeam_provider_module, "log_with_context", _fake_log_with_context)
+    provider = HttpVeeamProvider(timeout_seconds=120, opener=_fake_opener)
+    session = VeeamProviderSession(
+        base_url="https://veeam.example.com:9419",
+        access_token="token-1",
+        api_version="1.3-rev1",
+        verify_ssl=True,
+    )
+    match_result = VeeamBackupObjectMatchResult(
+        matched_backup_objects=[
+            VeeamMatchedBackupObject(
+                backup_object_id="backup-object-1",
+                machine_name="db01.domain.com",
+                backup_item={"id": "backup-object-1", "name": "db01.domain.com"},
+            )
+        ],
+        backups_received_total=1,
+        backups_matched_total=1,
+        backups_unmatched_total=0,
+        backups_missing_machine_name=0,
+        matched_backup_ids_sample=["backup-object-1"],
+    )
+
+    result = provider.fetch_restore_point_records(session=session, match_result=match_result)
+
+    timeout_logs = [
+        item for item in captured_logs if item["event"] == "Veeam API 请求完成" and item["level"] == "warning"
+    ]
+    assert result.timed_out_backup_objects_total == 1
+    assert result.timed_out_urls_sample == [
+        "https://veeam.example.com:9419/api/v1/backupObjects/backup-object-1/restorePoints"
+    ]
+    assert result.timed_out_reason_types_sample == ["TimeoutError"]
+    assert len(result.timed_out_elapsed_ms_sample) == 1
+    assert timeout_logs
+    extra = timeout_logs[0]["extra"]
+    assert isinstance(extra, dict)
+    assert extra["stage"] == "restore_points"
+    assert extra["url"].endswith("/backup-object-1/restorePoints")
+    assert extra["timeout_seconds"] == 120
+    assert extra["outcome"] == "timeout"
+    assert extra["exception_type"] == "TimeoutError"
+    assert extra["reason_type"] == "TimeoutError"
+    assert extra["classified_as_timeout"] is True
+    assert isinstance(extra["elapsed_ms"], int)
+
+
+@pytest.mark.unit
+def test_http_veeam_provider_logs_non_timeout_url_error_without_timeout_classification(monkeypatch) -> None:
+    captured_logs: list[dict[str, object]] = []
+
+    def _fake_log_with_context(level: str, event: str, **kwargs: object) -> None:
+        captured_logs.append({"level": level, "event": event, **kwargs})
+
+    def _fake_opener(request, *, timeout: int, context) -> _FakeResponse:
+        _ = (request, timeout, context)
+        raise URLError("connection reset by peer")
+
+    monkeypatch.setattr(veeam_provider_module, "log_with_context", _fake_log_with_context)
+    provider = HttpVeeamProvider(timeout_seconds=120, opener=_fake_opener)
+    session = VeeamProviderSession(
+        base_url="https://veeam.example.com:9419",
+        access_token="token-1",
+        api_version="1.3-rev1",
+        verify_ssl=True,
+    )
+    match_result = VeeamBackupObjectMatchResult(
+        matched_backup_objects=[
+            VeeamMatchedBackupObject(
+                backup_object_id="backup-object-1",
+                machine_name="db01.domain.com",
+                backup_item={"id": "backup-object-1", "name": "db01.domain.com"},
+            )
+        ],
+        backups_received_total=1,
+        backups_matched_total=1,
+        backups_unmatched_total=0,
+        backups_missing_machine_name=0,
+        matched_backup_ids_sample=["backup-object-1"],
+    )
+
+    result = provider.fetch_restore_point_records(session=session, match_result=match_result)
+
+    error_logs = [
+        item for item in captured_logs if item["event"] == "Veeam API 请求完成" and item["level"] == "error"
+    ]
+    assert result.failed_backup_objects_total == 1
+    assert result.timed_out_backup_objects_total == 0
+    assert error_logs
+    extra = error_logs[0]["extra"]
+    assert isinstance(extra, dict)
+    assert extra["stage"] == "restore_points"
+    assert extra["outcome"] == "url_error"
+    assert extra["exception_type"] == "URLError"
+    assert extra["reason_type"] == "str"
+    assert extra["classified_as_timeout"] is False
 
 
 @pytest.mark.unit

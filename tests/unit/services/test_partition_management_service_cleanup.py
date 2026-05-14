@@ -21,7 +21,6 @@ def test_create_partition_does_not_create_partition_indexes(monkeypatch) -> None
 
     def _execute(statement, _params=None):
         executed_sql.append(str(statement))
-        return None
 
     @contextmanager
     def _begin_nested():

@@ -9,8 +9,8 @@ import app.routes.accounts.ledgers as route_module
 
 @pytest.mark.unit
 def test_web_accounts_ledgers_page_embeds_png_db_type_assets(auth_client, monkeypatch) -> None:
-    monkeypatch.setattr(route_module._filter_options_service, "list_active_tag_options", lambda: [])
-    monkeypatch.setattr(route_module._filter_options_service, "list_classification_options", lambda: [])
+    monkeypatch.setattr(route_module._filter_options_service, "list_active_tag_options", list)
+    monkeypatch.setattr(route_module._filter_options_service, "list_classification_options", list)
 
     response = auth_client.get("/accounts/ledgers")
 

@@ -41,7 +41,7 @@ def test_api_v1_accounts_statistics_requires_auth(client) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None:  # noqa: PLR0915
+def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None:
     _ensure_account_statistics_tables(app)
 
     statistics_response = auth_client.get("/api/v1/accounts/statistics")
