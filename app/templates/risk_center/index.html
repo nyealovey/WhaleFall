@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% set page_id = 'RiskCenterPage' %}
+{% set page_density = 'compact' %}
+
+{% block title %}风险中心 - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/risk-center.css') }}">
+{% endblock %}
+
+{% from 'components/ui/page_header.html' import page_header %}
+{% from 'components/ui/macros.html' import metric_card %}
+
+{% macro severity_label(severity) -%}
+    {%- if severity == 'critical' -%}严重
+    {%- elif severity == 'warning' -%}警告
+    {%- elif severity == 'info' -%}提示
+    {%- elif severity == 'ok' -%}正常
+    {%- else -%}未知
+    {%- endif -%}
+{%- endmacro %}
+
+{% macro render_risk_card(card) -%}
+<article class="risk-instance-card risk-instance-card--{{ card.overall_severity }}" data-risk-card>
+    <div class="risk-instance-card__body">
+        <div class="risk-instance-card__masthead">
+            <a class="risk-instance-card__identity" href="{{ card.links.detail }}" aria-label="查看 {{ card.name }} 详情">
+                <span class="risk-instance-card__icon"><i class="fas fa-database"></i></span>
+                <span class="risk-instance-card__copy">
+                    <strong class="risk-instance-card__name">{{ card.name }}</strong>
+                    <span class="risk-instance-card__subtitle">{{ card.subtitle }}</span>
+                </span>
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="打开实例操作">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ card.links.detail }}"><i class="fas fa-server me-2"></i>实例详情</a></li>
+                    <li><a class="dropdown-item" href="{{ card.links.backup }}"><i class="fas fa-shield-alt me-2"></i>备份信息</a></li>
+                    <li><a class="dropdown-item" href="{{ card.links.capacity }}"><i class="fas fa-chart-line me-2"></i>容量趋势</a></li>
+                    <li><a class="dropdown-item" href="{{ card.links.accounts }}"><i class="fas fa-users me-2"></i>账户台账</a></li>
+                    <li><a class="dropdown-item" href="{{ card.links.tasks }}"><i class="fas fa-tasks me-2"></i>任务记录</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="risk-instance-card__metrics" aria-label="实例核心风险指标">
+            <div class="risk-signal risk-signal--{{ card.backup.tone }}">
+                <strong>{{ card.backup.label }}</strong>
+                <span>Backup</span>
+            </div>
+            <div class="risk-signal risk-signal--{{ card.capacity.tone }}">
+                <strong>{{ card.capacity.label }}</strong>
+                <span>Capacity</span>
+            </div>
+            <div class="risk-signal risk-signal--{{ card.access.tone }}">
+                <strong>{{ card.access.label }}</strong>
+                <span>Access</span>
+            </div>
+        </div>
+
+        <div class="risk-instance-card__flags">
+            {% if card.risk_flags %}
+                {% for risk in card.risk_flags[:3] %}
+                    <span class="status-pill status-pill--{{ 'danger' if risk.severity == 'critical' else 'warning' if risk.severity == 'warning' else 'info' if risk.severity == 'info' else 'muted' }}">
+                        {{ risk.label }}
+                    </span>
+                {% endfor %}
+            {% else %}
+                <span class="status-pill status-pill--success">当前无风险</span>
+            {% endif %}
+        </div>
+    </div>
+    <a class="risk-instance-card__status risk-instance-card__status--{{ card.status_band.tone }}" href="{{ card.links.detail }}">
+        <span class="risk-instance-card__status-icon">
+            <i class="fas fa-{{ 'times' if card.status_band.tone == 'danger' else 'exclamation' if card.status_band.tone == 'warning' else 'question' if card.status_band.tone == 'muted' else 'check' }}"></i>
+        </span>
+        <span>{{ card.status_band.label }}</span>
+    </a>
+</article>
+{%- endmacro %}
+
+{% block content_outer %}
+{% call page_header('fas fa-heart-pulse', '风险中心', '以实例健康卡片快速查看备份、容量与账号权限风险', eyebrow='DBA Risk Board') %}
+<div class="btn-group">
+    <button type="button" class="btn btn-primary" data-action="refresh-risk-center">
+        <i class="fas fa-sync-alt me-2"></i>刷新
+    </button>
+</div>
+{% endcall %}
+
+<section class="page-section risk-center-page" data-risk-center-root>
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="risk-kpi-grid" data-risk-summary>
+                {% call metric_card('严重', value=summary.severity_counts.critical, icon_class='fas fa-triangle-exclamation', tone='danger', card_class='risk-kpi-card', data_stat_key='critical') %}{% endcall %}
+                {% call metric_card('警告', value=summary.severity_counts.warning, icon_class='fas fa-circle-exclamation', tone='warning', card_class='risk-kpi-card', data_stat_key='warning') %}{% endcall %}
+                {% call metric_card('正常', value=summary.severity_counts.ok, icon_class='fas fa-circle-check', tone='success', card_class='risk-kpi-card', data_stat_key='ok') %}{% endcall %}
+                {% call metric_card('未知', value=summary.severity_counts.unknown, icon_class='fas fa-circle-question', tone='muted', card_class='risk-kpi-card', data_stat_key='unknown') %}{% endcall %}
+                {% call metric_card('总实例', value=summary.total_instances, icon_class='fas fa-server', tone='info', card_class='risk-kpi-card', data_stat_key='total') %}{% endcall %}
+            </div>
+
+            <form class="risk-filter-band" data-risk-filter-form>
+                <label class="risk-filter-band__field">
+                    <span>搜索</span>
+                    <input class="form-control" type="search" name="search" placeholder="实例名 / 主机 / 类型" value="{{ filters.search }}">
+                </label>
+                <label class="risk-filter-band__field">
+                    <span>严重度</span>
+                    <select class="form-select" name="severity">
+                        <option value="" {{ 'selected' if not filters.severity else '' }}>全部</option>
+                        <option value="critical" {{ 'selected' if filters.severity == 'critical' else '' }}>严重</option>
+                        <option value="warning" {{ 'selected' if filters.severity == 'warning' else '' }}>警告</option>
+                        <option value="info" {{ 'selected' if filters.severity == 'info' else '' }}>提示</option>
+                        <option value="unknown" {{ 'selected' if filters.severity == 'unknown' else '' }}>未知</option>
+                        <option value="ok" {{ 'selected' if filters.severity == 'ok' else '' }}>正常</option>
+                    </select>
+                </label>
+                <label class="risk-filter-band__field">
+                    <span>数据库类型</span>
+                    <select class="form-select" name="db_type">
+                        <option value="" {{ 'selected' if not filters.db_type else '' }}>全部</option>
+                        <option value="mysql" {{ 'selected' if filters.db_type == 'mysql' else '' }}>MySQL</option>
+                        <option value="postgresql" {{ 'selected' if filters.db_type == 'postgresql' else '' }}>PostgreSQL</option>
+                        <option value="sqlserver" {{ 'selected' if filters.db_type == 'sqlserver' else '' }}>SQL Server</option>
+                        <option value="oracle" {{ 'selected' if filters.db_type == 'oracle' else '' }}>Oracle</option>
+                    </select>
+                </label>
+                <label class="risk-filter-band__field">
+                    <span>状态</span>
+                    <select class="form-select" name="status">
+                        <option value="" {{ 'selected' if not filters.status else '' }}>全部</option>
+                        <option value="active" {{ 'selected' if filters.status == 'active' else '' }}>启用</option>
+                        <option value="inactive" {{ 'selected' if filters.status == 'inactive' else '' }}>停用</option>
+                    </select>
+                </label>
+                <label class="risk-filter-band__field">
+                    <span>标签</span>
+                    <input class="form-control" type="text" name="tag" placeholder="标签 code" value="{{ filters.tag }}">
+                </label>
+                <div class="risk-filter-band__actions">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-2"></i>筛选</button>
+                    <button type="button" class="btn btn-outline-secondary" data-action="clear-risk-filters">清空</button>
+                </div>
+            </form>
+
+            <div class="risk-center-feedback d-none" data-risk-feedback></div>
+
+            <div class="risk-card-grid" data-risk-card-grid>
+                {% for card in cards["items"] %}
+                    {{ render_risk_card(card) }}
+                {% endfor %}
+            </div>
+
+            <div class="risk-center-empty {{ '' if cards["items"]|length == 0 else 'd-none' }}" data-risk-empty>
+                <i class="fas fa-circle-check"></i>
+                <strong>暂无实例风险数据</strong>
+                <span>当前筛选条件下没有可展示的实例卡片。</span>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/risk_center_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/risk_center_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/risk-center/index.js') }}"></script>
+{% endblock %}

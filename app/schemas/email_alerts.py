@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field, field_validator
-from pydantic import model_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.base import PayloadSchema
 
