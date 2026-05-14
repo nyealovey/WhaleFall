@@ -21,7 +21,7 @@
 {%- endmacro %}
 
 {% macro render_risk_card(card) -%}
-<article class="risk-instance-card risk-instance-card--{{ card.overall_severity }}" data-risk-card>
+<article class="card risk-instance-card risk-instance-card--{{ card.overall_severity }}" data-risk-card>
     <div class="risk-instance-card__body">
         <div class="risk-instance-card__masthead">
             <a class="risk-instance-card__identity" href="{{ card.links.detail }}" aria-label="查看 {{ card.name }} 详情">
@@ -38,6 +38,7 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><a class="dropdown-item" href="{{ card.links.detail }}"><i class="fas fa-server me-2"></i>实例详情</a></li>
                     <li><a class="dropdown-item" href="{{ card.links.backup }}"><i class="fas fa-shield-alt me-2"></i>备份信息</a></li>
+                    <li><a class="dropdown-item" href="{{ card.links.audit }}"><i class="fas fa-clipboard-check me-2"></i>审计信息</a></li>
                     <li><a class="dropdown-item" href="{{ card.links.capacity }}"><i class="fas fa-chart-line me-2"></i>容量趋势</a></li>
                     <li><a class="dropdown-item" href="{{ card.links.accounts }}"><i class="fas fa-users me-2"></i>账户台账</a></li>
                     <li><a class="dropdown-item" href="{{ card.links.tasks }}"><i class="fas fa-tasks me-2"></i>任务记录</a></li>
@@ -48,15 +49,15 @@
         <div class="risk-instance-card__metrics" aria-label="实例核心风险指标">
             <div class="risk-signal risk-signal--{{ card.backup.tone }}">
                 <strong>{{ card.backup.label }}</strong>
-                <span>Backup</span>
+                <span>备份</span>
             </div>
-            <div class="risk-signal risk-signal--{{ card.capacity.tone }}">
-                <strong>{{ card.capacity.label }}</strong>
-                <span>Capacity</span>
+            <div class="risk-signal risk-signal--{{ card.audit.tone }}">
+                <strong>{{ card.audit.label }}</strong>
+                <span>审计</span>
             </div>
-            <div class="risk-signal risk-signal--{{ card.access.tone }}">
-                <strong>{{ card.access.label }}</strong>
-                <span>Access</span>
+            <div class="risk-signal risk-signal--{{ card.managed.tone }}">
+                <strong>{{ card.managed.label }}</strong>
+                <span>托管</span>
             </div>
         </div>
 
@@ -68,7 +69,7 @@
                     </span>
                 {% endfor %}
             {% else %}
-                <span class="status-pill status-pill--success">当前无风险</span>
+                <span class="status-pill status-pill--muted">当前无其他风险</span>
             {% endif %}
         </div>
     </div>
@@ -82,7 +83,7 @@
 {%- endmacro %}
 
 {% block content_outer %}
-{% call page_header('fas fa-heart-pulse', '风险中心', '以实例健康卡片快速查看备份、容量与账号权限风险', eyebrow='DBA Risk Board') %}
+{% call page_header('fas fa-heart-pulse', '风险中心', '以实例健康卡片快速查看备份、审计与托管状态', eyebrow='DBA Risk Board') %}
 <div class="btn-group">
     <button type="button" class="btn btn-primary" data-action="refresh-risk-center">
         <i class="fas fa-sync-alt me-2"></i>刷新
