@@ -59,7 +59,8 @@ class EmailAlertDigestService:
         recipients = list(settings.recipients_json or [])
         enabled_channels = self._resolve_enabled_channels(settings)
         pending_by_channel = {
-            channel: self._repository.list_pending_digest_events(channel=channel) for channel in enabled_channels
+            channel: self._repository.list_pending_digest_events(channel=channel, bucket_date=bucket_date)
+            for channel in enabled_channels
         }
         events = self._unique_events([event for channel_events in pending_by_channel.values() for event in channel_events])
         bucket_stats = self._repository.get_bucket_event_counts(bucket_date, channels=enabled_channels)
