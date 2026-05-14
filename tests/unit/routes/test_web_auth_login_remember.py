@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from email.utils import parsedate_to_datetime
 from http.cookies import SimpleCookie
 
@@ -56,7 +56,7 @@ def test_web_auth_login_without_remember_does_not_set_remember_cookie(app, clien
 def test_web_auth_login_with_remember_sets_remember_cookie_expire_in_7_days(app, client, monkeypatch) -> None:
     import flask_login.login_manager as login_manager_module
 
-    fixed_now = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    fixed_now = datetime(2025, 1, 1, 0, 0, 0, tzinfo=UTC)
 
     class _FixedDatetime(datetime):
         @classmethod
@@ -95,5 +95,5 @@ def test_web_auth_login_with_remember_sets_remember_cookie_expire_in_7_days(app,
         expires_raw = cookie["remember_token"]["expires"]
         assert isinstance(expires_raw, str)
 
-        expires_at = parsedate_to_datetime(expires_raw).astimezone(timezone.utc)
+        expires_at = parsedate_to_datetime(expires_raw).astimezone(UTC)
         assert expires_at == fixed_now + timedelta(days=7)

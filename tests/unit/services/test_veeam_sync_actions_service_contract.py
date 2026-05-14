@@ -186,6 +186,7 @@ def test_sync_once_iterates_enabled_sources(monkeypatch) -> None:
             trigger_source="manual",
         )
         db.session.commit()
+        expected_run_id = run_id
 
         def _fake_sync_source_once(
             self,
@@ -199,7 +200,7 @@ def test_sync_once_iterates_enabled_sources(monkeypatch) -> None:
             del self
             _ = (stage_key_prefix, finalize_run)
             assert created_by == 7
-            assert run_id == run_id
+            assert run_id == expected_run_id
             synced_source_ids.append(int(binding.id))
             return 0
 
@@ -545,7 +546,7 @@ def test_sync_once_raises_first_error_when_all_sources_fail() -> None:
         prepared = service.prepare_background_sync(created_by=1)
         db.session.commit()
 
-        with pytest.raises(RuntimeError, match="10.0.0.11 token eof"):
+        with pytest.raises(RuntimeError, match=r"10\.0\.0\.11 token eof"):
             service._sync_once(created_by=1, run_id=prepared.run_id)
 
         run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
@@ -799,7 +800,7 @@ def test_sync_instance_now_uses_service_pipeline_and_upserts_latest_snapshot() -
 
 
 @pytest.mark.unit
-def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes_task_run() -> None:  # noqa: PLR0915
+def test_sync_once_writes_latest_machine_snapshots_updates_binding_and_finalizes_task_run() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
 
@@ -1651,6 +1652,177 @@ def test_sync_once_completes_with_partial_success_when_restore_points_timeout_is
             == "已完成 1/1 个备份 · 全覆盖 1 个 · 部分覆盖 0 个 · 超时跳过 0 个备份 · 失败跳过 0 个备份 · 有效补齐 1/1 个恢复点"
         )
         assert items["write_snapshots"].status == "completed"
+
+
+@pytest.mark.unit
+def test_sync_once_preserves_existing_snapshots_when_restore_points_partially_timeout() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["veeam_source_bindings"],
+                db.metadata.tables["veeam_machine_backup_snapshots"],
+                db.metadata.tables["task_runs"],
+                db.metadata.tables["task_run_items"],
+            ],
+        )
+
+        credential = Credential(
+            name="veeam-admin",
+            credential_type="veeam",
+            username="backup-admin",
+            password="VeeamPass123",
+            description="Veeam",
+            is_active=True,
+        )
+        db.session.add(credential)
+        db.session.flush()
+        db.session.add_all(
+            [
+                Instance(name="db01", db_type="mysql", host="127.0.0.1", port=3306, is_active=True),
+                Instance(name="db02", db_type="mysql", host="127.0.0.2", port=3306, is_active=True),
+            ]
+        )
+        binding = VeeamSourceBinding(
+            credential_id=credential.id,
+            server_host="10.0.0.10",
+            server_port=9419,
+            api_version="1.3-rev1",
+            verify_ssl=False,
+            match_domains=["domain.com"],
+        )
+        db.session.add(binding)
+        db.session.flush()
+        old_snapshot = VeeamMachineBackupSnapshot(
+            source_binding_id=binding.id,
+            machine_name="db02.domain.com",
+            normalized_machine_name="db02.domain.com",
+            latest_backup_at=datetime(2026, 3, 24, 2, 0, tzinfo=UTC),
+            source_record_id="old-rp-db02",
+            raw_payload={"id": "old-rp-db02"},
+            sync_run_id="old-run",
+            synced_at=datetime(2026, 3, 24, 2, 5, tzinfo=UTC),
+        )
+        db.session.add(old_snapshot)
+        db.session.commit()
+
+        class _StubProvider:
+            def is_configured(self) -> bool:
+                return True
+
+            def create_session(
+                self,
+                *,
+                server_host: str,
+                server_port: int,
+                username: str,
+                password: str,
+                api_version: str,
+                verify_ssl: bool | None = None,
+            ) -> object:
+                _ = (server_host, server_port, username, password, api_version, verify_ssl)
+                return object()
+
+            def fetch_backup_objects(self, *, session: object) -> list[dict[str, object]]:
+                _ = session
+                return [
+                    {"id": "backup-1", "name": "db01.domain.com"},
+                    {"id": "backup-2", "name": "db02.domain.com"},
+                ]
+
+            def match_backup_objects(
+                self,
+                *,
+                backup_items: list[dict[str, object]],
+                match_machine_names: set[str] | None = None,
+                match_machine_ips: set[str] | None = None,
+            ) -> VeeamBackupObjectMatchResult:
+                _ = (backup_items, match_machine_names, match_machine_ips)
+                return VeeamBackupObjectMatchResult(
+                    matched_backup_objects=[
+                        VeeamMatchedBackupObject(
+                            backup_object_id="backup-1",
+                            machine_name="db01.domain.com",
+                            backup_item={"id": "backup-1", "name": "db01.domain.com"},
+                        ),
+                        VeeamMatchedBackupObject(
+                            backup_object_id="backup-2",
+                            machine_name="db02.domain.com",
+                            backup_item={"id": "backup-2", "name": "db02.domain.com"},
+                        ),
+                    ],
+                    backups_received_total=2,
+                    backups_matched_total=2,
+                    backups_unmatched_total=0,
+                    backups_missing_machine_name=0,
+                    matched_backup_ids_sample=["backup-1", "backup-2"],
+                )
+
+            def fetch_restore_point_records(
+                self,
+                *,
+                session: object,
+                match_result: VeeamBackupObjectMatchResult,
+            ) -> VeeamMachineBackupCollection:
+                _ = (session, match_result)
+                return VeeamMachineBackupCollection(
+                    records=[
+                        VeeamMachineBackupRecord(
+                            machine_name="db01.domain.com",
+                            backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                            backup_id="backup-1",
+                            backup_file_id="file-1",
+                            restore_point_name="rp-1",
+                            source_record_id="rp-1",
+                            raw_payload={"id": "rp-1"},
+                        )
+                    ],
+                    received_total=1,
+                    snapshots_written_total=1,
+                    skipped_invalid=0,
+                    backups_received_total=2,
+                    backups_matched_total=2,
+                    backups_unmatched_total=0,
+                    backups_missing_machine_name=0,
+                    restore_points_backup_objects_total=2,
+                    restore_points_backup_objects_completed=1,
+                    timed_out_backup_objects_total=1,
+                    timed_out_backup_ids_sample=["backup-2"],
+                    timed_out_machine_names_sample=["db02.domain.com"],
+                )
+
+            def fetch_backup_file_records(self, *, session: object, backup_ids: list[str]) -> VeeamBackupFileCollection:
+                _ = (session, backup_ids)
+                return VeeamBackupFileCollection(
+                    records=[],
+                    received_total=0,
+                    backup_ids_total=1,
+                    backup_ids_completed=0,
+                )
+
+        service = VeeamSyncActionsService(provider=_StubProvider())
+        prepared = service.prepare_background_sync(created_by=1)
+        db.session.commit()
+
+        service._sync_once(created_by=1, run_id=prepared.run_id, credential_id=credential.id)
+
+        snapshots = {
+            row.normalized_machine_name: row
+            for row in VeeamMachineBackupSnapshot.query.order_by(VeeamMachineBackupSnapshot.machine_name.asc()).all()
+        }
+        run = TaskRun.query.filter_by(run_id=prepared.run_id).first()
+        assert run is not None
+        assert run.summary_json["ext"]["data"]["partial_success"] is True
+        assert set(snapshots) == {"db01.domain.com", "db02.domain.com"}
+        assert snapshots["db01.domain.com"].source_record_id == "rp-1"
+        assert snapshots["db01.domain.com"].sync_run_id == prepared.run_id
+        assert snapshots["db02.domain.com"].source_record_id == "old-rp-db02"
+        assert snapshots["db02.domain.com"].sync_run_id == "old-run"
 
 
 @pytest.mark.unit

@@ -42,7 +42,7 @@ class _DummyCoordinator:
     def __init__(self, _instance: object) -> None:
         return None
 
-    def __enter__(self) -> "_DummyCoordinator":
+    def __enter__(self) -> _DummyCoordinator:
         return self
 
     def __exit__(self, *_exc: object) -> bool:

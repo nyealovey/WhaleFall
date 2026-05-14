@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC as datetime_utc, date, datetime
 
 import pytest
+from pydantic import ValidationError
 
 from app import create_app, db
 from app.settings import Settings
@@ -82,7 +83,7 @@ def test_task_runs_write_service_start_run_rejects_raw_dict_summary(app) -> None
     with app.app_context():
         service = TaskRunsWriteService()
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             service.start_run(
                 task_key="sync_accounts",
                 task_name="账户同步",

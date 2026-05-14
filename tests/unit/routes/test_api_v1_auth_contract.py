@@ -3,6 +3,7 @@ import pytest
 from app import db
 from app.core.constants import HttpHeaders
 from app.models.user import User
+from datetime import UTC
 
 
 def _get_csrf_token(client) -> str:
@@ -114,13 +115,13 @@ def test_api_v1_auth_login_me_refresh_logout_contract(app, client) -> None:
 
 @pytest.mark.unit
 def test_api_v1_auth_login_sets_remember_cookie_expire_in_7_days(app, client, monkeypatch) -> None:
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
     from email.utils import parsedate_to_datetime
     from http.cookies import SimpleCookie
 
     import flask_login.login_manager as login_manager_module
 
-    fixed_now = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    fixed_now = datetime(2025, 1, 1, 0, 0, 0, tzinfo=UTC)
 
     class _FixedDatetime(datetime):
         @classmethod
@@ -158,7 +159,7 @@ def test_api_v1_auth_login_sets_remember_cookie_expire_in_7_days(app, client, mo
         expires_raw = cookie["remember_token"]["expires"]
         assert isinstance(expires_raw, str)
 
-        expires_at = parsedate_to_datetime(expires_raw).astimezone(timezone.utc)
+        expires_at = parsedate_to_datetime(expires_raw).astimezone(UTC)
         assert expires_at == fixed_now + timedelta(days=7)
 
 

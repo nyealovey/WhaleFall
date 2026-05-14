@@ -107,16 +107,16 @@ def test_veeam_source_js_and_instance_views_define_backup_behaviors() -> None:
         assert fragment in instance_detail_js
 
     assert "{% include 'instances/partials/detail/_data_tabs_card.html' %}" in instance_detail_template
-    assert "id=\"databaseInfoTabContent\"" in instance_tabs_partial
+    assert 'id="databaseInfoTabContent"' in instance_tabs_partial
     assert "{% include 'instances/partials/detail/_accounts_pane.html' %}" in instance_tabs_partial
     assert "{% include 'instances/partials/detail/_capacity_pane.html' %}" in instance_tabs_partial
     assert "{% include 'instances/partials/detail/_audit_pane.html' %}" in instance_tabs_partial
     assert "{% include 'instances/partials/detail/_backup_pane.html' %}" in instance_tabs_partial
-    assert "id=\"accounts-pane\"" in instance_accounts_partial
-    assert "id=\"capacity-pane\"" in instance_capacity_partial
-    assert "id=\"audit-pane\"" in instance_audit_partial
-    assert "id=\"backup-pane\"" in instance_backup_partial
-    assert "id=\"backupInfoContent\"" in instance_backup_partial
+    assert 'id="accounts-pane"' in instance_accounts_partial
+    assert 'id="capacity-pane"' in instance_capacity_partial
+    assert 'id="audit-pane"' in instance_audit_partial
+    assert 'id="backup-pane"' in instance_backup_partial
+    assert 'id="backupInfoContent"' in instance_backup_partial
     assert "备份信息将在此展示" in instance_backup_partial
 
     assert (

@@ -155,7 +155,7 @@ def test_fail_instance_sync_raises_on_write_error(monkeypatch) -> None:
 def test_get_session_records_raises_on_query_error(monkeypatch) -> None:
     service = SyncSessionService()
 
-    def _boom_get_records_by_session(session_id: str):  # noqa: ARG001
+    def _boom_get_records_by_session(session_id: str):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(SyncInstanceRecord, "get_records_by_session", staticmethod(_boom_get_records_by_session))

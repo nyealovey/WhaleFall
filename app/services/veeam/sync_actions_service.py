@@ -441,6 +441,7 @@ class VeeamSyncActionsService:
         restore_points_result: VeeamMachineBackupCollection | object | None = None
         backup_files_result: VeeamBackupFileCollection | object | None = None
         latest_records: list[VeeamMachineBackupRecord] = []
+        snapshots_written_total = 0
         try:
             log_with_context(
                 "info",
@@ -619,6 +620,17 @@ class VeeamSyncActionsService:
                             "timed_out_machine_names_sample",
                             [],
                         ),
+                        "timed_out_urls_sample": getattr(restore_points_result, "timed_out_urls_sample", []),
+                        "timed_out_reason_types_sample": getattr(
+                            restore_points_result,
+                            "timed_out_reason_types_sample",
+                            [],
+                        ),
+                        "timed_out_elapsed_ms_sample": getattr(
+                            restore_points_result,
+                            "timed_out_elapsed_ms_sample",
+                            [],
+                        ),
                         "failed_backup_objects_total": failed_backup_objects_total,
                         "failed_backup_ids_sample": getattr(restore_points_result, "failed_backup_ids_sample", []),
                         "failed_machine_names_sample": getattr(
@@ -691,6 +703,17 @@ class VeeamSyncActionsService:
                         "backup_files_scanned_total": getattr(backup_files_result, "received_total", 0),
                         "timed_out_backup_ids_total": getattr(backup_files_result, "timed_out_backup_ids_total", 0),
                         "timed_out_backup_ids_sample": getattr(backup_files_result, "timed_out_backup_ids_sample", []),
+                        "timed_out_urls_sample": getattr(backup_files_result, "timed_out_urls_sample", []),
+                        "timed_out_reason_types_sample": getattr(
+                            backup_files_result,
+                            "timed_out_reason_types_sample",
+                            [],
+                        ),
+                        "timed_out_elapsed_ms_sample": getattr(
+                            backup_files_result,
+                            "timed_out_elapsed_ms_sample",
+                            [],
+                        ),
                         "failed_backup_ids_total": getattr(backup_files_result, "failed_backup_ids_total", 0),
                         "failed_backup_ids_sample": getattr(backup_files_result, "failed_backup_ids_sample", []),
                         "failed_urls_sample": getattr(backup_files_result, "failed_urls_sample", []),
@@ -755,12 +778,20 @@ class VeeamSyncActionsService:
                 item_key=self._stage_item_key(current_stage_key, stage_key_prefix),
             )
             self._validate_records_to_write(latest_records)
-            snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
-                latest_records,
-                source_binding_id=int(binding.id),
-                sync_run_id=run_id,
-                synced_at=synced_at,
-            )
+            if skipped_backup_objects_total > 0:
+                snapshots_written_total = self._veeam_repository.upsert_machine_backup_snapshots(
+                    latest_records,
+                    source_binding_id=int(binding.id),
+                    sync_run_id=run_id,
+                    synced_at=synced_at,
+                )
+            else:
+                snapshots_written_total = self._veeam_repository.replace_machine_backup_snapshots(
+                    latest_records,
+                    source_binding_id=int(binding.id),
+                    sync_run_id=run_id,
+                    synced_at=synced_at,
+                )
             binding.last_sync_at = synced_at
             binding.last_sync_status = "completed"
             binding.last_sync_run_id = run_id
@@ -772,7 +803,11 @@ class VeeamSyncActionsService:
                 module="veeam",
                 action="sync_backups_background",
                 context=sync_context,
-                extra={"snapshots_written_total": snapshots_written_total},
+                extra={
+                    "snapshots_written_total": snapshots_written_total,
+                    "write_strategy": "upsert_preserve_existing" if skipped_backup_objects_total > 0 else "replace_full",
+                    "preserved_existing_due_to_partial_restore_points": skipped_backup_objects_total > 0,
+                },
                 include_actor=False,
             )
             task_runs_service.complete_item(
@@ -782,10 +817,12 @@ class VeeamSyncActionsService:
                 metrics_json={
                     "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
+                    "preserved_existing_due_to_partial_restore_points": skipped_backup_objects_total > 0,
                 },
                 details_json=self._build_write_snapshots_details(
                     latest_machine_count=len(latest_records),
                     snapshots_written_total=snapshots_written_total,
+                    preserved_existing_due_to_partial_restore_points=skipped_backup_objects_total > 0,
                 ),
             )
             if finalize_run:
@@ -857,11 +894,12 @@ class VeeamSyncActionsService:
                     "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
                     "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
+                    "write_strategy": "upsert_preserve_existing" if skipped_backup_objects_total > 0 else "replace_full",
+                    "preserved_existing_due_to_partial_restore_points": skipped_backup_objects_total > 0,
                     "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
                 },
                 include_actor=False,
             )
-            return snapshots_written_total
         except Exception as exc:
             db.session.rollback()
             binding.last_sync_at = synced_at
@@ -917,6 +955,7 @@ class VeeamSyncActionsService:
                 include_actor=False,
             )
             raise
+        return snapshots_written_total
 
     @staticmethod
     def _build_source_summary(
@@ -1070,6 +1109,9 @@ class VeeamSyncActionsService:
             "timed_out_backup_objects_total": timed_out,
             "timed_out_backup_ids_sample": list(getattr(result, "timed_out_backup_ids_sample", [])),
             "timed_out_machine_names_sample": list(getattr(result, "timed_out_machine_names_sample", [])),
+            "timed_out_urls_sample": list(getattr(result, "timed_out_urls_sample", [])),
+            "timed_out_reason_types_sample": list(getattr(result, "timed_out_reason_types_sample", [])),
+            "timed_out_elapsed_ms_sample": list(getattr(result, "timed_out_elapsed_ms_sample", [])),
             "failed_backup_objects_total": failed,
             "failed_backup_ids_sample": list(getattr(result, "failed_backup_ids_sample", [])),
             "failed_machine_names_sample": list(getattr(result, "failed_machine_names_sample", [])),
@@ -1097,6 +1139,9 @@ class VeeamSyncActionsService:
             "backup_files_scanned_total": result.received_total,
             "timed_out_backup_ids_total": timed_out,
             "timed_out_backup_ids_sample": list(getattr(result, "timed_out_backup_ids_sample", [])),
+            "timed_out_urls_sample": list(getattr(result, "timed_out_urls_sample", [])),
+            "timed_out_reason_types_sample": list(getattr(result, "timed_out_reason_types_sample", [])),
+            "timed_out_elapsed_ms_sample": list(getattr(result, "timed_out_elapsed_ms_sample", [])),
             "failed_backup_ids_total": failed,
             "failed_backup_ids_sample": list(getattr(result, "failed_backup_ids_sample", [])),
             "failed_urls_sample": list(getattr(result, "failed_urls_sample", [])),
@@ -1108,11 +1153,17 @@ class VeeamSyncActionsService:
         }
 
     @staticmethod
-    def _build_write_snapshots_details(*, latest_machine_count: int, snapshots_written_total: int) -> dict[str, object]:
+    def _build_write_snapshots_details(
+        *,
+        latest_machine_count: int,
+        snapshots_written_total: int,
+        preserved_existing_due_to_partial_restore_points: bool = False,
+    ) -> dict[str, object]:
         return {
             "summary": f"已筛选 {latest_machine_count} 台机器 · 写入 {snapshots_written_total} 条快照",
             "latest_machine_count": latest_machine_count,
             "snapshots_written_total": snapshots_written_total,
+            "preserved_existing_due_to_partial_restore_points": preserved_existing_due_to_partial_restore_points,
         }
 
     @staticmethod

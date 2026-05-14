@@ -9,8 +9,8 @@ import app.routes.instances.manage as route_module
 
 @pytest.mark.unit
 def test_web_instances_list_page_embeds_vendor_db_type_assets(auth_client, monkeypatch) -> None:
-    monkeypatch.setattr(route_module.CredentialsRepository, "list_active_credentials", staticmethod(lambda: []))
-    monkeypatch.setattr(route_module._filter_options_service, "list_active_tag_options", lambda: [])
+    monkeypatch.setattr(route_module.CredentialsRepository, "list_active_credentials", staticmethod(list))
+    monkeypatch.setattr(route_module._filter_options_service, "list_active_tag_options", list)
 
     response = auth_client.get("/instances/")
 
@@ -27,7 +27,7 @@ def test_web_instances_list_page_embeds_vendor_db_type_assets(auth_client, monke
 
 @pytest.mark.unit
 def test_web_instances_list_tag_filter_hides_placeholder_when_tags_selected(auth_client, monkeypatch) -> None:
-    monkeypatch.setattr(route_module.CredentialsRepository, "list_active_credentials", staticmethod(lambda: []))
+    monkeypatch.setattr(route_module.CredentialsRepository, "list_active_credentials", staticmethod(list))
     monkeypatch.setattr(
         route_module._filter_options_service,
         "list_active_tag_options",

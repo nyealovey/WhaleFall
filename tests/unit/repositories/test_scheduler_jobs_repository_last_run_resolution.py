@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 import pytest
 
@@ -40,8 +40,8 @@ def test_lookup_job_last_run_returns_latest_started_at(app) -> None:
 
     from app.models.task_run import TaskRun
 
-    older = datetime(2026, 1, 22, 2, 0, 0, tzinfo=timezone.utc)
-    newer = datetime(2026, 1, 22, 3, 0, 0, tzinfo=timezone.utc)
+    older = datetime(2026, 1, 22, 2, 0, 0, tzinfo=UTC)
+    newer = datetime(2026, 1, 22, 3, 0, 0, tzinfo=UTC)
 
     with app.app_context():
         run_old = TaskRun()
