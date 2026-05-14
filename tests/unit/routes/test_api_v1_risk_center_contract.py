@@ -19,6 +19,8 @@ def _ensure_risk_center_tables(app) -> None:
                 db.metadata.tables["task_runs"],
                 db.metadata.tables["task_run_items"],
                 db.metadata.tables["credentials"],
+                db.metadata.tables["instance_config_snapshots"],
+                db.metadata.tables["jumpserver_asset_snapshots"],
                 db.metadata.tables["veeam_source_bindings"],
                 db.metadata.tables["veeam_machine_backup_snapshots"],
             ],
@@ -88,7 +90,10 @@ def test_api_v1_risk_center_cards_contract_and_filters(app, auth_client) -> None
         "overall_severity",
         "risk_score",
         "risk_flags",
+        "risk_items",
         "backup",
+        "audit",
+        "managed",
         "capacity",
         "access",
         "tasks",
@@ -118,3 +123,6 @@ def test_risk_center_page_renders_card_wall(app, auth_client) -> None:
     assert "风险中心" in html
     assert "risk-card-grid" in html
     assert "db-page" in html
+    assert html.index(">备份<") < html.index(">审计<") < html.index(">托管<")
+    assert ">Capacity<" not in html
+    assert ">Access<" not in html

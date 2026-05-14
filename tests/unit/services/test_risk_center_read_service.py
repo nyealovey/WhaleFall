@@ -11,8 +11,10 @@ from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
+from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
@@ -47,6 +49,8 @@ def _create_tables() -> None:
             db.metadata.tables["task_runs"],
             db.metadata.tables["task_run_items"],
             db.metadata.tables["credentials"],
+            db.metadata.tables["instance_config_snapshots"],
+            db.metadata.tables["jumpserver_asset_snapshots"],
             db.metadata.tables["veeam_source_bindings"],
             db.metadata.tables["veeam_machine_backup_snapshots"],
         ],
@@ -130,6 +134,49 @@ def _create_veeam_source() -> VeeamSourceBinding:
     return source
 
 
+def _add_recent_backup(source: VeeamSourceBinding, instance: Instance, now: datetime) -> None:
+    db.session.add(
+        VeeamMachineBackupSnapshot(
+            source_binding_id=source.id,
+            machine_name=str(instance.name),
+            normalized_machine_name=str(instance.name),
+            latest_backup_at=now - timedelta(hours=2),
+            raw_payload={},
+        )
+    )
+
+
+def _add_capacity(instance: Instance, now: datetime, row_id: int) -> None:
+    db.session.add(
+        InstanceSizeStat(
+            id=row_id,
+            instance_id=instance.id,
+            total_size_mb=1024,
+            database_count=1,
+            collected_at=now - timedelta(hours=3),
+            collected_date=now.date(),
+            is_deleted=False,
+        )
+    )
+
+
+def _add_audit_snapshot(instance: Instance, now: datetime, *, has_audit: bool, enabled_count: int) -> None:
+    db.session.add(
+        InstanceConfigSnapshot(
+            instance_id=instance.id,
+            db_type=instance.db_type,
+            config_key="audit_info",
+            snapshot={},
+            facts={
+                "has_audit": has_audit,
+                "audit_count": 1 if has_audit else 0,
+                "enabled_audit_count": enabled_count,
+            },
+            last_sync_time=now - timedelta(hours=2),
+        )
+    )
+
+
 @pytest.mark.unit
 def test_risk_center_marks_missing_backup_as_critical(app) -> None:
     with app.app_context():
@@ -144,7 +191,52 @@ def test_risk_center_marks_missing_backup_as_critical(app) -> None:
         assert card["overall_severity"] == "critical"
         assert card["backup"]["label"] == "未备份"
         assert card["status_band"]["tone"] == "danger"
-        assert any(item["category"] == "backup" and item["severity"] == "critical" for item in card["risk_flags"])
+        assert card["status_band"]["label"] == "Critical · 备份缺失"
+        assert all(item["label"] != "未备份" for item in card["risk_flags"])
+        assert any(item["category"] == "backup" and item["severity"] == "critical" for item in card["risk_items"])
+
+
+@pytest.mark.unit
+def test_risk_center_builds_audit_and_managed_metrics_without_unmanaged_risk(app) -> None:
+    now = datetime.now(UTC)
+    with app.app_context():
+        _create_tables()
+        source = _create_veeam_source()
+        enabled = Instance(name="a-audit-enabled", db_type="sqlserver", host="10.0.0.11", port=1433, is_active=True)
+        disabled = Instance(name="b-audit-disabled", db_type="mysql", host="10.0.0.12", port=3306, is_active=True)
+        missing = Instance(name="c-audit-missing", db_type="postgresql", host="10.0.0.13", port=5432, is_active=True)
+        db.session.add_all([enabled, disabled, missing])
+        db.session.flush()
+        for index, instance in enumerate([enabled, disabled, missing], start=1):
+            _add_recent_backup(source, instance, now)
+            _add_capacity(instance, now, index)
+        _add_audit_snapshot(enabled, now, has_audit=True, enabled_count=1)
+        _add_audit_snapshot(disabled, now, has_audit=True, enabled_count=0)
+        db.session.add(
+            JumpServerAssetSnapshot(
+                external_id="managed-audit-enabled",
+                name="a-audit-enabled",
+                db_type="sqlserver",
+                host="10.0.0.11",
+                port=1433,
+                raw_payload={},
+                synced_at=now,
+            )
+        )
+        db.session.commit()
+
+        cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
+
+        assert cards["a-audit-enabled"]["audit"]["label"] == "已启用"
+        assert cards["a-audit-enabled"]["managed"]["label"] == "已托管"
+        assert cards["a-audit-enabled"]["overall_severity"] == "ok"
+        assert cards["b-audit-disabled"]["audit"]["label"] == "未启用"
+        assert cards["b-audit-disabled"]["managed"]["label"] == "未托管"
+        assert cards["b-audit-disabled"]["overall_severity"] == "warning"
+        assert cards["c-audit-missing"]["audit"]["label"] == "未配置"
+        assert cards["c-audit-missing"]["managed"]["label"] == "未托管"
+        assert cards["c-audit-missing"]["overall_severity"] == "warning"
+        assert not any(item["category"] == "managed" for item in cards["b-audit-disabled"]["risk_items"])
 
 
 @pytest.mark.unit
@@ -159,6 +251,8 @@ def test_risk_center_orders_critical_warning_unknown_ok(app) -> None:
         db.session.add_all([critical, warning, unknown, ok])
         db.session.flush()
         source = _create_veeam_source()
+        _add_audit_snapshot(unknown, now, has_audit=True, enabled_count=1)
+        _add_audit_snapshot(ok, now, has_audit=True, enabled_count=1)
 
         db.session.add(
             VeeamMachineBackupSnapshot(

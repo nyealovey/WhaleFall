@@ -54,7 +54,7 @@
 
   function renderFlags(flags) {
     if (!Array.isArray(flags) || flags.length === 0) {
-      return '<span class="status-pill status-pill--success">当前无风险</span>';
+      return '<span class="status-pill status-pill--muted">当前无其他风险</span>';
     }
     return flags
       .slice(0, 3)
@@ -66,7 +66,7 @@
     const links = card?.links || {};
     const statusBand = card?.status_band || {};
     return `
-      <article class="risk-instance-card risk-instance-card--${escapeHtml(card?.overall_severity || "unknown")}" data-risk-card>
+      <article class="card risk-instance-card risk-instance-card--${escapeHtml(card?.overall_severity || "unknown")}" data-risk-card>
         <div class="risk-instance-card__body">
           <div class="risk-instance-card__masthead">
             <a class="risk-instance-card__identity" href="${escapeHtml(links.detail || "#")}" aria-label="查看 ${escapeHtml(card?.name || "实例")} 详情">
@@ -83,6 +83,7 @@
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="${escapeHtml(links.detail || "#")}"><i class="fas fa-server me-2"></i>实例详情</a></li>
                 <li><a class="dropdown-item" href="${escapeHtml(links.backup || "#")}"><i class="fas fa-shield-alt me-2"></i>备份信息</a></li>
+                <li><a class="dropdown-item" href="${escapeHtml(links.audit || "#")}"><i class="fas fa-clipboard-check me-2"></i>审计信息</a></li>
                 <li><a class="dropdown-item" href="${escapeHtml(links.capacity || "#")}"><i class="fas fa-chart-line me-2"></i>容量趋势</a></li>
                 <li><a class="dropdown-item" href="${escapeHtml(links.accounts || "#")}"><i class="fas fa-users me-2"></i>账户台账</a></li>
                 <li><a class="dropdown-item" href="${escapeHtml(links.tasks || "#")}"><i class="fas fa-tasks me-2"></i>任务记录</a></li>
@@ -90,9 +91,9 @@
             </div>
           </div>
           <div class="risk-instance-card__metrics">
-            ${renderMetric(card?.backup, "Backup")}
-            ${renderMetric(card?.capacity, "Capacity")}
-            ${renderMetric(card?.access, "Access")}
+            ${renderMetric(card?.backup, "备份")}
+            ${renderMetric(card?.audit, "审计")}
+            ${renderMetric(card?.managed, "托管")}
           </div>
           <div class="risk-instance-card__flags">${renderFlags(card?.risk_flags)}</div>
         </div>

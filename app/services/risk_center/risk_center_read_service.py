@@ -19,11 +19,13 @@ from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.repositories.instances_repository import InstancesRepository
+from app.repositories.jumpserver_repository import JumpServerRepository
 from app.repositories.veeam_repository import VeeamRepository
 from app.services.veeam.instance_backup_read_service import resolve_backup_status
 from app.utils.time_utils import time_utils
@@ -61,6 +63,8 @@ CAPACITY_STALE_HOURS = 48
 CAPACITY_WARNING_GROWTH_RATE = 30
 CAPACITY_CRITICAL_GROWTH_RATE = 60
 RECENT_WINDOW_HOURS = 24
+AUDIT_INFO_CONFIG_KEY = "audit_info"
+METRIC_RISK_CATEGORIES = {"backup", "audit", "managed"}
 
 
 def _table_exists(table_name: str) -> bool:
@@ -107,6 +111,16 @@ def _as_int(value: object, default: int = 0) -> int:
         return int(cast(Any, value))
     except (TypeError, ValueError):
         return default
+
+
+def _as_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return False
 
 
 def _risk(
@@ -196,6 +210,8 @@ class RiskCenterReadService:
         backup_map = VeeamRepository.fetch_backup_summary_map(instances)
         latest_capacity = self._latest_capacity_map(instance_ids)
         latest_growth = self._latest_growth_map(instance_ids)
+        audit_map = self._audit_snapshot_map(instance_ids)
+        managed_ids = JumpServerRepository.fetch_managed_instance_ids(instances)
         access_map = self._access_summary_map(instance_ids, since=now - timedelta(hours=RECENT_WINDOW_HOURS))
         failed_task_map = self._failed_task_map(instance_ids, since=now - timedelta(hours=RECENT_WINDOW_HOURS))
         tag_map = (
@@ -211,6 +227,8 @@ class RiskCenterReadService:
                 backup=backup_map.get(int(instance.id), {}),
                 capacity=latest_capacity.get(int(instance.id)),
                 growth=latest_growth.get(int(instance.id)),
+                audit=audit_map.get(int(instance.id)),
+                managed=int(instance.id) in managed_ids,
                 access=access_map.get(int(instance.id), {}),
                 failed_task=failed_task_map.get(int(instance.id)),
                 tags=tag_map.get(int(instance.id), []),
@@ -234,6 +252,8 @@ class RiskCenterReadService:
         backup: dict[str, object],
         capacity: InstanceSizeStat | None,
         growth: InstanceSizeAggregation | None,
+        audit: InstanceConfigSnapshot | None,
+        managed: bool,
         access: dict[str, int],
         failed_task: TaskRunItem | None,
         tags: list[Any],
@@ -241,10 +261,13 @@ class RiskCenterReadService:
         risks: list[dict[str, object]] = []
         backup_metric, backup_risks = self._build_backup_metric(instance, backup, now=now)
         capacity_metric, capacity_risks = self._build_capacity_metric(instance, capacity, growth, now=now)
+        audit_metric, audit_risks = self._build_audit_metric(instance, audit)
+        managed_metric = self._build_managed_metric(instance, managed)
         access_metric, access_risks = self._build_access_metric(instance, access)
         task_metric, task_risks = self._build_task_metric(instance, failed_task)
         risks.extend(backup_risks)
         risks.extend(capacity_risks)
+        risks.extend(audit_risks)
         risks.extend(access_risks)
         risks.extend(task_risks)
         if not bool(instance.is_active):
@@ -260,10 +283,11 @@ class RiskCenterReadService:
 
         overall = self._resolve_overall_severity(risks)
         risk_score = min(sum(SEVERITY_SCORE.get(str(risk["severity"]), 0) for risk in risks), 999)
+        risk_flags = self._build_visible_risk_flags(risks)
         status_band = self._build_status_band(
             severity=overall,
             risks=risks,
-            last_seen=self._resolve_last_seen(backup_metric, capacity_metric, task_metric),
+            last_seen=self._resolve_last_seen(backup_metric, audit_metric, capacity_metric, task_metric),
             now=now,
         )
         tag_payload = [
@@ -281,8 +305,11 @@ class RiskCenterReadService:
             "status": "inactive" if not bool(instance.is_active) else "active",
             "overall_severity": overall,
             "risk_score": risk_score,
-            "risk_flags": risks,
+            "risk_flags": risk_flags,
+            "risk_items": risks,
             "backup": backup_metric,
+            "audit": audit_metric,
+            "managed": managed_metric,
             "capacity": capacity_metric,
             "access": access_metric,
             "tasks": task_metric,
@@ -291,6 +318,7 @@ class RiskCenterReadService:
             "links": {
                 "detail": f"/instances/{int(instance.id)}",
                 "backup": f"/instances/{int(instance.id)}#backup",
+                "audit": f"/instances/{int(instance.id)}#audit",
                 "capacity": f"/capacity/instances?instance_id={int(instance.id)}",
                 "accounts": f"/accounts/ledgers?instance_id={int(instance.id)}",
                 "tasks": f"/history/sessions?instance_id={int(instance.id)}",
@@ -350,16 +378,16 @@ class RiskCenterReadService:
         status = resolve_backup_status(latest_backup_at=latest_backup_at.isoformat() if latest_backup_at else None)
         if status == "backed_up":
             return {
-                "label": _format_age(latest_backup_at, now=now),
-                "detail": "Backup",
+                "label": "24h内",
+                "detail": "备份",
                 "status": status,
                 "tone": "success",
                 "last_seen_at": _iso(latest_backup_at),
             }, []
         if status == "backup_stale":
             return {
-                "label": _format_age(latest_backup_at, now=now),
-                "detail": "Backup",
+                "label": "备份过期",
+                "detail": "备份",
                 "status": status,
                 "tone": "warning",
                 "last_seen_at": _iso(latest_backup_at),
@@ -367,7 +395,7 @@ class RiskCenterReadService:
                 _risk(
                     category="backup",
                     severity="warning",
-                    label="备份过期",
+                    label="备份滞后",
                     detail=f"最近备份为 {_format_age(latest_backup_at, now=now)}",
                     occurred_at=latest_backup_at,
                     target_url=f"/instances/{int(instance.id)}#backup",
@@ -375,7 +403,7 @@ class RiskCenterReadService:
             ]
         return {
             "label": "未备份",
-            "detail": "Backup",
+            "detail": "备份",
             "status": status,
             "tone": "danger",
             "last_seen_at": None,
@@ -383,11 +411,89 @@ class RiskCenterReadService:
             _risk(
                 category="backup",
                 severity="critical",
-                label="未备份",
+                label="备份缺失",
                 detail="未匹配到 Veeam 机器备份快照",
                 target_url=f"/instances/{int(instance.id)}#backup",
             )
         ]
+
+    @staticmethod
+    def _build_audit_metric(
+        instance: Instance,
+        snapshot: InstanceConfigSnapshot | None,
+    ) -> tuple[dict[str, object], list[dict[str, object]]]:
+        target_url = f"/instances/{int(instance.id)}#audit"
+        facts = snapshot.facts if snapshot is not None and isinstance(snapshot.facts, dict) else {}
+        has_audit = _as_bool(facts.get("has_audit")) if isinstance(facts, dict) else False
+        enabled_count = _as_int(facts.get("enabled_audit_count")) if isinstance(facts, dict) else 0
+        last_sync_at = _to_utc_datetime(snapshot.last_sync_time) if snapshot is not None else None
+
+        if has_audit and enabled_count > 0:
+            return {
+                "label": "已启用",
+                "detail": "审计",
+                "tone": "success",
+                "status": "enabled",
+                "enabled_count": enabled_count,
+                "last_seen_at": _iso(last_sync_at),
+                "target_url": target_url,
+            }, []
+        if has_audit:
+            return {
+                "label": "未启用",
+                "detail": "审计",
+                "tone": "warning",
+                "status": "configured_disabled",
+                "enabled_count": enabled_count,
+                "last_seen_at": _iso(last_sync_at),
+                "target_url": target_url,
+            }, [
+                _risk(
+                    category="audit",
+                    severity="warning",
+                    label="审计未启用",
+                    detail="已发现审计配置，但当前没有启用的审计目标",
+                    occurred_at=last_sync_at,
+                    target_url=target_url,
+                )
+            ]
+        return {
+            "label": "未配置",
+            "detail": "审计",
+            "tone": "warning",
+            "status": "not_configured",
+            "enabled_count": 0,
+            "last_seen_at": _iso(last_sync_at),
+            "target_url": target_url,
+        }, [
+            _risk(
+                category="audit",
+                severity="warning",
+                label="审计未配置",
+                detail="未发现实例审计配置快照或审计目标",
+                occurred_at=last_sync_at,
+                target_url=target_url,
+            )
+        ]
+
+    @staticmethod
+    def _build_managed_metric(instance: Instance, managed: bool) -> dict[str, object]:
+        target_url = f"/instances/{int(instance.id)}"
+        if managed:
+            return {
+                "label": "已托管",
+                "detail": "托管",
+                "tone": "success",
+                "status": "managed",
+                "target_url": target_url,
+            }
+        return {
+            "label": "未托管",
+            "detail": "托管",
+            "tone": "info",
+            "status": "unmanaged",
+            "target_url": target_url,
+        }
 
     @staticmethod
     def _build_capacity_metric(
@@ -562,6 +668,10 @@ class RiskCenterReadService:
         return min(severities, key=lambda item: SEVERITY_ORDER.get(item, 99))
 
     @staticmethod
+    def _build_visible_risk_flags(risks: list[dict[str, object]]) -> list[dict[str, object]]:
+        return [risk for risk in risks if str(risk.get("category")) not in METRIC_RISK_CATEGORIES]
+
+    @staticmethod
     def _resolve_last_seen(*metrics: dict[str, object]) -> datetime | None:
         candidates = [_to_utc_datetime(metric.get("last_seen_at")) for metric in metrics]
         resolved = [item for item in candidates if item is not None]
@@ -631,6 +741,20 @@ class RiskCenterReadService:
                 latest_subquery,
                 (InstanceSizeAggregation.instance_id == latest_subquery.c.instance_id)
                 & (InstanceSizeAggregation.period_start == latest_subquery.c.latest_period_start),
+            )
+            .all()
+        )
+        return {_as_int(cast(Any, row).instance_id): row for row in rows}
+
+    @staticmethod
+    def _audit_snapshot_map(instance_ids: list[int]) -> dict[int, InstanceConfigSnapshot]:
+        if not instance_ids or not _table_exists(InstanceConfigSnapshot.__tablename__):
+            return {}
+        rows = (
+            db.session.query(InstanceConfigSnapshot)
+            .filter(
+                InstanceConfigSnapshot.instance_id.in_(instance_ids),
+                InstanceConfigSnapshot.config_key == AUDIT_INFO_CONFIG_KEY,
             )
             .all()
         )
