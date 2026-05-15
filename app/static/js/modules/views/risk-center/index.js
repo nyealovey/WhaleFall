@@ -26,6 +26,7 @@
     const dbType = String(data.get("db_type") || "").trim();
     const status = String(data.get("status") || "").trim();
     const tag = String(data.get("tag") || "").trim();
+    filters.limit = 0;
     if (search) filters.search = search;
     if (severity) filters.severity = severity;
     if (dbType) filters.db_type = dbType;

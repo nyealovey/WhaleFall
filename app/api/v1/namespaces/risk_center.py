@@ -26,7 +26,7 @@ _cards_query_parser.add_argument("status", type=str, default="", location="args"
 _cards_query_parser.add_argument("tag", type=str, default="", location="args")
 _cards_query_parser.add_argument("search", type=str, default="", location="args")
 _cards_query_parser.add_argument("page", type=int, default=1, location="args")
-_cards_query_parser.add_argument("limit", type=int, default=24, location="args")
+_cards_query_parser.add_argument("limit", type=int, default=0, location="args")
 
 
 @ns.route("/summary")
@@ -77,7 +77,7 @@ class RiskCenterCardsResource(BaseResource):
                 tag=str(args.get("tag") or "").strip(),
                 search=str(args.get("search") or "").strip(),
                 page=int(args.get("page") or 1),
-                limit=int(args.get("limit") or 24),
+                limit=int(args.get("limit") or 0),
             )
             return self.success(data=data, message=SuccessMessages.OPERATION_SUCCESS)
 

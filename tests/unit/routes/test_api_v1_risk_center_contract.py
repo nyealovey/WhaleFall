@@ -105,6 +105,30 @@ def test_api_v1_risk_center_cards_contract_and_filters(app, auth_client) -> None
 
 
 @pytest.mark.unit
+def test_api_v1_risk_center_cards_returns_all_cards_by_default(app, auth_client) -> None:
+    _ensure_risk_center_tables(app)
+    with app.app_context():
+        db.session.add_all(
+            [
+                Instance(name=f"db-page-{index:02d}", db_type="mysql", host=f"127.0.1.{index}", port=3306, is_active=True)
+                for index in range(30)
+            ]
+        )
+        db.session.commit()
+
+    response = auth_client.get("/api/v1/risk-center/cards")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert data["total"] == 30
+    assert len(data["items"]) == 30
+    assert data["pages"] == 1
+    assert data["limit"] == 30
+
+
+@pytest.mark.unit
 def test_risk_center_page_renders_card_wall(app, auth_client) -> None:
     with app.app_context():
         db.metadata.create_all(
@@ -133,3 +157,29 @@ def test_risk_center_page_renders_card_wall(app, auth_client) -> None:
     assert ">托管<" in html and ">任务<" in html
     assert ">Capacity<" not in html
     assert ">Access<" not in html
+
+
+@pytest.mark.unit
+def test_risk_center_page_renders_all_matching_cards_without_hidden_pagination(app, auth_client) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["instances"],
+            ],
+        )
+        db.session.add_all(
+            [
+                Instance(name=f"db-visible-{index:02d}", db_type="mysql", host=f"10.1.0.{index}", port=3306, is_active=True)
+                for index in range(30)
+            ]
+        )
+        db.session.commit()
+
+    response = auth_client.get("/risk-center/")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert html.count('class="card risk-instance-card') == 30
+    assert "db-visible-00" in html
+    assert "db-visible-29" in html

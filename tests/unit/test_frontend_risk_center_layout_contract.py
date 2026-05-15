@@ -69,3 +69,9 @@ def test_risk_center_summary_uses_four_visible_kpi_cards() -> None:
     assert "metric_card('警告'" in template
     assert "metric_card('正常'" in template
     assert "metric_card('总实例'" in template
+
+
+def test_risk_center_refresh_requests_all_cards_by_default() -> None:
+    script = _read_text("app/static/js/modules/views/risk-center/index.js")
+
+    assert "filters.limit = 0" in script
