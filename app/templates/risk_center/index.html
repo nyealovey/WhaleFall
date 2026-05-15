@@ -61,24 +61,13 @@
             </div>
         </div>
 
-        <div class="risk-instance-card__flags">
-            {% if card.risk_flags %}
-                {% for risk in card.risk_flags[:3] %}
-                    <span class="status-pill status-pill--{{ 'danger' if risk.severity == 'critical' else 'warning' if risk.severity == 'warning' else 'info' if risk.severity == 'info' else 'muted' }}">
-                        {{ risk.label }}
-                    </span>
-                {% endfor %}
-            {% else %}
-                <span class="status-pill status-pill--muted">当前无其他风险</span>
-            {% endif %}
-        </div>
+        {% if card.tasks.tone != 'success' %}
+            <a class="risk-instance-card__task risk-instance-card__task--{{ card.tasks.tone }}" href="{{ card.links.tasks }}">
+                <span class="risk-instance-card__task-icon"><i class="fas fa-clock"></i></span>
+                <span>{{ card.tasks.label }}</span>
+            </a>
+        {% endif %}
     </div>
-    <a class="risk-instance-card__status risk-instance-card__status--{{ card.status_band.tone }}" href="{{ card.links.detail }}">
-        <span class="risk-instance-card__status-icon">
-            <i class="fas fa-{{ 'times' if card.status_band.tone == 'danger' else 'exclamation' if card.status_band.tone == 'warning' else 'question' if card.status_band.tone == 'muted' else 'check' }}"></i>
-        </span>
-        <span>{{ card.status_band.label }}</span>
-    </a>
 </article>
 {%- endmacro %}
 

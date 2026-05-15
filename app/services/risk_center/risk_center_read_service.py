@@ -123,6 +123,29 @@ def _as_bool(value: object) -> bool:
     return False
 
 
+def _compact_task_name(value: object) -> str:
+    name = str(value or "").strip()
+    if name.endswith("任务"):
+        return name.removesuffix("任务").strip() or name
+    return name
+
+
+def _task_failure_label(failed_task: TaskRunItem) -> str:
+    run = getattr(failed_task, "run", None)
+    task_name = _compact_task_name(getattr(run, "task_name", ""))
+    if task_name:
+        return task_name if task_name.endswith("失败") else f"{task_name}失败"
+
+    task_key = str(getattr(run, "task_key", "") or "").strip().lower()
+    if "account" in task_key:
+        return "账户同步失败"
+    if "database" in task_key or task_key.startswith("db_") or "_db_" in task_key:
+        return "数据库同步失败"
+    if "backup" in task_key or "veeam" in task_key:
+        return "备份同步失败"
+    return "定时任务失败"
+
+
 def _risk(
     *,
     category: str,
@@ -627,21 +650,22 @@ class RiskCenterReadService:
         if failed_task is None:
             return {
                 "label": "正常",
-                "detail": "Tasks",
+                "detail": "定时任务",
                 "tone": "success",
                 "last_seen_at": None,
             }, []
         occurred_at = _to_utc_datetime(failed_task.started_at or failed_task.completed_at)
+        failure_label = _task_failure_label(failed_task)
         return {
-            "label": "任务失败",
-            "detail": "Tasks",
+            "label": failure_label,
+            "detail": "定时任务",
             "tone": "warning",
             "last_seen_at": _iso(occurred_at),
         }, [
             _risk(
                 category="task",
                 severity="warning",
-                label="任务失败",
+                label=failure_label,
                 detail=str(failed_task.error_message or failed_task.item_name or "最近 24 小时存在失败任务"),
                 occurred_at=occurred_at,
                 target_url=f"/history/sessions?instance_id={int(instance.id)}",
