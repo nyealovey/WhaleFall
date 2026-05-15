@@ -407,9 +407,39 @@ def test_risk_center_builds_access_and_task_risks(app) -> None:
 
         card = _card_items(result)[0]
         assert card["access"]["label"] == "1 高权"
-        assert card["tasks"]["label"] == "任务失败"
+        assert card["tasks"]["label"] == "账户同步失败"
         assert any(item["category"] == "task" for item in card["risk_flags"])
         assert any(item["category"] == "access" for item in card["risk_flags"])
+
+
+@pytest.mark.unit
+def test_risk_center_task_metric_names_failed_sync_task() -> None:
+    instance = Instance(id=44, name="db-task", db_type="mysql", host="10.0.0.44", port=3306, is_active=True)
+    run = TaskRun()
+    run.run_id = "run-db-sync"
+    run.task_key = "database_sync"
+    run.task_name = "数据库同步"
+    run.task_category = "database"
+    run.trigger_source = "scheduler"
+    run.status = TaskRunStatus.FAILED
+    run.started_at = datetime(2026, 5, 14, 8, tzinfo=UTC)
+    item = TaskRunItem()
+    item.run_id = run.run_id
+    item.item_type = "instance"
+    item.item_key = str(instance.id)
+    item.item_name = instance.name
+    item.instance_id = instance.id
+    item.status = TaskRunStatus.FAILED
+    item.started_at = run.started_at
+    item.error_message = "数据库同步超时"
+    item.run = run
+
+    task_metric, task_risks = RiskCenterReadService._build_task_metric(instance, item)
+
+    assert task_metric["label"] == "数据库同步失败"
+    assert task_metric["detail"] == "定时任务"
+    assert task_metric["tone"] == "warning"
+    assert task_risks[0]["label"] == "数据库同步失败"
 
 
 @pytest.mark.unit

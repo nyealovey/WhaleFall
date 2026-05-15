@@ -3,29 +3,6 @@
 
   const escapeHtml = global.UI?.escapeHtml || ((value) => String(value ?? ""));
 
-  function severityText(severity) {
-    if (severity === "critical") return "严重";
-    if (severity === "warning") return "警告";
-    if (severity === "info") return "提示";
-    if (severity === "ok") return "正常";
-    return "未知";
-  }
-
-  function pillClass(severity) {
-    if (severity === "critical") return "status-pill--danger";
-    if (severity === "warning") return "status-pill--warning";
-    if (severity === "info") return "status-pill--info";
-    if (severity === "ok") return "status-pill--success";
-    return "status-pill--muted";
-  }
-
-  function iconForTone(tone) {
-    if (tone === "danger") return "times";
-    if (tone === "warning") return "exclamation";
-    if (tone === "muted") return "question";
-    return "check";
-  }
-
   function readFilters(form) {
     const data = new FormData(form);
     const filters = {};
@@ -52,19 +29,20 @@
     `;
   }
 
-  function renderFlags(flags) {
-    if (!Array.isArray(flags) || flags.length === 0) {
-      return '<span class="status-pill status-pill--muted">当前无其他风险</span>';
-    }
-    return flags
-      .slice(0, 3)
-      .map((risk) => `<span class="status-pill ${pillClass(risk?.severity)}">${escapeHtml(risk?.label || "风险")}</span>`)
-      .join("");
+  function renderTaskNotice(card) {
+    const task = card?.tasks || {};
+    if (task.tone === "success") return "";
+    const links = card?.links || {};
+    return `
+      <a class="risk-instance-card__task risk-instance-card__task--${escapeHtml(task.tone || "warning")}" href="${escapeHtml(links.tasks || "#")}">
+        <span class="risk-instance-card__task-icon"><i class="fas fa-clock"></i></span>
+        <span>${escapeHtml(task.label || "定时任务失败")}</span>
+      </a>
+    `;
   }
 
   function renderCard(card) {
     const links = card?.links || {};
-    const statusBand = card?.status_band || {};
     return `
       <article class="card risk-instance-card risk-instance-card--${escapeHtml(card?.overall_severity || "unknown")}" data-risk-card>
         <div class="risk-instance-card__body">
@@ -95,12 +73,8 @@
             ${renderMetric(card?.audit, "审计")}
             ${renderMetric(card?.managed, "托管")}
           </div>
-          <div class="risk-instance-card__flags">${renderFlags(card?.risk_flags)}</div>
+          ${renderTaskNotice(card)}
         </div>
-        <a class="risk-instance-card__status risk-instance-card__status--${escapeHtml(statusBand.tone || "muted")}" href="${escapeHtml(links.detail || "#")}">
-          <span class="risk-instance-card__status-icon"><i class="fas fa-${iconForTone(statusBand.tone)}"></i></span>
-          <span>${escapeHtml(statusBand.label || `${severityText(card?.overall_severity)} · 缺少状态`)}</span>
-        </a>
       </article>
     `;
   }
