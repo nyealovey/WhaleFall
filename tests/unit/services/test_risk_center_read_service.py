@@ -330,6 +330,41 @@ def test_risk_center_orders_critical_warning_unknown_ok(app) -> None:
 
 
 @pytest.mark.unit
+def test_risk_center_summary_counts_each_instance_in_three_visible_buckets() -> None:
+    cards: list[dict[str, object]] = [
+        {"overall_severity": "critical", "risk_items": [{"severity": "critical"}, {"severity": "warning"}]},
+        {"overall_severity": "warning", "risk_items": [{"severity": "warning"}, {"severity": "warning"}]},
+        {"overall_severity": "info", "risk_items": [{"severity": "info"}]},
+        {"overall_severity": "unknown", "risk_items": [{"severity": "unknown"}]},
+        {"overall_severity": "ok", "risk_items": []},
+    ]
+
+    counts = RiskCenterReadService._build_severity_counts(cards)
+
+    assert counts == {"critical": 1, "warning": 1, "ok": 3}
+    assert sum(counts.values()) == len(cards)
+
+
+@pytest.mark.unit
+def test_risk_center_ok_filter_includes_non_warning_non_critical_cards() -> None:
+    cards = [
+        {"overall_severity": "critical", "db_type": "mysql", "status": "active", "tags": [], "name": "a", "host": "1"},
+        {"overall_severity": "warning", "db_type": "mysql", "status": "active", "tags": [], "name": "b", "host": "2"},
+        {"overall_severity": "info", "db_type": "mysql", "status": "active", "tags": [], "name": "c", "host": "3"},
+        {"overall_severity": "unknown", "db_type": "mysql", "status": "active", "tags": [], "name": "d", "host": "4"},
+        {"overall_severity": "ok", "db_type": "mysql", "status": "active", "tags": [], "name": "e", "host": "5"},
+    ]
+
+    filtered = [
+        card
+        for card in cards
+        if RiskCenterReadService._matches_filters(card, severity="ok", db_type="", status="", tag="", search="")
+    ]
+
+    assert [card["overall_severity"] for card in filtered] == ["info", "unknown", "ok"]
+
+
+@pytest.mark.unit
 def test_risk_center_builds_access_and_task_risks(app) -> None:
     now = datetime.now(UTC)
     with app.app_context():

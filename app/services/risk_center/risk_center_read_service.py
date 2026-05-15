@@ -6,7 +6,6 @@ card-ready DTOs for the DBA risk center.
 
 from __future__ import annotations
 
-from collections import Counter
 from datetime import datetime, timedelta
 from math import ceil
 from typing import Any, cast
@@ -44,6 +43,7 @@ SEVERITY_SCORE = {
     "unknown": 1,
     "ok": 0,
 }
+VISIBLE_SEVERITY_KEYS = ("critical", "warning", "ok")
 SEVERITY_TONE = {
     "critical": "danger",
     "warning": "warning",
@@ -146,6 +146,13 @@ def _task_failure_label(failed_task: TaskRunItem) -> str:
     return "定时任务失败"
 
 
+def _visible_severity_bucket(severity: object) -> str:
+    normalized = str(severity or "").strip()
+    if normalized in {"critical", "warning"}:
+        return normalized
+    return "ok"
+
+
 def _risk(
     *,
     category: str,
@@ -174,9 +181,9 @@ class RiskCenterReadService:
         db_type_counts: dict[str, dict[str, int]] = {}
         for card in cards:
             db_type = str(card["db_type"])
-            db_type_counts.setdefault(db_type, {"total": 0, "critical": 0, "warning": 0, "info": 0, "unknown": 0, "ok": 0})
+            db_type_counts.setdefault(db_type, {"total": 0, "critical": 0, "warning": 0, "ok": 0})
             db_type_counts[db_type]["total"] += 1
-            db_type_counts[db_type][str(card["overall_severity"])] += 1
+            db_type_counts[db_type][_visible_severity_bucket(card["overall_severity"])] += 1
 
         return {
             "total_instances": len(cards),
@@ -359,8 +366,10 @@ class RiskCenterReadService:
 
     @staticmethod
     def _build_severity_counts(cards: list[dict[str, object]]) -> dict[str, int]:
-        counter = Counter(str(card["overall_severity"]) for card in cards)
-        return {key: int(counter.get(key, 0)) for key in ("critical", "warning", "info", "unknown", "ok")}
+        counts = dict.fromkeys(VISIBLE_SEVERITY_KEYS, 0)
+        for card in cards:
+            counts[_visible_severity_bucket(card.get("overall_severity"))] += 1
+        return counts
 
     @staticmethod
     def _matches_filters(
@@ -372,23 +381,26 @@ class RiskCenterReadService:
         tag: str,
         search: str,
     ) -> bool:
-        if severity and severity != "all" and card["overall_severity"] != severity:
-            return False
-        if db_type and db_type != "all" and card["db_type"] != db_type:
-            return False
-        if status and status != "all" and card["status"] != status:
-            return False
+        severity_matches = True
+        if severity and severity != "all":
+            severity_matches = (
+                _visible_severity_bucket(card["overall_severity"]) == "ok"
+                if severity == "ok"
+                else card["overall_severity"] == severity
+            )
+        db_type_matches = not (db_type and db_type != "all" and card["db_type"] != db_type)
+        status_matches = not (status and status != "all" and card["status"] != status)
+        tag_matches = True
         if tag:
             tags = card.get("tags")
             tag_names = {str(item.get("name")) for item in tags if isinstance(item, dict)} if isinstance(tags, list) else set()
-            if tag not in tag_names:
-                return False
+            tag_matches = tag in tag_names
+        search_matches = True
         if search:
             term = search.strip().lower()
             haystack = f"{card['name']} {card['host']} {card['db_type']}".lower()
-            if term and term not in haystack:
-                return False
-        return True
+            search_matches = not term or term in haystack
+        return severity_matches and db_type_matches and status_matches and tag_matches and search_matches
 
     @staticmethod
     def _build_backup_metric(

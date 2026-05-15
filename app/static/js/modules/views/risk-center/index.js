@@ -2,6 +2,21 @@
   "use strict";
 
   const escapeHtml = global.UI?.escapeHtml || ((value) => String(value ?? ""));
+  const DB_TYPE_VISUALS = new Map([
+    ["mysql", { fallbackIcon: "fa-database", tone: "primary" }],
+    ["postgresql", { fallbackIcon: "fa-database", tone: "info" }],
+    ["sqlserver", { fallbackIcon: "fa-server", tone: "warning" }],
+    ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
+  ]);
+  let dbTypeMetaMap = new Map();
+
+  function safeParseJSON(value, fallback) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
 
   function readFilters(form) {
     const data = new FormData(form);
@@ -29,15 +44,24 @@
     `;
   }
 
-  function renderTaskNotice(card) {
-    const task = card?.tasks || {};
-    if (task.tone === "success") return "";
-    const links = card?.links || {};
+  function renderDbTypeIcon(card) {
+    const typeStr = String(card?.db_type || "").trim();
+    const normalizedType = typeStr.toLowerCase();
+    const meta = dbTypeMetaMap.get(normalizedType) || dbTypeMetaMap.get(typeStr) || {};
+    const visual = DB_TYPE_VISUALS.get(normalizedType) || {};
+    const title = meta.display_name || typeStr.toUpperCase() || "数据库";
+    const tone = visual.tone || meta.color || "muted";
+    const assetUrl = meta.asset_url || "";
+    const glyphHtml = assetUrl
+      ? `<img class="risk-instance-card__db-type-asset" src="${escapeHtml(assetUrl)}" alt="" aria-hidden="true">`
+      : `<i class="fas ${escapeHtml(visual.fallbackIcon || meta.icon || "fa-database")}" aria-hidden="true"></i>`;
     return `
-      <a class="risk-instance-card__task risk-instance-card__task--${escapeHtml(task.tone || "warning")}" href="${escapeHtml(links.tasks || "#")}">
-        <span class="risk-instance-card__task-icon"><i class="fas fa-clock"></i></span>
-        <span>${escapeHtml(task.label || "定时任务失败")}</span>
-      </a>
+      <span class="risk-instance-card__db-type risk-instance-card__db-type--${escapeHtml(tone)}"
+            title="${escapeHtml(title)}"
+            aria-label="数据库类型 ${escapeHtml(title)}"
+            role="img">
+        ${glyphHtml}
+      </span>
     `;
   }
 
@@ -48,32 +72,19 @@
         <div class="risk-instance-card__body">
           <div class="risk-instance-card__masthead">
             <a class="risk-instance-card__identity" href="${escapeHtml(links.detail || "#")}" aria-label="查看 ${escapeHtml(card?.name || "实例")} 详情">
-              <span class="risk-instance-card__icon"><i class="fas fa-database"></i></span>
+              ${renderDbTypeIcon(card)}
               <span class="risk-instance-card__copy">
                 <strong class="risk-instance-card__name">${escapeHtml(card?.name || "-")}</strong>
                 <span class="risk-instance-card__subtitle">${escapeHtml(card?.subtitle || "")}</span>
               </span>
             </a>
-            <div class="dropdown">
-              <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="打开实例操作">
-                <i class="fas fa-ellipsis-v"></i>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="${escapeHtml(links.detail || "#")}"><i class="fas fa-server me-2"></i>实例详情</a></li>
-                <li><a class="dropdown-item" href="${escapeHtml(links.backup || "#")}"><i class="fas fa-shield-alt me-2"></i>备份信息</a></li>
-                <li><a class="dropdown-item" href="${escapeHtml(links.audit || "#")}"><i class="fas fa-clipboard-check me-2"></i>审计信息</a></li>
-                <li><a class="dropdown-item" href="${escapeHtml(links.capacity || "#")}"><i class="fas fa-chart-line me-2"></i>容量趋势</a></li>
-                <li><a class="dropdown-item" href="${escapeHtml(links.accounts || "#")}"><i class="fas fa-users me-2"></i>账户台账</a></li>
-                <li><a class="dropdown-item" href="${escapeHtml(links.tasks || "#")}"><i class="fas fa-tasks me-2"></i>任务记录</a></li>
-              </ul>
-            </div>
           </div>
           <div class="risk-instance-card__metrics">
             ${renderMetric(card?.backup, "备份")}
             ${renderMetric(card?.audit, "审计")}
             ${renderMetric(card?.managed, "托管")}
+            ${renderMetric(card?.tasks, "任务")}
           </div>
-          ${renderTaskNotice(card)}
         </div>
       </article>
     `;
@@ -85,7 +96,6 @@
       critical: counts.critical || 0,
       warning: counts.warning || 0,
       ok: counts.ok || 0,
-      unknown: counts.unknown || 0,
       total: summary?.total_instances || 0,
     };
     Object.entries(values).forEach(([key, value]) => {
@@ -101,6 +111,7 @@
     if (!root || !global.RiskCenterService || typeof global.createRiskCenterStore !== "function") {
       return;
     }
+    dbTypeMetaMap = new Map(Object.entries(safeParseJSON(root.dataset.dbTypeMap || "{}", {})));
     const form = root.querySelector("[data-risk-filter-form]");
     const grid = root.querySelector("[data-risk-card-grid]");
     const empty = root.querySelector("[data-risk-empty]");
