@@ -25,36 +25,58 @@
     </span>
 {%- endmacro %}
 
+{% macro render_severity_icon(card) -%}
+    {%- set severity_label = {
+        'critical': '严重',
+        'warning': '警告',
+        'ok': '正常',
+        'info': '关注',
+        'unknown': '未知'
+    }.get(card.overall_severity, '未知') -%}
+    {%- set severity_icon = {
+        'critical': 'fa-triangle-exclamation',
+        'warning': 'fa-circle-exclamation',
+        'ok': 'fa-circle-check',
+        'info': 'fa-circle-info',
+        'unknown': 'fa-circle-question'
+    }.get(card.overall_severity, 'fa-circle-question') -%}
+    <span class="risk-instance-card__severity risk-instance-card__severity--{{ card.overall_severity }}"
+          title="风险等级：{{ card.status_band.label if card.status_band else severity_label }}"
+          aria-label="风险等级 {{ severity_label }}"
+          role="img">
+        <i class="fas {{ severity_icon }}" aria-hidden="true"></i>
+    </span>
+{%- endmacro %}
+
+{% macro render_status_signal(metric, label, icon_class, signal_name) -%}
+    <span class="risk-signal risk-signal--{{ metric.tone or 'muted' }}"
+          data-risk-signal="{{ signal_name }}"
+          title="{{ label }}：{{ metric.label }}"
+          aria-label="{{ label }}：{{ metric.label }}"
+          role="img">
+        <i class="fas {{ icon_class }} risk-signal__icon" aria-hidden="true"></i>
+    </span>
+{%- endmacro %}
+
 {% macro render_risk_card(card) -%}
 <article class="card risk-instance-card risk-instance-card--{{ card.overall_severity }}" data-risk-card>
     <div class="risk-instance-card__body">
         <div class="risk-instance-card__masthead">
-            <a class="risk-instance-card__identity" href="{{ card.links.detail }}" aria-label="查看 {{ card.name }} 详情">
+            <a class="risk-instance-card__identity"
+               href="{{ card.links.detail }}"
+               title="{{ card.subtitle }}"
+               aria-label="查看 {{ card.name }} 详情">
                 {{ render_db_type_icon(card) }}
-                <span class="risk-instance-card__copy">
-                    <strong class="risk-instance-card__name">{{ card.name }}</strong>
-                    <span class="risk-instance-card__subtitle">{{ card.subtitle }}</span>
-                </span>
+                <strong class="risk-instance-card__name">{{ card.name }}</strong>
             </a>
+            {{ render_severity_icon(card) }}
         </div>
 
-        <div class="risk-instance-card__metrics" aria-label="实例核心风险指标">
-            <div class="risk-signal risk-signal--{{ card.backup.tone }}">
-                <strong>{{ card.backup.label }}</strong>
-                <span>备份</span>
-            </div>
-            <div class="risk-signal risk-signal--{{ card.audit.tone }}">
-                <strong>{{ card.audit.label }}</strong>
-                <span>审计</span>
-            </div>
-            <div class="risk-signal risk-signal--{{ card.managed.tone }}">
-                <strong>{{ card.managed.label }}</strong>
-                <span>托管</span>
-            </div>
-            <div class="risk-signal risk-signal--{{ card.tasks.tone }}">
-                <strong>{{ card.tasks.label }}</strong>
-                <span>任务</span>
-            </div>
+        <div class="risk-instance-card__signals" aria-label="实例核心风险指标">
+            {{ render_status_signal(card.backup, '备份', 'fa-hard-drive', 'backup') }}
+            {{ render_status_signal(card.audit, '审计', 'fa-shield-halved', 'audit') }}
+            {{ render_status_signal(card.managed, '托管', 'fa-sitemap', 'managed') }}
+            {{ render_status_signal(card.tasks, '任务', 'fa-list-check', 'tasks') }}
         </div>
     </div>
 </article>

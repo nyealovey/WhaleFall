@@ -38,10 +38,11 @@ def test_risk_center_cards_hide_action_menu_and_use_db_type_icon() -> None:
     assert "renderDbTypeIcon" in script
 
 
-def test_risk_center_cards_render_tasks_as_fourth_metric() -> None:
+def test_risk_center_cards_render_icon_signals_without_visible_metric_text() -> None:
     template = _read_text("app/templates/risk_center/index.html")
     script = _read_text("app/static/js/modules/views/risk-center/index.js")
     css = _read_text("app/static/css/pages/risk-center.css")
+    combined_ui_sources = f"{template}\n{script}\n{css}"
 
     assert "renderFlags" not in script
     assert "status_band" not in script
@@ -49,9 +50,40 @@ def test_risk_center_cards_render_tasks_as_fourth_metric() -> None:
     assert "risk-instance-card__task" not in template
     assert "risk-instance-card__task" not in script
     assert "risk-instance-card__task" not in css
-    assert "card.tasks.label" in template
-    assert 'renderMetric(card?.tasks, "任务")' in script
+    assert "risk-instance-card__subtitle" not in combined_ui_sources
+    assert "<strong>{{ card.backup.label }}</strong>" not in template
+    assert "<strong>{{ card.audit.label }}</strong>" not in template
+    assert "<strong>{{ card.managed.label }}</strong>" not in template
+    assert "<strong>{{ card.tasks.label }}</strong>" not in template
+    assert 'renderMetric(card?.tasks, "任务")' not in script
+    assert "function renderMetric" not in script
+    assert "risk-instance-card__signals" in template
+    assert "risk-instance-card__signals" in script
+    assert "risk-instance-card__signals" in css
+    assert "risk-signal__icon" in template
+    assert "risk-signal__icon" in script
+    assert "risk-signal__icon" in css
+    assert 'data-risk-signal="{{ signal_name }}"' in template
+    for signal in ("backup", "audit", "managed", "tasks"):
+        assert f"'{signal}')" in template
+        assert f'key: "{signal}"' in script
+    assert 'data-risk-signal="${escapeHtml(signal.key)}"' in script
     assert "grid-template-columns: repeat(4, minmax(0, 1fr));" in css
+
+
+def test_risk_center_cards_use_severity_icon_and_accessible_signal_labels() -> None:
+    template = _read_text("app/templates/risk_center/index.html")
+    script = _read_text("app/static/js/modules/views/risk-center/index.js")
+    css = _read_text("app/static/css/pages/risk-center.css")
+
+    assert "risk-instance-card__severity" in template
+    assert "risk-instance-card__severity" in script
+    assert "risk-instance-card__severity" in css
+    assert "renderSeverityIcon" in script
+    assert "render_status_signal" in template
+    assert "renderSignal" in script
+    assert 'aria-label="{{ label }}：{{ metric.label }}"' in template
+    assert 'aria-label="${escapeHtml(signal.label)}：${escapeHtml(safeMetric.label || "-")}"' in script
 
 
 def test_risk_center_summary_uses_four_visible_kpi_cards() -> None:
@@ -75,3 +107,14 @@ def test_risk_center_refresh_requests_all_cards_by_default() -> None:
     script = _read_text("app/static/js/modules/views/risk-center/index.js")
 
     assert "filters.limit = 0" in script
+
+
+def test_risk_center_filters_auto_refresh_on_field_changes() -> None:
+    script = _read_text("app/static/js/modules/views/risk-center/index.js")
+
+    assert "FILTER_DEBOUNCE_MS" in script
+    assert "function debounce" in script
+    assert 'form?.addEventListener("input"' in script
+    assert 'form?.addEventListener("change"' in script
+    assert "isLiveTextFilter" in script
+    assert "isSelectFilter" in script

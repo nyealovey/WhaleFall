@@ -49,53 +49,85 @@
 }
 
 .risk-instance-card {
+    position: relative;
     min-width: 0;
     overflow: hidden;
     border-color: var(--border-subtle);
     background: var(--gradient-surface);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: var(--shadow-xs);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.risk-instance-card::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.24rem;
+    content: "";
+    background: color-mix(in srgb, var(--text-muted) 28%, transparent);
 }
 
 .risk-instance-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0.7rem 1.5rem rgba(22, 29, 38, 0.12);
+    box-shadow: var(--shadow-md);
 }
 
 .risk-instance-card--ok {
     border-color: color-mix(in srgb, var(--status-success) 42%, transparent);
 }
 
+.risk-instance-card--ok::before {
+    background: color-mix(in srgb, var(--status-success) 78%, transparent);
+}
+
 .risk-instance-card--warning {
     border-color: color-mix(in srgb, var(--status-warning) 48%, transparent);
+}
+
+.risk-instance-card--warning::before {
+    background: color-mix(in srgb, var(--status-warning) 82%, transparent);
 }
 
 .risk-instance-card--critical {
     border-color: color-mix(in srgb, var(--status-danger) 55%, transparent);
 }
 
+.risk-instance-card--critical::before {
+    background: color-mix(in srgb, var(--status-danger) 84%, transparent);
+}
+
 .risk-instance-card--info {
     border-color: color-mix(in srgb, var(--status-info) 45%, transparent);
+}
+
+.risk-instance-card--info::before {
+    background: color-mix(in srgb, var(--status-info) 78%, transparent);
 }
 
 .risk-instance-card--unknown {
     border-color: color-mix(in srgb, var(--text-muted) 36%, transparent);
 }
 
+.risk-instance-card--unknown::before {
+    background: color-mix(in srgb, var(--text-muted) 45%, transparent);
+}
+
 .risk-instance-card__body {
-    padding: 0.58rem 0.62rem;
+    padding: 0.6rem 0.62rem 0.62rem 0.78rem;
 }
 
 .risk-instance-card__masthead {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 0.55rem;
 }
 
 .risk-instance-card__identity {
+    flex: 1 1 auto;
     min-width: 0;
     display: inline-flex;
     gap: 0.48rem;
-    align-items: flex-start;
+    align-items: center;
     color: inherit;
     text-decoration: none;
 }
@@ -152,84 +184,106 @@
     color: var(--text-muted);
 }
 
-.risk-instance-card__copy {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
 .risk-instance-card__name {
     overflow: hidden;
     color: var(--text-primary);
     font-family: var(--font-family-display);
-    font-size: 0.92rem;
-    line-height: 1.15;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.risk-instance-card__subtitle {
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    line-height: 1.25;
-}
-
-.risk-instance-card__metrics {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.36rem;
-    margin-top: 0.5rem;
-}
-
-.risk-signal {
-    position: relative;
-    min-width: 0;
-    padding-left: 0.4rem;
-}
-
-.risk-signal::before {
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 0.18rem;
-    content: "";
-    background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
-}
-
-.risk-signal--success::before {
-    background: color-mix(in srgb, var(--status-success) 36%, white);
-}
-
-.risk-signal--warning::before {
-    background: color-mix(in srgb, var(--status-warning) 38%, white);
-}
-
-.risk-signal--danger::before {
-    background: color-mix(in srgb, var(--status-danger) 38%, white);
-}
-
-.risk-signal--info::before {
-    background: color-mix(in srgb, var(--status-info) 36%, white);
-}
-
-.risk-signal--muted::before {
-    background: color-mix(in srgb, var(--text-muted) 24%, white);
-}
-
-.risk-signal strong {
-    display: block;
-    overflow: hidden;
-    color: var(--text-primary);
-    font-family: var(--font-family-display);
-    font-size: 0.84rem;
+    font-size: 0.95rem;
     line-height: 1.1;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.risk-signal span {
+.risk-instance-card__severity {
+    width: 1.45rem;
+    height: 1.45rem;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--text-muted) 16%, transparent);
+    border-radius: 0.58rem;
+    background: color-mix(in srgb, var(--surface-panel-raised) 82%, transparent);
     color: var(--text-muted);
-    font-size: 0.66rem;
+    font-size: 0.78rem;
+}
+
+.risk-instance-card__severity--ok {
+    border-color: color-mix(in srgb, var(--status-success) 24%, transparent);
+    background: color-mix(in srgb, var(--status-success) 10%, white);
+    color: var(--status-success);
+}
+
+.risk-instance-card__severity--warning {
+    border-color: color-mix(in srgb, var(--status-warning) 28%, transparent);
+    background: color-mix(in srgb, var(--status-warning) 12%, white);
+    color: var(--status-warning);
+}
+
+.risk-instance-card__severity--critical {
+    border-color: color-mix(in srgb, var(--status-danger) 28%, transparent);
+    background: color-mix(in srgb, var(--status-danger) 12%, white);
+    color: var(--status-danger);
+}
+
+.risk-instance-card__severity--info {
+    border-color: color-mix(in srgb, var(--status-info) 24%, transparent);
+    background: color-mix(in srgb, var(--status-info) 10%, white);
+    color: var(--status-info);
+}
+
+.risk-instance-card__signals {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.38rem;
+    margin-top: 0.62rem;
+}
+
+.risk-signal {
+    min-width: 0;
+    min-height: 2.05rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--text-muted) 12%, transparent);
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--surface-panel-raised) 76%, transparent);
+    color: var(--text-muted);
+}
+
+.risk-signal--success {
+    border-color: color-mix(in srgb, var(--status-success) 25%, transparent);
+    background: color-mix(in srgb, var(--status-success) 9%, white);
+    color: var(--status-success);
+}
+
+.risk-signal--warning {
+    border-color: color-mix(in srgb, var(--status-warning) 28%, transparent);
+    background: color-mix(in srgb, var(--status-warning) 11%, white);
+    color: var(--status-warning);
+}
+
+.risk-signal--danger {
+    border-color: color-mix(in srgb, var(--status-danger) 28%, transparent);
+    background: color-mix(in srgb, var(--status-danger) 10%, white);
+    color: var(--status-danger);
+}
+
+.risk-signal--info {
+    border-color: color-mix(in srgb, var(--status-info) 25%, transparent);
+    background: color-mix(in srgb, var(--status-info) 9%, white);
+    color: var(--status-info);
+}
+
+.risk-signal--muted {
+    border-color: color-mix(in srgb, var(--text-muted) 14%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 6%, white);
+    color: var(--text-muted);
+}
+
+.risk-signal__icon {
+    font-size: 0.82rem;
+    line-height: 1;
 }
 
 .risk-center-feedback {
@@ -280,13 +334,7 @@
         flex-direction: column;
     }
 
-    .risk-instance-card__metrics {
+    .risk-instance-card__signals {
         gap: 0.5rem;
-    }
-}
-
-@media (max-width: 520px) {
-    .risk-instance-card__metrics {
-        grid-template-columns: 1fr;
     }
 }
