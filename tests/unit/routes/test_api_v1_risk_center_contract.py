@@ -2,6 +2,7 @@ import pytest
 
 from app import db
 from app.models.instance import Instance
+from app.models.tag import Tag
 
 
 def _ensure_risk_center_tables(app) -> None:
@@ -105,6 +106,35 @@ def test_api_v1_risk_center_cards_contract_and_filters(app, auth_client) -> None
 
 
 @pytest.mark.unit
+def test_api_v1_risk_center_cards_filters_by_search_status_and_tag(app, auth_client) -> None:
+    _ensure_risk_center_tables(app)
+    with app.app_context():
+        finance = Tag(name="finance", display_name="财务", category="business")
+        prod = Tag(name="prod", display_name="生产", category="environment")
+        active = Instance(name="billing-main", db_type="mysql", host="10.2.0.10", port=3306, is_active=True)
+        inactive = Instance(name="finance-ledger", db_type="sqlserver", host="10.8.0.20", port=1433, is_active=False)
+        db.session.add_all([finance, prod, active, inactive])
+        db.session.flush()
+        active.tags.append(prod)
+        inactive.tags.append(finance)
+        db.session.commit()
+
+    response = auth_client.get(
+        "/api/v1/risk-center/cards",
+        query_string={"search": "ledger", "status": "inactive", "tag": "finance", "limit": 0},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert data["total"] == 1
+    assert data["limit"] == 1
+    assert [item["name"] for item in data["items"]] == ["finance-ledger"]
+
+
+@pytest.mark.unit
 def test_api_v1_risk_center_cards_returns_all_cards_by_default(app, auth_client) -> None:
     _ensure_risk_center_tables(app)
     with app.app_context():
@@ -153,8 +183,20 @@ def test_risk_center_page_renders_card_wall(app, auth_client) -> None:
     card_html = html[card_start:card_end]
     assert "dropdown-menu" not in card_html
     assert "fa-ellipsis-v" not in card_html
-    assert html.index(">备份<") < html.index(">审计<") < html.index(">托管<")
-    assert ">托管<" in html and ">任务<" in html
+    assert "risk-instance-card__severity" in card_html
+    assert "risk-instance-card__subtitle" not in card_html
+    assert "risk-signal__icon" in card_html
+    assert card_html.index('data-risk-signal="backup"') < card_html.index('data-risk-signal="audit"')
+    assert card_html.index('data-risk-signal="audit"') < card_html.index('data-risk-signal="managed"')
+    assert card_html.index('data-risk-signal="managed"') < card_html.index('data-risk-signal="tasks"')
+    assert 'aria-label="备份：' in card_html
+    assert 'aria-label="审计：' in card_html
+    assert 'aria-label="托管：' in card_html
+    assert 'aria-label="任务：' in card_html
+    assert ">备份<" not in card_html
+    assert ">审计<" not in card_html
+    assert ">托管<" not in card_html
+    assert ">任务<" not in card_html
     assert ">Capacity<" not in html
     assert ">Access<" not in html
 

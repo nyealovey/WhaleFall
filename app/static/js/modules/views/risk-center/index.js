@@ -2,12 +2,28 @@
   "use strict";
 
   const escapeHtml = global.UI?.escapeHtml || ((value) => String(value ?? ""));
+  const FILTER_DEBOUNCE_MS = 300;
+  const LIVE_TEXT_FILTER_NAMES = new Set(["search", "tag"]);
+  const SELECT_FILTER_NAMES = new Set(["severity", "db_type", "status"]);
   const DB_TYPE_VISUALS = new Map([
     ["mysql", { fallbackIcon: "fa-database", tone: "primary" }],
     ["postgresql", { fallbackIcon: "fa-database", tone: "info" }],
     ["sqlserver", { fallbackIcon: "fa-server", tone: "warning" }],
     ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
   ]);
+  const SEVERITY_VISUALS = new Map([
+    ["critical", { label: "严重", icon: "fa-triangle-exclamation" }],
+    ["warning", { label: "警告", icon: "fa-circle-exclamation" }],
+    ["ok", { label: "正常", icon: "fa-circle-check" }],
+    ["info", { label: "关注", icon: "fa-circle-info" }],
+    ["unknown", { label: "未知", icon: "fa-circle-question" }],
+  ]);
+  const RISK_SIGNALS = [
+    { key: "backup", label: "备份", icon: "fa-hard-drive" },
+    { key: "audit", label: "审计", icon: "fa-shield-halved" },
+    { key: "managed", label: "托管", icon: "fa-sitemap" },
+    { key: "tasks", label: "任务", icon: "fa-list-check" },
+  ];
   let dbTypeMetaMap = new Map();
 
   function safeParseJSON(value, fallback) {
@@ -16,6 +32,39 @@
     } catch {
       return fallback;
     }
+  }
+
+  function debounce(fn, wait) {
+    let timerId = null;
+    function debounced(...args) {
+      if (timerId !== null) {
+        global.clearTimeout(timerId);
+      }
+      timerId = global.setTimeout(() => {
+        timerId = null;
+        fn(...args);
+      }, wait);
+    }
+    debounced.cancel = () => {
+      if (timerId !== null) {
+        global.clearTimeout(timerId);
+        timerId = null;
+      }
+    };
+    return debounced;
+  }
+
+  function getFilterFieldName(event) {
+    const target = event?.target;
+    return typeof target?.name === "string" ? target.name : "";
+  }
+
+  function isLiveTextFilter(event) {
+    return LIVE_TEXT_FILTER_NAMES.has(getFilterFieldName(event));
+  }
+
+  function isSelectFilter(event) {
+    return SELECT_FILTER_NAMES.has(getFilterFieldName(event));
   }
 
   function readFilters(form) {
@@ -33,16 +82,6 @@
     if (status) filters.status = status;
     if (tag) filters.tag = tag;
     return filters;
-  }
-
-  function renderMetric(metric, fallbackDetail) {
-    const safeMetric = metric || {};
-    return `
-      <div class="risk-signal risk-signal--${escapeHtml(safeMetric.tone || "muted")}">
-        <strong>${escapeHtml(safeMetric.label || "-")}</strong>
-        <span>${escapeHtml(safeMetric.detail || fallbackDetail)}</span>
-      </div>
-    `;
   }
 
   function renderDbTypeIcon(card) {
@@ -66,25 +105,50 @@
     `;
   }
 
+  function renderSeverityIcon(card) {
+    const severity = String(card?.overall_severity || "unknown");
+    const visual = SEVERITY_VISUALS.get(severity) || SEVERITY_VISUALS.get("unknown");
+    return `
+      <span class="risk-instance-card__severity risk-instance-card__severity--${escapeHtml(severity)}"
+            title="风险等级：${escapeHtml(visual.label)}"
+            aria-label="风险等级 ${escapeHtml(visual.label)}"
+            role="img">
+        <i class="fas ${escapeHtml(visual.icon)}" aria-hidden="true"></i>
+      </span>
+    `;
+  }
+
+  function renderSignal(metric, signal) {
+    const safeMetric = metric || {};
+    return `
+      <span class="risk-signal risk-signal--${escapeHtml(safeMetric.tone || "muted")}"
+            data-risk-signal="${escapeHtml(signal.key)}"
+            title="${escapeHtml(signal.label)}：${escapeHtml(safeMetric.label || "-")}"
+            aria-label="${escapeHtml(signal.label)}：${escapeHtml(safeMetric.label || "-")}"
+            role="img">
+        <i class="fas ${escapeHtml(signal.icon)} risk-signal__icon" aria-hidden="true"></i>
+      </span>
+    `;
+  }
+
   function renderCard(card) {
     const links = card?.links || {};
+    const subtitle = card?.subtitle || card?.name || "实例";
     return `
       <article class="card risk-instance-card risk-instance-card--${escapeHtml(card?.overall_severity || "unknown")}" data-risk-card>
         <div class="risk-instance-card__body">
           <div class="risk-instance-card__masthead">
-            <a class="risk-instance-card__identity" href="${escapeHtml(links.detail || "#")}" aria-label="查看 ${escapeHtml(card?.name || "实例")} 详情">
+            <a class="risk-instance-card__identity"
+               href="${escapeHtml(links.detail || "#")}"
+               title="${escapeHtml(subtitle)}"
+               aria-label="查看 ${escapeHtml(card?.name || "实例")} 详情">
               ${renderDbTypeIcon(card)}
-              <span class="risk-instance-card__copy">
-                <strong class="risk-instance-card__name">${escapeHtml(card?.name || "-")}</strong>
-                <span class="risk-instance-card__subtitle">${escapeHtml(card?.subtitle || "")}</span>
-              </span>
+              <strong class="risk-instance-card__name">${escapeHtml(card?.name || "-")}</strong>
             </a>
+            ${renderSeverityIcon(card)}
           </div>
-          <div class="risk-instance-card__metrics">
-            ${renderMetric(card?.backup, "备份")}
-            ${renderMetric(card?.audit, "审计")}
-            ${renderMetric(card?.managed, "托管")}
-            ${renderMetric(card?.tasks, "任务")}
+          <div class="risk-instance-card__signals" aria-label="实例核心风险指标">
+            ${RISK_SIGNALS.map((signal) => renderSignal(card?.[signal.key], signal)).join("")}
           </div>
         </div>
       </article>
@@ -134,6 +198,7 @@
         setFeedback(error?.message || "加载风险中心失败");
       });
     }
+    const debouncedRefresh = debounce(refresh, FILTER_DEBOUNCE_MS);
 
     store.subscribe("risk-center:loading", (payload) => {
       if (refreshButton) {
@@ -153,11 +218,24 @@
 
     form?.addEventListener("submit", (event) => {
       event.preventDefault();
+      debouncedRefresh.cancel();
       refresh();
+    });
+    form?.addEventListener("input", (event) => {
+      if (isLiveTextFilter(event)) {
+        debouncedRefresh();
+      }
+    });
+    form?.addEventListener("change", (event) => {
+      if (isSelectFilter(event)) {
+        debouncedRefresh.cancel();
+        refresh();
+      }
     });
     refreshButton?.addEventListener("click", refresh);
     clearButton?.addEventListener("click", () => {
       form?.reset();
+      debouncedRefresh.cancel();
       refresh();
     });
   }

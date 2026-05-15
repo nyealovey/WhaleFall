@@ -365,6 +365,51 @@ def test_risk_center_ok_filter_includes_non_warning_non_critical_cards() -> None
 
 
 @pytest.mark.unit
+def test_risk_center_filters_match_search_db_type_status_and_tag() -> None:
+    cards = [
+        {
+            "overall_severity": "warning",
+            "db_type": "mysql",
+            "status": "active",
+            "tags": [{"name": "prod"}],
+            "name": "billing-main",
+            "host": "10.2.0.10",
+        },
+        {
+            "overall_severity": "critical",
+            "db_type": "sqlserver",
+            "status": "inactive",
+            "tags": [{"name": "finance"}],
+            "name": "finance-ledger",
+            "host": "10.8.0.20",
+        },
+    ]
+
+    def matched_names(**filters: str) -> list[str]:
+        defaults = {"severity": "", "db_type": "", "status": "", "tag": "", "search": ""}
+        defaults.update(filters)
+        return [
+            str(card["name"])
+            for card in cards
+            if RiskCenterReadService._matches_filters(
+                card,
+                severity=defaults["severity"],
+                db_type=defaults["db_type"],
+                status=defaults["status"],
+                tag=defaults["tag"],
+                search=defaults["search"],
+            )
+        ]
+
+    assert matched_names(search="ledger") == ["finance-ledger"]
+    assert matched_names(search="10.2.0") == ["billing-main"]
+    assert matched_names(search="sqlserver") == ["finance-ledger"]
+    assert matched_names(db_type="mysql") == ["billing-main"]
+    assert matched_names(status="inactive") == ["finance-ledger"]
+    assert matched_names(tag="finance") == ["finance-ledger"]
+
+
+@pytest.mark.unit
 def test_risk_center_builds_access_and_task_risks(app) -> None:
     now = datetime.now(UTC)
     with app.app_context():
