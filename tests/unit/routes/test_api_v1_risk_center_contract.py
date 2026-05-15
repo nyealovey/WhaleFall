@@ -123,6 +123,13 @@ def test_risk_center_page_renders_card_wall(app, auth_client) -> None:
     assert "风险中心" in html
     assert "risk-card-grid" in html
     assert "db-page" in html
+    assert "db-types/mysql.png" in html
+    card_start = html.index('class="card risk-instance-card')
+    card_end = html.index("</article>", card_start)
+    card_html = html[card_start:card_end]
+    assert "dropdown-menu" not in card_html
+    assert "fa-ellipsis-v" not in card_html
     assert html.index(">备份<") < html.index(">审计<") < html.index(">托管<")
+    assert ">托管<" in html and ">任务<" in html
     assert ">Capacity<" not in html
     assert ">Access<" not in html

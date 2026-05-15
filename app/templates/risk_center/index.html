@@ -11,13 +11,18 @@
 {% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
-{% macro severity_label(severity) -%}
-    {%- if severity == 'critical' -%}严重
-    {%- elif severity == 'warning' -%}警告
-    {%- elif severity == 'info' -%}提示
-    {%- elif severity == 'ok' -%}正常
-    {%- else -%}未知
-    {%- endif -%}
+{% macro render_db_type_icon(card) -%}
+    {%- set db_meta = database_type_map.get(card.db_type, {}) if database_type_map is defined else {} -%}
+    <span class="risk-instance-card__db-type risk-instance-card__db-type--{{ db_meta.color or 'muted' }}"
+          title="{{ db_meta.display_name or card.db_type|upper }}"
+          aria-label="数据库类型 {{ db_meta.display_name or card.db_type|upper }}"
+          role="img">
+        {%- if db_meta.asset_url -%}
+            <img class="risk-instance-card__db-type-asset" src="{{ db_meta.asset_url }}" alt="" aria-hidden="true">
+        {%- else -%}
+            <i class="fas {{ db_meta.icon or 'fa-database' }}" aria-hidden="true"></i>
+        {%- endif -%}
+    </span>
 {%- endmacro %}
 
 {% macro render_risk_card(card) -%}
@@ -25,25 +30,12 @@
     <div class="risk-instance-card__body">
         <div class="risk-instance-card__masthead">
             <a class="risk-instance-card__identity" href="{{ card.links.detail }}" aria-label="查看 {{ card.name }} 详情">
-                <span class="risk-instance-card__icon"><i class="fas fa-database"></i></span>
+                {{ render_db_type_icon(card) }}
                 <span class="risk-instance-card__copy">
                     <strong class="risk-instance-card__name">{{ card.name }}</strong>
                     <span class="risk-instance-card__subtitle">{{ card.subtitle }}</span>
                 </span>
             </a>
-            <div class="dropdown">
-                <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="打开实例操作">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="{{ card.links.detail }}"><i class="fas fa-server me-2"></i>实例详情</a></li>
-                    <li><a class="dropdown-item" href="{{ card.links.backup }}"><i class="fas fa-shield-alt me-2"></i>备份信息</a></li>
-                    <li><a class="dropdown-item" href="{{ card.links.audit }}"><i class="fas fa-clipboard-check me-2"></i>审计信息</a></li>
-                    <li><a class="dropdown-item" href="{{ card.links.capacity }}"><i class="fas fa-chart-line me-2"></i>容量趋势</a></li>
-                    <li><a class="dropdown-item" href="{{ card.links.accounts }}"><i class="fas fa-users me-2"></i>账户台账</a></li>
-                    <li><a class="dropdown-item" href="{{ card.links.tasks }}"><i class="fas fa-tasks me-2"></i>任务记录</a></li>
-                </ul>
-            </div>
         </div>
 
         <div class="risk-instance-card__metrics" aria-label="实例核心风险指标">
@@ -59,14 +51,11 @@
                 <strong>{{ card.managed.label }}</strong>
                 <span>托管</span>
             </div>
+            <div class="risk-signal risk-signal--{{ card.tasks.tone }}">
+                <strong>{{ card.tasks.label }}</strong>
+                <span>任务</span>
+            </div>
         </div>
-
-        {% if card.tasks.tone != 'success' %}
-            <a class="risk-instance-card__task risk-instance-card__task--{{ card.tasks.tone }}" href="{{ card.links.tasks }}">
-                <span class="risk-instance-card__task-icon"><i class="fas fa-clock"></i></span>
-                <span>{{ card.tasks.label }}</span>
-            </a>
-        {% endif %}
     </div>
 </article>
 {%- endmacro %}
@@ -80,14 +69,13 @@
 </div>
 {% endcall %}
 
-<section class="page-section risk-center-page" data-risk-center-root>
+<section class="page-section risk-center-page" data-risk-center-root data-db-type-map='{{ database_type_map | tojson | safe }}'>
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="risk-kpi-grid" data-risk-summary>
                 {% call metric_card('严重', value=summary.severity_counts.critical, icon_class='fas fa-triangle-exclamation', tone='danger', card_class='risk-kpi-card', data_stat_key='critical') %}{% endcall %}
                 {% call metric_card('警告', value=summary.severity_counts.warning, icon_class='fas fa-circle-exclamation', tone='warning', card_class='risk-kpi-card', data_stat_key='warning') %}{% endcall %}
                 {% call metric_card('正常', value=summary.severity_counts.ok, icon_class='fas fa-circle-check', tone='success', card_class='risk-kpi-card', data_stat_key='ok') %}{% endcall %}
-                {% call metric_card('未知', value=summary.severity_counts.unknown, icon_class='fas fa-circle-question', tone='muted', card_class='risk-kpi-card', data_stat_key='unknown') %}{% endcall %}
                 {% call metric_card('总实例', value=summary.total_instances, icon_class='fas fa-server', tone='info', card_class='risk-kpi-card', data_stat_key='total') %}{% endcall %}
             </div>
 
@@ -102,8 +90,6 @@
                         <option value="" {{ 'selected' if not filters.severity else '' }}>全部</option>
                         <option value="critical" {{ 'selected' if filters.severity == 'critical' else '' }}>严重</option>
                         <option value="warning" {{ 'selected' if filters.severity == 'warning' else '' }}>警告</option>
-                        <option value="info" {{ 'selected' if filters.severity == 'info' else '' }}>提示</option>
-                        <option value="unknown" {{ 'selected' if filters.severity == 'unknown' else '' }}>未知</option>
                         <option value="ok" {{ 'selected' if filters.severity == 'ok' else '' }}>正常</option>
                     </select>
                 </label>
