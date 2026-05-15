@@ -202,7 +202,7 @@ class RiskCenterReadService:
         tag: str = "",
         search: str = "",
         page: int = 1,
-        limit: int = 24,
+        limit: int = 0,
     ) -> dict[str, object]:
         cards = self._build_cards()
         filtered = [
@@ -217,9 +217,18 @@ class RiskCenterReadService:
                 search=search,
             )
         ]
-        safe_page = max(int(page or 1), 1)
-        safe_limit = min(max(int(limit or 24), 1), 100)
         total = len(filtered)
+        requested_limit = int(limit or 0)
+        if requested_limit <= 0:
+            return {
+                "items": filtered,
+                "total": total,
+                "page": 1,
+                "pages": 1,
+                "limit": total,
+            }
+        safe_page = max(int(page or 1), 1)
+        safe_limit = min(max(requested_limit, 1), 100)
         start = (safe_page - 1) * safe_limit
         end = start + safe_limit
         return {

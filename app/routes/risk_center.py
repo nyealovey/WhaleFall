@@ -42,7 +42,7 @@ def index() -> RouteReturn:
             tag=request.args.get("tag", "").strip(),
             search=request.args.get("search", "").strip(),
             page=int(request.args.get("page", "1") or 1),
-            limit=int(request.args.get("limit", "24") or 24),
+            limit=int(request.args.get("limit", "0") or 0),
         )
         return render_template(
             "risk_center/index.html",
