@@ -128,10 +128,12 @@ def test_api_v1_accounts_ledgers_contract() -> None:
             "is_active",
             "is_deleted",
             "last_change_time",
+            "availability_reasons",
             "tags",
             "classifications",
         }
         assert expected_keys.issubset(item.keys())
+        assert item.get("availability_reasons") == []
         tags = item.get("tags")
         assert isinstance(tags, list)
         assert len(tags) == 1
@@ -255,6 +257,100 @@ def test_api_v1_accounts_ledgers_mysql_roles_filtered_by_default() -> None:
         assert {item.get("username") for item in items} == {"demo", "demo_role"}
         kind_by_username = {item.get("username"): item.get("type_specific", {}).get("account_kind") for item in items}
         assert kind_by_username == {"demo": "user", "demo_role": "role"}
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_ledgers_returns_availability_reasons() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["account_permission"],
+                db.metadata.tables["account_classifications"],
+                db.metadata.tables["classification_rules"],
+                db.metadata.tables["account_classification_assignments"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        instance = Instance(
+            name="sqlserver-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.1",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.flush()
+
+        instance_account = InstanceAccount(
+            instance_id=instance.id,
+            username="sa",
+            db_type=DatabaseType.SQLSERVER,
+            is_active=True,
+        )
+        db.session.add(instance_account)
+        db.session.flush()
+
+        permission = AccountPermission(
+            instance_id=instance.id,
+            db_type=DatabaseType.SQLSERVER,
+            instance_account_id=instance_account.id,
+            username="sa",
+            permission_facts={
+                "version": 2,
+                "db_type": "sqlserver",
+                "capabilities": ["LOCKED"],
+                "capability_reasons": {
+                    "LOCKED": [
+                        "type_specific.is_disabled=True",
+                        "type_specific.connect_to_engine=DENY",
+                        "type_specific.is_locked_out=True",
+                        "type_specific.is_password_expired=True",
+                        "type_specific.must_change_password=True",
+                    ],
+                },
+                "roles": [],
+                "privileges": {},
+                "errors": [],
+                "meta": {},
+            },
+        )
+        db.session.add(permission)
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/api/v1/accounts/ledgers")
+        assert response.status_code == 200
+
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        data = payload.get("data")
+        assert isinstance(data, dict)
+        items = data.get("items")
+        assert isinstance(items, list)
+        assert len(items) == 1
+        assert items[0].get("availability_reasons") == [
+            "账户已禁用",
+            "CONNECT SQL 权限被拒绝",
+            "账户被锁定",
+            "密码已过期",
+            "必须修改密码",
+        ]
 
 
 @pytest.mark.unit

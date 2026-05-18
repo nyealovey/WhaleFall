@@ -11,6 +11,14 @@ from app.core.types.accounts_ledgers import AccountFilters, AccountLedgerItem
 from app.core.types.listing import PaginatedResult
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
 
+LOCKED_REASON_LABELS = {
+    "type_specific.is_disabled=True": "账户已禁用",
+    "type_specific.connect_to_engine=DENY": "CONNECT SQL 权限被拒绝",
+    "type_specific.is_locked_out=True": "账户被锁定",
+    "type_specific.is_password_expired=True": "密码已过期",
+    "type_specific.must_change_password=True": "必须修改密码",
+}
+
 
 class AccountsLedgerListService:
     """账户台账列表业务编排服务."""
@@ -44,6 +52,7 @@ class AccountsLedgerListService:
                     is_active=is_active,
                     is_deleted=not is_active,
                     last_change_time=(account.last_change_time.isoformat() if account.last_change_time else None),
+                    availability_reasons=self._build_availability_reasons(account.permission_facts),
                     type_specific=type_specific,
                     tags=metrics.tags_map.get(account.instance_id, []),
                     classifications=metrics.classifications_map.get(account.id, []),
@@ -56,3 +65,23 @@ class AccountsLedgerListService:
             pages=page_result.pages,
             limit=page_result.limit,
         )
+
+    @staticmethod
+    def _build_availability_reasons(permission_facts: object) -> list[str]:
+        if not isinstance(permission_facts, dict):
+            return []
+        capability_reasons = permission_facts.get("capability_reasons")
+        if not isinstance(capability_reasons, dict):
+            return []
+        locked_reasons = capability_reasons.get("LOCKED")
+        if not isinstance(locked_reasons, list):
+            return []
+
+        labels: list[str] = []
+        for reason in locked_reasons:
+            if not isinstance(reason, str):
+                continue
+            label = LOCKED_REASON_LABELS.get(reason)
+            if label and label not in labels:
+                labels.append(label)
+        return labels
