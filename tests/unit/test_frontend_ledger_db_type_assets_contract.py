@@ -21,7 +21,7 @@ def test_accounts_ledgers_renderer_uses_compact_icon_only_type_column() -> None:
         'name: "类型",',
         'const rawDbTypeMap = safeParseJSON(pageRoot.dataset.dbTypeMap || "{}", {});',
         "const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));",
-        "formatter: (cell, row) => renderAvailabilityIndicator(Boolean(cell), rowMeta.get(row)),",
+        "formatter: (cell) => renderAvailabilityIndicator(cell),",
         "formatter: (cell) => renderDeletionIndicator(Boolean(cell)),",
         "formatter: (cell) => renderSuperuserIndicator(Boolean(cell)),",
         "const visual = LEDGER_DB_TYPE_VISUALS.get(normalized) || {};",
@@ -61,10 +61,11 @@ def test_accounts_ledgers_renderer_uses_compact_icon_only_status_indicators() ->
     content = _read_text("app/static/js/modules/views/accounts/ledgers.js")
 
     required_fragments = (
-        "function renderAvailabilityIndicator(isLocked, meta = {}) {",
-        "const title = buildAvailabilityTitle(isLocked, meta.availability_reasons);",
+        "function renderAvailabilityIndicator(status) {",
+        "const normalized = normalizeAvailabilityStatus(status);",
+        "function normalizeAvailabilityStatus(status) {",
         "function buildAvailabilityTitle(isLocked, reasons) {",
-        'return ["账户不可用", ...cleaned].join("\\n");',
+        'return `账户不可用：${cleaned.join("；")}`;',
         'icon: "fa-circle-check"',
         'title: "正常"',
         'icon: "fa-lock"',
