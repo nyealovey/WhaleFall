@@ -273,6 +273,8 @@ def _collect_sqlserver_capabilities(
         )
 
     connect_to_engine = type_specific.get("connect_to_engine")
+    if type_specific.get("is_disabled") is True:
+        _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.is_disabled=True")
     if isinstance(connect_to_engine, str) and connect_to_engine.upper() == "DENY":
         _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.connect_to_engine=DENY")
     if type_specific.get("is_locked_out") is True:

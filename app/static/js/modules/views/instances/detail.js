@@ -979,16 +979,17 @@ function renderAccountLockedCell(isLocked, meta) {
             ariaLabel: '是否可用 不适用',
         });
     }
-    return renderAccountLockedBadge(Boolean(isLocked));
+    return renderAccountLockedBadge(Boolean(isLocked), meta?.availability_reasons);
 }
 
-function renderAccountLockedBadge(isLocked) {
+function renderAccountLockedBadge(isLocked, reasons) {
+    const title = buildAccountAvailabilityTitle(isLocked, reasons);
     if (isLocked) {
         return renderAccountCompactIndicator({
             icon: 'fa-lock',
             tone: 'danger',
-            title: '已锁定',
-            ariaLabel: '是否可用 已锁定',
+            title,
+            ariaLabel: `是否可用 ${title}`,
         });
     }
     return renderAccountCompactIndicator({
@@ -997,6 +998,19 @@ function renderAccountLockedBadge(isLocked) {
         title: '正常',
         ariaLabel: '是否可用 正常',
     });
+}
+
+function buildAccountAvailabilityTitle(isLocked, reasons) {
+    if (!isLocked) {
+        return '正常';
+    }
+    const cleaned = Array.isArray(reasons)
+        ? reasons.filter((reason) => typeof reason === 'string' && reason.trim()).map((reason) => reason.trim())
+        : [];
+    if (!cleaned.length) {
+        return '已锁定';
+    }
+    return ['账户不可用', ...cleaned].join('\n');
 }
 
 function renderAccountSuperuserBadge(isSuperuser) {

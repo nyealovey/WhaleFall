@@ -31,7 +31,7 @@ def test_build_permission_facts_sqlserver_includes_database_roles_in_roles() -> 
 
 
 @pytest.mark.unit
-def test_build_permission_facts_sqlserver_does_not_treat_is_disabled_as_locked() -> None:
+def test_build_permission_facts_sqlserver_treats_is_disabled_as_locked() -> None:
     record = _StubRecord(db_type="sqlserver")
     snapshot = {
         "version": 4,
@@ -42,7 +42,8 @@ def test_build_permission_facts_sqlserver_does_not_treat_is_disabled_as_locked()
         "meta": {},
     }
     facts = build_permission_facts(record=record, snapshot=snapshot)
-    assert "LOCKED" not in facts["capabilities"]
+    assert "LOCKED" in facts["capabilities"]
+    assert "type_specific.is_disabled=True" in facts["capability_reasons"]["LOCKED"]
 
 
 @pytest.mark.unit

@@ -340,7 +340,7 @@ function mountAccountsListPage(global) {
         name: "是否可用",
         id: "is_locked",
         width: STATUS_COLUMN_WIDTH,
-        formatter: (cell) => renderAvailabilityIndicator(Boolean(cell)),
+        formatter: (cell, row) => renderAvailabilityIndicator(Boolean(cell), rowMeta.get(row)),
       },
       {
         name: "是否删除",
@@ -481,13 +481,14 @@ function mountAccountsListPage(global) {
     });
   }
 
-  function renderAvailabilityIndicator(isLocked) {
+  function renderAvailabilityIndicator(isLocked, meta = {}) {
+    const title = buildAvailabilityTitle(isLocked, meta.availability_reasons);
     if (isLocked) {
       return renderCompactIndicator({
         icon: "fa-lock",
         tone: "danger",
-        title: "已锁定",
-        ariaLabel: "可用性 已锁定",
+        title,
+        ariaLabel: `可用性 ${title}`,
       });
     }
     return renderCompactIndicator({
@@ -496,6 +497,19 @@ function mountAccountsListPage(global) {
       title: "正常",
       ariaLabel: "可用性 正常",
     });
+  }
+
+  function buildAvailabilityTitle(isLocked, reasons) {
+    if (!isLocked) {
+      return "正常";
+    }
+    const cleaned = Array.isArray(reasons)
+      ? reasons.filter((reason) => typeof reason === "string" && reason.trim()).map((reason) => reason.trim())
+      : [];
+    if (!cleaned.length) {
+      return "已锁定";
+    }
+    return ["账户不可用", ...cleaned].join("\n");
   }
 
   function renderDeletionIndicator(isDeleted) {

@@ -47,6 +47,7 @@ class AccountLedgerItem:
     is_active: bool
     is_deleted: bool
     last_change_time: str | None
+    availability_reasons: list[str]
     type_specific: dict[str, object]
     tags: list[TagSummary]
     classifications: list[AccountClassificationSummary]

@@ -103,7 +103,7 @@ flowchart TB
 | PostgreSQL | `LOCKED` | `role_attributes.can_login is False` 或 `valid_until` 过期 |
 | SQL Server | `SUPERUSER` | `server_roles` 包含 `sysadmin` |
 | SQL Server | `GRANT_ADMIN` | `server_roles` 包含 `securityadmin` 或 `server_permissions` 包含 `CONTROL SERVER` |
-| SQL Server | `LOCKED` | `type_specific.connect_to_engine == "DENY"` 或 `type_specific.is_locked_out/is_password_expired/must_change_password is True` |
+| SQL Server | `LOCKED` | `type_specific.is_disabled is True`、`type_specific.connect_to_engine == "DENY"` 或 `type_specific.is_locked_out/is_password_expired/must_change_password is True` |
 | Oracle | `SUPERUSER` | `oracle_roles` 包含 `DBA` |
 | Oracle | `GRANT_ADMIN` | `oracle_roles` 包含 `DBA` 或 `system_privileges` 包含 `GRANT ANY PRIVILEGE` |
 | Oracle | `LOCKED` | `type_specific.account_status` 非 `OPEN` |
