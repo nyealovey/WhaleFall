@@ -819,7 +819,10 @@ function handleAccountsServerResponse(response) {
         item.username || '-',
         item.type_specific?.plugin || '',
         item.type_specific?.account_kind || '',
-        item.is_locked,
+        {
+            is_locked: item.is_locked,
+            availability_reasons: item.availability_reasons || [],
+        },
         item.is_deleted,
         item.is_superuser,
         item.last_change_time || '',
@@ -969,6 +972,7 @@ function renderAccountKindCell(value, meta) {
 }
 
 function renderAccountLockedCell(isLocked, meta) {
+    const normalized = normalizeAccountAvailabilityStatus(isLocked, meta);
     const typeSpecific = meta?.type_specific || {};
     const accountKind = typeSpecific?.account_kind ? String(typeSpecific.account_kind).toLowerCase() : null;
     if (accountKind === 'role') {
@@ -979,7 +983,20 @@ function renderAccountLockedCell(isLocked, meta) {
             ariaLabel: '是否可用 不适用',
         });
     }
-    return renderAccountLockedBadge(Boolean(isLocked), meta?.availability_reasons);
+    return renderAccountLockedBadge(normalized.is_locked, normalized.availability_reasons);
+}
+
+function normalizeAccountAvailabilityStatus(status, meta) {
+    if (status && typeof status === 'object') {
+        return {
+            is_locked: Boolean(status.is_locked),
+            availability_reasons: Array.isArray(status.availability_reasons) ? status.availability_reasons : [],
+        };
+    }
+    return {
+        is_locked: Boolean(status),
+        availability_reasons: Array.isArray(meta?.availability_reasons) ? meta.availability_reasons : [],
+    };
 }
 
 function renderAccountLockedBadge(isLocked, reasons) {
@@ -1010,7 +1027,7 @@ function buildAccountAvailabilityTitle(isLocked, reasons) {
     if (!cleaned.length) {
         return '已锁定';
     }
-    return ['账户不可用', ...cleaned].join('\n');
+    return `账户不可用：${cleaned.join('；')}`;
 }
 
 function renderAccountSuperuserBadge(isSuperuser) {

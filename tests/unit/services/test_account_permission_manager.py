@@ -161,3 +161,61 @@ def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
     other_diff = diff.get("other_diff")
     assert isinstance(other_diff, list)
     assert any(entry.get("field") == "type_specific.host" for entry in other_diff)
+
+
+@pytest.mark.unit
+def test_process_existing_permission_rebuilds_stale_facts_when_snapshot_is_unchanged() -> None:
+    manager = AccountPermissionManager()
+    permissions = {
+        "sqlserver_server_roles": ["sysadmin"],
+        "type_specific": {
+            "is_disabled": True,
+            "connect_to_engine": "GRANT",
+        },
+    }
+    record: Any = SimpleNamespace(
+        db_type="sqlserver",
+        instance_id=94,
+        username="sa",
+        permission_snapshot={
+            "version": 4,
+            "categories": {"sqlserver_server_roles": ["sysadmin"]},
+            "type_specific": {
+                "sqlserver": {
+                    "is_disabled": True,
+                    "connect_to_engine": "GRANT",
+                },
+            },
+            "extra": {},
+            "errors": [],
+            "meta": {},
+        },
+        permission_facts={
+            "version": 2,
+            "db_type": "sqlserver",
+            "capabilities": ["SUPERUSER"],
+            "capability_reasons": {
+                "SUPERUSER": ["sqlserver_server_roles contains sysadmin"],
+            },
+            "meta": {"source": "snapshot"},
+        },
+        last_sync_time=None,
+        last_change_type=None,
+        last_change_time=None,
+    )
+    snapshot = manager._extract_remote_context(cast(Any, {"permissions": permissions}))
+    context = SyncContext(
+        instance=cast(Any, SimpleNamespace(id=94, name="ztlksvr", db_type="sqlserver")),
+        username="sa",
+        session_id=None,
+    )
+
+    outcome = manager._process_existing_permission(record, snapshot, context)
+
+    assert outcome.updated == 1
+    assert outcome.skipped == 0
+    assert isinstance(record.permission_facts, dict)
+    assert "LOCKED" in record.permission_facts.get("capabilities", [])
+    assert record.permission_facts.get("capability_reasons", {}).get("LOCKED") == [
+        "type_specific.is_disabled=True"
+    ]

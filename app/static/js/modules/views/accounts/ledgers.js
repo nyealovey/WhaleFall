@@ -340,7 +340,7 @@ function mountAccountsListPage(global) {
         name: "是否可用",
         id: "is_locked",
         width: STATUS_COLUMN_WIDTH,
-        formatter: (cell, row) => renderAvailabilityIndicator(Boolean(cell), rowMeta.get(row)),
+        formatter: (cell) => renderAvailabilityIndicator(cell),
       },
       {
         name: "是否删除",
@@ -400,7 +400,10 @@ function mountAccountsListPage(global) {
       return items.map((item) => {
         const row = [
           item.username || "-",
-          item.is_locked,
+          {
+            is_locked: item.is_locked,
+            availability_reasons: item.availability_reasons || [],
+          },
           item.is_deleted,
           item.is_superuser,
           item.classifications || [],
@@ -481,9 +484,10 @@ function mountAccountsListPage(global) {
     });
   }
 
-  function renderAvailabilityIndicator(isLocked, meta = {}) {
-    const title = buildAvailabilityTitle(isLocked, meta.availability_reasons);
-    if (isLocked) {
+  function renderAvailabilityIndicator(status) {
+    const normalized = normalizeAvailabilityStatus(status);
+    const title = buildAvailabilityTitle(normalized.is_locked, normalized.availability_reasons);
+    if (normalized.is_locked) {
       return renderCompactIndicator({
         icon: "fa-lock",
         tone: "danger",
@@ -499,6 +503,19 @@ function mountAccountsListPage(global) {
     });
   }
 
+  function normalizeAvailabilityStatus(status) {
+    if (status && typeof status === "object") {
+      return {
+        is_locked: Boolean(status.is_locked),
+        availability_reasons: Array.isArray(status.availability_reasons) ? status.availability_reasons : [],
+      };
+    }
+    return {
+      is_locked: Boolean(status),
+      availability_reasons: [],
+    };
+  }
+
   function buildAvailabilityTitle(isLocked, reasons) {
     if (!isLocked) {
       return "正常";
@@ -509,7 +526,7 @@ function mountAccountsListPage(global) {
     if (!cleaned.length) {
       return "已锁定";
     }
-    return ["账户不可用", ...cleaned].join("\n");
+    return `账户不可用：${cleaned.join("；")}`;
   }
 
   function renderDeletionIndicator(isDeleted) {

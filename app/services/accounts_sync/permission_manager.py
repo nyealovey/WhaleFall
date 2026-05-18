@@ -265,6 +265,9 @@ class AccountPermissionManager:
             snapshot.permissions,
         )
         if not bool(diff.get("changed")):
+            if self._refresh_permission_facts_if_stale(record, snapshot.permissions):
+                self._mark_synced(record)
+                return SyncOutcome(updated=1)
             self._mark_synced(record)
             return SyncOutcome(skipped=1)
 
@@ -430,10 +433,33 @@ class AccountPermissionManager:
             permissions,
         )
 
+        record.permission_facts = self._build_permission_facts_or_raise(
+            record,
+            getattr(record, "permission_snapshot", None),
+        )
+
+    def _refresh_permission_facts_if_stale(
+        self,
+        record: AccountPermission,
+        permissions: JsonDict,
+    ) -> bool:
+        """重算派生 facts,用于修复 facts 规则升级后的存量记录."""
+        snapshot = self._build_permission_snapshot(record, permissions)
+        fresh_facts = self._build_permission_facts_or_raise(record, snapshot)
+        if getattr(record, "permission_facts", None) == fresh_facts:
+            return False
+        record.permission_facts = fresh_facts
+        return True
+
+    def _build_permission_facts_or_raise(
+        self,
+        record: AccountPermission,
+        snapshot: Mapping[str, object] | None,
+    ) -> JsonDict:
         try:
-            record.permission_facts = build_permission_facts(
+            return build_permission_facts(
                 record=record,
-                snapshot=getattr(record, "permission_snapshot", None),
+                snapshot=snapshot,
             )
         except Exception as exc:
             self.logger.exception(
