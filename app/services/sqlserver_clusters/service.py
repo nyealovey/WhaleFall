@@ -39,7 +39,7 @@ DECLARE @sql nvarchar(max) = N'
 SELECT
     ag.name AS ag_name,
     listener.dns_name AS listener_name,
-    listener.dns_name AS listener_host,
+    COALESCE(listener_ip.ip_address, listener.dns_name) AS listener_host,
     COALESCE(listener.port, 1433) AS listener_port,
     ' + @contained_expr + N' AS contained_enabled
 FROM sys.availability_groups AS ag
@@ -51,6 +51,16 @@ CROSS APPLY (
     WHERE l.group_id = ag.group_id
     ORDER BY l.dns_name ASC
 ) AS listener
+OUTER APPLY (
+    SELECT TOP (1)
+        NULLIF(ip.ip_address, '''') AS ip_address
+    FROM sys.availability_group_listener_ip_addresses AS ip
+    WHERE ip.listener_id = listener.listener_id
+        AND NULLIF(ip.ip_address, '''') IS NOT NULL
+    ORDER BY
+        CASE WHEN ip.ip_address IN (''0.0.0.0'', ''::'') THEN 1 ELSE 0 END,
+        ip.ip_address ASC
+) AS listener_ip
 ORDER BY ag.name ASC';
 
 EXEC sys.sp_executesql @sql;
@@ -524,7 +534,8 @@ class SQLServerClusterManagementService:
         values = list(row)
         name = str(values[0]).strip()
         listener_name = str(values[1]).strip() if values[1] is not None else None
-        listener_host = str(values[2]).strip()
+        listener_ip = str(values[5]).strip() if len(values) > 5 and values[5] is not None else ""
+        listener_host = listener_ip or str(values[2]).strip()
         listener_port = int(values[3] or 1433)
         contained_value = values[4] if len(values) > 4 else False
         return {
