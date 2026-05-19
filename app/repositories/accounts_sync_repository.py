@@ -88,3 +88,22 @@ class AccountsSyncRepository:
                 username=username,
             ).first(),
         )
+
+    @staticmethod
+    def get_permission_by_owner_username(
+        *,
+        owner_type: str,
+        owner_id: int | None,
+        db_type: str,
+        username: str,
+    ) -> AccountPermission | None:
+        """按账户归属与用户名获取权限记录(可为空)."""
+        return cast(
+            "AccountPermission | None",
+            AccountPermission.query.filter_by(
+                owner_type=owner_type,
+                owner_id=owner_id,
+                db_type=db_type,
+                username=username,
+            ).first(),
+        )

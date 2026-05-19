@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% set page_id = 'ClusterPage' %}
+{% set page_density = 'compact' %}
+{% from 'components/filters/macros.html' import filter_card, search_input, status_active_filter %}
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block title %}cluster - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/crud-modal.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/cluster/list.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+<div id="cluster-page-root"
+     data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
+     data-instances='{{ sqlserver_instances | tojson | safe }}'>
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+{% if current_user.role == 'admin' %}
+{% call page_header('fas fa-layer-group', 'cluster', '维护 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') %}
+<div class="btn-group">
+    <button class="btn btn-primary" type="button" data-action="create-cluster">
+        <i class="fas fa-plus me-2"></i>添加群集
+    </button>
+</div>
+{% endcall %}
+{% else %}
+{{ page_header('fas fa-layer-group', 'cluster', '查看 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') }}
+{% endif %}
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            {% call filter_card(form_id='cluster-filter-form', action='#', auto_register=False) %}
+                {{ search_input(value=search, placeholder='搜索群集名称或描述', width_preset='lg') }}
+                {{ status_active_filter(status_options, status, width_preset='md') }}
+            {% endcall %}
+        </div>
+    </div>
+</section>
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="card">
+                <div class="card-body">
+                    <div id="sqlserver-clusters-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% set cluster_modal_body %}
+<form id="clusterManagementForm" class="crud-modal" data-form-mode="create">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" id="clusterIdInput" name="cluster_id" />
+
+    <ul class="nav nav-tabs cluster-tabs" id="clusterManagementTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="cluster-basic-tab" data-bs-toggle="tab" data-bs-target="#cluster-basic-pane" type="button" role="tab" aria-controls="cluster-basic-pane" aria-selected="true">
+                基本信息
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cluster-instances-tab" data-bs-toggle="tab" data-bs-target="#cluster-instances-pane" type="button" role="tab" aria-controls="cluster-instances-pane" aria-selected="false">
+                绑定实例
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cluster-ag-tab" data-bs-toggle="tab" data-bs-target="#cluster-ag-pane" type="button" role="tab" aria-controls="cluster-ag-pane" aria-selected="false">
+                AG 配置
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="cluster-basic-pane" role="tabpanel" aria-labelledby="cluster-basic-tab" tabindex="0">
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="clusterNameInput" class="form-label">群集名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="clusterNameInput" name="name" required maxlength="128" placeholder="请输入群集名称">
+                </div>
+                <div class="col-md-6 col-12 d-flex align-items-end">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="clusterEnabledInput" name="is_enabled" checked>
+                        <label class="form-check-label" for="clusterEnabledInput">启用群集采集</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label for="clusterDescriptionInput" class="form-label">描述</label>
+                    <textarea class="form-control" id="clusterDescriptionInput" name="description" rows="3" placeholder="请输入描述"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="cluster-instances-pane" role="tabpanel" aria-labelledby="cluster-instances-tab" tabindex="0">
+            <label for="clusterInstanceSelect" class="form-label">SQL Server 实例</label>
+            <select class="form-select" id="clusterInstanceSelect" name="instance_ids" multiple size="8">
+                {% for instance in sqlserver_instances %}
+                <option value="{{ instance.id }}">{{ instance.name }} · {{ instance.host }}:{{ instance.port }}</option>
+                {% endfor %}
+            </select>
+            <div class="crud-modal__hint chip-outline chip-outline--muted mt-2">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <span>仅展示未删除的 SQL Server 实例；一个实例只能绑定一个群集。</span>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="cluster-ag-pane" role="tabpanel" aria-labelledby="cluster-ag-tab" tabindex="0">
+            <div class="cluster-ag-editor">
+                <input type="hidden" id="clusterAgIdInput">
+                <div class="row g-3">
+                    <div class="col-md-4 col-12">
+                        <label for="clusterAgNameInput" class="form-label">AG 名称</label>
+                        <input type="text" class="form-control" id="clusterAgNameInput" maxlength="128" placeholder="ag-main">
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <label for="clusterAgListenerNameInput" class="form-label">监听器名称</label>
+                        <input type="text" class="form-control" id="clusterAgListenerNameInput" placeholder="ag-listener">
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <label for="clusterAgCredentialInput" class="form-label">凭据</label>
+                        <select class="form-select" id="clusterAgCredentialInput">
+                            <option value="">沿用实例凭据</option>
+                            {% for credential in credentials %}
+                            <option value="{{ credential.id }}">{{ credential.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5 col-12">
+                        <label for="clusterAgHostInput" class="form-label">监听器 host</label>
+                        <input type="text" class="form-control" id="clusterAgHostInput" placeholder="ag.example.test">
+                    </div>
+                    <div class="col-md-3 col-12">
+                        <label for="clusterAgPortInput" class="form-label">端口</label>
+                        <input type="number" class="form-control" id="clusterAgPortInput" min="1" max="65535" value="1433">
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <label for="clusterAgDatabaseInput" class="form-label">连接数据库</label>
+                        <input type="text" class="form-control" id="clusterAgDatabaseInput" placeholder="master">
+                    </div>
+                    <div class="col-12 d-flex flex-wrap gap-3 align-items-center justify-content-between">
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="clusterAgContainedInput">
+                                <label class="form-check-label" for="clusterAgContainedInput">contained</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="clusterAgEnabledInput" checked>
+                                <label class="form-check-label" for="clusterAgEnabledInput">启用采集</label>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" type="button" data-action="save-ag-draft">
+                            <i class="fas fa-plus me-1"></i>保存 AG
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive mt-3">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>AG</th>
+                            <th>监听器</th>
+                            <th>凭据</th>
+                            <th>contained</th>
+                            <th>采集</th>
+                            <th>同步</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clusterAgTableBody">
+                        <tr><td colspan="7" class="text-muted">暂无 AG 配置</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</form>
+{% endset %}
+
+{% set cluster_modal_footer %}
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+<button type="submit" class="btn btn-primary" data-modal-confirm id="clusterModalSubmit" form="clusterManagementForm">保存</button>
+{% endset %}
+
+{% with
+    modal_id='clusterManagementModal',
+    modal_label_id='clusterManagementModalLabel',
+    title='<i class="fas fa-layer-group me-2"></i><span id="clusterModalTitle">添加群集</span>',
+    body=cluster_modal_body,
+    footer=cluster_modal_footer,
+    size='xl',
+    body_class='p-4'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/sqlserver_clusters_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/sqlserver_clusters_store.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/cluster/list.js') }}"></script>
+{% endblock %}
