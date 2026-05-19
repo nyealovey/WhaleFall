@@ -30,7 +30,6 @@ if TYPE_CHECKING:
         PermissionDiffPayload,
         PrivilegeDiffEntry,
         RemoteAccount,
-        RemoteAccountMap,
         SyncSummary,
     )
     from app.models.instance import Instance
@@ -103,6 +102,10 @@ class SyncContext:
     instance: Instance
     username: str
     session_id: str | None
+    account: InstanceAccount | None = None
+
+
+OwnerKey = tuple[str, int | None, str, str]
 
 
 class PermissionSyncError(RuntimeError):
@@ -180,19 +183,26 @@ class AccountPermissionManager:
             PermissionSyncError: 当权限同步过程中发生错误时抛出.
 
         """
-        remote_map: RemoteAccountMap = {account["username"]: account for account in remote_accounts}
+        remote_map: dict[OwnerKey, RemoteAccount] = {
+            self._owner_key_from_remote(instance, account): account for account in remote_accounts
+        }
         counts = {"created": 0, "updated": 0, "skipped": 0}
         errors: list[str] = []
 
         try:
             with db.session.begin_nested():
                 for account in active_accounts:
-                    remote = remote_map.get(account.username)
+                    remote = remote_map.get(self._owner_key_from_account(instance, account))
                     if not remote:
                         counts["skipped"] += 1
                         continue
 
-                    context = SyncContext(instance=instance, username=account.username, session_id=session_id)
+                    context = SyncContext(
+                        instance=instance,
+                        account=account,
+                        username=account.username,
+                        session_id=session_id,
+                    )
                     outcome = self._sync_single_account(account, remote, context)
                     counts["created"] += outcome.created
                     counts["updated"] += outcome.updated
@@ -242,9 +252,11 @@ class AccountPermissionManager:
         existing = self._repository.get_permission_by_instance_account_id(account.id)
         if existing:
             return existing
-        existing = self._repository.get_permission_by_instance_username(
-            instance_id=instance.id,
-            db_type=instance.db_type,
+        owner_type, owner_id = self._owner_identity_from_account(instance, account)
+        existing = self._repository.get_permission_by_owner_username(
+            owner_type=owner_type,
+            owner_id=owner_id,
+            db_type=getattr(account, "db_type", instance.db_type),
             username=account.username,
         )
         if existing and not existing.instance_account_id:
@@ -283,6 +295,7 @@ class AccountPermissionManager:
         try:
             self._log_change(
                 context.instance,
+                account=context.account,
                 username=context.username,
                 change_type=change_type,
                 diff_payload=diff,
@@ -305,6 +318,10 @@ class AccountPermissionManager:
         record.db_type = context.instance.db_type
         record.instance_account_id = account.id
         record.username = account.username
+        record.owner_type = account.owner_type or "instance"
+        record.owner_id = account.owner_id if account.owner_id is not None else context.instance.id
+        record.cluster_id = account.cluster_id
+        record.availability_group_id = account.availability_group_id
         self._apply_permissions(
             record,
             snapshot.permissions,
@@ -321,6 +338,7 @@ class AccountPermissionManager:
             )
             self._log_change(
                 context.instance,
+                account=account,
                 username=account.username,
                 change_type="add",
                 diff_payload=initial_diff,
@@ -703,6 +721,7 @@ class AccountPermissionManager:
         self,
         instance: Instance,
         *,
+        account: InstanceAccount | None,
         username: str,
         change_type: str,
         diff_payload: PermissionDiffPayload,
@@ -732,6 +751,11 @@ class AccountPermissionManager:
         log.instance_id = instance.id
         log.db_type = instance.db_type
         log.username = username
+        log.owner_type = getattr(account, "owner_type", None) or "instance"
+        raw_owner_id = getattr(account, "owner_id", None)
+        log.owner_id = raw_owner_id if raw_owner_id is not None else instance.id
+        log.cluster_id = getattr(account, "cluster_id", None)
+        log.availability_group_id = getattr(account, "availability_group_id", None)
         log.change_type = change_type
         log.change_time = time_utils.now()
         log.privilege_diff = wrap_entries_v1(privilege_diff)
@@ -739,6 +763,32 @@ class AccountPermissionManager:
         log.message = summary
         log.session_id = session_id
         db.session.add(log)
+
+    @classmethod
+    def _owner_key_from_account(cls, instance: Instance, account: InstanceAccount) -> OwnerKey:
+        owner_type, owner_id = cls._owner_identity_from_account(instance, account)
+        db_type = str(getattr(account, "db_type", instance.db_type)).lower()
+        return (owner_type, owner_id, db_type, account.username)
+
+    @staticmethod
+    def _owner_identity_from_account(instance: Instance, account: InstanceAccount) -> tuple[str, int | None]:
+        owner_type = str(getattr(account, "owner_type", None) or "instance")
+        raw_owner_id = getattr(account, "owner_id", None)
+        owner_id = raw_owner_id if raw_owner_id is not None else instance.id
+        return owner_type, owner_id
+
+    @classmethod
+    def _owner_key_from_remote(cls, instance: Instance, account: RemoteAccount) -> OwnerKey:
+        owner_type, owner_id = cls._owner_identity_from_remote(instance, account)
+        db_type = str(account.get("db_type") or instance.db_type).lower()
+        return (owner_type, owner_id, db_type, account["username"])
+
+    @staticmethod
+    def _owner_identity_from_remote(instance: Instance, account: RemoteAccount) -> tuple[str, int | None]:
+        owner_type = str(account.get("owner_type") or "instance").strip() or "instance"
+        owner_id_value = account.get("owner_id")
+        owner_id = int(owner_id_value) if owner_id_value is not None else instance.id
+        return owner_type, owner_id
 
     # ------------------------------------------------------------------
     # Diff 构建辅助

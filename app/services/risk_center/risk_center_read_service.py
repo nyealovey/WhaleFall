@@ -375,7 +375,7 @@ class RiskCenterReadService:
 
     @staticmethod
     def _build_severity_counts(cards: list[dict[str, object]]) -> dict[str, int]:
-        counts = dict.fromkeys(VISIBLE_SEVERITY_KEYS, 0)
+        counts = cast("dict[str, int]", dict.fromkeys(VISIBLE_SEVERITY_KEYS, 0))
         for card in cards:
             counts[_visible_severity_bucket(card.get("overall_severity"))] += 1
         return counts

@@ -22,6 +22,10 @@ class AccountPermissionOrmFields(TypedDict, total=False):
     db_type: str
     instance_account_id: int
     username: str
+    owner_type: str
+    owner_id: int | None
+    cluster_id: int | None
+    availability_group_id: int | None
     type_specific: object | None
     permission_snapshot: object | None
     permission_facts: object | None
@@ -37,6 +41,10 @@ class InstanceAccountOrmFields(TypedDict, total=False):
     instance_id: int
     username: str
     db_type: str
+    owner_type: str
+    owner_id: int | None
+    cluster_id: int | None
+    availability_group_id: int | None
     is_active: bool
     deleted_at: datetime | None
     created_at: datetime
@@ -79,6 +87,10 @@ class AccountChangeLogOrmFields(TypedDict, total=False):
     instance_id: int
     db_type: str
     username: str
+    owner_type: str
+    owner_id: int | None
+    cluster_id: int | None
+    availability_group_id: int | None
     change_type: str
     change_time: datetime
     session_id: str | None
@@ -100,6 +112,46 @@ class AccountClassificationOrmFields(TypedDict, total=False):
     priority: int
     is_system: bool
     is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class SQLServerClusterOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating SQLServerCluster ORM rows."""
+
+    id: int
+    name: str
+    description: str
+    is_enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class SQLServerClusterInstanceOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating SQLServerClusterInstance ORM rows."""
+
+    id: int
+    cluster_id: int
+    instance_id: int
+    created_at: datetime
+
+
+class SQLServerAvailabilityGroupOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating SQLServerAvailabilityGroup ORM rows."""
+
+    id: int
+    cluster_id: int
+    name: str
+    listener_name: str | None
+    listener_host: str
+    listener_port: int
+    credential_id: int | None
+    connection_database: str | None
+    contained_enabled: bool
+    is_enabled: bool
+    last_sync_at: datetime | None
+    last_sync_status: str | None
+    last_error: str | None
     created_at: datetime
     updated_at: datetime
 

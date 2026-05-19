@@ -5,13 +5,16 @@ TaskRunItem 是一次 TaskRun(run) 内的子执行单元（instance/rule/step）
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.dialects import postgresql
 
 from app import db
 from app.core.constants.status_types import TaskRunStatus
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.models.task_run import TaskRun
 
 
 class TaskRunItem(db.Model):
@@ -50,6 +53,9 @@ class TaskRunItem(db.Model):
 
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
+
+    if TYPE_CHECKING:
+        run: TaskRun
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典(用于序列化展示)."""

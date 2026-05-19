@@ -37,6 +37,15 @@ class InstanceAccount(db.Model):
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False, comment="账户名(对外展示,含必要的主机信息)")
     db_type = db.Column(db.String(50), nullable=False, comment="数据库类型")
+    owner_type = db.Column(db.String(32), nullable=False, default="instance", comment="账户归属类型(instance/sqlserver_ag)")
+    owner_id = db.Column(db.Integer, nullable=True, index=True, comment="账户归属 ID")
+    cluster_id = db.Column(db.Integer, db.ForeignKey("sqlserver_clusters.id"), nullable=True, index=True)
+    availability_group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("sqlserver_availability_groups.id"),
+        nullable=True,
+        index=True,
+    )
     is_active = db.Column(db.Boolean, default=True, nullable=False, comment="账户是否活跃")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
@@ -46,9 +55,11 @@ class InstanceAccount(db.Model):
     instance = db.relationship("Instance", back_populates="instance_accounts")
 
     __table_args__ = (
-        db.UniqueConstraint("instance_id", "db_type", "username", name="uq_instance_account_instance_username"),
+        db.UniqueConstraint("owner_type", "owner_id", "db_type", "username", name="uq_instance_account_owner_username"),
         db.Index("ix_instance_accounts_username", "username"),
         db.Index("ix_instance_accounts_active", "is_active"),
+        db.Index("ix_instance_accounts_owner", "owner_type", "owner_id"),
+        db.Index("ix_instance_accounts_instance_username", "instance_id", "db_type", "username"),
         {
             "comment": "实例-账户关系表,维护账户存在状态",
         },

@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from app.core.types import RemoteAccount
     from app.models.instance import Instance
 
+OwnerKey = tuple[str, int | None, str, str]
+OwnerScope = tuple[str, int | None, str]
+
 
 class AccountInventoryManager:
     """维护 InstanceAccount 清单同步的管理器.
@@ -82,9 +85,10 @@ class AccountInventoryManager:
         remote_accounts, now_ts = list(remote_accounts), time_utils.now()
 
         existing_accounts = self._repository.list_instance_accounts(instance_id=instance.id)
-        existing_map = {account.username: account for account in existing_accounts}
+        existing_map = {self._owner_key_from_record(instance, account): account for account in existing_accounts}
 
-        seen_usernames: set[str] = set()
+        seen_owner_keys: set[OwnerKey] = set()
+        sync_owner_scopes: set[OwnerScope] = set()
         created = reactivated = refreshed = deactivated = 0
         created_usernames: list[str] = []
         reactivated_usernames: list[str] = []
@@ -98,14 +102,25 @@ class AccountInventoryManager:
                     if not username:
                         continue
 
-                    seen_usernames.add(username)
                     is_active = bool(item.get("is_active", True))
                     db_type = (item.get("db_type") or instance.db_type).lower()
+                    owner_type, owner_id, cluster_id, availability_group_id = self._owner_fields_from_remote(
+                        instance,
+                        item,
+                    )
+                    owner_key = (owner_type, owner_id, db_type, username)
+                    owner_scope = (owner_type, owner_id, db_type)
+                    seen_owner_keys.add(owner_key)
+                    sync_owner_scopes.add(owner_scope)
 
-                    record = existing_map.get(username)
+                    record = existing_map.get(owner_key)
                     if record:
                         record.updated_at = now_ts
                         record.db_type = db_type
+                        record.owner_type = owner_type
+                        record.owner_id = owner_id
+                        record.cluster_id = cluster_id
+                        record.availability_group_id = availability_group_id
                         if not record.is_active and is_active:
                             record.is_active = True
                             record.deleted_at = None
@@ -118,17 +133,26 @@ class AccountInventoryManager:
                         record.instance_id = instance.id
                         record.username = username
                         record.db_type = db_type
+                        record.owner_type = owner_type
+                        record.owner_id = owner_id
+                        record.cluster_id = cluster_id
+                        record.availability_group_id = availability_group_id
                         record.is_active = is_active
                         self._write_repository.add(record)
-                        existing_map[username] = record
+                        existing_map[owner_key] = record
                         created += 1
                         created_usernames.append(username)
 
                     if is_active:
                         active_accounts.append(record)
 
+                if not sync_owner_scopes:
+                    sync_owner_scopes.add(("instance", instance.id, instance.db_type.lower()))
+
                 for record in existing_accounts:
-                    if record.username not in seen_usernames and record.is_active:
+                    record_scope = self._owner_scope_from_record(instance, record)
+                    record_key = self._owner_key_from_record(instance, record)
+                    if record_scope in sync_owner_scopes and record_key not in seen_owner_keys and record.is_active:
                         record.is_active = False
                         record.deleted_at = now_ts
                         record.updated_at = now_ts
@@ -168,3 +192,45 @@ class AccountInventoryManager:
         )
 
         return summary, active_accounts
+
+    @staticmethod
+    def _owner_fields_from_remote(
+        instance: Instance,
+        item: RemoteAccount,
+    ) -> tuple[str, int | None, int | None, int | None]:
+        owner_type = str(item.get("owner_type") or "instance").strip() or "instance"
+        raw_owner_id = item.get("owner_id")
+        owner_id = int(raw_owner_id) if raw_owner_id is not None else instance.id
+        cluster_id = item.get("cluster_id")
+        availability_group_id = item.get("availability_group_id")
+
+        if owner_type == "instance":
+            return owner_type, owner_id, None, None
+
+        return (
+            owner_type,
+            owner_id,
+            int(cluster_id) if cluster_id is not None else None,
+            int(availability_group_id) if availability_group_id is not None else None,
+        )
+
+    @classmethod
+    def _owner_key_from_record(cls, instance: Instance, record: InstanceAccount) -> OwnerKey:
+        owner_type, owner_id, _, _ = cls._owner_fields_from_record(instance, record)
+        return (owner_type, owner_id, record.db_type.lower(), record.username)
+
+    @classmethod
+    def _owner_scope_from_record(cls, instance: Instance, record: InstanceAccount) -> OwnerScope:
+        owner_type, owner_id, _, _ = cls._owner_fields_from_record(instance, record)
+        return (owner_type, owner_id, record.db_type.lower())
+
+    @staticmethod
+    def _owner_fields_from_record(
+        instance: Instance,
+        record: InstanceAccount,
+    ) -> tuple[str, int | None, int | None, int | None]:
+        owner_type = str(record.owner_type or "instance")
+        owner_id = record.owner_id if record.owner_id is not None else instance.id
+        if owner_type == "instance":
+            return owner_type, owner_id, None, None
+        return owner_type, owner_id, record.cluster_id, record.availability_group_id

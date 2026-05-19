@@ -37,6 +37,15 @@ class AccountChangeLog(db.Model):
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
     db_type = db.Column(db.String(20), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False, index=True)
+    owner_type = db.Column(db.String(32), nullable=False, default="instance")
+    owner_id = db.Column(db.Integer, nullable=True, index=True)
+    cluster_id = db.Column(db.Integer, db.ForeignKey("sqlserver_clusters.id"), nullable=True, index=True)
+    availability_group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("sqlserver_availability_groups.id"),
+        nullable=True,
+        index=True,
+    )
     change_type = db.Column(
         db.String(50),
         nullable=False,
@@ -60,6 +69,7 @@ class AccountChangeLog(db.Model):
         ),
         db.Index("idx_change_type_time", "change_type", "change_time"),
         db.Index("idx_username_time", "username", "change_time"),
+        db.Index("idx_account_change_log_owner_time", "owner_type", "owner_id", "change_time"),
     )
 
     # 关联实例
@@ -92,6 +102,10 @@ class AccountChangeLog(db.Model):
             "instance_id": self.instance_id,
             "db_type": self.db_type,
             "username": self.username,
+            "owner_type": self.owner_type,
+            "owner_id": self.owner_id,
+            "cluster_id": self.cluster_id,
+            "availability_group_id": self.availability_group_id,
             "change_type": self.change_type,
             "change_time": self.change_time.isoformat() if self.change_time else None,
             "session_id": self.session_id,

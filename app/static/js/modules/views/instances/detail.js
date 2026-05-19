@@ -40,6 +40,11 @@
         loading: false,
         payload: null,
     };
+    const agAccountsState = {
+        loaded: false,
+        loading: false,
+        payload: null,
+    };
 
 /**
  * 挂载实例详情页面。
@@ -119,6 +124,7 @@ function ensureInstanceService() {
         initializeBackupTab();
         resetGridFilterForms();
         initializeAccountsGrid();
+        loadAgAccounts();
         initializeDatabaseSizesGrid();
         window.setTimeout(loadDatabaseSizes, 500);
     });
@@ -1836,6 +1842,95 @@ function showAuditTab() {
         return;
     }
     bootstrapTab.getOrCreateInstance(auditTab).show();
+}
+
+function loadAgAccounts(forceRefresh = false) {
+    if (String(getInstanceDbType() || '').toLowerCase() !== 'sqlserver') {
+        return;
+    }
+    if (!instanceService?.fetchInstanceAgAccounts) {
+        renderAgAccountsError('实例管理服务未初始化');
+        return;
+    }
+    if (agAccountsState.loading) {
+        return;
+    }
+    if (agAccountsState.loaded && !forceRefresh) {
+        renderAgAccounts(agAccountsState.payload);
+        return;
+    }
+
+    agAccountsState.loading = true;
+    renderAgAccountsLoading();
+    instanceService.fetchInstanceAgAccounts(getInstanceId())
+        .then((response) => {
+            agAccountsState.payload = response?.data || response || null;
+            agAccountsState.loaded = true;
+            renderAgAccounts(agAccountsState.payload);
+        })
+        .catch((error) => {
+            renderAgAccountsError(error?.message || '加载 AG 账户信息失败');
+        })
+        .finally(() => {
+            agAccountsState.loading = false;
+        });
+}
+
+function renderAgAccountsLoading() {
+    const body = document.getElementById('agAccountsTableBody');
+    if (body) {
+        body.innerHTML = '<tr><td colspan="6" class="text-muted">加载中...</td></tr>';
+    }
+}
+
+function renderAgAccountsError(message) {
+    const body = document.getElementById('agAccountsTableBody');
+    if (body) {
+        body.innerHTML = `<tr><td colspan="6" class="text-danger">${escapeHtml(message || '加载失败')}</td></tr>`;
+    }
+}
+
+function renderAgAccounts(payload) {
+    const body = document.getElementById('agAccountsTableBody');
+    const clusterLabel = document.getElementById('agAccountsClusterLabel');
+    if (!body) {
+        return;
+    }
+    const data = payload?.data || payload || {};
+    const cluster = data.cluster || null;
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (clusterLabel) {
+        clusterLabel.textContent = cluster?.name ? `群集：${cluster.name}` : '未绑定群集';
+    }
+    if (!cluster) {
+        body.innerHTML = '<tr><td colspan="6" class="text-muted">当前实例未绑定 SQL Server 群集。</td></tr>';
+        return;
+    }
+    if (!items.length) {
+        body.innerHTML = '<tr><td colspan="6" class="text-muted">当前群集暂无启用 contained 的 AG 账户。</td></tr>';
+        return;
+    }
+    body.innerHTML = items.map((item) => renderAgAccountRow(item)).join('');
+}
+
+function renderAgAccountRow(item) {
+    const listenerParts = [item.listener_name, item.listener_host].filter(Boolean);
+    const listener = listenerParts.length ? listenerParts.join(' / ') : '-';
+    const lockedLabel = item.is_locked ? '锁定' : '可用';
+    const lockedClass = item.is_locked ? 'status-pill--danger' : 'status-pill--success';
+    const superuserLabel = item.is_superuser ? '是' : '否';
+    const superuserClass = item.is_superuser ? 'status-pill--warning' : 'status-pill--muted';
+    const lastSync = item.last_sync_time ? timeUtils.formatDateTime(item.last_sync_time) : '-';
+    return `
+        <tr>
+            <td>${escapeHtml(item.availability_group_name || '-')}</td>
+            <td>${escapeHtml(listener)}</td>
+            <td>${escapeHtml(item.username || '-')}</td>
+            <td><span class="status-pill ${lockedClass}">${escapeHtml(lockedLabel)}</span></td>
+            <td><span class="status-pill ${superuserClass}">${escapeHtml(superuserLabel)}</span></td>
+            <td>${escapeHtml(lastSync)}</td>
+        </tr>
+    `;
 }
 
 function loadBackupInfo(forceRefresh = false) {

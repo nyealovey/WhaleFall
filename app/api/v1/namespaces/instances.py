@@ -44,6 +44,7 @@ from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.instances_export_service import InstancesExportService
 from app.services.files.instances_import_template_service import InstancesImportTemplateService
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
+from app.services.instances.instance_ag_accounts_service import InstanceAgAccountsService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
@@ -149,6 +150,21 @@ InstanceAccountsListSuccessEnvelope = make_success_envelope_model(
     ns,
     "InstanceAccountsListSuccessEnvelope",
     InstanceAccountsListData,
+)
+
+InstanceAgAccountsData = ns.model(
+    "InstanceAgAccountsData",
+    {
+        "cluster": fields.Raw(required=False, description="实例所属 SQL Server 群集"),
+        "items": fields.List(fields.Raw, description="contained AG 账户列表"),
+        "total": fields.Integer(),
+    },
+)
+
+InstanceAgAccountsSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstanceAgAccountsSuccessEnvelope",
+    InstanceAgAccountsData,
 )
 
 InstanceAccountInfoModel = ns.model("InstanceAccountInfo", INSTANCE_ACCOUNT_INFO_FIELDS)
@@ -916,6 +932,33 @@ class InstancesStatisticsResource(BaseResource):
             module="instances",
             action="get_instance_statistics",
             public_error="获取实例统计信息失败",
+        )
+
+
+@ns.route("/<int:instance_id>/ag-accounts")
+class InstanceAgAccountsResource(BaseResource):
+    """实例所属群集的 contained AG 账户资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", InstanceAgAccountsSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self, instance_id: int):
+        """获取实例账户信息中的 AG 账户模块数据."""
+
+        def _execute():
+            data = InstanceAgAccountsService().list_for_instance(instance_id)
+            return self.success(data=data, message="获取 AG 账户信息成功")
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="get_instance_ag_accounts",
+            public_error="获取 AG 账户信息失败",
+            context={"instance_id": instance_id},
         )
 
 

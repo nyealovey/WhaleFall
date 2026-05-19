@@ -1,0 +1,18 @@
+.cluster-tabs {
+    gap: 0.25rem;
+}
+
+.cluster-ag-editor {
+    border: 1px solid var(--wf-border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1rem;
+    background: var(--wf-surface-muted, #f8fafc);
+}
+
+.cluster-ag-actions {
+    white-space: nowrap;
+}
+
+.cluster-ag-actions .btn {
+    min-width: 2rem;
+}

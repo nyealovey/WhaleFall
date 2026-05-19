@@ -75,6 +75,11 @@
       return this.httpClient.get(`/api/v1/instances/${instanceId}/backup-info`);
     }
 
+    fetchInstanceAgAccounts(instanceId) {
+      this.assertInstanceId(instanceId, "fetchInstanceAgAccounts");
+      return this.httpClient.get(`/api/v1/instances/${instanceId}/ag-accounts`);
+    }
+
     fetchDatabaseTableSizes(databaseId, params) {
       if (!databaseId && databaseId !== 0) {
         throw new Error("InstanceManagementService: fetchDatabaseTableSizes 需要 databaseId");

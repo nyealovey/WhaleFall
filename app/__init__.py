@@ -358,6 +358,7 @@ def configure_blueprints(app: Flask) -> None:
         ("app.routes.risk_center", "risk_center_bp", "/risk-center"),
         ("app.routes.instances.manage", "instances_bp", "/instances"),
         ("app.routes.instances.detail", "instances_detail_bp", None),
+        ("app.routes.cluster", "cluster_bp", "/cluster"),
         ("app.routes.credentials", "credentials_bp", "/credentials"),
         ("app.routes.system_settings", "system_settings_bp", None),
         ("app.routes.accounts.statistics", "accounts_statistics_bp", "/accounts"),

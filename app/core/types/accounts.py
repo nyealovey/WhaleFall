@@ -50,6 +50,10 @@ class RemoteAccount(TypedDict):
     username: str
     display_name: NotRequired[str | None]
     db_type: str
+    owner_type: NotRequired[str]
+    owner_id: NotRequired[int | None]
+    cluster_id: NotRequired[int | None]
+    availability_group_id: NotRequired[int | None]
     is_superuser: bool
     is_active: bool
     is_locked: bool

@@ -41,6 +41,9 @@ __all__ = [
     "JumpServerAssetSnapshot",
     "JumpServerSourceBinding",
     "PermissionConfig",
+    "SQLServerAvailabilityGroup",
+    "SQLServerCluster",
+    "SQLServerClusterInstance",
     "SyncInstanceRecord",
     "SyncSession",
     "User",
@@ -70,6 +73,9 @@ _MODEL_MODULE_MAP: dict[str, str] = {
     "JumpServerAssetSnapshot": "app.models.jumpserver_asset_snapshot",
     "JumpServerSourceBinding": "app.models.jumpserver_source_binding",
     "PermissionConfig": "app.models.permission_config",
+    "SQLServerAvailabilityGroup": "app.models.sqlserver_cluster",
+    "SQLServerCluster": "app.models.sqlserver_cluster",
+    "SQLServerClusterInstance": "app.models.sqlserver_cluster",
     "SyncInstanceRecord": "app.models.sync_instance_record",
     "SyncSession": "app.models.sync_session",
     "User": "app.models.user",
@@ -103,6 +109,7 @@ if TYPE_CHECKING:
     from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
     from app.models.jumpserver_source_binding import JumpServerSourceBinding
     from app.models.permission_config import PermissionConfig
+    from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
     from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.sync_session import SyncSession
     from app.models.user import User

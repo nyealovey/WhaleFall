@@ -47,13 +47,24 @@ class AccountPermission(BaseSyncData):
     __tablename__ = "account_permission"
 
     __table_args__ = (
-        db.UniqueConstraint("instance_id", "db_type", "username", name="uq_account_permission"),
+        db.UniqueConstraint("owner_type", "owner_id", "db_type", "username", name="uq_account_permission_owner"),
         db.Index("idx_account_permission_instance_dbtype", "instance_id", "db_type"),
         db.Index("idx_account_permission_username", "username"),
+        db.Index("idx_account_permission_owner", "owner_type", "owner_id"),
+        db.Index("idx_account_permission_instance_username", "instance_id", "db_type", "username"),
     )
 
     instance_account_id = db.Column(db.Integer, db.ForeignKey("instance_accounts.id"), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False)
+    owner_type = db.Column(db.String(32), nullable=False, default="instance")
+    owner_id = db.Column(db.Integer, nullable=True, index=True)
+    cluster_id = db.Column(db.Integer, db.ForeignKey("sqlserver_clusters.id"), nullable=True, index=True)
+    availability_group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("sqlserver_availability_groups.id"),
+        nullable=True,
+        index=True,
+    )
 
     # 通用扩展字段
     type_specific = db.Column(db.JSON, nullable=True)  # 其他类型特定字段
@@ -153,6 +164,10 @@ class AccountPermission(BaseSyncData):
         base_dict.update(
             {
                 "username": self.username,
+                "owner_type": self.owner_type,
+                "owner_id": self.owner_id,
+                "cluster_id": self.cluster_id,
+                "availability_group_id": self.availability_group_id,
                 "is_superuser": self.is_superuser,
                 "is_locked": self.is_locked,
                 "type_specific": self.type_specific,
