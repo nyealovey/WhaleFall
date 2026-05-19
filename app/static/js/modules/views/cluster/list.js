@@ -193,6 +193,9 @@ function mountClusterPage(global) {
     document.querySelector('[data-action="save-ag-draft"]')?.addEventListener("click", () => {
       saveAgDraft();
     });
+    document.querySelector('[data-action="sync-ag"]')?.addEventListener("click", (event) => {
+      syncAgInformation(event.currentTarget);
+    });
     document.getElementById("clusterAgTableBody")?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-action]");
       if (!button) {
@@ -351,6 +354,36 @@ function mountClusterPage(global) {
       .catch((error) => showError(error, "保存 AG 失败"));
   }
 
+  function syncAgInformation(trigger) {
+    const clusterId = document.getElementById("clusterIdInput").value;
+    if (!clusterId) {
+      showToast("warning", "请先保存群集后同步 AG 信息");
+      return;
+    }
+    const credentialId = document.getElementById("clusterAgCredentialInput").value;
+    if (!credentialId) {
+      showToast("warning", "请选择 AG 凭据后同步");
+      return;
+    }
+
+    const payload = {
+      credential_id: Number(credentialId),
+      connection_database: document.getElementById("clusterAgDatabaseInput").value.trim() || "master",
+    };
+    setButtonLoading(trigger, true);
+    store.actions
+      .syncAvailabilityGroups(clusterId, payload)
+      .then(() => store.actions.load(clusterId))
+      .then((detail) => {
+        currentDetail = detail;
+        renderAgTable(detail.availability_groups || []);
+        showToast("success", "AG 信息同步完成");
+        gridWrapper?.refresh?.();
+      })
+      .catch((error) => showError(error, "同步 AG 信息失败"))
+      .finally(() => setButtonLoading(trigger, false));
+  }
+
   function buildAgPayload() {
     const credentialId = document.getElementById("clusterAgCredentialInput").value;
     return {
@@ -483,6 +516,22 @@ function mountClusterPage(global) {
   function showError(error, fallback) {
     const message = resolveErrorMessage(error, fallback);
     showToast("error", message);
+  }
+
+  function setButtonLoading(button, loading) {
+    if (!button) {
+      return;
+    }
+    button.disabled = loading;
+    if (loading) {
+      button.dataset.originalText = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>同步中';
+      return;
+    }
+    if (button.dataset.originalText) {
+      button.innerHTML = button.dataset.originalText;
+      delete button.dataset.originalText;
+    }
   }
 }
 

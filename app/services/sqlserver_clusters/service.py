@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from types import SimpleNamespace
+from typing import Any, Protocol, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.exceptions import ConflictError, DatabaseError, NotFoundError, ValidationError
+from app.core.constants import DatabaseType
+from app.core.exceptions import ConflictError, DatabaseError, ExternalServiceError, NotFoundError, ValidationError
+from app.core.types import SyncConnection
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster
@@ -20,15 +23,55 @@ from app.schemas.sqlserver_clusters import (
     SQLServerClusterUpdatePayload,
 )
 from app.schemas.validation import validate_or_raise
+from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
+
+_AG_DISCOVERY_QUERY = """
+DECLARE @contained_expr nvarchar(128) =
+    CASE
+        WHEN COL_LENGTH(N'sys.availability_groups', N'is_contained') IS NOT NULL
+        THEN N'CONVERT(bit, ag.is_contained)'
+        ELSE N'CONVERT(bit, 0)'
+    END;
+
+DECLARE @sql nvarchar(max) = N'
+SELECT
+    ag.name AS ag_name,
+    listener.dns_name AS listener_name,
+    listener.dns_name AS listener_host,
+    COALESCE(listener.port, 1433) AS listener_port,
+    ' + @contained_expr + N' AS contained_enabled
+FROM sys.availability_groups AS ag
+CROSS APPLY (
+    SELECT TOP (1)
+        l.dns_name,
+        l.port
+    FROM sys.availability_group_listeners AS l
+    WHERE l.group_id = ag.group_id
+    ORDER BY l.dns_name ASC
+) AS listener
+ORDER BY ag.name ASC';
+
+EXEC sys.sp_executesql @sql;
+"""
+
+
+class _ConnectionFactoryProtocol(Protocol):
+    def create_connection(self, instance: Instance) -> SyncConnection | None: ...
 
 
 class SQLServerClusterManagementService:
     """SQL Server 群集、实例绑定与 AG 配置编排服务."""
 
-    def __init__(self, repository: SQLServerClustersRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: SQLServerClustersRepository | None = None,
+        *,
+        connection_factory: _ConnectionFactoryProtocol | None = None,
+    ) -> None:
         self._repository = repository or SQLServerClustersRepository()
+        self._connection_factory = connection_factory or ConnectionFactory
 
     def list_clusters(self, query: SQLServerClusterListQuery) -> dict[str, Any]:
         """分页列出群集."""
@@ -217,6 +260,38 @@ class SQLServerClusterManagementService:
         )
         return self._serialize_ag(ag)
 
+    def sync_availability_groups(
+        self,
+        cluster_id: int,
+        payload: object | None,
+        *,
+        operator_id: int | None = None,
+    ) -> dict[str, Any]:
+        """从已绑定 SQL Server 实例同步 AG/listener 元数据."""
+        cluster, credential, bindings, connection_database = self._prepare_ag_sync(cluster_id, payload)
+        rows, source_instance = self._discover_ag_rows(cluster, bindings, credential, connection_database)
+        sync_result = self._upsert_discovered_ags(cluster, rows, credential, connection_database)
+
+        log_info(
+            "同步 SQL Server AG 信息",
+            module="sqlserver_clusters",
+            user_id=operator_id,
+            cluster_id=cluster.id,
+            cluster_name=cluster.name,
+            source_instance_id=source_instance.id,
+            created=sync_result["created"],
+            updated=sync_result["updated"],
+            total=sync_result["total"],
+        )
+        return {
+            "cluster_id": cluster.id,
+            "created": sync_result["created"],
+            "updated": sync_result["updated"],
+            "total": sync_result["total"],
+            "source_instance": self._serialize_instance(source_instance),
+            "items": sync_result["items"],
+        }
+
     def list_sqlserver_instance_options(self) -> list[dict[str, Any]]:
         """获取未删除 SQL Server 实例候选."""
         return [self._serialize_instance(instance) for instance in self._repository.list_sqlserver_instance_options()]
@@ -244,11 +319,19 @@ class SQLServerClusterManagementService:
             raise ValidationError("AG 名称已存在,请使用其他名称")
 
     @staticmethod
-    def _ensure_credential_exists(credential_id: int | None) -> None:
+    def _ensure_credential_exists(credential_id: object | None) -> Credential | None:
         if credential_id is None:
-            return
-        if Credential.query.get(credential_id) is None:
+            return None
+        if isinstance(credential_id, bool) or not isinstance(credential_id, int | str):
             raise ValidationError("凭据不存在")
+        try:
+            normalized_id = credential_id if isinstance(credential_id, int) else int(credential_id)
+        except ValueError as exc:
+            raise ValidationError("凭据不存在") from exc
+        credential = cast(Credential | None, Credential.query.get(normalized_id))
+        if credential is None:
+            raise ValidationError("凭据不存在")
+        return credential
 
     def _validate_sqlserver_instances(self, instance_ids: list[int]) -> list[Instance]:
         if not instance_ids:
@@ -310,6 +393,147 @@ class SQLServerClusterManagementService:
         payload = ag.to_dict()
         payload["credential_name"] = ag.credential.name if ag.credential else None
         return payload
+
+    def _prepare_ag_sync(
+        self,
+        cluster_id: int,
+        payload: object | None,
+    ) -> tuple[SQLServerCluster, Credential, list[Any], str]:
+        cluster = self._get_cluster_or_error(cluster_id)
+        parsed_payload = parse_payload(payload)
+        credential = self._ensure_credential_exists(parsed_payload.get("credential_id"))
+        if credential is None:
+            raise ValidationError("请选择 AG 凭据后同步")
+
+        bindings = self._repository.list_bindings_for_cluster(cluster.id)
+        if not bindings:
+            raise ValidationError("请先绑定 SQL Server 实例后再同步 AG 信息")
+
+        connection_database = str(parsed_payload.get("connection_database") or "master").strip() or "master"
+        return cluster, credential, bindings, connection_database
+
+    def _discover_ag_rows(
+        self,
+        cluster: SQLServerCluster,
+        bindings: list[Any],
+        credential: Credential,
+        connection_database: str,
+    ) -> tuple[list[Any], Instance]:
+        errors: list[str] = []
+        for binding in bindings:
+            instance = cast(Instance | None, binding.instance)
+            if instance is None:
+                continue
+            rows = self._try_discover_ag_rows(instance, credential, connection_database, errors)
+            if rows is not None:
+                return rows, instance
+
+        raise ExternalServiceError(
+            "同步 AG 信息失败,已绑定实例均无法读取 AG 元数据",
+            extra={"cluster_id": cluster.id, "errors": errors},
+        )
+
+    def _try_discover_ag_rows(
+        self,
+        instance: Instance,
+        credential: Credential,
+        connection_database: str,
+        errors: list[str],
+    ) -> list[Any] | None:
+        target = self._build_ag_discovery_target(instance, credential, connection_database)
+        connection = self._connection_factory.create_connection(target)
+        if connection is None:
+            errors.append(f"{instance.name}: 无法创建连接")
+            return None
+        try:
+            if not connection.connect():
+                errors.append(f"{instance.name}: 无法连接")
+                return None
+            return list(connection.execute_query(_AG_DISCOVERY_QUERY))
+        except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
+            errors.append(f"{instance.name}: {exc}")
+            return None
+        finally:
+            connection.disconnect()
+
+    def _upsert_discovered_ags(
+        self,
+        cluster: SQLServerCluster,
+        rows: list[Any],
+        credential: Credential,
+        connection_database: str,
+    ) -> dict[str, Any]:
+        existing = {ag.name: ag for ag in self._repository.list_ag_for_cluster(cluster.id)}
+        result: dict[str, Any] = {"created": 0, "updated": 0, "total": 0, "items": []}
+        items = cast(list[dict[str, Any]], result["items"])
+        for row in rows:
+            discovered = self._normalize_discovered_ag(row)
+            ag = self._upsert_one_discovered_ag(cluster, discovered, credential, connection_database, existing)
+            result["total"] += 1
+            result["created" if discovered["_created"] else "updated"] += 1
+            items.append(self._serialize_ag(ag))
+        return result
+
+    def _upsert_one_discovered_ag(
+        self,
+        cluster: SQLServerCluster,
+        discovered: dict[str, Any],
+        credential: Credential,
+        connection_database: str,
+        existing: dict[str, SQLServerAvailabilityGroup],
+    ) -> SQLServerAvailabilityGroup:
+        ag = existing.get(discovered["name"])
+        if ag is None:
+            ag = SQLServerAvailabilityGroup(
+                cluster_id=cluster.id,
+                name=discovered["name"],
+                is_enabled=True,
+            )
+            existing[ag.name] = ag
+            discovered["_created"] = True
+        else:
+            discovered["_created"] = False
+        ag.listener_name = discovered["listener_name"]
+        ag.listener_host = discovered["listener_host"]
+        ag.listener_port = discovered["listener_port"]
+        ag.credential_id = credential.id
+        ag.connection_database = connection_database
+        ag.contained_enabled = discovered["contained_enabled"]
+        self._repository.add(ag)
+        return ag
+
+    @staticmethod
+    def _build_ag_discovery_target(instance: Instance, credential: Credential, connection_database: str) -> Instance:
+        return cast(
+            Instance,
+            SimpleNamespace(
+                id=instance.id,
+                name=f"{instance.name}/ag-discovery",
+                db_type=DatabaseType.SQLSERVER,
+                host=instance.host,
+                port=instance.port,
+                database_name=connection_database,
+                credential_id=credential.id,
+                credential=credential,
+                is_active=True,
+            ),
+        )
+
+    @staticmethod
+    def _normalize_discovered_ag(row: Any) -> dict[str, Any]:
+        values = list(row)
+        name = str(values[0]).strip()
+        listener_name = str(values[1]).strip() if values[1] is not None else None
+        listener_host = str(values[2]).strip()
+        listener_port = int(values[3] or 1433)
+        contained_value = values[4] if len(values) > 4 else False
+        return {
+            "name": name,
+            "listener_name": listener_name,
+            "listener_host": listener_host,
+            "listener_port": listener_port,
+            "contained_enabled": bool(contained_value),
+        }
 
     @staticmethod
     def _normalize_db_error(action: str, error: Exception) -> str:

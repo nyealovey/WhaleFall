@@ -13,6 +13,7 @@
       "replaceInstances",
       "createAvailabilityGroup",
       "updateAvailabilityGroup",
+      "syncAvailabilityGroups",
     ].forEach((method) => {
       // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
@@ -97,6 +98,12 @@
                 availabilityGroupId,
               })
             );
+        },
+        syncAvailabilityGroups(clusterId, payload) {
+          return service
+            .syncAvailabilityGroups(clusterId, payload)
+            .then((response) => ensureSuccessResponse(response, "同步 AG 信息失败"))
+            .catch((error) => handleError(error, { action: "syncAvailabilityGroups", clusterId }));
         },
       },
     };

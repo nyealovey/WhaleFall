@@ -145,6 +145,52 @@ def test_api_v1_sqlserver_clusters_create_bind_and_ag_contract() -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_sqlserver_clusters_sync_ag_contract(monkeypatch) -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        user = User(username="admin", password="TestPass1", role="admin")
+        cluster = SQLServerCluster(name="cluster-a", description="")
+        db.session.add_all([user, cluster])
+        db.session.commit()
+
+        def _fake_sync(self, cluster_id, payload, *, operator_id=None):
+            assert cluster_id == cluster.id
+            assert payload == {"credential_id": 7, "connection_database": "master"}
+            assert operator_id == user.id
+            return {
+                "cluster_id": cluster_id,
+                "created": 1,
+                "updated": 0,
+                "total": 1,
+                "items": [{"name": "ag-main", "listener_host": "ag.example.test"}],
+            }
+
+        monkeypatch.setattr(
+            "app.services.sqlserver_clusters.service.SQLServerClusterManagementService.sync_availability_groups",
+            _fake_sync,
+            raising=False,
+        )
+
+        client = app.test_client()
+        _login(client, user)
+        headers = {"X-CSRFToken": _csrf(client)}
+
+        response = client.post(
+            f"/api/v1/sqlserver-clusters/{cluster.id}/availability-groups/actions/sync",
+            json={"credential_id": 7, "connection_database": "master"},
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["data"]["sync_result"]["created"] == 1
+        assert payload["data"]["sync_result"]["items"][0]["name"] == "ag-main"
+
+
+@pytest.mark.unit
 def test_api_v1_sqlserver_clusters_write_requires_admin_permission() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
