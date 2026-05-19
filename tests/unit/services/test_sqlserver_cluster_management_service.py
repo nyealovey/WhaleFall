@@ -110,6 +110,7 @@ class _FakeAgDiscoveryConnection:
     def __init__(self, rows: list[Sequence[JsonValue]]) -> None:
         self.rows = rows
         self.disconnected = False
+        self.last_query = ""
 
     def connect(self) -> bool:
         return True
@@ -123,6 +124,7 @@ class _FakeAgDiscoveryConnection:
         params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None,
     ) -> list[Sequence[JsonValue]]:
         _ = (query, params)
+        self.last_query = query
         return self.rows
 
 
@@ -176,6 +178,8 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
         assert result["source_instance"]["id"] == instance.id
         assert factory.targets[0].credential_id == credential.id
         assert factory.targets[0].credential == credential
+        assert "l.listener_id" in factory.connection.last_query
+        assert "listener.listener_id" in factory.connection.last_query
         ags = SQLServerAvailabilityGroup.query.order_by(SQLServerAvailabilityGroup.name.asc()).all()
         assert [(ag.name, ag.listener_host, ag.listener_port, ag.contained_enabled) for ag in ags] == [
             ("ag-main", "10.10.10.173", 1433, True),

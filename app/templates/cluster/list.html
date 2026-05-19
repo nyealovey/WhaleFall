@@ -115,58 +115,18 @@
                     <div class="fw-semibold">AG 自动同步</div>
                     <div class="text-muted small">先选择 AG 凭据，再从已绑定 SQL Server 实例读取 AG/listener 信息。</div>
                 </div>
+                <div class="cluster-ag-syncbar__credential">
+                    <label for="clusterAgCredentialInput" class="form-label">AG 凭据</label>
+                    <select class="form-select" id="clusterAgCredentialInput">
+                        <option value="">请选择凭据</option>
+                        {% for credential in credentials %}
+                        <option value="{{ credential.id }}">{{ credential.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-ag">
                     <i class="fas fa-rotate me-1"></i>同步 AG 信息
                 </button>
-            </div>
-            <div class="cluster-ag-editor">
-                <input type="hidden" id="clusterAgIdInput">
-                <div class="row g-3">
-                    <div class="col-md-4 col-12">
-                        <label for="clusterAgNameInput" class="form-label">AG 名称</label>
-                        <input type="text" class="form-control" id="clusterAgNameInput" maxlength="128" placeholder="ag-main">
-                    </div>
-                    <div class="col-md-4 col-12">
-                        <label for="clusterAgListenerNameInput" class="form-label">监听器名称</label>
-                        <input type="text" class="form-control" id="clusterAgListenerNameInput" placeholder="ag-listener">
-                    </div>
-                    <div class="col-md-4 col-12">
-                        <label for="clusterAgCredentialInput" class="form-label">凭据</label>
-                        <select class="form-select" id="clusterAgCredentialInput">
-                            <option value="">沿用实例凭据</option>
-                            {% for credential in credentials %}
-                            <option value="{{ credential.id }}">{{ credential.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-5 col-12">
-                        <label for="clusterAgHostInput" class="form-label">监听器 host</label>
-                        <input type="text" class="form-control" id="clusterAgHostInput" placeholder="ag.example.test">
-                    </div>
-                    <div class="col-md-3 col-12">
-                        <label for="clusterAgPortInput" class="form-label">端口</label>
-                        <input type="number" class="form-control" id="clusterAgPortInput" min="1" max="65535" value="1433">
-                    </div>
-                    <div class="col-md-4 col-12">
-                        <label for="clusterAgDatabaseInput" class="form-label">连接数据库</label>
-                        <input type="text" class="form-control" id="clusterAgDatabaseInput" placeholder="master">
-                    </div>
-                    <div class="col-12 d-flex flex-wrap gap-3 align-items-center justify-content-between">
-                        <div class="d-flex flex-wrap gap-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="clusterAgContainedInput">
-                                <label class="form-check-label" for="clusterAgContainedInput">contained</label>
-                            </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="clusterAgEnabledInput" checked>
-                                <label class="form-check-label" for="clusterAgEnabledInput">启用采集</label>
-                            </div>
-                        </div>
-                        <button class="btn btn-outline-primary btn-sm" type="button" data-action="save-ag-draft">
-                            <i class="fas fa-plus me-1"></i>保存 AG
-                        </button>
-                    </div>
-                </div>
             </div>
             <div class="table-responsive mt-3">
                 <table class="table table-sm align-middle mb-0">
@@ -178,11 +138,10 @@
                             <th>contained</th>
                             <th>采集</th>
                             <th>同步</th>
-                            <th class="text-end">操作</th>
                         </tr>
                     </thead>
                     <tbody id="clusterAgTableBody">
-                        <tr><td colspan="7" class="text-muted">暂无 AG 配置</td></tr>
+                        <tr><td colspan="6" class="text-muted">暂无 AG 配置</td></tr>
                     </tbody>
                 </table>
             </div>
