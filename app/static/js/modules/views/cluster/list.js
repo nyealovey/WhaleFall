@@ -108,7 +108,7 @@ function mountClusterPage(global) {
       {
         name: "状态",
         id: "is_enabled",
-        formatter: (value) => renderStatus(value),
+        formatter: (value) => gridHtml(renderStatus(value)),
       },
       {
         name: "绑定实例",
