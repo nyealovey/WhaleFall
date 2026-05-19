@@ -110,6 +110,15 @@
         </div>
 
         <div class="tab-pane fade" id="cluster-ag-pane" role="tabpanel" aria-labelledby="cluster-ag-tab" tabindex="0">
+            <div class="cluster-ag-syncbar">
+                <div class="cluster-ag-syncbar__copy">
+                    <div class="fw-semibold">AG 自动同步</div>
+                    <div class="text-muted small">先选择 AG 凭据，再从已绑定 SQL Server 实例读取 AG/listener 信息。</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-ag">
+                    <i class="fas fa-rotate me-1"></i>同步 AG 信息
+                </button>
+            </div>
             <div class="cluster-ag-editor">
                 <input type="hidden" id="clusterAgIdInput">
                 <div class="row g-3">

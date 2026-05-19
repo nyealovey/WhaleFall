@@ -63,6 +63,12 @@
       );
     }
 
+    syncAvailabilityGroups(clusterId, payload) {
+      this.ensureId(clusterId, "syncAvailabilityGroups");
+      this.ensurePayload(payload, "syncAvailabilityGroups");
+      return this.httpClient.post(`${BASE_PATH}/${clusterId}/availability-groups/actions/sync`, payload);
+    }
+
     ensureId(value, action) {
       if (value === undefined || value === null || value === "") {
         throw new Error(`SQLServerClustersService: ${action} 需要 id`);

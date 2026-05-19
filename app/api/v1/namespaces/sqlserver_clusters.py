@@ -53,6 +53,14 @@ AvailabilityGroupPayload = ns.model(
     },
 )
 
+AvailabilityGroupSyncPayload = ns.model(
+    "SQLServerAvailabilityGroupSyncPayload",
+    {
+        "credential_id": fields.Integer(required=True, description="用于读取与同步 AG 的凭据 ID"),
+        "connection_database": fields.String(required=False, description="连接数据库,默认 master"),
+    },
+)
+
 ClustersListData = ns.model(
     "SQLServerClustersListData",
     {
@@ -92,6 +100,12 @@ AvailabilityGroupEnvelope = make_success_envelope_model(
     ns,
     "SQLServerAvailabilityGroupEnvelope",
     AvailabilityGroupData,
+)
+AvailabilityGroupSyncData = ns.model("SQLServerAvailabilityGroupSyncData", {"sync_result": fields.Raw})
+AvailabilityGroupSyncEnvelope = make_success_envelope_model(
+    ns,
+    "SQLServerAvailabilityGroupSyncEnvelope",
+    AvailabilityGroupSyncData,
 )
 
 _clusters_list_query_parser = new_parser()
@@ -293,6 +307,43 @@ class SQLServerAvailabilityGroupsResource(BaseResource):
             module="sqlserver_clusters",
             action="create_availability_group",
             public_error="创建 SQL Server AG 配置失败",
+            context={"cluster_id": cluster_id},
+            expected_exceptions=(NotFoundError, ValidationError),
+        )
+
+
+@ns.route("/<int:cluster_id>/availability-groups/actions/sync")
+class SQLServerAvailabilityGroupsSyncResource(BaseResource):
+    """SQL Server AG 元数据同步资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.expect(AvailabilityGroupSyncPayload, validate=False)
+    @ns.response(200, "OK", AvailabilityGroupSyncEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @api_admin_required
+    @require_csrf
+    def post(self, cluster_id: int):
+        """从已绑定 SQL Server 实例同步 AG/listener 信息."""
+        payload = cast(Any, get_raw_payload())
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            sync_result = SQLServerClusterManagementService().sync_availability_groups(
+                cluster_id,
+                payload,
+                operator_id=operator_id,
+            )
+            return self.success(data={"sync_result": sync_result}, message=SuccessMessages.OPERATION_SUCCESS)
+
+        return self.safe_call(
+            _execute,
+            module="sqlserver_clusters",
+            action="sync_availability_groups",
+            public_error="同步 SQL Server AG 信息失败",
             context={"cluster_id": cluster_id},
             expected_exceptions=(NotFoundError, ValidationError),
         )
