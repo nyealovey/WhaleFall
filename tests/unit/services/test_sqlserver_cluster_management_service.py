@@ -159,7 +159,7 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
 
         factory = _FakeAgDiscoveryFactory(
             [
-                ("ag-main", "ag-main-lsn", "ag-main.example.test", 1433, True),
+                ("ag-main", "ag-main-lsn", "ag-main.example.test", 1433, True, "10.10.10.173"),
                 ("ag-report", None, "ag-report.example.test", None, False),
             ]
         )
@@ -178,7 +178,7 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
         assert factory.targets[0].credential == credential
         ags = SQLServerAvailabilityGroup.query.order_by(SQLServerAvailabilityGroup.name.asc()).all()
         assert [(ag.name, ag.listener_host, ag.listener_port, ag.contained_enabled) for ag in ags] == [
-            ("ag-main", "ag-main.example.test", 1433, True),
+            ("ag-main", "10.10.10.173", 1433, True),
             ("ag-report", "ag-report.example.test", 1433, False),
         ]
         assert {ag.credential_id for ag in ags} == {credential.id}
