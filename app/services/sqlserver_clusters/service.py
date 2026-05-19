@@ -45,6 +45,7 @@ SELECT
 FROM sys.availability_groups AS ag
 CROSS APPLY (
     SELECT TOP (1)
+        l.listener_id,
         l.dns_name,
         l.port
     FROM sys.availability_group_listeners AS l

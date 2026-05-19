@@ -14,11 +14,27 @@ def test_cluster_ag_tab_exposes_sync_action() -> None:
 
     required_fragments = (
         'data-action="sync-ag"',
+        'id="clusterAgCredentialInput"',
         "同步 AG 信息",
         "先选择 AG 凭据，再从已绑定 SQL Server 实例读取 AG/listener 信息。",
     )
     for fragment in required_fragments:
         assert fragment in content
+
+    forbidden_fragments = (
+        "clusterAgNameInput",
+        "clusterAgListenerNameInput",
+        "clusterAgHostInput",
+        "clusterAgPortInput",
+        "clusterAgDatabaseInput",
+        "clusterAgContainedInput",
+        "clusterAgEnabledInput",
+        'data-action="save-ag-draft"',
+        "保存 AG",
+        '<th class="text-end">操作</th>',
+    )
+    for fragment in forbidden_fragments:
+        assert fragment not in content
 
 
 def test_cluster_frontend_calls_sync_ag_endpoint_from_ag_tab() -> None:
@@ -41,3 +57,19 @@ def test_cluster_frontend_calls_sync_ag_endpoint_from_ag_tab() -> None:
     )
     for fragment in required_view_fragments:
         assert fragment in view_content
+
+    forbidden_view_fragments = (
+        "saveAgDraft",
+        "buildAgPayload",
+        "populateAgForm",
+        "disableAg",
+        "findAg",
+        "pendingAgDrafts",
+        "clusterAgContainedInput",
+        "clusterAgDatabaseInput",
+        "connection_database:",
+        "edit-ag",
+        "disable-ag",
+    )
+    for fragment in forbidden_view_fragments:
+        assert fragment not in view_content

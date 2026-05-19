@@ -37,8 +37,6 @@ function mountClusterPage(global) {
   let gridWrapper = null;
   let modal = null;
   let modalEl = null;
-  let currentDetail = null;
-  let pendingAgDrafts = [];
   const canManage = pageRoot.dataset.canManage === "true";
 
   ready(() => {
@@ -190,32 +188,16 @@ function mountClusterPage(global) {
       event.preventDefault();
       saveCluster();
     });
-    document.querySelector('[data-action="save-ag-draft"]')?.addEventListener("click", () => {
-      saveAgDraft();
-    });
     document.querySelector('[data-action="sync-ag"]')?.addEventListener("click", (event) => {
       syncAgInformation(event.currentTarget);
-    });
-    document.getElementById("clusterAgTableBody")?.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-action]");
-      if (!button) {
-        return;
-      }
-      if (button.dataset.action === "edit-ag") {
-        populateAgForm(findAg(button.getAttribute("data-ag-id")));
-      }
-      if (button.dataset.action === "disable-ag") {
-        disableAg(button.getAttribute("data-ag-id"));
-      }
     });
   }
 
   function openCreateModal() {
-    currentDetail = null;
-    pendingAgDrafts = [];
     setModalMode("create");
     fillBasic({});
     setSelectedInstances([]);
+    setAgCredentialValue("");
     renderAgTable([]);
     modal?.show();
   }
@@ -227,11 +209,10 @@ function mountClusterPage(global) {
     store.actions
       .load(clusterId)
       .then((detail) => {
-        currentDetail = detail;
-        pendingAgDrafts = [];
         setModalMode("edit");
         fillBasic(detail.cluster || {});
         setSelectedInstances((detail.instances || []).map((item) => String(item.id)));
+        setAgCredentialFromDetail(detail);
         renderAgTable(detail.availability_groups || []);
         modal?.show();
       })
@@ -245,7 +226,6 @@ function mountClusterPage(global) {
     }
     document.getElementById("clusterModalTitle").textContent = mode === "create" ? "添加群集" : "管理群集";
     document.getElementById("clusterModalSubmit").textContent = mode === "create" ? "添加群集" : "保存";
-    clearAgForm();
   }
 
   function fillBasic(cluster) {
@@ -303,55 +283,12 @@ function mountClusterPage(global) {
         const instanceIds = getSelectedInstances();
         return store.actions.replaceInstances(cluster.id, instanceIds).then(() => cluster);
       })
-      .then((cluster) => {
-        if (!pendingAgDrafts.length) {
-          return cluster;
-        }
-        return pendingAgDrafts
-          .reduce(
-            (chain, agPayload) => chain.then(() => store.actions.createAvailabilityGroup(cluster.id, agPayload)),
-            Promise.resolve()
-          )
-          .then(() => cluster);
-      })
       .then(() => {
         showToast("success", "cluster 已保存");
         modal?.hide();
         gridWrapper?.refresh?.();
       })
       .catch((error) => showError(error, "保存 cluster 失败"));
-  }
-
-  function saveAgDraft() {
-    const payload = buildAgPayload();
-    if (!payload.name || !payload.listener_host) {
-      showToast("warning", "请输入 AG 名称和监听器 host");
-      return;
-    }
-    const clusterId = document.getElementById("clusterIdInput").value;
-    const agId = document.getElementById("clusterAgIdInput").value;
-    if (!clusterId) {
-      const draft = { ...payload, id: `draft-${Date.now()}` };
-      pendingAgDrafts.push(payload);
-      renderAgTable([...(currentDetail?.availability_groups || []), ...pendingAgDrafts.map((item, index) => ({ ...item, id: `draft-${index}` }))]);
-      clearAgForm();
-      showToast("success", "AG 已加入待保存列表");
-      return draft;
-    }
-
-    const action = agId
-      ? store.actions.updateAvailabilityGroup(clusterId, agId, payload)
-      : store.actions.createAvailabilityGroup(clusterId, payload);
-    action
-      .then(() => store.actions.load(clusterId))
-      .then((detail) => {
-        currentDetail = detail;
-        renderAgTable(detail.availability_groups || []);
-        clearAgForm();
-        showToast("success", "AG 已保存");
-        gridWrapper?.refresh?.();
-      })
-      .catch((error) => showError(error, "保存 AG 失败"));
   }
 
   function syncAgInformation(trigger) {
@@ -368,14 +305,12 @@ function mountClusterPage(global) {
 
     const payload = {
       credential_id: Number(credentialId),
-      connection_database: document.getElementById("clusterAgDatabaseInput").value.trim() || "master",
     };
     setButtonLoading(trigger, true);
     store.actions
       .syncAvailabilityGroups(clusterId, payload)
       .then(() => store.actions.load(clusterId))
       .then((detail) => {
-        currentDetail = detail;
         renderAgTable(detail.availability_groups || []);
         showToast("success", "AG 信息同步完成");
         gridWrapper?.refresh?.();
@@ -384,72 +319,13 @@ function mountClusterPage(global) {
       .finally(() => setButtonLoading(trigger, false));
   }
 
-  function buildAgPayload() {
-    const credentialId = document.getElementById("clusterAgCredentialInput").value;
-    return {
-      name: document.getElementById("clusterAgNameInput").value.trim(),
-      listener_name: document.getElementById("clusterAgListenerNameInput").value.trim(),
-      listener_host: document.getElementById("clusterAgHostInput").value.trim(),
-      listener_port: Number(document.getElementById("clusterAgPortInput").value || 1433),
-      credential_id: credentialId ? Number(credentialId) : null,
-      connection_database: document.getElementById("clusterAgDatabaseInput").value.trim(),
-      contained_enabled: document.getElementById("clusterAgContainedInput").checked,
-      is_enabled: document.getElementById("clusterAgEnabledInput").checked,
-    };
-  }
-
-  function populateAgForm(ag) {
-    if (!ag) {
-      return;
-    }
-    document.getElementById("clusterAgIdInput").value = ag.id || "";
-    document.getElementById("clusterAgNameInput").value = ag.name || "";
-    document.getElementById("clusterAgListenerNameInput").value = ag.listener_name || "";
-    document.getElementById("clusterAgHostInput").value = ag.listener_host || "";
-    document.getElementById("clusterAgPortInput").value = ag.listener_port || 1433;
-    document.getElementById("clusterAgCredentialInput").value = ag.credential_id || "";
-    document.getElementById("clusterAgDatabaseInput").value = ag.connection_database || "";
-    document.getElementById("clusterAgContainedInput").checked = ag.contained_enabled === true;
-    document.getElementById("clusterAgEnabledInput").checked = ag.is_enabled !== false;
-  }
-
-  function clearAgForm() {
-    ["clusterAgIdInput", "clusterAgNameInput", "clusterAgListenerNameInput", "clusterAgHostInput", "clusterAgDatabaseInput"].forEach((id) => {
-      document.getElementById(id).value = "";
-    });
-    document.getElementById("clusterAgPortInput").value = "1433";
-    document.getElementById("clusterAgCredentialInput").value = "";
-    document.getElementById("clusterAgContainedInput").checked = false;
-    document.getElementById("clusterAgEnabledInput").checked = true;
-  }
-
-  function disableAg(agId) {
-    const clusterId = document.getElementById("clusterIdInput").value;
-    if (!clusterId || !agId) {
-      return;
-    }
-    store.actions
-      .updateAvailabilityGroup(clusterId, agId, { is_enabled: false })
-      .then(() => store.actions.load(clusterId))
-      .then((detail) => {
-        currentDetail = detail;
-        renderAgTable(detail.availability_groups || []);
-        gridWrapper?.refresh?.();
-      })
-      .catch((error) => showError(error, "停用 AG 失败"));
-  }
-
-  function findAg(agId) {
-    return (currentDetail?.availability_groups || []).find((item) => String(item.id) === String(agId));
-  }
-
   function renderAgTable(items) {
     const body = document.getElementById("clusterAgTableBody");
     if (!body) {
       return;
     }
     if (!items.length) {
-      body.innerHTML = '<tr><td colspan="7" class="text-muted">暂无 AG 配置</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" class="text-muted">暂无 AG 配置</td></tr>';
       return;
     }
     body.innerHTML = items.map((item) => renderAgRow(item)).join("");
@@ -458,10 +334,6 @@ function mountClusterPage(global) {
   function renderAgRow(item) {
     const listener = [item.listener_name, item.listener_host].filter(Boolean).join(" / ") || "-";
     const syncLabel = item.last_sync_status || "未同步";
-    const actions = String(item.id || "").startsWith("draft-")
-      ? '<span class="text-muted small">待保存</span>'
-      : `<button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit-ag" data-ag-id="${escapeHtml(String(item.id))}" title="编辑 AG"><i class="fas fa-pen"></i></button>` +
-        `<button type="button" class="btn btn-sm btn-outline-danger ms-1" data-action="disable-ag" data-ag-id="${escapeHtml(String(item.id))}" title="停用 AG"><i class="fas fa-ban"></i></button>`;
     return `
       <tr>
         <td>${escapeHtml(item.name || "-")}</td>
@@ -470,9 +342,21 @@ function mountClusterPage(global) {
         <td>${renderBoolean(item.contained_enabled)}</td>
         <td>${renderStatus(item.is_enabled)}</td>
         <td>${escapeHtml(syncLabel)}</td>
-        <td class="text-end cluster-ag-actions">${actions}</td>
       </tr>
     `;
+  }
+
+  function setAgCredentialFromDetail(detail) {
+    const ags = Array.isArray(detail?.availability_groups) ? detail.availability_groups : [];
+    const agWithCredential = ags.find((item) => item?.credential_id);
+    setAgCredentialValue(agWithCredential?.credential_id || "");
+  }
+
+  function setAgCredentialValue(value) {
+    const select = document.getElementById("clusterAgCredentialInput");
+    if (select) {
+      select.value = value ? String(value) : "";
+    }
   }
 
   function renderBoolean(value) {

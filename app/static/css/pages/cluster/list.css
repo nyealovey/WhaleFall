@@ -25,6 +25,14 @@
     min-width: 0;
 }
 
+.cluster-ag-syncbar__credential {
+    flex: 0 1 20rem;
+}
+
+.cluster-ag-syncbar__credential .form-label {
+    margin-bottom: 0.25rem;
+}
+
 .cluster-ag-actions {
     white-space: nowrap;
 }
