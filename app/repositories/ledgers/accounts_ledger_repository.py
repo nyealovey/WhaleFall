@@ -48,19 +48,24 @@ class AccountsLedgerRepository:
         instance_id: int,
         username: str,
         db_type: str | None,
+        owner_type: str | None = None,
+        owner_id: int | None = None,
         limit: int = 50,
     ) -> list[AccountChangeLog]:
         """查询账户变更日志."""
-        return (
-            AccountChangeLog.query.filter_by(
-                instance_id=instance_id,
-                username=username,
-                db_type=db_type,
-            )
-            .order_by(AccountChangeLog.change_time.desc())
-            .limit(limit)
-            .all()
+        query = AccountChangeLog.query.filter_by(
+            instance_id=instance_id,
+            username=username,
+            db_type=db_type,
         )
+        if owner_type is not None:
+            query = query.filter(AccountChangeLog.owner_type == owner_type)
+            query = query.filter(
+                AccountChangeLog.owner_id.is_(None)
+                if owner_id is None
+                else AccountChangeLog.owner_id == owner_id,
+            )
+        return query.order_by(AccountChangeLog.change_time.desc()).limit(limit).all()
 
     def list_accounts(
         self,
@@ -123,6 +128,8 @@ class AccountsLedgerRepository:
             query = query.filter(AccountPermission.db_type == filters.db_type)
         if filters.instance_id:
             query = query.filter(AccountPermission.instance_id == filters.instance_id)
+        if filters.owner_type:
+            query = query.filter(AccountPermission.owner_type == filters.owner_type)
 
         if not filters.include_roles:
             account_kind = AccountPermission.type_specific["account_kind"].as_string()

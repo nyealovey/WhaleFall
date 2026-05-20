@@ -24,6 +24,7 @@ class AccountFilters:
     classification: str
     classification_filter: str
     db_type: str | None
+    owner_type: str | None
 
 
 @dataclass(slots=True)

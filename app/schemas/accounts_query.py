@@ -19,6 +19,7 @@ from app.utils.payload_converters import as_bool
 _DEFAULT_PAGE = 1
 _DEFAULT_LIMIT = 20
 _MAX_LIMIT = 200
+_SUPPORTED_OWNER_TYPES = {"instance", "sqlserver_ag"}
 
 
 class AccountsFiltersQuery(PayloadSchema):
@@ -36,6 +37,7 @@ class AccountsFiltersQuery(PayloadSchema):
     tags: list[str] = Field(default_factory=list)
     classification: str = ""
     db_type: str | None = None
+    owner_type: str | None = None
 
     @field_validator("page", mode="before")
     @classmethod
@@ -86,6 +88,12 @@ class AccountsFiltersQuery(PayloadSchema):
             return None
         return cleaned
 
+    @field_validator("owner_type", mode="before")
+    @classmethod
+    def _parse_owner_type(cls, value: Any) -> str | None:
+        cleaned = parse_text(value).lower()
+        return cleaned if cleaned in _SUPPORTED_OWNER_TYPES else None
+
     def to_filters(self) -> AccountFilters:
         """转换为账户筛选 filters 对象."""
         classification_filter = self.classification if self.classification not in {"", "all"} else ""
@@ -103,6 +111,7 @@ class AccountsFiltersQuery(PayloadSchema):
             classification=self.classification,
             classification_filter=classification_filter,
             db_type=self.db_type,
+            owner_type=self.owner_type,
         )
 
 

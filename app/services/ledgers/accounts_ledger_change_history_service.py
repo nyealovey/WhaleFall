@@ -48,7 +48,13 @@ class AccountsLedgerChangeHistoryService:
         db_type = account.db_type
         instance_id = account.instance_id
 
-        change_logs = self._repository.list_change_logs(instance_id=instance_id, username=username, db_type=db_type)
+        change_logs = self._repository.list_change_logs(
+            instance_id=instance_id,
+            username=username,
+            db_type=db_type,
+            owner_type=account.owner_type,
+            owner_id=account.owner_id,
+        )
         history_items: list[InstanceAccountChangeLogItem] = []
         for log_entry in change_logs:
             change_time = log_entry.change_time

@@ -22,6 +22,7 @@ def test_accounts_filters_query_defaults() -> None:
     assert filters.classification_filter == ""
     assert filters.db_type is None
     assert filters.include_roles is False
+    assert filters.owner_type is None
 
 
 @pytest.mark.unit
@@ -41,6 +42,7 @@ def test_accounts_filters_query_normalizes_and_clamps() -> None:
             "tags": [" a ", "", " b "],
             "classification": "  all  ",
             "db_type": " MYSQL ",
+            "owner_type": " SQLSERVER_AG ",
         },
     )
     filters = query.to_filters()
@@ -58,6 +60,14 @@ def test_accounts_filters_query_normalizes_and_clamps() -> None:
     assert filters.classification_filter == ""
     assert filters.db_type == "mysql"
     assert filters.include_roles is True
+    assert filters.owner_type == "sqlserver_ag"
+
+
+@pytest.mark.unit
+def test_accounts_filters_query_ignores_unknown_owner_type() -> None:
+    query = validate_or_raise(AccountsFiltersQuery, {"owner_type": "database"})
+
+    assert query.to_filters().owner_type is None
 
 
 @pytest.mark.unit

@@ -90,6 +90,7 @@ class SQLServerAvailabilityGroup(db.Model):
     listener_host = db.Column(db.String(255), nullable=False)
     listener_port = db.Column(db.Integer, nullable=False, default=1433)
     credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=True)
+    account_credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=True)
     connection_database = db.Column(db.String(255), nullable=True)
     contained_enabled = db.Column(db.Boolean, nullable=False, default=False)
     is_enabled = db.Column(db.Boolean, nullable=False, default=True)
@@ -100,7 +101,8 @@ class SQLServerAvailabilityGroup(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
 
     cluster = db.relationship("SQLServerCluster", back_populates="availability_groups")
-    credential = db.relationship("Credential")
+    credential = db.relationship("Credential", foreign_keys=[credential_id])
+    account_credential = db.relationship("Credential", foreign_keys=[account_credential_id])
 
     __table_args__ = (
         db.UniqueConstraint("cluster_id", "name", name="uq_sqlserver_ag_cluster_name"),
@@ -121,6 +123,7 @@ class SQLServerAvailabilityGroup(db.Model):
             "listener_host": self.listener_host,
             "listener_port": self.listener_port,
             "credential_id": self.credential_id,
+            "account_credential_id": self.account_credential_id,
             "connection_database": self.connection_database,
             "contained_enabled": bool(self.contained_enabled),
             "is_enabled": bool(self.is_enabled),

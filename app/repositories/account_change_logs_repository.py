@@ -53,6 +53,11 @@ class AccountChangeLogsRepository:
             AccountPermission.instance_id == AccountChangeLog.instance_id,
             AccountPermission.db_type == AccountChangeLog.db_type,
             AccountPermission.username == AccountChangeLog.username,
+            AccountPermission.owner_type == AccountChangeLog.owner_type,
+            or_(
+                AccountPermission.owner_id == AccountChangeLog.owner_id,
+                and_(AccountPermission.owner_id.is_(None), AccountChangeLog.owner_id.is_(None)),
+            ),
         )
 
         query = (

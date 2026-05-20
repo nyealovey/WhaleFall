@@ -28,6 +28,10 @@ def index() -> str:
             for credential in CredentialsRepository.list_active_credentials()
             if not credential.db_type or credential.db_type == "sqlserver"
         ]
+        credential_options = [
+            {"id": credential.id, "name": credential.name}
+            for credential in credentials
+        ]
         sqlserver_instances = SQLServerClusterManagementService().list_sqlserver_instance_options()
         return render_template(
             "cluster/list.html",
@@ -35,6 +39,7 @@ def index() -> str:
             status=status,
             status_options=STATUS_ACTIVE_OPTIONS,
             credentials=credentials,
+            credential_options=credential_options,
             sqlserver_instances=sqlserver_instances,
         )
 

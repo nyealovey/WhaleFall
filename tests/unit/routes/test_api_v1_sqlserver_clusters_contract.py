@@ -126,7 +126,7 @@ def test_api_v1_sqlserver_clusters_create_bind_and_ag_contract() -> None:
                 "listener_host": "ag.example.test",
                 "listener_port": 1433,
                 "contained_enabled": True,
-                "is_enabled": True,
+                "is_enabled": False,
             },
             headers=headers,
         )
@@ -134,6 +134,8 @@ def test_api_v1_sqlserver_clusters_create_bind_and_ag_contract() -> None:
         ag = ag_response.get_json()["data"]["availability_group"]
         assert ag["name"] == "ag-main"
         assert ag["contained_enabled"] is True
+        assert "account_credential_id" in ag
+        assert "account_credential_name" in ag
 
         patch_response = client.patch(
             f"/api/v1/sqlserver-clusters/{cluster['id']}/availability-groups/{ag['id']}",
@@ -158,7 +160,7 @@ def test_api_v1_sqlserver_clusters_sync_ag_contract(monkeypatch) -> None:
 
         def _fake_sync(self, cluster_id, payload, *, operator_id=None):
             assert cluster_id == cluster.id
-            assert payload == {"credential_id": 7, "connection_database": "master"}
+            assert payload == {}
             assert operator_id == user.id
             return {
                 "cluster_id": cluster_id,
@@ -181,7 +183,7 @@ def test_api_v1_sqlserver_clusters_sync_ag_contract(monkeypatch) -> None:
 
         response = client.post(
             f"/api/v1/sqlserver-clusters/{cluster.id}/availability-groups/actions/sync",
-            json={"credential_id": 7, "connection_database": "master"},
+            json={},
             headers=headers,
         )
 

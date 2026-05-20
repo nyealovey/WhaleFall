@@ -827,7 +827,7 @@ function initializeAccountsGrid() {
 }
 
 function buildAccountsBaseUrl() {
-    return `/api/v1/accounts/ledgers?instance_id=${getInstanceId()}&sort=username&order=asc&include_roles=true`;
+    return `/api/v1/accounts/ledgers?instance_id=${getInstanceId()}&sort=username&order=asc&include_roles=true&owner_type=instance`;
 }
 
 function handleAccountsServerResponse(response) {

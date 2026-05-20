@@ -15,7 +15,8 @@
 {% block content_outer %}
 <div id="cluster-page-root"
      data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
-     data-instances='{{ sqlserver_instances | tojson | safe }}'>
+     data-instances='{{ sqlserver_instances | tojson | safe }}'
+     data-credentials='{{ credential_options | tojson | safe }}'>
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 {% if current_user.role == 'admin' %}
@@ -113,16 +114,7 @@
             <div class="cluster-ag-syncbar">
                 <div class="cluster-ag-syncbar__copy">
                     <div class="fw-semibold">AG 自动同步</div>
-                    <div class="text-muted small">先选择 AG 凭据，再从已绑定 SQL Server 实例读取 AG/listener 信息。</div>
-                </div>
-                <div class="cluster-ag-syncbar__credential">
-                    <label for="clusterAgCredentialInput" class="form-label">AG 凭据</label>
-                    <select class="form-select" id="clusterAgCredentialInput">
-                        <option value="">请选择凭据</option>
-                        {% for credential in credentials %}
-                        <option value="{{ credential.id }}">{{ credential.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="text-muted small">使用已绑定实例凭据读取 AG/listener 信息。</div>
                 </div>
                 <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-ag">
                     <i class="fas fa-rotate me-1"></i>同步 AG 信息
@@ -134,7 +126,7 @@
                         <tr>
                             <th>AG</th>
                             <th>监听器</th>
-                            <th>凭据</th>
+                            <th>账户采集凭据</th>
                             <th>contained</th>
                             <th>采集</th>
                             <th>同步</th>
