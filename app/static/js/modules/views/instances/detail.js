@@ -122,9 +122,9 @@ function ensureInstanceService() {
         initializeInstanceModals();
         initializeAuditTab();
         initializeBackupTab();
+        initializeAgAccountsTab();
         resetGridFilterForms();
         initializeAccountsGrid();
-        loadAgAccounts();
         initializeDatabaseSizesGrid();
         window.setTimeout(loadDatabaseSizes, 500);
     });
@@ -149,6 +149,18 @@ function initializeBackupTab() {
     backupTab.addEventListener('shown.bs.tab', () => {
         if (!backupInfoState.loaded && !backupInfoState.loading) {
             loadBackupInfo();
+        }
+    });
+}
+
+function initializeAgAccountsTab() {
+    const agAccountsTab = document.getElementById('ag-accounts-tab');
+    if (!agAccountsTab) {
+        return;
+    }
+    agAccountsTab.addEventListener('shown.bs.tab', () => {
+        if (!agAccountsState.loaded && !agAccountsState.loading) {
+            loadAgAccounts();
         }
     });
 }

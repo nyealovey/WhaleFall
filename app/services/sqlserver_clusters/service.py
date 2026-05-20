@@ -7,11 +7,15 @@ from typing import Any, Protocol, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from app import db
 from app.core.constants import DatabaseType
 from app.core.exceptions import ConflictError, DatabaseError, ExternalServiceError, NotFoundError, ValidationError
 from app.core.types import SyncConnection
+from app.models.account_change_log import AccountChangeLog
+from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster
 from app.repositories.sqlserver_clusters_repository import SQLServerClustersRepository
 from app.schemas.sqlserver_clusters import (
@@ -292,12 +296,14 @@ class SQLServerClusterManagementService:
             source_instance_id=source_instance.id,
             created=sync_result["created"],
             updated=sync_result["updated"],
+            deleted=sync_result["deleted"],
             total=sync_result["total"],
         )
         return {
             "cluster_id": cluster.id,
             "created": sync_result["created"],
             "updated": sync_result["updated"],
+            "deleted": sync_result["deleted"],
             "total": sync_result["total"],
             "source_instance": self._serialize_instance(source_instance),
             "items": sync_result["items"],
@@ -475,15 +481,43 @@ class SQLServerClusterManagementService:
         connection_database: str,
     ) -> dict[str, Any]:
         existing = {ag.name: ag for ag in self._repository.list_ag_for_cluster(cluster.id)}
-        result: dict[str, Any] = {"created": 0, "updated": 0, "total": 0, "items": []}
+        discovered_names: set[str] = set()
+        result: dict[str, Any] = {"created": 0, "updated": 0, "deleted": 0, "total": 0, "items": []}
         items = cast(list[dict[str, Any]], result["items"])
         for row in rows:
             discovered = self._normalize_discovered_ag(row)
+            discovered_names.add(discovered["name"])
             ag = self._upsert_one_discovered_ag(cluster, discovered, credential, connection_database, existing)
             result["total"] += 1
             result["created" if discovered["_created"] else "updated"] += 1
             items.append(self._serialize_ag(ag))
+        result["deleted"] = self._delete_stale_availability_groups(cluster.id, discovered_names)
+        db.session.flush()
         return result
+
+    @staticmethod
+    def _delete_stale_availability_groups(cluster_id: int, discovered_names: set[str]) -> int:
+        stale_query = SQLServerAvailabilityGroup.query.filter(SQLServerAvailabilityGroup.cluster_id == cluster_id)
+        if discovered_names:
+            stale_query = stale_query.filter(SQLServerAvailabilityGroup.name.notin_(discovered_names))
+        stale_ags = stale_query.all()
+        stale_ag_ids = [int(ag.id) for ag in stale_ags]
+        if not stale_ag_ids:
+            return 0
+
+        AccountPermission.query.filter(AccountPermission.availability_group_id.in_(stale_ag_ids)).delete(
+            synchronize_session=False,
+        )
+        InstanceAccount.query.filter(InstanceAccount.availability_group_id.in_(stale_ag_ids)).delete(
+            synchronize_session=False,
+        )
+        AccountChangeLog.query.filter(AccountChangeLog.availability_group_id.in_(stale_ag_ids)).update(
+            {"availability_group_id": None},
+            synchronize_session=False,
+        )
+        for ag in stale_ags:
+            db.session.delete(ag)
+        return len(stale_ag_ids)
 
     def _upsert_one_discovered_ag(
         self,

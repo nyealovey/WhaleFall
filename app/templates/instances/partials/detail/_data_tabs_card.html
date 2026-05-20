@@ -9,6 +9,13 @@
                             <i class="fas fa-users me-2"></i>账户信息
                         </button>
                     </li>
+                    {% if instance.db_type|lower == 'sqlserver' %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="ag-accounts-tab" data-bs-toggle="tab" data-bs-target="#ag-accounts-pane" type="button" role="tab" aria-controls="ag-accounts-pane" aria-selected="false">
+                            <i class="fas fa-layer-group me-2"></i>账户信息（AG）
+                        </button>
+                    </li>
+                    {% endif %}
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#capacity-pane" type="button" role="tab" aria-controls="capacity-pane" aria-selected="false">
                             <i class="fas fa-chart-pie me-2"></i>容量信息
@@ -29,6 +36,9 @@
             <div class="card-body instance-data-panel">
                 <div class="tab-content" id="databaseInfoTabContent">
                     {% include 'instances/partials/detail/_accounts_pane.html' %}
+                    {% if instance.db_type|lower == 'sqlserver' %}
+                    {% include 'instances/partials/detail/_ag_accounts_pane.html' %}
+                    {% endif %}
                     {% include 'instances/partials/detail/_capacity_pane.html' %}
                     {% include 'instances/partials/detail/_audit_pane.html' %}
                     {% include 'instances/partials/detail/_backup_pane.html' %}

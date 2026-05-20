@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from html.parser import HTMLParser
+from pathlib import Path
 
 import pytest
 
 from app import db
 from app.models.instance import Instance
+
+ROOT_DIR = Path(__file__).resolve().parents[3]
 
 
 class _DatabaseInfoTabContentParser(HTMLParser):
@@ -79,6 +82,10 @@ def _ensure_tables(app) -> None:
         )
 
 
+def _read_text(relative_path: str) -> str:
+    return (ROOT_DIR / relative_path).read_text(encoding="utf-8")
+
+
 @pytest.mark.unit
 def test_instances_detail_page_includes_audit_tab_and_sync_action(app, auth_client) -> None:
     _ensure_tables(app)
@@ -104,10 +111,14 @@ def test_instances_detail_page_includes_audit_tab_and_sync_action(app, auth_clie
     assert html.index('data-action="sync-accounts"') < html.index('data-action="sync-capacity"')
     assert html.index('data-action="sync-capacity"') < html.index('data-action="sync-audit-info"')
     assert html.index("账户信息") < html.index("容量信息")
+    assert html.index("账户信息") < html.index("账户信息（AG）")
+    assert html.index("账户信息（AG）") < html.index("容量信息")
     assert html.index("容量信息") < html.index("审计信息")
     assert html.index("审计信息") < html.index("备份信息")
     assert 'id="accounts-tab"' in html and "nav-link active" in html
     assert 'id="accounts-pane"' in html and "show active instance-data-pane" in html
+    assert 'id="ag-accounts-tab"' in html
+    assert 'id="ag-accounts-pane"' in html
     assert 'id="backup-tab"' in html
     assert 'id="backup-pane"' in html
     backup_pane_html = html.split('id="backup-pane"', 1)[1]
@@ -139,10 +150,49 @@ def test_instances_detail_page_keeps_all_data_panes_under_same_tab_content(app, 
     parser.feed(response.get_data(as_text=True))
     assert parser.direct_pane_ids == [
         "accounts-pane",
+        "ag-accounts-pane",
         "capacity-pane",
         "audit-pane",
         "backup-pane",
     ]
+
+
+@pytest.mark.unit
+def test_instances_detail_page_places_ag_accounts_in_dedicated_tab(app, auth_client) -> None:
+    _ensure_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sqlserver-ag-accounts-tab",
+            db_type="sqlserver",
+            host="127.0.0.1",
+            port=1433,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    response = auth_client.get(f"/instances/{instance_id}")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    accounts_pane = html.split('id="accounts-pane"', 1)[1].split('id="ag-accounts-pane"', 1)[0]
+    ag_accounts_pane = html.split('id="ag-accounts-pane"', 1)[1]
+    assert "instance-ag-accounts-section" not in accounts_pane
+    assert "instance-ag-accounts-section" in ag_accounts_pane
+    assert "agAccountsTableBody" in ag_accounts_pane
+
+
+@pytest.mark.unit
+def test_instance_detail_ag_accounts_loads_only_when_ag_tab_is_shown() -> None:
+    content = _read_text("app/static/js/modules/views/instances/detail.js")
+    ready_block = content.split("ready(() => {", 1)[1].split("});", 1)[0]
+
+    assert "initializeAgAccountsTab();" in ready_block
+    assert "loadAgAccounts();" not in ready_block
+    assert "const agAccountsTab = document.getElementById('ag-accounts-tab');" in content
+    assert "agAccountsTab.addEventListener('shown.bs.tab'" in content
 
 
 @pytest.mark.unit
