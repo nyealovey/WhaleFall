@@ -538,3 +538,71 @@ def test_sqlserver_ag_sync_failure_reports_real_connection_error(app, monkeypatc
         assert result["status"] == "failed"
         assert result["items"][0]["error"] == "AG 监听器连接失败: AGDB08.wz.dc:1433 OperationalError: 18456 用户 'ag_user' 登录失败"
         assert SQLServerAvailabilityGroup.query.get(ag.id).last_error == result["items"][0]["error"]
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_sync_failure_log_includes_connection_diagnostics(app, monkeypatch) -> None:
+    with app.app_context():
+        _create_tables()
+        credential = Credential(
+            name="ag-account-credential",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="ag_user",
+            password="secret",
+        )
+        instance = Instance(
+            name="node-sync-target",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.14",
+            port=1433,
+            is_active=True,
+        )
+        cluster = SQLServerCluster(name="cluster-target-sync", description="", is_enabled=True, domain_name="wz.dc")
+        db.session.add_all([credential, instance, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="AG10",
+            listener_name="AGDB10",
+            listener_host="10.10.10.177",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+            account_credential_id=credential.id,
+        )
+        db.session.add(ag)
+        db.session.commit()
+
+        class _FailingConnection:
+            last_error = "18456 登录失败"
+            last_error_type = "OperationalError"
+
+            def connect(self) -> bool:
+                return False
+
+            def disconnect(self) -> None:
+                return None
+
+        logged: dict[str, object] = {}
+
+        class _FakeLogger:
+            def exception(self, event: str, **kwargs) -> None:
+                logged["event"] = event
+                logged.update(kwargs)
+
+        monkeypatch.setattr(ag_sync_module, "get_sync_logger", lambda: _FakeLogger())
+        monkeypatch.setattr(ag_sync_module.ConnectionFactory, "create_connection", lambda target: _FailingConnection())
+
+        SQLServerAgAccountsSyncService().sync_for_instance(instance, session_id="test")
+
+        assert logged["event"] == "sqlserver_ag_accounts_sync_failed"
+        assert logged["listener_name"] == "AGDB10"
+        assert logged["listener_host"] == "10.10.10.177"
+        assert logged["connection_endpoint"] == "AGDB10.wz.dc"
+        assert logged["attempted_endpoints"] == ["AGDB10.wz.dc:1433"]
+        assert logged["cluster_domain_name"] == "wz.dc"
+        assert logged["account_credential_id"] == credential.id
+        assert logged["account_credential_name"] == "ag-account-credential"
+        assert logged["auth_username"] == "ag_user"

@@ -108,6 +108,18 @@ class SQLServerAgAccountsSyncService:
                 instance_name=instance.name,
                 availability_group_id=ag.id,
                 availability_group_name=ag.name,
+                cluster_id=ag.cluster_id,
+                cluster_domain_name=(ag.cluster.domain_name if ag.cluster else None),
+                listener_name=ag.listener_name,
+                listener_host=ag.listener_host,
+                listener_port=ag.listener_port,
+                connection_database=ag.connection_database or "master",
+                connection_endpoint=self._build_ag_connection_host(ag),
+                attempted_endpoints=attempted_endpoints,
+                account_credential_id=ag.account_credential_id,
+                account_credential_name=ag.account_credential.name if ag.account_credential else None,
+                auth_username=ag.account_credential.username if ag.account_credential else None,
+                auth_mode="pymssql_username_password",
                 error=str(exc),
             )
             return {
