@@ -53,6 +53,8 @@ class SQLServerConnection(DatabaseConnection):
         """
         super().__init__(instance)
         self.driver_type: str | None = None
+        self.last_error: str | None = None
+        self.last_error_type: str | None = None
 
     def connect(self) -> bool:
         """建立 SQL Server 连接(当前仅支持 pymssql).
@@ -68,6 +70,8 @@ class SQLServerConnection(DatabaseConnection):
         try:
             success = self._try_pymssql_connection(username, password, database_name)
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
+            self.last_error = str(exc)
+            self.last_error_type = type(exc).__name__
             self.db_logger.exception(
                 "SQL Server连接失败",
                 module="connection",
@@ -107,6 +111,8 @@ class SQLServerConnection(DatabaseConnection):
                 tds_version="7.2",
             )
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
+            self.last_error = str(exc)
+            self.last_error_type = type(exc).__name__
             self.db_logger.exception(
                 "SQL Server连接失败",
                 module="connection",
@@ -123,6 +129,8 @@ class SQLServerConnection(DatabaseConnection):
         else:
             self.is_connected = True
             self.driver_type = "pymssql"
+            self.last_error = None
+            self.last_error_type = None
             return True
 
     def disconnect(self) -> None:

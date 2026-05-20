@@ -84,6 +84,10 @@
                     <label for="clusterNameInput" class="form-label">群集名称 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="clusterNameInput" name="name" required maxlength="128" placeholder="请输入群集名称">
                 </div>
+                <div class="col-md-6 col-12">
+                    <label for="clusterDomainNameInput" class="form-label">群集域名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="clusterDomainNameInput" name="domain_name" required maxlength="255" placeholder="例如 wz.dc">
+                </div>
                 <div class="col-md-6 col-12 d-flex align-items-end">
                     <div class="form-check form-switch mb-2">
                         <input class="form-check-input" type="checkbox" role="switch" id="clusterEnabledInput" name="is_enabled" checked>
@@ -126,6 +130,7 @@
                         <tr>
                             <th>AG</th>
                             <th>监听器</th>
+                            <th>连接地址</th>
                             <th>账户采集凭据</th>
                             <th>contained</th>
                             <th>采集</th>
@@ -133,7 +138,7 @@
                         </tr>
                     </thead>
                     <tbody id="clusterAgTableBody">
-                        <tr><td colspan="6" class="text-muted">暂无 AG 配置</td></tr>
+                        <tr><td colspan="7" class="text-muted">暂无 AG 配置</td></tr>
                     </tbody>
                 </table>
             </div>

@@ -121,6 +121,7 @@ class SQLServerClusterOrmFields(TypedDict, total=False):
 
     id: int
     name: str
+    domain_name: str | None
     description: str
     is_enabled: bool
     created_at: datetime

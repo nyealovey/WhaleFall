@@ -54,7 +54,7 @@ def test_api_v1_sqlserver_clusters_list_and_detail_contract() -> None:
     with app.app_context():
         _create_schema()
         user = User(username="admin", password="TestPass1", role="admin")
-        cluster = SQLServerCluster(name="cluster-a", description="主群集", is_enabled=True)
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="主群集", is_enabled=True)
         db.session.add_all([user, cluster])
         db.session.commit()
 
@@ -70,6 +70,7 @@ def test_api_v1_sqlserver_clusters_list_and_detail_contract() -> None:
         assert {
             "id",
             "name",
+            "domain_name",
             "description",
             "is_enabled",
             "instance_count",
@@ -103,12 +104,13 @@ def test_api_v1_sqlserver_clusters_create_bind_and_ag_contract() -> None:
 
         create_response = client.post(
             "/api/v1/sqlserver-clusters",
-            json={"name": "cluster-a", "description": "主群集", "is_enabled": True},
+            json={"name": "cluster-a", "domain_name": "wz.dc", "description": "主群集", "is_enabled": True},
             headers=headers,
         )
         assert create_response.status_code == 201
         cluster = create_response.get_json()["data"]["cluster"]
         assert cluster["name"] == "cluster-a"
+        assert cluster["domain_name"] == "wz.dc"
 
         bind_response = client.put(
             f"/api/v1/sqlserver-clusters/{cluster['id']}/instances",

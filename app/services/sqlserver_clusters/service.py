@@ -116,6 +116,7 @@ class SQLServerClusterManagementService:
         self._ensure_cluster_name_unique(parsed.name, resource=None)
         cluster = SQLServerCluster(
             name=parsed.name,
+            domain_name=parsed.domain_name,
             description=parsed.description or "",
             is_enabled=parsed.is_enabled,
         )
@@ -145,6 +146,8 @@ class SQLServerClusterManagementService:
         if parsed.name is not None:
             self._ensure_cluster_name_unique(parsed.name, resource=cluster)
             cluster.name = parsed.name
+        if "domain_name" in parsed.model_fields_set:
+            cluster.domain_name = parsed.domain_name
         if "description" in parsed.model_fields_set:
             cluster.description = parsed.description or ""
         if parsed.is_enabled is not None:
@@ -220,7 +223,12 @@ class SQLServerClusterManagementService:
             contained_enabled=parsed.contained_enabled,
             is_enabled=parsed.is_enabled,
         )
-        self._ensure_ag_collection_allowed(ag.contained_enabled, ag.account_credential_id, ag.is_enabled)
+        self._ensure_ag_collection_allowed(
+            ag.contained_enabled,
+            ag.account_credential_id,
+            ag.is_enabled,
+            cluster.domain_name,
+        )
         try:
             self._repository.add(ag)
         except SQLAlchemyError as exc:
@@ -260,7 +268,7 @@ class SQLServerClusterManagementService:
         )
         contained_enabled = parsed.contained_enabled if parsed.contained_enabled is not None else ag.contained_enabled
         is_enabled = parsed.is_enabled if parsed.is_enabled is not None else ag.is_enabled
-        self._ensure_ag_collection_allowed(contained_enabled, account_credential_id, is_enabled)
+        self._ensure_ag_collection_allowed(contained_enabled, account_credential_id, is_enabled, cluster.domain_name)
 
         for field in (
             "listener_name",
@@ -376,6 +384,7 @@ class SQLServerClusterManagementService:
         contained_enabled: bool,
         account_credential_id: object | None,
         is_enabled: bool,
+        domain_name: str | None,
     ) -> None:
         if not is_enabled:
             return
@@ -383,6 +392,8 @@ class SQLServerClusterManagementService:
             raise ValidationError("非 contained AG 不允许启用账户采集")
         if account_credential_id is None:
             raise ValidationError("请选择 AG 账户采集凭据后启用")
+        if not domain_name:
+            raise ValidationError("请先配置群集域名后启用 AG 账户采集")
 
     def _validate_sqlserver_instances(self, instance_ids: list[int]) -> list[Instance]:
         if not instance_ids:
@@ -442,12 +453,23 @@ class SQLServerClusterManagementService:
     @staticmethod
     def _serialize_ag(ag: SQLServerAvailabilityGroup) -> dict[str, Any]:
         payload = ag.to_dict()
+        payload["connection_endpoint"] = SQLServerClusterManagementService._build_ag_connection_endpoint(ag)
         payload["credential_name"] = ag.credential.name if ag.credential else None
         account_credential = ag.account_credential
         if account_credential is None and ag.account_credential_id is not None:
             account_credential = cast(Credential | None, Credential.query.get(ag.account_credential_id))
         payload["account_credential_name"] = account_credential.name if account_credential else None
         return payload
+
+    @staticmethod
+    def _build_ag_connection_endpoint(ag: SQLServerAvailabilityGroup) -> str | None:
+        listener_name = (ag.listener_name or "").strip()
+        domain_name = ((ag.cluster.domain_name if ag.cluster else None) or "").strip().strip(".")
+        if listener_name and domain_name:
+            if "." in listener_name:
+                return listener_name
+            return f"{listener_name}.{domain_name}"
+        return None
 
     def _prepare_ag_sync(
         self,

@@ -8,6 +8,7 @@ from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.services.accounts_sync.sqlserver_ag_accounts_sync_service import SQLServerAgAccountsSyncService
+from app.services.accounts_sync import sqlserver_ag_accounts_sync_service as ag_sync_module
 from app.services.instances.instance_ag_accounts_service import InstanceAgAccountsService
 
 
@@ -406,3 +407,134 @@ def test_sqlserver_ag_sync_connection_uses_ag_account_credential(app) -> None:
         assert target.host == "10.0.0.20"
         assert target.credential_id == ag_credential.id
         assert target.credential == ag_credential
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_sync_uses_cluster_domain_listener_address(app, monkeypatch) -> None:
+    with app.app_context():
+        _create_tables()
+        credential = Credential(
+            name="ag-account-credential",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="ag_user",
+            password="secret",
+        )
+        instance = Instance(
+            name="node-sync-target",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.14",
+            port=1433,
+            is_active=True,
+        )
+        cluster = SQLServerCluster(name="cluster-target-sync", description="", is_enabled=True, domain_name="wz.dc")
+        db.session.add_all([credential, instance, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="AG08",
+            listener_name="AGDB08",
+            listener_host="192.168.0.73",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+            account_credential_id=credential.id,
+        )
+        db.session.add(ag)
+        db.session.commit()
+
+        created_targets = []
+
+        class _FakeConnection:
+            def connect(self) -> bool:
+                return True
+
+            def disconnect(self) -> None:
+                return None
+
+        class _FakeAdapter:
+            def fetch_remote_accounts(self, _target, _connection):
+                return [{"username": "ag_user", "db_type": DatabaseType.SQLSERVER, "permissions": {}}]
+
+            def enrich_permissions(self, _target, _connection, remote_accounts):
+                return remote_accounts
+
+        class _FakeInventoryManager:
+            def synchronize(self, _instance, accounts):
+                return {"processed_records": len(accounts), "refreshed": len(accounts)}, accounts
+
+        class _FakePermissionManager:
+            def synchronize(self, _instance, _accounts, _active_accounts, *, session_id=None):
+                _ = session_id
+                return {"processed_records": 0, "created": 0, "updated": 0}
+
+        def _fake_create_connection(target):
+            created_targets.append(target)
+            return _FakeConnection()
+
+        monkeypatch.setattr(ag_sync_module.ConnectionFactory, "create_connection", _fake_create_connection)
+        monkeypatch.setattr(ag_sync_module, "get_account_adapter", lambda db_type: _FakeAdapter())
+
+        result = SQLServerAgAccountsSyncService(
+            inventory_manager=_FakeInventoryManager(),
+            permission_manager=_FakePermissionManager(),
+        ).sync_for_instance(instance, session_id="test")
+
+        assert result["status"] == "completed"
+        assert result["processed_records"] == 1
+        assert [target.host for target in created_targets] == ["AGDB08.wz.dc"]
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_sync_failure_reports_real_connection_error(app, monkeypatch) -> None:
+    with app.app_context():
+        _create_tables()
+        credential = Credential(
+            name="ag-account-credential",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="ag_user",
+            password="secret",
+        )
+        instance = Instance(
+            name="node-sync-target",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.14",
+            port=1433,
+            is_active=True,
+        )
+        cluster = SQLServerCluster(name="cluster-target-sync", description="", is_enabled=True, domain_name="wz.dc")
+        db.session.add_all([credential, instance, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="AG08",
+            listener_name="AGDB08",
+            listener_host="192.168.0.73",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+            account_credential_id=credential.id,
+        )
+        db.session.add(ag)
+        db.session.commit()
+
+        class _FailingConnection:
+            last_error = "18456 用户 'ag_user' 登录失败"
+            last_error_type = "OperationalError"
+
+            def connect(self) -> bool:
+                return False
+
+            def disconnect(self) -> None:
+                return None
+
+        monkeypatch.setattr(ag_sync_module.ConnectionFactory, "create_connection", lambda target: _FailingConnection())
+
+        result = SQLServerAgAccountsSyncService().sync_for_instance(instance, session_id="test")
+
+        assert result["status"] == "failed"
+        assert result["items"][0]["error"] == "AG 监听器连接失败: AGDB08.wz.dc:1433 OperationalError: 18456 用户 'ag_user' 登录失败"
+        assert SQLServerAvailabilityGroup.query.get(ag.id).last_error == result["items"][0]["error"]

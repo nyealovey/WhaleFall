@@ -27,6 +27,7 @@ ClusterPayload = ns.model(
     "SQLServerClusterPayload",
     {
         "name": fields.String(required=True, description="群集名称"),
+        "domain_name": fields.String(required=True, description="群集域名"),
         "description": fields.String(required=False, description="描述"),
         "is_enabled": fields.Boolean(required=False, description="是否启用"),
     },
