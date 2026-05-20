@@ -181,11 +181,14 @@ def test_instances_detail_page_places_ag_accounts_in_dedicated_tab(app, auth_cli
     ag_accounts_pane = html.split('id="ag-accounts-pane"', 1)[1]
     assert "instance-ag-accounts-section" not in accounts_pane
     assert "instance-ag-accounts-section" in ag_accounts_pane
-    assert "agAccountsTableBody" in ag_accounts_pane
+    assert "agAccountTotalCount" in ag_accounts_pane
+    assert "agAccountSearchInput" in ag_accounts_pane
+    assert "instance-ag-accounts-grid" in ag_accounts_pane
+    assert "<table" not in ag_accounts_pane.split('id="capacity-pane"', 1)[0]
 
 
 @pytest.mark.unit
-def test_instance_detail_ag_accounts_loads_only_when_ag_tab_is_shown() -> None:
+def test_instance_detail_ag_accounts_uses_accounts_grid_style_and_actions() -> None:
     content = _read_text("app/static/js/modules/views/instances/detail.js")
     ready_block = content.split("ready(() => {", 1)[1].split("});", 1)[0]
 
@@ -193,6 +196,13 @@ def test_instance_detail_ag_accounts_loads_only_when_ag_tab_is_shown() -> None:
     assert "loadAgAccounts();" not in ready_block
     assert "const agAccountsTab = document.getElementById('ag-accounts-tab');" in content
     assert "agAccountsTab.addEventListener('shown.bs.tab'" in content
+    assert "initializeAgAccountsGrid();" in content
+    assert "buildAgAccountsGridColumns()" in content
+    assert "name: '监听器'" in content
+    assert "renderAccountActions(getRowMeta(row))" in content
+    assert "viewInstanceAccountPermissions(accountId)" in content
+    assert "viewAccountChangeHistory(accountId)" in content
+    assert "agAccountsTableBody" not in content
 
 
 @pytest.mark.unit

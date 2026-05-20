@@ -950,7 +950,13 @@ class InstanceAgAccountsResource(BaseResource):
         """获取实例账户信息中的 AG 账户模块数据."""
 
         def _execute():
-            data = InstanceAgAccountsService().list_for_instance(instance_id)
+            search = str(request.args.get("search") or "").strip()
+            include_deleted = bool_with_default(False)(request.args.get("include_deleted"))
+            data = InstanceAgAccountsService().list_for_instance(
+                instance_id,
+                search=search,
+                include_deleted=include_deleted,
+            )
             return self.success(data=data, message="获取 AG 账户信息成功")
 
         return self.safe_call(

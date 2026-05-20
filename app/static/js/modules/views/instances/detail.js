@@ -28,6 +28,7 @@
     let historyModal = null;
     let accountsGridController = null;
     let accountsGrid = null;
+    let agAccountsGridController = null;
     let databaseSizesGrid = null;
     let tableSizesModal = null;
     const auditInfoState = {
@@ -159,8 +160,8 @@ function initializeAgAccountsTab() {
         return;
     }
     agAccountsTab.addEventListener('shown.bs.tab', () => {
-        if (!agAccountsState.loaded && !agAccountsState.loading) {
-            loadAgAccounts();
+        if (!agAccountsState.loaded) {
+            initializeAgAccountsGrid();
         }
     });
 }
@@ -1856,93 +1857,209 @@ function showAuditTab() {
     bootstrapTab.getOrCreateInstance(auditTab).show();
 }
 
-function loadAgAccounts(forceRefresh = false) {
-    if (String(getInstanceDbType() || '').toLowerCase() !== 'sqlserver') {
+function initializeAgAccountsGrid() {
+    const pageRoot = document.getElementById('instanceDetailContainer');
+    if (!pageRoot || String(getInstanceDbType() || '').toLowerCase() !== 'sqlserver') {
         return;
     }
-    if (!instanceService?.fetchInstanceAgAccounts) {
-        renderAgAccountsError('实例管理服务未初始化');
-        return;
-    }
-    if (agAccountsState.loading) {
-        return;
-    }
-    if (agAccountsState.loaded && !forceRefresh) {
-        renderAgAccounts(agAccountsState.payload);
+    const container = pageRoot.querySelector('#instance-ag-accounts-grid');
+    if (!container) {
         return;
     }
 
-    agAccountsState.loading = true;
-    renderAgAccountsLoading();
-    instanceService.fetchInstanceAgAccounts(getInstanceId())
-        .then((response) => {
-            agAccountsState.payload = response?.data || response || null;
-            agAccountsState.loaded = true;
-            renderAgAccounts(agAccountsState.payload);
-        })
-        .catch((error) => {
-            renderAgAccountsError(error?.message || '加载 AG 账户信息失败');
-        })
-        .finally(() => {
-            agAccountsState.loading = false;
-        });
+    const GridPage = window.Views?.GridPage;
+    const GridPlugins = window.Views?.GridPlugins;
+    if (!GridPage?.mount || !GridPlugins?.filterCard || !GridPlugins?.actionDelegation) {
+        console.warn('Views.GridPage 或 GridPlugins 未加载，跳过 AG 账户列表初始化');
+        return;
+    }
+
+    if (agAccountsGridController?.destroy) {
+        try {
+            agAccountsGridController.destroy();
+        } catch (error) {
+            console.warn('销毁旧 AG 账户列表 grid 失败:', error);
+        }
+    }
+    agAccountsGridController = null;
+    container.innerHTML = '';
+
+    const controller = GridPage.mount({
+        root: pageRoot,
+        grid: '#instance-ag-accounts-grid',
+        filterForm: '#instance-ag-accounts-filter-form',
+        gridOptions: {
+            search: false,
+            sort: false,
+            columns: buildAgAccountsGridColumns(),
+            server: {
+                url: buildAgAccountsBaseUrl(),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                then: handleAgAccountsServerResponse,
+                total: (response) => {
+                    const payload = response?.data || response || {};
+                    const total = payload.total || 0;
+                    updateAgAccountsOverview(payload);
+                    return total;
+                },
+            },
+        },
+        filters: {
+            allowedKeys: ['include_deleted', 'search'],
+            normalize: normalizeAccountsFilters,
+        },
+        plugins: [
+            GridPlugins.filterCard({
+                autoSubmitOnChange: true,
+                autoSubmitDebounce: 250,
+            }),
+            GridPlugins.actionDelegation({
+                actions: {
+                    'view-permissions': ({ event, el }) => {
+                        event.preventDefault();
+                        const accountId = el.getAttribute('data-account-id');
+                        if (accountId) {
+                            viewInstanceAccountPermissions(accountId);
+                        }
+                    },
+                    'view-history': ({ event, el }) => {
+                        event.preventDefault();
+                        const accountId = el.getAttribute('data-account-id');
+                        if (accountId) {
+                            viewAccountChangeHistory(accountId);
+                        }
+                    },
+                },
+            }),
+        ],
+    });
+
+    agAccountsGridController = controller || null;
+    agAccountsState.loaded = true;
 }
 
-function renderAgAccountsLoading() {
-    const body = document.getElementById('agAccountsTableBody');
-    if (body) {
-        body.innerHTML = '<tr><td colspan="6" class="text-muted">加载中...</td></tr>';
-    }
+function buildAgAccountsBaseUrl() {
+    return `/api/v1/instances/${getInstanceId()}/ag-accounts`;
 }
 
-function renderAgAccountsError(message) {
-    const body = document.getElementById('agAccountsTableBody');
-    if (body) {
-        body.innerHTML = `<tr><td colspan="6" class="text-danger">${escapeHtml(message || '加载失败')}</td></tr>`;
-    }
+function handleAgAccountsServerResponse(response) {
+    const payload = response?.data || response || {};
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    return items.map((item) => ([
+        item.id || null,
+        item.availability_group_name || '-',
+        buildAgListenerLabel(item),
+        item.username || '-',
+        {
+            is_locked: item.is_locked,
+            availability_reasons: item.availability_reasons || [],
+        },
+        item.is_deleted,
+        item.is_superuser,
+        item.last_change_time || item.last_sync_time || '',
+        null,
+        item,
+    ]));
 }
 
-function renderAgAccounts(payload) {
-    const body = document.getElementById('agAccountsTableBody');
-    const clusterLabel = document.getElementById('agAccountsClusterLabel');
-    if (!body) {
-        return;
-    }
-    const data = payload?.data || payload || {};
-    const cluster = data.cluster || null;
-    const items = Array.isArray(data.items) ? data.items : [];
-    if (clusterLabel) {
-        clusterLabel.textContent = cluster?.name ? `群集：${cluster.name}` : '未绑定群集';
-    }
-    if (!cluster) {
-        body.innerHTML = '<tr><td colspan="6" class="text-muted">当前实例未绑定 SQL Server 群集。</td></tr>';
-        return;
-    }
-    if (!items.length) {
-        body.innerHTML = '<tr><td colspan="6" class="text-muted">当前群集暂无启用 contained 的 AG 账户。</td></tr>';
-        return;
-    }
-    body.innerHTML = items.map((item) => renderAgAccountRow(item)).join('');
+function buildAgAccountsGridColumns() {
+    const STATUS_COLUMN_WIDTH = '64px';
+    return [
+        {
+            name: 'ID',
+            id: 'id',
+            width: '80px',
+            formatter: (cell) => renderAccountIdCell(cell),
+        },
+        {
+            name: 'AG',
+            id: 'availability_group_name',
+            width: '140px',
+            formatter: (cell) => renderAgTextCell(cell),
+        },
+        {
+            name: '监听器',
+            id: 'listener',
+            formatter: (cell) => renderAgTextCell(cell),
+        },
+        {
+            name: '账户',
+            id: 'username',
+            formatter: (cell, row) => renderAccountUsernameCell(cell, getRowMeta(row)),
+        },
+        {
+            name: '是否可用',
+            id: 'is_locked',
+            width: STATUS_COLUMN_WIDTH,
+            formatter: (cell, row) => renderAccountLockedCell(cell, getRowMeta(row)),
+        },
+        {
+            name: '是否删除',
+            id: 'is_deleted',
+            width: STATUS_COLUMN_WIDTH,
+            formatter: (cell) => renderAccountDeletedBadge(Boolean(cell)),
+        },
+        {
+            name: '是否超管',
+            id: 'is_superuser',
+            width: STATUS_COLUMN_WIDTH,
+            formatter: (cell) => renderAccountSuperuserBadge(Boolean(cell)),
+        },
+        {
+            name: '最后变更',
+            id: 'last_change_time',
+            width: '180px',
+            formatter: (cell) => renderAccountLastChangeTime(cell),
+        },
+        {
+            id: 'actions',
+            name: '操作',
+            sort: false,
+            width: '150px',
+            formatter: (cell, row) => renderAccountActions(getRowMeta(row)),
+        },
+        { id: '__meta__', hidden: true },
+    ];
 }
 
-function renderAgAccountRow(item) {
+function buildAgListenerLabel(item) {
     const listenerParts = [item.listener_name, item.listener_host].filter(Boolean);
-    const listener = listenerParts.length ? listenerParts.join(' / ') : '-';
-    const lockedLabel = item.is_locked ? '锁定' : '可用';
-    const lockedClass = item.is_locked ? 'status-pill--danger' : 'status-pill--success';
-    const superuserLabel = item.is_superuser ? '是' : '否';
-    const superuserClass = item.is_superuser ? 'status-pill--warning' : 'status-pill--muted';
-    const lastSync = item.last_sync_time ? timeUtils.formatDateTime(item.last_sync_time) : '-';
-    return `
-        <tr>
-            <td>${escapeHtml(item.availability_group_name || '-')}</td>
-            <td>${escapeHtml(listener)}</td>
-            <td>${escapeHtml(item.username || '-')}</td>
-            <td><span class="status-pill ${lockedClass}">${escapeHtml(lockedLabel)}</span></td>
-            <td><span class="status-pill ${superuserClass}">${escapeHtml(superuserLabel)}</span></td>
-            <td>${escapeHtml(lastSync)}</td>
-        </tr>
-    `;
+    return listenerParts.length ? listenerParts.join(' / ') : '-';
+}
+
+function renderAgTextCell(value) {
+    const text = value === undefined || value === null || value === '' ? '-' : String(value);
+    return gridHtml ? gridHtml(`<span class="fw-semibold">${escapeHtml(text)}</span>`) : text;
+}
+
+function updateAgAccountsOverview(payload) {
+    const summary = payload?.summary || {};
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    const cluster = payload?.cluster || null;
+    const fallbackSummary = {
+        total: items.length,
+        active: items.filter((item) => !item.is_deleted).length,
+        deleted: items.filter((item) => item.is_deleted).length,
+        superuser: items.filter((item) => item.is_superuser).length,
+    };
+    const resolved = {
+        total: Number(summary.total ?? fallbackSummary.total) || 0,
+        active: Number(summary.active ?? fallbackSummary.active) || 0,
+        deleted: Number(summary.deleted ?? fallbackSummary.deleted) || 0,
+        superuser: Number(summary.superuser ?? fallbackSummary.superuser) || 0,
+    };
+    setTextContent('#agAccountTotalCount', String(resolved.total));
+    setTextContent('#agAccountActiveCount', String(resolved.active));
+    setTextContent('#agAccountDeletedCount', String(resolved.deleted));
+    setTextContent('#agAccountSuperuserCount', String(resolved.superuser));
+    setTextContent('#agAccountsClusterLabel', cluster?.name ? `群集：${cluster.name}` : '未绑定群集');
+}
+
+function setTextContent(selector, value) {
+    const node = selectOne(selector);
+    if (node.length) {
+        node.text(value);
+    }
 }
 
 function loadBackupInfo(forceRefresh = false) {
