@@ -158,10 +158,17 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
             username="ag_reader",
             password="secret",
         )
-        instance = Instance(name="sql-node-1", db_type=DatabaseType.SQLSERVER, host="10.0.0.11", port=1433)
+        instance = Instance(
+            name="sql-node-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.11",
+            port=1433,
+            credential_id=credential.id,
+        )
         cluster = SQLServerCluster(name="cluster-a", description="")
         db.session.add_all([credential, instance, cluster])
         db.session.flush()
+        instance.credential_id = credential.id
         db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
         db.session.commit()
 
@@ -173,10 +180,7 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
         )
         service = SQLServerClusterManagementService(connection_factory=factory)
 
-        result = service.sync_availability_groups(
-            cluster.id,
-            {"credential_id": credential.id, "connection_database": "master"},
-        )
+        result = service.sync_availability_groups(cluster.id, {"connection_database": "master"})
 
         assert result["created"] == 2
         assert result["updated"] == 0
@@ -191,8 +195,27 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
             ("ag-main", "10.10.10.173", 1433, True),
             ("ag-report", "ag-report.example.test", 1433, False),
         ]
-        assert {ag.credential_id for ag in ags} == {credential.id}
         assert factory.connection.disconnected is True
+
+
+@pytest.mark.unit
+def test_sync_availability_groups_requires_bound_instance_credential() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        instance = Instance(name="sql-node-1", db_type=DatabaseType.SQLSERVER, host="10.0.0.11", port=1433)
+        cluster = SQLServerCluster(name="cluster-a", description="")
+        db.session.add_all([instance, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        db.session.commit()
+
+        service = SQLServerClusterManagementService(connection_factory=_FakeAgDiscoveryFactory([]))
+
+        with pytest.raises(ValidationError, match="请先为至少一台绑定实例配置凭据"):
+            service.sync_availability_groups(cluster.id, {})
 
 
 @pytest.mark.unit
@@ -209,10 +232,24 @@ def test_sync_availability_groups_updates_existing_ag_without_duplicate() -> Non
             username="ag_reader",
             password="secret",
         )
-        instance = Instance(name="sql-node-1", db_type=DatabaseType.SQLSERVER, host="10.0.0.11", port=1433)
+        account_credential = Credential(
+            name="ag-account-sync-account",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="contained_reader",
+            password="secret",
+        )
+        instance = Instance(
+            name="sql-node-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.11",
+            port=1433,
+            credential_id=credential.id,
+        )
         cluster = SQLServerCluster(name="cluster-a", description="")
-        db.session.add_all([credential, instance, cluster])
+        db.session.add_all([credential, account_credential, instance, cluster])
         db.session.flush()
+        instance.credential_id = credential.id
         db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
         db.session.add(
             SQLServerAvailabilityGroup(
@@ -221,6 +258,8 @@ def test_sync_availability_groups_updates_existing_ag_without_duplicate() -> Non
                 listener_name="old-listener",
                 listener_host="old.example.test",
                 listener_port=1433,
+                account_credential_id=account_credential.id,
+                is_enabled=True,
             )
         )
         db.session.commit()
@@ -231,7 +270,7 @@ def test_sync_availability_groups_updates_existing_ag_without_duplicate() -> Non
             )
         )
 
-        result = service.sync_availability_groups(cluster.id, {"credential_id": credential.id})
+        result = service.sync_availability_groups(cluster.id, {})
 
         assert result["created"] == 0
         assert result["updated"] == 1
@@ -240,7 +279,57 @@ def test_sync_availability_groups_updates_existing_ag_without_duplicate() -> Non
         assert ag.listener_name == "ag-main-lsn"
         assert ag.listener_host == "ag-main.example.test"
         assert ag.listener_port == 1444
-        assert ag.credential_id == credential.id
+        assert ag.account_credential_id == account_credential.id
+        assert ag.is_enabled is True
+
+
+@pytest.mark.unit
+def test_availability_group_collection_requires_contained_and_account_credential() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        credential = Credential(
+            name="ag-account-sync-account",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="contained_reader",
+            password="secret",
+        )
+        cluster = SQLServerCluster(name="cluster-a", description="")
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=1,
+            name="ag-main",
+            listener_host="ag.example.test",
+            listener_port=1433,
+            contained_enabled=False,
+            is_enabled=False,
+        )
+        db.session.add_all([credential, cluster])
+        db.session.flush()
+        ag.cluster_id = cluster.id
+        db.session.add(ag)
+        db.session.commit()
+
+        service = SQLServerClusterManagementService()
+
+        with pytest.raises(ValidationError, match="非 contained AG 不允许启用账户采集"):
+            service.update_availability_group(cluster.id, ag.id, {"is_enabled": True})
+
+        service.update_availability_group(cluster.id, ag.id, {"contained_enabled": True})
+        with pytest.raises(ValidationError, match="请选择 AG 账户采集凭据后启用"):
+            service.update_availability_group(cluster.id, ag.id, {"is_enabled": True})
+
+        updated = service.update_availability_group(
+            cluster.id,
+            ag.id,
+            {"account_credential_id": credential.id, "is_enabled": True},
+        )
+
+        assert updated["account_credential_id"] == credential.id
+        assert updated["account_credential_name"] == "ag-account-sync-account"
+        assert updated["is_enabled"] is True
 
 
 @pytest.mark.unit
@@ -261,6 +350,7 @@ def test_sync_availability_groups_removes_stale_manual_ag_and_current_snapshots(
         cluster = SQLServerCluster(name="cluster-a", description="")
         db.session.add_all([credential, instance, cluster])
         db.session.flush()
+        instance.credential_id = credential.id
         db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
         stale_ag = SQLServerAvailabilityGroup(
             cluster_id=cluster.id,
@@ -319,7 +409,7 @@ def test_sync_availability_groups_removes_stale_manual_ag_and_current_snapshots(
             )
         )
 
-        result = service.sync_availability_groups(cluster.id, {"credential_id": credential.id})
+        result = service.sync_availability_groups(cluster.id, {})
 
         assert result["created"] == 1
         assert result["updated"] == 0
@@ -336,27 +426,17 @@ def test_sync_availability_groups_removes_stale_manual_ag_and_current_snapshots(
 
 
 @pytest.mark.unit
-def test_sync_availability_groups_requires_bound_instance_and_credential() -> None:
+def test_sync_availability_groups_requires_bound_instance() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
 
     with app.app_context():
         _create_schema()
-        credential = Credential(
-            name="ag-sync-account",
-            credential_type="database",
-            db_type=DatabaseType.SQLSERVER,
-            username="ag_reader",
-            password="secret",
-        )
         cluster = SQLServerCluster(name="cluster-a", description="")
-        db.session.add_all([credential, cluster])
+        db.session.add(cluster)
         db.session.commit()
 
         service = SQLServerClusterManagementService(connection_factory=_FakeAgDiscoveryFactory([]))
 
-        with pytest.raises(ValidationError, match="请选择 AG 凭据"):
-            service.sync_availability_groups(cluster.id, {})
-
         with pytest.raises(ValidationError, match="请先绑定 SQL Server 实例"):
-            service.sync_availability_groups(cluster.id, {"credential_id": credential.id})
+            service.sync_availability_groups(cluster.id, {})

@@ -37,7 +37,9 @@ function mountClusterPage(global) {
   let gridWrapper = null;
   let modal = null;
   let modalEl = null;
+  let currentAgItems = [];
   const canManage = pageRoot.dataset.canManage === "true";
+  const credentialOptions = parseJsonDataset(pageRoot.dataset.credentials, []);
 
   ready(() => {
     store = createStore({
@@ -191,13 +193,25 @@ function mountClusterPage(global) {
     document.querySelector('[data-action="sync-ag"]')?.addEventListener("click", (event) => {
       syncAgInformation(event.currentTarget);
     });
+    document.getElementById("clusterAgTableBody")?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (target?.matches?.('[data-action="update-ag-account-credential"]')) {
+        updateAgAccountCredential(target);
+      }
+    });
+    document.getElementById("clusterAgTableBody")?.addEventListener("click", (event) => {
+      const target = event.target?.closest?.('[data-action="toggle-ag-collection"]');
+      if (target) {
+        event.preventDefault();
+        toggleAgCollection(target);
+      }
+    });
   }
 
   function openCreateModal() {
     setModalMode("create");
     fillBasic({});
     setSelectedInstances([]);
-    setAgCredentialValue("");
     renderAgTable([]);
     modal?.show();
   }
@@ -212,7 +226,6 @@ function mountClusterPage(global) {
         setModalMode("edit");
         fillBasic(detail.cluster || {});
         setSelectedInstances((detail.instances || []).map((item) => String(item.id)));
-        setAgCredentialFromDetail(detail);
         renderAgTable(detail.availability_groups || []);
         modal?.show();
       })
@@ -297,18 +310,9 @@ function mountClusterPage(global) {
       showToast("warning", "请先保存群集后同步 AG 信息");
       return;
     }
-    const credentialId = document.getElementById("clusterAgCredentialInput").value;
-    if (!credentialId) {
-      showToast("warning", "请选择 AG 凭据后同步");
-      return;
-    }
-
-    const payload = {
-      credential_id: Number(credentialId),
-    };
     setButtonLoading(trigger, true);
     store.actions
-      .syncAvailabilityGroups(clusterId, payload)
+      .syncAvailabilityGroups(clusterId, {})
       .then(() => store.actions.load(clusterId))
       .then((detail) => {
         renderAgTable(detail.availability_groups || []);
@@ -324,6 +328,7 @@ function mountClusterPage(global) {
     if (!body) {
       return;
     }
+    currentAgItems = Array.isArray(items) ? items : [];
     if (!items.length) {
       body.innerHTML = '<tr><td colspan="6" class="text-muted">暂无 AG 配置</td></tr>';
       return;
@@ -338,25 +343,106 @@ function mountClusterPage(global) {
       <tr>
         <td>${escapeHtml(item.name || "-")}</td>
         <td>${escapeHtml(listener)}</td>
-        <td>${escapeHtml(item.credential_name || "沿用实例凭据")}</td>
+        <td>${renderAccountCredentialSelect(item)}</td>
         <td>${renderBoolean(item.contained_enabled)}</td>
-        <td>${renderStatus(item.is_enabled)}</td>
+        <td>${renderCollectionToggle(item)}</td>
         <td>${escapeHtml(syncLabel)}</td>
       </tr>
     `;
   }
 
-  function setAgCredentialFromDetail(detail) {
-    const ags = Array.isArray(detail?.availability_groups) ? detail.availability_groups : [];
-    const agWithCredential = ags.find((item) => item?.credential_id);
-    setAgCredentialValue(agWithCredential?.credential_id || "");
+  function renderAccountCredentialSelect(item) {
+    const selectedId = item.account_credential_id ? String(item.account_credential_id) : "";
+    const options = [
+      '<option value="">请选择凭据</option>',
+      ...credentialOptions.map((credential) => {
+        const value = String(credential.id || "");
+        const selected = value && value === selectedId ? " selected" : "";
+        return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(credential.name || "-")}</option>`;
+      }),
+    ];
+    const disabled = !canManage ? " disabled" : "";
+    return (
+      `<select class="form-select form-select-sm" data-action="update-ag-account-credential" ` +
+      `data-ag-id="${escapeHtml(String(item.id || ""))}"${disabled}>${options.join("")}</select>`
+    );
   }
 
-  function setAgCredentialValue(value) {
-    const select = document.getElementById("clusterAgCredentialInput");
-    if (select) {
-      select.value = value ? String(value) : "";
+  function renderCollectionToggle(item) {
+    const enabled = item.is_enabled === true;
+    const canEnable = Boolean(item.contained_enabled && item.account_credential_id);
+    const disabled = !canManage || (!enabled && !canEnable);
+    const disabledAttr = disabled ? " disabled" : "";
+    const title = !item.contained_enabled
+      ? "非 contained AG 不允许启用采集"
+      : !item.account_credential_id
+        ? "请选择账户采集凭据后启用"
+        : "";
+    const tone = enabled ? "success" : "muted";
+    const label = enabled ? "启用" : "停用";
+    return (
+      `<button type="button" class="status-pill status-pill--${tone} border-0" ` +
+      `data-action="toggle-ag-collection" data-ag-id="${escapeHtml(String(item.id || ""))}"` +
+      `${disabledAttr} title="${escapeHtml(title)}">${label}</button>`
+    );
+  }
+
+  function findCurrentAg(agId) {
+    return currentAgItems.find((item) => String(item.id) === String(agId)) || null;
+  }
+
+  function updateAgAccountCredential(select) {
+    const clusterId = document.getElementById("clusterIdInput").value;
+    const agId = select.getAttribute("data-ag-id");
+    if (!clusterId || !agId) {
+      return;
     }
+    const credentialId = Number(select.value || 0);
+    const payload = {
+      account_credential_id: credentialId || null,
+    };
+    if (!credentialId) {
+      payload.is_enabled = false;
+    }
+    select.disabled = true;
+    store.actions
+      .updateAvailabilityGroup(clusterId, agId, payload)
+      .then(() => store.actions.load(clusterId))
+      .then((detail) => {
+        renderAgTable(detail.availability_groups || []);
+        showToast("success", "AG 账户采集凭据已更新");
+      })
+      .catch((error) => showError(error, "更新 AG 账户采集凭据失败"))
+      .finally(() => {
+        select.disabled = false;
+      });
+  }
+
+  function toggleAgCollection(button) {
+    const clusterId = document.getElementById("clusterIdInput").value;
+    const agId = button.getAttribute("data-ag-id");
+    const item = findCurrentAg(agId);
+    if (!clusterId || !agId || !item) {
+      return;
+    }
+    if (!item.contained_enabled) {
+      showToast("warning", "非 contained AG 不允许启用采集");
+      return;
+    }
+    if (!item.account_credential_id && !item.is_enabled) {
+      showToast("warning", "请选择账户采集凭据后启用");
+      return;
+    }
+    setButtonLoading(button, true);
+    store.actions
+      .updateAvailabilityGroup(clusterId, agId, { is_enabled: !item.is_enabled })
+      .then(() => store.actions.load(clusterId))
+      .then((detail) => {
+        renderAgTable(detail.availability_groups || []);
+        showToast("success", "AG 采集状态已更新");
+      })
+      .catch((error) => showError(error, "更新 AG 采集状态失败"))
+      .finally(() => setButtonLoading(button, false));
   }
 
   function renderBoolean(value) {
@@ -415,6 +501,19 @@ function mountClusterPage(global) {
     if (button.dataset.originalText) {
       button.innerHTML = button.dataset.originalText;
       delete button.dataset.originalText;
+    }
+  }
+
+  function parseJsonDataset(raw, fallback) {
+    if (!raw) {
+      return fallback;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch (error) {
+      console.warn("解析 cluster 页面数据失败:", error);
+      return fallback;
     }
   }
 }

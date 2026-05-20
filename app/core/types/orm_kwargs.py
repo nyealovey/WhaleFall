@@ -146,6 +146,7 @@ class SQLServerAvailabilityGroupOrmFields(TypedDict, total=False):
     listener_host: str
     listener_port: int
     credential_id: int | None
+    account_credential_id: int | None
     connection_database: str | None
     contained_enabled: bool
     is_enabled: bool

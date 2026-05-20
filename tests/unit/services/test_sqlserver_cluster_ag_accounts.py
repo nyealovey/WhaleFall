@@ -3,6 +3,7 @@ import pytest
 from app import create_app, db
 from app.core.constants import DatabaseType
 from app.models.account_permission import AccountPermission
+from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
@@ -22,6 +23,7 @@ def _create_tables() -> None:
         bind=db.engine,
         tables=[
             db.metadata.tables["instances"],
+            db.metadata.tables["credentials"],
             db.metadata.tables["instance_accounts"],
             db.metadata.tables["account_permission"],
             db.metadata.tables["sqlserver_clusters"],
@@ -289,3 +291,118 @@ def test_sqlserver_ag_sync_skips_disabled_cluster(app, monkeypatch) -> None:
 
         assert result == {"status": "skipped", "processed_records": 0, "items": []}
         assert called["value"] is False
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_sync_only_processes_enabled_contained_ags_with_account_credential(app, monkeypatch) -> None:
+    with app.app_context():
+        _create_tables()
+        instance = Instance(
+            name="node-sync-contained",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.14",
+            port=1433,
+            is_active=True,
+        )
+        credential = Credential(
+            name="ag-contained-reader",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="reader",
+            password="secret",
+        )
+        cluster = SQLServerCluster(name="cluster-contained-sync", description="", is_enabled=True)
+        db.session.add_all([instance, credential, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        enabled_ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-contained",
+            listener_host="10.0.0.20",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+            account_credential_id=credential.id,
+        )
+        missing_credential_ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-missing-credential",
+            listener_host="10.0.0.21",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+        )
+        non_contained_ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-non-contained",
+            listener_host="10.0.0.22",
+            listener_port=1433,
+            contained_enabled=False,
+            is_enabled=True,
+            account_credential_id=credential.id,
+        )
+        db.session.add_all([enabled_ag, missing_credential_ag, non_contained_ag])
+        db.session.commit()
+
+        synced_names: list[str] = []
+
+        def _fake_sync_one_ag(self, instance, ag, *, session_id=None):
+            synced_names.append(ag.name)
+            return {"status": "completed", "processed_records": 1}
+
+        monkeypatch.setattr(SQLServerAgAccountsSyncService, "_sync_one_ag", _fake_sync_one_ag)
+
+        result = SQLServerAgAccountsSyncService().sync_for_instance(instance, session_id="test")
+
+        assert result["status"] == "completed"
+        assert result["processed_records"] == 1
+        assert synced_names == ["ag-contained"]
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_sync_connection_uses_ag_account_credential(app) -> None:
+    with app.app_context():
+        _create_tables()
+        instance_credential = Credential(
+            name="instance-credential",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="instance_user",
+            password="secret",
+        )
+        ag_credential = Credential(
+            name="ag-account-credential",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="ag_user",
+            password="secret",
+        )
+        instance = Instance(
+            name="node-sync-target",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.14",
+            port=1433,
+            credential_id=instance_credential.id,
+            is_active=True,
+        )
+        cluster = SQLServerCluster(name="cluster-target-sync", description="", is_enabled=True)
+        db.session.add_all([instance_credential, ag_credential, instance, cluster])
+        db.session.flush()
+        instance.credential_id = instance_credential.id
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-contained",
+            listener_host="10.0.0.20",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+            account_credential_id=ag_credential.id,
+        )
+        db.session.add(ag)
+        db.session.commit()
+
+        target = SQLServerAgAccountsSyncService._build_ag_connection_instance(instance, ag)
+
+        assert target.host == "10.0.0.20"
+        assert target.credential_id == ag_credential.id
+        assert target.credential == ag_credential

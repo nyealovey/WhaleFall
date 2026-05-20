@@ -173,9 +173,10 @@ class SQLServerAvailabilityGroupCreatePayload(PayloadSchema):
     listener_host: StrictStr
     listener_port: int = 1433
     credential_id: int | None = None
+    account_credential_id: int | None = None
     connection_database: StrictStr | None = None
     contained_enabled: bool = False
-    is_enabled: bool = True
+    is_enabled: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -212,7 +213,7 @@ class SQLServerAvailabilityGroupCreatePayload(PayloadSchema):
             raise ValueError("listener_port 必须在 1-65535 之间")
         return parsed
 
-    @field_validator("credential_id", mode="before")
+    @field_validator("credential_id", "account_credential_id", mode="before")
     @classmethod
     def _parse_credential_id(cls, value: Any) -> int | None:
         return parse_optional_int(value)
@@ -231,6 +232,7 @@ class SQLServerAvailabilityGroupUpdatePayload(PayloadSchema):
     listener_host: StrictStr | None = None
     listener_port: int | None = None
     credential_id: int | None = None
+    account_credential_id: int | None = None
     connection_database: StrictStr | None = None
     contained_enabled: bool | None = None
     is_enabled: bool | None = None
@@ -253,7 +255,7 @@ class SQLServerAvailabilityGroupUpdatePayload(PayloadSchema):
             raise ValueError("listener_port 必须在 1-65535 之间")
         return parsed
 
-    @field_validator("credential_id", mode="before")
+    @field_validator("credential_id", "account_credential_id", mode="before")
     @classmethod
     def _parse_credential_id(cls, value: Any) -> int | None:
         return parse_optional_int(value)

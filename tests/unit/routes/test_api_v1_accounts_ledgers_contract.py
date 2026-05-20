@@ -260,6 +260,121 @@ def test_api_v1_accounts_ledgers_mysql_roles_filtered_by_default() -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_accounts_ledgers_filters_by_owner_type_for_instance_accounts() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["account_permission"],
+                db.metadata.tables["account_classifications"],
+                db.metadata.tables["classification_rules"],
+                db.metadata.tables["account_classification_assignments"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        instance = Instance(
+            name="sqlserver-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.1",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.flush()
+
+        instance_owner_account = InstanceAccount(
+            instance_id=instance.id,
+            username="same_name",
+            db_type=DatabaseType.SQLSERVER,
+            is_active=True,
+        )
+        ag_owner_account = InstanceAccount(
+            instance_id=instance.id,
+            username="same_name",
+            db_type=DatabaseType.SQLSERVER,
+            is_active=True,
+        )
+        db.session.add_all([instance_owner_account, ag_owner_account])
+        db.session.flush()
+
+        permission_facts = {
+            "version": 2,
+            "db_type": "sqlserver",
+            "capabilities": [],
+            "capability_reasons": {},
+            "roles": [],
+            "privileges": {},
+            "errors": [],
+            "meta": {},
+        }
+        db.session.add_all(
+            [
+                AccountPermission(
+                    instance_id=instance.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    instance_account_id=instance_owner_account.id,
+                    username="same_name",
+                    owner_type="instance",
+                    owner_id=instance.id,
+                    type_specific={"scope": "instance"},
+                    permission_facts=permission_facts,
+                ),
+                AccountPermission(
+                    instance_id=instance.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    instance_account_id=ag_owner_account.id,
+                    username="same_name",
+                    owner_type="sqlserver_ag",
+                    owner_id=999,
+                    type_specific={"scope": "ag"},
+                    permission_facts=permission_facts,
+                ),
+            ],
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        instance_response = client.get(
+            f"/api/v1/accounts/ledgers?instance_id={instance.id}&owner_type=instance&include_roles=true",
+        )
+        assert instance_response.status_code == 200
+        instance_payload = instance_response.get_json()
+        assert isinstance(instance_payload, dict)
+        instance_data = instance_payload.get("data")
+        assert isinstance(instance_data, dict)
+        instance_items = instance_data.get("items")
+        assert isinstance(instance_items, list)
+        assert [item.get("type_specific", {}).get("scope") for item in instance_items] == ["instance"]
+
+        ag_response = client.get(
+            f"/api/v1/accounts/ledgers?instance_id={instance.id}&owner_type=sqlserver_ag&include_roles=true",
+        )
+        assert ag_response.status_code == 200
+        ag_payload = ag_response.get_json()
+        assert isinstance(ag_payload, dict)
+        ag_data = ag_payload.get("data")
+        assert isinstance(ag_data, dict)
+        ag_items = ag_data.get("items")
+        assert isinstance(ag_items, list)
+        assert [item.get("type_specific", {}).get("scope") for item in ag_items] == ["ag"]
+
+
+@pytest.mark.unit
 def test_api_v1_accounts_ledgers_returns_availability_reasons() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

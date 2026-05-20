@@ -206,6 +206,13 @@ def test_instance_detail_ag_accounts_uses_accounts_grid_style_and_actions() -> N
 
 
 @pytest.mark.unit
+def test_instance_detail_regular_accounts_request_is_limited_to_instance_owner() -> None:
+    content = _read_text("app/static/js/modules/views/instances/detail.js")
+
+    assert "&owner_type=instance" in content
+
+
+@pytest.mark.unit
 def test_instances_detail_page_keeps_manual_sync_buttons_enabled_for_disabled_instance(app, auth_client) -> None:
     _ensure_tables(app)
 

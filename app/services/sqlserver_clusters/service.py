@@ -207,6 +207,7 @@ class SQLServerClusterManagementService:
         parsed = validate_or_raise(SQLServerAvailabilityGroupCreatePayload, parse_payload(payload))
         self._ensure_ag_name_unique(cluster.id, parsed.name, resource=None)
         self._ensure_credential_exists(parsed.credential_id)
+        self._ensure_credential_exists(parsed.account_credential_id)
         ag = SQLServerAvailabilityGroup(
             cluster_id=cluster.id,
             name=parsed.name,
@@ -214,10 +215,12 @@ class SQLServerClusterManagementService:
             listener_host=parsed.listener_host,
             listener_port=parsed.listener_port,
             credential_id=parsed.credential_id,
+            account_credential_id=parsed.account_credential_id,
             connection_database=parsed.connection_database,
             contained_enabled=parsed.contained_enabled,
             is_enabled=parsed.is_enabled,
         )
+        self._ensure_ag_collection_allowed(ag.contained_enabled, ag.account_credential_id, ag.is_enabled)
         try:
             self._repository.add(ag)
         except SQLAlchemyError as exc:
@@ -250,11 +253,29 @@ class SQLServerClusterManagementService:
         if parsed.name is not None:
             self._ensure_ag_name_unique(cluster.id, parsed.name, resource=ag)
             ag.name = parsed.name
-        for field in ("listener_name", "listener_host", "listener_port", "credential_id", "connection_database"):
+        account_credential_id = (
+            parsed.account_credential_id
+            if "account_credential_id" in parsed.model_fields_set
+            else ag.account_credential_id
+        )
+        contained_enabled = parsed.contained_enabled if parsed.contained_enabled is not None else ag.contained_enabled
+        is_enabled = parsed.is_enabled if parsed.is_enabled is not None else ag.is_enabled
+        self._ensure_ag_collection_allowed(contained_enabled, account_credential_id, is_enabled)
+
+        for field in (
+            "listener_name",
+            "listener_host",
+            "listener_port",
+            "credential_id",
+            "account_credential_id",
+            "connection_database",
+        ):
             if field in parsed.model_fields_set:
                 setattr(ag, field, getattr(parsed, field))
         if "credential_id" in parsed.model_fields_set:
             self._ensure_credential_exists(parsed.credential_id)
+        if "account_credential_id" in parsed.model_fields_set:
+            self._ensure_credential_exists(parsed.account_credential_id)
         if parsed.contained_enabled is not None:
             ag.contained_enabled = parsed.contained_enabled
         if parsed.is_enabled is not None:
@@ -283,9 +304,9 @@ class SQLServerClusterManagementService:
         operator_id: int | None = None,
     ) -> dict[str, Any]:
         """从已绑定 SQL Server 实例同步 AG/listener 元数据."""
-        cluster, credential, bindings, connection_database = self._prepare_ag_sync(cluster_id, payload)
-        rows, source_instance = self._discover_ag_rows(cluster, bindings, credential, connection_database)
-        sync_result = self._upsert_discovered_ags(cluster, rows, credential, connection_database)
+        cluster, bindings, connection_database = self._prepare_ag_sync(cluster_id, payload)
+        rows, source_instance = self._discover_ag_rows(cluster, bindings, connection_database)
+        sync_result = self._upsert_discovered_ags(cluster, rows, connection_database)
 
         log_info(
             "同步 SQL Server AG 信息",
@@ -350,6 +371,19 @@ class SQLServerClusterManagementService:
             raise ValidationError("凭据不存在")
         return credential
 
+    @staticmethod
+    def _ensure_ag_collection_allowed(
+        contained_enabled: bool,
+        account_credential_id: object | None,
+        is_enabled: bool,
+    ) -> None:
+        if not is_enabled:
+            return
+        if not contained_enabled:
+            raise ValidationError("非 contained AG 不允许启用账户采集")
+        if account_credential_id is None:
+            raise ValidationError("请选择 AG 账户采集凭据后启用")
+
     def _validate_sqlserver_instances(self, instance_ids: list[int]) -> list[Instance]:
         if not instance_ids:
             return []
@@ -409,37 +443,43 @@ class SQLServerClusterManagementService:
     def _serialize_ag(ag: SQLServerAvailabilityGroup) -> dict[str, Any]:
         payload = ag.to_dict()
         payload["credential_name"] = ag.credential.name if ag.credential else None
+        account_credential = ag.account_credential
+        if account_credential is None and ag.account_credential_id is not None:
+            account_credential = cast(Credential | None, Credential.query.get(ag.account_credential_id))
+        payload["account_credential_name"] = account_credential.name if account_credential else None
         return payload
 
     def _prepare_ag_sync(
         self,
         cluster_id: int,
         payload: object | None,
-    ) -> tuple[SQLServerCluster, Credential, list[Any], str]:
+    ) -> tuple[SQLServerCluster, list[Any], str]:
         cluster = self._get_cluster_or_error(cluster_id)
         parsed_payload = parse_payload(payload)
-        credential = self._ensure_credential_exists(parsed_payload.get("credential_id"))
-        if credential is None:
-            raise ValidationError("请选择 AG 凭据后同步")
 
         bindings = self._repository.list_bindings_for_cluster(cluster.id)
         if not bindings:
             raise ValidationError("请先绑定 SQL Server 实例后再同步 AG 信息")
+        if not any(getattr(cast(Instance | None, binding.instance), "credential", None) for binding in bindings):
+            raise ValidationError("请先为至少一台绑定实例配置凭据")
 
         connection_database = str(parsed_payload.get("connection_database") or "master").strip() or "master"
-        return cluster, credential, bindings, connection_database
+        return cluster, bindings, connection_database
 
     def _discover_ag_rows(
         self,
         cluster: SQLServerCluster,
         bindings: list[Any],
-        credential: Credential,
         connection_database: str,
     ) -> tuple[list[Any], Instance]:
         errors: list[str] = []
         for binding in bindings:
             instance = cast(Instance | None, binding.instance)
             if instance is None:
+                continue
+            credential = cast(Credential | None, getattr(instance, "credential", None))
+            if credential is None:
+                errors.append(f"{instance.name}: 未配置实例凭据")
                 continue
             rows = self._try_discover_ag_rows(instance, credential, connection_database, errors)
             if rows is not None:
@@ -477,7 +517,6 @@ class SQLServerClusterManagementService:
         self,
         cluster: SQLServerCluster,
         rows: list[Any],
-        credential: Credential,
         connection_database: str,
     ) -> dict[str, Any]:
         existing = {ag.name: ag for ag in self._repository.list_ag_for_cluster(cluster.id)}
@@ -487,7 +526,7 @@ class SQLServerClusterManagementService:
         for row in rows:
             discovered = self._normalize_discovered_ag(row)
             discovered_names.add(discovered["name"])
-            ag = self._upsert_one_discovered_ag(cluster, discovered, credential, connection_database, existing)
+            ag = self._upsert_one_discovered_ag(cluster, discovered, connection_database, existing)
             result["total"] += 1
             result["created" if discovered["_created"] else "updated"] += 1
             items.append(self._serialize_ag(ag))
@@ -523,7 +562,6 @@ class SQLServerClusterManagementService:
         self,
         cluster: SQLServerCluster,
         discovered: dict[str, Any],
-        credential: Credential,
         connection_database: str,
         existing: dict[str, SQLServerAvailabilityGroup],
     ) -> SQLServerAvailabilityGroup:
@@ -532,7 +570,7 @@ class SQLServerClusterManagementService:
             ag = SQLServerAvailabilityGroup(
                 cluster_id=cluster.id,
                 name=discovered["name"],
-                is_enabled=True,
+                is_enabled=False,
             )
             existing[ag.name] = ag
             discovered["_created"] = True
@@ -541,9 +579,10 @@ class SQLServerClusterManagementService:
         ag.listener_name = discovered["listener_name"]
         ag.listener_host = discovered["listener_host"]
         ag.listener_port = discovered["listener_port"]
-        ag.credential_id = credential.id
         ag.connection_database = connection_database
         ag.contained_enabled = discovered["contained_enabled"]
+        if not ag.contained_enabled or ag.account_credential_id is None:
+            ag.is_enabled = False
         self._repository.add(ag)
         return ag
 

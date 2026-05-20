@@ -11,13 +11,28 @@ def test_get_change_history_strips_redundant_username_prefix_in_message() -> Non
     class _Repository:
         @staticmethod
         def get_account_by_instance_account_id(_account_id: int):  # type: ignore[no-untyped-def]
-            return SimpleNamespace(username="demo@%", db_type="mysql", instance_id=123)
+            return SimpleNamespace(
+                username="demo@%",
+                db_type="mysql",
+                instance_id=123,
+                owner_type="instance",
+                owner_id=123,
+            )
 
         @staticmethod
-        def list_change_logs(*, instance_id: int, username: str, db_type: str):  # type: ignore[no-untyped-def]
+        def list_change_logs(  # type: ignore[no-untyped-def]
+            *,
+            instance_id: int,
+            username: str,
+            db_type: str,
+            owner_type: str,
+            owner_id: int,
+        ):
             assert instance_id == 123
             assert username == "demo@%"
             assert db_type == "mysql"
+            assert owner_type == "instance"
+            assert owner_id == 123
             return [
                 SimpleNamespace(
                     id=1,
@@ -42,13 +57,28 @@ def test_get_change_history_returns_minimal_payload_for_add() -> None:
     class _Repository:
         @staticmethod
         def get_account_by_instance_account_id(_account_id: int):  # type: ignore[no-untyped-def]
-            return SimpleNamespace(username="demo@%", db_type="mysql", instance_id=123)
+            return SimpleNamespace(
+                username="demo@%",
+                db_type="mysql",
+                instance_id=123,
+                owner_type="instance",
+                owner_id=123,
+            )
 
         @staticmethod
-        def list_change_logs(*, instance_id: int, username: str, db_type: str):  # type: ignore[no-untyped-def]
+        def list_change_logs(  # type: ignore[no-untyped-def]
+            *,
+            instance_id: int,
+            username: str,
+            db_type: str,
+            owner_type: str,
+            owner_id: int,
+        ):
             assert instance_id == 123
             assert username == "demo@%"
             assert db_type == "mysql"
+            assert owner_type == "instance"
+            assert owner_id == 123
             return [
                 SimpleNamespace(
                     id=1,
@@ -85,3 +115,38 @@ def test_get_change_history_returns_minimal_payload_for_add() -> None:
     assert result.history[0].message == "新增账户"
     assert result.history[0].privilege_diff == []
     assert result.history[0].other_diff == []
+
+
+@pytest.mark.unit
+def test_get_change_history_scopes_logs_to_current_account_owner() -> None:
+    class _Repository:
+        @staticmethod
+        def get_account_by_instance_account_id(_account_id: int):  # type: ignore[no-untyped-def]
+            return SimpleNamespace(
+                username="demo",
+                db_type="sqlserver",
+                instance_id=123,
+                owner_type="sqlserver_ag",
+                owner_id=7,
+            )
+
+        @staticmethod
+        def list_change_logs(  # type: ignore[no-untyped-def]
+            *,
+            instance_id: int,
+            username: str,
+            db_type: str,
+            owner_type: str,
+            owner_id: int,
+        ):
+            assert instance_id == 123
+            assert username == "demo"
+            assert db_type == "sqlserver"
+            assert owner_type == "sqlserver_ag"
+            assert owner_id == 7
+            return []
+
+    service = AccountsLedgerChangeHistoryService(repository=cast(Any, _Repository()))
+    result = service.get_change_history(42)
+
+    assert result.history == []

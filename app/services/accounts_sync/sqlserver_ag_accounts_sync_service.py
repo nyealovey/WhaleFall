@@ -48,6 +48,7 @@ class SQLServerAgAccountsSyncService:
                 contained_enabled=True,
                 is_enabled=True,
             )
+            .filter(SQLServerAvailabilityGroup.account_credential_id.isnot(None))
             .order_by(SQLServerAvailabilityGroup.name.asc())
             .all()
         )
@@ -127,10 +128,10 @@ class SQLServerAgAccountsSyncService:
             host=ag.listener_host,
             port=ag.listener_port,
             database_name=ag.connection_database or "master",
-            credential_id=ag.credential_id or instance.credential_id,
+            credential_id=ag.account_credential_id,
             is_active=True,
         )
-        target.credential = ag.credential or instance.credential
+        target.credential = ag.account_credential
         return target
 
     @staticmethod

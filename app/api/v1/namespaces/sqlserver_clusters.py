@@ -47,6 +47,7 @@ AvailabilityGroupPayload = ns.model(
         "listener_host": fields.String(required=True, description="监听器 host"),
         "listener_port": fields.Integer(required=False, description="监听器端口"),
         "credential_id": fields.Integer(required=False, description="凭据 ID"),
+        "account_credential_id": fields.Integer(required=False, description="AG 账户采集凭据 ID"),
         "connection_database": fields.String(required=False, description="连接数据库"),
         "contained_enabled": fields.Boolean(required=False, description="是否启用 contained"),
         "is_enabled": fields.Boolean(required=False, description="是否启用采集"),
@@ -56,7 +57,6 @@ AvailabilityGroupPayload = ns.model(
 AvailabilityGroupSyncPayload = ns.model(
     "SQLServerAvailabilityGroupSyncPayload",
     {
-        "credential_id": fields.Integer(required=True, description="用于读取与同步 AG 的凭据 ID"),
         "connection_database": fields.String(required=False, description="连接数据库,默认 master"),
     },
 )

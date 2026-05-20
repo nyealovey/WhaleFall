@@ -14,9 +14,8 @@ def test_cluster_ag_tab_exposes_sync_action() -> None:
 
     required_fragments = (
         'data-action="sync-ag"',
-        'id="clusterAgCredentialInput"',
         "同步 AG 信息",
-        "先选择 AG 凭据，再从已绑定 SQL Server 实例读取 AG/listener 信息。",
+        "使用已绑定实例凭据读取 AG/listener 信息。",
     )
     for fragment in required_fragments:
         assert fragment in content
@@ -29,9 +28,9 @@ def test_cluster_ag_tab_exposes_sync_action() -> None:
         "clusterAgDatabaseInput",
         "clusterAgContainedInput",
         "clusterAgEnabledInput",
+        "clusterAgCredentialInput",
         'data-action="save-ag-draft"',
         "保存 AG",
-        '<th class="text-end">操作</th>',
     )
     for fragment in forbidden_fragments:
         assert fragment not in content
@@ -50,10 +49,13 @@ def test_cluster_frontend_calls_sync_ag_endpoint_from_ag_tab() -> None:
 
     required_view_fragments = (
         '[data-action="sync-ag"]',
-        "syncAvailabilityGroups(clusterId, payload)",
-        "请选择 AG 凭据后同步",
+        "syncAvailabilityGroups(clusterId, {})",
         "AG 信息同步完成",
         "store.actions.load(clusterId)",
+        'data-action="update-ag-account-credential"',
+        'data-action="toggle-ag-collection"',
+        "account_credential_id",
+        "非 contained AG 不允许启用采集",
     )
     for fragment in required_view_fragments:
         assert fragment in view_content
@@ -68,6 +70,7 @@ def test_cluster_frontend_calls_sync_ag_endpoint_from_ag_tab() -> None:
         "clusterAgContainedInput",
         "clusterAgDatabaseInput",
         "connection_database:",
+        "请选择 AG 凭据后同步",
         "edit-ag",
         "disable-ag",
     )
