@@ -164,6 +164,7 @@ def test_api_v1_sqlserver_clusters_sync_ag_contract(monkeypatch) -> None:
                 "cluster_id": cluster_id,
                 "created": 1,
                 "updated": 0,
+                "deleted": 1,
                 "total": 1,
                 "items": [{"name": "ag-main", "listener_host": "ag.example.test"}],
             }
@@ -187,6 +188,7 @@ def test_api_v1_sqlserver_clusters_sync_ag_contract(monkeypatch) -> None:
         assert response.status_code == 200
         payload = response.get_json()
         assert payload["data"]["sync_result"]["created"] == 1
+        assert payload["data"]["sync_result"]["deleted"] == 1
         assert payload["data"]["sync_result"]["items"][0]["name"] == "ag-main"
 
 

@@ -7,8 +7,11 @@ from app import create_app, db
 from app.core.constants import DatabaseType
 from app.core.exceptions import ConflictError, ValidationError
 from app.core.types import JsonValue, SyncConnection
+from app.models.account_change_log import AccountChangeLog
+from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.services.sqlserver_clusters.service import SQLServerClusterManagementService
 
@@ -19,6 +22,9 @@ def _create_schema() -> None:
         tables=[
             db.metadata.tables["credentials"],
             db.metadata.tables["instances"],
+            db.metadata.tables["instance_accounts"],
+            db.metadata.tables["account_permission"],
+            db.metadata.tables["account_change_log"],
             db.metadata.tables["sqlserver_clusters"],
             db.metadata.tables["sqlserver_cluster_instances"],
             db.metadata.tables["sqlserver_availability_groups"],
@@ -235,6 +241,98 @@ def test_sync_availability_groups_updates_existing_ag_without_duplicate() -> Non
         assert ag.listener_host == "ag-main.example.test"
         assert ag.listener_port == 1444
         assert ag.credential_id == credential.id
+
+
+@pytest.mark.unit
+def test_sync_availability_groups_removes_stale_manual_ag_and_current_snapshots() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        credential = Credential(
+            name="ag-sync-account",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="ag_reader",
+            password="secret",
+        )
+        instance = Instance(name="sql-node-1", db_type=DatabaseType.SQLSERVER, host="10.0.0.11", port=1433)
+        cluster = SQLServerCluster(name="cluster-a", description="")
+        db.session.add_all([credential, instance, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        stale_ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="AGDB07",
+            listener_name="AGDB07.wz.dc",
+            listener_host="10.10.10.173",
+            listener_port=1433,
+            credential_id=credential.id,
+            contained_enabled=True,
+            is_enabled=True,
+        )
+        db.session.add(stale_ag)
+        db.session.flush()
+        stale_account = InstanceAccount(
+            instance_id=instance.id,
+            username="ag_login",
+            db_type=DatabaseType.SQLSERVER,
+            owner_type="sqlserver_ag",
+            owner_id=stale_ag.id,
+            cluster_id=cluster.id,
+            availability_group_id=stale_ag.id,
+            is_active=True,
+        )
+        db.session.add(stale_account)
+        db.session.flush()
+        db.session.add_all(
+            [
+                AccountPermission(
+                    instance_id=instance.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    instance_account_id=stale_account.id,
+                    username="ag_login",
+                    owner_type="sqlserver_ag",
+                    owner_id=stale_ag.id,
+                    cluster_id=cluster.id,
+                    availability_group_id=stale_ag.id,
+                    permission_facts={"capabilities": []},
+                ),
+                AccountChangeLog(
+                    instance_id=instance.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    username="ag_login",
+                    owner_type="sqlserver_ag",
+                    owner_id=stale_ag.id,
+                    cluster_id=cluster.id,
+                    availability_group_id=stale_ag.id,
+                    change_type="add",
+                ),
+            ],
+        )
+        db.session.commit()
+
+        service = SQLServerClusterManagementService(
+            connection_factory=_FakeAgDiscoveryFactory(
+                [("AG07", "AGDB07", "AGDB07", 1433, True, "10.10.10.173")]
+            )
+        )
+
+        result = service.sync_availability_groups(cluster.id, {"credential_id": credential.id})
+
+        assert result["created"] == 1
+        assert result["updated"] == 0
+        assert result["deleted"] == 1
+        assert SQLServerAvailabilityGroup.query.filter_by(name="AGDB07").first() is None
+        current_ag = SQLServerAvailabilityGroup.query.filter_by(name="AG07").one()
+        assert current_ag.listener_host == "10.10.10.173"
+        assert InstanceAccount.query.filter_by(availability_group_id=stale_ag.id).count() == 0
+        assert AccountPermission.query.filter_by(availability_group_id=stale_ag.id).count() == 0
+        history = AccountChangeLog.query.filter_by(username="ag_login").one()
+        assert history.availability_group_id is None
+        assert history.owner_type == "sqlserver_ag"
+        assert history.owner_id == stale_ag.id
 
 
 @pytest.mark.unit
