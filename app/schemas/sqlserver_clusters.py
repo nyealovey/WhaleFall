@@ -36,6 +36,21 @@ def _validate_name(value: str) -> str:
     return cleaned
 
 
+def _normalize_domain_name(value: Any) -> str | None:
+    cleaned = parse_text(value).strip(".").lower()
+    return cleaned or None
+
+
+def _validate_domain_name(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if len(value) > 255:
+        raise ValueError("domain_name长度不能超过255个字符")
+    if any(char.isspace() for char in value):
+        raise ValueError("domain_name不能包含空白字符")
+    return value
+
+
 class SQLServerClusterListQuery(PayloadSchema):
     """SQL Server 群集列表 query."""
 
@@ -95,6 +110,7 @@ class SQLServerClusterCreatePayload(PayloadSchema):
     """创建 SQL Server 群集 payload."""
 
     name: StrictStr
+    domain_name: StrictStr
     description: StrictStr | None = ""
     is_enabled: bool = True
 
@@ -104,12 +120,27 @@ class SQLServerClusterCreatePayload(PayloadSchema):
         mapping = _ensure_mapping(data)
         if not parse_text(mapping.get("name")):
             raise ValueError("name不能为空")
+        if not _normalize_domain_name(mapping.get("domain_name")):
+            raise ValueError("domain_name不能为空")
         return data
 
     @field_validator("name")
     @classmethod
     def _clean_name(cls, value: str) -> str:
         return _validate_name(value)
+
+    @field_validator("domain_name", mode="before")
+    @classmethod
+    def _parse_domain_name(cls, value: Any) -> str | None:
+        return _normalize_domain_name(value)
+
+    @field_validator("domain_name")
+    @classmethod
+    def _clean_domain_name(cls, value: str | None) -> str:
+        cleaned = _validate_domain_name(value)
+        if cleaned is None:
+            raise ValueError("domain_name不能为空")
+        return cleaned
 
     @field_validator("description", mode="before")
     @classmethod
@@ -126,6 +157,7 @@ class SQLServerClusterUpdatePayload(PayloadSchema):
     """更新 SQL Server 群集 payload."""
 
     name: StrictStr | None = None
+    domain_name: StrictStr | None = None
     description: StrictStr | None = None
     is_enabled: bool | None = None
 
@@ -138,6 +170,16 @@ class SQLServerClusterUpdatePayload(PayloadSchema):
     @classmethod
     def _clean_name(cls, value: str | None) -> str | None:
         return _validate_name(value) if value is not None else None
+
+    @field_validator("domain_name", mode="before")
+    @classmethod
+    def _parse_domain_name(cls, value: Any) -> str | None:
+        return _normalize_domain_name(value)
+
+    @field_validator("domain_name")
+    @classmethod
+    def _clean_domain_name(cls, value: str | None) -> str | None:
+        return _validate_domain_name(value)
 
     @field_validator("description", mode="before")
     @classmethod

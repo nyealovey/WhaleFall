@@ -16,6 +16,9 @@ def test_cluster_ag_tab_exposes_sync_action() -> None:
         'data-action="sync-ag"',
         "同步 AG 信息",
         "使用已绑定实例凭据读取 AG/listener 信息。",
+        "clusterDomainNameInput",
+        "群集域名",
+        "连接地址",
     )
     for fragment in required_fragments:
         assert fragment in content
@@ -56,6 +59,9 @@ def test_cluster_frontend_calls_sync_ag_endpoint_from_ag_tab() -> None:
         'data-action="toggle-ag-collection"',
         "account_credential_id",
         "非 contained AG 不允许启用采集",
+        "domain_name",
+        "clusterDomainNameInput",
+        "connection_endpoint",
     )
     for fragment in required_view_fragments:
         assert fragment in view_content

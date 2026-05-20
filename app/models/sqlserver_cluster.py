@@ -22,6 +22,7 @@ class SQLServerCluster(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False, unique=True, index=True)
+    domain_name = db.Column(db.String(255), nullable=True)
     description = db.Column(db.Text, nullable=False, default="")
     is_enabled = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
@@ -47,6 +48,7 @@ class SQLServerCluster(db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "domain_name": self.domain_name,
             "description": self.description,
             "is_enabled": bool(self.is_enabled),
             "created_at": self.created_at.isoformat() if self.created_at else None,

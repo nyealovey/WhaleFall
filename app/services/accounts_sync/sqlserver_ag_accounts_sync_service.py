@@ -18,6 +18,14 @@ if TYPE_CHECKING:
     from app.core.types import RemoteAccount, SyncConnection
 
 
+class _AgConnectionError(RuntimeError):
+    """AG 连接失败并保留尝试过的 endpoint."""
+
+    def __init__(self, message: str, attempted_endpoints: list[str]) -> None:
+        super().__init__(message)
+        self.attempted_endpoints = attempted_endpoints
+
+
 class SQLServerAgAccountsSyncService:
     """同步实例所属群集内启用 contained 的 AG 账户."""
 
@@ -71,10 +79,10 @@ class SQLServerAgAccountsSyncService:
         session_id: str | None,
     ) -> dict[str, Any]:
         connection: SyncConnection | None = None
+        target: Instance | None = None
+        attempted_endpoints: list[str] = []
         try:
-            target = self._build_ag_connection_instance(instance, ag)
-            connection = cast("SyncConnection | None", ConnectionFactory.create_connection(target))
-            self._ensure_ag_connection(connection)
+            target, connection, attempted_endpoints = self._connect_to_ag(instance, ag)
 
             adapter = get_account_adapter(DatabaseType.SQLSERVER)
             remote_accounts = adapter.fetch_remote_accounts(target, connection)
@@ -88,6 +96,7 @@ class SQLServerAgAccountsSyncService:
                 session_id=session_id,
             )
         except (PermissionSyncError, RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
+            attempted_endpoints = getattr(exc, "attempted_endpoints", attempted_endpoints)
             ag.last_sync_at = time_utils.now()
             ag.last_sync_status = "failed"
             ag.last_error = str(exc)
@@ -101,7 +110,17 @@ class SQLServerAgAccountsSyncService:
                 availability_group_name=ag.name,
                 error=str(exc),
             )
-            return {"ag_id": ag.id, "ag_name": ag.name, "status": "failed", "processed_records": 0, "error": str(exc)}
+            return {
+                "ag_id": ag.id,
+                "ag_name": ag.name,
+                "listener_name": ag.listener_name,
+                "listener_host": ag.listener_host,
+                "connection_endpoint": self._build_ag_connection_host(ag),
+                "attempted_endpoints": attempted_endpoints,
+                "status": "failed",
+                "processed_records": 0,
+                "error": str(exc),
+            }
         finally:
             if connection is not None:
                 connection.disconnect()
@@ -109,23 +128,47 @@ class SQLServerAgAccountsSyncService:
         ag.last_sync_at = time_utils.now()
         ag.last_sync_status = "completed"
         ag.last_error = None
-        processed = int(collection.get("processed_records", 0) or 0)
+        processed = int(inventory.get("processed_records", 0) or 0)
         return {
             "ag_id": ag.id,
             "ag_name": ag.name,
+            "listener_name": ag.listener_name,
+            "listener_host": ag.listener_host,
+            "connection_endpoint": target.host if target else self._build_ag_connection_host(ag),
+            "attempted_endpoints": attempted_endpoints,
             "status": "completed",
             "processed_records": processed,
             "inventory": inventory,
             "collection": collection,
         }
 
-    @staticmethod
-    def _build_ag_connection_instance(instance: Instance, ag: SQLServerAvailabilityGroup) -> Instance:
+    @classmethod
+    def _connect_to_ag(
+        cls,
+        instance: Instance,
+        ag: SQLServerAvailabilityGroup,
+    ) -> tuple[Instance, SyncConnection, list[str]]:
+        target = cls._build_ag_connection_instance(instance, ag)
+        connection = cast("SyncConnection | None", ConnectionFactory.create_connection(target))
+        endpoint = cls._format_endpoint(target.host, target.port)
+        if connection is not None and connection.connect():
+            return target, connection, [endpoint]
+
+        detail = cls._connection_failure_detail(connection)
+        if connection is not None:
+            connection.disconnect()
+        raise _AgConnectionError(f"AG 监听器连接失败: {endpoint} {detail}", [endpoint])
+
+    @classmethod
+    def _build_ag_connection_instance(cls, instance: Instance, ag: SQLServerAvailabilityGroup) -> Instance:
+        host = cls._build_ag_connection_host(ag)
+        if not host:
+            raise RuntimeError("群集域名未配置，无法生成 Linux 可解析的 AG 侦听器连接地址")
         target = Instance(
             id=instance.id,
             name=f"{instance.name}/{ag.name}",
             db_type=DatabaseType.SQLSERVER,
-            host=ag.listener_host,
+            host=host,
             port=ag.listener_port,
             database_name=ag.connection_database or "master",
             credential_id=ag.account_credential_id,
@@ -135,9 +178,32 @@ class SQLServerAgAccountsSyncService:
         return target
 
     @staticmethod
-    def _ensure_ag_connection(connection: SyncConnection | None) -> None:
-        if connection is None or not connection.connect():
-            raise RuntimeError("AG 监听器连接失败")
+    def _build_ag_connection_host(ag: SQLServerAvailabilityGroup) -> str | None:
+        listener_name = (ag.listener_name or "").strip()
+        domain_name = ((ag.cluster.domain_name if ag.cluster else None) or "").strip().strip(".")
+        if listener_name and domain_name:
+            if "." in listener_name:
+                return listener_name
+            return f"{listener_name}.{domain_name}"
+        if listener_name and not domain_name and "." not in listener_name:
+            return None
+        return (ag.listener_host or "").strip() or None
+
+    @staticmethod
+    def _format_endpoint(host: str, port: int | None) -> str:
+        return f"{host}:{port or 1433}"
+
+    @staticmethod
+    def _connection_failure_detail(connection: SyncConnection | None) -> str:
+        if connection is None:
+            return "未创建连接"
+        error_type = str(getattr(connection, "last_error_type", "") or "").strip()
+        error = str(getattr(connection, "last_error", "") or "").strip()
+        if error_type and error:
+            return f"{error_type}: {error}"
+        if error:
+            return error
+        return "连接返回失败"
 
     @staticmethod
     def _with_ag_owner(

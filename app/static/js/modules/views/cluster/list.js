@@ -106,6 +106,11 @@ function mountClusterPage(global) {
         },
       },
       {
+        name: "域名",
+        id: "domain_name",
+        formatter: (value) => value || "-",
+      },
+      {
         name: "状态",
         id: "is_enabled",
         formatter: (value) => gridHtml(renderStatus(value)),
@@ -171,6 +176,7 @@ function mountClusterPage(global) {
     const items = Array.isArray(payload.items) ? payload.items : [];
     return items.map((item) => [
       item.name,
+      item.domain_name,
       item.is_enabled,
       item.instance_count,
       item.availability_group_count,
@@ -244,6 +250,7 @@ function mountClusterPage(global) {
   function fillBasic(cluster) {
     document.getElementById("clusterIdInput").value = cluster.id || "";
     document.getElementById("clusterNameInput").value = cluster.name || "";
+    document.getElementById("clusterDomainNameInput").value = cluster.domain_name || "";
     document.getElementById("clusterDescriptionInput").value = cluster.description || "";
     document.getElementById("clusterEnabledInput").checked = cluster.is_enabled !== false;
   }
@@ -269,6 +276,7 @@ function mountClusterPage(global) {
   function buildClusterPayload() {
     return {
       name: document.getElementById("clusterNameInput").value.trim(),
+      domain_name: document.getElementById("clusterDomainNameInput").value.trim(),
       description: document.getElementById("clusterDescriptionInput").value.trim(),
       is_enabled: document.getElementById("clusterEnabledInput").checked,
     };
@@ -280,6 +288,10 @@ function mountClusterPage(global) {
     const payload = buildClusterPayload();
     if (!payload.name) {
       showToast("warning", "请输入群集名称");
+      return;
+    }
+    if (!payload.domain_name) {
+      showToast("warning", "请输入群集域名");
       return;
     }
 
@@ -330,7 +342,7 @@ function mountClusterPage(global) {
     }
     currentAgItems = Array.isArray(items) ? items : [];
     if (!items.length) {
-      body.innerHTML = '<tr><td colspan="6" class="text-muted">暂无 AG 配置</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="text-muted">暂无 AG 配置</td></tr>';
       return;
     }
     body.innerHTML = items.map((item) => renderAgRow(item)).join("");
@@ -343,6 +355,7 @@ function mountClusterPage(global) {
       <tr>
         <td>${escapeHtml(item.name || "-")}</td>
         <td>${escapeHtml(listener)}</td>
+        <td>${escapeHtml(item.connection_endpoint || "-")}</td>
         <td>${renderAccountCredentialSelect(item)}</td>
         <td>${renderBoolean(item.contained_enabled)}</td>
         <td>${renderCollectionToggle(item)}</td>

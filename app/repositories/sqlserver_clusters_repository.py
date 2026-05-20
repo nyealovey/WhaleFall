@@ -56,6 +56,7 @@ class SQLServerClustersRepository:
             query = query.filter(
                 or_(
                     SQLServerCluster.name.contains(normalized_search),
+                    SQLServerCluster.domain_name.contains(normalized_search),
                     SQLServerCluster.description.contains(normalized_search),
                 ),
             )

@@ -40,11 +40,29 @@ def test_create_cluster_rejects_duplicate_name() -> None:
     with app.app_context():
         _create_schema()
         service = SQLServerClusterManagementService()
-        created = service.create_cluster({"name": "cluster-a", "description": "主群集"})
+        created = service.create_cluster({"name": "cluster-a", "domain_name": "wz.dc", "description": "主群集"})
         assert created["name"] == "cluster-a"
 
         with pytest.raises(ValidationError, match="群集名称已存在"):
-            service.create_cluster({"name": "cluster-a"})
+            service.create_cluster({"name": "cluster-a", "domain_name": "wz.dc"})
+
+
+@pytest.mark.unit
+def test_cluster_domain_name_is_saved_and_returned() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        service = SQLServerClusterManagementService()
+
+        created = service.create_cluster({"name": "cluster-a", "domain_name": ".wz.dc"})
+
+        assert created["domain_name"] == "wz.dc"
+
+        updated = service.update_cluster(created["id"], {"domain_name": "corp.wz.dc"})
+
+        assert updated["domain_name"] == "corp.wz.dc"
 
 
 @pytest.mark.unit
@@ -56,7 +74,7 @@ def test_replace_instances_allows_only_existing_sqlserver_instances() -> None:
         _create_schema()
         sqlserver = Instance(name="sql-1", db_type=DatabaseType.SQLSERVER, host="127.0.0.1", port=1433)
         mysql = Instance(name="mysql-1", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
-        cluster = SQLServerCluster(name="cluster-a", description="")
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
         db.session.add_all([sqlserver, mysql, cluster])
         db.session.commit()
 
@@ -321,6 +339,15 @@ def test_availability_group_collection_requires_contained_and_account_credential
         with pytest.raises(ValidationError, match="请选择 AG 账户采集凭据后启用"):
             service.update_availability_group(cluster.id, ag.id, {"is_enabled": True})
 
+        with pytest.raises(ValidationError, match="请先配置群集域名后启用"):
+            service.update_availability_group(
+                cluster.id,
+                ag.id,
+                {"account_credential_id": credential.id, "is_enabled": True},
+            )
+
+        cluster.domain_name = "wz.dc"
+        db.session.flush()
         updated = service.update_availability_group(
             cluster.id,
             ag.id,
