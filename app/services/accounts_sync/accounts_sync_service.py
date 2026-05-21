@@ -11,7 +11,6 @@ from app.core.constants.sync_constants import SyncOperationType
 from app.core.exceptions import AppError
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
-from app.services.accounts_sync.sqlserver_ag_accounts_sync_service import SQLServerAgAccountsSyncService
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.structlog_config import get_sync_logger
@@ -190,8 +189,6 @@ class AccountSyncService:
             with AccountSyncCoordinator(instance) as coordinator:
                 summary: SyncStagesSummary = coordinator.sync_all(session_id=temp_session_id)
             result = self._build_result(summary)
-            ag_summary = SQLServerAgAccountsSyncService().sync_for_instance(instance, session_id=temp_session_id)
-            self._attach_ag_summary(result, summary, ag_summary)
             result["details"] = summary
             instance.last_connected = time_utils.now()
         except ACCOUNT_SYNC_EXCEPTIONS as exc:
@@ -375,8 +372,6 @@ class AccountSyncService:
             with AccountSyncCoordinator(instance) as coordinator:
                 summary: SyncStagesSummary = coordinator.sync_all(session_id=session_id)
             result = self._build_result(summary)
-            ag_summary = SQLServerAgAccountsSyncService().sync_for_instance(instance, session_id=session_id)
-            self._attach_ag_summary(result, summary, ag_summary)
             result["details"] = summary
             instance.last_connected = time_utils.now()
         except ACCOUNT_SYNC_EXCEPTIONS as exc:

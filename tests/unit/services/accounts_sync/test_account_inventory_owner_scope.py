@@ -12,6 +12,80 @@ from app.models.account_permission import AccountPermission
 
 
 @pytest.mark.unit
+def test_inventory_sync_reuses_ag_account_created_by_other_cluster_instance() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["instances"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["sqlserver_clusters"],
+                db.metadata.tables["sqlserver_availability_groups"],
+            ],
+        )
+        instance_1 = Instance(
+            name="node-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.11",
+            port=1433,
+            is_active=True,
+        )
+        instance_2 = Instance(
+            name="node-2",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.12",
+            port=1433,
+            is_active=True,
+        )
+        cluster = SQLServerCluster(name="cluster-a", description="")
+        db.session.add_all([instance_1, instance_2, cluster])
+        db.session.flush()
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-contained",
+            listener_host="10.0.0.20",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+        )
+        db.session.add(ag)
+        db.session.commit()
+
+        remote_account = {
+            "username": "sa",
+            "db_type": DatabaseType.SQLSERVER,
+            "is_active": True,
+            "is_superuser": True,
+            "is_locked": False,
+            "permissions": {"type_specific": {}},
+            "owner_type": "sqlserver_ag",
+            "owner_id": ag.id,
+            "cluster_id": cluster.id,
+            "availability_group_id": ag.id,
+        }
+
+        first_summary, first_active = AccountInventoryManager().synchronize(instance_1, [remote_account])
+        second_summary, second_active = AccountInventoryManager().synchronize(instance_2, [remote_account])
+
+        ag_accounts = InstanceAccount.query.filter_by(
+            owner_type="sqlserver_ag",
+            owner_id=ag.id,
+            username="sa",
+        ).all()
+        assert first_summary["created"] == 1
+        assert [account.id for account in first_active] == [ag_accounts[0].id]
+        assert second_summary["created"] == 0
+        assert second_summary["refreshed"] == 1
+        assert [account.id for account in second_active] == [ag_accounts[0].id]
+        assert len(ag_accounts) == 1
+        assert ag_accounts[0].instance_id == instance_1.id
+        assert ag_accounts[0].is_active is True
+
+
+@pytest.mark.unit
 def test_inventory_sync_scopes_same_username_by_account_owner() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

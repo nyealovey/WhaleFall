@@ -16,6 +16,7 @@ from app.core.constants.system_constants import SuccessMessages
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.schemas.sqlserver_clusters import SQLServerClusterListQuery
 from app.schemas.validation import validate_or_raise
+from app.services.accounts_sync.sqlserver_ag_accounts_sync_service import SQLServerAgAccountsSyncService
 from app.services.sqlserver_clusters import SQLServerClusterManagementService
 from app.utils.decorators import require_csrf
 
@@ -107,6 +108,15 @@ AvailabilityGroupSyncEnvelope = make_success_envelope_model(
     ns,
     "SQLServerAvailabilityGroupSyncEnvelope",
     AvailabilityGroupSyncData,
+)
+AvailabilityGroupAccountsSyncData = ns.model(
+    "SQLServerAvailabilityGroupAccountsSyncData",
+    {"sync_result": fields.Raw},
+)
+AvailabilityGroupAccountsSyncEnvelope = make_success_envelope_model(
+    ns,
+    "SQLServerAvailabilityGroupAccountsSyncEnvelope",
+    AvailabilityGroupAccountsSyncData,
 )
 
 _clusters_list_query_parser = new_parser()
@@ -345,6 +355,36 @@ class SQLServerAvailabilityGroupsSyncResource(BaseResource):
             module="sqlserver_clusters",
             action="sync_availability_groups",
             public_error="同步 SQL Server AG 信息失败",
+            context={"cluster_id": cluster_id},
+            expected_exceptions=(NotFoundError, ValidationError),
+        )
+
+
+@ns.route("/<int:cluster_id>/availability-groups/actions/sync-accounts")
+class SQLServerAvailabilityGroupAccountsSyncResource(BaseResource):
+    """SQL Server AG 账户同步资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", AvailabilityGroupAccountsSyncEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @api_admin_required
+    @require_csrf
+    def post(self, cluster_id: int):
+        """同步指定群集下的 contained AG 账户."""
+
+        def _execute():
+            sync_result = SQLServerAgAccountsSyncService().sync_for_cluster(cluster_id)
+            return self.success(data={"sync_result": sync_result}, message=SuccessMessages.OPERATION_SUCCESS)
+
+        return self.safe_call(
+            _execute,
+            module="sqlserver_clusters",
+            action="sync_availability_group_accounts",
+            public_error="同步 SQL Server AG 账户失败",
             context={"cluster_id": cluster_id},
             expected_exceptions=(NotFoundError, ValidationError),
         )

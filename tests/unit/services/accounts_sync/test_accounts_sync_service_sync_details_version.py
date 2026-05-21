@@ -50,6 +50,24 @@ class _DummySyncSessionService:
         self.fail_calls.append({"record_id": record_id, **dict(kwargs)})
 
 
+class _DummyCoordinator:
+    def __init__(self, _instance: object) -> None:
+        return None
+
+    def __enter__(self) -> _DummyCoordinator:
+        return self
+
+    def __exit__(self, *_exc: object) -> bool:
+        return False
+
+    def sync_all(self, *, session_id: str) -> dict[str, Any]:
+        _ = session_id
+        return {
+            "inventory": {"created": 1, "reactivated": 0, "deactivated": 0},
+            "collection": {"updated": 0, "processed_records": 1},
+        }
+
+
 @pytest.mark.unit
 def test_sync_with_session_success_adds_sync_details_version(monkeypatch) -> None:
     service = AccountSyncService()
@@ -82,3 +100,23 @@ def test_sync_with_session_success_adds_sync_details_version(monkeypatch) -> Non
     assert dummy_sync_session_service.complete_calls
     sync_details = cast(dict[str, Any], dummy_sync_session_service.complete_calls[0]["sync_details"])
     assert sync_details.get("version") == 1
+
+
+@pytest.mark.unit
+def test_manual_single_instance_sync_does_not_sync_sqlserver_ag_accounts(monkeypatch) -> None:
+    service = AccountSyncService()
+    monkeypatch.setattr(service, "_emit_completion_log", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(accounts_sync_service_module, "AccountSyncCoordinator", _DummyCoordinator)
+
+    class _DummyInstance:
+        id = 1
+        name = "sqlserver-1"
+        db_type = "sqlserver"
+        last_connected = None
+
+    result = service._sync_single_instance(cast(Any, _DummyInstance()))
+
+    assert not hasattr(accounts_sync_service_module, "SQLServerAgAccountsSyncService")
+    assert result["success"] is True
+    assert result["synced_count"] == 1
+    assert "ag_accounts" not in result.get("details", {})
