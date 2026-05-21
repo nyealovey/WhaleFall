@@ -10,6 +10,7 @@ from app.models.account_classification import (
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.models.tag import Tag
 from app.models.user import User
 
@@ -372,6 +373,112 @@ def test_api_v1_accounts_ledgers_filters_by_owner_type_for_instance_accounts() -
         ag_items = ag_data.get("items")
         assert isinstance(ag_items, list)
         assert [item.get("type_specific", {}).get("scope") for item in ag_items] == ["ag"]
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_ledgers_displays_ag_listener_for_ag_accounts() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["account_permission"],
+                db.metadata.tables["account_classifications"],
+                db.metadata.tables["classification_rules"],
+                db.metadata.tables["account_classification_assignments"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+                db.metadata.tables["sqlserver_clusters"],
+                db.metadata.tables["sqlserver_cluster_instances"],
+                db.metadata.tables["sqlserver_availability_groups"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        instance = Instance(
+            name="sqlserver-node-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.11",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        cluster = SQLServerCluster(name="cluster-a", description="", is_enabled=True)
+        db.session.add_all([user, instance, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="AGDB08",
+            listener_name="AGDB08-LSN",
+            listener_host="192.168.0.73",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+        )
+        db.session.add(ag)
+        db.session.flush()
+
+        ag_owner_account = InstanceAccount(
+            instance_id=instance.id,
+            username="ag_login",
+            db_type=DatabaseType.SQLSERVER,
+            owner_type="sqlserver_ag",
+            owner_id=ag.id,
+            cluster_id=cluster.id,
+            availability_group_id=ag.id,
+            is_active=True,
+        )
+        db.session.add(ag_owner_account)
+        db.session.flush()
+        db.session.add(
+            AccountPermission(
+                instance_id=instance.id,
+                db_type=DatabaseType.SQLSERVER,
+                instance_account_id=ag_owner_account.id,
+                username="ag_login",
+                owner_type="sqlserver_ag",
+                owner_id=ag.id,
+                cluster_id=cluster.id,
+                availability_group_id=ag.id,
+                permission_facts={
+                    "version": 2,
+                    "db_type": "sqlserver",
+                    "capabilities": [],
+                    "capability_reasons": {},
+                    "roles": [],
+                    "privileges": {},
+                    "errors": [],
+                    "meta": {},
+                },
+            ),
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get(
+            f"/api/v1/accounts/ledgers?instance_id={instance.id}&owner_type=sqlserver_ag&include_roles=true",
+        )
+
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        data = payload.get("data")
+        assert isinstance(data, dict)
+        items = data.get("items")
+        assert isinstance(items, list)
+        assert len(items) == 1
+        assert items[0]["instance_name"] == "AGDB08-LSN"
+        assert items[0]["instance_host"] == "192.168.0.73"
 
 
 @pytest.mark.unit

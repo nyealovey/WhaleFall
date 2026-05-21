@@ -158,12 +158,12 @@ function mountClusterPage(global) {
           const firstInstanceId = escapeHtml(String(resolveFirstBoundInstanceId(meta) || ""));
           return gridHtml(
             `<div class="btn-group btn-group-sm" role="group">` +
-              `<button type="button" class="btn btn-outline-primary" data-action="edit-cluster" data-cluster-id="${clusterId}">` +
-              `<i class="fas fa-pen me-1"></i>管理</button>` +
-              `<button type="button" class="btn btn-outline-primary" data-action="sync-ag-accounts" data-cluster-id="${clusterId}">` +
-              `<i class="fas fa-sync me-1"></i>同步AG账户</button>` +
-              `<button type="button" class="btn btn-outline-primary" data-action="open-ag-accounts" data-cluster-id="${clusterId}" data-instance-id="${firstInstanceId}">` +
-              `<i class="fas fa-users me-1"></i>账户列表</button>` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-cluster" data-cluster-id="${clusterId}" title="管理" aria-label="管理">` +
+              `<i class="fas fa-pen" aria-hidden="true"></i></button>` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="sync-ag-accounts" data-cluster-id="${clusterId}" title="同步AG账户" aria-label="同步AG账户">` +
+              `<i class="fas fa-sync" aria-hidden="true"></i></button>` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-ag-accounts" data-cluster-id="${clusterId}" data-instance-id="${firstInstanceId}" title="账户列表" aria-label="账户列表">` +
+              `<i class="fas fa-users" aria-hidden="true"></i></button>` +
               `</div>`
           );
         },

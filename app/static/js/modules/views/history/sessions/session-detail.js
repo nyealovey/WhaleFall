@@ -594,6 +594,8 @@
     switch (itemType) {
       case 'instance':
         return '实例';
+      case 'sqlserver_ag_cluster':
+        return 'AG群集';
       case 'rule':
         return '规则';
       case 'step':

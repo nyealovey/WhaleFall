@@ -99,8 +99,11 @@ def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> No
     required_view_fragments = (
         'data-action="sync-ag-accounts"',
         'data-action="open-ag-accounts"',
-        "同步AG账户",
-        "账户列表",
+        'title="同步AG账户"',
+        'aria-label="同步AG账户"',
+        'title="账户列表"',
+        'aria-label="账户列表"',
+        "btn btn-outline-secondary btn-sm btn-icon",
         "syncAgAccounts(clusterId)",
         'params.set("owner_type", "sqlserver_ag")',
         "/accounts/ledgers/sqlserver",
@@ -110,4 +113,13 @@ def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> No
         assert fragment in view_content
 
     assert "owner_type" in accounts_view_content
+    assert "同步AG账户</button>" not in view_content
+    assert "账户列表</button>" not in view_content
     assert 'data-action="sync-ag-accounts"' not in template_content
+
+
+def test_run_center_session_detail_labels_ag_cluster_items() -> None:
+    content = _read_text("app/static/js/modules/views/history/sessions/session-detail.js")
+
+    assert "sqlserver_ag_cluster" in content
+    assert "AG群集" in content
