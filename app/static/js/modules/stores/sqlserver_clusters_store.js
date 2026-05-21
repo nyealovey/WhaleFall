@@ -14,6 +14,7 @@
       "createAvailabilityGroup",
       "updateAvailabilityGroup",
       "syncAvailabilityGroups",
+      "syncAgAccounts",
     ].forEach((method) => {
       // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
@@ -104,6 +105,12 @@
             .syncAvailabilityGroups(clusterId, payload)
             .then((response) => ensureSuccessResponse(response, "同步 AG 信息失败"))
             .catch((error) => handleError(error, { action: "syncAvailabilityGroups", clusterId }));
+        },
+        syncAgAccounts(clusterId) {
+          return service
+            .syncAgAccounts(clusterId)
+            .then((response) => ensureSuccessResponse(response, "同步 AG 账户失败"))
+            .catch((error) => handleError(error, { action: "syncAgAccounts", clusterId }));
         },
       },
     };

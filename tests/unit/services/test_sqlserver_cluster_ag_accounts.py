@@ -361,6 +361,65 @@ def test_sqlserver_ag_sync_only_processes_enabled_contained_ags_with_account_cre
 
 
 @pytest.mark.unit
+def test_sqlserver_ag_sync_for_cluster_uses_first_bound_instance_once(app, monkeypatch) -> None:
+    with app.app_context():
+        _create_tables()
+        first_instance = Instance(
+            name="node-a",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.11",
+            port=1433,
+            is_active=True,
+        )
+        second_instance = Instance(
+            name="node-b",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.12",
+            port=1433,
+            is_active=True,
+        )
+        credential = Credential(
+            name="ag-contained-reader",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="reader",
+            password="secret",
+        )
+        cluster = SQLServerCluster(name="cluster-contained-sync", description="", is_enabled=True)
+        db.session.add_all([first_instance, second_instance, credential, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=first_instance.id))
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=second_instance.id))
+        enabled_ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-contained",
+            listener_host="10.0.0.20",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+            account_credential_id=credential.id,
+        )
+        db.session.add(enabled_ag)
+        db.session.commit()
+
+        calls: list[tuple[int, str]] = []
+
+        def _fake_sync_one_ag(self, instance, ag, *, session_id=None):
+            calls.append((instance.id, ag.name))
+            return {"status": "completed", "processed_records": 3}
+
+        monkeypatch.setattr(SQLServerAgAccountsSyncService, "_sync_one_ag", _fake_sync_one_ag)
+
+        result = SQLServerAgAccountsSyncService().sync_for_cluster(cluster.id, session_id="test")
+
+        assert result["status"] == "completed"
+        assert result["processed_records"] == 3
+        assert result["cluster_id"] == cluster.id
+        assert result["source_instance_id"] == first_instance.id
+        assert calls == [(first_instance.id, "ag-contained")]
+
+
+@pytest.mark.unit
 def test_sqlserver_ag_sync_connection_uses_ag_account_credential(app) -> None:
     with app.app_context():
         _create_tables()

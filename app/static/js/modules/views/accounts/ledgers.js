@@ -217,6 +217,7 @@ function mountAccountsListPage(global) {
           "instance_id",
           "is_locked",
           "is_superuser",
+          "owner_type",
           "plugin",
         ],
         normalize: (filters) => normalizeGridFilters(filters),
@@ -287,6 +288,11 @@ function mountAccountsListPage(global) {
     const plugin = sanitizeText(source.plugin);
     if (plugin) {
       cleaned.plugin = plugin;
+    }
+
+    const ownerType = sanitizeText(source.owner_type);
+    if (ownerType) {
+      cleaned.owner_type = ownerType;
     }
 
     if (currentDbType && currentDbType !== "all") {

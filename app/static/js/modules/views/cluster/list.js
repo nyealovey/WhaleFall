@@ -86,6 +86,14 @@ function mountClusterPage(global) {
               event.preventDefault();
               openEditor(el.getAttribute("data-cluster-id"));
             },
+            "sync-ag-accounts": ({ event, el }) => {
+              event.preventDefault();
+              syncAgAccounts(el);
+            },
+            "open-ag-accounts": ({ event, el }) => {
+              event.preventDefault();
+              openAgAccountsLedger(el);
+            },
           },
         }),
       ],
@@ -146,10 +154,17 @@ function mountClusterPage(global) {
         sort: false,
         formatter: (value, row) => {
           const meta = rowMeta.get(row);
+          const clusterId = escapeHtml(String(meta.id || ""));
+          const firstInstanceId = escapeHtml(String(resolveFirstBoundInstanceId(meta) || ""));
           return gridHtml(
-            `<button type="button" class="btn btn-sm btn-outline-primary" data-action="edit-cluster" data-cluster-id="${escapeHtml(String(meta.id || ""))}">` +
-              `<i class="fas fa-pen me-1"></i>管理` +
-              `</button>`
+            `<div class="btn-group btn-group-sm" role="group">` +
+              `<button type="button" class="btn btn-outline-primary" data-action="edit-cluster" data-cluster-id="${clusterId}">` +
+              `<i class="fas fa-pen me-1"></i>管理</button>` +
+              `<button type="button" class="btn btn-outline-primary" data-action="sync-ag-accounts" data-cluster-id="${clusterId}">` +
+              `<i class="fas fa-sync me-1"></i>同步AG账户</button>` +
+              `<button type="button" class="btn btn-outline-primary" data-action="open-ag-accounts" data-cluster-id="${clusterId}" data-instance-id="${firstInstanceId}">` +
+              `<i class="fas fa-users me-1"></i>账户列表</button>` +
+              `</div>`
           );
         },
       });
@@ -335,6 +350,36 @@ function mountClusterPage(global) {
       .finally(() => setButtonLoading(trigger, false));
   }
 
+  function syncAgAccounts(trigger) {
+    const clusterId = trigger?.getAttribute("data-cluster-id");
+    if (!clusterId) {
+      showToast("warning", "请选择群集后同步 AG 账户");
+      return;
+    }
+    setButtonLoading(trigger, true);
+    store.actions
+      .syncAgAccounts(clusterId)
+      .then(() => {
+        showToast("success", "AG 账户同步完成");
+        gridWrapper?.refresh?.();
+      })
+      .catch((error) => showError(error, "同步 AG 账户失败"))
+      .finally(() => setButtonLoading(trigger, false));
+  }
+
+  function openAgAccountsLedger(trigger) {
+    const instanceId = trigger?.getAttribute("data-instance-id");
+    if (!instanceId) {
+      showToast("warning", "请先为群集绑定 SQL Server 实例");
+      return;
+    }
+    const params = new URLSearchParams();
+    params.set("instance_id", instanceId);
+    params.set("owner_type", "sqlserver_ag");
+    params.set("include_roles", "true");
+    global.location.href = `/accounts/ledgers/sqlserver?${params.toString()}`;
+  }
+
   function renderAgTable(items) {
     const body = document.getElementById("clusterAgTableBody");
     if (!body) {
@@ -402,6 +447,11 @@ function mountClusterPage(global) {
 
   function findCurrentAg(agId) {
     return currentAgItems.find((item) => String(item.id) === String(agId)) || null;
+  }
+
+  function resolveFirstBoundInstanceId(cluster) {
+    const ids = Array.isArray(cluster?.bound_instance_ids) ? cluster.bound_instance_ids : [];
+    return ids.length ? ids[0] : "";
   }
 
   function updateAgAccountCredential(select) {

@@ -82,3 +82,32 @@ def test_cluster_frontend_calls_sync_ag_endpoint_from_ag_tab() -> None:
     )
     for fragment in forbidden_view_fragments:
         assert fragment not in view_content
+
+
+def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> None:
+    template_content = _read_text("app/templates/cluster/list.html")
+    service_content = _read_text("app/static/js/modules/services/sqlserver_clusters_service.js")
+    store_content = _read_text("app/static/js/modules/stores/sqlserver_clusters_store.js")
+    view_content = _read_text("app/static/js/modules/views/cluster/list.js")
+    accounts_view_content = _read_text("app/static/js/modules/views/accounts/ledgers.js")
+
+    assert "syncAgAccounts(clusterId)" in service_content
+    assert "`${BASE_PATH}/${clusterId}/availability-groups/actions/sync-accounts`" in service_content
+    assert '"syncAgAccounts",' in store_content
+    assert "syncAgAccounts(clusterId)" in store_content
+
+    required_view_fragments = (
+        'data-action="sync-ag-accounts"',
+        'data-action="open-ag-accounts"',
+        "同步AG账户",
+        "账户列表",
+        "syncAgAccounts(clusterId)",
+        'params.set("owner_type", "sqlserver_ag")',
+        "/accounts/ledgers/sqlserver",
+        "resolveFirstBoundInstanceId",
+    )
+    for fragment in required_view_fragments:
+        assert fragment in view_content
+
+    assert "owner_type" in accounts_view_content
+    assert 'data-action="sync-ag-accounts"' not in template_content

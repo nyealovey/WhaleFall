@@ -13,11 +13,13 @@ from app.core.constants.sync_constants import SyncCategory, SyncOperationType
 from app.core.exceptions import AppError, ValidationError
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
+from app.models.sqlserver_cluster import SQLServerCluster, SQLServerClusterInstance
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.services.accounts_sync.accounts_sync_task_service import AccountsSyncTaskService
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
+from app.services.accounts_sync.sqlserver_ag_accounts_sync_service import SQLServerAgAccountsSyncService
 from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import SyncItemStats, sync_session_service
@@ -56,6 +58,13 @@ class _AccountsSyncTotals:
     accounts_created: int = 0
     accounts_updated: int = 0
     accounts_deactivated: int = 0
+
+
+@dataclass(slots=True)
+class _AgAccountsSyncTotals:
+    clusters_synced: int = 0
+    clusters_failed: int = 0
+    accounts_synced: int = 0
 
 
 def _resolve_run_id(
@@ -279,6 +288,85 @@ def _sync_instances(
     return totals
 
 
+def _sync_ag_clusters(
+    *,
+    sync_logger: structlog.BoundLogger,
+    session: SyncSession,
+    instances: list[Instance],
+) -> _AgAccountsSyncTotals:
+    """在实例账户同步后，按群集同步 SQL Server contained AG 账户."""
+    totals = _AgAccountsSyncTotals()
+    sqlserver_instance_ids = [
+        int(instance.id)
+        for instance in instances
+        if instance.id is not None and str(instance.db_type).lower() == "sqlserver"
+    ]
+    if not sqlserver_instance_ids:
+        return totals
+
+    bindings = (
+        SQLServerClusterInstance.query.join(SQLServerCluster)
+        .filter(
+            SQLServerClusterInstance.instance_id.in_(sqlserver_instance_ids),
+            SQLServerCluster.is_enabled.is_(True),
+        )
+        .order_by(SQLServerClusterInstance.cluster_id.asc())
+        .all()
+    )
+    cluster_ids: list[int] = []
+    seen_cluster_ids: set[int] = set()
+    for binding in bindings:
+        cluster_id = int(binding.cluster_id)
+        if cluster_id in seen_cluster_ids:
+            continue
+        seen_cluster_ids.add(cluster_id)
+        cluster_ids.append(cluster_id)
+
+    service = SQLServerAgAccountsSyncService()
+    for cluster_id in cluster_ids:
+        try:
+            sync_logger.info(
+                "开始群集 AG 账户同步",
+                module="accounts_sync",
+                phase="sqlserver_ag",
+                operation="sync_accounts",
+                session_id=session.session_id,
+                cluster_id=cluster_id,
+            )
+            result = service.sync_for_cluster(cluster_id, session_id=session.session_id)
+        except ACCOUNT_TASK_EXCEPTIONS as exc:
+            totals.clusters_failed += 1
+            sync_logger.exception(
+                "群集 AG 账户同步异常",
+                module="accounts_sync",
+                phase="sqlserver_ag",
+                operation="sync_accounts",
+                session_id=session.session_id,
+                cluster_id=cluster_id,
+                error=str(exc),
+            )
+            continue
+
+        if result.get("status") == "failed":
+            totals.clusters_failed += 1
+        else:
+            totals.clusters_synced += 1
+        totals.accounts_synced += int(result.get("processed_records", 0) or 0)
+        sync_logger.info(
+            "群集 AG 账户同步完成",
+            module="accounts_sync",
+            phase="sqlserver_ag",
+            operation="sync_accounts",
+            session_id=session.session_id,
+            cluster_id=cluster_id,
+            status=result.get("status"),
+            processed_records=result.get("processed_records", 0),
+            failed_ag=result.get("failed_ag", 0),
+        )
+
+    return totals
+
+
 def _finalize_success(
     *,
     sync_logger: structlog.BoundLogger,
@@ -288,7 +376,9 @@ def _finalize_success(
     session: SyncSession,
     instances: list[Instance],
     totals: _AccountsSyncTotals,
+    ag_totals: _AgAccountsSyncTotals | None = None,
 ) -> None:
+    ag_totals = ag_totals or _AgAccountsSyncTotals()
     session.successful_instances = totals.instances_synced
     session.failed_instances = totals.instances_failed
     session.status = "completed" if totals.instances_failed == 0 else "failed"
@@ -307,6 +397,9 @@ def _finalize_success(
             accounts_created=totals.accounts_created,
             accounts_updated=totals.accounts_updated,
             accounts_deactivated=totals.accounts_deactivated,
+            ag_clusters_successful=ag_totals.clusters_synced,
+            ag_clusters_failed=ag_totals.clusters_failed,
+            ag_accounts_synced=ag_totals.accounts_synced,
             session_id=session.session_id,
         )
 
@@ -565,6 +658,11 @@ def sync_accounts(
                 instances=instances,
                 records=records,
             )
+            ag_totals = (
+                _AgAccountsSyncTotals()
+                if _is_cancelled(resolved_run_id)
+                else _sync_ag_clusters(sync_logger=sync_logger, session=session, instances=instances)
+            )
 
             _finalize_success(
                 sync_logger=sync_logger,
@@ -574,6 +672,7 @@ def sync_accounts(
                 session=session,
                 instances=instances,
                 totals=totals,
+                ag_totals=ag_totals,
             )
 
         except ACCOUNT_TASK_EXCEPTIONS as exc:

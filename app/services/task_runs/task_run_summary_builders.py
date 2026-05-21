@@ -52,6 +52,9 @@ def build_sync_accounts_summary(
     accounts_updated: int,
     accounts_deactivated: int,
     session_id: str | None,
+    ag_clusters_successful: int = 0,
+    ag_clusters_failed: int = 0,
+    ag_accounts_synced: int = 0,
     skipped: bool = False,
     skip_reason: str | None = None,
 ) -> dict[str, Any]:
@@ -64,6 +67,9 @@ def build_sync_accounts_summary(
         _metric(key="accounts_created", label="新增账户", value=accounts_created, unit="个", tone="info"),
         _metric(key="accounts_updated", label="更新账户", value=accounts_updated, unit="个", tone="info"),
         _metric(key="accounts_deactivated", label="停用账户", value=accounts_deactivated, unit="个", tone="info"),
+        _metric(key="ag_clusters_successful", label="成功 AG 群集", value=ag_clusters_successful, unit="个", tone="success"),
+        _metric(key="ag_clusters_failed", label="失败 AG 群集", value=ag_clusters_failed, unit="个", tone="danger"),
+        _metric(key="ag_accounts_synced", label="同步 AG 账户", value=ag_accounts_synced, unit="个", tone="info"),
     ]
     ext_data = {
         "instances": {"total": instances_total, "successful": instances_successful, "failed": instances_failed},
@@ -72,6 +78,11 @@ def build_sync_accounts_summary(
             "created": accounts_created,
             "updated": accounts_updated,
             "deactivated": accounts_deactivated,
+        },
+        "ag_accounts": {
+            "clusters_successful": ag_clusters_successful,
+            "clusters_failed": ag_clusters_failed,
+            "synced": ag_accounts_synced,
         },
         "session_id": session_id,
     }

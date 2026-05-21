@@ -428,6 +428,11 @@ class SQLServerClusterManagementService:
         payload.update(
             {
                 "instance_count": len(bindings),
+                "bound_instance_ids": [
+                    int(binding.instance_id)
+                    for binding in bindings
+                    if binding.instance_id is not None
+                ],
                 "availability_group_count": len(ags),
                 "contained_ag_count": sum(1 for ag in ags if ag.contained_enabled),
                 "last_ag_sync_status": latest.last_sync_status if latest else None,

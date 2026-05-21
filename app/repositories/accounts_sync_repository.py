@@ -65,6 +65,11 @@ class AccountsSyncRepository:
         return InstanceAccount.query.filter_by(instance_id=instance_id).all()
 
     @staticmethod
+    def list_instance_accounts_by_owner(*, owner_type: str, owner_id: int | None) -> list[InstanceAccount]:
+        """按账户归属获取 InstanceAccount 列表."""
+        return InstanceAccount.query.filter_by(owner_type=owner_type, owner_id=owner_id).all()
+
+    @staticmethod
     def get_permission_by_instance_account_id(instance_account_id: int) -> AccountPermission | None:
         """按 instance_account_id 获取账户权限记录(可为空)."""
         return cast(

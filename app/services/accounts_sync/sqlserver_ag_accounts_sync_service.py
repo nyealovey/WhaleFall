@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 from app.core.constants import DatabaseType
+from app.core.exceptions import NotFoundError, ValidationError
 from app.models.instance import Instance
-from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerClusterInstance
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.services.accounts_sync.adapters.factory import get_account_adapter
 from app.services.accounts_sync.inventory_manager import AccountInventoryManager
 from app.services.accounts_sync.permission_manager import AccountPermissionManager, PermissionSyncError
@@ -50,9 +51,55 @@ class SQLServerAgAccountsSyncService:
         if not binding.cluster or not binding.cluster.is_enabled:
             return {"status": "skipped", "processed_records": 0, "items": []}
 
+        return self._sync_cluster_ags(instance, cluster_id=cast(int, binding.cluster_id), session_id=session_id)
+
+    def sync_for_cluster(self, cluster_id: int, *, session_id: str | None = None) -> dict[str, Any]:
+        """按群集同步 contained AG 账户，每个群集只选择第一台绑定实例作为归属实例."""
+        cluster = cast(SQLServerCluster | None, SQLServerCluster.query.get(cluster_id))
+        if cluster is None:
+            raise NotFoundError("群集不存在", extra={"cluster_id": cluster_id})
+        if not cluster.is_enabled:
+            return {
+                "status": "skipped",
+                "cluster_id": cluster_id,
+                "source_instance_id": None,
+                "processed_records": 0,
+                "total_ag": 0,
+                "failed_ag": 0,
+                "items": [],
+            }
+
+        bindings = (
+            SQLServerClusterInstance.query.filter_by(cluster_id=cluster_id)
+            .order_by(SQLServerClusterInstance.created_at.asc())
+            .all()
+        )
+        source_instance = next(
+            (
+                cast(Instance, binding.instance)
+                for binding in bindings
+                if binding.instance is not None and cast(Instance, binding.instance).deleted_at is None
+            ),
+            None,
+        )
+        if source_instance is None:
+            raise ValidationError("请先绑定 SQL Server 实例后再同步 AG 账户", extra={"cluster_id": cluster_id})
+
+        result = self._sync_cluster_ags(source_instance, cluster_id=cluster_id, session_id=session_id)
+        result["cluster_id"] = cluster_id
+        result["source_instance_id"] = source_instance.id
+        return result
+
+    def _sync_cluster_ags(
+        self,
+        instance: Instance,
+        *,
+        cluster_id: int,
+        session_id: str | None,
+    ) -> dict[str, Any]:
         ags = (
             SQLServerAvailabilityGroup.query.filter_by(
-                cluster_id=binding.cluster_id,
+                cluster_id=cluster_id,
                 contained_enabled=True,
                 is_enabled=True,
             )

@@ -84,7 +84,8 @@ class AccountInventoryManager:
         """
         remote_accounts, now_ts = list(remote_accounts), time_utils.now()
 
-        existing_accounts = self._repository.list_instance_accounts(instance_id=instance.id)
+        remote_owner_scopes = self._owner_scopes_from_remote_accounts(instance, remote_accounts)
+        existing_accounts = self._list_existing_accounts_for_sync(instance, remote_owner_scopes)
         existing_map = {self._owner_key_from_record(instance, account): account for account in existing_accounts}
 
         seen_owner_keys: set[OwnerKey] = set()
@@ -213,6 +214,46 @@ class AccountInventoryManager:
             int(cluster_id) if cluster_id is not None else None,
             int(availability_group_id) if availability_group_id is not None else None,
         )
+
+    def _list_existing_accounts_for_sync(
+        self,
+        instance: Instance,
+        remote_owner_scopes: set[OwnerScope],
+    ) -> list[InstanceAccount]:
+        existing_accounts = self._repository.list_instance_accounts(instance_id=instance.id)
+        seen_ids = {account.id for account in existing_accounts if account.id is not None}
+
+        for owner_type, owner_id, _db_type in remote_owner_scopes:
+            if owner_type == "instance":
+                continue
+
+            for account in self._repository.list_instance_accounts_by_owner(
+                owner_type=owner_type,
+                owner_id=owner_id,
+            ):
+                if account.id in seen_ids:
+                    continue
+                existing_accounts.append(account)
+                if account.id is not None:
+                    seen_ids.add(account.id)
+
+        return existing_accounts
+
+    @classmethod
+    def _owner_scopes_from_remote_accounts(
+        cls,
+        instance: Instance,
+        remote_accounts: Iterable[RemoteAccount],
+    ) -> set[OwnerScope]:
+        owner_scopes: set[OwnerScope] = set()
+        for item in remote_accounts:
+            username = str(item.get("username", "")).strip()
+            if not username:
+                continue
+            db_type = str(item.get("db_type") or instance.db_type).lower()
+            owner_type, owner_id, _cluster_id, _availability_group_id = cls._owner_fields_from_remote(instance, item)
+            owner_scopes.add((owner_type, owner_id, db_type))
+        return owner_scopes
 
     @classmethod
     def _owner_key_from_record(cls, instance: Instance, record: InstanceAccount) -> OwnerKey:
