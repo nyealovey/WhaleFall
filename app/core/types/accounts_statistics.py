@@ -18,6 +18,8 @@ class AccountStatisticsResult:
 
     database_instances: int
     total_instances: int
+    physical_instances: int
+    ag_virtual_instances: int
     active_instances: int
     disabled_instances: int
     normal_instances: int

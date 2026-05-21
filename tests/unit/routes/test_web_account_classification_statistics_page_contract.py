@@ -20,7 +20,7 @@ def test_web_account_classification_statistics_page_uses_shared_filter_fields(au
     )
     monkeypatch.setattr(
         route_module._filter_options_service,
-        "list_instance_select_options",
+        "list_account_scope_select_options",
         lambda db_type=None: [{"value": "1", "label": "prod-mysql-1"}],
     )
 

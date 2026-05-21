@@ -16,6 +16,8 @@ from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import bool_with_default, new_parser
 from app.api.v1.restx_models.instances import (
+    ACCOUNT_SCOPE_OPTION_ITEM_FIELDS,
+    ACCOUNT_SCOPE_OPTIONS_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
     INSTANCE_ACCOUNT_INFO_FIELDS,
@@ -57,6 +59,7 @@ ErrorEnvelope = get_error_envelope_model(ns)
 _instances_export_service = InstancesExportService()
 
 InstanceOptionItemModel = ns.model("InstanceOptionItem", INSTANCE_OPTION_ITEM_FIELDS)
+AccountScopeOptionItemModel = ns.model("AccountScopeOptionItem", ACCOUNT_SCOPE_OPTION_ITEM_FIELDS)
 InstancesOptionsData = ns.model(
     "InstancesOptionsData",
     {
@@ -65,6 +68,15 @@ InstancesOptionsData = ns.model(
 )
 InstancesOptionsSuccessEnvelope = make_success_envelope_model(
     ns, "InstancesOptionsSuccessEnvelope", InstancesOptionsData
+)
+AccountScopeOptionsData = ns.model(
+    "AccountScopeOptionsData",
+    {
+        "account_scopes": fields.List(fields.Nested(AccountScopeOptionItemModel)),
+    },
+)
+AccountScopeOptionsSuccessEnvelope = make_success_envelope_model(
+    ns, "AccountScopeOptionsSuccessEnvelope", AccountScopeOptionsData
 )
 
 InstanceWritePayload = ns.model(
@@ -485,6 +497,39 @@ class InstancesOptionsResource(BaseResource):
             module="instances",
             action="get_instance_options",
             public_error="加载实例选项失败",
+            context={"db_type": db_type},
+        )
+
+
+@ns.route("/account-scope-options")
+class AccountScopeOptionsResource(BaseResource):
+    """账户范围选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", AccountScopeOptionsSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(_instances_options_query_parser)
+    @api_permission_required("view")
+    def get(self):
+        """获取账户范围选项."""
+        parsed = _instances_options_query_parser.parse_args()
+        query = validate_or_raise(InstancesOptionsQuery, parsed)
+        db_type = query.db_type
+
+        def _execute():
+            result = FilterOptionsService().get_common_account_scopes_options(db_type=db_type)
+            payload = marshal(result, ACCOUNT_SCOPE_OPTIONS_RESPONSE_FIELDS)
+            return self.success(data=payload, message="账户范围选项获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="get_account_scope_options",
+            public_error="加载账户范围选项失败",
             context={"db_type": db_type},
         )
 

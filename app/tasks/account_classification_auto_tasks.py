@@ -13,6 +13,7 @@ from typing import Any
 
 from app import create_app, db
 from app.core.exceptions import ValidationError
+from app.core.types.account_scope import AccountScope, parse_account_scope
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.repositories.account_classification_repository import ClassificationRepository
@@ -36,6 +37,7 @@ def _resolve_run_id(
     *,
     task_runs_service: TaskRunsWriteService,
     instance_id: int | None,
+    account_scope: AccountScope | None,
     created_by: int | None,
     run_id: str | None,
 ) -> str:
@@ -54,7 +56,7 @@ def _resolve_run_id(
         created_by=created_by,
         summary_json=TaskRunSummaryFactory.base(
             task_key="auto_classify_accounts",
-            inputs={"instance_id": instance_id},
+            inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
         ),
         result_url="/accounts/classifications",
     )
@@ -115,6 +117,7 @@ def _finalize_run_no_rules(
     task_runs_service: TaskRunsWriteService,
     run_id: str,
     instance_id: int | None,
+    account_scope: AccountScope | None,
     started_at: float,
     accounts_count: int,
 ) -> dict[str, Any]:
@@ -124,7 +127,7 @@ def _finalize_run_no_rules(
         current_run.error_message = "没有可用的分类规则"
         current_run.summary_json = build_auto_classify_accounts_summary(
             task_key="auto_classify_accounts",
-            inputs={"instance_id": instance_id},
+            inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
             rules_count=0,
             accounts_count=accounts_count,
             total_matches=0,
@@ -142,6 +145,7 @@ def _finalize_run_no_accounts(
     task_runs_service: TaskRunsWriteService,
     run_id: str,
     instance_id: int | None,
+    account_scope: AccountScope | None,
     started_at: float,
     rules: list[Any],
 ) -> dict[str, Any]:
@@ -168,7 +172,7 @@ def _finalize_run_no_accounts(
     if current_run is not None and current_run.status != "cancelled":
         current_run.summary_json = build_auto_classify_accounts_summary(
             task_key="auto_classify_accounts",
-            inputs={"instance_id": instance_id},
+            inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
             rules_count=len(rules),
             accounts_count=0,
             total_matches=0,
@@ -250,6 +254,7 @@ def _finalize_run_success(
     sync_logger: Any,
     run_id: str,
     instance_id: int | None,
+    account_scope: AccountScope | None,
     started_at: float,
     rules_count: int,
     accounts_count: int,
@@ -260,7 +265,7 @@ def _finalize_run_success(
     if current_run is not None and current_run.status != "cancelled":
         current_run.summary_json = build_auto_classify_accounts_summary(
             task_key="auto_classify_accounts",
-            inputs={"instance_id": instance_id},
+            inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
             rules_count=rules_count,
             accounts_count=accounts_count,
             total_matches=total_matches,
@@ -278,14 +283,30 @@ def _finalize_run_success(
         task="auto_classify_accounts",
         run_id=run_id,
         instance_id=instance_id,
+        account_scope=account_scope.value if account_scope else None,
         duration_seconds=round(time.perf_counter() - started_at, 2),
     )
     return {"success": True, "message": "自动分类完成", "run_id": run_id}
 
 
+def _cleanup_assignments_for_run(
+    *,
+    repository: ClassificationRepository,
+    accounts: list[Any],
+    instance_id: int | None,
+    account_scope_value: str | None,
+) -> None:
+    """根据本次自动分类范围清理旧分配."""
+    if account_scope_value is None and instance_id is None:
+        repository.cleanup_all_assignments()
+        return
+    repository.cleanup_assignments_for_accounts([int(account.id) for account in accounts])
+
+
 def auto_classify_accounts(
     *,
     instance_id: int | None = None,
+    account_scope: str | None = None,
     created_by: int | None = None,
     run_id: str | None = None,
     **_: object,
@@ -296,9 +317,11 @@ def auto_classify_accounts(
         sync_logger = get_sync_logger()
         task_runs_service = TaskRunsWriteService()
         try:
+            resolved_account_scope = parse_account_scope(account_scope, legacy_instance_id=instance_id)
             resolved_run_id = _resolve_run_id(
                 task_runs_service=task_runs_service,
                 instance_id=instance_id,
+                account_scope=resolved_account_scope,
                 created_by=created_by,
                 run_id=run_id,
             )
@@ -309,19 +332,21 @@ def auto_classify_accounts(
                     task="auto_classify_accounts",
                     run_id=resolved_run_id,
                     instance_id=instance_id,
+                    account_scope=resolved_account_scope.value if resolved_account_scope else None,
                 )
                 return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
 
             started_at = time.perf_counter()
             repository = ClassificationRepository()
             rules = repository.fetch_active_rules()
-            accounts = repository.fetch_accounts(instance_id=instance_id)
+            accounts = repository.fetch_accounts(instance_id=instance_id, account_scope=resolved_account_scope)
 
             if not rules:
                 return _finalize_run_no_rules(
                     task_runs_service=task_runs_service,
                     run_id=resolved_run_id,
                     instance_id=instance_id,
+                    account_scope=resolved_account_scope,
                     started_at=started_at,
                     accounts_count=len(accounts),
                 )
@@ -345,12 +370,17 @@ def auto_classify_accounts(
                     task_runs_service=task_runs_service,
                     run_id=resolved_run_id,
                     instance_id=instance_id,
+                    account_scope=resolved_account_scope,
                     started_at=started_at,
                     rules=rules,
                 )
 
-            # 重新分类前清空旧分配
-            repository.cleanup_all_assignments()
+            _cleanup_assignments_for_run(
+                repository=repository,
+                accounts=accounts,
+                instance_id=instance_id,
+                account_scope_value=resolved_account_scope.value if resolved_account_scope else None,
+            )
             db.session.commit()
 
             accounts_by_db_type = _build_accounts_by_db_type(accounts)
@@ -366,6 +396,7 @@ def auto_classify_accounts(
                         task="auto_classify_accounts",
                         run_id=resolved_run_id,
                         instance_id=instance_id,
+                        account_scope=resolved_account_scope.value if resolved_account_scope else None,
                     )
                     task_runs_service.finalize_run(resolved_run_id)
                     db.session.commit()
@@ -425,6 +456,7 @@ def auto_classify_accounts(
                 sync_logger=sync_logger,
                 run_id=resolved_run_id,
                 instance_id=instance_id,
+                account_scope=resolved_account_scope,
                 started_at=started_at,
                 rules_count=len(rules),
                 accounts_count=len(accounts),

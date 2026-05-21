@@ -16,6 +16,8 @@ from typing import Any, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.exceptions import SystemError, ValidationError
+from app.core.types import ContextDict
+from app.core.types.account_scope import AccountScope, parse_account_scope
 from app.infra.route_safety import log_with_context
 from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
@@ -34,6 +36,7 @@ class AutoClassifyAccountsPreparedRun:
 
     run_id: str
     instance_id: int | None
+    account_scope: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +45,7 @@ class AutoClassifyAccountsLaunchResult:
 
     run_id: str
     instance_id: int | None
+    account_scope: str | None
     thread_name: str
 
 
@@ -57,25 +61,35 @@ def _launch_background_auto_classify(
     run_id: str,
     instance_id: int | None,
     task: Callable[..., Any],
+    account_scope: AccountScope | None = None,
 ) -> threading.Thread:
-    def _run_task(captured_created_by: int | None, captured_run_id: str, captured_instance_id: int | None) -> None:
+    def _run_task(
+        captured_created_by: int | None,
+        captured_run_id: str,
+        captured_instance_id: int | None,
+        captured_account_scope: AccountScope | None,
+    ) -> None:
         try:
             task(
                 created_by=captured_created_by,
                 run_id=captured_run_id,
                 instance_id=captured_instance_id,
+                account_scope=captured_account_scope.value if captured_account_scope else None,
             )
         except BACKGROUND_EXCEPTIONS as exc:
+            context: ContextDict = {
+                "created_by": captured_created_by,
+                "run_id": captured_run_id,
+                "instance_id": captured_instance_id,
+            }
+            if captured_account_scope is not None:
+                context["account_scope"] = captured_account_scope.value
             log_with_context(
                 "error",
                 "后台自动分类失败",
                 module="account_classification",
                 action="auto_classify_accounts_background",
-                context={
-                    "created_by": captured_created_by,
-                    "run_id": captured_run_id,
-                    "instance_id": captured_instance_id,
-                },
+                context=context,
                 extra={
                     "error_type": exc.__class__.__name__,
                     "error_message": str(exc),
@@ -85,7 +99,7 @@ def _launch_background_auto_classify(
 
     thread = threading.Thread(
         target=_run_task,
-        args=(created_by, run_id, instance_id),
+        args=(created_by, run_id, instance_id, account_scope),
         name="auto_classify_accounts_manual",
         daemon=True,
     )
@@ -105,6 +119,7 @@ class AutoClassifyActionsService:
         *,
         created_by: int | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> AutoClassifyAccountsPreparedRun:
         """创建 TaskRun 并返回 run_id(不启动线程)."""
         run_id = TaskRunsWriteService().start_run(
@@ -115,11 +130,15 @@ class AutoClassifyActionsService:
             created_by=created_by,
             summary_json=TaskRunSummaryFactory.base(
                 task_key="auto_classify_accounts",
-                inputs={"instance_id": instance_id},
+                inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
             ),
             result_url="/accounts/classifications",
         )
-        return AutoClassifyAccountsPreparedRun(run_id=run_id, instance_id=instance_id)
+        return AutoClassifyAccountsPreparedRun(
+            run_id=run_id,
+            instance_id=instance_id,
+            account_scope=account_scope.value if account_scope else None,
+        )
 
     def launch_background_auto_classify(
         self,
@@ -133,9 +152,11 @@ class AutoClassifyActionsService:
             run_id=prepared.run_id,
             instance_id=prepared.instance_id,
             task=self._task,
+            account_scope=parse_account_scope(prepared.account_scope),
         )
         return AutoClassifyAccountsLaunchResult(
             run_id=prepared.run_id,
             instance_id=prepared.instance_id,
+            account_scope=prepared.account_scope,
             thread_name=thread.name,
         )

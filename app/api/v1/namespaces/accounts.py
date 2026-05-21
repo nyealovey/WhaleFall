@@ -17,6 +17,7 @@ from app.api.v1.restx_models.accounts import (
     ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS,
     ACCOUNT_STATISTICS_FIELDS,
 )
+from app.core.types.account_scope import parse_account_scope
 from app.api.v1.restx_models.instances import (
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
@@ -231,6 +232,7 @@ _accounts_ledgers_list_query_parser.add_argument("order", type=str, default="asc
 _accounts_statistics_summary_query_parser = new_parser()
 _accounts_statistics_summary_query_parser.add_argument("instance_id", type=int, location="args")
 _accounts_statistics_summary_query_parser.add_argument("db_type", type=str, location="args")
+_accounts_statistics_summary_query_parser.add_argument("account_scope", type=str, location="args")
 
 _accounts_statistics_rules_query_parser = new_parser()
 _accounts_statistics_rules_query_parser.add_argument("rule_ids", type=str, location="args")
@@ -241,12 +243,14 @@ _account_classification_trend_query_parser.add_argument("period_type", type=str,
 _account_classification_trend_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_trend_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_trend_query_parser.add_argument("instance_id", type=int, location="args")
+_account_classification_trend_query_parser.add_argument("account_scope", type=str, location="args")
 
 _account_classification_trends_query_parser = new_parser()
 _account_classification_trends_query_parser.add_argument("period_type", type=str, default="daily", location="args")
 _account_classification_trends_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_trends_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_trends_query_parser.add_argument("instance_id", type=int, location="args")
+_account_classification_trends_query_parser.add_argument("account_scope", type=str, location="args")
 
 _account_classification_rule_trend_query_parser = new_parser()
 _account_classification_rule_trend_query_parser.add_argument("rule_id", type=int, location="args")
@@ -254,6 +258,7 @@ _account_classification_rule_trend_query_parser.add_argument("period_type", type
 _account_classification_rule_trend_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_rule_trend_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_rule_trend_query_parser.add_argument("instance_id", type=int, location="args")
+_account_classification_rule_trend_query_parser.add_argument("account_scope", type=str, location="args")
 
 _account_classification_rule_contributions_query_parser = new_parser()
 _account_classification_rule_contributions_query_parser.add_argument("classification_id", type=int, location="args")
@@ -262,6 +267,7 @@ _account_classification_rule_contributions_query_parser.add_argument(
 )
 _account_classification_rule_contributions_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_rule_contributions_query_parser.add_argument("instance_id", type=int, location="args")
+_account_classification_rule_contributions_query_parser.add_argument("account_scope", type=str, location="args")
 _account_classification_rule_contributions_query_parser.add_argument("limit", type=int, default=10, location="args")
 
 _account_classification_rules_overview_query_parser = new_parser()
@@ -272,6 +278,7 @@ _account_classification_rules_overview_query_parser.add_argument(
 _account_classification_rules_overview_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_rules_overview_query_parser.add_argument("db_type", type=str, location="args")
 _account_classification_rules_overview_query_parser.add_argument("instance_id", type=int, location="args")
+_account_classification_rules_overview_query_parser.add_argument("account_scope", type=str, location="args")
 _account_classification_rules_overview_query_parser.add_argument("status", type=str, default="active", location="args")
 
 
@@ -604,9 +611,15 @@ class AccountsStatisticsSummaryResource(BaseResource):
         parsed = _accounts_statistics_summary_query_parser.parse_args()
         instance_id = parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None
         db_type = parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None
+        raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
+        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
 
         def _execute():
-            summary = AccountsStatisticsReadService().fetch_summary(instance_id=instance_id, db_type=db_type)
+            summary = AccountsStatisticsReadService().fetch_summary(
+                instance_id=instance_id,
+                db_type=db_type,
+                account_scope=account_scope,
+            )
             return self.success(data=summary, message="获取账户统计汇总成功")
 
         return self.safe_call(
@@ -614,7 +627,7 @@ class AccountsStatisticsSummaryResource(BaseResource):
             module="accounts_statistics",
             action="get_account_statistics_summary",
             public_error="获取账户统计汇总失败",
-            context={"instance_id": instance_id, "db_type": db_type},
+            context={"instance_id": instance_id, "db_type": db_type, "account_scope": raw_account_scope},
         )
 
 
@@ -723,6 +736,8 @@ class AccountClassificationTrendsResource(BaseResource):
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
         raw_instance_id = parsed.get("instance_id")
         instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+        raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
+        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
 
         def _execute():
             result = AccountClassificationDailyStatsReadService().get_all_classifications_trends(
@@ -730,6 +745,7 @@ class AccountClassificationTrendsResource(BaseResource):
                 periods=periods,
                 db_type=db_type,
                 instance_id=instance_id,
+                account_scope=account_scope,
             )
             return self.success(data=result, message="全分类趋势获取成功")
 
@@ -743,6 +759,7 @@ class AccountClassificationTrendsResource(BaseResource):
                 "periods": periods,
                 "db_type": db_type,
                 "instance_id": instance_id,
+                "account_scope": raw_account_scope,
             },
         )
 
@@ -772,6 +789,8 @@ class AccountClassificationTrendResource(BaseResource):
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
         raw_instance_id = parsed.get("instance_id")
         instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+        raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
+        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
 
         if not classification_id:
             raise ValidationError("classification_id 必填")
@@ -783,6 +802,7 @@ class AccountClassificationTrendResource(BaseResource):
                 periods=periods,
                 db_type=db_type,
                 instance_id=instance_id,
+                account_scope=account_scope,
             )
             return self.success(data={"trend": trend}, message="分类趋势获取成功")
 
@@ -797,6 +817,7 @@ class AccountClassificationTrendResource(BaseResource):
                 "periods": periods,
                 "db_type": db_type,
                 "instance_id": instance_id,
+                "account_scope": raw_account_scope,
             },
         )
 
@@ -826,6 +847,8 @@ class AccountClassificationRuleTrendResource(BaseResource):
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
         raw_instance_id = parsed.get("instance_id")
         instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+        raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
+        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
 
         if not rule_id:
             raise ValidationError("rule_id 必填")
@@ -837,6 +860,7 @@ class AccountClassificationRuleTrendResource(BaseResource):
                 periods=periods,
                 db_type=db_type,
                 instance_id=instance_id,
+                account_scope=account_scope,
             )
             return self.success(data={"trend": trend}, message="规则趋势获取成功")
 
@@ -851,6 +875,7 @@ class AccountClassificationRuleTrendResource(BaseResource):
                 "periods": periods,
                 "db_type": db_type,
                 "instance_id": instance_id,
+                "account_scope": raw_account_scope,
             },
         )
 
@@ -878,6 +903,8 @@ class AccountClassificationRuleContributionsResource(BaseResource):
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
         raw_instance_id = parsed.get("instance_id")
         instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+        raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
+        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
         raw_limit = parsed.get("limit")
         limit = raw_limit if isinstance(raw_limit, int) else 10
 
@@ -890,6 +917,7 @@ class AccountClassificationRuleContributionsResource(BaseResource):
                 period_type=period_type,
                 db_type=db_type,
                 instance_id=instance_id,
+                account_scope=account_scope,
                 limit=limit,
             )
             return self.success(data=result, message="规则贡献获取成功")
@@ -904,6 +932,7 @@ class AccountClassificationRuleContributionsResource(BaseResource):
                 "period_type": period_type,
                 "db_type": db_type,
                 "instance_id": instance_id,
+                "account_scope": raw_account_scope,
                 "limit": limit,
             },
         )
@@ -934,6 +963,8 @@ class AccountClassificationRulesOverviewResource(BaseResource):
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
         raw_instance_id = parsed.get("instance_id")
         instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
+        raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
+        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
         raw_status = parsed.get("status")
         status = raw_status if isinstance(raw_status, str) else "active"
 
@@ -947,6 +978,7 @@ class AccountClassificationRulesOverviewResource(BaseResource):
                 periods=periods,
                 db_type=db_type,
                 instance_id=instance_id,
+                account_scope=account_scope,
                 status=status,
             )
             return self.success(data=result, message="规则列表获取成功")
@@ -962,6 +994,7 @@ class AccountClassificationRulesOverviewResource(BaseResource):
                 "periods": periods,
                 "db_type": db_type,
                 "instance_id": instance_id,
+                "account_scope": raw_account_scope,
                 "status": status,
             },
         )

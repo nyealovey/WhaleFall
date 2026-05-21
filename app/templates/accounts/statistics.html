@@ -11,6 +11,8 @@
 {% set locked_accounts = stats.locked_accounts or 0 %}
 {% set deleted_accounts = stats.deleted_accounts or 0 %}
 {% set total_instances = stats.total_instances or 0 %}
+{% set physical_instances = stats.physical_instances or 0 %}
+{% set ag_virtual_instances = stats.ag_virtual_instances or 0 %}
 {% set avg_per_instance = (total_accounts / total_instances) if total_instances else 0 %}
 {% set normal_per_instance = (normal_accounts / total_instances) if total_instances else 0 %}
 {% set locked_per_instance = (locked_accounts / total_instances) if total_instances else 0 %}
@@ -60,6 +62,12 @@
 	                    {% call metric_card('统计实例', value=(stats.total_instances or 0), icon_class='fas fa-server', tone='info', data_stat_key='total_instances') %}
 	                        <span class="chip-outline chip-outline--muted" title="账户/实例" aria-label="账户/实例">
 	                            <i class="fas fa-users" aria-hidden="true"></i><span id="accountsMetaAvgPerInstance" aria-hidden="true">{{ avg_per_instance|round(1) }}</span>
+	                        </span>
+	                        <span class="chip-outline chip-outline--muted" title="物理实例" aria-label="物理实例">
+	                            <i class="fas fa-database" aria-hidden="true"></i><span id="accountsMetaPhysicalInstances" aria-hidden="true">{{ physical_instances }}</span>
+	                        </span>
+	                        <span class="chip-outline chip-outline--muted" title="AG虚拟实例" aria-label="AG虚拟实例">
+	                            <i class="fas fa-project-diagram" aria-hidden="true"></i><span id="accountsMetaAgVirtualInstances" aria-hidden="true">{{ ag_virtual_instances }}</span>
 	                        </span>
 	                    {% endcall %}
 	                </div>

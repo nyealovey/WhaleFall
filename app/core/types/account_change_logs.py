@@ -29,6 +29,7 @@ class AccountChangeLogListItem:
     account_id: int | None
     instance_id: int
     instance_name: str | None
+    instance_host: str | None
     db_type: str
     username: str
     change_type: str

@@ -18,7 +18,7 @@
       periodType,
       periods,
       dbType,
-      instanceId,
+      accountScope,
     }) {
       return this.httpClient.get(`${BASE_PATH}/classifications/trend`, {
         params: {
@@ -26,44 +26,44 @@
           period_type: periodType,
           periods,
           db_type: dbType || undefined,
-          instance_id: instanceId || undefined,
+          account_scope: accountScope || undefined,
         },
         headers: { Accept: "application/json" },
       });
     }
 
-    fetchAllClassificationsTrends({ periodType, periods, dbType, instanceId }) {
+    fetchAllClassificationsTrends({ periodType, periods, dbType, accountScope }) {
       return this.httpClient.get(`${BASE_PATH}/classifications/trends`, {
         params: {
           period_type: periodType,
           periods,
           db_type: dbType || undefined,
-          instance_id: instanceId || undefined,
+          account_scope: accountScope || undefined,
         },
         headers: { Accept: "application/json" },
       });
     }
 
-    fetchRuleTrend({ ruleId, periodType, periods, dbType, instanceId }) {
+    fetchRuleTrend({ ruleId, periodType, periods, dbType, accountScope }) {
       return this.httpClient.get(`${BASE_PATH}/rules/trend`, {
         params: {
           rule_id: ruleId,
           period_type: periodType,
           periods,
           db_type: dbType || undefined,
-          instance_id: instanceId || undefined,
+          account_scope: accountScope || undefined,
         },
         headers: { Accept: "application/json" },
       });
     }
 
-    fetchRuleContributions({ classificationId, periodType, dbType, instanceId, limit }) {
+    fetchRuleContributions({ classificationId, periodType, dbType, accountScope, limit }) {
       return this.httpClient.get(`${BASE_PATH}/rules/contributions`, {
         params: {
           classification_id: classificationId,
           period_type: periodType,
           db_type: dbType || undefined,
-          instance_id: instanceId || undefined,
+          account_scope: accountScope || undefined,
           limit: limit || 10,
         },
         headers: { Accept: "application/json" },
@@ -75,7 +75,7 @@
       periodType,
       periods,
       dbType,
-      instanceId,
+      accountScope,
       status,
     }) {
       return this.httpClient.get(`${BASE_PATH}/rules/overview`, {
@@ -84,7 +84,7 @@
           period_type: periodType,
           periods,
           db_type: dbType || undefined,
-          instance_id: instanceId || undefined,
+          account_scope: accountScope || undefined,
           status: status || "active",
         },
         headers: { Accept: "application/json" },

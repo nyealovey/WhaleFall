@@ -10,6 +10,8 @@ from __future__ import annotations
 from typing import cast
 
 from app.core.types.common_filter_options import (
+    CommonAccountScopeOptionItem,
+    CommonAccountScopesOptionsResult,
     CommonDatabaseOptionItem,
     CommonDatabasesOptionsFilters,
     CommonDatabasesOptionsResult,
@@ -80,6 +82,46 @@ class FilterOptionsService:
         options = build_instance_select_options(instances)
         self._options_cache.set_instance_select_options(db_type, options)
         return options
+
+    def list_account_scope_select_options(self, db_type: str | list[str] | None = None) -> list[dict[str, str]]:
+        """获取账户统计/分类使用的物理实例 + AG 虚拟实例选项."""
+        result = self.get_common_account_scopes_options(db_type=db_type)
+        return [{"value": item.value, "label": item.label} for item in result.account_scopes]
+
+    def get_common_account_scopes_options(
+        self,
+        db_type: str | list[str] | None = None,
+    ) -> CommonAccountScopesOptionsResult:
+        """构建账户范围选项."""
+        instances = self._repository.list_existing_instances(db_type=db_type)
+        items = [
+            CommonAccountScopeOptionItem(
+                value=f"instance:{int(instance.id)}",
+                label=f"{instance.name} ({instance.db_type.upper()})",
+                db_type=instance.db_type,
+                owner_type="instance",
+                owner_id=int(instance.id),
+                name=instance.name,
+                host=instance.host,
+            )
+            for instance in instances
+        ]
+
+        ags = self._repository.list_enabled_sqlserver_ag_options(db_type=db_type)
+        for ag in ags:
+            listener_name = ag.listener_name or ag.name
+            items.append(
+                CommonAccountScopeOptionItem(
+                    value=f"sqlserver_ag:{int(ag.id)}",
+                    label=f"{listener_name} (SQLSERVER AG)",
+                    db_type="sqlserver",
+                    owner_type="sqlserver_ag",
+                    owner_id=int(ag.id),
+                    name=listener_name,
+                    host=ag.listener_host,
+                )
+            )
+        return CommonAccountScopesOptionsResult(account_scopes=items)
 
     def list_database_select_options(self, instance_id: int) -> list[dict[str, str]]:
         """获取数据库下拉选项."""

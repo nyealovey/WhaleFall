@@ -26,12 +26,14 @@ def classification_statistics() -> str:
         classification_id = request.args.get("classification_id", "").strip()
         period_type = request.args.get("period_type", "daily").strip()
         db_type = request.args.get("db_type", "").strip()
-        instance_id = request.args.get("instance_id", "").strip()
+        account_scope = request.args.get("account_scope", "").strip()
         rule_id = request.args.get("rule_id", "").strip()
         status = request.args.get("status", "active").strip()
 
         database_type_options = [{"value": item["name"], "label": item["display_name"]} for item in DATABASE_TYPES]
-        instance_options = _filter_options_service.list_instance_select_options(db_type or None) if db_type else []
+        account_scope_options = (
+            _filter_options_service.list_account_scope_select_options(db_type or None) if db_type else []
+        )
 
         classifications = _classifications_read_service.list_classifications()
         classification_options = [
@@ -47,11 +49,11 @@ def classification_statistics() -> str:
             "accounts/classification_statistics.html",
             classification_options=classification_options,
             database_type_options=database_type_options,
-            instance_options=instance_options,
+            account_scope_options=account_scope_options,
             selected_classification_id=classification_id,
             selected_period_type=period_type,
             selected_db_type=db_type,
-            selected_instance_id=instance_id,
+            selected_account_scope=account_scope,
             selected_rule_id=rule_id,
             selected_rule_status=status,
         )
@@ -65,7 +67,7 @@ def classification_statistics() -> str:
             "classification_id": request.args.get("classification_id"),
             "period_type": request.args.get("period_type"),
             "db_type": request.args.get("db_type"),
-            "instance_id": request.args.get("instance_id"),
+            "account_scope": request.args.get("account_scope"),
             "rule_id": request.args.get("rule_id"),
             "status": request.args.get("status"),
         },

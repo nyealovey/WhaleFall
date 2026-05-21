@@ -201,6 +201,8 @@ class AccountClassificationDailyRuleMatchStatOrmFields(TypedDict, total=False):
     classification_id: int
     db_type: str
     instance_id: int
+    owner_type: str
+    owner_id: int
     matched_accounts_count: int
     computed_at: datetime
     created_at: datetime
@@ -215,6 +217,8 @@ class AccountClassificationDailyClassificationMatchStatOrmFields(TypedDict, tota
     classification_id: int
     db_type: str
     instance_id: int
+    owner_type: str
+    owner_id: int
     matched_accounts_distinct_count: int
     computed_at: datetime
     created_at: datetime

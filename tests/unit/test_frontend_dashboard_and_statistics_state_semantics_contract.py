@@ -38,6 +38,8 @@ def test_accounts_statistics_template_uses_normal_locked_deleted_instead_of_acti
     required_fragments = (
         "{% set normal_accounts = stats.normal_accounts or 0 %}",
         "{% set deleted_accounts = stats.deleted_accounts or 0 %}",
+        "{% set physical_instances = stats.physical_instances or 0 %}",
+        "{% set ag_virtual_instances = stats.ag_virtual_instances or 0 %}",
         "metric_card('总账户数'",
         'id="accountsMetaNormalCount"',
         'id="accountsMetaLockedCount"',
@@ -47,6 +49,8 @@ def test_accounts_statistics_template_uses_normal_locked_deleted_instead_of_acti
         "metric_card('受限账户'",
         "data_stat_key='locked_accounts'",
         "metric_card('统计实例'",
+        'id="accountsMetaPhysicalInstances"',
+        'id="accountsMetaAgVirtualInstances"',
     )
     for fragment in required_fragments:
         assert fragment in content
@@ -74,6 +78,10 @@ def test_accounts_statistics_frontend_refresh_logic_uses_normal_locked_deleted_l
         'setText("accountsMetaDeletedCount",',
         "const normal = Number(stats?.normal_accounts ?? 0) || 0;",
         "const deleted = Number(stats?.deleted_accounts ?? 0) || 0;",
+        "const physicalInstances = Number(stats?.physical_instances ?? 0) || 0;",
+        "const agVirtualInstances = Number(stats?.ag_virtual_instances ?? 0) || 0;",
+        'setText("accountsMetaPhysicalInstances",',
+        'setText("accountsMetaAgVirtualInstances",',
         'tone === "success" ? "正常" : tone === "warning" ? "受限" : "删除"',
     )
     for fragment in required_fragments:

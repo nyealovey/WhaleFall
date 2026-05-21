@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from app import db
+from app.core.types.account_scope import AccountScope
 from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
@@ -58,7 +59,12 @@ class ClassificationRepository:
             .all()
         )
 
-    def fetch_accounts(self, instance_id: int | None = None) -> list[AccountPermission]:
+    def fetch_accounts(
+        self,
+        instance_id: int | None = None,
+        *,
+        account_scope: AccountScope | None = None,
+    ) -> list[AccountPermission]:
         """获取需要分类的账户列表.
 
         Args:
@@ -77,8 +83,26 @@ class ClassificationRepository:
                 InstanceAccount.is_active.is_(True),
             )
         )
-        if instance_id:
-            query = query.filter(AccountPermission.instance_id == instance_id)
+        resolved_scope = account_scope
+        if resolved_scope is None and instance_id:
+            resolved_scope = AccountScope(owner_type="instance", owner_id=instance_id)
+        if resolved_scope is not None:
+            if resolved_scope.owner_type == "instance":
+                query = query.filter(
+                    AccountPermission.owner_type == "instance",
+                    (
+                        (AccountPermission.owner_id == resolved_scope.owner_id)
+                        | (
+                            AccountPermission.owner_id.is_(None)
+                            & (AccountPermission.instance_id == resolved_scope.owner_id)
+                        )
+                    ),
+                )
+            else:
+                query = query.filter(
+                    AccountPermission.owner_type == resolved_scope.owner_type,
+                    AccountPermission.owner_id == resolved_scope.owner_id,
+                )
         return query.all()
 
     def cleanup_all_assignments(self) -> int:
@@ -103,6 +127,30 @@ class ClassificationRepository:
                 )
         except SQLAlchemyError as exc:
             log_error("清理旧分配记录失败", module="account_classification", error=str(exc))
+            raise
+        else:
+            return deleted
+
+    def cleanup_assignments_for_accounts(self, account_ids: Sequence[int]) -> int:
+        """清理指定账户的分类分配记录."""
+        resolved_ids = [int(account_id) for account_id in account_ids if int(account_id) > 0]
+        if not resolved_ids:
+            return 0
+        try:
+            deleted = (
+                db.session.query(AccountClassificationAssignment)
+                .filter(AccountClassificationAssignment.account_id.in_(resolved_ids))
+                .delete(synchronize_session=False)
+            )
+            if deleted:
+                log_info(
+                    "清理指定账户旧分配记录",
+                    module="account_classification",
+                    deleted_count=deleted,
+                    account_ids=resolved_ids,
+                )
+        except SQLAlchemyError as exc:
+            log_error("清理指定账户旧分配记录失败", module="account_classification", error=str(exc))
             raise
         else:
             return deleted

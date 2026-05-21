@@ -245,12 +245,17 @@
 
   function renderInstanceCell(meta, gridHtml) {
     const name = meta.instance_name ? String(meta.instance_name) : "-";
+    const host = meta.instance_host ? String(meta.instance_host) : "";
     if (!gridHtml) {
-      return name;
+      return host ? `${name} ${host}` : name;
     }
+    const hostHtml = host
+      ? `<span class="text-muted small font-monospace">${escapeHtml(host)}</span>`
+      : "";
     return gridHtml(
-      `<div class="d-flex flex-wrap align-items-center gap-2">
+      `<div class="d-flex flex-column align-items-start gap-1">
         <span class="fw-semibold">${escapeHtml(name)}</span>
+        ${hostHtml}
       </div>`,
     );
   }

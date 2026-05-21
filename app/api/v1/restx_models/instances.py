@@ -58,6 +58,20 @@ INSTANCES_OPTIONS_RESPONSE_FIELDS = {
     ),
 }
 
+ACCOUNT_SCOPE_OPTION_ITEM_FIELDS = {
+    "value": fields.String(description="账户范围值", example="sqlserver_ag:12"),
+    "label": fields.String(description="展示名", example="AGDB08-LSN (SQLSERVER AG)"),
+    "db_type": fields.String(description="数据库类型", example="sqlserver"),
+    "owner_type": fields.String(description="归属类型", example="sqlserver_ag"),
+    "owner_id": fields.Integer(description="归属 ID", example=12),
+    "name": fields.String(description="名称", example="AGDB08-LSN"),
+    "host": fields.String(description="主机/IP", example="192.168.0.73"),
+}
+
+ACCOUNT_SCOPE_OPTIONS_RESPONSE_FIELDS = {
+    "account_scopes": fields.List(fields.Nested(ACCOUNT_SCOPE_OPTION_ITEM_FIELDS), description="账户范围选项列表"),
+}
+
 INSTANCE_ACCOUNT_SUMMARY_FIELDS = {
     "total": fields.Integer(description="账号总数", example=100),
     "active": fields.Integer(description="启用账号数", example=90),

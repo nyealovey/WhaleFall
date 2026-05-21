@@ -12,6 +12,7 @@ from datetime import date
 from sqlalchemy import distinct, func
 
 from app import db
+from app.core.types.account_scope import AccountScope
 from app.models.account_classification_daily_stats import (
     AccountClassificationDailyClassificationMatchStat,
     AccountClassificationDailyRuleMatchStat,
@@ -28,6 +29,7 @@ class AccountClassificationDailyStatsReadRepository:
         end_date: date,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> dict[int, dict[date, int]]:
         """按天汇总所有分类的去重账号数.
 
@@ -54,8 +56,11 @@ class AccountClassificationDailyStatsReadRepository:
 
         if db_type:
             query = query.filter(AccountClassificationDailyClassificationMatchStat.db_type == db_type)
-        if instance_id is not None:
-            query = query.filter(AccountClassificationDailyClassificationMatchStat.instance_id == instance_id)
+        query = AccountClassificationDailyStatsReadRepository._apply_classification_scope_filter(
+            query,
+            instance_id=instance_id,
+            account_scope=account_scope,
+        )
 
         data: dict[int, dict[date, int]] = {}
         for row in query.all():
@@ -75,6 +80,7 @@ class AccountClassificationDailyStatsReadRepository:
         end_date: date,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> dict[date, int]:
         """按天汇总分类去重账号数."""
         query = (
@@ -95,8 +101,11 @@ class AccountClassificationDailyStatsReadRepository:
 
         if db_type:
             query = query.filter(AccountClassificationDailyClassificationMatchStat.db_type == db_type)
-        if instance_id is not None:
-            query = query.filter(AccountClassificationDailyClassificationMatchStat.instance_id == instance_id)
+        query = AccountClassificationDailyStatsReadRepository._apply_classification_scope_filter(
+            query,
+            instance_id=instance_id,
+            account_scope=account_scope,
+        )
 
         rows = query.all()
         return {row.stat_date: int(row.total or 0) for row in rows}
@@ -109,6 +118,7 @@ class AccountClassificationDailyStatsReadRepository:
         end_date: date,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> dict[date, int]:
         """按天汇总规则命中账号数."""
         query = (
@@ -127,8 +137,11 @@ class AccountClassificationDailyStatsReadRepository:
 
         if db_type:
             query = query.filter(AccountClassificationDailyRuleMatchStat.db_type == db_type)
-        if instance_id is not None:
-            query = query.filter(AccountClassificationDailyRuleMatchStat.instance_id == instance_id)
+        query = AccountClassificationDailyStatsReadRepository._apply_rule_scope_filter(
+            query,
+            instance_id=instance_id,
+            account_scope=account_scope,
+        )
 
         rows = query.all()
         return {row.stat_date: int(row.total or 0) for row in rows}
@@ -141,6 +154,7 @@ class AccountClassificationDailyStatsReadRepository:
         end_date: date,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> dict[int, int]:
         """按规则汇总窗口内命中账号数(用于列表排序/贡献统计)."""
         query = (
@@ -158,8 +172,11 @@ class AccountClassificationDailyStatsReadRepository:
 
         if db_type:
             query = query.filter(AccountClassificationDailyRuleMatchStat.db_type == db_type)
-        if instance_id is not None:
-            query = query.filter(AccountClassificationDailyRuleMatchStat.instance_id == instance_id)
+        query = AccountClassificationDailyStatsReadRepository._apply_rule_scope_filter(
+            query,
+            instance_id=instance_id,
+            account_scope=account_scope,
+        )
 
         rows = query.all()
         return {int(row.rule_id): int(row.total or 0) for row in rows if row.rule_id is not None}
@@ -172,6 +189,7 @@ class AccountClassificationDailyStatsReadRepository:
         end_date: date,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> dict[int, int]:
         """按规则统计覆盖天数(用于均值分母, 缺失天不计入)."""
         query = (
@@ -189,8 +207,11 @@ class AccountClassificationDailyStatsReadRepository:
 
         if db_type:
             query = query.filter(AccountClassificationDailyRuleMatchStat.db_type == db_type)
-        if instance_id is not None:
-            query = query.filter(AccountClassificationDailyRuleMatchStat.instance_id == instance_id)
+        query = AccountClassificationDailyStatsReadRepository._apply_rule_scope_filter(
+            query,
+            instance_id=instance_id,
+            account_scope=account_scope,
+        )
 
         rows = query.all()
         return {int(row.rule_id): int(row.coverage_days or 0) for row in rows if row.rule_id is not None}
@@ -203,6 +224,7 @@ class AccountClassificationDailyStatsReadRepository:
         end_date: date,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> set[date]:
         """返回窗口内存在统计记录的日期集合(用于 coverage 计算)."""
         query = (
@@ -216,6 +238,33 @@ class AccountClassificationDailyStatsReadRepository:
         )
         if db_type:
             query = query.filter(AccountClassificationDailyRuleMatchStat.db_type == db_type)
-        if instance_id is not None:
-            query = query.filter(AccountClassificationDailyRuleMatchStat.instance_id == instance_id)
+        query = AccountClassificationDailyStatsReadRepository._apply_rule_scope_filter(
+            query,
+            instance_id=instance_id,
+            account_scope=account_scope,
+        )
         return {row.stat_date for row in query.all() if row.stat_date is not None}
+
+    @staticmethod
+    def _apply_rule_scope_filter(query, *, instance_id: int | None, account_scope: AccountScope | None):
+        resolved_scope = account_scope
+        if resolved_scope is None and instance_id is not None:
+            resolved_scope = AccountScope(owner_type="instance", owner_id=instance_id)
+        if resolved_scope is None:
+            return query
+        return query.filter(
+            AccountClassificationDailyRuleMatchStat.owner_type == resolved_scope.owner_type,
+            AccountClassificationDailyRuleMatchStat.owner_id == resolved_scope.owner_id,
+        )
+
+    @staticmethod
+    def _apply_classification_scope_filter(query, *, instance_id: int | None, account_scope: AccountScope | None):
+        resolved_scope = account_scope
+        if resolved_scope is None and instance_id is not None:
+            resolved_scope = AccountScope(owner_type="instance", owner_id=instance_id)
+        if resolved_scope is None:
+            return query
+        return query.filter(
+            AccountClassificationDailyClassificationMatchStat.owner_type == resolved_scope.owner_type,
+            AccountClassificationDailyClassificationMatchStat.owner_id == resolved_scope.owner_id,
+        )

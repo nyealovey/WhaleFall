@@ -22,6 +22,7 @@ from app.api.v1.restx_models.accounts import (
 )
 from app.core.constants import HttpStatus
 from app.core.exceptions import ConflictError, ValidationError
+from app.core.types.account_scope import parse_account_scope
 from app.services.account_classification.auto_classify_actions_service import AutoClassifyActionsService
 from app.services.accounts.account_classification_expression_validation_service import (
     AccountClassificationExpressionValidationService,
@@ -71,6 +72,7 @@ AccountClassificationAutoClassifyPayload = ns.model(
     "AccountClassificationAutoClassifyPayload",
     {
         "instance_id": fields.Raw(required=False, description="实例 ID(可选)"),
+        "account_scope": fields.String(required=False, description="账户归属范围(instance:<id>/sqlserver_ag:<id>)"),
     },
 )
 
@@ -793,6 +795,7 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
         payload_snapshot = _parse_json_payload()
         created_by = current_user.id if current_user.is_authenticated else None
         instance_id_raw = payload_snapshot.get("instance_id")
+        account_scope_raw = payload_snapshot.get("account_scope")
         instance_id: int | None = None
         if instance_id_raw not in (None, ""):
             if isinstance(instance_id_raw, bool):
@@ -812,13 +815,19 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
                     "instance_id 必须为整数",
                     extra={"instance_id": str(instance_id_raw)},
                 )
+        account_scope_text = account_scope_raw if isinstance(account_scope_raw, str) else None
+        account_scope = parse_account_scope(account_scope_text, legacy_instance_id=instance_id)
 
         actions_service = _auto_classify_service
         prepared = None
 
         def _execute():
             nonlocal prepared
-            prepared = actions_service.prepare_background_auto_classify(created_by=created_by, instance_id=instance_id)
+            prepared = actions_service.prepare_background_auto_classify(
+                created_by=created_by,
+                instance_id=instance_id,
+                account_scope=account_scope,
+            )
             return self.success(
                 data={"run_id": prepared.run_id},
                 message="自动分类任务已在后台启动,请稍后在运行中心查看进度.",
@@ -829,7 +838,7 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
             module="accounts_classifications",
             action="auto_classify",
             public_error="自动分类失败",
-            context={"instance_id": instance_id},
+            context={"instance_id": instance_id, "account_scope": account_scope_text},
         )
 
         if prepared is not None:
