@@ -37,7 +37,7 @@ function mountAccountClassificationStatisticsPage(global) {
     classificationId: document.getElementById("classification_id"),
     periodType: document.getElementById("period_type"),
     dbType: document.getElementById("db_type"),
-    instanceId: document.getElementById("instance_id"),
+    accountScope: document.getElementById("account_scope"),
     ruleId: document.getElementById("rule_id"),
     ruleSearch: document.getElementById("acs-rule-search"),
     ruleStatus: document.getElementById("acs-rule-status"),
@@ -129,16 +129,16 @@ function mountAccountClassificationStatisticsPage(global) {
         dbType: normalizeString(elements.dbType.value),
       });
       syncFromStore();
-      if (elements.instanceId) {
-        elements.instanceId.value = "";
+      if (elements.accountScope) {
+        elements.accountScope.value = "";
       }
       syncUrl();
       refreshInstanceOptions().then(() => refreshAll({ silent: true }));
     });
 
-    elements.instanceId?.addEventListener("change", () => {
+    elements.accountScope?.addEventListener("change", () => {
       store.actions.patchFilters({
-        instanceId: normalizeInt(elements.instanceId.value),
+        accountScope: normalizeString(elements.accountScope.value),
       });
       syncFromStore();
       syncUrl();
@@ -176,9 +176,9 @@ function mountAccountClassificationStatisticsPage(global) {
     if (elements.ruleId) {
       elements.ruleId.value = "";
     }
-    if (elements.instanceId) {
-      elements.instanceId.setAttribute("disabled", "disabled");
-      elements.instanceId.value = "";
+    if (elements.accountScope) {
+      elements.accountScope.setAttribute("disabled", "disabled");
+      elements.accountScope.value = "";
     }
     if (elements.ruleSearch) {
       elements.ruleSearch.value = "";
@@ -195,7 +195,7 @@ function mountAccountClassificationStatisticsPage(global) {
       classificationId,
       periodType: normalizePeriodType(refs.periodType?.value),
       dbType: normalizeString(refs.dbType?.value),
-      instanceId: normalizeInt(refs.instanceId?.value),
+      accountScope: normalizeString(refs.accountScope?.value),
       // 未选分类时不允许携带 rule_id, 避免误导与错误请求
       ruleId: classificationId ? ruleId : null,
       ruleStatus: normalizeRuleStatus(refs.ruleStatus?.value),
@@ -260,46 +260,46 @@ function mountAccountClassificationStatisticsPage(global) {
   }
 
   function refreshInstanceOptions() {
-    if (!elements.instanceId) {
+    if (!elements.accountScope) {
       return Promise.resolve();
     }
     if (!state.dbType) {
-      elements.instanceId.setAttribute("disabled", "disabled");
-      elements.instanceId.innerHTML = '<option value="">所有实例</option>';
+      elements.accountScope.setAttribute("disabled", "disabled");
+      elements.accountScope.innerHTML = '<option value="">所有实例/AG</option>';
       return Promise.resolve();
     }
 
-    elements.instanceId.removeAttribute("disabled");
-    elements.instanceId.innerHTML = '<option value="">加载中...</option>';
+    elements.accountScope.removeAttribute("disabled");
+    elements.accountScope.innerHTML = '<option value="">加载中...</option>';
 
     return store.actions
       .loadInstanceOptions({ silent: true })
       .then(() => {
         const snapshot = syncFromStore();
-        renderInstanceOptions(snapshot.instanceOptions);
+        renderInstanceOptions(snapshot.accountScopeOptions);
       })
       .catch((error) => {
         console.error("加载实例选项失败:", error);
-        elements.instanceId.innerHTML = '<option value="">所有实例</option>';
+        elements.accountScope.innerHTML = '<option value="">所有实例/AG</option>';
       });
   }
 
   function renderInstanceOptions(items) {
-    if (!elements.instanceId) {
+    if (!elements.accountScope) {
       return;
     }
-    const options = ['<option value="">所有实例</option>'];
+    const options = ['<option value="">所有实例/AG</option>'];
     items.forEach((item) => {
-      const id = item?.id;
+      const value = item?.value;
       const name = item?.name;
-      const label = item?.display_name || name || `实例 ${id}`;
-      if (!id) {
+      const label = item?.label || item?.display_name || name || value;
+      if (!value) {
         return;
       }
-      const selected = state.instanceId && String(state.instanceId) === String(id) ? " selected" : "";
-      options.push(`<option value="${escapeHtml(String(id))}"${selected}>${escapeHtml(String(label))}</option>`);
+      const selected = state.accountScope && String(state.accountScope) === String(value) ? " selected" : "";
+      options.push(`<option value="${escapeHtml(String(value))}"${selected}>${escapeHtml(String(label))}</option>`);
     });
-    elements.instanceId.innerHTML = options.join("");
+    elements.accountScope.innerHTML = options.join("");
   }
 
   function renderRulesWindowLabel(windowStart, windowEnd) {
@@ -799,8 +799,8 @@ function mountAccountClassificationStatisticsPage(global) {
     if (state.dbType) {
       params.set("db_type", state.dbType);
     }
-    if (state.instanceId) {
-      params.set("instance_id", String(state.instanceId));
+    if (state.accountScope) {
+      params.set("account_scope", String(state.accountScope));
     }
     if (state.ruleId) {
       params.set("rule_id", String(state.ruleId));

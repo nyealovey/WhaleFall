@@ -114,6 +114,14 @@
       });
     }
 
+    fetchAccountScopeOptions(dbType) {
+      const normalized = typeof dbType === "string" ? dbType.trim() : "";
+      return this.httpClient.get("/api/v1/instances/account-scope-options", {
+        params: { db_type: normalized || undefined },
+        headers: { Accept: "application/json" },
+      });
+    }
+
     batchDeleteInstances(instanceIds) {
       if (!Array.isArray(instanceIds) || instanceIds.length === 0) {
         throw new Error("InstanceManagementService: batchDeleteInstances 需要实例ID");

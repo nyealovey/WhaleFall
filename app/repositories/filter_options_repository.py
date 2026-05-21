@@ -16,6 +16,7 @@ from app import db
 from app.models.account_classification import AccountClassification
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster
 from app.models.tag import Tag
 
 
@@ -55,6 +56,27 @@ class FilterOptionsRepository:
             query = cast("Query", query).filter(func.lower(Instance.db_type).in_(normalized_types))
 
         return cast("Query", query).order_by(Instance.name.asc()).all()
+
+    @staticmethod
+    def list_enabled_sqlserver_ag_options(
+        *,
+        db_type: str | list[str] | None = None,
+    ) -> list[SQLServerAvailabilityGroup]:
+        """获取可作为账户范围筛选的 SQL Server AG 虚拟实例."""
+        normalized_types = _normalize_db_types(db_type)
+        if normalized_types and "sqlserver" not in normalized_types:
+            return []
+
+        query = (
+            SQLServerAvailabilityGroup.query.join(SQLServerCluster)
+            .filter(
+                SQLServerCluster.is_enabled.is_(True),
+                SQLServerAvailabilityGroup.contained_enabled.is_(True),
+                SQLServerAvailabilityGroup.is_enabled.is_(True),
+            )
+            .order_by(SQLServerAvailabilityGroup.listener_name.asc(), SQLServerAvailabilityGroup.name.asc())
+        )
+        return cast("list[SQLServerAvailabilityGroup]", query.all())
 
     @staticmethod
     def list_databases_by_instance(

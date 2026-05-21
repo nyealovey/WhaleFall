@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.exceptions import ConflictError, ValidationError
+from app.core.types.account_scope import AccountScope
 from app.repositories.account_classification_repository import ClassificationRepository
 from app.services.account_classification.dsl_v4 import (
     DslV4Evaluator,
@@ -69,6 +70,7 @@ class AccountClassificationService:
         self,
         instance_id: int | None = None,
         created_by: int | None = None,
+        account_scope: AccountScope | None = None,
     ) -> dict[str, Any]:
         """执行优化版账户自动分类流程.
 
@@ -81,7 +83,7 @@ class AccountClassificationService:
 
         """
         try:
-            return self._perform_auto_classify(instance_id, created_by)
+            return self._perform_auto_classify(instance_id, created_by, account_scope)
         except CLASSIFICATION_RUNTIME_EXCEPTIONS as exc:
             log_error("优化后的自动分类失败", module="account_classification", error=str(exc))
             return {
@@ -94,6 +96,7 @@ class AccountClassificationService:
         self,
         instance_id: int | None,
         created_by: int | None,
+        account_scope: AccountScope | None,
     ) -> dict[str, Any]:
         """执行自动分类并返回摘要."""
         start_time = time.time()
@@ -105,7 +108,7 @@ class AccountClassificationService:
                 "error": "没有可用的分类规则",
             }
 
-        accounts = self.repository.fetch_accounts(instance_id)
+        accounts = self.repository.fetch_accounts(instance_id, account_scope=account_scope)
         if not accounts:
             return {
                 "success": False,
@@ -113,13 +116,17 @@ class AccountClassificationService:
                 "error": "没有需要分类的账户",
             }
 
-        self.repository.cleanup_all_assignments()
+        if account_scope is None and instance_id is None:
+            self.repository.cleanup_all_assignments()
+        else:
+            self.repository.cleanup_assignments_for_accounts([int(account.id) for account in accounts])
         log_info(
             "开始账户分类",
             module="account_classification",
             total_rules=len(rules),
             total_accounts=len(accounts),
             instance_id=instance_id,
+            account_scope=account_scope.value if account_scope else None,
             created_by=created_by,
         )
 

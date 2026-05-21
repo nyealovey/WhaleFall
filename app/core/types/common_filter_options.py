@@ -24,6 +24,26 @@ class CommonInstancesOptionsResult:
 
 
 @dataclass(slots=True)
+class CommonAccountScopeOptionItem:
+    """账户范围选项条目."""
+
+    value: str
+    label: str
+    db_type: str
+    owner_type: str
+    owner_id: int
+    name: str
+    host: str | None
+
+
+@dataclass(slots=True)
+class CommonAccountScopesOptionsResult:
+    """账户范围选项结果."""
+
+    account_scopes: list[CommonAccountScopeOptionItem]
+
+
+@dataclass(slots=True)
 class CommonDatabasesOptionsFilters:
     """通用数据库选项查询参数."""
 

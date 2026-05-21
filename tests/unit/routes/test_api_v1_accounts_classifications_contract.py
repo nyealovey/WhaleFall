@@ -40,17 +40,24 @@ def test_api_v1_accounts_classifications_requires_auth(client) -> None:
 @pytest.mark.unit
 def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, monkeypatch) -> None:
     class _DummyAutoClassifyService:
-        def prepare_background_auto_classify(self, *, instance_id, created_by):
-            del instance_id, created_by
+        def prepare_background_auto_classify(self, *, instance_id, account_scope, created_by):
+            del created_by
             from types import SimpleNamespace
 
-            return SimpleNamespace(run_id="test-run-id")
+            assert instance_id is None
+            assert account_scope.value == "sqlserver_ag:42"
+            return SimpleNamespace(run_id="test-run-id", instance_id=instance_id, account_scope=account_scope.value)
 
         def launch_background_auto_classify(self, *, created_by, prepared):
             del created_by, prepared
             from types import SimpleNamespace
 
-            return SimpleNamespace(run_id="test-run-id", instance_id=None, thread_name="dummy-thread")
+            return SimpleNamespace(
+                run_id="test-run-id",
+                instance_id=None,
+                account_scope="sqlserver_ag:42",
+                thread_name="dummy-thread",
+            )
 
     import app.api.v1.namespaces.accounts_classifications as api_module
 
@@ -65,7 +72,7 @@ def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, mon
 
     response = auth_client.post(
         "/api/v1/accounts/classifications/actions/auto-classify",
-        json={"instance_id": None},
+        json={"account_scope": "sqlserver_ag:42"},
         headers={"X-CSRFToken": csrf_token},
     )
     assert response.status_code == 200

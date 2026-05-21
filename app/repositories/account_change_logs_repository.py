@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any, cast
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.exceptions import NotFoundError
@@ -19,6 +19,7 @@ from app.core.types.listing import PaginatedResult
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup
 from app.utils.time_utils import time_utils
 
 
@@ -27,7 +28,7 @@ class AccountChangeLogsRepository:
 
     def list_logs(
         self, filters: AccountChangeLogsListFilters
-    ) -> PaginatedResult[tuple[AccountChangeLog, str | None, int | None]]:
+    ) -> PaginatedResult[tuple[AccountChangeLog, str | None, str | None, int | None]]:
         """分页查询账户变更日志."""
         change_time_column = cast("ColumnElement[Any]", AccountChangeLog.change_time)
         username_column = cast(ColumnElement[str], AccountChangeLog.username)
@@ -47,7 +48,24 @@ class AccountChangeLogsRepository:
 
         instance_name_column = cast(ColumnElement[str], Instance.name)
         instance_host_column = cast(ColumnElement[str], Instance.host)
+        ag_listener_name_column = cast(ColumnElement[str], SQLServerAvailabilityGroup.listener_name)
+        ag_name_column = cast(ColumnElement[str], SQLServerAvailabilityGroup.name)
+        ag_listener_host_column = cast(ColumnElement[str], SQLServerAvailabilityGroup.listener_host)
         account_id_column = cast(ColumnElement[int], AccountPermission.instance_account_id)
+        display_instance_name_column = case(
+            (
+                AccountChangeLog.owner_type == "sqlserver_ag",
+                func.coalesce(ag_listener_name_column, ag_name_column),
+            ),
+            else_=instance_name_column,
+        )
+        display_instance_host_column = case(
+            (
+                AccountChangeLog.owner_type == "sqlserver_ag",
+                ag_listener_host_column,
+            ),
+            else_=instance_host_column,
+        )
 
         join_condition = and_(
             AccountPermission.instance_id == AccountChangeLog.instance_id,
@@ -62,8 +80,19 @@ class AccountChangeLogsRepository:
 
         query = (
             AccountChangeLog.query.join(Instance, Instance.id == AccountChangeLog.instance_id)
+            .outerjoin(
+                SQLServerAvailabilityGroup,
+                and_(
+                    AccountChangeLog.owner_type == "sqlserver_ag",
+                    SQLServerAvailabilityGroup.id == AccountChangeLog.owner_id,
+                ),
+            )
             .outerjoin(AccountPermission, join_condition)
-            .add_columns(instance_name_column.label("instance_name"), account_id_column.label("account_id"))
+            .add_columns(
+                display_instance_name_column.label("instance_name"),
+                display_instance_host_column.label("instance_host"),
+                account_id_column.label("account_id"),
+            )
         )
 
         if filters.instance_id is not None:
@@ -83,8 +112,8 @@ class AccountChangeLogsRepository:
             query = query.filter(
                 or_(
                     username_column.contains(term),
-                    instance_name_column.contains(term),
-                    instance_host_column.contains(term),
+                    display_instance_name_column.contains(term),
+                    display_instance_host_column.contains(term),
                 ),
             )
 

@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from typing import TypedDict
 
 from app.core.exceptions import ValidationError
+from app.core.types.account_scope import AccountScope
 from app.models.account_classification import ClassificationRule
 from app.repositories.account_classification_daily_stats_read_repository import (
     AccountClassificationDailyStatsReadRepository,
@@ -89,6 +90,7 @@ class AccountClassificationDailyStatsReadService:
         periods: int,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> list[dict[str, object]]:
         """获取分类趋势(分类去重账号数)."""
         normalized_period_type = self._normalize_period_type(period_type)
@@ -104,6 +106,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=end_date,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
         return self._rollup_to_buckets(buckets=buckets, daily_totals=daily_totals)
 
@@ -114,6 +117,7 @@ class AccountClassificationDailyStatsReadService:
         periods: int,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> dict[str, object]:
         """获取全分类趋势(未选分类时用于多折线展示)."""
         normalized_period_type = self._normalize_period_type(period_type)
@@ -128,6 +132,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=end_date,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
 
         bucket_payload = [
@@ -172,6 +177,7 @@ class AccountClassificationDailyStatsReadService:
         periods: int,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
     ) -> list[dict[str, object]]:
         """获取规则趋势(规则命中账号数)."""
         normalized_period_type = self._normalize_period_type(period_type)
@@ -187,6 +193,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=end_date,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
         return self._rollup_to_buckets(buckets=buckets, daily_totals=daily_totals)
 
@@ -197,6 +204,7 @@ class AccountClassificationDailyStatsReadService:
         period_type: str,
         db_type: str | None,
         instance_id: int | None,
+        account_scope: AccountScope | None = None,
         limit: int = 10,
     ) -> dict[str, object]:
         """获取规则贡献(用于“未选规则”的柱状图)."""
@@ -210,6 +218,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=current_end,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
         stat_dates = self._repository.fetch_rule_stat_dates(
             classification_id=classification_id,
@@ -217,6 +226,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=current_end,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
 
         coverage_days = len(stat_dates)
@@ -271,6 +281,7 @@ class AccountClassificationDailyStatsReadService:
         db_type: str | None,
         instance_id: int | None,
         status: str,
+        account_scope: AccountScope | None = None,
     ) -> dict[str, object]:
         """列出规则概览(用于左侧列表).
 
@@ -295,6 +306,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=end_date,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
         latest_totals = self._repository.fetch_rule_totals_by_rule_id(
             classification_id=classification_id,
@@ -302,6 +314,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=latest_end,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
         latest_coverages = self._repository.fetch_rule_coverage_days_by_rule_id(
             classification_id=classification_id,
@@ -309,6 +322,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=latest_end,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
         latest_stat_dates = self._repository.fetch_rule_stat_dates(
             classification_id=classification_id,
@@ -316,6 +330,7 @@ class AccountClassificationDailyStatsReadService:
             end_date=latest_end,
             db_type=db_type,
             instance_id=instance_id,
+            account_scope=account_scope,
         )
         latest_coverage_days = len(latest_stat_dates)
 

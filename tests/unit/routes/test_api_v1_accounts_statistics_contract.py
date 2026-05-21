@@ -1,6 +1,7 @@
 import pytest
 
 from app import db
+from app.models.account_classification import AccountClassification
 from app.models.account_classification_daily_stats import (  # noqa: F401
     AccountClassificationDailyClassificationMatchStat,
     AccountClassificationDailyRuleMatchStat,
@@ -8,6 +9,7 @@ from app.models.account_classification_daily_stats import (  # noqa: F401
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.utils.time_utils import time_utils
 
 
@@ -24,6 +26,9 @@ def _ensure_account_statistics_tables(app) -> None:
                 db.metadata.tables["account_classification_assignments"],
                 db.metadata.tables["account_classification_daily_rule_match_stats"],
                 db.metadata.tables["account_classification_daily_classification_match_stats"],
+                db.metadata.tables["sqlserver_clusters"],
+                db.metadata.tables["sqlserver_cluster_instances"],
+                db.metadata.tables["sqlserver_availability_groups"],
             ],
         )
 
@@ -230,3 +235,173 @@ def test_api_v1_accounts_statistics_summary_includes_disabled_instances(app, aut
     assert summary_data.get("active_instances") == 0
     assert summary_data.get("disabled_instances") == 1
     assert summary_data.get("deleted_instances") == 1
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_statistics_treats_ag_listener_as_virtual_instance(app, auth_client) -> None:
+    _ensure_account_statistics_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sql-prod-01",
+            db_type="sqlserver",
+            host="10.0.0.11",
+            port=1433,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.flush()
+
+        cluster = SQLServerCluster(name="cluster-a", domain_name="corp.local", is_enabled=True)
+        db.session.add(cluster)
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-pay",
+            listener_name="ag-pay-listener",
+            listener_host="10.0.0.50",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+        )
+        db.session.add(ag)
+        db.session.flush()
+
+        physical_account = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="instance",
+            owner_id=instance.id,
+            username="svc_physical",
+            db_type="sqlserver",
+            is_active=True,
+        )
+        ag_account = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="sqlserver_ag",
+            owner_id=ag.id,
+            cluster_id=cluster.id,
+            availability_group_id=ag.id,
+            username="svc_ag",
+            db_type="sqlserver",
+            is_active=True,
+        )
+        db.session.add_all([physical_account, ag_account])
+        db.session.flush()
+
+        db.session.add_all(
+            [
+                AccountPermission(
+                    instance_id=instance.id,
+                    instance_account_id=physical_account.id,
+                    owner_type="instance",
+                    owner_id=instance.id,
+                    db_type="sqlserver",
+                    username="svc_physical",
+                    permission_facts={"capabilities": []},
+                ),
+                AccountPermission(
+                    instance_id=instance.id,
+                    instance_account_id=ag_account.id,
+                    owner_type="sqlserver_ag",
+                    owner_id=ag.id,
+                    cluster_id=cluster.id,
+                    availability_group_id=ag.id,
+                    db_type="sqlserver",
+                    username="svc_ag",
+                    permission_facts={"capabilities": []},
+                ),
+            ],
+        )
+        db.session.commit()
+        ag_id = ag.id
+
+    summary_response = auth_client.get("/api/v1/accounts/statistics/summary?db_type=sqlserver")
+    assert summary_response.status_code == 200
+    summary = summary_response.get_json()["data"]
+    assert summary["total_accounts"] == 2
+    assert summary["total_instances"] == 2
+    assert summary["physical_instances"] == 1
+    assert summary["ag_virtual_instances"] == 1
+
+    scoped_response = auth_client.get(
+        f"/api/v1/accounts/statistics/summary?account_scope=sqlserver_ag:{ag_id}",
+    )
+    assert scoped_response.status_code == 200
+    scoped_summary = scoped_response.get_json()["data"]
+    assert scoped_summary["total_accounts"] == 1
+    assert scoped_summary["total_instances"] == 1
+    assert scoped_summary["physical_instances"] == 0
+    assert scoped_summary["ag_virtual_instances"] == 1
+
+
+@pytest.mark.unit
+def test_api_v1_account_classification_trend_filters_by_ag_account_scope(app, auth_client) -> None:
+    _ensure_account_statistics_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sql-prod-01",
+            db_type="sqlserver",
+            host="10.0.0.11",
+            port=1433,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.flush()
+
+        cluster = SQLServerCluster(name="cluster-trend", is_enabled=True)
+        db.session.add(cluster)
+        db.session.flush()
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-trend",
+            listener_name="ag-trend-listener",
+            listener_host="10.0.0.51",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+        )
+        classification = AccountClassification(
+            code="admin",
+            display_name="管理员",
+            priority=10,
+            is_active=True,
+        )
+        db.session.add_all([ag, classification])
+        db.session.flush()
+        db.session.add_all(
+            [
+                AccountClassificationDailyClassificationMatchStat(
+                    stat_date=time_utils.now_china().date(),
+                    classification_id=classification.id,
+                    db_type="sqlserver",
+                    instance_id=instance.id,
+                    owner_type="instance",
+                    owner_id=instance.id,
+                    matched_accounts_distinct_count=3,
+                ),
+                AccountClassificationDailyClassificationMatchStat(
+                    stat_date=time_utils.now_china().date(),
+                    classification_id=classification.id,
+                    db_type="sqlserver",
+                    instance_id=instance.id,
+                    owner_type="sqlserver_ag",
+                    owner_id=ag.id,
+                    matched_accounts_distinct_count=5,
+                ),
+            ]
+        )
+        db.session.commit()
+        classification_id = classification.id
+        ag_id = ag.id
+
+    response = auth_client.get(
+        "/api/v1/accounts/statistics/classifications/trend"
+        f"?classification_id={classification_id}&period_type=daily&periods=1&account_scope=sqlserver_ag:{ag_id}",
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["success"] is True
+    assert payload["data"]["trend"][0]["value_sum"] == 5

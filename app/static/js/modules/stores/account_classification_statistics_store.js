@@ -8,7 +8,7 @@
    * @property {number|null} classificationId
    * @property {string} periodType
    * @property {string|null} dbType
-   * @property {number|null} instanceId
+   * @property {string|null} accountScope
    * @property {number|null} ruleId
    * @property {string} ruleStatus
    */
@@ -16,7 +16,7 @@
   /**
    * @typedef {Object} AccountClassificationStatisticsState
    * @property {AccountClassificationStatisticsFilters} filters
-   * @property {Array<Object>} instanceOptions
+   * @property {Array<Object>} accountScopeOptions
    * @property {Array<Object>} rules
    * @property {Object|null} selectedRuleMeta
    * @property {Object|null} rulesWindow
@@ -55,9 +55,9 @@
     if (!instanceService) {
       throw new Error("createAccountClassificationStatisticsStore: instanceService is required");
     }
-    if (typeof instanceService.fetchInstanceOptions !== "function") {
+    if (typeof instanceService.fetchAccountScopeOptions !== "function") {
       throw new Error(
-        "createAccountClassificationStatisticsStore: instanceService.fetchInstanceOptions 未实现",
+        "createAccountClassificationStatisticsStore: instanceService.fetchAccountScopeOptions 未实现",
       );
     }
     return instanceService;
@@ -128,7 +128,7 @@
       classificationId: filters.classificationId ?? null,
       periodType: filters.periodType || "daily",
       dbType: filters.dbType ?? null,
-      instanceId: filters.instanceId ?? null,
+      accountScope: filters.accountScope ?? null,
       ruleId: filters.ruleId ?? null,
       ruleStatus: filters.ruleStatus || "active",
     };
@@ -137,7 +137,7 @@
   function cloneState(state) {
     return {
       filters: cloneFilters(state.filters),
-      instanceOptions: Array.isArray(state.instanceOptions) ? state.instanceOptions.slice() : [],
+      accountScopeOptions: Array.isArray(state.accountScopeOptions) ? state.accountScopeOptions.slice() : [],
       rules: Array.isArray(state.rules) ? state.rules.slice() : [],
       selectedRuleMeta: state.selectedRuleMeta || null,
       rulesWindow: state.rulesWindow ? { ...state.rulesWindow } : null,
@@ -155,7 +155,7 @@
       classificationId: null,
       periodType: "daily",
       dbType: null,
-      instanceId: null,
+      accountScope: null,
       ruleId: null,
       ruleStatus: "active",
     };
@@ -169,14 +169,14 @@
       classificationId,
       periodType: normalizePeriodType(next.periodType ?? state.filters.periodType),
       dbType: normalizeString(next.dbType ?? state.filters.dbType),
-      instanceId: normalizeInt(next.instanceId ?? state.filters.instanceId),
+      accountScope: normalizeString(next.accountScope ?? state.filters.accountScope),
       ruleId: classificationId ? ruleIdCandidate : null,
       ruleStatus: normalizeRuleStatus(next.ruleStatus ?? state.filters.ruleStatus),
     };
 
-    // 切换 dbType 时，默认清空 instanceId（避免残留实例筛选误导）。
+    // 切换 dbType 时，默认清空 accountScope（避免残留范围筛选误导）。
     if (Object.prototype.hasOwnProperty.call(next, "dbType")) {
-      filters.instanceId = null;
+      filters.accountScope = null;
     }
     // 切换 classification 时，默认清空 ruleId（避免跨分类 ruleId 误导）。
     if (Object.prototype.hasOwnProperty.call(next, "classificationId")) {
@@ -195,7 +195,7 @@
     /** @type {AccountClassificationStatisticsState} */
     const state = {
       filters: buildDefaultFilters(),
-      instanceOptions: [],
+      accountScopeOptions: [],
       rules: [],
       selectedRuleMeta: null,
       rulesWindow: null,
@@ -270,7 +270,7 @@
           state.rules = [];
           state.selectedRuleMeta = null;
           state.rulesWindow = null;
-          state.instanceOptions = [];
+          state.accountScopeOptions = [];
           state.classificationTrend = [];
           state.allClassificationsTrend = null;
           state.ruleTrend = [];
@@ -289,7 +289,7 @@
           const silent = Boolean(options && options.silent);
           const dbType = state.filters.dbType;
           if (!dbType) {
-            state.instanceOptions = [];
+            state.accountScopeOptions = [];
             emit("accountClassificationStatistics:instanceOptionsUpdated", {
               options: [],
               state: cloneState(state),
@@ -299,11 +299,11 @@
 
           setLoading("instances", true, { action: "loadInstanceOptions", silent });
           return instanceService
-            .fetchInstanceOptions(dbType)
+            .fetchAccountScopeOptions(dbType)
             .then(function (payload) {
-              const items = payload?.data?.instances ?? payload?.instances ?? [];
+              const items = payload?.data?.account_scopes ?? payload?.account_scopes ?? [];
               const list = Array.isArray(items) ? items : [];
-              state.instanceOptions = list;
+              state.accountScopeOptions = list;
               emit("accountClassificationStatistics:instanceOptionsUpdated", {
                 options: list,
                 state: cloneState(state),
@@ -311,7 +311,7 @@
               return list;
             })
             .catch(function (error) {
-              state.instanceOptions = [];
+              state.accountScopeOptions = [];
               handleError(error, { action: "loadInstanceOptions", silent });
               throw error;
             })
@@ -342,7 +342,7 @@
               periodType: filters.periodType,
               periods: DEFAULT_PERIODS,
               dbType: filters.dbType,
-              instanceId: filters.instanceId,
+              accountScope: filters.accountScope,
               status: filters.ruleStatus,
             })
             .then(function (payload) {
@@ -402,7 +402,7 @@
                 periodType: filters.periodType,
                 periods: DEFAULT_PERIODS,
                 dbType: filters.dbType,
-                instanceId: filters.instanceId,
+                accountScope: filters.accountScope,
               })
               .then(function (payload) {
                 const data = payload?.data ?? payload ?? {};
@@ -431,7 +431,7 @@
               periodType: filters.periodType,
               periods: DEFAULT_PERIODS,
               dbType: filters.dbType,
-              instanceId: filters.instanceId,
+              accountScope: filters.accountScope,
             })
             .then(function (payload) {
               const trend = payload?.data?.trend ?? payload?.trend ?? [];
@@ -449,7 +449,7 @@
                     periodType: filters.periodType,
                     periods: DEFAULT_PERIODS,
                     dbType: filters.dbType,
-                    instanceId: filters.instanceId,
+                    accountScope: filters.accountScope,
                   })
                   .then(function (payload) {
                     const trend = payload?.data?.trend ?? payload?.trend ?? [];
@@ -466,7 +466,7 @@
                   classificationId: filters.classificationId,
                   periodType: filters.periodType,
                   dbType: filters.dbType,
-                  instanceId: filters.instanceId,
+                  accountScope: filters.accountScope,
                   limit: 10,
                 })
                 .then(function (payload) {
@@ -504,7 +504,7 @@
           emitter.all.clear();
         }
         state.rules = [];
-        state.instanceOptions = [];
+        state.accountScopeOptions = [];
         state.classificationTrend = [];
         state.allClassificationsTrend = null;
         state.ruleTrend = [];

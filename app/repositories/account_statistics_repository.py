@@ -10,13 +10,15 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import and_, case, distinct, func, or_
+from sqlalchemy import and_, case, distinct, false, func, inspect, or_
 
 from app import db
+from app.core.types.account_scope import AccountScope
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment, ClassificationRule
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster
 
 
 class AccountStatisticsRepository:
@@ -38,8 +40,17 @@ class AccountStatisticsRepository:
         }
 
     @staticmethod
-    def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None) -> dict[str, int]:
+    def fetch_summary(
+        *,
+        instance_id: int | None = None,
+        db_type: str | None = None,
+        account_scope: AccountScope | None = None,
+    ) -> dict[str, int]:
         """获取账户与实例汇总统计."""
+        resolved_scope = account_scope
+        if resolved_scope is None and instance_id is not None:
+            resolved_scope = AccountScope(owner_type="instance", owner_id=instance_id)
+
         counts_query = (
             db.session.query(
                 func.count(AccountPermission.id).label("total_accounts"),
@@ -68,8 +79,8 @@ class AccountStatisticsRepository:
             .filter(Instance.deleted_at.is_(None))
         )
 
-        if instance_id is not None:
-            counts_query = counts_query.filter(AccountPermission.instance_id == instance_id)
+        if resolved_scope is not None:
+            counts_query = AccountStatisticsRepository._apply_account_scope_filter(counts_query, resolved_scope)
 
         if db_type:
             counts_query = counts_query.filter(AccountPermission.db_type == db_type)
@@ -94,14 +105,24 @@ class AccountStatisticsRepository:
             active_instance_query = active_instance_query.filter(Instance.db_type == db_type)
             deleted_query = deleted_query.filter(Instance.db_type == db_type)
 
-        if instance_id is not None:
-            active_instance_query = active_instance_query.filter(Instance.id == instance_id)
-            deleted_query = deleted_query.filter(Instance.id == instance_id)
+        if resolved_scope is not None:
+            if resolved_scope.owner_type == "instance":
+                active_instance_query = active_instance_query.filter(Instance.id == resolved_scope.owner_id)
+                deleted_query = deleted_query.filter(Instance.id == resolved_scope.owner_id)
+            else:
+                active_instance_query = active_instance_query.filter(false())
+                deleted_query = deleted_query.filter(false())
 
-        active_instances = active_instance_query.filter(Instance.is_active.is_(True)).count()
+        physical_active_instances = active_instance_query.filter(Instance.is_active.is_(True)).count()
         disabled_instances = active_instance_query.filter(Instance.is_active.is_(False)).count()
         deleted_instances = deleted_query.filter(Instance.deleted_at.isnot(None)).count()
-        total_instances = active_instances + disabled_instances
+        physical_instances = physical_active_instances + disabled_instances
+        ag_virtual_instances = AccountStatisticsRepository._count_ag_virtual_instances(
+            db_type=db_type,
+            account_scope=resolved_scope,
+        )
+        total_instances = physical_instances + ag_virtual_instances
+        active_instances = physical_active_instances + ag_virtual_instances
         normal_instances = active_instances
 
         return {
@@ -111,11 +132,57 @@ class AccountStatisticsRepository:
             "normal_accounts": normal_accounts,
             "deleted_accounts": deleted_accounts,
             "total_instances": total_instances,
+            "physical_instances": physical_instances,
+            "ag_virtual_instances": ag_virtual_instances,
             "active_instances": active_instances,
             "disabled_instances": disabled_instances,
             "normal_instances": normal_instances,
             "deleted_instances": deleted_instances,
         }
+
+    @staticmethod
+    def _apply_account_scope_filter(query: Any, account_scope: AccountScope) -> Any:
+        if account_scope.owner_type == "instance":
+            return query.filter(
+                AccountPermission.owner_type == "instance",
+                or_(
+                    AccountPermission.owner_id == account_scope.owner_id,
+                    and_(
+                        AccountPermission.owner_id.is_(None),
+                        AccountPermission.instance_id == account_scope.owner_id,
+                    ),
+                ),
+            )
+        return query.filter(
+            AccountPermission.owner_type == account_scope.owner_type,
+            AccountPermission.owner_id == account_scope.owner_id,
+        )
+
+    @staticmethod
+    def _count_ag_virtual_instances(*, db_type: str | None, account_scope: AccountScope | None) -> int:
+        if db_type and db_type.lower() != "sqlserver":
+            return 0
+        if account_scope is not None and account_scope.owner_type == "instance":
+            return 0
+        inspector = inspect(db.engine)
+        if not inspector.has_table(SQLServerAvailabilityGroup.__tablename__) or not inspector.has_table(
+            SQLServerCluster.__tablename__,
+        ):
+            return 0
+
+        query = (
+            db.session.query(func.count(distinct(SQLServerAvailabilityGroup.id)))
+            .join(SQLServerCluster, SQLServerCluster.id == SQLServerAvailabilityGroup.cluster_id)
+            .filter(
+                SQLServerCluster.is_enabled.is_(True),
+                SQLServerAvailabilityGroup.contained_enabled.is_(True),
+                SQLServerAvailabilityGroup.is_enabled.is_(True),
+            )
+        )
+        if account_scope is not None:
+            query = query.filter(SQLServerAvailabilityGroup.id == account_scope.owner_id)
+        scalar_value = query.scalar()
+        return int(scalar_value) if scalar_value is not None else 0
 
     @staticmethod
     def fetch_db_type_stats() -> dict[str, dict[str, int]]:

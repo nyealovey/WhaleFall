@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.core.types.account_scope import AccountScope
 from app.core.types.accounts_statistics import AccountStatisticsResult
 from app.repositories.account_statistics_repository import AccountStatisticsRepository
 
@@ -34,6 +35,8 @@ class AccountsStatisticsReadService:
             deleted_accounts=summary["deleted_accounts"],
             database_instances=summary.get("total_instances", 0),
             total_instances=summary["total_instances"],
+            physical_instances=summary.get("physical_instances", summary["total_instances"]),
+            ag_virtual_instances=summary.get("ag_virtual_instances", 0),
             active_instances=summary["active_instances"],
             disabled_instances=summary["disabled_instances"],
             normal_instances=summary["normal_instances"],
@@ -42,9 +45,15 @@ class AccountsStatisticsReadService:
             classification_stats=classification_stats,
         )
 
-    def fetch_summary(self, *, instance_id: int | None, db_type: str | None) -> dict[str, int]:
+    def fetch_summary(
+        self,
+        *,
+        instance_id: int | None,
+        db_type: str | None,
+        account_scope: AccountScope | None = None,
+    ) -> dict[str, int]:
         """获取账户统计汇总."""
-        return self._repository.fetch_summary(instance_id=instance_id, db_type=db_type)
+        return self._repository.fetch_summary(instance_id=instance_id, db_type=db_type, account_scope=account_scope)
 
     def fetch_db_type_stats(self) -> dict[str, dict[str, int]]:
         """获取按数据库类型统计."""
@@ -65,6 +74,8 @@ class AccountsStatisticsReadService:
             deleted_accounts=0,
             database_instances=0,
             total_instances=0,
+            physical_instances=0,
+            ag_virtual_instances=0,
             active_instances=0,
             disabled_instances=0,
             normal_instances=0,

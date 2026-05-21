@@ -81,6 +81,8 @@ function mountAccountsStatisticsPage(global) {
     const locked = Number(stats?.locked_accounts ?? 0) || 0;
     const deleted = Number(stats?.deleted_accounts ?? 0) || 0;
     const instances = Number(stats?.total_instances ?? 0) || 0;
+    const physicalInstances = Number(stats?.physical_instances ?? 0) || 0;
+    const agVirtualInstances = Number(stats?.ag_virtual_instances ?? 0) || 0;
 
     const setText = (id, value) => {
       const el = document.getElementById(id);
@@ -93,6 +95,8 @@ function mountAccountsStatisticsPage(global) {
     setText("accountsMetaNormalCount", formatInteger(normal));
     setText("accountsMetaLockedCount", formatInteger(locked));
     setText("accountsMetaDeletedCount", formatInteger(deleted));
+    setText("accountsMetaPhysicalInstances", formatInteger(physicalInstances));
+    setText("accountsMetaAgVirtualInstances", formatInteger(agVirtualInstances));
 
     const formatDecimal = global.NumberFormat?.formatDecimal;
     const avgPerInstance = instances > 0 ? total / instances : 0;

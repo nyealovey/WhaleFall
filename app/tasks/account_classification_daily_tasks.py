@@ -120,19 +120,32 @@ def _finalize_no_accounts(
     return {"success": False, "message": "没有需要统计的账户", "run_id": run_id}
 
 
-def _build_account_indexes(accounts: list[Any]) -> tuple[dict[str, list[Any]], dict[str, set[int]]]:
+OwnerScopeKey = tuple[str, int, int]
+
+
+def _resolve_account_owner_scope(account: Any) -> OwnerScopeKey | None:
+    db_owner_type = str(getattr(account, "owner_type", "") or "instance").strip().lower() or "instance"
+    instance_id = int(getattr(account, "instance_id", 0) or 0)
+    raw_owner_id = getattr(account, "owner_id", None)
+    owner_id = int(raw_owner_id or instance_id)
+    if instance_id <= 0 or owner_id <= 0:
+        return None
+    return db_owner_type, owner_id, instance_id
+
+
+def _build_account_indexes(accounts: list[Any]) -> tuple[dict[str, list[Any]], dict[str, set[OwnerScopeKey]]]:
     accounts_by_db_type: dict[str, list[Any]] = defaultdict(list)
-    instance_ids_by_db_type: dict[str, set[int]] = defaultdict(set)
+    owner_scopes_by_db_type: dict[str, set[OwnerScopeKey]] = defaultdict(set)
 
     for account in accounts:
         db_type = str(getattr(account, "db_type", "") or "").strip().lower()
-        instance_id = int(getattr(account, "instance_id", 0) or 0)
-        if not db_type or instance_id <= 0:
+        owner_scope = _resolve_account_owner_scope(account)
+        if not db_type or owner_scope is None:
             continue
         accounts_by_db_type[db_type].append(account)
-        instance_ids_by_db_type[db_type].add(instance_id)
+        owner_scopes_by_db_type[db_type].add(owner_scope)
 
-    return accounts_by_db_type, instance_ids_by_db_type
+    return accounts_by_db_type, owner_scopes_by_db_type
 
 
 def _build_classification_db_types(rules: list[Any]) -> dict[int, set[str]]:
@@ -150,8 +163,8 @@ def _calculate_rule_records(
     rule: Any,
     rule_id: int,
     accounts_by_db_type: dict[str, list[Any]],
-    instance_ids_by_db_type: dict[str, set[int]],
-    matched_accounts_by_classification_instance: dict[tuple[int, str, int], set[int]],
+    owner_scopes_by_db_type: dict[str, set[OwnerScopeKey]],
+    matched_accounts_by_classification_scope: dict[tuple[int, str, str, int], set[int]],
     resolved_date: date,
     computed_at: Any,
 ) -> tuple[list[dict[str, object]], dict[str, object], dict[str, object]]:
@@ -162,14 +175,15 @@ def _calculate_rule_records(
     expression = rule.get_rule_expression()
 
     candidate_accounts = accounts_by_db_type.get(db_type) or []
-    instance_ids = sorted(instance_ids_by_db_type.get(db_type) or [])
+    owner_scopes = sorted(owner_scopes_by_db_type.get(db_type) or [])
 
-    matched_by_instance: dict[int, set[int]] = defaultdict(set)
+    matched_by_scope: dict[tuple[str, int], set[int]] = defaultdict(set)
     for account in candidate_accounts:
         account_id = int(getattr(account, "id", 0) or 0)
-        instance_id = int(getattr(account, "instance_id", 0) or 0)
-        if account_id <= 0 or instance_id <= 0:
+        owner_scope = _resolve_account_owner_scope(account)
+        if account_id <= 0 or owner_scope is None:
             continue
+        owner_type, owner_id, _instance_id = owner_scope
 
         raw_facts = getattr(account, "permission_facts", None)
         facts: Mapping[str, object] = raw_facts if isinstance(raw_facts, Mapping) else {}
@@ -180,12 +194,12 @@ def _calculate_rule_records(
         if not outcome.matched:
             continue
 
-        matched_by_instance[instance_id].add(account_id)
-        matched_accounts_by_classification_instance[(classification_id, db_type, instance_id)].add(account_id)
+        matched_by_scope[(owner_type, owner_id)].add(account_id)
+        matched_accounts_by_classification_scope[(classification_id, db_type, owner_type, owner_id)].add(account_id)
 
     records: list[dict[str, object]] = []
-    for instance_id in instance_ids:
-        matched = matched_by_instance.get(instance_id) or set()
+    for owner_type, owner_id, instance_id in owner_scopes:
+        matched = matched_by_scope.get((owner_type, owner_id)) or set()
         records.append(
             {
                 "stat_date": resolved_date,
@@ -193,6 +207,8 @@ def _calculate_rule_records(
                 "classification_id": classification_id,
                 "db_type": db_type,
                 "instance_id": instance_id,
+                "owner_type": owner_type,
+                "owner_id": owner_id,
                 "matched_accounts_count": len(matched),
                 "computed_at": computed_at,
                 "created_at": computed_at,
@@ -201,12 +217,12 @@ def _calculate_rule_records(
         )
 
     duration_ms = _duration_ms(started_rule_at)
-    matched_accounts_total = sum(len(values) for values in matched_by_instance.values())
+    matched_accounts_total = sum(len(values) for values in matched_by_scope.values())
     metrics: dict[str, object] = {
         "matched_accounts_total": matched_accounts_total,
-        "rule_match_rows_written": len(instance_ids),
+        "rule_match_rows_written": len(owner_scopes),
         "duration_ms": duration_ms,
-        "instances_covered": len(instance_ids),
+        "instances_covered": len(owner_scopes),
     }
     details: dict[str, object] = {"db_type": db_type, "classification_id": classification_id}
     return records, metrics, details
@@ -252,18 +268,19 @@ def _finalize_rule_failure(
 def _build_classification_records(
     *,
     classification_db_types: dict[int, set[str]],
-    instance_ids_by_db_type: dict[str, set[int]],
-    matched_accounts_by_classification_instance: dict[tuple[int, str, int], set[int]],
+    owner_scopes_by_db_type: dict[str, set[OwnerScopeKey]],
+    matched_accounts_by_classification_scope: dict[tuple[int, str, str, int], set[int]],
     resolved_date: date,
     computed_at: Any,
 ) -> list[dict[str, object]]:
     classification_records: list[dict[str, object]] = []
     for classification_id, db_types in classification_db_types.items():
         for db_type in sorted(db_types):
-            instance_ids = sorted(instance_ids_by_db_type.get(db_type) or [])
-            for instance_id in instance_ids:
+            owner_scopes = sorted(owner_scopes_by_db_type.get(db_type) or [])
+            for owner_type, owner_id, instance_id in owner_scopes:
                 matched = (
-                    matched_accounts_by_classification_instance.get((classification_id, db_type, instance_id)) or set()
+                    matched_accounts_by_classification_scope.get((classification_id, db_type, owner_type, owner_id))
+                    or set()
                 )
                 classification_records.append(
                     {
@@ -271,6 +288,8 @@ def _build_classification_records(
                         "classification_id": classification_id,
                         "db_type": db_type,
                         "instance_id": instance_id,
+                        "owner_type": owner_type,
+                        "owner_id": owner_id,
                         "matched_accounts_distinct_count": len(matched),
                         "computed_at": computed_at,
                         "created_at": computed_at,
@@ -366,9 +385,9 @@ def _calculate_rule_statistics(
     sync_logger: Any,
     daily_stats_repo: AccountClassificationDailyStatsRepository,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    accounts_by_db_type, instance_ids_by_db_type = _build_account_indexes(accounts)
+    accounts_by_db_type, owner_scopes_by_db_type = _build_account_indexes(accounts)
     classification_db_types = _build_classification_db_types(rules)
-    matched_accounts_by_classification_instance: dict[tuple[int, str, int], set[int]] = defaultdict(set)
+    matched_accounts_by_classification_scope: dict[tuple[int, str, str, int], set[int]] = defaultdict(set)
     rule_records: list[dict[str, object]] = []
 
     for rule in rules:
@@ -396,8 +415,8 @@ def _calculate_rule_statistics(
                 rule=rule,
                 rule_id=rule_id,
                 accounts_by_db_type=accounts_by_db_type,
-                instance_ids_by_db_type=instance_ids_by_db_type,
-                matched_accounts_by_classification_instance=matched_accounts_by_classification_instance,
+                owner_scopes_by_db_type=owner_scopes_by_db_type,
+                matched_accounts_by_classification_scope=matched_accounts_by_classification_scope,
                 resolved_date=resolved_date,
                 computed_at=computed_at,
             )
@@ -423,8 +442,8 @@ def _calculate_rule_statistics(
 
     classification_records = _build_classification_records(
         classification_db_types=classification_db_types,
-        instance_ids_by_db_type=instance_ids_by_db_type,
-        matched_accounts_by_classification_instance=matched_accounts_by_classification_instance,
+        owner_scopes_by_db_type=owner_scopes_by_db_type,
+        matched_accounts_by_classification_scope=matched_accounts_by_classification_scope,
         resolved_date=resolved_date,
         computed_at=computed_at,
     )

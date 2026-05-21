@@ -19,13 +19,28 @@ def test_account_classification_statistics_template_uses_width_presets() -> None
         "select_filter('账户分类', 'classification_id', 'classification_id', classification_options, selected_classification_id, '全部分类', width_preset='lg')",
         "select_filter('统计周期', 'period_type', 'period_type', period_type_options, selected_period_type, '选择周期', width_preset='sm', allow_empty=False)",
         "select_filter('数据库类型', 'db_type', 'db_type', database_type_options, selected_db_type, '全部类型', width_preset='sm')",
-        "select_filter('实例', 'instance_id', 'instance_id', instance_options, selected_instance_id, '所有实例', width_preset='lg', disabled=(not selected_db_type))",
+        "select_filter('实例/AG', 'account_scope', 'account_scope', account_scope_options, selected_account_scope, '所有实例/AG', width_preset='lg', disabled=(not selected_db_type))",
     )
 
     for fragment in required_fragments:
         assert fragment in content
 
     assert "col-md-2 col-12" not in content
+
+
+@pytest.mark.unit
+def test_account_classification_statistics_frontend_uses_account_scope_filter() -> None:
+    template = _read_text("app/templates/accounts/classification_statistics.html")
+    view_js = _read_text("app/static/js/modules/views/accounts/classification_statistics.js")
+    store_js = _read_text("app/static/js/modules/stores/account_classification_statistics_store.js")
+    service_js = _read_text("app/static/js/modules/services/account_classification_statistics_service.js")
+
+    assert "'account_scope', 'account_scope'" in template
+    assert "account_scope" in view_js
+    assert "accountScope" in store_js
+    assert "fetchAccountScopeOptions" in store_js
+    assert "account_scope: accountScope || undefined" in service_js
+    assert "instance_id: instanceId || undefined" not in service_js
 
 
 @pytest.mark.unit

@@ -57,7 +57,7 @@ class HistoryAccountChangeLogsReadService:
         page_result = self._repository.list_logs(filters)
         items: list[AccountChangeLogListItem] = []
         for row in page_result.items:
-            log_entry, instance_name, account_id = row
+            log_entry, instance_name, instance_host, account_id = row
             change_type = str(getattr(log_entry, "change_type", "") or "")
 
             raw_privilege_diff = getattr(log_entry, "privilege_diff", None)
@@ -89,6 +89,7 @@ class HistoryAccountChangeLogsReadService:
                     account_id=(int(account_id) if account_id is not None else None),
                     instance_id=int(getattr(log_entry, "instance_id", 0) or 0),
                     instance_name=(str(instance_name) if instance_name else None),
+                    instance_host=(str(instance_host) if instance_host else None),
                     db_type=str(getattr(log_entry, "db_type", "") or ""),
                     username=username,
                     change_type=change_type,

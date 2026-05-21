@@ -42,6 +42,7 @@ def test_api_v1_account_change_logs_endpoints_contract(auth_client, monkeypatch)
                     account_id=4453,
                     instance_id=100,
                     instance_name="CBRAIN",
+                    instance_host="10.0.0.1",
                     db_type="oracle",
                     username="CBRAIN",
                     change_type="add",

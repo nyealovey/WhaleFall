@@ -49,7 +49,8 @@ class AccountClassificationDailyStatsRepository:
                 table.c.stat_date,
                 table.c.rule_id,
                 table.c.db_type,
-                table.c.instance_id,
+                table.c.owner_type,
+                table.c.owner_id,
             ],
             set_={
                 "matched_accounts_count": insert_stmt.excluded.matched_accounts_count,
@@ -75,7 +76,8 @@ class AccountClassificationDailyStatsRepository:
                 table.c.stat_date,
                 table.c.classification_id,
                 table.c.db_type,
-                table.c.instance_id,
+                table.c.owner_type,
+                table.c.owner_id,
             ],
             set_={
                 "matched_accounts_distinct_count": insert_stmt.excluded.matched_accounts_distinct_count,

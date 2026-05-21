@@ -37,6 +37,8 @@ class AccountClassificationDailyRuleMatchStat(db.Model):
     classification_id = db.Column(db.Integer, db.ForeignKey("account_classifications.id"), nullable=False, index=True)
     db_type = db.Column(db.String(20), nullable=False, index=True)
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
+    owner_type = db.Column(db.String(32), nullable=False, default="instance", index=True)
+    owner_id = db.Column(db.Integer, nullable=False, index=True)
 
     matched_accounts_count = db.Column(db.Integer, nullable=False, default=0)
     computed_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
@@ -48,9 +50,11 @@ class AccountClassificationDailyRuleMatchStat(db.Model):
             "stat_date",
             "rule_id",
             "db_type",
-            "instance_id",
+            "owner_type",
+            "owner_id",
             name="uq_ac_daily_rule_match_key",
         ),
+        db.Index("ix_ac_daily_rule_match_owner", "owner_type", "owner_id"),
         db.Index(
             "ix_ac_daily_rule_match_classification_date",
             "classification_id",
@@ -85,6 +89,8 @@ class AccountClassificationDailyClassificationMatchStat(db.Model):
     classification_id = db.Column(db.Integer, db.ForeignKey("account_classifications.id"), nullable=False, index=True)
     db_type = db.Column(db.String(20), nullable=False, index=True)
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
+    owner_type = db.Column(db.String(32), nullable=False, default="instance", index=True)
+    owner_id = db.Column(db.Integer, nullable=False, index=True)
 
     matched_accounts_distinct_count = db.Column(db.Integer, nullable=False, default=0)
     computed_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
@@ -96,9 +102,11 @@ class AccountClassificationDailyClassificationMatchStat(db.Model):
             "stat_date",
             "classification_id",
             "db_type",
-            "instance_id",
+            "owner_type",
+            "owner_id",
             name="uq_ac_daily_classification_match_key",
         ),
+        db.Index("ix_ac_daily_classification_match_owner", "owner_type", "owner_id"),
         db.Index(
             "ix_ac_daily_classification_match_classification_date",
             "classification_id",

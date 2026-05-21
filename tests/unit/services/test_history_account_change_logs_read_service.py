@@ -44,7 +44,7 @@ def test_list_logs_returns_minimal_message_and_no_diffs_for_add() -> None:
                 },
             )
             return PaginatedResult(
-                items=[(log_entry, "inst-1", 42)],
+                items=[(log_entry, "inst-1", "127.0.0.1", 42)],
                 total=1,
                 page=1,
                 pages=1,
@@ -75,6 +75,7 @@ def test_list_logs_returns_minimal_message_and_no_diffs_for_add() -> None:
     )
 
     assert result.items[0].message == "新增账户"
+    assert result.items[0].instance_host == "127.0.0.1"
     assert result.items[0].privilege_diff_count == 0
     assert result.items[0].other_diff_count == 0
 
