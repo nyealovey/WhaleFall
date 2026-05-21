@@ -121,7 +121,36 @@ def _finalize_no_instances(*, task_runs_service: TaskRunsWriteService, run_id: s
     db.session.commit()
 
 
-def _init_items(*, task_runs_service: TaskRunsWriteService, run_id: str, instances: list[Instance]) -> None:
+def _resolve_ag_clusters(instances: list[Instance]) -> list[SQLServerCluster]:
+    """根据本次实例范围解析需要独立同步 AG 账户的群集."""
+    sqlserver_instance_ids = [
+        int(instance.id)
+        for instance in instances
+        if instance.id is not None and str(instance.db_type).lower() == "sqlserver"
+    ]
+    if not sqlserver_instance_ids:
+        return []
+
+    return list(
+        SQLServerCluster.query.join(SQLServerClusterInstance)
+        .filter(
+            SQLServerClusterInstance.instance_id.in_(sqlserver_instance_ids),
+            SQLServerCluster.is_enabled.is_(True),
+        )
+        .order_by(SQLServerCluster.id.asc())
+        .distinct()
+        .all(),
+    )
+
+
+def _init_items(
+    *,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    instances: list[Instance],
+    ag_clusters: list[SQLServerCluster] | None = None,
+) -> None:
+    ag_clusters = ag_clusters or []
     task_runs_service.init_items(
         run_id,
         items=[
@@ -132,6 +161,14 @@ def _init_items(*, task_runs_service: TaskRunsWriteService, run_id: str, instanc
                 instance_id=instance.id,
             )
             for instance in instances
+        ]
+        + [
+            TaskRunItemInit(
+                item_type="sqlserver_ag_cluster",
+                item_key=str(cluster.id),
+                item_name=f"{cluster.name} AG账户同步",
+            )
+            for cluster in ag_clusters
         ],
     )
     db.session.commit()
@@ -292,38 +329,24 @@ def _sync_ag_clusters(
     *,
     sync_logger: structlog.BoundLogger,
     session: SyncSession,
-    instances: list[Instance],
+    instances: list[Instance] | None = None,
+    ag_clusters: list[SQLServerCluster] | None = None,
+    task_runs_service: TaskRunsWriteService | None = None,
+    run_id: str | None = None,
 ) -> _AgAccountsSyncTotals:
     """在实例账户同步后，按群集同步 SQL Server contained AG 账户."""
     totals = _AgAccountsSyncTotals()
-    sqlserver_instance_ids = [
-        int(instance.id)
-        for instance in instances
-        if instance.id is not None and str(instance.db_type).lower() == "sqlserver"
-    ]
-    if not sqlserver_instance_ids:
+    resolved_clusters = ag_clusters if ag_clusters is not None else _resolve_ag_clusters(instances or [])
+    if not resolved_clusters:
         return totals
 
-    bindings = (
-        SQLServerClusterInstance.query.join(SQLServerCluster)
-        .filter(
-            SQLServerClusterInstance.instance_id.in_(sqlserver_instance_ids),
-            SQLServerCluster.is_enabled.is_(True),
-        )
-        .order_by(SQLServerClusterInstance.cluster_id.asc())
-        .all()
-    )
-    cluster_ids: list[int] = []
-    seen_cluster_ids: set[int] = set()
-    for binding in bindings:
-        cluster_id = int(binding.cluster_id)
-        if cluster_id in seen_cluster_ids:
-            continue
-        seen_cluster_ids.add(cluster_id)
-        cluster_ids.append(cluster_id)
-
     service = SQLServerAgAccountsSyncService()
-    for cluster_id in cluster_ids:
+    for cluster in resolved_clusters:
+        cluster_id = int(cluster.id)
+        item_key = str(cluster_id)
+        if task_runs_service is not None and run_id is not None:
+            task_runs_service.start_item(run_id, item_type="sqlserver_ag_cluster", item_key=item_key)
+            db.session.commit()
         try:
             sync_logger.info(
                 "开始群集 AG 账户同步",
@@ -336,6 +359,15 @@ def _sync_ag_clusters(
             result = service.sync_for_cluster(cluster_id, session_id=session.session_id)
         except ACCOUNT_TASK_EXCEPTIONS as exc:
             totals.clusters_failed += 1
+            if task_runs_service is not None and run_id is not None:
+                task_runs_service.fail_item(
+                    run_id,
+                    item_type="sqlserver_ag_cluster",
+                    item_key=item_key,
+                    error_message=str(exc),
+                    details_json={"summary": f"AG账户同步异常：{exc}", "status": "failed"},
+                )
+                db.session.commit()
             sync_logger.exception(
                 "群集 AG 账户同步异常",
                 module="accounts_sync",
@@ -347,11 +379,50 @@ def _sync_ag_clusters(
             )
             continue
 
-        if result.get("status") == "failed":
+        processed_records = int(result.get("processed_records", 0) or 0)
+        total_ag = int(result.get("total_ag", 0) or 0)
+        failed_ag = int(result.get("failed_ag", 0) or 0)
+        status = str(result.get("status") or "")
+        item_details: dict[str, object] = {
+            "summary": (
+                f"AG账户同步失败：处理 {processed_records} 个账户，失败 AG {failed_ag} 个"
+                if status == "failed"
+                else f"AG账户同步完成：处理 {processed_records} 个账户，失败 AG {failed_ag} 个"
+            ),
+            "status": status,
+            "processed_records": processed_records,
+            "total_ag": total_ag,
+            "failed_ag": failed_ag,
+        }
+        item_metrics = {
+            "ag_accounts_synced": processed_records,
+            "total_ag": total_ag,
+            "failed_ag": failed_ag,
+        }
+
+        if status == "failed":
             totals.clusters_failed += 1
+            if task_runs_service is not None and run_id is not None:
+                task_runs_service.fail_item(
+                    run_id,
+                    item_type="sqlserver_ag_cluster",
+                    item_key=item_key,
+                    error_message="AG账户同步失败",
+                    details_json=item_details,
+                )
+                db.session.commit()
         else:
             totals.clusters_synced += 1
-        totals.accounts_synced += int(result.get("processed_records", 0) or 0)
+            if task_runs_service is not None and run_id is not None:
+                task_runs_service.complete_item(
+                    run_id,
+                    item_type="sqlserver_ag_cluster",
+                    item_key=item_key,
+                    metrics_json=item_metrics,
+                    details_json=item_details,
+                )
+                db.session.commit()
+        totals.accounts_synced += processed_records
         sync_logger.info(
             "群集 AG 账户同步完成",
             module="accounts_sync",
@@ -359,9 +430,9 @@ def _sync_ag_clusters(
             operation="sync_accounts",
             session_id=session.session_id,
             cluster_id=cluster_id,
-            status=result.get("status"),
-            processed_records=result.get("processed_records", 0),
-            failed_ag=result.get("failed_ag", 0),
+            status=status,
+            processed_records=processed_records,
+            failed_ag=failed_ag,
         )
 
     return totals
@@ -645,7 +716,13 @@ def sync_accounts(
                 run_id=resolved_run_id,
             )
 
-            _init_items(task_runs_service=task_runs_service, run_id=resolved_run_id, instances=instances)
+            ag_clusters = _resolve_ag_clusters(instances)
+            _init_items(
+                task_runs_service=task_runs_service,
+                run_id=resolved_run_id,
+                instances=instances,
+                ag_clusters=ag_clusters,
+            )
             session = _resolve_session(manual_run=manual_run, created_by=created_by, session_id=session_id)
             records = _create_records(session=session, instances=instances)
 
@@ -661,7 +738,13 @@ def sync_accounts(
             ag_totals = (
                 _AgAccountsSyncTotals()
                 if _is_cancelled(resolved_run_id)
-                else _sync_ag_clusters(sync_logger=sync_logger, session=session, instances=instances)
+                else _sync_ag_clusters(
+                    sync_logger=sync_logger,
+                    task_runs_service=task_runs_service,
+                    run_id=resolved_run_id,
+                    session=session,
+                    ag_clusters=ag_clusters,
+                )
             )
 
             _finalize_success(
