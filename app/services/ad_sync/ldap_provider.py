@@ -9,6 +9,7 @@ from ldap3 import ALL, Connection, Server, Tls  # type: ignore[import-untyped]
 
 from app.core.exceptions import ValidationError
 from app.models.ad_domain_config import AdDomainConfig
+from app.schemas.ad_domain_config import validate_ad_base_dn
 from app.utils.structlog_config import log_warning
 
 UF_ACCOUNTDISABLE = 0x0002
@@ -35,6 +36,10 @@ class LdapProvider:
         credential = getattr(config, "credential", None)
         if credential is None:
             raise ValidationError("AD 域配置缺少 LDAP 凭据")
+        try:
+            base_dn = validate_ad_base_dn(str(config.base_dn))
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from None
 
         last_error: Exception | None = None
         for controller in controllers:
@@ -58,7 +63,7 @@ class LdapProvider:
                     receive_timeout=30,
                 )
                 try:
-                    return self._fetch_with_connection(connection, str(config.base_dn))
+                    return self._fetch_with_connection(connection, base_dn)
                 finally:
                     connection.unbind()
             except Exception as exc:

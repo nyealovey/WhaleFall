@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ldap3.core.exceptions import LDAPInvalidDnError  # type: ignore[import-untyped]
+from ldap3.utils.dn import parse_dn  # type: ignore[import-untyped]
 from pydantic import StrictStr, field_validator
 
 from app.schemas.base import PayloadSchema
@@ -25,13 +27,18 @@ class AdDomainConfigPayload(PayloadSchema):
     is_enabled: bool = True
     description: str | None = None
 
-    @field_validator("name", "netbios_name", "base_dn")
+    @field_validator("name", "netbios_name")
     @classmethod
     def _required_text(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("字段不能为空")
         return cleaned
+
+    @field_validator("base_dn")
+    @classmethod
+    def _validate_base_dn(cls, value: str) -> str:
+        return validate_ad_base_dn(value)
 
     @field_validator("domain_controllers", mode="before")
     @classmethod
@@ -82,3 +89,27 @@ class AdDomainEnabledPayload(PayloadSchema):
     @classmethod
     def _parse_enabled(cls, value: Any) -> bool:
         return as_bool(value, default=True)
+
+
+def validate_ad_base_dn(value: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError("字段不能为空")
+    try:
+        parts = parse_dn(cleaned)
+    except LDAPInvalidDnError:
+        raise ValueError("Base DN 格式无效,例如 DC=user,DC=chint,DC=com") from None
+
+    has_dc = False
+    for attr, component, _separator in parts:
+        if str(attr).upper() != "DC":
+            continue
+        has_dc = True
+        dc_label = str(component).strip()
+        if not dc_label:
+            raise ValueError("Base DN 的 DC 片段不能为空")
+        if "." in dc_label:
+            raise ValueError("Base DN 的 DC 片段不能包含点号,请拆成 DC=chint,DC=com")
+    if not has_dc:
+        raise ValueError("Base DN 必须包含 DC 片段")
+    return cleaned

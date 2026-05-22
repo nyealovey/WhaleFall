@@ -5,6 +5,7 @@ from typing import cast
 
 import pytest
 
+from app.core.exceptions import ValidationError
 from app.models.ad_domain_config import AdDomainConfig
 from app.services.ad_sync import ldap_provider
 from app.services.ad_sync.ldap_provider import LdapProvider
@@ -123,3 +124,16 @@ def test_ldap_provider_raises_when_search_returns_referral_without_entries() -> 
             object_kind="user",
             target={},
         )
+
+
+@pytest.mark.unit
+def test_ldap_provider_rejects_base_dn_with_dotted_dc_before_connecting(monkeypatch) -> None:
+    def _server_should_not_be_called(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("invalid Base DN should be rejected before LDAP connect")
+
+    config = _config()
+    config.base_dn = "DC=user,DC=chint.com,DC=com"
+    monkeypatch.setattr(ldap_provider, "Server", _server_should_not_be_called)
+
+    with pytest.raises(ValidationError, match="Base DN 的 DC 片段不能包含点号"):
+        LdapProvider().fetch_principals(cast(AdDomainConfig, config))
