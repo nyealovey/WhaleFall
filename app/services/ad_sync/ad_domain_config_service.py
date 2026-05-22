@@ -133,6 +133,9 @@ class AdDomainConfigService:
             "disabled": int(raw_metrics.get("disabled") or 0),
             "orphaned": int(raw_metrics.get("orphaned") or 0),
             "updated": int(raw_metrics.get("updated") or 0),
+            "ad_users_total": int(raw_metrics.get("ad_users_total") or 0),
+            "ad_groups_total": int(raw_metrics.get("ad_groups_total") or 0),
+            "ad_principals_total": int(raw_metrics.get("ad_principals_total") or 0),
         }
 
     @staticmethod

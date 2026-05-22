@@ -135,7 +135,7 @@
         elements.syncStatusSummary.textContent = "未执行同步";
       } else if (metrics) {
         const status = failedCount > 0 ? `${failedCount} 个失败` : latest?.last_sync_status || "未执行同步";
-        elements.syncStatusSummary.textContent = `${status} · 处理 ${metrics.total} · 正常 ${metrics.normal} · 停用 ${metrics.disabled} · 孤账户 ${metrics.orphaned} · 更新 ${metrics.updated}`;
+        elements.syncStatusSummary.textContent = `${status} · AD对象 ${metrics.ad_principals_total} · SQL账户 ${metrics.total} · 正常 ${metrics.normal} · 停用 ${metrics.disabled} · 孤账户 ${metrics.orphaned} · 更新 ${metrics.updated}`;
       } else if (failedCount > 0) {
         elements.syncStatusSummary.textContent = `${failedCount} 个失败 · ${latest?.last_sync_at || "-"}`;
       } else {
@@ -202,11 +202,23 @@
       disabled: Number(metrics.disabled) || 0,
       orphaned: Number(metrics.orphaned) || 0,
       updated: Number(metrics.updated) || 0,
+      ad_users_total: Number(metrics.ad_users_total) || 0,
+      ad_groups_total: Number(metrics.ad_groups_total) || 0,
+      ad_principals_total: Number(metrics.ad_principals_total) || 0,
     };
   }
 
   function summarizeLastSyncMetrics(configs) {
-    const summary = { total: 0, normal: 0, disabled: 0, orphaned: 0, updated: 0 };
+    const summary = {
+      total: 0,
+      normal: 0,
+      disabled: 0,
+      orphaned: 0,
+      updated: 0,
+      ad_users_total: 0,
+      ad_groups_total: 0,
+      ad_principals_total: 0,
+    };
     let hasMetrics = false;
     (Array.isArray(configs) ? configs : []).forEach((config) => {
       const metrics = normalizeLastSyncMetrics(config?.last_sync_metrics);
@@ -219,6 +231,9 @@
       summary.disabled += metrics.disabled;
       summary.orphaned += metrics.orphaned;
       summary.updated += metrics.updated;
+      summary.ad_users_total += metrics.ad_users_total;
+      summary.ad_groups_total += metrics.ad_groups_total;
+      summary.ad_principals_total += metrics.ad_principals_total;
     });
     return hasMetrics ? summary : null;
   }
@@ -230,7 +245,10 @@
     }
     return `
       <div class="text-muted small">
-        处理 ${escapeHtml(normalized.total)} · 正常 ${escapeHtml(normalized.normal)} · 停用 ${escapeHtml(normalized.disabled)} · 孤账户 ${escapeHtml(normalized.orphaned)} · 更新 ${escapeHtml(normalized.updated)}
+        AD对象 ${escapeHtml(normalized.ad_principals_total)} · 用户 ${escapeHtml(normalized.ad_users_total)} · 组 ${escapeHtml(normalized.ad_groups_total)}
+      </div>
+      <div class="text-muted small">
+        SQL账户 ${escapeHtml(normalized.total)} · 正常 ${escapeHtml(normalized.normal)} · 停用 ${escapeHtml(normalized.disabled)} · 孤账户 ${escapeHtml(normalized.orphaned)} · 更新 ${escapeHtml(normalized.updated)}
       </div>
     `;
   }

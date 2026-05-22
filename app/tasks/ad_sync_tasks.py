@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import Any
 
 import structlog
@@ -14,7 +14,7 @@ from app.models.ad_domain_config import AdDomainConfig
 from app.models.task_run import TaskRun
 from app.repositories.ad_domain_config_repository import AdDomainConfigRepository
 from app.services.ad_sync.ad_account_match_service import AdAccountMatchService, AdDomainMatchResult
-from app.services.ad_sync.ldap_provider import LdapProvider
+from app.services.ad_sync.ldap_provider import AdPrincipalsFetchResult, LdapProvider
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -29,6 +29,18 @@ AD_SYNC_EXCEPTIONS: tuple[type[Exception], ...] = (
     TimeoutError,
     OSError,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class AdFetchTotals:
+    """AD LDAP 拉取数量汇总."""
+
+    users: int = 0
+    groups: int = 0
+
+    @property
+    def principals(self) -> int:
+        return self.users + self.groups
 
 
 def _resolve_run_id(
@@ -76,6 +88,7 @@ def _summary(
     domains_successful: int,
     domains_failed: int,
     totals: AdDomainMatchResult,
+    fetch_totals: AdFetchTotals,
 ) -> dict[str, object]:
     return {
         "version": 1,
@@ -91,6 +104,9 @@ def _summary(
             "accounts_disabled": totals.disabled,
             "accounts_orphaned": totals.orphaned,
             "accounts_updated": totals.updated,
+            "ad_users_total": fetch_totals.users,
+            "ad_groups_total": fetch_totals.groups,
+            "ad_principals_total": fetch_totals.principals,
         },
     }
 
@@ -105,6 +121,25 @@ def _add_results(left: AdDomainMatchResult, right: AdDomainMatchResult) -> AdDom
     )
 
 
+def _add_fetch_totals(left: AdFetchTotals, right: AdPrincipalsFetchResult) -> AdFetchTotals:
+    return AdFetchTotals(
+        users=left.users + right.users_total,
+        groups=left.groups + right.groups_total,
+    )
+
+
+def _metrics(result: AdDomainMatchResult, fetch_result: AdPrincipalsFetchResult) -> dict[str, object]:
+    metrics: dict[str, object] = asdict(result)
+    metrics.update(
+        {
+            "ad_users_total": fetch_result.users_total,
+            "ad_groups_total": fetch_result.groups_total,
+            "ad_principals_total": fetch_result.principals_total,
+        }
+    )
+    return metrics
+
+
 def _sync_domain(
     *,
     domain: AdDomainConfig,
@@ -112,13 +147,13 @@ def _sync_domain(
     provider: LdapProvider,
     matcher: AdAccountMatchService,
     task_runs_service: TaskRunsWriteService,
-) -> AdDomainMatchResult:
+) -> tuple[AdDomainMatchResult, AdPrincipalsFetchResult]:
     item_key = str(domain.id)
     task_runs_service.start_item(run_id, item_type="ad_domain", item_key=item_key)
     db.session.commit()
 
-    principals = provider.fetch_principals(domain)
-    result = matcher.match_and_update(domain_config=domain, principals=principals)
+    fetch_result = provider.fetch_principals_with_stats(domain)
+    result = matcher.match_and_update(domain_config=domain, principals=fetch_result.principals)
     domain.last_sync_at = time_utils.now()
     domain.last_sync_status = "success"
     domain.last_sync_run_id = run_id
@@ -127,10 +162,10 @@ def _sync_domain(
         run_id,
         item_type="ad_domain",
         item_key=item_key,
-        metrics_json=asdict(result),
+        metrics_json=_metrics(result, fetch_result),
     )
     db.session.commit()
-    return result
+    return result, fetch_result
 
 
 def _fail_domain(
@@ -173,6 +208,7 @@ def _finalize_run(
     domains_successful: int,
     domains_failed: int,
     totals: AdDomainMatchResult,
+    fetch_totals: AdFetchTotals,
 ) -> None:
     run = TaskRun.query.filter_by(run_id=run_id).first()
     if run is not None:
@@ -181,6 +217,7 @@ def _finalize_run(
             domains_successful=domains_successful,
             domains_failed=domains_failed,
             totals=totals,
+            fetch_totals=fetch_totals,
         )
     task_runs_service.finalize_run(run_id)
     run = TaskRun.query.filter_by(run_id=run_id).first()
@@ -214,10 +251,11 @@ def sync_ad_accounts(
         provider = LdapProvider()
         matcher = AdAccountMatchService()
         totals = AdDomainMatchResult(total=0, normal=0, disabled=0, orphaned=0, updated=0)
+        fetch_totals = AdFetchTotals()
         successful = failed = 0
         for domain in domains:
             try:
-                result = _sync_domain(
+                result, fetch_result = _sync_domain(
                     domain=domain,
                     run_id=resolved_run_id,
                     provider=provider,
@@ -225,6 +263,7 @@ def sync_ad_accounts(
                     task_runs_service=task_runs_service,
                 )
                 totals = _add_results(totals, result)
+                fetch_totals = _add_fetch_totals(fetch_totals, fetch_result)
                 successful += 1
             except AD_SYNC_EXCEPTIONS as exc:
                 failed += 1
@@ -242,4 +281,5 @@ def sync_ad_accounts(
             domains_successful=successful,
             domains_failed=failed,
             totals=totals,
+            fetch_totals=fetch_totals,
         )

@@ -49,7 +49,14 @@ class _Connection:
             raise RuntimeError("bind failed")
         self.entries: list[_Entry] = []
 
-    def search(self, _base_dn: str, search_filter: str, *, attributes: list[str]) -> None:
+    def search(
+        self,
+        _base_dn: str,
+        search_filter: str,
+        *,
+        attributes: list[str],
+        **_: object,
+    ) -> None:
         assert "sAMAccountName" in attributes
         if "objectClass=user" in search_filter:
             self.entries = [
@@ -62,6 +69,45 @@ class _Connection:
 
     def unbind(self) -> None:
         return None
+
+
+class _PagedConnection:
+    def __init__(self) -> None:
+        self.entries: list[_Entry] = []
+        self.result: dict[str, object] = {}
+        self.calls: list[tuple[str, bytes | None]] = []
+
+    def search(
+        self,
+        _base_dn: str,
+        search_filter: str,
+        *,
+        attributes: list[str],
+        search_scope: str,
+        paged_size: int,
+        paged_cookie: bytes | None,
+    ) -> bool:
+        assert "sAMAccountName" in attributes
+        assert search_scope == "SUBTREE"
+        assert paged_size > 0
+        self.calls.append((search_filter, paged_cookie))
+        if "objectClass=user" in search_filter and paged_cookie is None:
+            self.entries = [
+                _Entry({"sAMAccountName": ["first"], "userAccountControl": [512], "displayName": ["First User"]}),
+            ]
+            self.result = {"controls": {"1.2.840.113556.1.4.319": {"value": {"cookie": b"next-users"}}}}
+            return True
+        if "objectClass=user" in search_filter and paged_cookie == b"next-users":
+            self.entries = [
+                _Entry({"sAMAccountName": ["second"], "userAccountControl": [514], "displayName": ["Second User"]}),
+            ]
+            self.result = {"controls": {"1.2.840.113556.1.4.319": {"value": {"cookie": b""}}}}
+            return True
+        self.entries = [
+            _Entry({"sAMAccountName": ["Domain Admins"], "objectClass": ["group"]}),
+        ]
+        self.result = {"controls": {"1.2.840.113556.1.4.319": {"value": {"cookie": None}}}}
+        return True
 
 
 @pytest.mark.unit
@@ -103,6 +149,62 @@ def test_ldap_provider_falls_back_to_next_controller_and_logs_warning(monkeypatc
 
 
 @pytest.mark.unit
+def test_ldap_provider_fetches_all_paged_user_and_group_results() -> None:
+    connection = _PagedConnection()
+
+    result = LdapProvider._fetch_with_connection(connection, "DC=corp,DC=example,DC=com")
+
+    assert set(result.principals) == {"first", "second", "domain admins"}
+    assert result.users_total == 2
+    assert result.groups_total == 1
+    assert result.principals["second"].is_disabled is True
+    assert connection.calls == [
+        ("(&(objectClass=user)(objectCategory=person))", None),
+        ("(&(objectClass=user)(objectCategory=person))", b"next-users"),
+        ("(objectClass=group)", None),
+    ]
+
+
+@pytest.mark.unit
+def test_ldap_provider_raises_when_paged_search_fails_after_partial_results() -> None:
+    class _PartialFailureConnection:
+        entries: list[_Entry] = []
+
+        def __init__(self) -> None:
+            self.result: dict[str, object] = {}
+            self.calls = 0
+
+        def search(
+            self,
+            _base_dn: str,
+            _search_filter: str,
+            *,
+            attributes: list[str],
+            search_scope: str,
+            paged_size: int,
+            paged_cookie: bytes | None,
+        ) -> bool:
+            del attributes, search_scope, paged_size
+            self.calls += 1
+            if paged_cookie is None:
+                self.entries = [_Entry({"sAMAccountName": ["first"], "userAccountControl": [512]})]
+                self.result = {"controls": {"1.2.840.113556.1.4.319": {"value": {"cookie": b"next"}}}}
+                return True
+            self.entries = []
+            self.result = {"description": "sizeLimitExceeded", "message": "paged read failed"}
+            return False
+
+    with pytest.raises(RuntimeError, match="LDAP 查询失败"):
+        LdapProvider._search_principals(
+            _PartialFailureConnection(),
+            "DC=corp,DC=example,DC=com",
+            "(&(objectClass=user)(objectCategory=person))",
+            object_kind="user",
+            target={},
+        )
+
+
+@pytest.mark.unit
 def test_ldap_provider_raises_when_search_returns_referral_without_entries() -> None:
     class _ReferralConnection:
         entries: list[_Entry] = []
@@ -112,7 +214,7 @@ def test_ldap_provider_raises_when_search_returns_referral_without_entries() -> 
             "referrals": ["ldap://corp.example.com/DC=corp,DC=example,DC=com"],
         }
 
-        def search(self, _base_dn: str, _search_filter: str, *, attributes: list[str]) -> bool:
+        def search(self, _base_dn: str, _search_filter: str, *, attributes: list[str], **_: object) -> bool:
             assert "sAMAccountName" in attributes
             return False
 

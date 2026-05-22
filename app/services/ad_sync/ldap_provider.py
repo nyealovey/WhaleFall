@@ -13,6 +13,8 @@ from app.schemas.ad_domain_config import validate_ad_base_dn
 from app.utils.structlog_config import log_warning
 
 UF_ACCOUNTDISABLE = 0x0002
+LDAP_PAGED_SIZE = 500
+LDAP_PAGED_RESULT_CONTROL = "1.2.840.113556.1.4.319"
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,11 +27,28 @@ class AdPrincipal:
     attributes: dict[str, object]
 
 
+@dataclass(frozen=True, slots=True)
+class AdPrincipalsFetchResult:
+    """AD 主体拉取结果和计数."""
+
+    principals: dict[str, AdPrincipal]
+    users_total: int
+    groups_total: int
+
+    @property
+    def principals_total(self) -> int:
+        return self.users_total + self.groups_total
+
+
 class LdapProvider:
     """连接 AD 并拉取可匹配的用户/组主体."""
 
     def fetch_principals(self, config: AdDomainConfig) -> dict[str, AdPrincipal]:
         """拉取域内用户/组,返回 lower(sAMAccountName) 映射."""
+        return self.fetch_principals_with_stats(config).principals
+
+    def fetch_principals_with_stats(self, config: AdDomainConfig) -> AdPrincipalsFetchResult:
+        """拉取域内用户/组,返回主体映射和分类型计数."""
         controllers = self._normalize_controllers(config.domain_controllers)
         if not controllers:
             raise ValidationError("AD 域配置缺少域控地址")
@@ -86,17 +105,23 @@ class LdapProvider:
         raise RuntimeError(detail)
 
     @classmethod
-    def _fetch_with_connection(cls, connection: Any, base_dn: str) -> dict[str, AdPrincipal]:
+    def _fetch_with_connection(cls, connection: Any, base_dn: str) -> AdPrincipalsFetchResult:
         principals: dict[str, AdPrincipal] = {}
-        cls._search_principals(
+        users_total = cls._search_principals(
             connection,
             base_dn,
             "(&(objectClass=user)(objectCategory=person))",
             object_kind="user",
             target=principals,
         )
-        cls._search_principals(connection, base_dn, "(objectClass=group)", object_kind="group", target=principals)
-        return principals
+        groups_total = cls._search_principals(
+            connection,
+            base_dn,
+            "(objectClass=group)",
+            object_kind="group",
+            target=principals,
+        )
+        return AdPrincipalsFetchResult(principals=principals, users_total=users_total, groups_total=groups_total)
 
     @classmethod
     def _search_principals(
@@ -107,11 +132,40 @@ class LdapProvider:
         *,
         object_kind: str,
         target: dict[str, AdPrincipal],
-    ) -> None:
-        attributes = ["sAMAccountName", "userAccountControl", "objectClass", "displayName", "mail", "whenChanged", "distinguishedName"]
-        search_ok = connection.search(base_dn, search_filter, attributes=attributes)
-        if search_ok is False:
-            raise RuntimeError(f"LDAP 查询失败: {cls._search_error_detail(connection)}")
+    ) -> int:
+        attributes = [
+            "sAMAccountName",
+            "userAccountControl",
+            "objectClass",
+            "displayName",
+            "mail",
+            "whenChanged",
+            "distinguishedName",
+        ]
+        count = 0
+        cookie: bytes | str | None = None
+        while True:
+            search_ok = connection.search(
+                base_dn,
+                search_filter,
+                search_scope="SUBTREE",
+                attributes=attributes,
+                paged_size=LDAP_PAGED_SIZE,
+                paged_cookie=cookie,
+            )
+            if search_ok is False:
+                raise RuntimeError(f"LDAP 查询失败: {cls._search_error_detail(connection)}")
+            count += cls._consume_entries(connection, object_kind=object_kind, target=target)
+            next_cookie = cls._paged_cookie(connection)
+            if not next_cookie:
+                return count
+            if next_cookie == cookie:
+                raise RuntimeError("LDAP 查询失败: paged cookie 未推进")
+            cookie = next_cookie
+
+    @classmethod
+    def _consume_entries(cls, connection: Any, *, object_kind: str, target: dict[str, AdPrincipal]) -> int:
+        count = 0
         for entry in list(getattr(connection, "entries", []) or []):
             data = entry.entry_attributes_as_dict
             raw_name = cls._first_value(data.get("sAMAccountName"))
@@ -124,6 +178,25 @@ class LdapProvider:
                 is_disabled=disabled,
                 attributes={key: value for key, value in data.items() if key != "userAccountControl"},
             )
+            count += 1
+        return count
+
+    @staticmethod
+    def _paged_cookie(connection: Any) -> bytes | str | None:
+        result = getattr(connection, "result", None)
+        if not isinstance(result, dict):
+            return None
+        controls = result.get("controls")
+        if not isinstance(controls, dict):
+            return None
+        paged = controls.get(LDAP_PAGED_RESULT_CONTROL)
+        if not isinstance(paged, dict):
+            return None
+        value = paged.get("value")
+        if not isinstance(value, dict):
+            return None
+        cookie = value.get("cookie")
+        return cookie if cookie else None
 
     @staticmethod
     def _normalize_controllers(value: object) -> list[str]:

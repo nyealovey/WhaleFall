@@ -75,7 +75,8 @@ def test_ad_domain_settings_js_defines_crud_and_sync_behaviors() -> None:
         "data-ad-domain-action",
         "last_sync_metrics",
         "renderLastSyncMetrics",
-        "处理",
+        "AD对象",
+        "SQL账户",
         "孤账户",
         "AD 域账户同步",
     )
