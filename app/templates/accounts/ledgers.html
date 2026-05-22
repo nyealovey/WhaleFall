@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set page_id = 'AccountsListPage' %}
 {% set page_density = 'compact' %}
-{% from 'components/filters/macros.html' import filter_card, search_input, classification_filter, tag_selector_filter %}
+{% from 'components/filters/macros.html' import filter_card, search_input, classification_filter, ad_status_filter, tag_selector_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}账户台账 - 鲸落{% endblock %}
@@ -35,6 +35,7 @@
                 {% call filter_card(form_id='account-filter-form', action=url_for('accounts_ledgers.list_accounts'), auto_register=False) %}
                     {{ search_input(value=search, placeholder='搜索账户 / 实例', width_preset='lg') }}
                     {{ classification_filter(classification_options, classification, width_preset='md') }}
+                    {{ ad_status_filter(ad_status_options, ad_status, width_preset='md') }}
                     {{ tag_selector_filter(tag_options, selected_tags, field_id='account-tag-selector', width_preset='md') }}
                 {% endcall %}
             </div>

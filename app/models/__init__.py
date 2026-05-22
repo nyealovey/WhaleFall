@@ -25,6 +25,7 @@ __all__ = [
     "AccountClassificationDailyClassificationMatchStat",
     "AccountClassificationDailyRuleMatchStat",
     "AccountPermission",
+    "AdDomainConfig",
     "ClassificationRule",
     "Credential",
     "DatabaseSizeAggregation",
@@ -58,6 +59,7 @@ _MODEL_MODULE_MAP: dict[str, str] = {
     "AccountClassificationDailyClassificationMatchStat": "app.models.account_classification_daily_stats",
     "ClassificationRule": "app.models.account_classification",
     "AccountPermission": "app.models.account_permission",
+    "AdDomainConfig": "app.models.ad_domain_config",
     "Credential": "app.models.credential",
     "DatabaseSizeAggregation": "app.models.database_size_aggregation",
     "DatabaseSizeStat": "app.models.database_size_stat",
@@ -94,6 +96,7 @@ if TYPE_CHECKING:
         AccountClassificationDailyRuleMatchStat,
     )
     from app.models.account_permission import AccountPermission
+    from app.models.ad_domain_config import AdDomainConfig
     from app.models.credential import Credential
     from app.models.database_size_aggregation import DatabaseSizeAggregation
     from app.models.database_size_stat import DatabaseSizeStat

@@ -12,6 +12,7 @@ from flask import Blueprint, Response, jsonify
 
 from app.api.v1.api import WhaleFallApi
 from app.api.v1.namespaces.account_change_logs import ns as account_change_logs_ns
+from app.api.v1.namespaces.ad_domain_configs import ns as ad_domain_configs_ns
 from app.api.v1.namespaces.accounts import ns as accounts_ns
 from app.api.v1.namespaces.accounts_classifications import ns as accounts_classifications_ns
 from app.api.v1.namespaces.alerts import ns as alerts_ns
@@ -67,6 +68,7 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     api.add_namespace(credentials_ns, path="/credentials")
     api.add_namespace(logs_ns, path="/logs")
     api.add_namespace(account_change_logs_ns, path="/account-change-logs")
+    api.add_namespace(ad_domain_configs_ns, path="/ad-domain-configs")
     api.add_namespace(sessions_ns, path="/sync-sessions")
     api.add_namespace(task_runs_ns, path="/task-runs")
     api.add_namespace(partition_ns, path="/partitions")

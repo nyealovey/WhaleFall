@@ -46,6 +46,9 @@ class InstanceAccount(db.Model):
         nullable=True,
         index=True,
     )
+    ad_domain_config_id = db.Column(db.Integer, db.ForeignKey("ad_domain_configs.id"), nullable=True, index=True)
+    ad_disabled_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    ad_orphaned_at = db.Column(db.DateTime(timezone=True), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False, comment="账户是否活跃")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
@@ -53,12 +56,14 @@ class InstanceAccount(db.Model):
 
     # 关系
     instance = db.relationship("Instance", back_populates="instance_accounts")
+    ad_domain_config = db.relationship("AdDomainConfig", foreign_keys=[ad_domain_config_id])
 
     __table_args__ = (
         db.UniqueConstraint("owner_type", "owner_id", "db_type", "username", name="uq_instance_account_owner_username"),
         db.Index("ix_instance_accounts_username", "username"),
         db.Index("ix_instance_accounts_active", "is_active"),
         db.Index("ix_instance_accounts_owner", "owner_type", "owner_id"),
+        db.Index("ix_instance_accounts_ad_status", "ad_domain_config_id", "ad_disabled_at", "ad_orphaned_at"),
         db.Index("ix_instance_accounts_instance_username", "instance_id", "db_type", "username"),
         {
             "comment": "实例-账户关系表,维护账户存在状态",

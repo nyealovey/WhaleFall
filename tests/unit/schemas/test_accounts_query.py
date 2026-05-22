@@ -23,6 +23,7 @@ def test_accounts_filters_query_defaults() -> None:
     assert filters.db_type is None
     assert filters.include_roles is False
     assert filters.owner_type is None
+    assert filters.ad_status is None
 
 
 @pytest.mark.unit
@@ -43,6 +44,7 @@ def test_accounts_filters_query_normalizes_and_clamps() -> None:
             "classification": "  all  ",
             "db_type": " MYSQL ",
             "owner_type": " SQLSERVER_AG ",
+            "ad_status": " DISABLED ",
         },
     )
     filters = query.to_filters()
@@ -61,6 +63,7 @@ def test_accounts_filters_query_normalizes_and_clamps() -> None:
     assert filters.db_type == "mysql"
     assert filters.include_roles is True
     assert filters.owner_type == "sqlserver_ag"
+    assert filters.ad_status == "disabled"
 
 
 @pytest.mark.unit
@@ -68,6 +71,13 @@ def test_accounts_filters_query_ignores_unknown_owner_type() -> None:
     query = validate_or_raise(AccountsFiltersQuery, {"owner_type": "database"})
 
     assert query.to_filters().owner_type is None
+
+
+@pytest.mark.unit
+def test_accounts_filters_query_ignores_unknown_ad_status() -> None:
+    query = validate_or_raise(AccountsFiltersQuery, {"ad_status": "deleted"})
+
+    assert query.to_filters().ad_status is None
 
 
 @pytest.mark.unit

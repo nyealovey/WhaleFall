@@ -130,6 +130,8 @@ class AccountsLedgerRepository:
             query = query.filter(AccountPermission.instance_id == filters.instance_id)
         if filters.owner_type:
             query = query.filter(AccountPermission.owner_type == filters.owner_type)
+        if filters.ad_status:
+            query = self._apply_ad_status_filter(query, filters.ad_status)
 
         if not filters.include_roles:
             account_kind = AccountPermission.type_specific["account_kind"].as_string()
@@ -144,6 +146,22 @@ class AccountsLedgerRepository:
         query = self._apply_lock_filters(query, filters.is_locked, filters.is_superuser)
         query = self._apply_tag_filter(query, filters.tags)
         return self._apply_classification_filter(query, filters.classification_filter)
+
+    @staticmethod
+    def _apply_ad_status_filter(query: Query[Any], ad_status: str) -> Query[Any]:
+        if ad_status == "normal":
+            return query.filter(
+                InstanceAccount.ad_domain_config_id.is_not(None),
+                InstanceAccount.ad_disabled_at.is_(None),
+                InstanceAccount.ad_orphaned_at.is_(None),
+            )
+        if ad_status == "disabled":
+            return query.filter(InstanceAccount.ad_disabled_at.is_not(None))
+        if ad_status == "orphaned":
+            return query.filter(InstanceAccount.ad_orphaned_at.is_not(None))
+        if ad_status == "unknown":
+            return query.filter(InstanceAccount.ad_domain_config_id.is_(None))
+        return query
 
     @staticmethod
     def _apply_search_filter(query: Query[Any], search: str) -> Query[Any]:

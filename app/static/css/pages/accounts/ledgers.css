@@ -13,10 +13,18 @@
 #accounts-grid .gridjs-th[data-column-id="is_deleted"],
 #accounts-grid .gridjs-td[data-column-id="is_deleted"],
 #accounts-grid .gridjs-th[data-column-id="is_superuser"],
-#accounts-grid .gridjs-td[data-column-id="is_superuser"] {
+#accounts-grid .gridjs-td[data-column-id="is_superuser"],
+#accounts-grid .gridjs-th[data-column-id="ad_status"],
+#accounts-grid .gridjs-td[data-column-id="ad_status"] {
     width: 64px;
     min-width: 64px;
     text-align: center;
+}
+
+#accounts-grid .gridjs-th[data-column-id="ad_status"],
+#accounts-grid .gridjs-td[data-column-id="ad_status"] {
+    width: 76px;
+    min-width: 76px;
 }
 
 /* 数据库类型按钮组 */
@@ -131,10 +139,23 @@
     color: var(--text-muted);
 }
 
+.ledger-compact-indicator--ad-disabled {
+    background: color-mix(in srgb, #b42318 11%, white);
+    border-color: color-mix(in srgb, #b42318 24%, transparent);
+    color: #b42318;
+}
+
+.ledger-compact-indicator--ad-orphaned {
+    background: color-mix(in srgb, #7a271a 10%, white);
+    border-color: color-mix(in srgb, #7a271a 22%, transparent);
+    color: #7a271a;
+}
+
 #accounts-grid td[data-column-id="db_type"] .ledger-compact-indicator,
 #accounts-grid td[data-column-id="is_locked"] .ledger-compact-indicator,
 #accounts-grid td[data-column-id="is_deleted"] .ledger-compact-indicator,
-#accounts-grid td[data-column-id="is_superuser"] .ledger-compact-indicator {
+#accounts-grid td[data-column-id="is_superuser"] .ledger-compact-indicator,
+#accounts-grid td[data-column-id="ad_status"] .ledger-compact-indicator {
     margin-inline: auto;
 }
 

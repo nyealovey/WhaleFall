@@ -476,6 +476,7 @@ def configure_template_filters(app: Flask) -> None:
 
 
 from app.models import (  # noqa: F401, E402
+    ad_domain_config,
     credential,
     database_size_aggregation,
     database_size_stat,

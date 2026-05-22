@@ -20,6 +20,7 @@ _DEFAULT_PAGE = 1
 _DEFAULT_LIMIT = 20
 _MAX_LIMIT = 200
 _SUPPORTED_OWNER_TYPES = {"instance", "sqlserver_ag"}
+_SUPPORTED_AD_STATUSES = {"normal", "disabled", "orphaned", "unknown"}
 
 
 class AccountsFiltersQuery(PayloadSchema):
@@ -38,6 +39,7 @@ class AccountsFiltersQuery(PayloadSchema):
     classification: str = ""
     db_type: str | None = None
     owner_type: str | None = None
+    ad_status: str | None = None
 
     @field_validator("page", mode="before")
     @classmethod
@@ -94,6 +96,14 @@ class AccountsFiltersQuery(PayloadSchema):
         cleaned = parse_text(value).lower()
         return cleaned if cleaned in _SUPPORTED_OWNER_TYPES else None
 
+    @field_validator("ad_status", mode="before")
+    @classmethod
+    def _parse_ad_status(cls, value: Any) -> str | None:
+        cleaned = parse_text(value).lower()
+        if not cleaned or cleaned == "all":
+            return None
+        return cleaned if cleaned in _SUPPORTED_AD_STATUSES else None
+
     def to_filters(self) -> AccountFilters:
         """转换为账户筛选 filters 对象."""
         classification_filter = self.classification if self.classification not in {"", "all"} else ""
@@ -112,6 +122,7 @@ class AccountsFiltersQuery(PayloadSchema):
             classification_filter=classification_filter,
             db_type=self.db_type,
             owner_type=self.owner_type,
+            ad_status=self.ad_status,
         )
 
 
