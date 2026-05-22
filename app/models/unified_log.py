@@ -23,6 +23,8 @@ from app import db
 from app.core.constants.system_constants import LogLevel
 from app.utils.time_utils import UTC_TZ, time_utils
 
+NUL_BYTE = "\x00"
+
 
 @dataclass(slots=True)
 class LogEntryParams:
@@ -135,13 +137,13 @@ class UnifiedLog(db.Model):
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC_TZ)
 
-        context = dict(payload.context or {})
+        context = _strip_nul_bytes(dict(payload.context or {}))
         return cls(
             timestamp=timestamp,
             level=payload.level,
-            module=payload.module,
-            message=payload.message,
-            traceback=payload.traceback,
+            module=_strip_nul_text(payload.module),
+            message=_strip_nul_text(payload.message),
+            traceback=_strip_nul_text(payload.traceback) if payload.traceback is not None else None,
             context=context,
         )
 
@@ -199,3 +201,19 @@ class UnifiedLog(db.Model):
             "top_modules": [{"module": module, "count": count} for module, count in module_stats],
             "error_rate": (error_count / total_logs * 100) if total_logs > 0 else 0,
         }
+
+
+def _strip_nul_text(value: str) -> str:
+    return value.replace(NUL_BYTE, "")
+
+
+def _strip_nul_bytes(value: Any) -> Any:
+    if isinstance(value, str):
+        return _strip_nul_text(value)
+    if isinstance(value, dict):
+        return {_strip_nul_bytes(key): _strip_nul_bytes(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_strip_nul_bytes(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_strip_nul_bytes(item) for item in value)
+    return value
