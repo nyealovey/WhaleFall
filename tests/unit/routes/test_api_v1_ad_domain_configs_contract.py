@@ -135,7 +135,16 @@ def test_api_v1_ad_domain_configs_list_includes_last_sync_metrics() -> None:
                 item_key=str(created_config_id),
                 item_name="corp.example.com",
                 status="completed",
-                metrics_json={"total": 10, "normal": 7, "disabled": 1, "orphaned": 2, "updated": 3},
+                metrics_json={
+                    "total": 10,
+                    "normal": 7,
+                    "disabled": 1,
+                    "orphaned": 2,
+                    "updated": 3,
+                    "ad_users_total": 20,
+                    "ad_groups_total": 5,
+                    "ad_principals_total": 25,
+                },
             )
         )
         db.session.commit()
@@ -154,4 +163,7 @@ def test_api_v1_ad_domain_configs_list_includes_last_sync_metrics() -> None:
             "disabled": 1,
             "orphaned": 2,
             "updated": 3,
+            "ad_users_total": 20,
+            "ad_groups_total": 5,
+            "ad_principals_total": 25,
         }

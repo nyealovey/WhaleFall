@@ -9,8 +9,9 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.task_run import TaskRun
+from app.models.task_run_item import TaskRunItem
 from app.tasks import ad_sync_tasks
-from app.services.ad_sync.ldap_provider import AdPrincipal
+from app.services.ad_sync.ldap_provider import AdPrincipal, AdPrincipalsFetchResult
 
 
 def _create_tables() -> None:
@@ -80,9 +81,16 @@ def test_sync_ad_accounts_marks_partial_success_and_preserves_failed_domain_acco
 
     class _FakeProvider:
         def fetch_principals(self, config: AdDomainConfig):
+            return self.fetch_principals_with_stats(config).principals
+
+        def fetch_principals_with_stats(self, config: AdDomainConfig):
             if config.netbios_name == "FAIL":
                 raise RuntimeError("dc failed")
-            return {"disabled": AdPrincipal("disabled", "user", True, {})}
+            return AdPrincipalsFetchResult(
+                principals={"disabled": AdPrincipal("disabled", "user", True, {})},
+                users_total=1,
+                groups_total=0,
+            )
 
     monkeypatch.setattr(ad_sync_tasks, "create_app", lambda **_: app)
     monkeypatch.setattr(ad_sync_tasks, "LdapProvider", _FakeProvider)
@@ -120,3 +128,52 @@ def test_sync_ad_accounts_marks_partial_success_and_preserves_failed_domain_acco
         assert ok_account.ad_disabled_at is not None
         assert failed_account.ad_disabled_at is None
         assert failed_account.ad_orphaned_at is None
+
+
+@pytest.mark.unit
+def test_sync_ad_accounts_records_ad_fetch_counts_in_summary_and_item_metrics(monkeypatch) -> None:
+    app = create_app(init_scheduler_on_start=False)
+
+    class _FakeProvider:
+        def fetch_principals(self, config: AdDomainConfig):
+            return self.fetch_principals_with_stats(config).principals
+
+        def fetch_principals_with_stats(self, _config: AdDomainConfig) -> AdPrincipalsFetchResult:
+            return AdPrincipalsFetchResult(
+                principals={
+                    "enabled": AdPrincipal("enabled", "user", False, {}),
+                    "disabled": AdPrincipal("disabled", "user", True, {}),
+                    "domain admins": AdPrincipal("Domain Admins", "group", None, {}),
+                },
+                users_total=2,
+                groups_total=1,
+            )
+
+    monkeypatch.setattr(ad_sync_tasks, "create_app", lambda **_: app)
+    monkeypatch.setattr(ad_sync_tasks, "LdapProvider", _FakeProvider)
+
+    with app.app_context():
+        _create_tables()
+        _create_domain(name="corp.example.com", netbios_name="CORP")
+        instance = _create_instance()
+        db.session.add(
+            InstanceAccount(
+                instance_id=instance.id,
+                db_type="sqlserver",
+                username="CORP\\enabled",
+                owner_type="instance",
+                owner_id=instance.id,
+            )
+        )
+        db.session.commit()
+
+        ad_sync_tasks.sync_ad_accounts(manual_run=True, created_by=1)
+
+        run = TaskRun.query.filter_by(task_key="sync_ad_accounts").one()
+        item = TaskRunItem.query.filter_by(run_id=run.run_id, item_type="ad_domain").one()
+        assert run.summary_json["ext"]["ad_users_total"] == 2
+        assert run.summary_json["ext"]["ad_groups_total"] == 1
+        assert run.summary_json["ext"]["ad_principals_total"] == 3
+        assert item.metrics_json["ad_users_total"] == 2
+        assert item.metrics_json["ad_groups_total"] == 1
+        assert item.metrics_json["ad_principals_total"] == 3
