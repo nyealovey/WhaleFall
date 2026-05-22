@@ -75,15 +75,19 @@ class AdAccountMatchService:
 
     @classmethod
     def _list_domain_accounts(cls, domain_config: AdDomainConfig) -> list[InstanceAccount]:
-        prefix = f"{str(domain_config.netbios_name).strip().lower()}\\"
         return cast(
             list[InstanceAccount],
             InstanceAccount.query.filter(
                 func.lower(InstanceAccount.db_type) == "sqlserver",
-                func.lower(InstanceAccount.username).like(f"{prefix}%"),
+                cls._domain_username_prefix_clause(str(domain_config.netbios_name)),
                 InstanceAccount.owner_type.in_(cls.SUPPORTED_OWNER_TYPES),
             ).all(),
         )
+
+    @staticmethod
+    def _domain_username_prefix_clause(netbios_name: str):
+        prefix = f"{str(netbios_name).strip().lower()}\\"
+        return func.substr(func.lower(InstanceAccount.username), 1, len(prefix)) == prefix
 
     @staticmethod
     def _extract_name_part(username: str, netbios_name: str) -> str:
