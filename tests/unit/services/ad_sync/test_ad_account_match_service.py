@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy.dialects import postgresql
 
 from app import create_app, db
 from app.models.ad_domain_config import AdDomainConfig
@@ -111,6 +112,16 @@ def test_ad_account_match_service_updates_instance_and_ag_domain_accounts() -> N
         assert accounts[3].ad_disabled_at is None
         assert accounts[3].ad_orphaned_at is not None
         assert accounts[4].ad_domain_config_id is None
+
+
+@pytest.mark.unit
+def test_ad_account_match_service_domain_prefix_filter_avoids_postgresql_like_escape() -> None:
+    clause = AdAccountMatchService._domain_username_prefix_clause("ZT158")
+
+    compiled = str(clause.compile(dialect=postgresql.dialect()))
+
+    assert "LIKE" not in compiled.upper()
+    assert "substr" in compiled.lower()
 
 
 @pytest.mark.unit
