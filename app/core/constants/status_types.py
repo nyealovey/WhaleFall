@@ -58,11 +58,19 @@ class TaskRunStatus:
     PENDING = SyncStatus.PENDING  # 等待中
     RUNNING = SyncStatus.RUNNING  # 运行中
     COMPLETED = SyncStatus.COMPLETED  # 已完成
+    COMPLETED_WITH_ERRORS = "completed_with_errors"  # 部分完成
     FAILED = SyncStatus.FAILED  # 失败
     CANCELLED = SyncStatus.CANCELLED  # 已取消
 
-    ALL: ClassVar[tuple[str, ...]] = SyncStatus.ALL
+    ALL: ClassVar[tuple[str, ...]] = (
+        SyncStatus.PENDING,
+        SyncStatus.RUNNING,
+        SyncStatus.COMPLETED,
+        COMPLETED_WITH_ERRORS,
+        SyncStatus.FAILED,
+        SyncStatus.CANCELLED,
+    )
 
-    TERMINAL: ClassVar[tuple[str, ...]] = SyncStatus.TERMINAL
+    TERMINAL: ClassVar[tuple[str, ...]] = (SyncStatus.COMPLETED, COMPLETED_WITH_ERRORS, SyncStatus.FAILED, SyncStatus.CANCELLED)
 
     IN_PROGRESS: ClassVar[tuple[str, ...]] = SyncStatus.ACTIVE

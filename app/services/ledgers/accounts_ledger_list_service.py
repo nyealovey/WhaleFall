@@ -55,6 +55,18 @@ class AccountsLedgerListService:
                     is_superuser=account.is_superuser,
                     is_active=is_active,
                     is_deleted=not is_active,
+                    ad_status=self._resolve_ad_status(account.instance_account),
+                    ad_domain=self._resolve_ad_domain(account.instance_account),
+                    ad_disabled_at=(
+                        account.instance_account.ad_disabled_at.isoformat()
+                        if account.instance_account.ad_disabled_at
+                        else None
+                    ),
+                    ad_orphaned_at=(
+                        account.instance_account.ad_orphaned_at.isoformat()
+                        if account.instance_account.ad_orphaned_at
+                        else None
+                    ),
                     last_change_time=(account.last_change_time.isoformat() if account.last_change_time else None),
                     availability_reasons=self._build_availability_reasons(account.permission_facts),
                     type_specific=type_specific,
@@ -69,6 +81,24 @@ class AccountsLedgerListService:
             pages=page_result.pages,
             limit=page_result.limit,
         )
+
+    @staticmethod
+    def _resolve_ad_status(instance_account: object) -> str:
+        if getattr(instance_account, "ad_disabled_at", None) is not None:
+            return "disabled"
+        if getattr(instance_account, "ad_orphaned_at", None) is not None:
+            return "orphaned"
+        if getattr(instance_account, "ad_domain_config_id", None) is not None:
+            return "normal"
+        return "unknown"
+
+    @staticmethod
+    def _resolve_ad_domain(instance_account: object) -> str | None:
+        domain = getattr(instance_account, "ad_domain_config", None)
+        if domain is None:
+            return None
+        netbios_name = str(getattr(domain, "netbios_name", "") or "").strip()
+        return netbios_name or None
 
     @staticmethod
     def _fetch_availability_groups(accounts: list[AccountPermission]) -> dict[int, SQLServerAvailabilityGroup]:

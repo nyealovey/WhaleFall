@@ -45,8 +45,33 @@ class InstanceAccountOrmFields(TypedDict, total=False):
     owner_id: int | None
     cluster_id: int | None
     availability_group_id: int | None
+    ad_domain_config_id: int | None
+    ad_disabled_at: datetime | None
+    ad_orphaned_at: datetime | None
     is_active: bool
     deleted_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AdDomainConfigOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating AdDomainConfig ORM rows."""
+
+    id: int
+    name: str
+    netbios_name: str
+    domain_controllers: list[str]
+    ldap_port: int
+    use_ssl: bool
+    verify_ssl: bool | None
+    base_dn: str
+    credential_id: int
+    is_enabled: bool
+    description: str | None
+    last_sync_at: datetime | None
+    last_sync_status: str | None
+    last_sync_run_id: str | None
+    last_error: str | None
     created_at: datetime
     updated_at: datetime
 

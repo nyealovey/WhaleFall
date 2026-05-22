@@ -179,6 +179,10 @@
     {{ select_filter('账户分类', 'classification', 'classification', options, current_value, '全部分类', width_preset=width_preset) }}
 {%- endmacro %}
 
+{% macro ad_status_filter(options, current_value='', width_preset='md') -%}
+    {{ select_filter('AD状态', 'ad_status', 'ad_status', options, current_value, '全部状态', width_preset=width_preset, allow_empty=False) }}
+{%- endmacro %}
+
 {% macro tag_category_filter(options, current_value='', width_preset='md') -%}
     {{ select_filter('标签分类', 'category', 'category', options, current_value, '全部分类', width_preset=width_preset) }}
 {%- endmacro %}

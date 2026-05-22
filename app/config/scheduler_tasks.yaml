@@ -19,6 +19,16 @@ default_tasks:
       hour: 2
     description: 每日计算账户分类命中数(规则命中 + 分类去重)
 
+  - id: sync_ad_accounts
+    name: AD 域账户同步
+    function: sync_ad_accounts
+    trigger_type: cron
+    trigger_params:
+      second: 0
+      minute: 30
+      hour: 1
+    description: 每日同步 AD 域账户状态并标记 SQL Server 域账户风险
+
   - id: sync_databases
     name: 数据库同步
     function: sync_databases

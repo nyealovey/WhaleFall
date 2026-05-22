@@ -25,6 +25,7 @@ class AccountFilters:
     classification_filter: str
     db_type: str | None
     owner_type: str | None
+    ad_status: str | None
 
 
 @dataclass(slots=True)
@@ -47,6 +48,10 @@ class AccountLedgerItem:
     is_superuser: bool
     is_active: bool
     is_deleted: bool
+    ad_status: str
+    ad_domain: str | None
+    ad_disabled_at: str | None
+    ad_orphaned_at: str | None
     last_change_time: str | None
     availability_reasons: list[str]
     type_specific: dict[str, object]

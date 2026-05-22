@@ -69,11 +69,18 @@ function mountAccountsListPage(global) {
   const basePath = resolveBasePath(currentDbType);
   const TYPE_COLUMN_WIDTH = "64px";
   const STATUS_COLUMN_WIDTH = "64px";
+  const AD_STATUS_COLUMN_WIDTH = "76px";
   const LEDGER_DB_TYPE_VISUALS = new Map([
     ["mysql", { fallbackIcon: "fa-database", tone: "primary" }],
     ["postgresql", { fallbackIcon: "fa-database", tone: "info" }],
     ["sqlserver", { fallbackIcon: "fa-server", tone: "warning" }],
     ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
+  ]);
+  const AD_STATUS_META = new Map([
+    ["normal", { icon: "fa-circle-check", tone: "success", label: "AD正常" }],
+    ["disabled", { icon: "fa-user-slash", tone: "ad-disabled", label: "AD已停用" }],
+    ["orphaned", { icon: "fa-user-xmark", tone: "ad-orphaned", label: "AD孤账户" }],
+    ["unknown", { icon: "fa-circle-question", tone: "muted", label: "未匹配AD" }],
   ]);
 
   let gridPage = null;
@@ -218,6 +225,7 @@ function mountAccountsListPage(global) {
           "is_locked",
           "is_superuser",
           "owner_type",
+          "ad_status",
           "plugin",
         ],
         normalize: (filters) => normalizeGridFilters(filters),
@@ -295,11 +303,24 @@ function mountAccountsListPage(global) {
       cleaned.owner_type = ownerType;
     }
 
+    const adStatus = sanitizeAdStatus(source.ad_status);
+    if (adStatus) {
+      cleaned.ad_status = adStatus;
+    }
+
     if (currentDbType && currentDbType !== "all") {
       cleaned.db_type = currentDbType;
     }
 
     return cleaned;
+  }
+
+  function sanitizeAdStatus(value) {
+    const normalized = sanitizeText(value).toLowerCase();
+    if (!normalized || normalized === "all") {
+      return "";
+    }
+    return AD_STATUS_META.has(normalized) ? normalized : "";
   }
 
   function sanitizeText(value) {
@@ -361,6 +382,12 @@ function mountAccountsListPage(global) {
         formatter: (cell) => renderSuperuserIndicator(Boolean(cell)),
       },
       {
+        name: "AD状态",
+        id: "ad_status",
+        width: AD_STATUS_COLUMN_WIDTH,
+        formatter: (cell, row) => renderAdStatusIndicator(cell, rowMeta.get(row)),
+      },
+      {
         name: "分类",
         id: "classifications",
         sort: false,
@@ -404,6 +431,12 @@ function mountAccountsListPage(global) {
       const payload = response?.data || response || {};
       const items = payload.items || [];
       return items.map((item) => {
+        const meta = {
+          ...item,
+          ad_domain: item.ad_domain || null,
+          ad_disabled_at: item.ad_disabled_at || null,
+          ad_orphaned_at: item.ad_orphaned_at || null,
+        };
         const row = [
           item.username || "-",
           {
@@ -412,12 +445,13 @@ function mountAccountsListPage(global) {
           },
           item.is_deleted,
           item.is_superuser,
+          item.ad_status || "unknown",
           item.classifications || [],
         ];
         if (includeDbTypeColumn) {
           row.push(item.db_type || "-");
         }
-        row.push(item.tags || [], null, item);
+        row.push(item.tags || [], null, meta);
         return row;
       });
     };
@@ -567,6 +601,43 @@ function mountAccountsListPage(global) {
       title: "普通用户",
       ariaLabel: "超管权限 普通用户",
     });
+  }
+
+  function renderAdStatusIndicator(status, meta = {}) {
+    const normalized = sanitizeAdStatus(status) || "unknown";
+    const statusMeta = AD_STATUS_META.get(normalized) || AD_STATUS_META.get("unknown");
+    const domain = sanitizeText(meta.ad_domain) || "AD";
+    const markedAt = normalized === "disabled" ? meta.ad_disabled_at : meta.ad_orphaned_at;
+    const title = buildAdStatusTitle({
+      status: normalized,
+      label: statusMeta.label,
+      domain,
+      markedAt,
+    });
+    return renderCompactIndicator({
+      icon: statusMeta.icon,
+      tone: statusMeta.tone,
+      title,
+      ariaLabel: `AD状态 ${title}`,
+    });
+  }
+
+  function buildAdStatusTitle({ status, label, domain, markedAt }) {
+    if (status === "unknown") {
+      return label;
+    }
+    const parts = [domain, label];
+    if (markedAt) {
+      parts.push(formatDateTime(markedAt));
+    }
+    return parts.filter(Boolean).join(" · ");
+  }
+
+  function formatDateTime(value) {
+    if (typeof value !== "string" || !value.trim()) {
+      return "";
+    }
+    return value.replace("T", " ").replace(/\.\d+/, "").replace(/\+\d{2}:\d{2}$/, "");
   }
 
   function renderCompactIndicator({ icon, tone = "muted", title, ariaLabel, assetUrl = "" }) {

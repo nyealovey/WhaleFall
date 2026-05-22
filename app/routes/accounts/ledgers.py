@@ -25,6 +25,9 @@ def list_accounts(db_type: str | None = None) -> str:
     selected_tags = [tag.strip() for tag in request.args.getlist("tags") if tag and tag.strip()]
     classification = (request.args.get("classification") or "").strip()
     classification_filter = classification if classification not in {"", "all"} else ""
+    ad_status = (request.args.get("ad_status") or "all").strip().lower()
+    if ad_status not in {"all", "normal", "disabled", "orphaned", "unknown"}:
+        ad_status = "all"
     normalized_db_type = db_type if db_type not in {None, "", "all"} else None
 
     def _execute() -> str:
@@ -52,6 +55,13 @@ def list_accounts(db_type: str | None = None) -> str:
             }
             for item in database_type_options
         }
+        ad_status_options = [
+            {"value": "all", "label": "全部状态"},
+            {"value": "normal", "label": "正常"},
+            {"value": "disabled", "label": "已停用"},
+            {"value": "orphaned", "label": "孤账户"},
+            {"value": "unknown", "label": "未匹配"},
+        ]
 
         return render_template(
             "accounts/ledgers.html",
@@ -64,6 +74,8 @@ def list_accounts(db_type: str | None = None) -> str:
             database_type_map=database_type_map,
             classification_options=classification_options,
             tag_options=tag_options,
+            ad_status=ad_status,
+            ad_status_options=ad_status_options,
         )
 
     return safe_route_call(
@@ -76,5 +88,6 @@ def list_accounts(db_type: str | None = None) -> str:
             "search": search,
             "tags_count": len(selected_tags),
             "classification": classification_filter,
+            "ad_status": ad_status,
         },
     )

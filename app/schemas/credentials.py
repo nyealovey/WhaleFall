@@ -65,6 +65,10 @@ def _validate_username(value: str, *, credential_type: str | None = None) -> str
         if not re.match(r"^[a-zA-Z0-9_.\\-]+$", normalized):
             raise ValueError("Veeam 用户名只能包含字母、数字、下划线、连字符、点和反斜杠")
         return normalized
+    if credential_type == "ldap":
+        if not re.match(r"^[a-zA-Z0-9_.@\\-]+$", normalized):
+            raise ValueError("LDAP 用户名只能包含字母、数字、下划线、连字符、点、反斜杠和@")
+        return normalized
     if not re.match(r"^[a-zA-Z0-9_.-]+$", normalized):
         raise ValueError("用户名只能包含字母、数字、下划线、连字符和点")
     return normalized
