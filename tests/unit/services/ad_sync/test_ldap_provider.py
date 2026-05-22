@@ -14,7 +14,7 @@ class _Credential:
     username = "CORP\\svc"
 
     @staticmethod
-    def get_password() -> str:
+    def get_plain_password() -> str:
         return "secret"
 
 
@@ -40,7 +40,9 @@ class _Server:
 
 
 class _Connection:
-    def __init__(self, server: _Server, **_: object) -> None:
+    def __init__(self, server: _Server, **kwargs: object) -> None:
+        assert kwargs["user"] == "CORP\\svc"
+        assert kwargs["password"] == "secret"
         if "dc01" in server.host:
             raise RuntimeError("bind failed")
         self.entries: list[_Entry] = []
