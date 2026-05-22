@@ -23,6 +23,18 @@ def test_credential_modal_template_exposes_api_copy_targets() -> None:
         assert fragment in content
 
 
+def test_credential_type_options_include_ldap_for_ad_domain_configs() -> None:
+    from app.core.constants.filter_options import CREDENTIAL_TYPES
+
+    assert {"value": "ldap", "label": "LDAP 凭据"} in CREDENTIAL_TYPES
+
+
+def test_credentials_list_js_defines_ldap_type_badge() -> None:
+    content = _read_text("app/static/js/modules/views/credentials/list.js")
+
+    assert '["ldap", { label: "LDAP", icon: "fa-network-wired", tone: "muted" }]' in content
+
+
 def test_credential_modal_js_defines_api_copy_variants() -> None:
     content = _read_text("app/static/js/modules/views/credentials/modals/credential-modals.js")
 

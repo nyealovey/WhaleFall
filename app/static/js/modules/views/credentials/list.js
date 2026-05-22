@@ -77,6 +77,7 @@ function mountCredentialsListPage(global) {
     ["database", { label: "数据库凭据", icon: "fa-database", tone: "brand" }],
     ["ssh", { label: "SSH", icon: "fa-terminal", tone: "muted" }],
     ["api", { label: "API", icon: "fa-plug", tone: "muted" }],
+    ["ldap", { label: "LDAP", icon: "fa-network-wired", tone: "muted" }],
     ["windows", { label: "Windows", icon: "fa-desktop", tone: "muted" }],
     ["kafka", { label: "Kafka", icon: "fa-broadcast-tower", tone: "muted" }],
   ]);
