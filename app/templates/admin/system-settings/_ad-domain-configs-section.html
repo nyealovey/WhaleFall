@@ -1,0 +1,147 @@
+<input type="hidden" id="ad-domain-configs-csrf-token" value="{{ csrf_token() }}">
+<div
+    id="ad-domain-configs-page"
+    class="ad-domain-configs-page"
+    data-api-url="/api/v1/ad-domain-configs"
+    data-credentials-api-url="/api/v1/credentials"
+>
+    <div class="jumpserver-source-layout">
+        <section class="card jumpserver-source-card">
+            <div class="card-header jumpserver-source-card__header">
+                <div>
+                    <h2 id="adDomainConfigFormTitle" class="jumpserver-source-card__title">新增 AD 域</h2>
+                </div>
+            </div>
+            <div class="card-body jumpserver-source-card__body">
+                <div class="jumpserver-source-field">
+                    <label for="adDomainConfigName" class="form-label">域名</label>
+                    <input id="adDomainConfigName" class="form-control" type="text" placeholder="例如：corp.example.com">
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6 col-12">
+                        <div class="jumpserver-source-field">
+                            <label for="adDomainNetbiosName" class="form-label">NetBIOS 名称</label>
+                            <input id="adDomainNetbiosName" class="form-control" type="text" placeholder="例如：CORP">
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <div class="jumpserver-source-field">
+                            <label for="adDomainLdapPort" class="form-label">LDAP 端口</label>
+                            <input id="adDomainLdapPort" class="form-control" type="number" min="1" max="65535" value="636">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="adDomainControllers" class="form-label">域控地址</label>
+                    <textarea
+                        id="adDomainControllers"
+                        class="form-control"
+                        rows="4"
+                        placeholder="每行一个域控，例如&#10;dc01.corp.example.com&#10;dc02.corp.example.com"
+                    ></textarea>
+                    <div class="form-text">支持换行或逗号分隔，提交时会自动去重。</div>
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="adDomainBaseDn" class="form-label">Base DN</label>
+                    <input id="adDomainBaseDn" class="form-control" type="text" placeholder="例如：DC=corp,DC=example,DC=com">
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="adDomainCredentialId" class="form-label">LDAP 凭据</label>
+                    <select id="adDomainCredentialId" class="form-select">
+                        <option value="">请选择 LDAP 凭据</option>
+                    </select>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4 col-12">
+                        <div class="jumpserver-source-field">
+                            <div class="form-check form-switch">
+                                <input id="adDomainUseSsl" class="form-check-input" type="checkbox" checked>
+                                <label for="adDomainUseSsl" class="form-check-label">使用 SSL</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <div class="jumpserver-source-field">
+                            <label for="adDomainVerifySsl" class="form-label">证书验证</label>
+                            <select id="adDomainVerifySsl" class="form-select">
+                                <option value="">默认策略</option>
+                                <option value="true">开启</option>
+                                <option value="false">关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <div class="jumpserver-source-field">
+                            <div class="form-check form-switch">
+                                <input id="adDomainIsEnabled" class="form-check-input" type="checkbox" checked>
+                                <label for="adDomainIsEnabled" class="form-check-label">启用同步</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="jumpserver-source-field">
+                    <label for="adDomainDescription" class="form-label">描述</label>
+                    <textarea id="adDomainDescription" class="form-control" rows="2" placeholder="可选，记录用途或覆盖范围"></textarea>
+                </div>
+
+                <div class="jumpserver-source-actions">
+                    <button id="saveAdDomainConfigBtn" class="btn btn-primary" type="button">
+                        <i class="fas fa-save me-2"></i>保存 AD 域
+                    </button>
+                    <button id="deleteAdDomainConfigBtn" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-trash me-2"></i>删除配置
+                    </button>
+                    <button id="cancelEditAdDomainConfigBtn" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-plus me-2"></i>新增模式
+                    </button>
+                    <button id="syncAdDomainAccountsBtn" class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-rotate me-2"></i>AD 域账户同步
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="card jumpserver-source-card jumpserver-source-card--summary">
+            <div class="card-header jumpserver-source-card__header">
+                <div>
+                    <h2 class="jumpserver-source-card__title">AD 域列表</h2>
+                </div>
+            </div>
+            <div class="card-body jumpserver-source-card__body jumpserver-source-card__body--summary">
+                <div id="adDomainConfigsList" class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>域</th>
+                                <th>域控</th>
+                                <th>凭据</th>
+                                <th>状态</th>
+                                <th>最近同步</th>
+                                <th class="text-end">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-muted">正在加载 AD 域配置...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="jumpserver-summary-item">
+                    <span class="jumpserver-summary-item__label">配置数量</span>
+                    <strong id="adDomainConfigSummary">当前未配置 AD 域</strong>
+                </div>
+                <div class="jumpserver-summary-item">
+                    <span class="jumpserver-summary-item__label">最近同步</span>
+                    <strong id="adDomainSyncStatusSummary">未执行同步</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
