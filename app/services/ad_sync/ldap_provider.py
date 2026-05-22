@@ -46,7 +46,7 @@ class LdapProvider:
                 connection = Connection(
                     server,
                     user=str(credential.username),
-                    password=credential.get_password(),
+                    password=credential.get_plain_password(),
                     auto_bind=True,
                     receive_timeout=30,
                 )
