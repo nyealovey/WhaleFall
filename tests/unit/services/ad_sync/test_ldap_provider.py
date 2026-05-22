@@ -43,6 +43,7 @@ class _Connection:
     def __init__(self, server: _Server, **kwargs: object) -> None:
         assert kwargs["user"] == "CORP\\svc"
         assert kwargs["password"] == "secret"
+        assert kwargs["auto_referrals"] is False
         if "dc01" in server.host:
             raise RuntimeError("bind failed")
         self.entries: list[_Entry] = []
@@ -98,3 +99,27 @@ def test_ldap_provider_falls_back_to_next_controller_and_logs_warning(monkeypatc
             "error": "bind failed",
         },
     ]
+
+
+@pytest.mark.unit
+def test_ldap_provider_raises_when_search_returns_referral_without_entries() -> None:
+    class _ReferralConnection:
+        entries: list[_Entry] = []
+        result = {
+            "description": "referral",
+            "message": "0000202B: RefErr",
+            "referrals": ["ldap://corp.example.com/DC=corp,DC=example,DC=com"],
+        }
+
+        def search(self, _base_dn: str, _search_filter: str, *, attributes: list[str]) -> bool:
+            assert "sAMAccountName" in attributes
+            return False
+
+    with pytest.raises(RuntimeError, match="LDAP 查询失败"):
+        LdapProvider._search_principals(
+            _ReferralConnection(),
+            "DC=corp,DC=example,DC=com",
+            "(&(objectClass=user)(objectCategory=person))",
+            object_kind="user",
+            target={},
+        )
