@@ -7,6 +7,7 @@ from datetime import datetime
 import pytest
 
 from app.core.constants.system_constants import LogLevel
+from app.models.unified_log import LogEntryParams, UnifiedLog
 from app.utils.logging.handlers import _build_log_entry
 
 
@@ -64,3 +65,29 @@ def test_build_log_entry_defaults_invalid_level_to_info() -> None:
 
     assert isinstance(payload, dict)
     assert payload["level"] == LogLevel.INFO
+
+
+@pytest.mark.unit
+def test_unified_log_entry_strips_nul_bytes_before_persisting() -> None:
+    """PostgreSQL text/json 字段不接受 NUL，日志入库边界必须清理。"""
+    model = UnifiedLog.create_log_entry(
+        LogEntryParams(
+            level=LogLevel.ERROR,
+            module="ad\x00domain",
+            message="AD 域连接测试失败\x00",
+            traceback="Traceback...\x00",
+            context={
+                "error_message": "LDAP 返回了 NUL\x00",
+                "nested": {"referral": "ldap://corp.example.com\x00/base"},
+                "items": ["ok", "bad\x00value"],
+            },
+        ),
+    )
+
+    assert "\x00" not in model.module
+    assert "\x00" not in model.message
+    assert model.traceback is not None
+    assert "\x00" not in model.traceback
+    assert model.context["error_message"] == "LDAP 返回了 NUL"
+    assert model.context["nested"]["referral"] == "ldap://corp.example.com/base"
+    assert model.context["items"] == ["ok", "badvalue"]
