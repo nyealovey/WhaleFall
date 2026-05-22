@@ -74,6 +74,22 @@
                                 <strong>Veeam</strong>
                             </span>
                         </a>
+                        <a
+                            class="system-settings-page__nav-link"
+                            id="system-settings-ad-domain-tab"
+                            href="#system-settings-ad-domain"
+                            data-system-settings-nav-link="system-settings-ad-domain"
+                            role="tab"
+                            aria-controls="system-settings-ad-domain"
+                            aria-selected="false"
+                        >
+                            <span class="system-settings-page__nav-icon">
+                                <i class="fas fa-network-wired" aria-hidden="true"></i>
+                            </span>
+                            <span class="system-settings-page__nav-text">
+                                <strong>AD 设置</strong>
+                            </span>
+                        </a>
                     </nav>
                 </div>
 
@@ -124,6 +140,22 @@
                             {% include 'admin/system-settings/_veeam-source-section.html' %}
                         </div>
                     </section>
+
+                    <section
+                        id="system-settings-ad-domain"
+                        class="system-settings-page__section system-settings-page__panel"
+                        data-system-settings-section
+                        role="tabpanel"
+                        aria-labelledby="system-settings-ad-domain-tab"
+                        hidden
+                    >
+                        <header class="system-settings-page__section-header">
+                            <h2>AD 域账户同步设置</h2>
+                        </header>
+                        <div class="system-settings-page__section-body">
+                            {% include 'admin/system-settings/_ad-domain-configs-section.html' %}
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -135,8 +167,10 @@
 <script src="{{ url_for('static', filename='js/modules/services/email_alert_settings_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/jumpserver_source_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/veeam_source_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/ad_domain_configs_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/alerts/email-settings.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/integrations/jumpserver/source.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/integrations/veeam/source.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/integrations/ad-domain/configs.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/system-settings/index.js') }}"></script>
 {% endblock %}
