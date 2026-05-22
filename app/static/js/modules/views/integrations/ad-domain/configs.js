@@ -130,8 +130,12 @@
         .filter((item) => item?.last_sync_at)
         .sort((a, b) => String(b.last_sync_at).localeCompare(String(a.last_sync_at)))[0];
       const failedCount = state.configs.filter((item) => item?.last_sync_status === "failed").length;
+      const metrics = summarizeLastSyncMetrics(state.configs);
       if (!state.configs.length) {
         elements.syncStatusSummary.textContent = "未执行同步";
+      } else if (metrics) {
+        const status = failedCount > 0 ? `${failedCount} 个失败` : latest?.last_sync_status || "未执行同步";
+        elements.syncStatusSummary.textContent = `${status} · 处理 ${metrics.total} · 正常 ${metrics.normal} · 停用 ${metrics.disabled} · 孤账户 ${metrics.orphaned} · 更新 ${metrics.updated}`;
       } else if (failedCount > 0) {
         elements.syncStatusSummary.textContent = `${failedCount} 个失败 · ${latest?.last_sync_at || "-"}`;
       } else {
@@ -167,13 +171,14 @@
         const syncText = config?.last_sync_status
           ? `${escapeHtml(config.last_sync_status)} · ${escapeHtml(config.last_sync_at || "-")}`
           : "未执行";
+        const syncMetricsHtml = renderLastSyncMetrics(config?.last_sync_metrics);
         return `
           <tr data-config-id="${configId}">
             <td><strong>${escapeHtml(config?.name || "-")}</strong><div class="text-muted small">${escapeHtml(config?.netbios_name || "-")}</div></td>
             <td>${escapeHtml(controllers.join(", ") || "-")}</td>
             <td>${escapeHtml(credentialName)}</td>
             <td><span class="${statusClass}">${statusText}</span></td>
-            <td>${syncText}</td>
+            <td>${syncText}${syncMetricsHtml}</td>
             <td class="text-end">
               <button class="btn btn-sm btn-outline-secondary" type="button" data-ad-domain-action="edit" data-config-id="${configId}">编辑</button>
               <button class="btn btn-sm btn-outline-secondary" type="button" data-ad-domain-action="test" data-config-id="${configId}">测试</button>
@@ -185,6 +190,49 @@
         `;
       })
       .join("");
+  }
+
+  function normalizeLastSyncMetrics(metrics) {
+    if (!metrics || typeof metrics !== "object") {
+      return null;
+    }
+    return {
+      total: Number(metrics.total) || 0,
+      normal: Number(metrics.normal) || 0,
+      disabled: Number(metrics.disabled) || 0,
+      orphaned: Number(metrics.orphaned) || 0,
+      updated: Number(metrics.updated) || 0,
+    };
+  }
+
+  function summarizeLastSyncMetrics(configs) {
+    const summary = { total: 0, normal: 0, disabled: 0, orphaned: 0, updated: 0 };
+    let hasMetrics = false;
+    (Array.isArray(configs) ? configs : []).forEach((config) => {
+      const metrics = normalizeLastSyncMetrics(config?.last_sync_metrics);
+      if (!metrics) {
+        return;
+      }
+      hasMetrics = true;
+      summary.total += metrics.total;
+      summary.normal += metrics.normal;
+      summary.disabled += metrics.disabled;
+      summary.orphaned += metrics.orphaned;
+      summary.updated += metrics.updated;
+    });
+    return hasMetrics ? summary : null;
+  }
+
+  function renderLastSyncMetrics(metrics) {
+    const normalized = normalizeLastSyncMetrics(metrics);
+    if (!normalized) {
+      return "";
+    }
+    return `
+      <div class="text-muted small">
+        处理 ${escapeHtml(normalized.total)} · 正常 ${escapeHtml(normalized.normal)} · 停用 ${escapeHtml(normalized.disabled)} · 孤账户 ${escapeHtml(normalized.orphaned)} · 更新 ${escapeHtml(normalized.updated)}
+      </div>
+    `;
   }
 
   function fillForm(config) {

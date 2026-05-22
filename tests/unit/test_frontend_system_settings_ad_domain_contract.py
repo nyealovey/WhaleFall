@@ -73,6 +73,10 @@ def test_ad_domain_settings_js_defines_crud_and_sync_behaviors() -> None:
         "syncAdDomainAccountsBtn",
         "adDomainConfigsList",
         "data-ad-domain-action",
+        "last_sync_metrics",
+        "renderLastSyncMetrics",
+        "处理",
+        "孤账户",
         "AD 域账户同步",
     )
     for fragment in view_fragments:
