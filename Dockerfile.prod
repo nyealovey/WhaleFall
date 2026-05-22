@@ -44,9 +44,9 @@ RUN apt-get update && apt-get install -y \
 # 安装uv
 ENV UV_INSTALL_DIR=/usr/local/bin
 RUN if [ -n "$HTTP_PROXY" ]; then \
-        curl -LsSf --proxy "$HTTP_PROXY" https://astral.sh/uv/install.sh | sh; \
+        curl -LsSf --proxy "$HTTP_PROXY" https://releases.astral.sh/installers/uv/latest/uv-installer.sh | sh; \
     else \
-        curl -LsSf https://astral.sh/uv/install.sh | sh; \
+        curl -LsSf https://releases.astral.sh/installers/uv/latest/uv-installer.sh | sh; \
     fi && \
     chmod +x /usr/local/bin/uv && \
     uv --version
