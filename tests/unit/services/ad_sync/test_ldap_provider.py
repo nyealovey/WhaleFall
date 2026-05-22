@@ -65,11 +65,17 @@ class _Connection:
 @pytest.mark.unit
 def test_ldap_provider_falls_back_to_next_controller_and_logs_warning(monkeypatch) -> None:
     warnings: list[dict[str, object]] = []
+    server_hosts: list[str] = []
 
     def _log_warning(message: str, **kwargs: object) -> None:
         warnings.append({"message": message, **kwargs})
 
-    monkeypatch.setattr(ldap_provider, "Server", _Server)
+    class _RecordingServer(_Server):
+        def __init__(self, host: str, **kwargs: object) -> None:
+            server_hosts.append(host)
+            super().__init__(host, **kwargs)
+
+    monkeypatch.setattr(ldap_provider, "Server", _RecordingServer)
     monkeypatch.setattr(ldap_provider, "Connection", _Connection)
     monkeypatch.setattr(ldap_provider, "log_warning", _log_warning, raising=False)
 
@@ -79,11 +85,13 @@ def test_ldap_provider_falls_back_to_next_controller_and_logs_warning(monkeypatc
     assert principals["disabled"].is_disabled is True
     assert principals["domain admins"].object_kind == "group"
     assert principals["domain admins"].is_disabled is None
+    assert server_hosts == ["dc01.corp.example.com", "dc02.corp.example.com"]
     assert warnings == [
         {
             "message": "AD 域控连接失败,尝试下一个域控",
             "module": "ad_sync",
             "controller": "dc01.corp.example.com",
+            "ldap_host": "dc01.corp.example.com",
             "port": 636,
             "use_ssl": True,
             "verify_ssl": False,

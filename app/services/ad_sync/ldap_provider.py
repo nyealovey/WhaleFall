@@ -38,11 +38,17 @@ class LdapProvider:
 
         last_error: Exception | None = None
         for controller in controllers:
+            ldap_host = controller
             try:
-                scheme = "ldaps" if config.use_ssl else "ldap"
-                host = f"{scheme}://{controller}"
                 tls = Tls(validate=0) if config.verify_ssl is False else None
-                server = Server(host, port=int(config.ldap_port), use_ssl=bool(config.use_ssl), get_info=ALL, tls=tls)
+                server = Server(
+                    controller,
+                    port=int(config.ldap_port),
+                    use_ssl=bool(config.use_ssl),
+                    get_info=ALL,
+                    tls=tls,
+                )
+                ldap_host = str(getattr(server, "host", controller))
                 connection = Connection(
                     server,
                     user=str(credential.username),
@@ -60,6 +66,7 @@ class LdapProvider:
                     "AD 域控连接失败,尝试下一个域控",
                     module="ad_sync",
                     controller=controller,
+                    ldap_host=ldap_host,
                     port=int(config.ldap_port),
                     use_ssl=bool(config.use_ssl),
                     verify_ssl=bool(config.verify_ssl) if config.verify_ssl is not None else None,
