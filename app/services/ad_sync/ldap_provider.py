@@ -54,6 +54,7 @@ class LdapProvider:
                     user=str(credential.username),
                     password=credential.get_plain_password(),
                     auto_bind=True,
+                    auto_referrals=False,
                     receive_timeout=30,
                 )
                 try:
@@ -103,7 +104,9 @@ class LdapProvider:
         target: dict[str, AdPrincipal],
     ) -> None:
         attributes = ["sAMAccountName", "userAccountControl", "objectClass", "displayName", "mail", "whenChanged", "distinguishedName"]
-        connection.search(base_dn, search_filter, attributes=attributes)
+        search_ok = connection.search(base_dn, search_filter, attributes=attributes)
+        if search_ok is False:
+            raise RuntimeError(f"LDAP 查询失败: {cls._search_error_detail(connection)}")
         for entry in list(getattr(connection, "entries", []) or []):
             data = entry.entry_attributes_as_dict
             raw_name = cls._first_value(data.get("sAMAccountName"))
@@ -130,6 +133,21 @@ class LdapProvider:
         if isinstance(value, list):
             value = value[0] if value else ""
         return str(value or "").strip()
+
+    @staticmethod
+    def _search_error_detail(connection: Any) -> str:
+        result = getattr(connection, "result", None)
+        if not isinstance(result, dict):
+            return "unknown"
+        parts: list[str] = []
+        for key in ("description", "message"):
+            value = str(result.get(key) or "").strip()
+            if value:
+                parts.append(f"{key}={value}")
+        referrals = result.get("referrals")
+        if referrals:
+            parts.append(f"referrals={referrals}")
+        return ", ".join(parts) if parts else "unknown"
 
     @classmethod
     def _disabled_from_uac(cls, value: object) -> bool:
