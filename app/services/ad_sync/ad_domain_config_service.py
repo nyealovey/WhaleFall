@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+from sqlalchemy import inspect
+
 from app import db
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.ad_domain_config import AdDomainConfig
+from app.models.task_run_item import TaskRunItem
 from app.repositories.ad_domain_config_repository import AdDomainConfigRepository
 from app.repositories.credentials_repository import CredentialsRepository
 from app.schemas.ad_domain_config import AdDomainConfigPayload
@@ -26,7 +31,12 @@ class AdDomainConfigService:
         self._provider = provider or LdapProvider()
 
     def list_configs(self) -> list[dict[str, object]]:
-        return [self._serialize_config(config) for config in self._repository.list_configs()]
+        configs = self._repository.list_configs()
+        metrics_by_config = self._latest_sync_metrics_by_config(configs)
+        return [
+            self._serialize_config(config, last_sync_metrics=metrics_by_config.get(int(config.id or 0)))
+            for config in configs
+        ]
 
     def create(self, payload: AdDomainConfigPayload) -> AdDomainConfig:
         self._ensure_credential(payload.credential_id)
@@ -85,8 +95,54 @@ class AdDomainConfigService:
             raise ValidationError("已存在启用中的相同 NetBIOS 域配置")
 
     @staticmethod
-    def _serialize_config(config: AdDomainConfig) -> dict[str, object]:
+    def _latest_sync_metrics_by_config(configs: list[AdDomainConfig]) -> dict[int, dict[str, int]]:
+        if not inspect(db.engine).has_table(TaskRunItem.__tablename__):
+            return {}
+        run_id_by_config = {
+            int(config.id): str(config.last_sync_run_id)
+            for config in configs
+            if config.id is not None and config.last_sync_run_id
+        }
+        if not run_id_by_config:
+            return {}
+        items = TaskRunItem.query.filter(
+            TaskRunItem.item_type == "ad_domain",
+            TaskRunItem.run_id.in_(set(run_id_by_config.values())),
+            TaskRunItem.item_key.in_([str(config_id) for config_id in run_id_by_config]),
+        ).all()
+        metrics_by_config: dict[int, dict[str, int]] = {}
+        for item in items:
+            try:
+                config_id = int(item.item_key)
+            except (TypeError, ValueError):
+                continue
+            if item.run_id != run_id_by_config.get(config_id):
+                continue
+            metrics = AdDomainConfigService._normalize_sync_metrics(item.metrics_json)
+            if metrics is not None:
+                metrics_by_config[config_id] = metrics
+        return metrics_by_config
+
+    @staticmethod
+    def _normalize_sync_metrics(raw_metrics: Any) -> dict[str, int] | None:
+        if not isinstance(raw_metrics, dict):
+            return None
+        return {
+            "total": int(raw_metrics.get("total") or 0),
+            "normal": int(raw_metrics.get("normal") or 0),
+            "disabled": int(raw_metrics.get("disabled") or 0),
+            "orphaned": int(raw_metrics.get("orphaned") or 0),
+            "updated": int(raw_metrics.get("updated") or 0),
+        }
+
+    @staticmethod
+    def _serialize_config(
+        config: AdDomainConfig,
+        *,
+        last_sync_metrics: dict[str, int] | None = None,
+    ) -> dict[str, object]:
         data = config.to_dict()
+        data["last_sync_metrics"] = last_sync_metrics
         credential = getattr(config, "credential", None)
         if credential is not None:
             data["credential"] = {
