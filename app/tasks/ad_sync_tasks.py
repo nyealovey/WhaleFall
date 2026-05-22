@@ -140,6 +140,54 @@ def _metrics(result: AdDomainMatchResult, fetch_result: AdPrincipalsFetchResult)
     return metrics
 
 
+def _task_log_context(*, run_id: str) -> dict[str, object]:
+    return {
+        "module": "ad_sync",
+        "operation": "sync_ad_accounts",
+        "run_id": run_id,
+    }
+
+
+def _domain_log_context(*, domain: AdDomainConfig, run_id: str) -> dict[str, object]:
+    return {
+        **_task_log_context(run_id=run_id),
+        "domain_id": domain.id,
+        "domain_name": domain.name,
+        "domain_netbios_name": domain.netbios_name,
+        "domain_base_dn": domain.base_dn,
+        "domain_controller_count": len(domain.domain_controllers or []),
+        "ldap_port": domain.ldap_port,
+        "use_ssl": domain.use_ssl,
+        "verify_ssl": domain.verify_ssl,
+    }
+
+
+def _match_result_log_context(result: AdDomainMatchResult) -> dict[str, object]:
+    return {
+        "accounts_total": result.total,
+        "accounts_normal": result.normal,
+        "accounts_disabled": result.disabled,
+        "accounts_orphaned": result.orphaned,
+        "accounts_updated": result.updated,
+    }
+
+
+def _fetch_result_log_context(fetch_result: AdPrincipalsFetchResult | AdFetchTotals) -> dict[str, object]:
+    if isinstance(fetch_result, AdFetchTotals):
+        users_total = fetch_result.users
+        groups_total = fetch_result.groups
+        principals_total = fetch_result.principals
+    else:
+        users_total = fetch_result.users_total
+        groups_total = fetch_result.groups_total
+        principals_total = fetch_result.principals_total
+    return {
+        "ad_users_total": users_total,
+        "ad_groups_total": groups_total,
+        "ad_principals_total": principals_total,
+    }
+
+
 def _sync_domain(
     *,
     domain: AdDomainConfig,
@@ -191,11 +239,9 @@ def _fail_domain(
     )
     sync_logger.exception(
         "ad_domain_sync_failed",
-        module="ad_sync",
-        operation="sync_ad_accounts",
-        run_id=run_id,
-        domain_id=domain.id,
-        domain_name=domain.name,
+        **_domain_log_context(domain=domain, run_id=run_id),
+        error_type=exc.__class__.__name__,
+        error_message=str(exc),
     )
     db.session.commit()
 
@@ -247,6 +293,14 @@ def sync_ad_accounts(
             run_id=run_id,
         )
         domains = AdDomainConfigRepository.list_configs(enabled_only=True)
+        sync_logger.info(
+            "ad_sync_run_started",
+            **_task_log_context(run_id=resolved_run_id),
+            manual_run=manual_run,
+            trigger_source="manual" if manual_run else "scheduled",
+            created_by=created_by,
+            domains_total=len(domains),
+        )
         _init_items(task_runs_service=task_runs_service, run_id=resolved_run_id, domains=domains)
         provider = LdapProvider()
         matcher = AdAccountMatchService()
@@ -265,6 +319,12 @@ def sync_ad_accounts(
                 totals = _add_results(totals, result)
                 fetch_totals = _add_fetch_totals(fetch_totals, fetch_result)
                 successful += 1
+                sync_logger.info(
+                    "ad_domain_sync_completed",
+                    **_domain_log_context(domain=domain, run_id=resolved_run_id),
+                    **_match_result_log_context(result),
+                    **_fetch_result_log_context(fetch_result),
+                )
             except AD_SYNC_EXCEPTIONS as exc:
                 failed += 1
                 _fail_domain(
@@ -282,4 +342,16 @@ def sync_ad_accounts(
             domains_failed=failed,
             totals=totals,
             fetch_totals=fetch_totals,
+        )
+        sync_logger.info(
+            "ad_sync_run_completed",
+            **_task_log_context(run_id=resolved_run_id),
+            manual_run=manual_run,
+            trigger_source="manual" if manual_run else "scheduled",
+            created_by=created_by,
+            domains_total=len(domains),
+            domains_successful=successful,
+            domains_failed=failed,
+            **_match_result_log_context(totals),
+            **_fetch_result_log_context(fetch_totals),
         )

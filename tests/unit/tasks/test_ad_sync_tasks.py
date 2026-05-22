@@ -75,9 +75,22 @@ def _create_instance() -> Instance:
     return instance
 
 
+class _FakeSyncLogger:
+    def __init__(self) -> None:
+        self.infos: list[tuple[str, dict[str, object]]] = []
+        self.exceptions: list[tuple[str, dict[str, object]]] = []
+
+    def info(self, event: str, **fields: object) -> None:
+        self.infos.append((event, fields))
+
+    def exception(self, event: str, **fields: object) -> None:
+        self.exceptions.append((event, fields))
+
+
 @pytest.mark.unit
 def test_sync_ad_accounts_marks_partial_success_and_preserves_failed_domain_accounts(monkeypatch) -> None:
     app = create_app(init_scheduler_on_start=False)
+    fake_logger = _FakeSyncLogger()
 
     class _FakeProvider:
         def fetch_principals(self, config: AdDomainConfig):
@@ -94,6 +107,7 @@ def test_sync_ad_accounts_marks_partial_success_and_preserves_failed_domain_acco
 
     monkeypatch.setattr(ad_sync_tasks, "create_app", lambda **_: app)
     monkeypatch.setattr(ad_sync_tasks, "LdapProvider", _FakeProvider)
+    monkeypatch.setattr(ad_sync_tasks, "get_sync_logger", lambda: fake_logger)
 
     with app.app_context():
         _create_tables()
@@ -128,11 +142,32 @@ def test_sync_ad_accounts_marks_partial_success_and_preserves_failed_domain_acco
         assert ok_account.ad_disabled_at is not None
         assert failed_account.ad_disabled_at is None
         assert failed_account.ad_orphaned_at is None
+        assert fake_logger.exceptions == [
+            (
+                "ad_domain_sync_failed",
+                {
+                    "module": "ad_sync",
+                    "operation": "sync_ad_accounts",
+                    "run_id": run.run_id,
+                    "domain_id": failed_domain.id,
+                    "domain_name": "fail.example.com",
+                    "domain_netbios_name": "FAIL",
+                    "domain_base_dn": "DC=example,DC=com",
+                    "domain_controller_count": 1,
+                    "ldap_port": 636,
+                    "use_ssl": True,
+                    "verify_ssl": True,
+                    "error_type": "RuntimeError",
+                    "error_message": "dc failed",
+                },
+            )
+        ]
 
 
 @pytest.mark.unit
 def test_sync_ad_accounts_records_ad_fetch_counts_in_summary_and_item_metrics(monkeypatch) -> None:
     app = create_app(init_scheduler_on_start=False)
+    fake_logger = _FakeSyncLogger()
 
     class _FakeProvider:
         def fetch_principals(self, config: AdDomainConfig):
@@ -151,10 +186,11 @@ def test_sync_ad_accounts_records_ad_fetch_counts_in_summary_and_item_metrics(mo
 
     monkeypatch.setattr(ad_sync_tasks, "create_app", lambda **_: app)
     monkeypatch.setattr(ad_sync_tasks, "LdapProvider", _FakeProvider)
+    monkeypatch.setattr(ad_sync_tasks, "get_sync_logger", lambda: fake_logger)
 
     with app.app_context():
         _create_tables()
-        _create_domain(name="corp.example.com", netbios_name="CORP")
+        domain = _create_domain(name="corp.example.com", netbios_name="CORP")
         instance = _create_instance()
         db.session.add(
             InstanceAccount(
@@ -177,3 +213,54 @@ def test_sync_ad_accounts_records_ad_fetch_counts_in_summary_and_item_metrics(mo
         assert item.metrics_json["ad_users_total"] == 2
         assert item.metrics_json["ad_groups_total"] == 1
         assert item.metrics_json["ad_principals_total"] == 3
+
+        info_events = dict(fake_logger.infos)
+        assert info_events["ad_sync_run_started"] == {
+            "module": "ad_sync",
+            "operation": "sync_ad_accounts",
+            "run_id": run.run_id,
+            "manual_run": True,
+            "trigger_source": "manual",
+            "created_by": 1,
+            "domains_total": 1,
+        }
+        assert info_events["ad_domain_sync_completed"] == {
+            "module": "ad_sync",
+            "operation": "sync_ad_accounts",
+            "run_id": run.run_id,
+            "domain_id": domain.id,
+            "domain_name": "corp.example.com",
+            "domain_netbios_name": "CORP",
+            "domain_base_dn": "DC=example,DC=com",
+            "domain_controller_count": 1,
+            "ldap_port": 636,
+            "use_ssl": True,
+            "verify_ssl": True,
+            "accounts_total": 1,
+            "accounts_normal": 1,
+            "accounts_disabled": 0,
+            "accounts_orphaned": 0,
+            "accounts_updated": 1,
+            "ad_users_total": 2,
+            "ad_groups_total": 1,
+            "ad_principals_total": 3,
+        }
+        assert info_events["ad_sync_run_completed"] == {
+            "module": "ad_sync",
+            "operation": "sync_ad_accounts",
+            "run_id": run.run_id,
+            "manual_run": True,
+            "trigger_source": "manual",
+            "created_by": 1,
+            "domains_total": 1,
+            "domains_successful": 1,
+            "domains_failed": 0,
+            "accounts_total": 1,
+            "accounts_normal": 1,
+            "accounts_disabled": 0,
+            "accounts_orphaned": 0,
+            "accounts_updated": 1,
+            "ad_users_total": 2,
+            "ad_groups_total": 1,
+            "ad_principals_total": 3,
+        }
