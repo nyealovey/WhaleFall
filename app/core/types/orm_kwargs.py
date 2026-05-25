@@ -186,6 +186,55 @@ class SQLServerAvailabilityGroupOrmFields(TypedDict, total=False):
     updated_at: datetime
 
 
+class SQLServerAgDatabaseSyncStateOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating SQLServerAgDatabaseSyncState ORM rows."""
+
+    id: int
+    cluster_id: int
+    availability_group_id: int | None
+    ag_name: str
+    database_name: str
+    replica_server_name: str
+    synchronization_state_desc: str | None
+    synchronization_health_desc: str | None
+    database_state_desc: str | None
+    is_suspended: bool
+    suspend_reason_desc: str | None
+    log_send_queue_size: int | None
+    redo_queue_size: int | None
+    is_abnormal: bool
+    error_summary: str | None
+    last_checked_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class SQLServerAgReplicaSyncStateOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating SQLServerAgReplicaSyncState ORM rows."""
+
+    id: int
+    cluster_id: int
+    availability_group_id: int | None
+    ag_name: str
+    replica_server_name: str
+    role_desc: str | None
+    availability_mode_desc: str | None
+    failover_mode_desc: str | None
+    seeding_mode_desc: str | None
+    synchronization_health_desc: str | None
+    connected_state_desc: str | None
+    operational_state_desc: str | None
+    recovery_health_desc: str | None
+    cluster_state_desc: str | None
+    cluster_type_desc: str | None
+    is_primary: bool
+    is_abnormal: bool
+    error_summary: str | None
+    last_checked_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
 class ClassificationRuleOrmFields(TypedDict, total=False):
     """Keyword arguments for creating/updating ClassificationRule ORM rows."""
 

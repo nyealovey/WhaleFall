@@ -63,6 +63,12 @@
       );
     }
 
+    getAvailabilityGroupDashboard(clusterId, availabilityGroupId) {
+      this.ensureId(clusterId, "getAvailabilityGroupDashboard");
+      this.ensureId(availabilityGroupId, "getAvailabilityGroupDashboard");
+      return this.httpClient.get(`${BASE_PATH}/${clusterId}/availability-groups/${availabilityGroupId}/dashboard`);
+    }
+
     syncAvailabilityGroups(clusterId, payload) {
       this.ensureId(clusterId, "syncAvailabilityGroups");
       this.ensurePayload(payload, "syncAvailabilityGroups");

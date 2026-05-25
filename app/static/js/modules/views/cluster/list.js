@@ -41,9 +41,12 @@ function mountClusterPage(global) {
   let mysqlGridWrapper = null;
   let modal = null;
   let mysqlModal = null;
+  let agStatusModal = null;
   let modalEl = null;
   let mysqlModalEl = null;
+  let agStatusModalEl = null;
   let currentAgItems = [];
+  let currentDashboardContext = null;
   let activeDbTab = "sqlserver";
   const canManage = pageRoot.dataset.canManage === "true";
   const credentialOptions = parseJsonDataset(pageRoot.dataset.credentials, []);
@@ -60,6 +63,8 @@ function mountClusterPage(global) {
     modal = modalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(modalEl) : null;
     mysqlModalEl = document.getElementById("mysqlClusterManagementModal");
     mysqlModal = mysqlModalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(mysqlModalEl) : null;
+    agStatusModalEl = document.getElementById("agStatusDashboardModal");
+    agStatusModal = agStatusModalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(agStatusModalEl) : null;
     bindModalEvents();
     bindCreateButton();
     bindDbTabs();
@@ -398,6 +403,9 @@ function mountClusterPage(global) {
     document.querySelector('[data-action="sync-sqlserver-status"]')?.addEventListener("click", (event) => {
       syncSQLServerStatus(event.currentTarget);
     });
+    document.querySelector('[data-action="sync-ag-dashboard"]')?.addEventListener("click", (event) => {
+      syncAgDashboard(event.currentTarget);
+    });
     document.getElementById("mysqlClusterManagementForm")?.addEventListener("submit", (event) => {
       event.preventDefault();
       saveMySQLCluster();
@@ -412,10 +420,16 @@ function mountClusterPage(global) {
       }
     });
     document.getElementById("clusterAgTableBody")?.addEventListener("click", (event) => {
-      const target = event.target?.closest?.('[data-action="toggle-ag-collection"]');
-      if (target) {
+      const toggleTarget = event.target?.closest?.('[data-action="toggle-ag-collection"]');
+      if (toggleTarget) {
         event.preventDefault();
-        toggleAgCollection(target);
+        toggleAgCollection(toggleTarget);
+        return;
+      }
+      const dashboardTarget = event.target?.closest?.('[data-action="open-ag-dashboard"]');
+      if (dashboardTarget) {
+        event.preventDefault();
+        openAgDashboard(dashboardTarget);
       }
     });
   }
@@ -575,6 +589,53 @@ function mountClusterPage(global) {
       .finally(() => setButtonLoading(trigger, false));
   }
 
+  function openAgDashboard(trigger) {
+    const clusterId = document.getElementById("clusterIdInput").value || trigger?.getAttribute("data-cluster-id");
+    const agId = trigger?.getAttribute("data-ag-id");
+    if (!clusterId || !agId) {
+      showToast("warning", "请选择 AG 后查看状态");
+      return;
+    }
+    currentDashboardContext = {
+      clusterId,
+      agId,
+    };
+    resetAgDashboard();
+    agStatusModal?.show();
+    loadAgDashboard(clusterId, agId);
+  }
+
+  function loadAgDashboard(clusterId, agId) {
+    store.actions
+      .getAvailabilityGroupDashboard(clusterId, agId)
+      .then((data) => renderAgDashboard(data))
+      .catch((error) => {
+        showError(error, "加载 AG 状态失败");
+        renderAgDashboardError(error);
+      });
+  }
+
+  function syncAgDashboard(trigger) {
+    const clusterId = currentDashboardContext?.clusterId || document.getElementById("clusterIdInput").value;
+    const agId = currentDashboardContext?.agId;
+    if (!clusterId || !agId) {
+      showToast("warning", "请选择 AG 后检测状态");
+      return;
+    }
+    setButtonLoading(trigger, true);
+    store.actions
+      .syncStatus(clusterId)
+      .then(() => {
+        showToast("success", "数据库同步状态检测完成");
+        gridWrapper?.refresh?.();
+        return store.actions.load(clusterId);
+      })
+      .then((detail) => renderAgTable(detail.availability_groups || []))
+      .then(() => loadAgDashboard(clusterId, agId))
+      .catch((error) => showError(error, "检测数据库同步状态失败"))
+      .finally(() => setButtonLoading(trigger, false));
+  }
+
   function openAgAccountsLedger(trigger) {
     const instanceId = trigger?.getAttribute("data-instance-id");
     if (!instanceId) {
@@ -614,6 +675,8 @@ function mountClusterPage(global) {
   function renderAgRow(item) {
     const listener = [item.listener_name, item.listener_host].filter(Boolean).join(" / ") || "-";
     const syncLabel = item.last_sync_status || "未同步";
+    const clusterId = escapeHtml(String(item.cluster_id || document.getElementById("clusterIdInput").value || ""));
+    const agId = escapeHtml(String(item.id || ""));
     return `
       <tr>
         <td>${escapeHtml(item.name || "-")}</td>
@@ -623,9 +686,192 @@ function mountClusterPage(global) {
         <td>${renderBoolean(item.contained_enabled)}</td>
         <td>${renderCollectionToggle(item)}</td>
         <td>${escapeHtml(syncLabel)}</td>
-        <td>${escapeHtml(String(item.ag_database_sync_abnormal_count || 0))}</td>
+        <td>
+          <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-action="open-ag-dashboard" data-cluster-id="${clusterId}" data-ag-id="${agId}">
+            ${renderAgRowDatabaseStatus(item)}
+          </button>
+        </td>
       </tr>
     `;
+  }
+
+  function renderAgRowDatabaseStatus(item) {
+    const abnormal = Number(item.ag_database_sync_abnormal_count || 0);
+    if (abnormal > 0) {
+      return `<span class="status-pill status-pill--danger">异常 ${abnormal}</span>`;
+    }
+    return '<span class="status-pill status-pill--muted">查看状态</span>';
+  }
+
+  function resetAgDashboard() {
+    setText("agStatusDashboardTitle", "加载中...");
+    setSummaryValue("listener", "-");
+    setSummaryValue("ag_status", "-");
+    setSummaryValue("cluster_status", "-");
+    setSummaryValue("cluster_type", "-");
+    setSummaryValue("primary_replica", "-");
+    setSummaryValue("last_checked_at", "加载中");
+    ["total_databases", "abnormal_databases", "affected_replicas"].forEach((key) => setKpiValue(key, "0"));
+    const replicaBody = document.getElementById("agStatusReplicaTableBody");
+    if (replicaBody) {
+      replicaBody.innerHTML = '<tr><td colspan="7" class="text-muted">加载中...</td></tr>';
+    }
+    const groups = document.getElementById("agStatusDatabaseGroups");
+    if (groups) {
+      groups.innerHTML = '<div class="text-muted small">加载中...</div>';
+    }
+  }
+
+  function renderAgDashboard(data) {
+    const summary = data?.summary || {};
+    const kpis = data?.kpis || {};
+    setText("agStatusDashboardTitle", summary.ag_name || "-");
+    setSummaryValue("listener", renderListenerSummary(summary));
+    setSummaryValue("ag_status", renderAgDashboardStatus(summary.status));
+    setSummaryValue("cluster_status", summary.cluster_status || renderAgDashboardStatus(summary.status));
+    setSummaryValue("cluster_type", summary.cluster_type || "-");
+    setSummaryValue("primary_replica", summary.primary_replica || "-");
+    setSummaryValue("last_checked_at", summary.last_checked_at ? `最近检测 ${formatDate(summary.last_checked_at)}` : "未检测");
+    setKpiValue("total_databases", String(Number(kpis.total_databases || 0)));
+    setKpiValue("abnormal_databases", String(Number(kpis.abnormal_databases || 0)));
+    setKpiValue("affected_replicas", String(Number(kpis.affected_replicas || 0)));
+    renderAgReplicaRows(Array.isArray(data?.replicas) ? data.replicas : []);
+    renderAgDatabaseGroups(Array.isArray(data?.database_groups) ? data.database_groups : []);
+  }
+
+  function renderAgDashboardError(error) {
+    setText("agStatusDashboardTitle", "加载失败");
+    const replicaBody = document.getElementById("agStatusReplicaTableBody");
+    if (replicaBody) {
+      replicaBody.innerHTML = `<tr><td colspan="7" class="text-danger">${escapeHtml(resolveErrorMessage(error, "加载失败"))}</td></tr>`;
+    }
+  }
+
+  function renderListenerSummary(summary) {
+    const endpoint = [summary.listener_host, summary.listener_port].filter(Boolean).join(":");
+    return [summary.cluster_name, summary.listener_name, endpoint].filter(Boolean).join(" · ") || "-";
+  }
+
+  function renderAgDashboardStatus(status) {
+    if (status === "failed") {
+      return "检测失败";
+    }
+    if (status === "abnormal") {
+      return "异常";
+    }
+    if (status === "normal") {
+      return "正常";
+    }
+    return "未检测";
+  }
+
+  function renderAgReplicaRows(items) {
+    const body = document.getElementById("agStatusReplicaTableBody");
+    if (!body) {
+      return;
+    }
+    if (!items.length) {
+      body.innerHTML = '<tr><td colspan="7" class="text-muted">暂无可用性副本状态</td></tr>';
+      return;
+    }
+    body.innerHTML = items
+      .map((item) => {
+        const statusClass = item.status === "abnormal" ? "table-danger" : "";
+        return (
+          `<tr class="${statusClass}">` +
+          `<td class="fw-semibold">${escapeHtml(item.replica_server_name || "-")}</td>` +
+          `<td>${escapeHtml(item.role_desc || "-")}</td>` +
+          `<td>${escapeHtml(item.availability_mode_desc || "-")}</td>` +
+          `<td>${escapeHtml(item.failover_mode_desc || "-")}</td>` +
+          `<td>${escapeHtml(item.connected_state_desc || "-")}</td>` +
+          `<td>${renderSyncHealth(item.synchronization_health_desc, item.status)}</td>` +
+          `<td>${escapeHtml(item.error_summary || "-")}</td>` +
+          `</tr>`
+        );
+      })
+      .join("");
+  }
+
+  function renderAgDatabaseGroups(groups) {
+    const container = document.getElementById("agStatusDatabaseGroups");
+    if (!container) {
+      return;
+    }
+    if (!groups.length) {
+      container.innerHTML = '<div class="text-muted small">暂无数据库状态</div>';
+      return;
+    }
+    container.innerHTML = groups
+      .map((group) => {
+        const rows = Array.isArray(group.databases) ? group.databases : [];
+        const tableRows = rows.map((item) => renderAgDatabaseRow(item)).join("");
+        return (
+          `<section class="ag-status-dashboard__database-group">` +
+          `<div class="ag-status-dashboard__database-group-title">` +
+          `<span>${escapeHtml(group.replica_server_name || "-")}</span>` +
+          `${renderStatusPill(group.status)}` +
+          `</div>` +
+          `<div class="table-responsive">` +
+          `<table class="table table-sm align-middle mb-0">` +
+          `<thead><tr><th>数据库</th><th>同步状态</th><th>健康</th><th>故障转移就绪</th><th>队列</th><th>问题</th></tr></thead>` +
+          `<tbody>${tableRows || '<tr><td colspan="6" class="text-muted">暂无数据库状态</td></tr>'}</tbody>` +
+          `</table>` +
+          `</div>` +
+          `</section>`
+        );
+      })
+      .join("");
+  }
+
+  function renderAgDatabaseRow(item) {
+    const statusClass = item.status === "abnormal" ? "table-danger" : "";
+    const queue = `send ${formatNumber(item.log_send_queue_size)} / redo ${formatNumber(item.redo_queue_size)}`;
+    return (
+      `<tr class="${statusClass}">` +
+      `<td class="fw-semibold">${escapeHtml(item.database_name || "-")}</td>` +
+      `<td>${escapeHtml(item.synchronization_state_desc || "-")}</td>` +
+      `<td>${renderSyncHealth(item.synchronization_health_desc, item.status)}</td>` +
+      `<td>${item.failover_ready ? "是" : "否"}</td>` +
+      `<td>${escapeHtml(queue)}</td>` +
+      `<td>${escapeHtml(item.error_summary || "-")}</td>` +
+      `</tr>`
+    );
+  }
+
+  function renderSyncHealth(value, status) {
+    const tone = status === "abnormal" || value === "NOT_HEALTHY" ? "danger" : value ? "success" : "muted";
+    return `<span class="status-pill status-pill--${tone}">${escapeHtml(value || "未采集")}</span>`;
+  }
+
+  function renderStatusPill(status) {
+    const tone = status === "abnormal" ? "danger" : status === "normal" ? "success" : "muted";
+    const label = status === "abnormal" ? "异常" : status === "normal" ? "正常" : "未检测";
+    return `<span class="status-pill status-pill--${tone}">${label}</span>`;
+  }
+
+  function formatNumber(value) {
+    return value === null || value === undefined ? "-" : String(Number(value || 0));
+  }
+
+  function setSummaryValue(key, value) {
+    const node = document.querySelector(`[data-ag-status-summary="${key}"]`);
+    if (node) {
+      node.textContent = value;
+    }
+  }
+
+  function setKpiValue(key, value) {
+    const node = document.querySelector(`[data-ag-status-kpi="${key}"]`);
+    if (node) {
+      node.textContent = value;
+    }
+  }
+
+  function setText(id, value) {
+    const node = document.getElementById(id);
+    if (node) {
+      node.textContent = value;
+    }
   }
 
   function openMySQLCreateModal() {

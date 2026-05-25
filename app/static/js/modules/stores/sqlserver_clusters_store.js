@@ -13,6 +13,7 @@
       "replaceInstances",
       "createAvailabilityGroup",
       "updateAvailabilityGroup",
+      "getAvailabilityGroupDashboard",
       "syncAvailabilityGroups",
       "syncAgAccounts",
       "syncStatus",
@@ -96,6 +97,19 @@
             .catch((error) =>
               handleError(error, {
                 action: "updateAvailabilityGroup",
+                clusterId,
+                availabilityGroupId,
+              })
+            );
+        },
+        getAvailabilityGroupDashboard(clusterId, availabilityGroupId) {
+          return service
+            .getAvailabilityGroupDashboard(clusterId, availabilityGroupId)
+            .then((response) => ensureSuccessResponse(response, "加载 AG 状态失败"))
+            .then((response) => response?.data || {})
+            .catch((error) =>
+              handleError(error, {
+                action: "getAvailabilityGroupDashboard",
                 clusterId,
                 availabilityGroupId,
               })

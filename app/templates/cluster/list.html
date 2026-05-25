@@ -312,6 +312,105 @@
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}
+
+{% set ag_status_dashboard_body %}
+<div class="ag-status-dashboard" data-ag-status-dashboard>
+    <div class="ag-status-dashboard__summary">
+        <div>
+            <div class="text-muted small">可用性组</div>
+            <h5 class="mb-1" id="agStatusDashboardTitle">-</h5>
+            <div class="text-muted small" data-ag-status-summary="listener">-</div>
+        </div>
+        <div class="ag-status-dashboard__actions">
+            <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-ag-dashboard">
+                <i class="fas fa-heart-pulse me-1"></i>检测当前群集
+            </button>
+        </div>
+    </div>
+
+    <div class="ag-status-dashboard__metrics" aria-label="AG 状态概览">
+        <div class="ag-status-dashboard__metric">
+            <span>AG 状态</span>
+            <strong data-ag-status-summary="ag_status">-</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>群集状态</span>
+            <strong data-ag-status-summary="cluster_status">-</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>群集类型</span>
+            <strong data-ag-status-summary="cluster_type">-</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>主副本</span>
+            <strong data-ag-status-summary="primary_replica">-</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>数据库</span>
+            <strong data-ag-status-kpi="total_databases">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric ag-status-dashboard__metric--danger">
+            <span>异常数据库</span>
+            <strong data-ag-status-kpi="abnormal_databases">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>受影响副本</span>
+            <strong data-ag-status-kpi="affected_replicas">0</strong>
+        </div>
+    </div>
+
+    <div class="ag-status-dashboard__section">
+        <div class="ag-status-dashboard__section-title">
+            <span>可用性副本</span>
+            <small data-ag-status-summary="last_checked_at">未检测</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>副本</th>
+                        <th>角色</th>
+                        <th>可用性模式</th>
+                        <th>故障转移</th>
+                        <th>连接</th>
+                        <th>同步健康</th>
+                        <th>问题</th>
+                    </tr>
+                </thead>
+                <tbody id="agStatusReplicaTableBody">
+                    <tr><td colspan="7" class="text-muted">暂无可用性副本状态</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="ag-status-dashboard__section">
+        <div class="ag-status-dashboard__section-title">
+            <span>数据库状态</span>
+            <small>按副本分组</small>
+        </div>
+        <div id="agStatusDatabaseGroups" class="ag-status-dashboard__database-groups">
+            <div class="text-muted small">暂无数据库状态</div>
+        </div>
+    </div>
+</div>
+{% endset %}
+
+{% set ag_status_dashboard_footer %}
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+{% endset %}
+
+{% with
+    modal_id='agStatusDashboardModal',
+    modal_label_id='agStatusDashboardModalLabel',
+    title='<i class="fas fa-heart-pulse me-2"></i><span>AG 状态</span>',
+    body=ag_status_dashboard_body,
+    footer=ag_status_dashboard_footer,
+    size='xl',
+    body_class='p-4'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 </div>
 {% endblock %}
 

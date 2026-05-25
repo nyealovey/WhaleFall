@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Unpack
+
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.core.types.orm_kwargs import SQLServerAgDatabaseSyncStateOrmFields, SQLServerAgReplicaSyncStateOrmFields
 
 
 class SQLServerAgDatabaseSyncState(db.Model):
@@ -44,6 +49,11 @@ class SQLServerAgDatabaseSyncState(db.Model):
         db.Index("ix_sqlserver_ag_db_sync_state_cluster_abnormal", "cluster_id", "is_abnormal"),
     )
 
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[SQLServerAgDatabaseSyncStateOrmFields]) -> None:
+            ...
+
     def to_dict(self) -> dict[str, object]:
         return {
             "id": self.id,
@@ -59,6 +69,75 @@ class SQLServerAgDatabaseSyncState(db.Model):
             "suspend_reason_desc": self.suspend_reason_desc,
             "log_send_queue_size": self.log_send_queue_size,
             "redo_queue_size": self.redo_queue_size,
+            "is_abnormal": bool(self.is_abnormal),
+            "error_summary": self.error_summary,
+            "last_checked_at": self.last_checked_at.isoformat() if self.last_checked_at else None,
+        }
+
+
+class SQLServerAgReplicaSyncState(db.Model):
+    """SQL Server AG replica 最近一次同步健康状态."""
+
+    __tablename__ = "sqlserver_ag_replica_sync_states"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cluster_id = db.Column(db.Integer, db.ForeignKey("sqlserver_clusters.id"), nullable=False, index=True)
+    availability_group_id = db.Column(db.Integer, db.ForeignKey("sqlserver_availability_groups.id"), nullable=True, index=True)
+    ag_name = db.Column(db.String(128), nullable=False)
+    replica_server_name = db.Column(db.String(255), nullable=False)
+    role_desc = db.Column(db.String(64), nullable=True)
+    availability_mode_desc = db.Column(db.String(64), nullable=True)
+    failover_mode_desc = db.Column(db.String(64), nullable=True)
+    seeding_mode_desc = db.Column(db.String(64), nullable=True)
+    synchronization_health_desc = db.Column(db.String(64), nullable=True)
+    connected_state_desc = db.Column(db.String(64), nullable=True)
+    operational_state_desc = db.Column(db.String(64), nullable=True)
+    recovery_health_desc = db.Column(db.String(64), nullable=True)
+    cluster_state_desc = db.Column(db.String(64), nullable=True)
+    cluster_type_desc = db.Column(db.String(64), nullable=True)
+    is_primary = db.Column(db.Boolean, nullable=False, default=False)
+    is_abnormal = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    error_summary = db.Column(db.Text, nullable=True)
+    last_checked_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
+
+    cluster = db.relationship("SQLServerCluster")
+    availability_group = db.relationship("SQLServerAvailabilityGroup")
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "cluster_id",
+            "ag_name",
+            "replica_server_name",
+            name="uq_sqlserver_ag_replica_sync_state_scope",
+        ),
+        db.Index("ix_sqlserver_ag_replica_sync_state_cluster_abnormal", "cluster_id", "is_abnormal"),
+    )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[SQLServerAgReplicaSyncStateOrmFields]) -> None:
+            ...
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "id": self.id,
+            "cluster_id": self.cluster_id,
+            "availability_group_id": self.availability_group_id,
+            "ag_name": self.ag_name,
+            "replica_server_name": self.replica_server_name,
+            "role_desc": self.role_desc,
+            "availability_mode_desc": self.availability_mode_desc,
+            "failover_mode_desc": self.failover_mode_desc,
+            "seeding_mode_desc": self.seeding_mode_desc,
+            "synchronization_health_desc": self.synchronization_health_desc,
+            "connected_state_desc": self.connected_state_desc,
+            "operational_state_desc": self.operational_state_desc,
+            "recovery_health_desc": self.recovery_health_desc,
+            "cluster_state_desc": self.cluster_state_desc,
+            "cluster_type_desc": self.cluster_type_desc,
+            "is_primary": bool(self.is_primary),
             "is_abnormal": bool(self.is_abnormal),
             "error_summary": self.error_summary,
             "last_checked_at": self.last_checked_at.isoformat() if self.last_checked_at else None,

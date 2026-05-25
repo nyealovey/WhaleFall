@@ -11,7 +11,7 @@ from app.core.constants import DatabaseType
 from app.core.types import SyncConnection
 from app.models.instance import Instance
 from app.models.mysql_cluster import MySQLCluster
-from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
+from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState, SQLServerAgReplicaSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.mysql_clusters.service import MySQLClusterManagementService
@@ -29,10 +29,23 @@ SELECT
     drs.is_suspended AS is_suspended,
     drs.suspend_reason_desc AS suspend_reason_desc,
     drs.log_send_queue_size AS log_send_queue_size,
-    drs.redo_queue_size AS redo_queue_size
+    drs.redo_queue_size AS redo_queue_size,
+    ars.role_desc AS replica_role_desc,
+    ar.availability_mode_desc AS availability_mode_desc,
+    ar.failover_mode_desc AS failover_mode_desc,
+    ar.seeding_mode_desc AS seeding_mode_desc,
+    ars.synchronization_health_desc AS replica_synchronization_health_desc,
+    ars.connected_state_desc AS connected_state_desc,
+    ars.operational_state_desc AS operational_state_desc,
+    ars.recovery_health_desc AS recovery_health_desc,
+    hc.quorum_state_desc AS cluster_state_desc,
+    ag.cluster_type_desc AS cluster_type_desc
 FROM sys.dm_hadr_database_replica_states AS drs
 JOIN sys.availability_groups AS ag ON drs.group_id = ag.group_id
 JOIN sys.availability_replicas AS ar ON drs.replica_id = ar.replica_id
+LEFT JOIN sys.dm_hadr_availability_replica_states AS ars
+    ON drs.group_id = ars.group_id AND drs.replica_id = ars.replica_id
+OUTER APPLY (SELECT TOP 1 quorum_state_desc FROM sys.dm_hadr_cluster) AS hc
 ORDER BY ag.name, DB_NAME(drs.database_id), ar.replica_server_name;
 """
 
@@ -74,15 +87,17 @@ class ClusterStatusSyncService:
             connection.disconnect()
 
         known_ag = {ag.name: ag for ag in ags}
-        states = [
-            self._upsert_sqlserver_state(cluster, known_ag, row)
-            for row in rows
-            if self._value(row, "ag_name", 0) in known_ag
-        ]
+        known_rows = [row for row in rows if self._value(row, "ag_name", 0) in known_ag]
+        replica_states_by_name = {
+            state.replica_server_name: state
+            for state in (self._upsert_sqlserver_replica_state(cluster, known_ag, row) for row in known_rows)
+        }
+        replica_states = list(replica_states_by_name.values())
+        states = [self._upsert_sqlserver_state(cluster, known_ag, row) for row in known_rows]
         self._apply_sqlserver_cluster_status(cluster, status="completed", error_message=None)
         db.session.flush()
         abnormal_database_count = len({(state.ag_name, state.database_name) for state in states if state.is_abnormal})
-        abnormal_replica_count = len({state.replica_server_name for state in states if state.is_abnormal})
+        abnormal_replica_count = len({state.replica_server_name for state in replica_states if state.is_abnormal})
         log_info(
             "检测 SQL Server AG 数据库同步状态",
             module="cluster_status_sync",
@@ -99,6 +114,7 @@ class ClusterStatusSyncService:
             "abnormal_database_count": abnormal_database_count,
             "abnormal_replica_count": abnormal_replica_count,
             "items": [state.to_dict() for state in states],
+            "replicas": [state.to_dict() for state in sorted(replica_states, key=lambda item: item.replica_server_name)],
         }
 
     def _prepare_sqlserver_cluster(
@@ -234,6 +250,42 @@ class ClusterStatusSyncService:
         db.session.add(state)
         return state
 
+    def _upsert_sqlserver_replica_state(
+        self,
+        cluster: SQLServerCluster,
+        known_ag: Mapping[str, SQLServerAvailabilityGroup],
+        row: Any,
+    ) -> SQLServerAgReplicaSyncState:
+        ag_name = str(self._value(row, "ag_name", 0) or "").strip()
+        replica_server_name = str(self._value(row, "replica_server_name", 2) or "").strip()
+        state = SQLServerAgReplicaSyncState.query.filter_by(
+            cluster_id=cluster.id,
+            ag_name=ag_name,
+            replica_server_name=replica_server_name,
+        ).first()
+        if state is None:
+            state = SQLServerAgReplicaSyncState()
+            state.cluster_id = cluster.id
+            state.ag_name = ag_name
+            state.replica_server_name = replica_server_name
+        ag = known_ag.get(ag_name)
+        state.availability_group_id = ag.id if ag else None
+        state.role_desc = self._text_value(row, "replica_role_desc", 10)
+        state.availability_mode_desc = self._text_value(row, "availability_mode_desc", 11)
+        state.failover_mode_desc = self._text_value(row, "failover_mode_desc", 12)
+        state.seeding_mode_desc = self._text_value(row, "seeding_mode_desc", 13)
+        state.synchronization_health_desc = self._text_value(row, "replica_synchronization_health_desc", 14)
+        state.connected_state_desc = self._text_value(row, "connected_state_desc", 15)
+        state.operational_state_desc = self._text_value(row, "operational_state_desc", 16)
+        state.recovery_health_desc = self._text_value(row, "recovery_health_desc", 17)
+        state.cluster_state_desc = self._text_value(row, "cluster_state_desc", 18)
+        state.cluster_type_desc = self._text_value(row, "cluster_type_desc", 19)
+        state.is_primary = (state.role_desc or "").upper() == "PRIMARY"
+        state.is_abnormal, state.error_summary = self._judge_sqlserver_replica_state(state)
+        state.last_checked_at = time_utils.now()
+        db.session.add(state)
+        return state
+
     @staticmethod
     def _judge_sqlserver_state(state: SQLServerAgDatabaseSyncState) -> tuple[bool, str | None]:
         reasons: list[str] = []
@@ -249,6 +301,23 @@ class ClusterStatusSyncService:
         if state.is_suspended:
             suffix = f":{state.suspend_reason_desc}" if state.suspend_reason_desc else ""
             reasons.append(f"suspended{suffix}")
+        return bool(reasons), "; ".join(reasons) if reasons else None
+
+    @staticmethod
+    def _judge_sqlserver_replica_state(state: SQLServerAgReplicaSyncState) -> tuple[bool, str | None]:
+        reasons: list[str] = []
+        health = (state.synchronization_health_desc or "").upper()
+        connected = (state.connected_state_desc or "").upper()
+        operational = (state.operational_state_desc or "").upper()
+        recovery = (state.recovery_health_desc or "").upper()
+        if health and health != "HEALTHY":
+            reasons.append(f"health={health}")
+        if connected and connected != "CONNECTED":
+            reasons.append(f"connected={connected}")
+        if operational and operational not in {"ONLINE", "PENDING_FAILOVER"}:
+            reasons.append(f"operational={operational}")
+        if recovery and recovery != "ONLINE":
+            reasons.append(f"recovery={recovery}")
         return bool(reasons), "; ".join(reasons) if reasons else None
 
     @staticmethod

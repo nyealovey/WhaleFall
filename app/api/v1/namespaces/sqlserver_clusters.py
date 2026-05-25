@@ -138,6 +138,20 @@ DatabaseSyncStatesEnvelope = make_success_envelope_model(
     "SQLServerDatabaseSyncStatesEnvelope",
     DatabaseSyncStatesData,
 )
+AvailabilityGroupDashboardData = ns.model(
+    "SQLServerAvailabilityGroupDashboardData",
+    {
+        "summary": fields.Raw,
+        "replicas": fields.List(fields.Raw),
+        "database_groups": fields.List(fields.Raw),
+        "kpis": fields.Raw,
+    },
+)
+AvailabilityGroupDashboardEnvelope = make_success_envelope_model(
+    ns,
+    "SQLServerAvailabilityGroupDashboardEnvelope",
+    AvailabilityGroupDashboardData,
+)
 
 _clusters_list_query_parser = new_parser()
 _clusters_list_query_parser.add_argument("page", type=int, default=1, location="args")
@@ -382,6 +396,34 @@ class SQLServerAvailabilityGroupsResource(BaseResource):
             public_error="创建 SQL Server AG 配置失败",
             context={"cluster_id": cluster_id},
             expected_exceptions=(NotFoundError, ValidationError),
+        )
+
+
+@ns.route("/<int:cluster_id>/availability-groups/<int:ag_id>/dashboard")
+class SQLServerAvailabilityGroupDashboardResource(BaseResource):
+    """SQL Server AG 状态 dashboard 资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", AvailabilityGroupDashboardEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self, cluster_id: int, ag_id: int):
+        """读取单个 AG 的副本与数据库同步状态 dashboard."""
+
+        def _execute():
+            data = SQLServerAgDatabaseSyncStatesReadService().get_ag_dashboard(cluster_id, ag_id)
+            return self.success(data=data, message=SuccessMessages.OPERATION_SUCCESS)
+
+        return self.safe_call(
+            _execute,
+            module="sqlserver_clusters",
+            action="get_availability_group_dashboard",
+            public_error="获取 SQL Server AG 状态失败",
+            context={"cluster_id": cluster_id, "availability_group_id": ag_id},
+            expected_exceptions=(NotFoundError,),
         )
 
 

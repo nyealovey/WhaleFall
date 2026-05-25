@@ -145,6 +145,38 @@ def test_sqlserver_cluster_list_renders_database_status_semantics() -> None:
     assert 'href="/cluster/sqlserver-status"' in template_content
 
 
+def test_sqlserver_cluster_ag_status_dashboard_modal_contract() -> None:
+    template_content = _read_text("app/templates/cluster/list.html")
+    view_content = _read_text("app/static/js/modules/views/cluster/list.js")
+
+    required_template_fragments = (
+        "agStatusDashboardModal",
+        "agStatusDashboardTitle",
+        "agStatusReplicaTableBody",
+        "agStatusDatabaseGroups",
+        'data-action="sync-ag-dashboard"',
+        "可用性副本",
+        "数据库状态",
+        "AG 状态",
+        "群集状态",
+        "群集类型",
+    )
+    for fragment in required_template_fragments:
+        assert fragment in template_content
+
+    required_view_fragments = (
+        "open-ag-dashboard",
+        "loadAgDashboard",
+        "renderAgDashboard",
+        "renderAgReplicaRows",
+        "renderAgDatabaseGroups",
+        "getAvailabilityGroupDashboard",
+        "sync-ag-dashboard",
+    )
+    for fragment in required_view_fragments:
+        assert fragment in view_content
+
+
 def test_cluster_instance_options_show_bound_cluster_without_disabling_selection() -> None:
     template_content = _read_text("app/templates/cluster/list.html")
     css_content = _read_text("app/static/css/pages/cluster/list.css")

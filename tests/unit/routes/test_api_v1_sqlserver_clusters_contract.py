@@ -3,7 +3,7 @@ import pytest
 from app import create_app, db
 from app.core.constants import DatabaseType
 from app.models.instance import Instance
-from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
+from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState, SQLServerAgReplicaSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup
 from app.models.sqlserver_cluster import SQLServerCluster
 from app.models.user import User
@@ -20,6 +20,7 @@ def _create_schema() -> None:
             db.metadata.tables["sqlserver_cluster_instances"],
             db.metadata.tables["sqlserver_availability_groups"],
             db.metadata.tables["sqlserver_ag_database_sync_states"],
+            db.metadata.tables["sqlserver_ag_replica_sync_states"],
         ],
     )
 
@@ -326,6 +327,60 @@ def test_api_v1_sqlserver_cluster_database_sync_states_contract() -> None:
         assert item["database_name"] == "billing"
         assert item["status"] == "abnormal"
         assert item["abnormal_replica_names"] == ["sql-2"]
+
+
+@pytest.mark.unit
+def test_api_v1_sqlserver_availability_group_dashboard_contract() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        user = User(username="viewer", password="TestPass1", role="user")
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
+        db.session.add_all([user, cluster])
+        db.session.flush()
+        ag = SQLServerAvailabilityGroup(cluster_id=cluster.id, name="AG01", listener_host="ag01")
+        db.session.add(ag)
+        db.session.flush()
+        db.session.add_all(
+            [
+                SQLServerAgReplicaSyncState(
+                    cluster_id=cluster.id,
+                    availability_group_id=ag.id,
+                    ag_name="AG01",
+                    replica_server_name="sql-1",
+                    role_desc="PRIMARY",
+                    synchronization_health_desc="HEALTHY",
+                    connected_state_desc="CONNECTED",
+                    is_primary=True,
+                    is_abnormal=False,
+                ),
+                SQLServerAgDatabaseSyncState(
+                    cluster_id=cluster.id,
+                    availability_group_id=ag.id,
+                    ag_name="AG01",
+                    database_name="billing",
+                    replica_server_name="sql-1",
+                    is_abnormal=False,
+                ),
+            ],
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        _login(client, user)
+
+        response = client.get(f"/api/v1/sqlserver-clusters/{cluster.id}/availability-groups/{ag.id}/dashboard")
+
+        assert response.status_code == 200
+        data = response.get_json()["data"]
+        assert {"summary", "replicas", "database_groups", "kpis"}.issubset(data.keys())
+        assert data["summary"]["cluster_name"] == "cluster-a"
+        assert data["summary"]["ag_name"] == "AG01"
+        assert data["summary"]["primary_replica"] == "sql-1"
+        assert data["replicas"][0]["role_desc"] == "PRIMARY"
+        assert data["database_groups"][0]["databases"][0]["database_name"] == "billing"
 
 
 @pytest.mark.unit
