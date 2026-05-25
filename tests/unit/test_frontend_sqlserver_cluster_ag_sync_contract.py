@@ -145,6 +145,18 @@ def test_sqlserver_cluster_list_renders_database_status_semantics() -> None:
     assert 'href="/cluster/sqlserver-status"' in template_content
 
 
+def test_cluster_instance_options_show_bound_cluster_without_disabling_selection() -> None:
+    template_content = _read_text("app/templates/cluster/list.html")
+    css_content = _read_text("app/static/css/pages/cluster/list.css")
+
+    assert "bound_cluster_name" in template_content
+    assert "已绑定：" in template_content
+    assert "cluster-instance-option--bound" in template_content
+    assert "data-bound-cluster-name" in template_content
+    assert "cluster-instance-option--bound" in css_content
+    assert "disabled" not in template_content.split("cluster-instance-option--bound", 1)[0].rsplit("<option", 1)[-1]
+
+
 def test_sqlserver_status_page_contract() -> None:
     template_content = _read_text("app/templates/cluster/sqlserver_status.html")
     view_content = _read_text("app/static/js/modules/views/cluster/sqlserver-status.js")

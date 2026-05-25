@@ -97,6 +97,30 @@ def test_mysql_instance_can_only_bind_one_cluster() -> None:
 
 
 @pytest.mark.unit
+def test_mysql_instance_options_include_bound_cluster_name() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        bound = Instance(name="mysql-bound", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
+        unbound = Instance(name="mysql-free", db_type=DatabaseType.MYSQL, host="127.0.0.2", port=3306)
+        cluster = MySQLCluster(name="mysql-cluster-a")
+        db.session.add_all([bound, unbound, cluster])
+        db.session.flush()
+        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=bound.id))
+        db.session.commit()
+
+        options = MySQLClusterManagementService().list_mysql_instance_options()
+        by_name = {item["name"]: item for item in options}
+
+        assert by_name["mysql-bound"]["bound_cluster_id"] == cluster.id
+        assert by_name["mysql-bound"]["bound_cluster_name"] == "mysql-cluster-a"
+        assert by_name["mysql-free"]["bound_cluster_id"] is None
+        assert by_name["mysql-free"]["bound_cluster_name"] is None
+
+
+@pytest.mark.unit
 def test_mysql_topology_sync_prefers_show_replica_status() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

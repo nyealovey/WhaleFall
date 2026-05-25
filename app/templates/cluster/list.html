@@ -135,7 +135,8 @@
             <label for="clusterInstanceSelect" class="form-label">SQL Server 实例</label>
             <select class="form-select" id="clusterInstanceSelect" name="instance_ids" multiple size="8">
                 {% for instance in sqlserver_instances %}
-                <option value="{{ instance.id }}">{{ instance.name }} · {{ instance.host }}:{{ instance.port }}</option>
+                <option value="{{ instance.id }}"
+                        {% if instance.bound_cluster_name %}class="cluster-instance-option--bound" data-bound-cluster-name="{{ instance.bound_cluster_name }}"{% endif %}>{{ instance.name }} · {{ instance.host }}:{{ instance.port }}{% if instance.bound_cluster_name %} · 已绑定：{{ instance.bound_cluster_name }}{% endif %}</option>
                 {% endfor %}
             </select>
             <div class="crud-modal__hint chip-outline chip-outline--muted mt-2">
@@ -253,7 +254,8 @@
             <label for="mysqlClusterInstanceSelect" class="form-label">MySQL 实例</label>
             <select class="form-select" id="mysqlClusterInstanceSelect" name="instance_ids" multiple size="8">
                 {% for instance in mysql_instances %}
-                <option value="{{ instance.id }}">{{ instance.name }} · {{ instance.host }}:{{ instance.port }}</option>
+                <option value="{{ instance.id }}"
+                        {% if instance.bound_cluster_name %}class="cluster-instance-option--bound" data-bound-cluster-name="{{ instance.bound_cluster_name }}"{% endif %}>{{ instance.name }} · {{ instance.host }}:{{ instance.port }}{% if instance.bound_cluster_name %} · 已绑定：{{ instance.bound_cluster_name }}{% endif %}</option>
                 {% endfor %}
             </select>
             <div class="crud-modal__hint chip-outline chip-outline--muted mt-2">

@@ -18,7 +18,7 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
-from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.repositories.sqlserver_clusters_repository import SQLServerClustersRepository
 from app.schemas.sqlserver_clusters import (
     SQLServerAvailabilityGroupCreatePayload,
@@ -342,7 +342,19 @@ class SQLServerClusterManagementService:
 
     def list_sqlserver_instance_options(self) -> list[dict[str, Any]]:
         """获取未删除 SQL Server 实例候选."""
-        return [self._serialize_instance(instance) for instance in self._repository.list_sqlserver_instance_options()]
+        instances = self._repository.list_sqlserver_instance_options()
+        bindings = (
+            SQLServerClusterInstance.query.filter(
+                SQLServerClusterInstance.instance_id.in_([instance.id for instance in instances]),
+            ).all()
+            if instances
+            else []
+        )
+        binding_by_instance_id = {int(binding.instance_id): binding for binding in bindings}
+        return [
+            self._serialize_instance_option(instance, binding_by_instance_id.get(int(instance.id)))
+            for instance in instances
+        ]
 
     def _get_cluster_or_error(self, cluster_id: int) -> SQLServerCluster:
         cluster = self._repository.get_cluster(cluster_id)
@@ -462,6 +474,17 @@ class SQLServerClusterManagementService:
             "is_active": bool(instance.is_active),
             "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
         }
+
+    @staticmethod
+    def _serialize_instance_option(
+        instance: Instance,
+        binding: SQLServerClusterInstance | None,
+    ) -> dict[str, Any]:
+        payload = SQLServerClusterManagementService._serialize_instance(instance)
+        bound_cluster = binding.cluster if binding else None
+        payload["bound_cluster_id"] = binding.cluster_id if binding else None
+        payload["bound_cluster_name"] = bound_cluster.name if bound_cluster else None
+        return payload
 
     @staticmethod
     def _serialize_ag(ag: SQLServerAvailabilityGroup) -> dict[str, Any]:

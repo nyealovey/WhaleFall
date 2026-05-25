@@ -159,6 +159,30 @@ def test_replace_instances_rejects_instance_bound_to_other_cluster() -> None:
 
 
 @pytest.mark.unit
+def test_sqlserver_instance_options_include_bound_cluster_name() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        bound = Instance(name="sql-bound", db_type=DatabaseType.SQLSERVER, host="127.0.0.1", port=1433)
+        unbound = Instance(name="sql-free", db_type=DatabaseType.SQLSERVER, host="127.0.0.2", port=1433)
+        cluster = SQLServerCluster(name="cluster-a", description="")
+        db.session.add_all([bound, unbound, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=bound.id))
+        db.session.commit()
+
+        options = SQLServerClusterManagementService().list_sqlserver_instance_options()
+        by_name = {item["name"]: item for item in options}
+
+        assert by_name["sql-bound"]["bound_cluster_id"] == cluster.id
+        assert by_name["sql-bound"]["bound_cluster_name"] == "cluster-a"
+        assert by_name["sql-free"]["bound_cluster_id"] is None
+        assert by_name["sql-free"]["bound_cluster_name"] is None
+
+
+@pytest.mark.unit
 def test_availability_group_name_is_unique_within_cluster_only() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

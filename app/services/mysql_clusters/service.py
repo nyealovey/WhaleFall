@@ -226,7 +226,18 @@ class MySQLClusterManagementService:
             .order_by(Instance.name.asc())
             .all()
         )
-        return [self._serialize_instance(instance) for instance in instances]
+        bindings = (
+            MySQLClusterInstance.query.filter(
+                MySQLClusterInstance.instance_id.in_([instance.id for instance in instances]),
+            ).all()
+            if instances
+            else []
+        )
+        binding_by_instance_id = {int(binding.instance_id): binding for binding in bindings}
+        return [
+            self._serialize_instance_option(instance, binding_by_instance_id.get(int(instance.id)))
+            for instance in instances
+        ]
 
     @staticmethod
     def _get_cluster_or_error(cluster_id: int) -> MySQLCluster:
@@ -489,6 +500,14 @@ class MySQLClusterManagementService:
             "is_active": bool(instance.is_active),
             "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
         }
+
+    @staticmethod
+    def _serialize_instance_option(instance: Instance, binding: MySQLClusterInstance | None) -> dict[str, Any]:
+        payload = MySQLClusterManagementService._serialize_instance(instance)
+        bound_cluster = binding.cluster if binding else None
+        payload["bound_cluster_id"] = binding.cluster_id if binding else None
+        payload["bound_cluster_name"] = bound_cluster.name if bound_cluster else None
+        return payload
 
     def _serialize_bound_instance(self, binding: MySQLClusterInstance) -> dict[str, Any]:
         payload = self._serialize_instance(cast(Instance | None, binding.instance))
