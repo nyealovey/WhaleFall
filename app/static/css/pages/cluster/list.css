@@ -2,6 +2,41 @@
     gap: 0.25rem;
 }
 
+.cluster-db-type-switcher {
+    border: 2px solid rgba(234, 112, 43, 0.24);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cluster-db-type-switcher [data-db-type-btn] {
+    align-items: center;
+    border-radius: 0;
+    display: inline-flex;
+    font-weight: 700;
+    gap: 0.45rem;
+    justify-content: center;
+    min-height: 3rem;
+    min-width: 9.5rem;
+    padding-inline: 1.25rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cluster-db-type-switcher [data-db-type-btn] + [data-db-type-btn] {
+    border-left: 2px solid rgba(234, 112, 43, 0.18);
+}
+
+.cluster-db-type-switcher [data-db-type-btn].btn-primary {
+    box-shadow: var(--shadow-sm);
+}
+
+.cluster-db-type-switcher [data-db-type-btn].btn-outline-primary {
+    background: var(--wf-surface, #fff);
+}
+
+.cluster-db-type-switcher [data-db-type-btn]:hover {
+    box-shadow: var(--shadow-sm);
+}
+
 .cluster-ag-editor {
     border: 1px solid var(--wf-border-color, #e5e7eb);
     border-radius: 8px;

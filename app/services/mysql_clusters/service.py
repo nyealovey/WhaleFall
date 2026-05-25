@@ -31,6 +31,11 @@ from app.utils.time_utils import time_utils
 _REPLICA_STATUS_QUERY = "SHOW REPLICA STATUS"
 _SLAVE_STATUS_QUERY = "SHOW SLAVE STATUS"
 _READ_ONLY_QUERY = "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only"
+_MYSQL_REPLICA_STATUS_UNSUPPORTED_MARKERS = (
+    "1064",
+    "syntax error",
+    "near 'replica status'",
+)
 
 
 class _ConnectionFactoryProtocol(Protocol):
@@ -320,13 +325,19 @@ class MySQLClusterManagementService:
                 raise ExternalServiceError("无法连接 MySQL 实例", extra={"instance_id": instance.id})
             try:
                 rows = self._execute_rows(connection, _REPLICA_STATUS_QUERY)
-            except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError):
+            except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
+                if self._is_replication_status_permission_error(exc):
+                    raise
+                if not self._is_replica_status_unsupported(exc):
+                    raise
                 rows = []
             if rows:
                 return self._normalize_replica_status(rows[0], new_names=True)
             try:
                 rows = self._execute_rows(connection, _SLAVE_STATUS_QUERY)
-            except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError):
+            except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
+                if self._is_replication_status_permission_error(exc):
+                    raise
                 rows = []
             if rows:
                 return self._normalize_replica_status(rows[0], new_names=False)
@@ -387,6 +398,18 @@ class MySQLClusterManagementService:
             "read_only": read_only,
             "super_read_only": super_read_only,
         }
+
+    @staticmethod
+    def _is_replication_status_permission_error(exc: BaseException) -> bool:
+        message = str(exc).lower()
+        if "replication client" in message:
+            return True
+        return "1227" in message and "access denied" in message
+
+    @staticmethod
+    def _is_replica_status_unsupported(exc: BaseException) -> bool:
+        message = str(exc).lower()
+        return any(marker in message for marker in _MYSQL_REPLICA_STATUS_UNSUPPORTED_MARKERS)
 
     @staticmethod
     def _row_to_mapping(row: Any) -> Mapping[str, Any]:

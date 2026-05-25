@@ -363,12 +363,16 @@ function mountClusterPage(global) {
   }
 
   function bindDbTabs() {
-    pageRoot.querySelectorAll("[data-cluster-db-tab]").forEach((button) => {
+    pageRoot.querySelectorAll("[data-cluster-db-type]").forEach((button) => {
       button.addEventListener("click", () => {
-        const next = button.getAttribute("data-cluster-db-tab") || "sqlserver";
+        const next = button.getAttribute("data-cluster-db-type") || "sqlserver";
         activeDbTab = next;
-        pageRoot.querySelectorAll("[data-cluster-db-tab]").forEach((tab) => {
-          tab.classList.toggle("active", tab === button);
+        pageRoot.querySelectorAll("[data-cluster-db-type]").forEach((tab) => {
+          const active = tab === button;
+          tab.classList.toggle("btn-primary", active);
+          tab.classList.toggle("btn-outline-primary", !active);
+          tab.classList.toggle("border-2", !active);
+          tab.classList.toggle("fw-bold", !active);
         });
         pageRoot.querySelectorAll("[data-cluster-db-panel]").forEach((panel) => {
           panel.classList.toggle("d-none", panel.getAttribute("data-cluster-db-panel") !== next);

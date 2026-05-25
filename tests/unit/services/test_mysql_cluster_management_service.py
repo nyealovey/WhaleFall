@@ -173,6 +173,40 @@ def test_mysql_topology_sync_falls_back_to_show_slave_status() -> None:
 
 
 @pytest.mark.unit
+def test_mysql_topology_sync_marks_replication_status_permission_denied_as_failed() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        mysql = Instance(name="mysql-57", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
+        cluster = MySQLCluster(name="mysql-cluster-a")
+        db.session.add_all([mysql, cluster])
+        db.session.flush()
+        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=mysql.id))
+        db.session.commit()
+
+        connection = _FakeConnection(
+            {
+                "SHOW REPLICA STATUS": RuntimeError("syntax error near 'REPLICA STATUS'"),
+                "SHOW SLAVE STATUS": RuntimeError(
+                    "Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s)"
+                ),
+                "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only": [(0, 0)],
+            },
+        )
+        service = MySQLClusterManagementService(connection_factory=_FakeFactory(connection))
+
+        result = service.sync_topology(cluster.id)
+
+        assert result["status"] == "failed"
+        assert result["instances_failed"] == 1
+        assert result["items"][0]["replication_role"] == "unknown"
+        assert result["items"][0]["replication_status"] == "failed"
+        assert "REPLICATION CLIENT" in result["items"][0]["last_error"]
+
+
+@pytest.mark.unit
 def test_mysql_topology_sync_marks_non_replica_read_write_as_primary() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
