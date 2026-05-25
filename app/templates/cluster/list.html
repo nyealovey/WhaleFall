@@ -16,6 +16,7 @@
 <div id="cluster-page-root"
      data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
      data-instances='{{ sqlserver_instances | tojson | safe }}'
+     data-mysql-instances='{{ mysql_instances | tojson | safe }}'
      data-credentials='{{ credential_options | tojson | safe }}'>
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -23,7 +24,7 @@
 {% call page_header('fas fa-layer-group', '群集管理', '维护 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') %}
 <div class="btn-group">
     <button class="btn btn-primary" type="button" data-action="create-cluster">
-        <i class="fas fa-plus me-2"></i>添加群集
+                    <i class="fas fa-plus me-2"></i>添加群集
     </button>
 </div>
 {% endcall %}
@@ -34,6 +35,18 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
+            <ul class="nav nav-pills cluster-db-tabs" id="cluster-db-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" type="button" data-cluster-db-tab="sqlserver">
+                        SQL Server
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" type="button" data-cluster-db-tab="mysql">
+                        MySQL
+                    </button>
+                </li>
+            </ul>
             {% call filter_card(form_id='cluster-filter-form', action='#', auto_register=False) %}
                 {{ search_input(value=search, placeholder='搜索群集名称或描述', width_preset='lg') }}
                 {{ status_active_filter(status_options, status, width_preset='md') }}
@@ -45,9 +58,14 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="card">
+            <div class="card" data-cluster-db-panel="sqlserver">
                 <div class="card-body">
                     <div id="sqlserver-clusters-grid"></div>
+                </div>
+            </div>
+            <div class="card d-none" data-cluster-db-panel="mysql">
+                <div class="card-body">
+                    <div id="mysql-clusters-grid"></div>
                 </div>
             </div>
         </div>
@@ -120,9 +138,14 @@
                     <div class="fw-semibold">AG 自动同步</div>
                     <div class="text-muted small">使用已绑定实例凭据读取 AG/listener 信息。</div>
                 </div>
-                <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-ag">
-                    <i class="fas fa-rotate me-1"></i>同步 AG 信息
-                </button>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" type="button" data-action="sync-ag">
+                        <i class="fas fa-rotate me-1"></i>同步 AG 信息
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" data-action="sync-sqlserver-status">
+                        <i class="fas fa-heart-pulse me-1"></i>数据库同步状态
+                    </button>
+                </div>
             </div>
             <div class="table-responsive mt-3">
                 <table class="table table-sm align-middle mb-0">
@@ -135,10 +158,11 @@
                             <th>contained</th>
                             <th>采集</th>
                             <th>同步</th>
+                            <th>异常数</th>
                         </tr>
                     </thead>
                     <tbody id="clusterAgTableBody">
-                        <tr><td colspan="7" class="text-muted">暂无 AG 配置</td></tr>
+                        <tr><td colspan="8" class="text-muted">暂无 AG 配置</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -163,12 +187,125 @@
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}
+
+{% set mysql_cluster_modal_body %}
+<form id="mysqlClusterManagementForm" class="crud-modal" data-form-mode="create">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" id="mysqlClusterIdInput" name="cluster_id" />
+
+    <ul class="nav nav-tabs cluster-tabs" id="mysqlClusterManagementTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="mysql-cluster-basic-tab" data-bs-toggle="tab" data-bs-target="#mysql-cluster-basic-pane" type="button" role="tab" aria-controls="mysql-cluster-basic-pane" aria-selected="true">
+                基本信息
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="mysql-cluster-instances-tab" data-bs-toggle="tab" data-bs-target="#mysql-cluster-instances-pane" type="button" role="tab" aria-controls="mysql-cluster-instances-pane" aria-selected="false">
+                绑定实例
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="mysql-cluster-topology-tab" data-bs-toggle="tab" data-bs-target="#mysql-cluster-topology-pane" type="button" role="tab" aria-controls="mysql-cluster-topology-pane" aria-selected="false">
+                主从状态
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" id="mysql-cluster-basic-pane" role="tabpanel" aria-labelledby="mysql-cluster-basic-tab" tabindex="0">
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="mysqlClusterNameInput" class="form-label">群集名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="mysqlClusterNameInput" name="name" required maxlength="128" placeholder="请输入 MySQL 群集名称">
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="mysqlClusterTopologyTypeInput" class="form-label">拓扑类型</label>
+                    <select class="form-select" id="mysqlClusterTopologyTypeInput" name="topology_type">
+                        <option value="replication" selected>Replication</option>
+                    </select>
+                </div>
+                <div class="col-md-6 col-12 d-flex align-items-end">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="mysqlClusterEnabledInput" name="is_enabled" checked>
+                        <label class="form-check-label" for="mysqlClusterEnabledInput">启用群集检测</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label for="mysqlClusterDescriptionInput" class="form-label">描述</label>
+                    <textarea class="form-control" id="mysqlClusterDescriptionInput" name="description" rows="3" placeholder="请输入描述"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="mysql-cluster-instances-pane" role="tabpanel" aria-labelledby="mysql-cluster-instances-tab" tabindex="0">
+            <label for="mysqlClusterInstanceSelect" class="form-label">MySQL 实例</label>
+            <select class="form-select" id="mysqlClusterInstanceSelect" name="instance_ids" multiple size="8">
+                {% for instance in mysql_instances %}
+                <option value="{{ instance.id }}">{{ instance.name }} · {{ instance.host }}:{{ instance.port }}</option>
+                {% endfor %}
+            </select>
+            <div class="crud-modal__hint chip-outline chip-outline--muted mt-2">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <span>仅展示未删除的 MySQL 实例；一个实例只能绑定一个 MySQL 群集。</span>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="mysql-cluster-topology-pane" role="tabpanel" aria-labelledby="mysql-cluster-topology-tab" tabindex="0">
+            <div class="cluster-ag-syncbar">
+                <div class="cluster-ag-syncbar__copy">
+                    <div class="fw-semibold">主从拓扑检测</div>
+                    <div class="text-muted small">检测已绑定 MySQL 实例的传统 replication 状态。</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-mysql-topology">
+                    <i class="fas fa-rotate me-1"></i>同步主从信息
+                </button>
+            </div>
+            <div class="table-responsive mt-3">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>实例</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>上游</th>
+                            <th>延迟</th>
+                            <th>最近检测</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mysqlClusterTopologyTableBody">
+                        <tr><td colspan="6" class="text-muted">暂无主从状态</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</form>
+{% endset %}
+
+{% set mysql_cluster_modal_footer %}
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+<button type="submit" class="btn btn-primary" data-modal-confirm id="mysqlClusterModalSubmit" form="mysqlClusterManagementForm">保存</button>
+{% endset %}
+
+{% with
+    modal_id='mysqlClusterManagementModal',
+    modal_label_id='mysqlClusterManagementModalLabel',
+    title='<i class="fas fa-database me-2"></i><span id="mysqlClusterModalTitle">添加 MySQL 群集</span>',
+    body=mysql_cluster_modal_body,
+    footer=mysql_cluster_modal_footer,
+    size='xl',
+    body_class='p-4'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/modules/services/sqlserver_clusters_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/sqlserver_clusters_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/mysql_clusters_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/mysql_clusters_store.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>

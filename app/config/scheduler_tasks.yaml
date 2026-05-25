@@ -49,6 +49,16 @@ default_tasks:
       hour: 5
     description: 每日同步 Veeam 机器级备份快照
 
+  - id: sync_cluster_status
+    name: 群集同步状态检测
+    function: sync_cluster_status
+    trigger_type: cron
+    trigger_params:
+      second: 0
+      minute: 0
+      hour: 6
+    description: 每日检测 MySQL 主从状态与 SQL Server AG 数据库同步异常
+
   - id: email_alert
     name: 邮件告警汇总
     function: email_alert

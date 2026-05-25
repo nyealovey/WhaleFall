@@ -8,6 +8,7 @@ from flask_login import login_required
 from app.core.constants import STATUS_ACTIVE_OPTIONS
 from app.infra.route_safety import safe_route_call
 from app.repositories.credentials_repository import CredentialsRepository
+from app.services.mysql_clusters import MySQLClusterManagementService
 from app.services.sqlserver_clusters import SQLServerClusterManagementService
 from app.utils.decorators import view_required
 
@@ -18,7 +19,7 @@ cluster_bp = Blueprint("cluster", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """群集管理页面，仅管理 SQL Server 群集."""
+    """群集管理页面，管理 SQL Server 与 MySQL 群集."""
     search = (request.args.get("search") or "").strip()
     status = (request.args.get("status") or "").strip()
 
@@ -33,6 +34,7 @@ def index() -> str:
             for credential in credentials
         ]
         sqlserver_instances = SQLServerClusterManagementService().list_sqlserver_instance_options()
+        mysql_instances = MySQLClusterManagementService().list_mysql_instance_options()
         return render_template(
             "cluster/list.html",
             search=search,
@@ -41,6 +43,7 @@ def index() -> str:
             credentials=credentials,
             credential_options=credential_options,
             sqlserver_instances=sqlserver_instances,
+            mysql_instances=mysql_instances,
         )
 
     return safe_route_call(

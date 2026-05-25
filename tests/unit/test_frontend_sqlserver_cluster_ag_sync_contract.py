@@ -19,6 +19,9 @@ def test_cluster_ag_tab_exposes_sync_action() -> None:
         "clusterDomainNameInput",
         "群集域名",
         "连接地址",
+        "数据库同步状态",
+        "异常数",
+        'data-action="sync-sqlserver-status"',
     )
     for fragment in required_fragments:
         assert fragment in content
@@ -92,6 +95,8 @@ def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> No
     accounts_view_content = _read_text("app/static/js/modules/views/accounts/ledgers.js")
 
     assert "syncAgAccounts(clusterId)" in service_content
+    assert "syncStatus(clusterId)" in service_content
+    assert "`${BASE_PATH}/${clusterId}/actions/sync-status`" in service_content
     assert "`${BASE_PATH}/${clusterId}/availability-groups/actions/sync-accounts`" in service_content
     assert '"syncAgAccounts",' in store_content
     assert "syncAgAccounts(clusterId)" in store_content

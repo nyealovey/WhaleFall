@@ -1,0 +1,262 @@
+"""群集同步状态检测 Service."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from types import SimpleNamespace
+from typing import Any, Protocol, cast
+
+from app import db
+from app.core.constants import DatabaseType
+from app.core.types import SyncConnection
+from app.models.instance import Instance
+from app.models.mysql_cluster import MySQLCluster
+from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
+from app.services.connection_adapters.connection_factory import ConnectionFactory
+from app.services.mysql_clusters.service import MySQLClusterManagementService
+from app.utils.structlog_config import log_info
+from app.utils.time_utils import time_utils
+
+_AG_DATABASE_SYNC_STATUS_QUERY = """
+SELECT
+    ag.name AS ag_name,
+    DB_NAME(drs.database_id) AS database_name,
+    ar.replica_server_name AS replica_server_name,
+    drs.synchronization_state_desc AS synchronization_state_desc,
+    drs.synchronization_health_desc AS synchronization_health_desc,
+    drs.database_state_desc AS database_state_desc,
+    drs.is_suspended AS is_suspended,
+    drs.suspend_reason_desc AS suspend_reason_desc,
+    drs.log_send_queue_size AS log_send_queue_size,
+    drs.redo_queue_size AS redo_queue_size
+FROM sys.dm_hadr_database_replica_states AS drs
+JOIN sys.availability_groups AS ag ON drs.group_id = ag.group_id
+JOIN sys.availability_replicas AS ar ON drs.replica_id = ar.replica_id
+ORDER BY ag.name, DB_NAME(drs.database_id), ar.replica_server_name;
+"""
+
+
+class _ConnectionFactoryProtocol(Protocol):
+    def create_connection(self, instance: Instance) -> SyncConnection | None: ...
+
+
+class ClusterStatusSyncService:
+    """检测 MySQL 主从状态与 SQL Server AG 数据库同步健康状态."""
+
+    def __init__(self, *, connection_factory: _ConnectionFactoryProtocol | None = None) -> None:
+        self._connection_factory = connection_factory or ConnectionFactory
+
+    def sync_mysql_cluster(self, cluster_id: int) -> dict[str, Any]:
+        return MySQLClusterManagementService(connection_factory=self._connection_factory).sync_topology(cluster_id)
+
+    def sync_sqlserver_cluster(self, cluster_id: int) -> dict[str, Any]:
+        prepared = self._prepare_sqlserver_cluster(cluster_id)
+        if isinstance(prepared, dict):
+            return prepared
+        cluster, bindings, ags = prepared
+
+        source_instance = cast(Instance | None, bindings[0].instance)
+        if source_instance is None:
+            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message="绑定实例不存在")
+        target = self._build_sqlserver_status_target(source_instance)
+        connection = self._connection_factory.create_connection(target)
+        if connection is None:
+            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message="无法创建 SQL Server 连接")
+
+        try:
+            if not connection.connect():
+                return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message="无法连接 SQL Server 实例")
+            rows = list(connection.execute_query(_AG_DATABASE_SYNC_STATUS_QUERY))
+        except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
+            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message=str(exc))
+        finally:
+            connection.disconnect()
+
+        known_ag = {ag.name: ag for ag in ags}
+        states = [
+            self._upsert_sqlserver_state(cluster, known_ag, row)
+            for row in rows
+            if self._value(row, "ag_name", 0) in known_ag
+        ]
+        db.session.flush()
+        abnormal_database_count = sum(1 for state in states if state.is_abnormal)
+        abnormal_replica_count = len({state.replica_server_name for state in states if state.is_abnormal})
+        log_info(
+            "检测 SQL Server AG 数据库同步状态",
+            module="cluster_status_sync",
+            cluster_id=cluster.id,
+            cluster_name=cluster.name,
+            abnormal_database_count=abnormal_database_count,
+            abnormal_replica_count=abnormal_replica_count,
+        )
+        return {
+            "cluster_id": cluster.id,
+            "status": "completed",
+            "source_instance_id": source_instance.id,
+            "items_total": len(states),
+            "abnormal_database_count": abnormal_database_count,
+            "abnormal_replica_count": abnormal_replica_count,
+            "items": [state.to_dict() for state in states],
+        }
+
+    def _prepare_sqlserver_cluster(
+        self,
+        cluster_id: int,
+    ) -> tuple[SQLServerCluster, list[SQLServerClusterInstance], list[SQLServerAvailabilityGroup]] | dict[str, Any]:
+        cluster = cast(SQLServerCluster | None, SQLServerCluster.query.get(cluster_id))
+        if cluster is None:
+            return {"cluster_id": cluster_id, "status": "failed", "error_message": "SQL Server 群集不存在"}
+        bindings = (
+            SQLServerClusterInstance.query.filter(SQLServerClusterInstance.cluster_id == cluster.id)
+            .order_by(SQLServerClusterInstance.created_at.asc())
+            .all()
+        )
+        ags = (
+            SQLServerAvailabilityGroup.query.filter(SQLServerAvailabilityGroup.cluster_id == cluster.id)
+            .order_by(SQLServerAvailabilityGroup.name.asc())
+            .all()
+        )
+        if not bindings:
+            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message="请先绑定 SQL Server 实例")
+        if not ags:
+            return self._mark_sqlserver_cluster_result(cluster, [], status="completed", error_message=None)
+        return cluster, bindings, ags
+
+    @staticmethod
+    def list_enabled_mysql_clusters() -> list[MySQLCluster]:
+        return (
+            MySQLCluster.query.filter(MySQLCluster.is_enabled.is_(True))
+            .order_by(MySQLCluster.id.asc())
+            .all()
+        )
+
+    @staticmethod
+    def list_enabled_sqlserver_clusters() -> list[SQLServerCluster]:
+        return (
+            SQLServerCluster.query.filter(SQLServerCluster.is_enabled.is_(True))
+            .order_by(SQLServerCluster.id.asc())
+            .all()
+        )
+
+    @staticmethod
+    def _mark_sqlserver_cluster_result(
+        cluster: SQLServerCluster,
+        states: list[SQLServerAgDatabaseSyncState],
+        *,
+        status: str,
+        error_message: str | None,
+    ) -> dict[str, Any]:
+        abnormal_database_count = sum(1 for state in states if state.is_abnormal)
+        abnormal_replica_count = len({state.replica_server_name for state in states if state.is_abnormal})
+        log_info(
+            "检测 SQL Server AG 数据库同步状态",
+            module="cluster_status_sync",
+            cluster_id=cluster.id,
+            cluster_name=cluster.name,
+            status=status,
+            error=error_message,
+        )
+        return {
+            "cluster_id": cluster.id,
+            "status": status,
+            "error_message": error_message,
+            "items_total": len(states),
+            "abnormal_database_count": abnormal_database_count,
+            "abnormal_replica_count": abnormal_replica_count,
+            "items": [state.to_dict() for state in states],
+        }
+
+    @staticmethod
+    def _build_sqlserver_status_target(instance: Instance) -> Instance:
+        return cast(
+            Instance,
+            SimpleNamespace(
+                id=instance.id,
+                name=f"{instance.name}/ag-status",
+                db_type=DatabaseType.SQLSERVER,
+                host=instance.host,
+                port=instance.port,
+                database_name="master",
+                credential_id=instance.credential_id,
+                credential=instance.credential,
+                is_active=True,
+            ),
+        )
+
+    def _upsert_sqlserver_state(
+        self,
+        cluster: SQLServerCluster,
+        known_ag: Mapping[str, SQLServerAvailabilityGroup],
+        row: Any,
+    ) -> SQLServerAgDatabaseSyncState:
+        ag_name = str(self._value(row, "ag_name", 0) or "").strip()
+        database_name = str(self._value(row, "database_name", 1) or "").strip()
+        replica_server_name = str(self._value(row, "replica_server_name", 2) or "").strip()
+        state = SQLServerAgDatabaseSyncState.query.filter_by(
+            cluster_id=cluster.id,
+            ag_name=ag_name,
+            database_name=database_name,
+            replica_server_name=replica_server_name,
+        ).first()
+        if state is None:
+            state = SQLServerAgDatabaseSyncState()
+            state.cluster_id = cluster.id
+            state.ag_name = ag_name
+            state.database_name = database_name
+            state.replica_server_name = replica_server_name
+        ag = known_ag.get(ag_name)
+        state.availability_group_id = ag.id if ag else None
+        state.synchronization_state_desc = self._text_value(row, "synchronization_state_desc", 3)
+        state.synchronization_health_desc = self._text_value(row, "synchronization_health_desc", 4)
+        state.database_state_desc = self._text_value(row, "database_state_desc", 5)
+        state.is_suspended = self._as_bool(self._value(row, "is_suspended", 6))
+        state.suspend_reason_desc = self._text_value(row, "suspend_reason_desc", 7)
+        state.log_send_queue_size = self._int_value(row, "log_send_queue_size", 8)
+        state.redo_queue_size = self._int_value(row, "redo_queue_size", 9)
+        state.is_abnormal, state.error_summary = self._judge_sqlserver_state(state)
+        state.last_checked_at = time_utils.now()
+        db.session.add(state)
+        return state
+
+    @staticmethod
+    def _judge_sqlserver_state(state: SQLServerAgDatabaseSyncState) -> tuple[bool, str | None]:
+        reasons: list[str] = []
+        health = (state.synchronization_health_desc or "").upper()
+        sync_state = (state.synchronization_state_desc or "").upper()
+        database_state = (state.database_state_desc or "").upper()
+        if health and health != "HEALTHY":
+            reasons.append(f"health={health}")
+        if sync_state and sync_state not in {"SYNCHRONIZED", "SYNCHRONIZING"}:
+            reasons.append(f"sync_state={sync_state}")
+        if database_state and database_state != "ONLINE":
+            reasons.append(f"database_state={database_state}")
+        if state.is_suspended:
+            suffix = f":{state.suspend_reason_desc}" if state.suspend_reason_desc else ""
+            reasons.append(f"suspended{suffix}")
+        return bool(reasons), "; ".join(reasons) if reasons else None
+
+    @staticmethod
+    def _value(row: Any, key: str, index: int) -> Any:
+        if isinstance(row, Mapping):
+            return row.get(key)
+        if isinstance(row, Sequence) and not isinstance(row, str):
+            values = list(row)
+            return values[index] if index < len(values) else None
+        return None
+
+    def _text_value(self, row: Any, key: str, index: int) -> str | None:
+        value = self._value(row, key, index)
+        return str(value).strip() if value not in {None, ""} else None
+
+    def _int_value(self, row: Any, key: str, index: int) -> int | None:
+        value = self._value(row, key, index)
+        return int(value) if value not in {None, ""} else None
+
+    @staticmethod
+    def _as_bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value != 0
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}

@@ -175,6 +175,45 @@ class MySQLConnection(DatabaseConnection):
         finally:
             cursor.close()
 
+    def execute_dict_query(
+        self,
+        query: str,
+        params: QueryParams = None,
+    ) -> list[dict[str, JsonValue]]:
+        """执行查询并保留列名.
+
+        MySQL replication status 的 `SHOW REPLICA STATUS` / `SHOW SLAVE STATUS`
+        需要按字段名解析，避免依赖不同版本的列顺序。
+        """
+        if not self.is_connected and not self.connect():
+            msg = "无法建立数据库连接"
+            raise ConnectionAdapterError(msg)
+
+        conn = cast(DBAPIConnection, self.connection)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        try:
+            bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
+            if isinstance(params, Mapping):
+                bound_params = params
+            elif params is None:
+                bound_params = ()
+            else:
+                bound_params = tuple(params)
+            cursor.execute(query, bound_params)
+            return [dict(row) for row in cursor.fetchall()]
+        except MYSQL_DRIVER_EXCEPTIONS as exc:
+            self.db_logger.exception(
+                "MySQL查询失败",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="MySQL",
+                error=str(exc),
+            )
+            self.disconnect()
+            raise ConnectionAdapterError(str(exc)) from exc
+        finally:
+            cursor.close()
+
     def get_version(self) -> str | None:
         """查询数据库版本.
 

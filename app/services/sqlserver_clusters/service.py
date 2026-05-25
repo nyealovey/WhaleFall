@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any, Protocol, cast
 
+from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
@@ -16,6 +17,7 @@ from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster
 from app.repositories.sqlserver_clusters_repository import SQLServerClustersRepository
 from app.schemas.sqlserver_clusters import (
@@ -424,6 +426,10 @@ class SQLServerClusterManagementService:
         bindings = self._repository.list_bindings_for_cluster(cluster.id)
         ags = self._repository.list_ag_for_cluster(cluster.id)
         latest = max((ag for ag in ags if ag.last_sync_at is not None), key=lambda ag: ag.last_sync_at, default=None)
+        sync_states = self._list_sync_states_for_cluster(cluster.id)
+        latest_status = sync_states[0] if sync_states else None
+        abnormal_database_count = sum(1 for state in sync_states if state.is_abnormal)
+        abnormal_replica_count = len({state.replica_server_name for state in sync_states if state.is_abnormal})
         payload = cluster.to_dict()
         payload.update(
             {
@@ -437,6 +443,10 @@ class SQLServerClusterManagementService:
                 "contained_ag_count": sum(1 for ag in ags if ag.contained_enabled),
                 "last_ag_sync_status": latest.last_sync_status if latest else None,
                 "last_ag_sync_at": latest.last_sync_at.isoformat() if latest and latest.last_sync_at else None,
+                "ag_database_sync_state_count": len(sync_states),
+                "ag_database_sync_abnormal_count": abnormal_database_count,
+                "ag_replica_sync_abnormal_count": abnormal_replica_count,
+                "last_status_sync_at": latest_status.last_checked_at.isoformat() if latest_status else None,
             },
         )
         return payload
@@ -460,11 +470,39 @@ class SQLServerClusterManagementService:
         payload = ag.to_dict()
         payload["connection_endpoint"] = SQLServerClusterManagementService._build_ag_connection_endpoint(ag)
         payload["credential_name"] = ag.credential.name if ag.credential else None
+        sync_states = SQLServerClusterManagementService._list_sync_states_for_ag(ag.cluster_id, ag.name)
+        payload["ag_database_sync_abnormal_count"] = sum(1 for state in sync_states if state.is_abnormal)
+        payload["ag_database_sync_state_count"] = len(sync_states)
         account_credential = ag.account_credential
         if account_credential is None and ag.account_credential_id is not None:
             account_credential = cast(Credential | None, Credential.query.get(ag.account_credential_id))
         payload["account_credential_name"] = account_credential.name if account_credential else None
         return payload
+
+    @staticmethod
+    def _has_sync_state_table() -> bool:
+        return bool(inspect(db.session.connection()).has_table("sqlserver_ag_database_sync_states"))
+
+    @staticmethod
+    def _list_sync_states_for_cluster(cluster_id: int) -> list[SQLServerAgDatabaseSyncState]:
+        if not SQLServerClusterManagementService._has_sync_state_table():
+            return []
+        return (
+            SQLServerAgDatabaseSyncState.query.filter(SQLServerAgDatabaseSyncState.cluster_id == cluster_id)
+            .order_by(SQLServerAgDatabaseSyncState.last_checked_at.desc())
+            .all()
+        )
+
+    @staticmethod
+    def _list_sync_states_for_ag(cluster_id: int, ag_name: str) -> list[SQLServerAgDatabaseSyncState]:
+        if not SQLServerClusterManagementService._has_sync_state_table():
+            return []
+        return (
+            SQLServerAgDatabaseSyncState.query.filter(
+                SQLServerAgDatabaseSyncState.cluster_id == cluster_id,
+                SQLServerAgDatabaseSyncState.ag_name == ag_name,
+            ).all()
+        )
 
     @staticmethod
     def _build_ag_connection_endpoint(ag: SQLServerAvailabilityGroup) -> str | None:

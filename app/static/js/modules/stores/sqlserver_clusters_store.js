@@ -15,6 +15,7 @@
       "updateAvailabilityGroup",
       "syncAvailabilityGroups",
       "syncAgAccounts",
+      "syncStatus",
     ].forEach((method) => {
       // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
@@ -111,6 +112,12 @@
             .syncAgAccounts(clusterId)
             .then((response) => ensureSuccessResponse(response, "同步 AG 账户失败"))
             .catch((error) => handleError(error, { action: "syncAgAccounts", clusterId }));
+        },
+        syncStatus(clusterId) {
+          return service
+            .syncStatus(clusterId)
+            .then((response) => ensureSuccessResponse(response, "同步 SQL Server 群集状态失败"))
+            .catch((error) => handleError(error, { action: "syncStatus", clusterId }));
         },
       },
     };

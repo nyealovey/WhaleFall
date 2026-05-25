@@ -26,18 +26,25 @@ function mountClusterPage(global) {
 
   const SQLServerClustersService = global.SQLServerClustersService;
   const createStore = global.createSQLServerClustersStore;
-  if (!SQLServerClustersService || typeof createStore !== "function") {
-    console.error("SQLServerClustersService 或 store 未加载");
+  const MySQLClustersService = global.MySQLClustersService;
+  const createMySQLStore = global.createMySQLClustersStore;
+  if (!SQLServerClustersService || typeof createStore !== "function" || !MySQLClustersService || typeof createMySQLStore !== "function") {
+    console.error("群集管理 service 或 store 未加载");
     return;
   }
 
   const gridHtml = gridjs.html;
   const { ready } = helpers;
   let store = null;
+  let mysqlStore = null;
   let gridWrapper = null;
+  let mysqlGridWrapper = null;
   let modal = null;
+  let mysqlModal = null;
   let modalEl = null;
+  let mysqlModalEl = null;
   let currentAgItems = [];
+  let activeDbTab = "sqlserver";
   const canManage = pageRoot.dataset.canManage === "true";
   const credentialOptions = parseJsonDataset(pageRoot.dataset.credentials, []);
 
@@ -46,11 +53,18 @@ function mountClusterPage(global) {
       service: new SQLServerClustersService(),
       emitter: global.mitt ? global.mitt() : null,
     });
+    mysqlStore = createMySQLStore({
+      service: new MySQLClustersService(),
+    });
     modalEl = document.getElementById("clusterManagementModal");
     modal = modalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(modalEl) : null;
+    mysqlModalEl = document.getElementById("mysqlClusterManagementModal");
+    mysqlModal = mysqlModalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(mysqlModalEl) : null;
     bindModalEvents();
     bindCreateButton();
+    bindDbTabs();
     initializeGrid();
+    initializeMySQLGrid();
   });
 
   function initializeGrid() {
@@ -93,6 +107,53 @@ function mountClusterPage(global) {
             "open-ag-accounts": ({ event, el }) => {
               event.preventDefault();
               openAgAccountsLedger(el);
+            },
+            "sync-sqlserver-status-row": ({ event, el }) => {
+              event.preventDefault();
+              syncSQLServerStatus(el);
+            },
+          },
+        }),
+      ],
+    })?.gridWrapper;
+  }
+
+  function initializeMySQLGrid() {
+    mysqlGridWrapper = GridPage.mount({
+      root: pageRoot,
+      grid: "#mysql-clusters-grid",
+      filterForm: "#cluster-filter-form",
+      gridOptions: {
+        sort: false,
+        columns: buildMySQLColumns(),
+        server: {
+          url: mysqlStore.gridUrl,
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          then: handleMySQLServerResponse,
+          total: (response) => {
+            const payload = response?.data || response || {};
+            return payload.total || 0;
+          },
+        },
+      },
+      filters: {
+        allowedKeys: ["search", "status"],
+        normalize: normalizeFilters,
+      },
+      plugins: [
+        GridPlugins.filterCard({
+          autoSubmitOnChange: true,
+          autoSubmitDebounce: 400,
+        }),
+        GridPlugins.actionDelegation({
+          actions: {
+            "edit-mysql-cluster": ({ event, el }) => {
+              event.preventDefault();
+              openMySQLEditor(el.getAttribute("data-cluster-id"));
+            },
+            "sync-mysql-topology-row": ({ event, el }) => {
+              event.preventDefault();
+              syncMySQLTopologyFromRow(el);
             },
           },
         }),
@@ -145,6 +206,20 @@ function mountClusterPage(global) {
           return gridHtml(`${renderSyncStatus(status)}${syncAt}`);
         },
       },
+      {
+        name: "数据库同步状态",
+        id: "ag_database_sync_abnormal_count",
+        formatter: (value, row) => {
+          const meta = rowMeta.get(row);
+          const abnormal = Number(value || 0);
+          const replicas = Number(meta.ag_replica_sync_abnormal_count || 0);
+          const tone = abnormal > 0 || replicas > 0 ? "danger" : "success";
+          const checkedAt = meta.last_status_sync_at ? `<small class="text-muted ms-2">${escapeHtml(formatDate(meta.last_status_sync_at))}</small>` : "";
+          return gridHtml(
+            `<span class="status-pill status-pill--${tone}">异常数 ${abnormal} / 副本 ${replicas}</span>${checkedAt}`
+          );
+        },
+      },
     ];
 
     if (canManage) {
@@ -164,6 +239,69 @@ function mountClusterPage(global) {
               `<i class="fas fa-sync" aria-hidden="true"></i></button>` +
               `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-ag-accounts" data-cluster-id="${clusterId}" data-instance-id="${firstInstanceId}" title="账户列表" aria-label="账户列表">` +
               `<i class="fas fa-users" aria-hidden="true"></i></button>` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="sync-sqlserver-status-row" data-cluster-id="${clusterId}" title="数据库同步状态" aria-label="数据库同步状态">` +
+              `<i class="fas fa-heart-pulse" aria-hidden="true"></i></button>` +
+              `</div>`
+          );
+        },
+      });
+    }
+    return columns;
+  }
+
+  function buildMySQLColumns() {
+    const columns = [
+      {
+        name: "群集",
+        id: "name",
+        formatter: (cell, row) => {
+          const meta = rowMeta.get(row);
+          return gridHtml(
+            `<div class="fw-semibold">${escapeHtml(cell || "-")}</div>` +
+              `<small class="text-muted">${escapeHtml(meta.description || "MySQL replication 群集")}</small>`
+          );
+        },
+      },
+      {
+        name: "拓扑",
+        id: "topology_type",
+        formatter: (value) => value || "replication",
+      },
+      {
+        name: "状态",
+        id: "is_enabled",
+        formatter: (value) => gridHtml(renderStatus(value)),
+      },
+      {
+        name: "绑定实例",
+        id: "instance_count",
+      },
+      {
+        name: "主从状态",
+        id: "abnormal_replica_count",
+        formatter: (value, row) => {
+          const meta = rowMeta.get(row);
+          const abnormal = Number(value || 0);
+          const tone = abnormal > 0 ? "danger" : "success";
+          const checkedAt = meta.last_topology_sync_at ? `<small class="text-muted ms-2">${escapeHtml(formatDate(meta.last_topology_sync_at))}</small>` : "";
+          return gridHtml(`<span class="status-pill status-pill--${tone}">异常数 ${abnormal}</span>${checkedAt}`);
+        },
+      },
+    ];
+    if (canManage) {
+      columns.push({
+        name: "操作",
+        id: "actions",
+        sort: false,
+        formatter: (value, row) => {
+          const meta = rowMeta.get(row);
+          const clusterId = escapeHtml(String(meta.id || ""));
+          return gridHtml(
+            `<div class="btn-group btn-group-sm" role="group">` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-mysql-cluster" data-cluster-id="${clusterId}" title="管理" aria-label="管理">` +
+              `<i class="fas fa-pen" aria-hidden="true"></i></button>` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="sync-mysql-topology-row" data-cluster-id="${clusterId}" title="同步主从信息" aria-label="同步主从信息">` +
+              `<i class="fas fa-rotate" aria-hidden="true"></i></button>` +
               `</div>`
           );
         },
@@ -196,13 +334,46 @@ function mountClusterPage(global) {
       item.instance_count,
       item.availability_group_count,
       item.last_ag_sync_status,
+      item.ag_database_sync_abnormal_count,
+      item,
+    ]);
+  }
+
+  function handleMySQLServerResponse(response) {
+    const payload = response?.data || response || {};
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    return items.map((item) => [
+      item.name,
+      item.topology_type,
+      item.is_enabled,
+      item.instance_count,
+      item.abnormal_replica_count,
       item,
     ]);
   }
 
   function bindCreateButton() {
     pageRoot.querySelector('[data-action="create-cluster"]')?.addEventListener("click", () => {
+      if (activeDbTab === "mysql") {
+        openMySQLCreateModal();
+        return;
+      }
       openCreateModal();
+    });
+  }
+
+  function bindDbTabs() {
+    pageRoot.querySelectorAll("[data-cluster-db-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const next = button.getAttribute("data-cluster-db-tab") || "sqlserver";
+        activeDbTab = next;
+        pageRoot.querySelectorAll("[data-cluster-db-tab]").forEach((tab) => {
+          tab.classList.toggle("active", tab === button);
+        });
+        pageRoot.querySelectorAll("[data-cluster-db-panel]").forEach((panel) => {
+          panel.classList.toggle("d-none", panel.getAttribute("data-cluster-db-panel") !== next);
+        });
+      });
     });
   }
 
@@ -213,6 +384,16 @@ function mountClusterPage(global) {
     });
     document.querySelector('[data-action="sync-ag"]')?.addEventListener("click", (event) => {
       syncAgInformation(event.currentTarget);
+    });
+    document.querySelector('[data-action="sync-sqlserver-status"]')?.addEventListener("click", (event) => {
+      syncSQLServerStatus(event.currentTarget);
+    });
+    document.getElementById("mysqlClusterManagementForm")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      saveMySQLCluster();
+    });
+    document.querySelector('[data-action="sync-mysql-topology"]')?.addEventListener("click", (event) => {
+      syncMySQLTopology(event.currentTarget);
     });
     document.getElementById("clusterAgTableBody")?.addEventListener("change", (event) => {
       const target = event.target;
@@ -367,6 +548,23 @@ function mountClusterPage(global) {
       .finally(() => setButtonLoading(trigger, false));
   }
 
+  function syncSQLServerStatus(trigger) {
+    const clusterId = trigger?.getAttribute("data-cluster-id") || document.getElementById("clusterIdInput").value;
+    if (!clusterId) {
+      showToast("warning", "请先保存群集后检测同步状态");
+      return;
+    }
+    setButtonLoading(trigger, true);
+    store.actions
+      .syncStatus(clusterId)
+      .then(() => {
+        showToast("success", "数据库同步状态检测完成");
+        gridWrapper?.refresh?.();
+      })
+      .catch((error) => showError(error, "检测数据库同步状态失败"))
+      .finally(() => setButtonLoading(trigger, false));
+  }
+
   function openAgAccountsLedger(trigger) {
     const instanceId = trigger?.getAttribute("data-instance-id");
     if (!instanceId) {
@@ -387,7 +585,7 @@ function mountClusterPage(global) {
     }
     currentAgItems = Array.isArray(items) ? items : [];
     if (!items.length) {
-      body.innerHTML = '<tr><td colspan="7" class="text-muted">暂无 AG 配置</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" class="text-muted">暂无 AG 配置</td></tr>';
       return;
     }
     body.innerHTML = items.map((item) => renderAgRow(item)).join("");
@@ -405,8 +603,156 @@ function mountClusterPage(global) {
         <td>${renderBoolean(item.contained_enabled)}</td>
         <td>${renderCollectionToggle(item)}</td>
         <td>${escapeHtml(syncLabel)}</td>
+        <td>${escapeHtml(String(item.ag_database_sync_abnormal_count || 0))}</td>
       </tr>
     `;
+  }
+
+  function openMySQLCreateModal() {
+    setMySQLModalMode("create");
+    fillMySQLBasic({});
+    setSelectedMySQLInstances([]);
+    renderMySQLTopologyTable([]);
+    mysqlModal?.show();
+  }
+
+  function openMySQLEditor(clusterId) {
+    if (!clusterId) {
+      return;
+    }
+    mysqlStore.actions
+      .load(clusterId)
+      .then((detail) => {
+        setMySQLModalMode("edit");
+        fillMySQLBasic(detail.cluster || {});
+        setSelectedMySQLInstances((detail.instances || []).map((item) => String(item.instance_id || item.id)));
+        renderMySQLTopologyTable(detail.instances || []);
+        mysqlModal?.show();
+      })
+      .catch((error) => showError(error, "加载 MySQL 群集失败"));
+  }
+
+  function setMySQLModalMode(mode) {
+    const form = document.getElementById("mysqlClusterManagementForm");
+    if (form) {
+      form.dataset.formMode = mode;
+    }
+    document.getElementById("mysqlClusterModalTitle").textContent = mode === "create" ? "添加 MySQL 群集" : "管理 MySQL 群集";
+    document.getElementById("mysqlClusterModalSubmit").textContent = mode === "create" ? "添加群集" : "保存";
+  }
+
+  function fillMySQLBasic(cluster) {
+    document.getElementById("mysqlClusterIdInput").value = cluster.id || "";
+    document.getElementById("mysqlClusterNameInput").value = cluster.name || "";
+    document.getElementById("mysqlClusterTopologyTypeInput").value = cluster.topology_type || "replication";
+    document.getElementById("mysqlClusterDescriptionInput").value = cluster.description || "";
+    document.getElementById("mysqlClusterEnabledInput").checked = cluster.is_enabled !== false;
+  }
+
+  function setSelectedMySQLInstances(instanceIds) {
+    const select = document.getElementById("mysqlClusterInstanceSelect");
+    if (!select) {
+      return;
+    }
+    Array.from(select.options).forEach((option) => {
+      option.selected = instanceIds.includes(option.value);
+    });
+  }
+
+  function getSelectedMySQLInstances() {
+    const select = document.getElementById("mysqlClusterInstanceSelect");
+    if (!select) {
+      return [];
+    }
+    return Array.from(select.selectedOptions).map((option) => Number(option.value)).filter(Boolean);
+  }
+
+  function buildMySQLClusterPayload() {
+    return {
+      name: document.getElementById("mysqlClusterNameInput").value.trim(),
+      topology_type: document.getElementById("mysqlClusterTopologyTypeInput").value || "replication",
+      description: document.getElementById("mysqlClusterDescriptionInput").value.trim(),
+      is_enabled: document.getElementById("mysqlClusterEnabledInput").checked,
+    };
+  }
+
+  function saveMySQLCluster() {
+    const form = document.getElementById("mysqlClusterManagementForm");
+    const mode = form?.dataset.formMode || "create";
+    const payload = buildMySQLClusterPayload();
+    if (!payload.name) {
+      showToast("warning", "请输入 MySQL 群集名称");
+      return;
+    }
+    const run =
+      mode === "create"
+        ? mysqlStore.actions.create(payload).then((response) => response?.data?.cluster)
+        : mysqlStore.actions.update(document.getElementById("mysqlClusterIdInput").value, payload).then((response) => response?.data?.cluster);
+
+    run
+      .then((cluster) => {
+        if (!cluster?.id) {
+          throw new Error("保存 MySQL 群集失败");
+        }
+        return mysqlStore.actions.replaceInstances(cluster.id, getSelectedMySQLInstances()).then(() => cluster);
+      })
+      .then(() => {
+        showToast("success", "MySQL 群集已保存");
+        mysqlModal?.hide();
+        mysqlGridWrapper?.refresh?.();
+      })
+      .catch((error) => showError(error, "保存 MySQL 群集失败"));
+  }
+
+  function syncMySQLTopologyFromRow(trigger) {
+    const clusterId = trigger?.getAttribute("data-cluster-id");
+    syncMySQLTopology(trigger, clusterId);
+  }
+
+  function syncMySQLTopology(trigger, explicitClusterId) {
+    const clusterId = explicitClusterId || document.getElementById("mysqlClusterIdInput").value;
+    if (!clusterId) {
+      showToast("warning", "请先保存 MySQL 群集后同步主从信息");
+      return;
+    }
+    setButtonLoading(trigger, true);
+    mysqlStore.actions
+      .syncTopology(clusterId)
+      .then(() => mysqlStore.actions.load(clusterId))
+      .then((detail) => {
+        renderMySQLTopologyTable(detail.instances || []);
+        showToast("success", "MySQL 主从信息同步完成");
+        mysqlGridWrapper?.refresh?.();
+      })
+      .catch((error) => showError(error, "同步 MySQL 主从信息失败"))
+      .finally(() => setButtonLoading(trigger, false));
+  }
+
+  function renderMySQLTopologyTable(items) {
+    const body = document.getElementById("mysqlClusterTopologyTableBody");
+    if (!body) {
+      return;
+    }
+    if (!items.length) {
+      body.innerHTML = '<tr><td colspan="6" class="text-muted">暂无主从状态</td></tr>';
+      return;
+    }
+    body.innerHTML = items
+      .map((item) => {
+        const source = item.source_host ? `${item.source_host}:${item.source_port || 3306}` : "-";
+        const lag = item.seconds_behind_source === null || item.seconds_behind_source === undefined ? "-" : `${item.seconds_behind_source}s`;
+        return (
+          `<tr>` +
+          `<td>${escapeHtml(item.name || "-")}</td>` +
+          `<td>${escapeHtml(item.replication_role || "unknown")}</td>` +
+          `<td>${renderSyncStatus(item.replication_status || "unknown")}</td>` +
+          `<td>${escapeHtml(source)}</td>` +
+          `<td>${escapeHtml(lag)}</td>` +
+          `<td>${escapeHtml(item.last_checked_at ? formatDate(item.last_checked_at) : "-")}</td>` +
+          `</tr>`
+        );
+      })
+      .join("");
   }
 
   function renderAccountCredentialSelect(item) {

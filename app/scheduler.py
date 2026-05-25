@@ -69,6 +69,7 @@ TASK_FUNCTIONS: dict[str, JobFunc | str] = {
     "calculate_database": "app.tasks.capacity_aggregation_tasks:calculate_database",
     "calculate_account": "app.tasks.account_classification_daily_tasks:calculate_account",
     "email_alert": "app.tasks.email_alert_tasks:email_alert",
+    "sync_cluster_status": "app.tasks.cluster_status_sync_tasks:sync_cluster_status",
 }
 
 

@@ -41,7 +41,10 @@ __all__ = [
     "InstanceSizeStat",
     "JumpServerAssetSnapshot",
     "JumpServerSourceBinding",
+    "MySQLCluster",
+    "MySQLClusterInstance",
     "PermissionConfig",
+    "SQLServerAgDatabaseSyncState",
     "SQLServerAvailabilityGroup",
     "SQLServerCluster",
     "SQLServerClusterInstance",
@@ -74,7 +77,10 @@ _MODEL_MODULE_MAP: dict[str, str] = {
     "InstanceSizeStat": "app.models.instance_size_stat",
     "JumpServerAssetSnapshot": "app.models.jumpserver_asset_snapshot",
     "JumpServerSourceBinding": "app.models.jumpserver_source_binding",
+    "MySQLCluster": "app.models.mysql_cluster",
+    "MySQLClusterInstance": "app.models.mysql_cluster",
     "PermissionConfig": "app.models.permission_config",
+    "SQLServerAgDatabaseSyncState": "app.models.sqlserver_ag_sync_state",
     "SQLServerAvailabilityGroup": "app.models.sqlserver_cluster",
     "SQLServerCluster": "app.models.sqlserver_cluster",
     "SQLServerClusterInstance": "app.models.sqlserver_cluster",
@@ -111,7 +117,9 @@ if TYPE_CHECKING:
     from app.models.instance_size_stat import InstanceSizeStat
     from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
     from app.models.jumpserver_source_binding import JumpServerSourceBinding
+    from app.models.mysql_cluster import MySQLCluster, MySQLClusterInstance
     from app.models.permission_config import PermissionConfig
+    from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
     from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
     from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.sync_session import SyncSession

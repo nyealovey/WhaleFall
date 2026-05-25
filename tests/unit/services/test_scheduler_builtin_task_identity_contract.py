@@ -17,12 +17,14 @@ def test_scheduler_builtin_task_ids_and_functions_use_short_names() -> None:
     assert "calculate_database" in task_ids
     assert "calculate_account" in task_ids
     assert "sync_veeam_backups" in task_ids
+    assert "sync_cluster_status" in task_ids
     assert "sync_ad_accounts" not in task_ids
 
     assert "email_alert" in function_names
     assert "calculate_database" in function_names
     assert "calculate_account" in function_names
     assert "sync_veeam_backups" in function_names
+    assert "sync_cluster_status" in function_names
     assert "sync_ad_accounts" not in function_names
 
     assert "send_email_alert_digest" not in task_ids
@@ -33,7 +35,13 @@ def test_scheduler_builtin_task_ids_and_functions_use_short_names() -> None:
     assert "calculate_database_aggregations" not in function_names
     assert "calculate_account_classification" not in function_names
 
-    assert {"email_alert", "calculate_database", "calculate_account", "sync_veeam_backups"} <= BUILTIN_TASK_IDS
+    assert {
+        "email_alert",
+        "calculate_database",
+        "calculate_account",
+        "sync_veeam_backups",
+        "sync_cluster_status",
+    } <= BUILTIN_TASK_IDS
     assert "sync_ad_accounts" not in BUILTIN_TASK_IDS
     assert "send_email_alert_digest" not in BUILTIN_TASK_IDS
     assert "calculate_database_aggregations" not in BUILTIN_TASK_IDS
@@ -43,6 +51,7 @@ def test_scheduler_builtin_task_ids_and_functions_use_short_names() -> None:
     assert "calculate_database" in scheduler.TASK_FUNCTIONS
     assert "calculate_account" in scheduler.TASK_FUNCTIONS
     assert "sync_veeam_backups" in scheduler.TASK_FUNCTIONS
+    assert "sync_cluster_status" in scheduler.TASK_FUNCTIONS
     assert "sync_ad_accounts" not in scheduler.TASK_FUNCTIONS
 
     assert "send_email_alert_digest" not in scheduler.TASK_FUNCTIONS

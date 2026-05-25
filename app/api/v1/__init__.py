@@ -26,6 +26,7 @@ from app.api.v1.namespaces.health import ns as health_ns
 from app.api.v1.namespaces.instances import ns as instances_ns
 from app.api.v1.namespaces.jumpserver import ns as jumpserver_ns
 from app.api.v1.namespaces.logs import ns as logs_ns
+from app.api.v1.namespaces.mysql_clusters import ns as mysql_clusters_ns
 from app.api.v1.namespaces.partition import ns as partition_ns
 from app.api.v1.namespaces.risk_center import ns as risk_center_ns
 from app.api.v1.namespaces.scheduler import ns as scheduler_ns
@@ -79,6 +80,7 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     api.add_namespace(dashboard_ns, path="/dashboard")
     api.add_namespace(risk_center_ns, path="/risk-center")
     api.add_namespace(sqlserver_clusters_ns, path="/sqlserver-clusters")
+    api.add_namespace(mysql_clusters_ns, path="/mysql-clusters")
 
     @blueprint.get("/openapi.json")
     def openapi_json() -> tuple[Response, int]:

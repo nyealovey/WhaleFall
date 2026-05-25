@@ -74,6 +74,11 @@
       return this.httpClient.post(`${BASE_PATH}/${clusterId}/availability-groups/actions/sync-accounts`, {});
     }
 
+    syncStatus(clusterId) {
+      this.ensureId(clusterId, "syncStatus");
+      return this.httpClient.post(`${BASE_PATH}/${clusterId}/actions/sync-status`, {});
+    }
+
     ensureId(value, action) {
       if (value === undefined || value === null || value === "") {
         throw new Error(`SQLServerClustersService: ${action} 需要 id`);
