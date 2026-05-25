@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from app import create_app, db
 from app.core.constants import DatabaseType
+from app.core.types import SyncConnection
 from app.models.instance import Instance
 from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState, SQLServerAgReplicaSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
@@ -51,8 +52,19 @@ class _FakeFactory:
     def __init__(self, connection: _FakeConnection) -> None:
         self.connection = connection
 
-    def create_connection(self, _instance: Instance) -> _FakeConnection:
-        return self.connection
+    def create_connection(self, instance: Instance) -> SyncConnection:
+        del instance
+        return cast(SyncConnection, self.connection)
+
+
+class _FakeFactoryByInstance:
+    def __init__(self, connections: dict[str, _FakeConnection]) -> None:
+        self.connections = connections
+        self.requested_instance_names: list[str] = []
+
+    def create_connection(self, instance: Instance) -> SyncConnection:
+        self.requested_instance_names.append(instance.name)
+        return cast(SyncConnection, self.connections[instance.name])
 
 
 @pytest.mark.unit
@@ -126,6 +138,85 @@ def test_sqlserver_ag_status_sync_records_healthy_database_state() -> None:
         assert cluster.last_status_sync_status == "completed"
         assert cluster.last_status_sync_error is None
         assert cluster.last_status_sync_at is not None
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_status_sync_collects_rows_from_all_bound_instances() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        secondary = Instance(name="sql-secondary", db_type=DatabaseType.SQLSERVER, host="10.0.0.11", port=1433)
+        primary = Instance(name="sql-primary", db_type=DatabaseType.SQLSERVER, host="10.0.0.10", port=1433)
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
+        db.session.add_all([secondary, primary, cluster])
+        db.session.flush()
+        db.session.add_all(
+            [
+                SQLServerClusterInstance(cluster_id=cluster.id, instance_id=secondary.id),
+                SQLServerClusterInstance(cluster_id=cluster.id, instance_id=primary.id),
+                SQLServerAvailabilityGroup(
+                    cluster_id=cluster.id,
+                    name="AG01",
+                    listener_name="AG01",
+                    listener_host="10.0.0.20",
+                ),
+            ],
+        )
+        db.session.commit()
+
+        factory = _FakeFactoryByInstance(
+            {
+                "sql-secondary/ag-status": _FakeConnection(
+                    [
+                        {
+                            "ag_name": "AG01",
+                            "database_name": "billing",
+                            "replica_server_name": "sql-secondary",
+                            "synchronization_state_desc": "SYNCHRONIZED",
+                            "synchronization_health_desc": "HEALTHY",
+                            "database_state_desc": "ONLINE",
+                            "is_suspended": 0,
+                            "replica_role_desc": "SECONDARY",
+                            "replica_synchronization_health_desc": "HEALTHY",
+                            "connected_state_desc": "CONNECTED",
+                            "cluster_state_desc": "NORMAL_QUORUM",
+                            "cluster_type_desc": "WSFC",
+                        },
+                    ],
+                ),
+                "sql-primary/ag-status": _FakeConnection(
+                    [
+                        {
+                            "ag_name": "AG01",
+                            "database_name": "billing",
+                            "replica_server_name": "sql-primary",
+                            "synchronization_state_desc": "SYNCHRONIZED",
+                            "synchronization_health_desc": "HEALTHY",
+                            "database_state_desc": "ONLINE",
+                            "is_suspended": 0,
+                            "replica_role_desc": "PRIMARY",
+                            "replica_synchronization_health_desc": "HEALTHY",
+                            "connected_state_desc": "CONNECTED",
+                            "cluster_state_desc": "NORMAL_QUORUM",
+                            "cluster_type_desc": "WSFC",
+                        },
+                    ],
+                ),
+            },
+        )
+
+        result = ClusterStatusSyncService(connection_factory=factory).sync_sqlserver_cluster(cluster.id)
+
+        assert result["status"] == "completed"
+        assert result["source_instance_ids"] == [secondary.id, primary.id]
+        assert factory.requested_instance_names == ["sql-secondary/ag-status", "sql-primary/ag-status"]
+        replica_states = SQLServerAgReplicaSyncState.query.order_by(SQLServerAgReplicaSyncState.replica_server_name.asc()).all()
+        assert [state.replica_server_name for state in replica_states] == ["sql-primary", "sql-secondary"]
+        assert [state.replica_server_name for state in replica_states if state.is_primary] == ["sql-primary"]
+        dashboard = SQLServerAgDatabaseSyncStatesReadService().get_ag_dashboard(cluster.id, SQLServerAvailabilityGroup.query.one().id)
+        assert dashboard["summary"]["primary_replica"] == "sql-primary"
 
 
 @pytest.mark.unit
@@ -212,7 +303,7 @@ def test_sqlserver_ag_status_sync_connection_failure_is_cluster_scoped() -> None
         assert "boom" in result["error_message"]
         db.session.refresh(cluster)
         assert cluster.last_status_sync_status == "failed"
-        assert cluster.last_status_sync_error == "boom"
+        assert cluster.last_status_sync_error == "sql-1 boom"
         assert cluster.last_status_sync_at is not None
 
 

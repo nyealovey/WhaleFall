@@ -69,32 +69,24 @@ class ClusterStatusSyncService:
             return prepared
         cluster, bindings, ags = prepared
 
-        source_instance = cast(Instance | None, bindings[0].instance)
-        if source_instance is None:
-            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message="绑定实例不存在")
-        target = self._build_sqlserver_status_target(source_instance)
-        connection = self._connection_factory.create_connection(target)
-        if connection is None:
-            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message="无法创建 SQL Server 连接")
-
-        try:
-            if not connection.connect():
-                return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message="无法连接 SQL Server 实例")
-            rows = list(connection.execute_query(_AG_DATABASE_SYNC_STATUS_QUERY))
-        except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
-            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message=str(exc))
-        finally:
-            connection.disconnect()
+        rows, source_instance_ids, source_errors = self._collect_sqlserver_status_rows(cluster, bindings)
+        if not source_instance_ids:
+            error_message = "; ".join(source_errors) if source_errors else "已绑定实例均无法读取 SQL Server AG 状态"
+            return self._mark_sqlserver_cluster_result(cluster, [], status="failed", error_message=error_message)
 
         known_ag = {ag.name: ag for ag in ags}
         known_rows = [row for row in rows if self._value(row, "ag_name", 0) in known_ag]
-        replica_states_by_name = {
-            state.replica_server_name: state
+        replica_states_by_scope = {
+            (state.ag_name, state.replica_server_name): state
             for state in (self._upsert_sqlserver_replica_state(cluster, known_ag, row) for row in known_rows)
         }
-        replica_states = list(replica_states_by_name.values())
+        replica_states = list(replica_states_by_scope.values())
         states = [self._upsert_sqlserver_state(cluster, known_ag, row) for row in known_rows]
-        self._apply_sqlserver_cluster_status(cluster, status="completed", error_message=None)
+        self._apply_sqlserver_cluster_status(
+            cluster,
+            status="completed",
+            error_message="; ".join(source_errors) if source_errors else None,
+        )
         db.session.flush()
         abnormal_database_count = len({(state.ag_name, state.database_name) for state in states if state.is_abnormal})
         abnormal_replica_count = len({state.replica_server_name for state in replica_states if state.is_abnormal})
@@ -109,13 +101,53 @@ class ClusterStatusSyncService:
         return {
             "cluster_id": cluster.id,
             "status": "completed",
-            "source_instance_id": source_instance.id,
+            "source_instance_id": source_instance_ids[0],
+            "source_instance_ids": source_instance_ids,
+            "source_errors": source_errors,
             "items_total": len(states),
             "abnormal_database_count": abnormal_database_count,
             "abnormal_replica_count": abnormal_replica_count,
             "items": [state.to_dict() for state in states],
             "replicas": [state.to_dict() for state in sorted(replica_states, key=lambda item: item.replica_server_name)],
         }
+
+    def _collect_sqlserver_status_rows(
+        self,
+        cluster: SQLServerCluster,
+        bindings: list[SQLServerClusterInstance],
+    ) -> tuple[list[Any], list[int], list[str]]:
+        rows: list[Any] = []
+        source_instance_ids: list[int] = []
+        source_errors: list[str] = []
+        for binding in bindings:
+            source_instance = cast(Instance | None, binding.instance)
+            if source_instance is None:
+                source_errors.append(f"binding:{binding.id} 绑定实例不存在")
+                continue
+            target = self._build_sqlserver_status_target(source_instance)
+            connection = self._connection_factory.create_connection(target)
+            if connection is None:
+                source_errors.append(f"{source_instance.name} 无法创建 SQL Server 连接")
+                continue
+            try:
+                if not connection.connect():
+                    source_errors.append(f"{source_instance.name} 无法连接 SQL Server 实例")
+                    continue
+                rows.extend(list(connection.execute_query(_AG_DATABASE_SYNC_STATUS_QUERY)))
+                source_instance_ids.append(source_instance.id)
+            except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
+                source_errors.append(f"{source_instance.name} {exc}")
+            finally:
+                connection.disconnect()
+        if source_errors:
+            log_info(
+                "检测 SQL Server AG 数据库同步状态存在部分实例失败",
+                module="cluster_status_sync",
+                cluster_id=cluster.id,
+                cluster_name=cluster.name,
+                source_errors=source_errors,
+            )
+        return rows, source_instance_ids, source_errors
 
     def _prepare_sqlserver_cluster(
         self,
