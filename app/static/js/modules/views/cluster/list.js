@@ -117,9 +117,9 @@ function mountClusterPage(global) {
               event.preventDefault();
               syncSQLServerStatus(el);
             },
-            "open-sqlserver-status": ({ event, el }) => {
+            "open-ag-dashboard": ({ event, el }) => {
               event.preventDefault();
-              openSQLServerStatusPage(el);
+              openClusterAgDashboard(el);
             },
           },
         }),
@@ -244,8 +244,8 @@ function mountClusterPage(global) {
               `<i class="fas fa-users" aria-hidden="true"></i></button>` +
               `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="sync-sqlserver-status-row" data-cluster-id="${clusterId}" title="数据库同步状态" aria-label="数据库同步状态">` +
               `<i class="fas fa-heart-pulse" aria-hidden="true"></i></button>` +
-              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-sqlserver-status" data-cluster-id="${clusterId}" title="状态页" aria-label="状态页">` +
-              `<i class="fas fa-table-list" aria-hidden="true"></i></button>` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-ag-dashboard" data-cluster-id="${clusterId}" title="查看AG状态" aria-label="查看AG状态">` +
+              `<i class="fas fa-chart-line" aria-hidden="true"></i></button>` +
               `</div>`
           );
         },
@@ -406,6 +406,14 @@ function mountClusterPage(global) {
     document.querySelector('[data-action="sync-ag-dashboard"]')?.addEventListener("click", (event) => {
       syncAgDashboard(event.currentTarget);
     });
+    document.getElementById("agStatusDashboardTabs")?.addEventListener("click", (event) => {
+      const target = event.target?.closest?.('[data-action="switch-ag-dashboard"]');
+      if (!target) {
+        return;
+      }
+      event.preventDefault();
+      switchAgDashboard(target);
+    });
     document.getElementById("mysqlClusterManagementForm")?.addEventListener("submit", (event) => {
       event.preventDefault();
       saveMySQLCluster();
@@ -425,11 +433,6 @@ function mountClusterPage(global) {
         event.preventDefault();
         toggleAgCollection(toggleTarget);
         return;
-      }
-      const dashboardTarget = event.target?.closest?.('[data-action="open-ag-dashboard"]');
-      if (dashboardTarget) {
-        event.preventDefault();
-        openAgDashboard(dashboardTarget);
       }
     });
   }
@@ -589,20 +592,38 @@ function mountClusterPage(global) {
       .finally(() => setButtonLoading(trigger, false));
   }
 
-  function openAgDashboard(trigger) {
-    const clusterId = document.getElementById("clusterIdInput").value || trigger?.getAttribute("data-cluster-id");
-    const agId = trigger?.getAttribute("data-ag-id");
-    if (!clusterId || !agId) {
-      showToast("warning", "请选择 AG 后查看状态");
+  function openClusterAgDashboard(trigger) {
+    const clusterId = trigger?.getAttribute("data-cluster-id");
+    if (!clusterId) {
+      showToast("warning", "请选择群集后查看 AG 状态");
       return;
     }
-    currentDashboardContext = {
-      clusterId,
-      agId,
-    };
-    resetAgDashboard();
-    agStatusModal?.show();
-    loadAgDashboard(clusterId, agId);
+    setButtonLoading(trigger, true);
+    store.actions
+      .load(clusterId)
+      .then((detail) => {
+        const agItems = Array.isArray(detail.availability_groups) ? detail.availability_groups : [];
+        if (!agItems.length) {
+          showToast("warning", "当前群集暂无 AG 配置");
+          return;
+        }
+        const firstAg = agItems[0];
+        if (!firstAg?.id) {
+          showToast("warning", "当前 AG 信息不完整");
+          return;
+        }
+        currentDashboardContext = {
+          clusterId,
+          agId: String(firstAg.id),
+          agItems,
+        };
+        resetAgDashboard();
+        renderAgDashboardTabs(agItems, firstAg.id);
+        agStatusModal?.show();
+        loadAgDashboard(clusterId, firstAg.id);
+      })
+      .catch((error) => showError(error, "加载 AG 状态失败"))
+      .finally(() => setButtonLoading(trigger, false));
   }
 
   function loadAgDashboard(clusterId, agId) {
@@ -630,10 +651,34 @@ function mountClusterPage(global) {
         gridWrapper?.refresh?.();
         return store.actions.load(clusterId);
       })
-      .then((detail) => renderAgTable(detail.availability_groups || []))
+      .then((detail) => {
+        const agItems = Array.isArray(detail.availability_groups) ? detail.availability_groups : [];
+        currentDashboardContext = {
+          clusterId,
+          agId,
+          agItems,
+        };
+        renderAgTable(agItems);
+        renderAgDashboardTabs(agItems, agId);
+      })
       .then(() => loadAgDashboard(clusterId, agId))
       .catch((error) => showError(error, "检测数据库同步状态失败"))
       .finally(() => setButtonLoading(trigger, false));
+  }
+
+  function switchAgDashboard(trigger) {
+    const agId = trigger?.getAttribute("data-ag-id");
+    const clusterId = currentDashboardContext?.clusterId;
+    if (!clusterId || !agId) {
+      return;
+    }
+    currentDashboardContext = {
+      ...currentDashboardContext,
+      agId,
+    };
+    resetAgDashboard();
+    renderAgDashboardTabs(currentDashboardContext.agItems || [], agId);
+    loadAgDashboard(clusterId, agId);
   }
 
   function openAgAccountsLedger(trigger) {
@@ -647,16 +692,6 @@ function mountClusterPage(global) {
     params.set("owner_type", "sqlserver_ag");
     params.set("include_roles", "true");
     global.location.href = `/accounts/ledgers/sqlserver?${params.toString()}`;
-  }
-
-  function openSQLServerStatusPage(trigger) {
-    const clusterId = trigger?.getAttribute("data-cluster-id");
-    const params = new URLSearchParams();
-    if (clusterId) {
-      params.set("cluster_id", clusterId);
-    }
-    const query = params.toString();
-    global.location.href = `/cluster/sqlserver-status${query ? `?${query}` : ""}`;
   }
 
   function renderAgTable(items) {
@@ -675,8 +710,6 @@ function mountClusterPage(global) {
   function renderAgRow(item) {
     const listener = [item.listener_name, item.listener_host].filter(Boolean).join(" / ") || "-";
     const syncLabel = item.last_sync_status || "未同步";
-    const clusterId = escapeHtml(String(item.cluster_id || document.getElementById("clusterIdInput").value || ""));
-    const agId = escapeHtml(String(item.id || ""));
     return `
       <tr>
         <td>${escapeHtml(item.name || "-")}</td>
@@ -686,11 +719,7 @@ function mountClusterPage(global) {
         <td>${renderBoolean(item.contained_enabled)}</td>
         <td>${renderCollectionToggle(item)}</td>
         <td>${escapeHtml(syncLabel)}</td>
-        <td>
-          <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-action="open-ag-dashboard" data-cluster-id="${clusterId}" data-ag-id="${agId}">
-            ${renderAgRowDatabaseStatus(item)}
-          </button>
-        </td>
+        <td>${renderAgRowDatabaseStatus(item)}</td>
       </tr>
     `;
   }
@@ -720,6 +749,30 @@ function mountClusterPage(global) {
     if (groups) {
       groups.innerHTML = '<div class="text-muted small">加载中...</div>';
     }
+  }
+
+  function renderAgDashboardTabs(items, activeAgId) {
+    const tabs = document.getElementById("agStatusDashboardTabs");
+    if (!tabs) {
+      return;
+    }
+    const agItems = Array.isArray(items) ? items : [];
+    if (!agItems.length) {
+      tabs.innerHTML = '<button type="button" class="ag-status-dashboard__tab is-active" data-action="switch-ag-dashboard">暂无 AG</button>';
+      return;
+    }
+    const active = String(activeAgId || agItems[0]?.id || "");
+    tabs.innerHTML = agItems
+      .map((item) => {
+        const agId = String(item.id || "");
+        const activeClass = agId === active ? " is-active" : "";
+        return (
+          `<button type="button" class="ag-status-dashboard__tab${activeClass}" data-action="switch-ag-dashboard" data-ag-id="${escapeHtml(agId)}">` +
+          `${escapeHtml(item.name || "-")}` +
+          `</button>`
+        );
+      })
+      .join("");
   }
 
   function renderAgDashboard(data) {

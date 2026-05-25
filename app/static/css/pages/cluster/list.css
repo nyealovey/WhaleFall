@@ -106,6 +106,29 @@
     flex: 0 0 auto;
 }
 
+.ag-status-dashboard__tabs {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ag-status-dashboard__tab {
+    background: var(--wf-surface, #fff);
+    border: 1px solid var(--wf-border-color, #e5e7eb);
+    border-radius: 999px;
+    color: var(--wf-muted-color, #6b7280);
+    font-weight: 700;
+    min-height: 2rem;
+    padding: 0.35rem 0.85rem;
+}
+
+.ag-status-dashboard__tab.is-active {
+    background: rgba(234, 112, 43, 0.1);
+    border-color: rgba(234, 112, 43, 0.45);
+    color: #9a4a14;
+}
+
 .ag-status-dashboard__metrics {
     display: grid;
     gap: 0.75rem;

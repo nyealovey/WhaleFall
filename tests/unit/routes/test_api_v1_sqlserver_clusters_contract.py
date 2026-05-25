@@ -111,11 +111,8 @@ def test_cluster_sqlserver_status_page_requires_login_and_renders() -> None:
     with client.session_transaction() as session:
         session["_user_id"] = str(user_id)
     response = client.get("/cluster/sqlserver-status")
-    assert response.status_code == 200
-    html = response.get_data(as_text=True)
-    assert "SQL Server AG 数据库状态" in html
-    assert "sqlserver-status-root" in html
-    assert 'data-action="sync-current-cluster"' in html
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/cluster/")
 
 
 @pytest.mark.unit

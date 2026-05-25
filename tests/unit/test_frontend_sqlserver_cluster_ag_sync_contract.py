@@ -135,14 +135,14 @@ def test_sqlserver_cluster_list_renders_database_status_semantics() -> None:
         "检测失败",
         "异常 ${abnormal}",
         "正常",
-        'data-action="open-sqlserver-status"',
-        "/cluster/sqlserver-status",
+        'data-action="open-ag-dashboard"',
     )
     for fragment in required_view_fragments:
         assert fragment in view_content
 
     assert "异常数 ${abnormal} / 副本 ${replicas}" not in view_content
-    assert 'href="/cluster/sqlserver-status"' in template_content
+    assert 'href="/cluster/sqlserver-status"' not in template_content
+    assert "/cluster/sqlserver-status" not in view_content
 
 
 def test_sqlserver_cluster_ag_status_dashboard_modal_contract() -> None:
@@ -152,9 +152,11 @@ def test_sqlserver_cluster_ag_status_dashboard_modal_contract() -> None:
     required_template_fragments = (
         "agStatusDashboardModal",
         "agStatusDashboardTitle",
+        "agStatusDashboardTabs",
         "agStatusReplicaTableBody",
         "agStatusDatabaseGroups",
         'data-action="sync-ag-dashboard"',
+        'data-action="switch-ag-dashboard"',
         "可用性副本",
         "数据库状态",
         "AG 状态",
@@ -168,9 +170,11 @@ def test_sqlserver_cluster_ag_status_dashboard_modal_contract() -> None:
         "open-ag-dashboard",
         "loadAgDashboard",
         "renderAgDashboard",
+        "renderAgDashboardTabs",
         "renderAgReplicaRows",
         "renderAgDatabaseGroups",
         "getAvailabilityGroupDashboard",
+        "switch-ag-dashboard",
         "sync-ag-dashboard",
     )
     for fragment in required_view_fragments:
