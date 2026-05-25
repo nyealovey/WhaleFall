@@ -11,11 +11,11 @@ function mountClusterPage(global) {
   const rowMeta = global.GridRowMeta;
 
   if (!helpers || !gridjs || !GridWrapper || !GridPage?.mount || !GridPlugins) {
-    console.error("cluster 页面依赖未加载");
+    console.error("群集管理页面依赖未加载");
     return;
   }
   if (typeof escapeHtml !== "function" || typeof resolveErrorMessage !== "function" || !rowMeta?.get) {
-    console.error("cluster 页面 UI helpers 未加载");
+    console.error("群集管理页面 UI helpers 未加载");
     return;
   }
 
@@ -109,7 +109,7 @@ function mountClusterPage(global) {
           const meta = rowMeta.get(row);
           return gridHtml(
             `<div class="fw-semibold">${escapeHtml(cell || "-")}</div>` +
-              `<small class="text-muted">${escapeHtml(meta.description || "SQL Server cluster")}</small>`
+              `<small class="text-muted">${escapeHtml(meta.description || "SQL Server 群集")}</small>`
           );
         },
       },
@@ -324,11 +324,11 @@ function mountClusterPage(global) {
         return store.actions.replaceInstances(cluster.id, instanceIds).then(() => cluster);
       })
       .then(() => {
-        showToast("success", "cluster 已保存");
+        showToast("success", "群集已保存");
         modal?.hide();
         gridWrapper?.refresh?.();
       })
-      .catch((error) => showError(error, "保存 cluster 失败"));
+      .catch((error) => showError(error, "保存群集失败"));
   }
 
   function syncAgInformation(trigger) {
@@ -575,7 +575,7 @@ function mountClusterPage(global) {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : fallback;
     } catch (error) {
-      console.warn("解析 cluster 页面数据失败:", error);
+      console.warn("解析群集管理页面数据失败:", error);
       return fallback;
     }
   }

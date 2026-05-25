@@ -21,6 +21,19 @@ def test_dashboard_overview_uses_instance_total_that_includes_deleted(monkeypatc
                 "normal_accounts": 10,
                 "locked_accounts": 1,
                 "deleted_accounts": 1,
+                "physical_instances": 82,
+                "ag_virtual_instances": 6,
+                "owner_type_stats": {
+                    "instance": {"total": 9, "active": 8, "deleted": 1, "percent": 75.0},
+                    "sqlserver_ag": {"total": 3, "active": 3, "deleted": 0, "percent": 25.0},
+                },
+                "ad_status_stats": {
+                    "total": {"normal": 4, "disabled": 2, "orphaned": 1, "unmatched": 4},
+                    "by_owner_type": {
+                        "instance": {"normal": 3, "disabled": 1, "orphaned": 1, "unmatched": 3},
+                        "sqlserver_ag": {"normal": 1, "disabled": 1, "orphaned": 0, "unmatched": 1},
+                    },
+                },
             }
         ),
     )
@@ -72,10 +85,12 @@ def test_dashboard_overview_uses_instance_total_that_includes_deleted(monkeypatc
     overview = cast(Any, dashboard_module.get_system_overview).__wrapped__()
 
     assert overview["instances"] == {
-        "total": 82,
-        "active": 78,
+        "total": 88,
+        "active": 84,
         "inactive": 0,
         "deleted": 4,
+        "physical": 82,
+        "ag_virtual": 6,
     }
     assert overview["accounts"] == {
         "total": 12,
@@ -83,6 +98,15 @@ def test_dashboard_overview_uses_instance_total_that_includes_deleted(monkeypatc
         "normal": 10,
         "locked": 1,
         "deleted": 1,
+        "instance": {"total": 9, "active": 8, "deleted": 1, "percent": 75.0},
+        "sqlserver_ag": {"total": 3, "active": 3, "deleted": 0, "percent": 25.0},
+        "ad_status": {
+            "total": {"normal": 4, "disabled": 2, "orphaned": 1, "unmatched": 4},
+            "by_owner_type": {
+                "instance": {"normal": 3, "disabled": 1, "orphaned": 1, "unmatched": 3},
+                "sqlserver_ag": {"normal": 1, "disabled": 1, "orphaned": 0, "unmatched": 1},
+            },
+        },
     }
     assert overview["databases"] == {
         "total": 10,

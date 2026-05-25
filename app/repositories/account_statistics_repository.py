@@ -45,7 +45,7 @@ class AccountStatisticsRepository:
         instance_id: int | None = None,
         db_type: str | None = None,
         account_scope: AccountScope | None = None,
-    ) -> dict[str, int]:
+    ) -> dict[str, Any]:
         """获取账户与实例汇总统计."""
         resolved_scope = account_scope
         if resolved_scope is None and instance_id is not None:
@@ -53,37 +53,32 @@ class AccountStatisticsRepository:
 
         counts_query = (
             db.session.query(
-                func.count(AccountPermission.id).label("total_accounts"),
-                func.coalesce(
-                    func.sum(case((InstanceAccount.is_active.is_(True), 1), else_=0)),
-                    0,
+                func.count(distinct(InstanceAccount.id)).label("total_accounts"),
+                func.count(
+                    distinct(case((InstanceAccount.is_active.is_(True), InstanceAccount.id), else_=None)),
                 ).label("active_accounts"),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (
-                                and_(
-                                    InstanceAccount.is_active.is_(True),
-                                    AccountPermission.is_locked.is_(True),
-                                ),
-                                1,
-                            ),
-                            else_=0,
-                        ),
-                    ),
-                    0,
-                ).label("locked_accounts"),
             )
-            .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
-            .join(Instance, Instance.id == AccountPermission.instance_id)
+            .join(Instance, Instance.id == InstanceAccount.instance_id)
             .filter(Instance.deleted_at.is_(None))
+        )
+        locked_query = (
+            db.session.query(func.count(distinct(InstanceAccount.id)).label("locked_accounts"))
+            .join(AccountPermission, AccountPermission.instance_account_id == InstanceAccount.id)
+            .join(Instance, Instance.id == InstanceAccount.instance_id)
+            .filter(
+                Instance.deleted_at.is_(None),
+                InstanceAccount.is_active.is_(True),
+                AccountPermission.is_locked.is_(True),
+            )
         )
 
         if resolved_scope is not None:
-            counts_query = AccountStatisticsRepository._apply_account_scope_filter(counts_query, resolved_scope)
+            counts_query = AccountStatisticsRepository._apply_instance_account_scope_filter(counts_query, resolved_scope)
+            locked_query = AccountStatisticsRepository._apply_instance_account_scope_filter(locked_query, resolved_scope)
 
         if db_type:
-            counts_query = counts_query.filter(AccountPermission.db_type == db_type)
+            counts_query = counts_query.filter(InstanceAccount.db_type == db_type)
+            locked_query = locked_query.filter(InstanceAccount.db_type == db_type)
 
         counts_row = counts_query.one()
         total_value = getattr(counts_row, "total_accounts", None)
@@ -92,7 +87,7 @@ class AccountStatisticsRepository:
         active_value = getattr(counts_row, "active_accounts", None)
         active_accounts = int(active_value) if active_value is not None else 0
 
-        locked_value = getattr(counts_row, "locked_accounts", None)
+        locked_value = locked_query.scalar()
         locked_accounts = int(locked_value) if locked_value is not None else 0
 
         deleted_accounts = max(total_accounts - active_accounts, 0)
@@ -131,6 +126,15 @@ class AccountStatisticsRepository:
             "locked_accounts": locked_accounts,
             "normal_accounts": normal_accounts,
             "deleted_accounts": deleted_accounts,
+            "owner_type_stats": AccountStatisticsRepository.fetch_owner_type_stats(
+                db_type=db_type,
+                account_scope=resolved_scope,
+                total_accounts=total_accounts,
+            ),
+            "ad_status_stats": AccountStatisticsRepository.fetch_ad_status_stats(
+                db_type=db_type,
+                account_scope=resolved_scope,
+            ),
             "total_instances": total_instances,
             "physical_instances": physical_instances,
             "ag_virtual_instances": ag_virtual_instances,
@@ -156,6 +160,24 @@ class AccountStatisticsRepository:
         return query.filter(
             AccountPermission.owner_type == account_scope.owner_type,
             AccountPermission.owner_id == account_scope.owner_id,
+        )
+
+    @staticmethod
+    def _apply_instance_account_scope_filter(query: Any, account_scope: AccountScope) -> Any:
+        if account_scope.owner_type == "instance":
+            return query.filter(
+                InstanceAccount.owner_type == "instance",
+                or_(
+                    InstanceAccount.owner_id == account_scope.owner_id,
+                    and_(
+                        InstanceAccount.owner_id.is_(None),
+                        InstanceAccount.instance_id == account_scope.owner_id,
+                    ),
+                ),
+            )
+        return query.filter(
+            InstanceAccount.owner_type == account_scope.owner_type,
+            InstanceAccount.owner_id == account_scope.owner_id,
         )
 
     @staticmethod
@@ -185,38 +207,174 @@ class AccountStatisticsRepository:
         return int(scalar_value) if scalar_value is not None else 0
 
     @staticmethod
+    def fetch_owner_type_stats(
+        *,
+        db_type: str | None = None,
+        account_scope: AccountScope | None = None,
+        total_accounts: int | None = None,
+    ) -> dict[str, dict[str, int | float]]:
+        """获取账户来源统计."""
+        query = (
+            db.session.query(
+                InstanceAccount.owner_type.label("owner_type"),
+                func.count(distinct(InstanceAccount.id)).label("total"),
+                func.count(
+                    distinct(case((InstanceAccount.is_active.is_(True), InstanceAccount.id), else_=None)),
+                ).label("active"),
+            )
+            .join(Instance, Instance.id == InstanceAccount.instance_id)
+            .filter(Instance.deleted_at.is_(None))
+        )
+        if account_scope is not None:
+            query = AccountStatisticsRepository._apply_instance_account_scope_filter(query, account_scope)
+        if db_type:
+            query = query.filter(InstanceAccount.db_type == db_type)
+
+        stats: dict[str, dict[str, int | float]] = {
+            "instance": {"total": 0, "active": 0, "deleted": 0, "percent": 0.0},
+            "sqlserver_ag": {"total": 0, "active": 0, "deleted": 0, "percent": 0.0},
+        }
+        resolved_total = total_accounts
+        if resolved_total is None:
+            resolved_total = 0
+        for row in query.group_by(InstanceAccount.owner_type).all():
+            owner_type = str(getattr(row, "owner_type", "") or "instance")
+            if owner_type not in stats:
+                stats[owner_type] = {"total": 0, "active": 0, "deleted": 0, "percent": 0.0}
+            total = int(getattr(row, "total", 0) or 0)
+            active = int(getattr(row, "active", 0) or 0)
+            stats[owner_type] = {
+                "total": total,
+                "active": active,
+                "deleted": max(total - active, 0),
+                "percent": round((total / resolved_total * 100), 1) if resolved_total else 0.0,
+            }
+        return stats
+
+    @staticmethod
+    def fetch_ad_status_stats(
+        *,
+        db_type: str | None = None,
+        account_scope: AccountScope | None = None,
+    ) -> dict[str, Any]:
+        """获取 AD 状态矩阵统计."""
+        query = (
+            db.session.query(
+                InstanceAccount.owner_type.label("owner_type"),
+                func.count(
+                    distinct(
+                        case(
+                            (
+                                and_(
+                                    InstanceAccount.ad_domain_config_id.isnot(None),
+                                    InstanceAccount.ad_disabled_at.is_(None),
+                                    InstanceAccount.ad_orphaned_at.is_(None),
+                                ),
+                                InstanceAccount.id,
+                            ),
+                            else_=None,
+                        ),
+                    ),
+                ).label("normal"),
+                func.count(
+                    distinct(case((InstanceAccount.ad_disabled_at.isnot(None), InstanceAccount.id), else_=None)),
+                ).label("disabled"),
+                func.count(
+                    distinct(
+                        case(
+                            (
+                                and_(
+                                    InstanceAccount.ad_disabled_at.is_(None),
+                                    InstanceAccount.ad_orphaned_at.isnot(None),
+                                ),
+                                InstanceAccount.id,
+                            ),
+                            else_=None,
+                        ),
+                    ),
+                ).label("orphaned"),
+                func.count(
+                    distinct(
+                        case(
+                            (
+                                and_(
+                                    InstanceAccount.ad_domain_config_id.is_(None),
+                                    InstanceAccount.ad_disabled_at.is_(None),
+                                    InstanceAccount.ad_orphaned_at.is_(None),
+                                ),
+                                InstanceAccount.id,
+                            ),
+                            else_=None,
+                        ),
+                    ),
+                ).label("unmatched"),
+            )
+            .join(Instance, Instance.id == InstanceAccount.instance_id)
+            .filter(
+                Instance.deleted_at.is_(None),
+                InstanceAccount.is_active.is_(True),
+            )
+        )
+        if account_scope is not None:
+            query = AccountStatisticsRepository._apply_instance_account_scope_filter(query, account_scope)
+        if db_type:
+            query = query.filter(InstanceAccount.db_type == db_type)
+
+        empty = {"normal": 0, "disabled": 0, "orphaned": 0, "unmatched": 0}
+        by_owner_type: dict[str, dict[str, int]] = {
+            "instance": dict(empty),
+            "sqlserver_ag": dict(empty),
+        }
+        total = dict(empty)
+
+        for row in query.group_by(InstanceAccount.owner_type).all():
+            owner_type = str(getattr(row, "owner_type", "") or "instance")
+            counts = {
+                "normal": int(getattr(row, "normal", 0) or 0),
+                "disabled": int(getattr(row, "disabled", 0) or 0),
+                "orphaned": int(getattr(row, "orphaned", 0) or 0),
+                "unmatched": int(getattr(row, "unmatched", 0) or 0),
+            }
+            by_owner_type[owner_type] = counts
+            for key, value in counts.items():
+                total[key] += value
+
+        return {
+            "total": total,
+            "by_owner_type": by_owner_type,
+        }
+
+    @staticmethod
     def fetch_db_type_stats() -> dict[str, dict[str, int]]:
         """获取按数据库类型统计."""
         target_db_types = ["mysql", "postgresql", "oracle", "sqlserver"]
 
         stats_query = (
             db.session.query(
-                AccountPermission.db_type.label("db_type"),
-                func.count(AccountPermission.id).label("total"),
-                func.coalesce(
-                    func.sum(case((InstanceAccount.is_active.is_(True), 1), else_=0)),
-                    0,
+                InstanceAccount.db_type.label("db_type"),
+                func.count(distinct(InstanceAccount.id)).label("total"),
+                func.count(
+                    distinct(case((InstanceAccount.is_active.is_(True), InstanceAccount.id), else_=None)),
                 ).label("active"),
-                func.coalesce(
-                    func.sum(
+                func.count(
+                    distinct(
                         case(
                             (
                                 and_(
                                     InstanceAccount.is_active.is_(True),
                                     AccountPermission.is_locked.is_(True),
                                 ),
-                                1,
+                                InstanceAccount.id,
                             ),
-                            else_=0,
+                            else_=None,
                         ),
                     ),
-                    0,
                 ).label("locked"),
             )
-            .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
-            .join(Instance, Instance.id == AccountPermission.instance_id)
+            .outerjoin(AccountPermission, AccountPermission.instance_account_id == InstanceAccount.id)
+            .join(Instance, Instance.id == InstanceAccount.instance_id)
             .filter(Instance.deleted_at.is_(None))
-            .group_by(AccountPermission.db_type)
+            .group_by(InstanceAccount.db_type)
         )
 
         db_type_stats: dict[str, dict[str, int]] = {

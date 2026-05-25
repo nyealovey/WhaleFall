@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import psutil
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -50,12 +52,18 @@ def get_system_overview() -> dict:
         "total_gb": round(total_capacity_gb, 1),
         "usage_percent": 0,
     }
+    ag_virtual_instances = int(account_summary.get("ag_virtual_instances", 0) or 0)
+    physical_instances = int(instance_summary.get("total_instances", 0) or 0)
+    dashboard_total_instances = physical_instances + ag_virtual_instances
+    dashboard_active_instances = int(instance_summary.get("active_instances", 0) or 0) + ag_virtual_instances
 
     log_info(
         "dashboard_base_counts",
         module="dashboard",
         total_users=total_users,
-        total_instances=instance_summary["total_instances"],
+        total_instances=dashboard_total_instances,
+        physical_instances=physical_instances,
+        ag_virtual_instances=ag_virtual_instances,
         total_accounts=account_summary["total_accounts"],
         total_capacity_gb=capacity_summary["total_gb"],
         total_databases=database_summary["total_databases"],
@@ -77,16 +85,30 @@ def get_system_overview() -> dict:
         module="dashboard",
         total_accounts=account_summary["total_accounts"],
         active_accounts=account_summary["active_accounts"],
-        active_instances=instance_summary["active_instances"],
+        active_instances=dashboard_active_instances,
+    )
+
+    owner_type_stats = cast("dict[str, dict[str, int | float]]", account_summary.get("owner_type_stats", {}))
+    ad_status_stats = cast(
+        "dict[str, Any]",
+        account_summary.get(
+            "ad_status_stats",
+            {
+                "total": {"normal": 0, "disabled": 0, "orphaned": 0, "unmatched": 0},
+                "by_owner_type": {},
+            },
+        ),
     )
 
     return {
         "users": {"total": total_users, "active": total_users},
         "instances": {
-            "total": instance_summary["total_instances"],
-            "active": instance_summary["active_instances"],
+            "total": dashboard_total_instances,
+            "active": dashboard_active_instances,
             "inactive": instance_summary["disabled_instances"],
             "deleted": instance_summary["deleted_instances"],
+            "physical": physical_instances,
+            "ag_virtual": ag_virtual_instances,
         },
         "accounts": {
             "total": account_summary["total_accounts"],
@@ -94,6 +116,15 @@ def get_system_overview() -> dict:
             "normal": account_summary["normal_accounts"],
             "locked": account_summary["locked_accounts"],
             "deleted": account_summary["deleted_accounts"],
+            "instance": owner_type_stats.get(
+                "instance",
+                {"total": 0, "active": 0, "deleted": 0, "percent": 0.0},
+            ),
+            "sqlserver_ag": owner_type_stats.get(
+                "sqlserver_ag",
+                {"total": 0, "active": 0, "deleted": 0, "percent": 0.0},
+            ),
+            "ad_status": ad_status_stats,
         },
         "classified_accounts": classification_overview,
         "capacity": capacity_summary,

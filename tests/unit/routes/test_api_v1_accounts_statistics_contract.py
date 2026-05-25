@@ -73,10 +73,14 @@ def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None
         "normal_accounts",
         "deleted_accounts",
         "total_instances",
+        "physical_instances",
+        "ag_virtual_instances",
         "active_instances",
         "disabled_instances",
         "normal_instances",
         "deleted_instances",
+        "owner_type_stats",
+        "ad_status_stats",
     }.issubset(summary_data.keys())
 
     db_types_response = auth_client.get("/api/v1/accounts/statistics/db-types")
@@ -333,6 +337,177 @@ def test_api_v1_accounts_statistics_treats_ag_listener_as_virtual_instance(app, 
     assert scoped_summary["total_instances"] == 1
     assert scoped_summary["physical_instances"] == 0
     assert scoped_summary["ag_virtual_instances"] == 1
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_statistics_counts_ledger_accounts_and_ad_status_matrix(app, auth_client) -> None:
+    _ensure_account_statistics_tables(app)
+
+    with app.app_context():
+        instance = Instance(
+            name="sql-ad-matrix",
+            db_type="sqlserver",
+            host="10.0.0.21",
+            port=1433,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.flush()
+
+        cluster = SQLServerCluster(name="cluster-ad-matrix", domain_name="corp.local", is_enabled=True)
+        db.session.add(cluster)
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=cluster.id,
+            name="ag-ad-matrix",
+            listener_name="ag-ad-matrix-listener",
+            listener_host="10.0.0.52",
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=True,
+        )
+        db.session.add(ag)
+        db.session.flush()
+
+        instance_ad_normal = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="instance",
+            owner_id=instance.id,
+            username="normal_user",
+            db_type="sqlserver",
+            ad_domain_config_id=1,
+            is_active=True,
+        )
+        instance_ad_disabled = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="instance",
+            owner_id=instance.id,
+            username="disabled_user",
+            db_type="sqlserver",
+            ad_domain_config_id=1,
+            ad_disabled_at=time_utils.now(),
+            is_active=True,
+        )
+        ag_ad_orphaned = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="sqlserver_ag",
+            owner_id=ag.id,
+            cluster_id=cluster.id,
+            availability_group_id=ag.id,
+            username="ag_orphaned_user",
+            db_type="sqlserver",
+            ad_domain_config_id=1,
+            ad_orphaned_at=time_utils.now(),
+            is_active=True,
+        )
+        ag_unmatched = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="sqlserver_ag",
+            owner_id=ag.id,
+            cluster_id=cluster.id,
+            availability_group_id=ag.id,
+            username="ag_unmatched_user",
+            db_type="sqlserver",
+            is_active=True,
+        )
+        ledger_only = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="instance",
+            owner_id=instance.id,
+            username="ledger_only_user",
+            db_type="sqlserver",
+            is_active=True,
+        )
+        deleted_account = InstanceAccount(
+            instance_id=instance.id,
+            owner_type="instance",
+            owner_id=instance.id,
+            username="deleted_user",
+            db_type="sqlserver",
+            is_active=False,
+            deleted_at=time_utils.now(),
+        )
+        db.session.add_all(
+            [
+                instance_ad_normal,
+                instance_ad_disabled,
+                ag_ad_orphaned,
+                ag_unmatched,
+                ledger_only,
+                deleted_account,
+            ],
+        )
+        db.session.flush()
+
+        db.session.add_all(
+            [
+                AccountPermission(
+                    instance_id=instance.id,
+                    instance_account_id=instance_ad_normal.id,
+                    owner_type="instance",
+                    owner_id=instance.id,
+                    db_type="sqlserver",
+                    username="normal_user",
+                    permission_facts={"capabilities": []},
+                ),
+                AccountPermission(
+                    instance_id=instance.id,
+                    instance_account_id=instance_ad_disabled.id,
+                    owner_type="instance",
+                    owner_id=instance.id,
+                    db_type="sqlserver",
+                    username="disabled_user",
+                    permission_facts={"capabilities": ["LOCKED"]},
+                ),
+                AccountPermission(
+                    instance_id=instance.id,
+                    instance_account_id=ag_ad_orphaned.id,
+                    owner_type="sqlserver_ag",
+                    owner_id=ag.id,
+                    cluster_id=cluster.id,
+                    availability_group_id=ag.id,
+                    db_type="sqlserver",
+                    username="ag_orphaned_user",
+                    permission_facts={"capabilities": []},
+                ),
+                AccountPermission(
+                    instance_id=instance.id,
+                    instance_account_id=ag_unmatched.id,
+                    owner_type="sqlserver_ag",
+                    owner_id=ag.id,
+                    cluster_id=cluster.id,
+                    availability_group_id=ag.id,
+                    db_type="sqlserver",
+                    username="ag_unmatched_user",
+                    permission_facts={"capabilities": []},
+                ),
+            ],
+        )
+        db.session.commit()
+
+    response = auth_client.get("/api/v1/accounts/statistics")
+    assert response.status_code == 200
+    stats = response.get_json()["data"]["stats"]
+
+    assert stats["total_accounts"] == 6
+    assert stats["active_accounts"] == 5
+    assert stats["locked_accounts"] == 1
+    assert stats["normal_accounts"] == 4
+    assert stats["deleted_accounts"] == 1
+    assert stats["owner_type_stats"]["instance"]["total"] == 4
+    assert stats["owner_type_stats"]["sqlserver_ag"]["total"] == 2
+    assert stats["db_type_stats"]["sqlserver"]["total"] == 6
+    assert stats["db_type_stats"]["sqlserver"]["locked"] == 1
+    assert stats["db_type_stats"]["sqlserver"]["deleted"] == 1
+    assert stats["ad_status_stats"]["total"] == {
+        "normal": 1,
+        "disabled": 1,
+        "orphaned": 1,
+        "unmatched": 2,
+    }
+    assert stats["ad_status_stats"]["by_owner_type"]["instance"]["unmatched"] == 1
+    assert stats["ad_status_stats"]["by_owner_type"]["sqlserver_ag"]["orphaned"] == 1
 
 
 @pytest.mark.unit

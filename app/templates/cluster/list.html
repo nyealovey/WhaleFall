@@ -4,7 +4,7 @@
 {% from 'components/filters/macros.html' import filter_card, search_input, status_active_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
 
-{% block title %}cluster - 鲸落{% endblock %}
+{% block title %}群集管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/crud-modal.css') }}">
@@ -20,7 +20,7 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 {% if current_user.role == 'admin' %}
-{% call page_header('fas fa-layer-group', 'cluster', '维护 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') %}
+{% call page_header('fas fa-layer-group', '群集管理', '维护 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') %}
 <div class="btn-group">
     <button class="btn btn-primary" type="button" data-action="create-cluster">
         <i class="fas fa-plus me-2"></i>添加群集
@@ -28,7 +28,7 @@
 </div>
 {% endcall %}
 {% else %}
-{{ page_header('fas fa-layer-group', 'cluster', '查看 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') }}
+{{ page_header('fas fa-layer-group', '群集管理', '查看 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') }}
 {% endif %}
 
 <section class="page-section page-section--stacked">

@@ -60,6 +60,8 @@ ACCOUNT_STATISTICS_FIELDS = {
     "locked_accounts": fields.Integer(description="锁定账号数", example=2),
     "normal_accounts": fields.Integer(description="正常账号数", example=88),
     "deleted_accounts": fields.Integer(description="删除账号数", example=10),
+    "owner_type_stats": fields.Raw(description="按账户来源聚合统计", example={}),
+    "ad_status_stats": fields.Raw(description="AD 状态矩阵统计", example={}),
     "database_instances": fields.Integer(description="数据库实例数(统计口径)", example=5),
     "total_instances": fields.Integer(description="实例总数", example=5),
     "physical_instances": fields.Integer(description="物理实例数", example=4),

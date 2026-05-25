@@ -16,6 +16,10 @@ def test_dashboard_overview_uses_account_normal_locked_deleted_and_database_norm
         "overview.accounts.normal",
         "overview.accounts.locked",
         "overview.accounts.deleted",
+        "overview.accounts.sqlserver_ag",
+        "overview.accounts.ad_status",
+        "overview.instances.physical",
+        "overview.instances.ag_virtual",
         "overview.databases.active",
         "overview.databases.inactive",
         "overview.databases.deleted",
@@ -51,6 +55,11 @@ def test_accounts_statistics_template_uses_normal_locked_deleted_instead_of_acti
         "metric_card('统计实例'",
         'id="accountsMetaPhysicalInstances"',
         'id="accountsMetaAgVirtualInstances"',
+        "账户来源分布",
+        "AD 账户对比",
+        'data-owner-type-row="sqlserver_ag"',
+        'data-ad-status-row="disabled"',
+        'data-ad-status-field="sqlserver_ag"',
     )
     for fragment in required_fragments:
         assert fragment in content
@@ -82,6 +91,11 @@ def test_accounts_statistics_frontend_refresh_logic_uses_normal_locked_deleted_l
         "const agVirtualInstances = Number(stats?.ag_virtual_instances ?? 0) || 0;",
         'setText("accountsMetaPhysicalInstances",',
         'setText("accountsMetaAgVirtualInstances",',
+        "updateOwnerTypeStats(stats.owner_type_stats, stats.total_accounts);",
+        "updateAdStatusStats(stats.ad_status_stats);",
+        'data-owner-type-row="${key}"',
+        'data-ad-status-field="total"',
+        'data-ad-status-field="sqlserver_ag"',
         'tone === "success" ? "正常" : tone === "warning" ? "受限" : "删除"',
     )
     for fragment in required_fragments:

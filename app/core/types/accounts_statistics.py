@@ -15,6 +15,8 @@ class AccountStatisticsResult:
     locked_accounts: int
     normal_accounts: int
     deleted_accounts: int
+    owner_type_stats: dict[str, dict[str, int | float]]
+    ad_status_stats: dict[str, Any]
 
     database_instances: int
     total_instances: int

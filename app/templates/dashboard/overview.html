@@ -11,6 +11,7 @@
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block content_outer %}
+{% set dashboard_ad_status = overview.accounts.ad_status.total if overview and overview.accounts and overview.accounts.ad_status and overview.accounts.ad_status.total else {} %}
 {% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息', eyebrow='System Overview') %}
 <div class="btn-group">
     <button type="button" class="btn btn-primary" data-action="refresh-dashboard">
@@ -32,6 +33,14 @@
                         <span class="status-pill status-pill--success">
                             <i class="fas fa-check-circle"></i>
                             {{ overview.instances.active if overview and overview.instances else 0 }} 在线
+                        </span>
+                        <span class="status-pill status-pill--info">
+                            <i class="fas fa-database"></i>
+                            {{ overview.instances.physical if overview and overview.instances else 0 }} 物理
+                        </span>
+                        <span class="status-pill status-pill--muted">
+                            <i class="fas fa-project-diagram"></i>
+                            {{ overview.instances.ag_virtual if overview and overview.instances else 0 }} AG
                         </span>
                         <span class="status-pill status-pill--muted">
                             <i class="fas fa-ban"></i>
@@ -60,6 +69,14 @@
                         <span class="status-pill status-pill--danger">
                             <i class="fas fa-user-slash"></i>
                             {{ overview.accounts.deleted if overview and overview.accounts else 0 }}
+                        </span>
+                        <span class="status-pill status-pill--info">
+                            <i class="fas fa-server"></i>
+                            {{ overview.accounts.instance.total if overview and overview.accounts and overview.accounts.instance else 0 }} 实例
+                        </span>
+                        <span class="status-pill status-pill--muted">
+                            <i class="fas fa-project-diagram"></i>
+                            {{ overview.accounts.sqlserver_ag.total if overview and overview.accounts and overview.accounts.sqlserver_ag else 0 }} AG
                         </span>
                     {% endcall %}
                 </div>
@@ -90,6 +107,24 @@
                         </span>
                     {% endcall %}
                 </div>
+            </div>
+            <div class="dashboard-ad-summary mt-3">
+                <span class="status-pill status-pill--success">
+                    <i class="fas fa-id-card"></i>
+                    AD 正常 {{ dashboard_ad_status.get('normal', 0) }}
+                </span>
+                <span class="status-pill status-pill--warning">
+                    <i class="fas fa-user-lock"></i>
+                    AD 已停用 {{ dashboard_ad_status.get('disabled', 0) }}
+                </span>
+                <span class="status-pill status-pill--danger">
+                    <i class="fas fa-user-slash"></i>
+                    AD 孤账户 {{ dashboard_ad_status.get('orphaned', 0) }}
+                </span>
+                <span class="status-pill status-pill--muted">
+                    <i class="fas fa-question-circle"></i>
+                    未匹配 {{ dashboard_ad_status.get('unmatched', 0) }}
+                </span>
             </div>
         </div>
     </div>

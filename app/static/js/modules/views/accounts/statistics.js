@@ -71,6 +71,8 @@ function mountAccountsStatisticsPage(global) {
     setValue("locked_accounts", stats.locked_accounts);
     setValue("total_instances", stats.total_instances);
     updateSummaryMeta(stats);
+    updateOwnerTypeStats(stats.owner_type_stats, stats.total_accounts);
+    updateAdStatusStats(stats.ad_status_stats);
     updateDbTypeTable(stats.db_type_stats, stats.total_accounts);
     updateClassificationTable(stats.classification_stats, stats.total_accounts);
   }
@@ -111,6 +113,61 @@ function mountAccountsStatisticsPage(global) {
     setText("accountsMetaAvgPerInstance", avgPerInstance.toFixed(1));
     setText("accountsMetaNormalPerInstance", normalPerInstance.toFixed(1));
     setText("accountsMetaLockedPerInstance", lockedPerInstance.toFixed(1));
+  }
+
+  function updateOwnerTypeStats(ownerTypeStats, totalAccounts) {
+    if (!ownerTypeStats) {
+      return;
+    }
+    const normalizedTotal = Number(totalAccounts) || 0;
+    Object.entries(ownerTypeStats).forEach(([ownerType, meta]) => {
+      const key = String(ownerType || "").toLowerCase();
+      const row = document.querySelector(`[data-owner-type-row="${key}"]`);
+      if (!row) {
+        return;
+      }
+      const totalCell = row.querySelector('[data-field="owner-type-count"]');
+      if (totalCell) {
+        totalCell.textContent = formatInteger(meta?.total);
+      }
+      const percent = Number(meta?.percent ?? resolvePercent(meta?.total, normalizedTotal)) || 0;
+      const progress = row.querySelector('[data-field="owner-type-progress"]');
+      if (progress) {
+        progress.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+      }
+      const percentLabel = row.querySelector('[data-field="owner-type-percent"]');
+      if (percentLabel) {
+        percentLabel.textContent = `${percent.toFixed(1)}%`;
+      }
+      updateOwnerStatusPill(row, "success", "启用", meta?.active);
+      updateOwnerStatusPill(row, "muted", "删除", meta?.deleted);
+    });
+  }
+
+  function updateAdStatusStats(adStatusStats) {
+    if (!adStatusStats) {
+      return;
+    }
+    const total = adStatusStats.total || {};
+    const byOwnerType = adStatusStats.by_owner_type || {};
+    ["normal", "disabled", "orphaned", "unmatched"].forEach((statusKey) => {
+      const row = document.querySelector(`[data-ad-status-row="${statusKey}"]`);
+      if (!row) {
+        return;
+      }
+      const totalCell = row.querySelector('[data-ad-status-field="total"]');
+      if (totalCell) {
+        totalCell.textContent = formatInteger(total?.[statusKey] ?? 0);
+      }
+      const instanceCell = row.querySelector('[data-ad-status-field="instance"]');
+      if (instanceCell) {
+        instanceCell.textContent = formatInteger(byOwnerType?.instance?.[statusKey] ?? 0);
+      }
+      const agCell = row.querySelector('[data-ad-status-field="sqlserver_ag"]');
+      if (agCell) {
+        agCell.textContent = formatInteger(byOwnerType?.sqlserver_ag?.[statusKey] ?? 0);
+      }
+    });
   }
 
   function setValue(key, value) {
@@ -199,6 +256,16 @@ function mountAccountsStatisticsPage(global) {
     node.textContent = `${
       tone === "success" ? "正常" : tone === "warning" ? "受限" : "删除"
     } ${formatInteger(value)}`;
+  }
+
+  function updateOwnerStatusPill(row, tone, label, value) {
+    if (!row) {
+      return;
+    }
+    const node = row.querySelector(`.status-pill--${tone}`);
+    if (node) {
+      node.textContent = `${label} ${formatInteger(value)}`;
+    }
   }
 
   function resolvePercent(count, total) {

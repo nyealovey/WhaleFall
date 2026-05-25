@@ -38,7 +38,7 @@ class AccountExportService:
     def _render_accounts_csv(accounts: Sequence[object], metrics: AccountLedgerMetrics) -> str:
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["名称", "实例名称", "IP地址", "标签", "数据库类型", "分类", "锁定状态"])
+        writer.writerow(["名称", "实例名称", "IP地址", "标签", "数据库类型", "分类", "锁定状态", "AD状态"])
 
         tags_map = metrics.tags_map
         classifications_map = metrics.classifications_map
@@ -60,6 +60,7 @@ class AccountExportService:
 
             is_locked_flag = bool(getattr(account, "is_locked", False))
             lock_status = "已锁定" if is_locked_flag else "正常"
+            ad_status = AccountExportService._format_ad_status(getattr(account, "instance_account", None))
 
             tags_list = tags_map.get(getattr(account, "instance_id", 0), [])
             tag_labels = [tag.display_name or tag.name for tag in tags_list]
@@ -75,9 +76,22 @@ class AccountExportService:
                         str(instance_db_type).upper() if instance_db_type is not None else "",
                         classification_str,
                         lock_status,
+                        ad_status,
                     ],
                 ),
             )
 
         output.seek(0)
         return output.getvalue()
+
+    @staticmethod
+    def _format_ad_status(instance_account: object | None) -> str:
+        if instance_account is None:
+            return "未匹配"
+        if getattr(instance_account, "ad_disabled_at", None) is not None:
+            return "AD已停用"
+        if getattr(instance_account, "ad_orphaned_at", None) is not None:
+            return "AD孤账户"
+        if getattr(instance_account, "ad_domain_config_id", None) is not None:
+            return "正常"
+        return "未匹配"

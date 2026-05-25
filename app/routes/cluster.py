@@ -1,4 +1,4 @@
-"""cluster 页面路由."""
+"""群集管理页面路由."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ cluster_bp = Blueprint("cluster", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """cluster 管理页面，仅管理 SQL Server 群集."""
+    """群集管理页面，仅管理 SQL Server 群集."""
     search = (request.args.get("search") or "").strip()
     status = (request.args.get("status") or "").strip()
 
@@ -47,6 +47,6 @@ def index() -> str:
         _render,
         module="cluster",
         action="index",
-        public_error="加载 cluster 页面失败",
+        public_error="加载群集管理页面失败",
         context={"search": search, "status": status},
     )

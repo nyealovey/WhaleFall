@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from app.core.types.account_scope import AccountScope
 from app.core.types.accounts_statistics import AccountStatisticsResult
@@ -33,6 +33,8 @@ class AccountsStatisticsReadService:
             locked_accounts=summary["locked_accounts"],
             normal_accounts=summary["normal_accounts"],
             deleted_accounts=summary["deleted_accounts"],
+            owner_type_stats=cast("dict[str, dict[str, int | float]]", summary.get("owner_type_stats", {})),
+            ad_status_stats=cast("dict[str, Any]", summary.get("ad_status_stats", {})),
             database_instances=summary.get("total_instances", 0),
             total_instances=summary["total_instances"],
             physical_instances=summary.get("physical_instances", summary["total_instances"]),
@@ -51,7 +53,7 @@ class AccountsStatisticsReadService:
         instance_id: int | None,
         db_type: str | None,
         account_scope: AccountScope | None = None,
-    ) -> dict[str, int]:
+    ) -> dict[str, Any]:
         """获取账户统计汇总."""
         return self._repository.fetch_summary(instance_id=instance_id, db_type=db_type, account_scope=account_scope)
 
@@ -72,6 +74,8 @@ class AccountsStatisticsReadService:
             locked_accounts=0,
             normal_accounts=0,
             deleted_accounts=0,
+            owner_type_stats={},
+            ad_status_stats={},
             database_instances=0,
             total_instances=0,
             physical_instances=0,

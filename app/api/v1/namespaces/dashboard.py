@@ -83,6 +83,10 @@ DashboardOverviewCount = ns.model(
     {
         "total": fields.Integer(description="总数", example=10),
         "active": fields.Integer(description="启用数", example=9),
+        "inactive": fields.Integer(required=False, description="停用数", example=1),
+        "deleted": fields.Integer(required=False, description="删除数", example=0),
+        "physical": fields.Integer(required=False, description="物理实例数", example=9),
+        "ag_virtual": fields.Integer(required=False, description="AG 虚拟实例数", example=1),
     },
 )
 
@@ -94,6 +98,9 @@ DashboardOverviewAccountsCount = ns.model(
         "normal": fields.Integer(description="正常数", example=88),
         "locked": fields.Integer(description="锁定数", example=2),
         "deleted": fields.Integer(description="删除数", example=10),
+        "instance": fields.Raw(description="实例账户统计", example={}),
+        "sqlserver_ag": fields.Raw(description="AG 账户统计", example={}),
+        "ad_status": fields.Raw(description="AD 状态统计", example={}),
     },
 )
 

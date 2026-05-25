@@ -51,7 +51,12 @@ def test_api_v1_dashboard_overview_contract(app, auth_client) -> None:
     assert {"users", "instances", "accounts", "classified_accounts", "capacity", "databases"}.issubset(data.keys())
     accounts = data.get("accounts")
     assert isinstance(accounts, dict)
-    assert {"total", "active", "normal", "locked", "deleted"}.issubset(accounts.keys())
+    assert {"total", "active", "normal", "locked", "deleted", "instance", "sqlserver_ag", "ad_status"}.issubset(
+        accounts.keys(),
+    )
+    instances = data.get("instances")
+    assert isinstance(instances, dict)
+    assert {"total", "active", "inactive", "deleted", "physical", "ag_virtual"}.issubset(instances.keys())
     databases = data.get("databases")
     assert isinstance(databases, dict)
     assert {"total", "active", "inactive", "deleted"}.issubset(databases.keys())

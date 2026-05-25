@@ -13,6 +13,10 @@
 {% set total_instances = stats.total_instances or 0 %}
 {% set physical_instances = stats.physical_instances or 0 %}
 {% set ag_virtual_instances = stats.ag_virtual_instances or 0 %}
+{% set owner_type_stats = stats.owner_type_stats or {} %}
+{% set ad_status_stats = stats.ad_status_stats or {} %}
+{% set ad_status_total = ad_status_stats.total if ad_status_stats and ad_status_stats.total else {} %}
+{% set ad_status_by_owner = ad_status_stats.by_owner_type if ad_status_stats and ad_status_stats.by_owner_type else {} %}
 {% set avg_per_instance = (total_accounts / total_instances) if total_instances else 0 %}
 {% set normal_per_instance = (normal_accounts / total_instances) if total_instances else 0 %}
 {% set locked_per_instance = (locked_accounts / total_instances) if total_instances else 0 %}
@@ -75,6 +79,134 @@
 	        </div>
 	    </div>
 	</section>
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-3">
+                <div class="col-12 col-xl-5">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-sitemap"></i>
+                                <span>账户来源分布</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">台账口径</span>
+                        </div>
+                        <div class="statistics-panel__body">
+                            <div class="table-responsive statistics-panel__table">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>来源</th>
+                                            <th class="text-end">账户数</th>
+                                            <th class="statistics-panel__col-percent">占比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% set instance_owner_stats = owner_type_stats.get('instance', {}) %}
+                                        {% set instance_owner_total = instance_owner_stats.total|default(0) %}
+                                        {% set instance_owner_percent = instance_owner_stats.percent|default((instance_owner_total / total_accounts * 100) if total_accounts > 0 else 0) %}
+                                        <tr data-owner-type-row="instance">
+                                            <td>
+                                                <span class="chip-outline chip-outline--brand">
+                                                    <i class="fas fa-server me-1"></i>实例账户
+                                                </span>
+                                                <div class="statistics-meta">
+                                                    <span class="status-pill status-pill--success">启用 {{ instance_owner_stats.active|default(0) }}</span>
+                                                    <span class="status-pill status-pill--muted">删除 {{ instance_owner_stats.deleted|default(0) }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-end"><span class="statistics-number" data-field="owner-type-count">{{ instance_owner_total }}</span></td>
+                                            <td>
+                                                <div class="statistics-progress" aria-label="占比 {{ instance_owner_percent|round(1) }}%">
+                                                    <div class="statistics-progress__bar statistics-progress__bar--info" data-field="owner-type-progress" style="width: {{ instance_owner_percent }}%"></div>
+                                                </div>
+                                                <span class="statistics-progress__value" data-field="owner-type-percent">{{ '%.1f'|format(instance_owner_percent) }}%</span>
+                                            </td>
+                                        </tr>
+                                        {% set ag_owner_stats = owner_type_stats.get('sqlserver_ag', {}) %}
+                                        {% set ag_owner_total = ag_owner_stats.total|default(0) %}
+                                        {% set ag_owner_percent = ag_owner_stats.percent|default((ag_owner_total / total_accounts * 100) if total_accounts > 0 else 0) %}
+                                        <tr data-owner-type-row="sqlserver_ag">
+                                            <td>
+                                                <span class="chip-outline chip-outline--brand">
+                                                    <i class="fas fa-project-diagram me-1"></i>AG 账户
+                                                </span>
+                                                <div class="statistics-meta">
+                                                    <span class="status-pill status-pill--success">启用 {{ ag_owner_stats.active|default(0) }}</span>
+                                                    <span class="status-pill status-pill--muted">删除 {{ ag_owner_stats.deleted|default(0) }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-end"><span class="statistics-number" data-field="owner-type-count">{{ ag_owner_total }}</span></td>
+                                            <td>
+                                                <div class="statistics-progress" aria-label="占比 {{ ag_owner_percent|round(1) }}%">
+                                                    <div class="statistics-progress__bar statistics-progress__bar--info" data-field="owner-type-progress" style="width: {{ ag_owner_percent }}%"></div>
+                                                </div>
+                                                <span class="statistics-progress__value" data-field="owner-type-percent">{{ '%.1f'|format(ag_owner_percent) }}%</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                <div class="col-12 col-xl-7">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-id-badge"></i>
+                                <span>AD 账户对比</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">活跃账户</span>
+                        </div>
+                        <div class="statistics-panel__body">
+                            <div class="table-responsive statistics-panel__table">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>状态</th>
+                                            <th class="text-end">合计</th>
+                                            <th class="text-end">实例账户</th>
+                                            <th class="text-end">AG 账户</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr data-ad-status-row="normal">
+                                            <td><span class="status-pill status-pill--success">正常</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="total">{{ ad_status_total.get('normal', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="instance">{{ ad_status_by_owner.get('instance', {}).get('normal', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="sqlserver_ag">{{ ad_status_by_owner.get('sqlserver_ag', {}).get('normal', 0) }}</span></td>
+                                        </tr>
+                                        <tr data-ad-status-row="disabled">
+                                            <td><span class="status-pill status-pill--warning">AD 已停用</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="total">{{ ad_status_total.get('disabled', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="instance">{{ ad_status_by_owner.get('instance', {}).get('disabled', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="sqlserver_ag">{{ ad_status_by_owner.get('sqlserver_ag', {}).get('disabled', 0) }}</span></td>
+                                        </tr>
+                                        <tr data-ad-status-row="orphaned">
+                                            <td><span class="status-pill status-pill--danger">AD 孤账户</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="total">{{ ad_status_total.get('orphaned', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="instance">{{ ad_status_by_owner.get('instance', {}).get('orphaned', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="sqlserver_ag">{{ ad_status_by_owner.get('sqlserver_ag', {}).get('orphaned', 0) }}</span></td>
+                                        </tr>
+                                        <tr data-ad-status-row="unmatched">
+                                            <td><span class="status-pill status-pill--muted">未匹配</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="total">{{ ad_status_total.get('unmatched', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="instance">{{ ad_status_by_owner.get('instance', {}).get('unmatched', 0) }}</span></td>
+                                            <td class="text-end"><span class="statistics-number" data-ad-status-field="sqlserver_ag">{{ ad_status_by_owner.get('sqlserver_ag', {}).get('unmatched', 0) }}</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">

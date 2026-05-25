@@ -9,6 +9,12 @@
     flex: 1 1 auto;
 }
 
+.dashboard-ad-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .dashboard-layout {
     align-items: stretch;
 }
