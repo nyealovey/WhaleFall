@@ -17,7 +17,6 @@ def test_dashboard_overview_uses_account_normal_locked_deleted_and_database_norm
         "overview.accounts.locked",
         "overview.accounts.deleted",
         "overview.accounts.sqlserver_ag",
-        "overview.accounts.ad_status",
         "overview.instances.physical",
         "overview.instances.ag_virtual",
         "overview.databases.active",
@@ -31,6 +30,11 @@ def test_dashboard_overview_uses_account_normal_locked_deleted_and_database_norm
         "overview.accounts.active if overview and overview.accounts else 0 }} 活跃",
         "(overview.accounts.total - overview.accounts.active)",
         "overview.databases.inactive if overview and overview.databases else 0 }} 已删除",
+        "dashboard_ad_status",
+        "AD 正常",
+        "AD 已停用",
+        "AD 孤账户",
+        "未匹配 {{ dashboard_ad_status",
     )
     for fragment in forbidden_fragments:
         assert fragment not in content
