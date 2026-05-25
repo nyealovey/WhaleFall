@@ -76,9 +76,39 @@
     min-width: 2rem;
 }
 
+.cluster-status-kpis {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cluster-status-kpi {
+    background: var(--wf-surface, #fff);
+    border: 1px solid var(--wf-border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+}
+
+.cluster-status-kpi__label {
+    color: var(--wf-muted-color, #6b7280);
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.cluster-status-kpi strong {
+    color: var(--wf-heading-color, #111827);
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
 @media (max-width: 576px) {
     .cluster-ag-syncbar {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .cluster-status-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

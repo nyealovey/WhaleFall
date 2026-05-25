@@ -79,8 +79,9 @@ class ClusterStatusSyncService:
             for row in rows
             if self._value(row, "ag_name", 0) in known_ag
         ]
+        self._apply_sqlserver_cluster_status(cluster, status="completed", error_message=None)
         db.session.flush()
-        abnormal_database_count = sum(1 for state in states if state.is_abnormal)
+        abnormal_database_count = len({(state.ag_name, state.database_name) for state in states if state.is_abnormal})
         abnormal_replica_count = len({state.replica_server_name for state in states if state.is_abnormal})
         log_info(
             "检测 SQL Server AG 数据库同步状态",
@@ -147,7 +148,9 @@ class ClusterStatusSyncService:
         status: str,
         error_message: str | None,
     ) -> dict[str, Any]:
-        abnormal_database_count = sum(1 for state in states if state.is_abnormal)
+        ClusterStatusSyncService._apply_sqlserver_cluster_status(cluster, status=status, error_message=error_message)
+        db.session.flush()
+        abnormal_database_count = len({(state.ag_name, state.database_name) for state in states if state.is_abnormal})
         abnormal_replica_count = len({state.replica_server_name for state in states if state.is_abnormal})
         log_info(
             "检测 SQL Server AG 数据库同步状态",
@@ -166,6 +169,18 @@ class ClusterStatusSyncService:
             "abnormal_replica_count": abnormal_replica_count,
             "items": [state.to_dict() for state in states],
         }
+
+    @staticmethod
+    def _apply_sqlserver_cluster_status(
+        cluster: SQLServerCluster,
+        *,
+        status: str,
+        error_message: str | None,
+    ) -> None:
+        cluster.last_status_sync_at = time_utils.now()
+        cluster.last_status_sync_status = status
+        cluster.last_status_sync_error = error_message
+        db.session.add(cluster)
 
     @staticmethod
     def _build_sqlserver_status_target(instance: Instance) -> Instance:

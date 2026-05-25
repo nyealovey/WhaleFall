@@ -123,6 +123,60 @@ def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> No
     assert 'data-action="sync-ag-accounts"' not in template_content
 
 
+def test_sqlserver_cluster_list_renders_database_status_semantics() -> None:
+    view_content = _read_text("app/static/js/modules/views/cluster/list.js")
+    template_content = _read_text("app/templates/cluster/list.html")
+
+    required_view_fragments = (
+        "renderSQLServerDatabaseStatusSummary(meta)",
+        "last_status_sync_status",
+        "last_status_sync_error",
+        "未检测",
+        "检测失败",
+        "异常 ${abnormal}",
+        "正常",
+        'data-action="open-sqlserver-status"',
+        "/cluster/sqlserver-status",
+    )
+    for fragment in required_view_fragments:
+        assert fragment in view_content
+
+    assert "异常数 ${abnormal} / 副本 ${replicas}" not in view_content
+    assert 'href="/cluster/sqlserver-status"' in template_content
+
+
+def test_sqlserver_status_page_contract() -> None:
+    template_content = _read_text("app/templates/cluster/sqlserver_status.html")
+    view_content = _read_text("app/static/js/modules/views/cluster/sqlserver-status.js")
+
+    required_template_fragments = (
+        "SQL Server AG 数据库状态",
+        "sqlserver-status-root",
+        "sqlserver-status-filter-form",
+        "sqlserver-status-grid",
+        'name="cluster_id"',
+        'name="ag_name"',
+        'name="status"',
+        'data-action="sync-current-cluster"',
+    )
+    for fragment in required_template_fragments:
+        assert fragment in template_content
+
+    required_view_fragments = (
+        "/api/v1/sqlserver-clusters/database-sync-states",
+        "sync-current-cluster",
+        "syncStatus(clusterId)",
+        "renderStatusPill",
+        "GridPage.mount",
+        "total_databases",
+        "abnormal_databases",
+        "normal_databases",
+        "affected_replicas",
+    )
+    for fragment in required_view_fragments:
+        assert fragment in view_content
+
+
 def test_run_center_session_detail_labels_ag_cluster_items() -> None:
     content = _read_text("app/static/js/modules/views/history/sessions/session-detail.js")
 

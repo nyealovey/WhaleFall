@@ -9,6 +9,8 @@ from app.core.constants import DatabaseType
 from app.models.instance import Instance
 from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
+from app.schemas.sqlserver_clusters import SQLServerDatabaseSyncStatesQuery
+from app.services.cluster_status_sync.read_service import SQLServerAgDatabaseSyncStatesReadService
 from app.services.cluster_status_sync.service import ClusterStatusSyncService
 
 
@@ -102,6 +104,10 @@ def test_sqlserver_ag_status_sync_records_healthy_database_state() -> None:
         assert state.ag_name == "AG01"
         assert state.database_name == "billing"
         assert state.is_abnormal is False
+        db.session.refresh(cluster)
+        assert cluster.last_status_sync_status == "completed"
+        assert cluster.last_status_sync_error is None
+        assert cluster.last_status_sync_at is not None
 
 
 @pytest.mark.unit
@@ -186,3 +192,94 @@ def test_sqlserver_ag_status_sync_connection_failure_is_cluster_scoped() -> None
 
         assert result["status"] == "failed"
         assert "boom" in result["error_message"]
+        db.session.refresh(cluster)
+        assert cluster.last_status_sync_status == "failed"
+        assert cluster.last_status_sync_error == "boom"
+        assert cluster.last_status_sync_at is not None
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_database_sync_states_read_service_groups_database_health() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
+        other_cluster = SQLServerCluster(name="cluster-b", domain_name="wz.dc", description="")
+        db.session.add_all([cluster, other_cluster])
+        db.session.flush()
+        db.session.add_all(
+            [
+                SQLServerAvailabilityGroup(cluster_id=cluster.id, name="AG01", listener_host="ag01"),
+                SQLServerAgDatabaseSyncState(
+                    cluster_id=cluster.id,
+                    ag_name="AG01",
+                    database_name="billing",
+                    replica_server_name="sql-1",
+                    synchronization_health_desc="HEALTHY",
+                    log_send_queue_size=0,
+                    redo_queue_size=0,
+                    is_abnormal=False,
+                ),
+                SQLServerAgDatabaseSyncState(
+                    cluster_id=cluster.id,
+                    ag_name="AG01",
+                    database_name="billing",
+                    replica_server_name="sql-2",
+                    synchronization_health_desc="NOT_HEALTHY",
+                    log_send_queue_size=17,
+                    redo_queue_size=23,
+                    is_abnormal=True,
+                    error_summary="health=NOT_HEALTHY",
+                ),
+                SQLServerAgDatabaseSyncState(
+                    cluster_id=cluster.id,
+                    ag_name="AG01",
+                    database_name="inventory",
+                    replica_server_name="sql-1",
+                    synchronization_health_desc="HEALTHY",
+                    log_send_queue_size=0,
+                    redo_queue_size=0,
+                    is_abnormal=False,
+                ),
+                SQLServerAgDatabaseSyncState(
+                    cluster_id=other_cluster.id,
+                    ag_name="AG02",
+                    database_name="billing",
+                    replica_server_name="sql-9",
+                    is_abnormal=True,
+                    error_summary="other",
+                ),
+            ],
+        )
+        db.session.commit()
+
+        service = SQLServerAgDatabaseSyncStatesReadService()
+        result = service.list_states(SQLServerDatabaseSyncStatesQuery(cluster_id=cluster.id, status="abnormal"))
+
+        assert result["total"] == 1
+        assert result["kpis"] == {
+            "total_databases": 2,
+            "abnormal_databases": 1,
+            "normal_databases": 1,
+            "affected_replicas": 1,
+        }
+        item = result["items"][0]
+        assert item["cluster_id"] == cluster.id
+        assert item["cluster_name"] == "cluster-a"
+        assert item["ag_name"] == "AG01"
+        assert item["database_name"] == "billing"
+        assert item["status"] == "abnormal"
+        assert item["replica_count"] == 2
+        assert item["abnormal_replica_count"] == 1
+        assert item["abnormal_replica_names"] == ["sql-2"]
+        assert item["max_log_send_queue_size"] == 17
+        assert item["max_redo_queue_size"] == 23
+        assert item["error_summary"] == "health=NOT_HEALTHY"
+
+        normal = service.list_states(SQLServerDatabaseSyncStatesQuery(cluster_id=cluster.id, status="normal"))
+        assert [item["database_name"] for item in normal["items"]] == ["inventory"]
+
+        searched = service.list_states(SQLServerDatabaseSyncStatesQuery(cluster_id=cluster.id, search="sql-2"))
+        assert [item["database_name"] for item in searched["items"]] == ["billing"]

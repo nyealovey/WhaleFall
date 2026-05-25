@@ -452,6 +452,12 @@ class MySQLClusterManagementService:
         bindings = self._list_bindings_for_cluster(cluster.id)
         payload = cluster.to_dict()
         unhealthy_count = sum(1 for binding in bindings if binding.replication_status not in {"healthy"})
+        replica_bindings = [binding for binding in bindings if binding.replication_role == "replica"]
+        known_replica_lags = [
+            int(binding.seconds_behind_source)
+            for binding in replica_bindings
+            if binding.seconds_behind_source is not None
+        ]
         payload.update(
             {
                 "instance_count": len(bindings),
@@ -461,6 +467,11 @@ class MySQLClusterManagementService:
                     if binding.instance_id is not None
                 ],
                 "abnormal_replica_count": unhealthy_count,
+                "replica_count": len(replica_bindings),
+                "unknown_replica_lag_count": sum(
+                    1 for binding in replica_bindings if binding.seconds_behind_source is None
+                ),
+                "max_replica_lag_seconds": max(known_replica_lags) if known_replica_lags else None,
             },
         )
         return payload

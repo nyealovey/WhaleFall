@@ -149,6 +149,9 @@ class SQLServerClusterOrmFields(TypedDict, total=False):
     domain_name: str | None
     description: str
     is_enabled: bool
+    last_status_sync_at: datetime | None
+    last_status_sync_status: str | None
+    last_status_sync_error: str | None
     created_at: datetime
     updated_at: datetime
 

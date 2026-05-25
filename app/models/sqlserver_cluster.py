@@ -25,6 +25,9 @@ class SQLServerCluster(db.Model):
     domain_name = db.Column(db.String(255), nullable=True)
     description = db.Column(db.Text, nullable=False, default="")
     is_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    last_status_sync_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_status_sync_status = db.Column(db.String(32), nullable=True)
+    last_status_sync_error = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
 
@@ -51,6 +54,9 @@ class SQLServerCluster(db.Model):
             "domain_name": self.domain_name,
             "description": self.description,
             "is_enabled": bool(self.is_enabled),
+            "last_status_sync_at": self.last_status_sync_at.isoformat() if self.last_status_sync_at else None,
+            "last_status_sync_status": self.last_status_sync_status,
+            "last_status_sync_error": self.last_status_sync_error,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

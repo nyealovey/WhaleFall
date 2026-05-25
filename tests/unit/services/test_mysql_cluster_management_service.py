@@ -9,7 +9,9 @@ from app.core.constants import DatabaseType
 from app.core.exceptions import ConflictError, ValidationError
 from app.models.instance import Instance
 from app.models.mysql_cluster import MySQLCluster, MySQLClusterInstance
+from app.schemas.mysql_clusters import MySQLClusterListQuery
 from app.services.mysql_clusters.service import MySQLClusterManagementService
+from app.utils.time_utils import time_utils
 
 
 def _create_schema() -> None:
@@ -233,3 +235,181 @@ def test_mysql_topology_sync_marks_non_replica_read_write_as_primary() -> None:
 
         assert result["items"][0]["replication_role"] == "primary"
         assert result["items"][0]["replication_status"] == "healthy"
+
+
+@pytest.mark.unit
+def test_mysql_cluster_summary_reports_healthy_replica_counts_and_max_lag() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        checked_at = time_utils.now()
+        primary = Instance(name="mysql-primary", db_type=DatabaseType.MYSQL, host="10.0.0.1", port=3306)
+        replica_fast = Instance(name="mysql-replica-fast", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
+        replica_slow = Instance(name="mysql-replica-slow", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
+        cluster = MySQLCluster(
+            name="mysql-cluster-summary",
+            last_topology_sync_at=checked_at,
+            last_topology_sync_status="completed",
+        )
+        db.session.add_all([primary, replica_fast, replica_slow, cluster])
+        db.session.flush()
+        db.session.add_all(
+            [
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=primary.id,
+                    replication_role="primary",
+                    replication_status="healthy",
+                    last_checked_at=checked_at,
+                ),
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=replica_fast.id,
+                    replication_role="replica",
+                    replication_status="healthy",
+                    seconds_behind_source=0,
+                    last_checked_at=checked_at,
+                ),
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=replica_slow.id,
+                    replication_role="replica",
+                    replication_status="healthy",
+                    seconds_behind_source=12,
+                    last_checked_at=checked_at,
+                ),
+            ],
+        )
+        db.session.commit()
+
+        service = MySQLClusterManagementService()
+        result = service.list_clusters(MySQLClusterListQuery())
+        summary = next(item for item in result["items"] if item["id"] == cluster.id)
+
+        assert summary["abnormal_replica_count"] == 0
+        assert summary["replica_count"] == 2
+        assert summary["unknown_replica_lag_count"] == 0
+        assert summary["max_replica_lag_seconds"] == 12
+
+
+@pytest.mark.unit
+def test_mysql_cluster_summary_counts_unhealthy_failed_and_unknown_instances() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        checked_at = time_utils.now()
+        instances = [
+            Instance(name=f"mysql-{index}", db_type=DatabaseType.MYSQL, host=f"10.0.1.{index}", port=3306)
+            for index in range(1, 5)
+        ]
+        cluster = MySQLCluster(
+            name="mysql-cluster-abnormal",
+            last_topology_sync_at=checked_at,
+            last_topology_sync_status="completed",
+        )
+        db.session.add_all([*instances, cluster])
+        db.session.flush()
+        db.session.add_all(
+            [
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=instances[0].id,
+                    replication_role="primary",
+                    replication_status="healthy",
+                    last_checked_at=checked_at,
+                ),
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=instances[1].id,
+                    replication_role="replica",
+                    replication_status="unhealthy",
+                    seconds_behind_source=8,
+                    last_checked_at=checked_at,
+                ),
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=instances[2].id,
+                    replication_role="replica",
+                    replication_status="failed",
+                    last_checked_at=checked_at,
+                ),
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=instances[3].id,
+                    replication_role="unknown",
+                    replication_status="unknown",
+                    last_checked_at=checked_at,
+                ),
+            ],
+        )
+        db.session.commit()
+
+        service = MySQLClusterManagementService()
+        result = service.list_clusters(MySQLClusterListQuery())
+        summary = next(item for item in result["items"] if item["id"] == cluster.id)
+
+        assert summary["abnormal_replica_count"] == 3
+        assert summary["replica_count"] == 2
+        assert summary["unknown_replica_lag_count"] == 1
+        assert summary["max_replica_lag_seconds"] == 8
+
+
+@pytest.mark.unit
+def test_mysql_cluster_summary_distinguishes_no_replica_from_unknown_lag() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        checked_at = time_utils.now()
+        primary = Instance(name="mysql-primary-only", db_type=DatabaseType.MYSQL, host="10.0.2.1", port=3306)
+        replica = Instance(name="mysql-replica-unknown-lag", db_type=DatabaseType.MYSQL, host="10.0.2.2", port=3306)
+        no_replica_cluster = MySQLCluster(
+            name="mysql-no-replica",
+            last_topology_sync_at=checked_at,
+            last_topology_sync_status="completed",
+        )
+        unknown_lag_cluster = MySQLCluster(
+            name="mysql-unknown-lag",
+            last_topology_sync_at=checked_at,
+            last_topology_sync_status="completed",
+        )
+        never_checked_cluster = MySQLCluster(name="mysql-never-checked")
+        db.session.add_all([primary, replica, no_replica_cluster, unknown_lag_cluster, never_checked_cluster])
+        db.session.flush()
+        db.session.add_all(
+            [
+                MySQLClusterInstance(
+                    cluster_id=no_replica_cluster.id,
+                    instance_id=primary.id,
+                    replication_role="primary",
+                    replication_status="healthy",
+                    last_checked_at=checked_at,
+                ),
+                MySQLClusterInstance(
+                    cluster_id=unknown_lag_cluster.id,
+                    instance_id=replica.id,
+                    replication_role="replica",
+                    replication_status="healthy",
+                    seconds_behind_source=None,
+                    last_checked_at=checked_at,
+                ),
+            ],
+        )
+        db.session.commit()
+
+        service = MySQLClusterManagementService()
+        result = service.list_clusters(MySQLClusterListQuery())
+        summaries = {item["name"]: item for item in result["items"]}
+
+        assert summaries["mysql-no-replica"]["replica_count"] == 0
+        assert summaries["mysql-no-replica"]["unknown_replica_lag_count"] == 0
+        assert summaries["mysql-no-replica"]["max_replica_lag_seconds"] is None
+        assert summaries["mysql-unknown-lag"]["replica_count"] == 1
+        assert summaries["mysql-unknown-lag"]["unknown_replica_lag_count"] == 1
+        assert summaries["mysql-unknown-lag"]["max_replica_lag_seconds"] is None
+        assert summaries["mysql-never-checked"]["last_topology_sync_at"] is None

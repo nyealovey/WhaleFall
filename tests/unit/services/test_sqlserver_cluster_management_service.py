@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -12,7 +13,9 @@ from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
+from app.schemas.sqlserver_clusters import SQLServerClusterListQuery
 from app.services.sqlserver_clusters.service import SQLServerClusterManagementService
 
 
@@ -28,6 +31,7 @@ def _create_schema() -> None:
             db.metadata.tables["sqlserver_clusters"],
             db.metadata.tables["sqlserver_cluster_instances"],
             db.metadata.tables["sqlserver_availability_groups"],
+            db.metadata.tables["sqlserver_ag_database_sync_states"],
         ],
     )
 
@@ -63,6 +67,54 @@ def test_cluster_domain_name_is_saved_and_returned() -> None:
         updated = service.update_cluster(created["id"], {"domain_name": "corp.wz.dc"})
 
         assert updated["domain_name"] == "corp.wz.dc"
+
+
+@pytest.mark.unit
+def test_list_clusters_exposes_sqlserver_database_status_sync_semantics() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        undetected = SQLServerCluster(name="cluster-undetected", description="")
+        failed = SQLServerCluster(
+            name="cluster-failed",
+            description="",
+            last_status_sync_status="failed",
+            last_status_sync_error="login failed",
+            last_status_sync_at=datetime(2026, 5, 25, 8, 30),
+        )
+        healthy = SQLServerCluster(
+            name="cluster-healthy",
+            description="",
+            last_status_sync_status="completed",
+            last_status_sync_at=datetime(2026, 5, 25, 8, 35),
+        )
+        db.session.add_all([undetected, failed, healthy])
+        db.session.flush()
+        db.session.add(
+            SQLServerAgDatabaseSyncState(
+                cluster_id=healthy.id,
+                ag_name="AG01",
+                database_name="billing",
+                replica_server_name="sql-1",
+                is_abnormal=False,
+                last_checked_at=datetime(2026, 5, 25, 8, 35),
+            ),
+        )
+        db.session.commit()
+
+        result = SQLServerClusterManagementService().list_clusters(SQLServerClusterListQuery(limit=20))
+        items = {item["name"]: item for item in result["items"]}
+
+        assert items["cluster-undetected"]["last_status_sync_status"] is None
+        assert items["cluster-undetected"]["last_status_sync_error"] is None
+        assert items["cluster-undetected"]["last_status_sync_at"] is None
+        assert items["cluster-undetected"]["ag_database_sync_abnormal_count"] == 0
+        assert items["cluster-failed"]["last_status_sync_status"] == "failed"
+        assert items["cluster-failed"]["last_status_sync_error"] == "login failed"
+        assert items["cluster-healthy"]["last_status_sync_status"] == "completed"
+        assert items["cluster-healthy"]["ag_database_sync_abnormal_count"] == 0
 
 
 @pytest.mark.unit

@@ -427,8 +427,7 @@ class SQLServerClusterManagementService:
         ags = self._repository.list_ag_for_cluster(cluster.id)
         latest = max((ag for ag in ags if ag.last_sync_at is not None), key=lambda ag: ag.last_sync_at, default=None)
         sync_states = self._list_sync_states_for_cluster(cluster.id)
-        latest_status = sync_states[0] if sync_states else None
-        abnormal_database_count = sum(1 for state in sync_states if state.is_abnormal)
+        abnormal_database_count = len({(state.ag_name, state.database_name) for state in sync_states if state.is_abnormal})
         abnormal_replica_count = len({state.replica_server_name for state in sync_states if state.is_abnormal})
         payload = cluster.to_dict()
         payload.update(
@@ -446,7 +445,6 @@ class SQLServerClusterManagementService:
                 "ag_database_sync_state_count": len(sync_states),
                 "ag_database_sync_abnormal_count": abnormal_database_count,
                 "ag_replica_sync_abnormal_count": abnormal_replica_count,
-                "last_status_sync_at": latest_status.last_checked_at.isoformat() if latest_status else None,
             },
         )
         return payload

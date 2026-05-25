@@ -23,6 +23,9 @@
 {% if current_user.role == 'admin' %}
 {% call page_header('fas fa-layer-group', '群集管理', '维护 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') %}
 <div class="btn-group">
+    <a href="/cluster/sqlserver-status" class="btn btn-outline-primary">
+        <i class="fas fa-heart-pulse me-2"></i>AG 数据库状态
+    </a>
     <button class="btn btn-primary" type="button" data-action="create-cluster">
                     <i class="fas fa-plus me-2"></i>添加群集
     </button>

@@ -112,6 +112,10 @@ function mountClusterPage(global) {
               event.preventDefault();
               syncSQLServerStatus(el);
             },
+            "open-sqlserver-status": ({ event, el }) => {
+              event.preventDefault();
+              openSQLServerStatusPage(el);
+            },
           },
         }),
       ],
@@ -211,13 +215,7 @@ function mountClusterPage(global) {
         id: "ag_database_sync_abnormal_count",
         formatter: (value, row) => {
           const meta = rowMeta.get(row);
-          const abnormal = Number(value || 0);
-          const replicas = Number(meta.ag_replica_sync_abnormal_count || 0);
-          const tone = abnormal > 0 || replicas > 0 ? "danger" : "success";
-          const checkedAt = meta.last_status_sync_at ? `<small class="text-muted ms-2">${escapeHtml(formatDate(meta.last_status_sync_at))}</small>` : "";
-          return gridHtml(
-            `<span class="status-pill status-pill--${tone}">异常数 ${abnormal} / 副本 ${replicas}</span>${checkedAt}`
-          );
+          return gridHtml(renderSQLServerDatabaseStatusSummary(meta));
         },
       },
     ];
@@ -241,6 +239,8 @@ function mountClusterPage(global) {
               `<i class="fas fa-users" aria-hidden="true"></i></button>` +
               `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="sync-sqlserver-status-row" data-cluster-id="${clusterId}" title="数据库同步状态" aria-label="数据库同步状态">` +
               `<i class="fas fa-heart-pulse" aria-hidden="true"></i></button>` +
+              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-sqlserver-status" data-cluster-id="${clusterId}" title="状态页" aria-label="状态页">` +
+              `<i class="fas fa-table-list" aria-hidden="true"></i></button>` +
               `</div>`
           );
         },
@@ -281,10 +281,15 @@ function mountClusterPage(global) {
         id: "abnormal_replica_count",
         formatter: (value, row) => {
           const meta = rowMeta.get(row);
-          const abnormal = Number(value || 0);
-          const tone = abnormal > 0 ? "danger" : "success";
-          const checkedAt = meta.last_topology_sync_at ? `<small class="text-muted ms-2">${escapeHtml(formatDate(meta.last_topology_sync_at))}</small>` : "";
-          return gridHtml(`<span class="status-pill status-pill--${tone}">异常数 ${abnormal}</span>${checkedAt}`);
+          return gridHtml(renderMySQLTopologySummary(meta));
+        },
+      },
+      {
+        name: "最大延迟",
+        id: "max_replica_lag_seconds",
+        formatter: (value, row) => {
+          const meta = rowMeta.get(row);
+          return renderMySQLLagSummary(meta);
         },
       },
     ];
@@ -348,6 +353,7 @@ function mountClusterPage(global) {
       item.is_enabled,
       item.instance_count,
       item.abnormal_replica_count,
+      item.max_replica_lag_seconds,
       item,
     ]);
   }
@@ -580,6 +586,16 @@ function mountClusterPage(global) {
     params.set("owner_type", "sqlserver_ag");
     params.set("include_roles", "true");
     global.location.href = `/accounts/ledgers/sqlserver?${params.toString()}`;
+  }
+
+  function openSQLServerStatusPage(trigger) {
+    const clusterId = trigger?.getAttribute("data-cluster-id");
+    const params = new URLSearchParams();
+    if (clusterId) {
+      params.set("cluster_id", clusterId);
+    }
+    const query = params.toString();
+    global.location.href = `/cluster/sqlserver-status${query ? `?${query}` : ""}`;
   }
 
   function renderAgTable(items) {
@@ -873,6 +889,53 @@ function mountClusterPage(global) {
   function renderSyncStatus(value) {
     const tone = value === "failed" ? "danger" : value === "completed" ? "success" : "muted";
     return `<span class="status-pill status-pill--${tone}">${escapeHtml(value || "未同步")}</span>`;
+  }
+
+  function renderSQLServerDatabaseStatusSummary(cluster) {
+    const checkedAt = cluster.last_status_sync_at ? `<small class="text-muted ms-2">${escapeHtml(formatDate(cluster.last_status_sync_at))}</small>` : "";
+    const status = cluster.last_status_sync_status || "";
+    if (!cluster.last_status_sync_at && !status) {
+      return '<span class="status-pill status-pill--muted">未检测</span>';
+    }
+    if (status === "failed") {
+      const errorTitle = cluster.last_status_sync_error ? ` title="${escapeHtml(cluster.last_status_sync_error)}"` : "";
+      return `<span class="status-pill status-pill--danger"${errorTitle}>检测失败</span>${checkedAt}`;
+    }
+    const abnormal = Number(cluster.ag_database_sync_abnormal_count || 0);
+    if (abnormal > 0) {
+      return `<span class="status-pill status-pill--danger">异常 ${abnormal}</span>${checkedAt}`;
+    }
+    return `<span class="status-pill status-pill--success">正常</span>${checkedAt}`;
+  }
+
+  function renderMySQLTopologySummary(cluster) {
+    const status = cluster.last_topology_sync_status || "";
+    const checkedAt = cluster.last_topology_sync_at ? `<small class="text-muted ms-2">${escapeHtml(formatDate(cluster.last_topology_sync_at))}</small>` : "";
+    if (!cluster.last_topology_sync_at && !status) {
+      return `<span class="status-pill status-pill--muted">未检测</span>`;
+    }
+    if (status === "failed") {
+      return `<span class="status-pill status-pill--danger">检测失败</span>${checkedAt}`;
+    }
+    const abnormal = Number(cluster.abnormal_replica_count || 0);
+    if (abnormal > 0) {
+      return `<span class="status-pill status-pill--danger">异常 ${abnormal}</span>${checkedAt}`;
+    }
+    return `<span class="status-pill status-pill--success">正常</span>${checkedAt}`;
+  }
+
+  function renderMySQLLagSummary(cluster) {
+    if (!cluster.last_topology_sync_at) {
+      return "-";
+    }
+    const replicaCount = Number(cluster.replica_count || 0);
+    if (replicaCount <= 0) {
+      return "-";
+    }
+    if (cluster.max_replica_lag_seconds === null || cluster.max_replica_lag_seconds === undefined) {
+      return Number(cluster.unknown_replica_lag_count || 0) > 0 ? "未知" : "-";
+    }
+    return `${Number(cluster.max_replica_lag_seconds)}s`;
   }
 
   function formatDate(value) {

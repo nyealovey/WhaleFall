@@ -106,6 +106,56 @@ class SQLServerClusterListQuery(PayloadSchema):
         return cleaned
 
 
+class SQLServerDatabaseSyncStatesQuery(PayloadSchema):
+    """SQL Server AG 数据库同步状态 query."""
+
+    page: int = _DEFAULT_PAGE
+    limit: int = _DEFAULT_LIMIT
+    cluster_id: int | None = None
+    ag_name: str | None = None
+    status: str = "all"
+    search: str = ""
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _parse_page(cls, value: Any) -> int:
+        parsed = parse_int(value, default=_DEFAULT_PAGE)
+        if parsed < 1:
+            raise ValueError("page 参数必须为正整数")
+        return parsed
+
+    @field_validator("limit", mode="before")
+    @classmethod
+    def _parse_limit(cls, value: Any) -> int:
+        parsed = parse_int(value, default=_DEFAULT_LIMIT)
+        if parsed < 1:
+            raise ValueError("limit 参数必须为正整数")
+        if parsed > _MAX_LIMIT:
+            raise ValueError(f"limit 最大为 {_MAX_LIMIT}")
+        return parsed
+
+    @field_validator("cluster_id", mode="before")
+    @classmethod
+    def _parse_cluster_id(cls, value: Any) -> int | None:
+        return parse_optional_int(value)
+
+    @field_validator("ag_name", mode="before")
+    @classmethod
+    def _parse_ag_name(cls, value: Any) -> str | None:
+        return _parse_optional_text(value)
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _parse_sync_status(cls, value: Any) -> str:
+        cleaned = parse_text(value).lower() or "all"
+        return cleaned if cleaned in {"all", "normal", "abnormal"} else "all"
+
+    @field_validator("search", mode="before")
+    @classmethod
+    def _parse_search(cls, value: Any) -> str:
+        return parse_text(value)
+
+
 class SQLServerClusterCreatePayload(PayloadSchema):
     """创建 SQL Server 群集 payload."""
 

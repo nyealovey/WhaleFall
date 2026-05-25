@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% set page_id = 'SQLServerClusterStatusPage' %}
+{% set page_density = 'compact' %}
+{% from 'components/filters/macros.html' import filter_card, search_input, select_filter %}
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block title %}SQL Server AG 数据库状态 - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/cluster/list.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+{% set cluster_filter_options = [{'value': '', 'label': '全部群集'}] %}
+{% for cluster in cluster_options %}
+    {% set _ = cluster_filter_options.append({'value': cluster.id|string, 'label': cluster.name}) %}
+{% endfor %}
+{% set ag_filter_options = [{'value': '', 'label': '全部 AG'}] %}
+{% for ag in ag_options %}
+    {% set _ = ag_filter_options.append({'value': ag.name, 'label': ag.name}) %}
+{% endfor %}
+{% set sync_status_options = [
+    {'value': 'all', 'label': '全部状态'},
+    {'value': 'normal', 'label': '正常'},
+    {'value': 'abnormal', 'label': '异常'}
+] %}
+
+{% call page_header('fas fa-heart-pulse', 'SQL Server AG 数据库状态', '按数据库聚合查看最近一次 AG 同步健康结果', eyebrow='AG Database Health') %}
+<div class="btn-group">
+    <a href="{{ url_for('cluster.index') }}" class="btn btn-outline-primary">
+        <i class="fas fa-layer-group me-2"></i>群集管理
+    </a>
+    <button type="button" class="btn btn-primary" data-action="sync-current-cluster" disabled>
+        <i class="fas fa-rotate me-2"></i>检测当前群集
+    </button>
+</div>
+{% endcall %}
+
+<div id="sqlserver-status-root"
+     data-api-url="/api/v1/sqlserver-clusters/database-sync-states"
+     data-selected-cluster-id="{{ selected_cluster_id or '' }}"
+     data-selected-ag-name="{{ selected_ag_name }}"
+     data-selected-status="{{ selected_status or 'all' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                {% call filter_card(form_id='sqlserver-status-filter-form', action=url_for('cluster.sqlserver_status'), auto_register=False) %}
+                    {{ search_input(value=search, placeholder='搜索数据库 / replica / 原因', width_preset='lg') }}
+                    <div class="filter-field filter-field--md filter-field--select">
+                        <label for="sqlserver-status-cluster-id" class="form-label">群集</label>
+                        <select id="sqlserver-status-cluster-id" name="cluster_id" class="form-select">
+                            {% for option in cluster_filter_options %}
+                            <option value="{{ option.value }}" {% if option.value == (selected_cluster_id|string if selected_cluster_id else '') %}selected{% endif %}>{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-field filter-field--md filter-field--select">
+                        <label for="sqlserver-status-ag-name" class="form-label">AG</label>
+                        <select id="sqlserver-status-ag-name" name="ag_name" class="form-select">
+                            {% for option in ag_filter_options %}
+                            <option value="{{ option.value }}" {% if option.value == selected_ag_name %}selected{% endif %}>{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-field filter-field--sm filter-field--select">
+                        <label for="sqlserver-status-state" class="form-label">同步状态</label>
+                        <select id="sqlserver-status-state" name="status" class="form-select">
+                            {% for option in sync_status_options %}
+                            <option value="{{ option.value }}" {% if option.value == (selected_status or 'all') %}selected{% endif %}>{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endcall %}
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="cluster-status-kpis" aria-label="SQL Server AG 数据库状态 KPI">
+                    <div class="cluster-status-kpi">
+                        <span class="cluster-status-kpi__label">总数据库</span>
+                        <strong data-kpi="total_databases">0</strong>
+                    </div>
+                    <div class="cluster-status-kpi">
+                        <span class="cluster-status-kpi__label">异常数据库</span>
+                        <strong data-kpi="abnormal_databases">0</strong>
+                    </div>
+                    <div class="cluster-status-kpi">
+                        <span class="cluster-status-kpi__label">正常数据库</span>
+                        <strong data-kpi="normal_databases">0</strong>
+                    </div>
+                    <div class="cluster-status-kpi">
+                        <span class="cluster-status-kpi__label">受影响 replica</span>
+                        <strong data-kpi="affected_replicas">0</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="sqlserver-status-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/sqlserver_clusters_service.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/cluster/sqlserver-status.js') }}"></script>
+{% endblock %}
