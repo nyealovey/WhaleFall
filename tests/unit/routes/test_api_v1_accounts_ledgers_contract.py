@@ -376,6 +376,109 @@ def test_api_v1_accounts_ledgers_filters_by_owner_type_for_instance_accounts() -
 
 
 @pytest.mark.unit
+def test_api_v1_accounts_ledgers_filters_sqlserver_ag_accounts_by_owner_id() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["instances"],
+                db.metadata.tables["instance_accounts"],
+                db.metadata.tables["account_permission"],
+                db.metadata.tables["account_classifications"],
+                db.metadata.tables["classification_rules"],
+                db.metadata.tables["account_classification_assignments"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        instance = Instance(
+            name="sqlserver-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="127.0.0.1",
+            port=1433,
+            description=None,
+            is_active=True,
+        )
+        db.session.add_all([user, instance])
+        db.session.flush()
+
+        ag_10_account = InstanceAccount(
+            instance_id=instance.id,
+            username="ag10_user",
+            db_type=DatabaseType.SQLSERVER,
+            owner_type="sqlserver_ag",
+            owner_id=10,
+            is_active=True,
+        )
+        ag_20_account = InstanceAccount(
+            instance_id=instance.id,
+            username="ag20_user",
+            db_type=DatabaseType.SQLSERVER,
+            owner_type="sqlserver_ag",
+            owner_id=20,
+            is_active=True,
+        )
+        db.session.add_all([ag_10_account, ag_20_account])
+        db.session.flush()
+
+        permission_facts = {
+            "version": 2,
+            "db_type": "sqlserver",
+            "capabilities": [],
+            "capability_reasons": {},
+            "roles": [],
+            "privileges": {},
+            "errors": [],
+            "meta": {},
+        }
+        db.session.add_all(
+            [
+                AccountPermission(
+                    instance_id=instance.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    instance_account_id=ag_10_account.id,
+                    username="ag10_user",
+                    owner_type="sqlserver_ag",
+                    owner_id=10,
+                    type_specific={"scope": "ag-10"},
+                    permission_facts=permission_facts,
+                ),
+                AccountPermission(
+                    instance_id=instance.id,
+                    db_type=DatabaseType.SQLSERVER,
+                    instance_account_id=ag_20_account.id,
+                    username="ag20_user",
+                    owner_type="sqlserver_ag",
+                    owner_id=20,
+                    type_specific={"scope": "ag-20"},
+                    permission_facts=permission_facts,
+                ),
+            ],
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/api/v1/accounts/ledgers?owner_type=sqlserver_ag&owner_id=20&include_roles=true")
+
+        assert response.status_code == 200
+        payload = response.get_json()
+        data = payload.get("data")
+        assert isinstance(data, dict)
+        items = data.get("items")
+        assert isinstance(items, list)
+        assert [item["username"] for item in items] == ["ag20_user"]
+
+
+@pytest.mark.unit
 def test_api_v1_accounts_ledgers_displays_ag_listener_for_ag_accounts() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

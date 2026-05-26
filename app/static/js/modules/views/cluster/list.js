@@ -28,7 +28,14 @@ function mountClusterPage(global) {
   const createStore = global.createSQLServerClustersStore;
   const MySQLClustersService = global.MySQLClustersService;
   const createMySQLStore = global.createMySQLClustersStore;
-  if (!SQLServerClustersService || typeof createStore !== "function" || !MySQLClustersService || typeof createMySQLStore !== "function") {
+  const AccountsLedgersService = global.AccountsLedgersService;
+  if (
+    !SQLServerClustersService ||
+    typeof createStore !== "function" ||
+    !MySQLClustersService ||
+    typeof createMySQLStore !== "function" ||
+    !AccountsLedgersService
+  ) {
     console.error("群集管理 service 或 store 未加载");
     return;
   }
@@ -37,6 +44,7 @@ function mountClusterPage(global) {
   const { ready } = helpers;
   let store = null;
   let mysqlStore = null;
+  let accountsLedgersService = null;
   let gridWrapper = null;
   let mysqlGridWrapper = null;
   let modal = null;
@@ -65,6 +73,7 @@ function mountClusterPage(global) {
     mysqlStore = createMySQLStore({
       service: new MySQLClustersService(),
     });
+    accountsLedgersService = new AccountsLedgersService();
     modalEl = document.getElementById("clusterManagementModal");
     modal = modalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(modalEl) : null;
     mysqlModalEl = document.getElementById("mysqlClusterManagementModal");
@@ -405,10 +414,6 @@ function mountClusterPage(global) {
     document.querySelector('[data-action="sync-ag-accounts-dashboard"]')?.addEventListener("click", (event) => {
       syncAgAccountsDashboard(event.currentTarget);
     });
-    document.querySelector('[data-action="open-ag-accounts-ledger-dashboard"]')?.addEventListener("click", (event) => {
-      event.preventDefault();
-      openAgAccountsLedgerForCurrentDashboard();
-    });
     document.getElementById("agAccountsDashboardTabs")?.addEventListener("click", (event) => {
       const target = event.target?.closest?.('[data-action="switch-ag-accounts-dashboard"]');
       if (!target) {
@@ -425,7 +430,6 @@ function mountClusterPage(global) {
       saveMySQLCluster();
     });
     bindAgAccountTable("clusterAgTableBody");
-    bindAgAccountTable("agAccountsDashboardTableBody");
   }
 
   function bindAgAccountTable(tableBodyId) {
@@ -587,6 +591,7 @@ function mountClusterPage(global) {
           resetAgAccountsDashboard();
           renderAgAccountsDashboard(detail, currentAgAccountsContext.agId);
           agAccountsModal?.show();
+          loadAgAccountsLedger(currentAgAccountsContext.agId);
         })
         .catch((error) => showError(error, "加载 AG 账户失败"))
     );
@@ -612,6 +617,7 @@ function mountClusterPage(global) {
             agId: currentAgAccountsContext?.agId || String(agItems[0]?.id || ""),
           };
           renderAgAccountsDashboard(detail, currentAgAccountsContext.agId);
+          loadAgAccountsLedger(currentAgAccountsContext.agId);
           showToast("success", "AG 账户同步完成");
           gridWrapper?.refresh?.();
         })
@@ -636,15 +642,7 @@ function mountClusterPage(global) {
       },
       agId
     );
-  }
-
-  function openAgAccountsLedgerForCurrentDashboard() {
-    const instanceId =
-      resolveFirstBoundInstanceId(currentAgAccountsContext?.cluster) ||
-      currentAgAccountsContext?.instances?.[0]?.id ||
-      currentAgAccountsContext?.instances?.[0]?.instance_id ||
-      "";
-    openAgAccountsLedger({ getAttribute: (name) => (name === "data-instance-id" ? instanceId : "") });
+    loadAgAccountsLedger(agId);
   }
 
   function syncSQLServerStatus(trigger) {
@@ -753,19 +751,6 @@ function mountClusterPage(global) {
     loadAgDashboard(clusterId, agId);
   }
 
-  function openAgAccountsLedger(trigger) {
-    const instanceId = trigger?.getAttribute("data-instance-id");
-    if (!instanceId) {
-      showToast("warning", "请先为群集绑定 SQL Server 实例");
-      return;
-    }
-    const params = new URLSearchParams();
-    params.set("instance_id", instanceId);
-    params.set("owner_type", "sqlserver_ag");
-    params.set("include_roles", "true");
-    global.location.href = `/accounts/ledgers/sqlserver?${params.toString()}`;
-  }
-
   function renderAgTable(items) {
     const body = document.getElementById("clusterAgTableBody");
     if (!body) {
@@ -812,7 +797,7 @@ function mountClusterPage(global) {
     ["total_ag", "contained_ag", "credentialed_ag", "enabled_ag"].forEach((key) => setAgAccountsKpiValue(key, "0"));
     const body = document.getElementById("agAccountsDashboardTableBody");
     if (body) {
-      body.innerHTML = '<tr><td colspan="8" class="text-muted">加载中...</td></tr>';
+      body.innerHTML = '<div class="text-muted small">加载中...</div>';
     }
   }
 
@@ -828,7 +813,7 @@ function mountClusterPage(global) {
     setAgAccountsKpiValue("credentialed_ag", String(agItems.filter((item) => item.account_credential_id).length));
     setAgAccountsKpiValue("enabled_ag", String(agItems.filter((item) => item.is_enabled).length));
     renderAgAccountsDashboardTabs(agItems, activeAg.id);
-    renderAgAccountsDashboardRows(agItems, activeAg.id);
+    renderAgAccountsLedgerRows(null);
   }
 
   function renderAgAccountListenerSummary(ag) {
@@ -863,22 +848,82 @@ function mountClusterPage(global) {
       .join("");
   }
 
-  function renderAgAccountsDashboardRows(items, activeAgId) {
+  function loadAgAccountsLedger(agId) {
+    if (!agId || !accountsLedgersService?.list) {
+      renderAgAccountsLedgerRows([]);
+      return;
+    }
+    renderAgAccountsLedgerRows(null);
+    accountsLedgersService
+      .list({
+        owner_type: "sqlserver_ag",
+        owner_id: agId,
+        include_roles: "true",
+        sort: "username",
+        order: "asc",
+        limit: 100,
+      })
+      .then((response) => {
+        const payload = response?.data || response || {};
+        renderAgAccountsLedgerRows(Array.isArray(payload.items) ? payload.items : []);
+      })
+      .catch((error) => {
+        showError(error, "加载 AG 账户列表失败");
+        renderAgAccountsLedgerError(error);
+      });
+  }
+
+  function renderAgAccountsLedgerRows(items) {
     const body = document.getElementById("agAccountsDashboardTableBody");
     if (!body) {
       return;
     }
-    currentAgItems = Array.isArray(items) ? items : [];
-    if (!currentAgItems.length) {
-      body.innerHTML = '<tr><td colspan="8" class="text-muted">暂无 AG 账户配置</td></tr>';
+    if (items === null) {
+      body.innerHTML = '<div class="text-muted small">账户列表加载中...</div>';
       return;
     }
-    body.innerHTML = currentAgItems
-      .map((item) => {
-        const activeClass = String(item.id) === String(activeAgId) ? "table-active" : "";
-        return renderAgRow(item, activeClass, currentAgAccountsContext?.clusterId || "");
-      })
+    const ledgerItems = Array.isArray(items) ? items : [];
+    if (!ledgerItems.length) {
+      body.innerHTML = '<div class="text-muted small">暂无 AG 账户，请先同步 AG 账户</div>';
+      return;
+    }
+    body.innerHTML = ledgerItems
+      .map((item) => renderAgAccountLedgerRow(item))
       .join("");
+  }
+
+  function renderAgAccountsLedgerError(error) {
+    const body = document.getElementById("agAccountsDashboardTableBody");
+    if (body) {
+      body.innerHTML = `<div class="text-danger small">${escapeHtml(resolveErrorMessage(error, "账户列表加载失败"))}</div>`;
+    }
+  }
+
+  function renderAgAccountLedgerRow(item) {
+    const classifications = Array.isArray(item.classifications)
+      ? item.classifications.map((entry) => entry?.name).filter(Boolean).join(" / ")
+      : "";
+    const tags = Array.isArray(item.tags)
+      ? item.tags.map((entry) => entry?.display_name || entry?.name).filter(Boolean).join(" / ")
+      : "";
+    return (
+      `<div class="ag-account-ledger-row">` +
+      `<div class="ag-account-ledger-row__main">` +
+      `<strong>${escapeHtml(item.username || "-")}</strong>` +
+      `<small>${escapeHtml([item.instance_name, item.instance_host].filter(Boolean).join(" · ") || "-")}</small>` +
+      `</div>` +
+      `<div class="ag-account-ledger-row__badges">` +
+      `${renderAccountAvailability(item)}` +
+      `${renderBoolean(item.is_superuser)}` +
+      `<span class="status-pill status-pill--muted">${escapeHtml(renderAdStatusLabel(item.ad_status))}</span>` +
+      `</div>` +
+      `<div class="ag-account-ledger-row__meta">` +
+      `<span>分类 ${escapeHtml(classifications || "-")}</span>` +
+      `<span>标签 ${escapeHtml(tags || "-")}</span>` +
+      `<span>最近变更 ${escapeHtml(item.last_change_time ? formatDate(item.last_change_time) : "-")}</span>` +
+      `</div>` +
+      `</div>`
+    );
   }
 
   function resetAgDashboard() {
@@ -1253,19 +1298,19 @@ function mountClusterPage(global) {
     setMySQLTopologyKpiValue("replica_count", String(Number(item.replica_count || 0)));
     setMySQLTopologyKpiValue("abnormal_replica_count", String(Number(item.abnormal_replica_count || 0)));
     setMySQLTopologyKpiValue("max_replica_lag_seconds", renderMySQLLagSummary({ ...item, max_replica_lag_seconds: maxReplicaLagSeconds }));
-    renderMySQLTopologyDashboardTable(Array.isArray(detail?.instances) ? detail.instances : []);
+    renderMySQLTopologyDashboardCards(Array.isArray(detail?.instances) ? detail.instances : []);
   }
 
-  function renderMySQLTopologyDashboardTable(items) {
-    const body = document.getElementById("mysqlTopologyDashboardTableBody");
-    if (!body) {
+  function renderMySQLTopologyDashboardCards(items) {
+    const container = document.getElementById("mysqlTopologyDashboardInstances");
+    if (!container) {
       return;
     }
     if (!items.length) {
-      body.innerHTML = '<tr><td colspan="10" class="text-muted">暂无主从状态</td></tr>';
+      container.innerHTML = '<div class="text-muted small">暂无主从状态</div>';
       return;
     }
-    body.innerHTML = items
+    container.innerHTML = items
       .map((item) => {
         const source = item.source_host ? `${item.source_host}:${item.source_port || 3306}` : "-";
         const lag = item.seconds_behind_source === null || item.seconds_behind_source === undefined ? "-" : `${item.seconds_behind_source}s`;
@@ -1273,18 +1318,22 @@ function mountClusterPage(global) {
         const gtid = renderMySQLGtidSummary(item);
         const reason = [item.last_io_error, item.last_sql_error, item.last_error].filter(Boolean).join(" / ") || "-";
         return (
-          `<tr>` +
-          `<td><div class="fw-semibold">${escapeHtml(item.name || "-")}</div><small class="text-muted">${renderSyncStatus(item.replication_status || "unknown")}</small></td>` +
-          `<td>${escapeHtml(item.replication_role || "unknown")}</td>` +
-          `<td><div>IO ${escapeHtml(item.io_running || "-")}</div><small class="text-muted">SQL ${escapeHtml(item.sql_running || "-")}</small><div class="text-muted small">${escapeHtml(item.io_state || "-")}</div></td>` +
-          `<td>${escapeHtml(source)}</td>` +
-          `<td>${escapeHtml(lag)}<div class="text-muted small">SQL delay ${escapeHtml(formatNullableSeconds(item.sql_delay))}</div></td>` +
-          `<td class="mysql-cluster-topology-reason">${logPosition}</td>` +
-          `<td class="mysql-cluster-topology-reason">${gtid}</td>` +
-          `<td>${renderReadOnlyState(item)}</td>` +
-          `<td class="mysql-cluster-topology-reason">${escapeHtml(reason)}</td>` +
-          `<td>${escapeHtml(item.last_checked_at ? formatDate(item.last_checked_at) : "-")}</td>` +
-          `</tr>`
+          `<section class="mysql-topology-instance-card">` +
+          `<div class="mysql-topology-instance-card__header">` +
+          `<div><strong>${escapeHtml(item.name || "-")}</strong><small>${escapeHtml(item.last_checked_at ? formatDate(item.last_checked_at) : "未检测")}</small></div>` +
+          `<div class="mysql-topology-instance-card__status">${renderSyncStatus(item.replication_status || "unknown")}</div>` +
+          `</div>` +
+          `<div class="mysql-topology-field-row"><span>角色</span><strong>${escapeHtml(item.replication_role || "unknown")}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>上游</span><strong>${escapeHtml(source)}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>IO 线程</span><strong>${escapeHtml(item.io_running || "-")}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>SQL 线程</span><strong>${escapeHtml(item.sql_running || "-")}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>延迟</span><strong>${escapeHtml(lag)} · SQL delay ${escapeHtml(formatNullableSeconds(item.sql_delay))}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>IO 状态</span><strong>${escapeHtml(item.io_state || "-")}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>日志位置</span><strong>${logPosition}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>GTID</span><strong>${gtid}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>只读</span><strong>${renderReadOnlyState(item)}</strong></div>` +
+          `<div class="mysql-topology-field-row"><span>Last_IO_Error / Last_SQL_Error</span><strong>${escapeHtml(reason)}</strong></div>` +
+          `</section>`
         );
       })
       .join("");
@@ -1328,11 +1377,6 @@ function mountClusterPage(global) {
 
   function findCurrentAg(agId) {
     return currentAgItems.find((item) => String(item.id) === String(agId)) || null;
-  }
-
-  function resolveFirstBoundInstanceId(cluster) {
-    const ids = Array.isArray(cluster?.bound_instance_ids) ? cluster.bound_instance_ids : [];
-    return ids.length ? ids[0] : "";
   }
 
   function updateAgAccountCredential(select) {
@@ -1411,6 +1455,29 @@ function mountClusterPage(global) {
     return value
       ? '<span class="status-pill status-pill--success">是</span>'
       : '<span class="status-pill status-pill--muted">否</span>';
+  }
+
+  function renderAccountAvailability(item) {
+    if (item.is_deleted || item.is_active === false) {
+      return '<span class="status-pill status-pill--muted">已删除</span>';
+    }
+    if (item.is_locked) {
+      return '<span class="status-pill status-pill--danger">不可用</span>';
+    }
+    return '<span class="status-pill status-pill--success">可用</span>';
+  }
+
+  function renderAdStatusLabel(status) {
+    if (status === "normal") {
+      return "AD正常";
+    }
+    if (status === "disabled") {
+      return "AD已停用";
+    }
+    if (status === "orphaned") {
+      return "AD孤账户";
+    }
+    return "未匹配AD";
   }
 
   function renderStatus(value) {
@@ -1545,15 +1612,8 @@ function mountClusterPage(global) {
       return;
     }
     button.disabled = loading;
-    if (loading) {
-      button.dataset.originalText = button.innerHTML;
-      button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>同步中';
-      return;
-    }
-    if (button.dataset.originalText) {
-      button.innerHTML = button.dataset.originalText;
-      delete button.dataset.originalText;
-    }
+    button.classList.toggle("is-loading", loading);
+    button.setAttribute("aria-busy", loading ? "true" : "false");
   }
 
   function parseJsonDataset(raw, fallback) {

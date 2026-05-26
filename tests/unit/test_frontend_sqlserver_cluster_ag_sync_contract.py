@@ -102,17 +102,15 @@ def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> No
     assert "syncAgAccounts(clusterId)" in store_content
 
     required_view_fragments = (
-        'data-action="sync-ag-accounts"',
-        'data-action="open-ag-accounts"',
-        'title="同步AG账户"',
-        'aria-label="同步AG账户"',
-        'title="账户列表"',
-        'aria-label="账户列表"',
+        'data-action="open-ag-accounts-dashboard"',
+        'title="AG账户"',
+        'aria-label="AG账户"',
         "btn btn-outline-secondary btn-sm btn-icon",
+        'data-action="sync-ag-accounts-dashboard"',
         "syncAgAccounts(clusterId)",
-        'params.set("owner_type", "sqlserver_ag")',
-        "/accounts/ledgers/sqlserver",
-        "resolveFirstBoundInstanceId",
+        "loadAgAccountsLedger",
+        "owner_type: \"sqlserver_ag\"",
+        "owner_id: agId",
     )
     for fragment in required_view_fragments:
         assert fragment in view_content
@@ -121,6 +119,7 @@ def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> No
     assert "同步AG账户</button>" not in view_content
     assert "账户列表</button>" not in view_content
     assert 'data-action="sync-ag-accounts"' not in template_content
+    assert 'data-action="open-ag-accounts-ledger-dashboard"' not in template_content
 
 
 def test_sqlserver_cluster_list_renders_database_status_semantics() -> None:
@@ -198,12 +197,12 @@ def test_mysql_cluster_topology_modal_displays_failure_reason() -> None:
     view_content = _read_text("app/static/js/modules/views/cluster/list.js")
     css_content = _read_text("app/static/css/pages/cluster/list.css")
 
-    assert "<th>原因</th>" in template_content
-    assert 'colspan="7"' in template_content
-    assert 'colspan="7"' in view_content
+    assert "mysqlTopologyDashboardInstances" in template_content
+    assert "mysql-topology-instance-card" in view_content
+    assert "Last_IO_Error / Last_SQL_Error" in view_content
     assert "item.last_error" in view_content
-    assert "mysql-cluster-topology-reason" in view_content
-    assert "mysql-cluster-topology-reason" in css_content
+    assert "mysql-topology-field-row" in view_content
+    assert "mysql-topology-field-row" in css_content
 
 
 def test_run_center_session_detail_labels_ag_cluster_items() -> None:

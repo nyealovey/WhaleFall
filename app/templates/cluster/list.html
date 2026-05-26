@@ -283,9 +283,6 @@
             <button class="btn btn-outline-primary" type="button" data-action="sync-ag-accounts-dashboard">
                 <i class="fas fa-sync me-1"></i>同步 AG 账户
             </button>
-            <button class="btn btn-outline-secondary" type="button" data-action="open-ag-accounts-ledger-dashboard">
-                <i class="fas fa-users me-1"></i>账户列表
-            </button>
         </div>
     </div>
 
@@ -316,27 +313,11 @@
 
     <div class="ag-status-dashboard__section">
         <div class="ag-status-dashboard__section-title">
-            <span>采集配置</span>
+            <span>账户列表</span>
             <small data-ag-accounts-summary="last_sync">未同步</small>
         </div>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>AG</th>
-                        <th>监听器</th>
-                        <th>连接地址</th>
-                        <th>账户采集凭据</th>
-                        <th>contained</th>
-                        <th>采集</th>
-                        <th>账户同步</th>
-                        <th>异常数</th>
-                    </tr>
-                </thead>
-                <tbody id="agAccountsDashboardTableBody">
-                    <tr><td colspan="8" class="text-muted">暂无 AG 账户配置</td></tr>
-                </tbody>
-            </table>
+        <div id="agAccountsDashboardTableBody" class="ag-account-ledger-list">
+            <div class="text-muted small">暂无 AG 账户，请先同步 AG 账户</div>
         </div>
     </div>
 </div>
@@ -397,26 +378,8 @@
             <span>实例状态</span>
             <small data-mysql-topology-summary="status">未检测</small>
         </div>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0 mysql-topology-dashboard-table">
-                <thead>
-                    <tr>
-                        <th>实例</th>
-                        <th>角色</th>
-                        <th>线程</th>
-                        <th>上游</th>
-                        <th>延迟</th>
-                        <th>日志位置</th>
-                        <th>GTID</th>
-                        <th>只读</th>
-                        <th>异常</th>
-                        <th>最近检测</th>
-                    </tr>
-                </thead>
-                <tbody id="mysqlTopologyDashboardTableBody">
-                    <tr><td colspan="10" class="text-muted">暂无主从状态</td></tr>
-                </tbody>
-            </table>
+        <div id="mysqlTopologyDashboardInstances" class="mysql-topology-instance-list">
+            <div class="text-muted small">暂无主从状态</div>
         </div>
     </div>
 </div>
@@ -550,6 +513,7 @@
 <script src="{{ url_for('static', filename='js/modules/stores/sqlserver_clusters_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/mysql_clusters_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/mysql_clusters_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/accounts_ledgers_service.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>

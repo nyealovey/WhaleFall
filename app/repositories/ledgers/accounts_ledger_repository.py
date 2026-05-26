@@ -130,6 +130,8 @@ class AccountsLedgerRepository:
             query = query.filter(AccountPermission.instance_id == filters.instance_id)
         if filters.owner_type:
             query = query.filter(AccountPermission.owner_type == filters.owner_type)
+        if filters.owner_id is not None:
+            query = query.filter(AccountPermission.owner_id == filters.owner_id)
         if filters.ad_status:
             query = self._apply_ad_status_filter(query, filters.ad_status)
 

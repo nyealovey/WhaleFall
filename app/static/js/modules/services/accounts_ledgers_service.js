@@ -5,6 +5,11 @@
   const EXPORT_PATH = "/api/v1/accounts/ledgers/exports";
 
   class AccountsLedgersService {
+    constructor(httpClient) {
+      const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+      this.httpClient = typeof ensureHttpClient === "function" ? ensureHttpClient(httpClient, "AccountsLedgersService") : null;
+    }
+
     /**
      * 账户台账列表的 Grid 数据源 URL（含默认排序）。
      *
@@ -25,8 +30,14 @@
     getExportUrl() {
       return EXPORT_PATH;
     }
+
+    list(params) {
+      if (!this.httpClient) {
+        throw new Error("AccountsLedgersService: httpClient 未初始化");
+      }
+      return this.httpClient.get(BASE_PATH, { params: params || {} });
+    }
   }
 
   global.AccountsLedgersService = AccountsLedgersService;
 })(window);
-

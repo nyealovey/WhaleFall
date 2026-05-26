@@ -39,6 +39,7 @@ class AccountsFiltersQuery(PayloadSchema):
     classification: str = ""
     db_type: str | None = None
     owner_type: str | None = None
+    owner_id: int | None = None
     ad_status: str | None = None
 
     @field_validator("page", mode="before")
@@ -96,6 +97,14 @@ class AccountsFiltersQuery(PayloadSchema):
         cleaned = parse_text(value).lower()
         return cleaned if cleaned in _SUPPORTED_OWNER_TYPES else None
 
+    @field_validator("owner_id", mode="before")
+    @classmethod
+    def _parse_owner_id(cls, value: Any) -> int | None:
+        if value is None:
+            return None
+        parsed = parse_int(value, default=0)
+        return parsed if parsed > 0 else None
+
     @field_validator("ad_status", mode="before")
     @classmethod
     def _parse_ad_status(cls, value: Any) -> str | None:
@@ -122,6 +131,7 @@ class AccountsFiltersQuery(PayloadSchema):
             classification_filter=classification_filter,
             db_type=self.db_type,
             owner_type=self.owner_type,
+            owner_id=self.owner_id,
             ad_status=self.ad_status,
         )
 

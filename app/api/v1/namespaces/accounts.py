@@ -230,6 +230,7 @@ _accounts_filters_query_parser.add_argument("tags", type=str, action="append", l
 _accounts_filters_query_parser.add_argument("classification", type=str, default="", location="args")
 _accounts_filters_query_parser.add_argument("db_type", type=str, location="args")
 _accounts_filters_query_parser.add_argument("owner_type", type=str, location="args")
+_accounts_filters_query_parser.add_argument("owner_id", type=int, location="args")
 _accounts_filters_query_parser.add_argument("ad_status", type=str, location="args")
 
 _accounts_ledgers_list_query_parser = new_parser()
@@ -464,6 +465,7 @@ class AccountsLedgersResource(BaseResource):
                 "search": filters.search,
                 "db_type": filters.db_type,
                 "owner_type": filters.owner_type,
+                "owner_id": filters.owner_id,
                 "ad_status": filters.ad_status,
                 "instance_id": filters.instance_id,
                 "is_locked": filters.is_locked,

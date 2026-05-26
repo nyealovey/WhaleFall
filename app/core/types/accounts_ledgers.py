@@ -25,6 +25,7 @@ class AccountFilters:
     classification_filter: str
     db_type: str | None
     owner_type: str | None
+    owner_id: int | None
     ad_status: str | None
 
 
