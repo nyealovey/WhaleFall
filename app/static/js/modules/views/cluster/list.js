@@ -545,17 +545,17 @@ function mountClusterPage(global) {
       showToast("warning", "请先保存群集后同步 AG 信息");
       return;
     }
-    setButtonLoading(trigger, true);
-    store.actions
-      .syncAvailabilityGroups(clusterId, {})
-      .then(() => store.actions.load(clusterId))
-      .then((detail) => {
-        renderAgTable(detail.availability_groups || []);
-        showToast("success", "AG 信息同步完成");
-        gridWrapper?.refresh?.();
-      })
-      .catch((error) => showError(error, "同步 AG 信息失败"))
-      .finally(() => setButtonLoading(trigger, false));
+    withButtonLoading(trigger, () =>
+      store.actions
+        .syncAvailabilityGroups(clusterId, {})
+        .then(() => store.actions.load(clusterId))
+        .then((detail) => {
+          renderAgTable(detail.availability_groups || []);
+          showToast("success", "AG 信息同步完成");
+          gridWrapper?.refresh?.();
+        })
+        .catch((error) => showError(error, "同步 AG 信息失败"))
+    );
   }
 
   function syncAgAccounts(trigger) {
@@ -564,15 +564,15 @@ function mountClusterPage(global) {
       showToast("warning", "请选择群集后同步 AG 账户");
       return;
     }
-    setButtonLoading(trigger, true);
-    store.actions
-      .syncAgAccounts(clusterId)
-      .then(() => {
-        showToast("success", "AG 账户同步完成");
-        gridWrapper?.refresh?.();
-      })
-      .catch((error) => showError(error, "同步 AG 账户失败"))
-      .finally(() => setButtonLoading(trigger, false));
+    withButtonLoading(trigger, () =>
+      store.actions
+        .syncAgAccounts(clusterId)
+        .then(() => {
+          showToast("success", "AG 账户同步完成");
+          gridWrapper?.refresh?.();
+        })
+        .catch((error) => showError(error, "同步 AG 账户失败"))
+    );
   }
 
   function syncSQLServerStatus(trigger) {
@@ -581,15 +581,15 @@ function mountClusterPage(global) {
       showToast("warning", "请先保存群集后检测同步状态");
       return;
     }
-    setButtonLoading(trigger, true);
-    store.actions
-      .syncStatus(clusterId)
-      .then(() => {
-        showToast("success", "数据库同步状态检测完成");
-        gridWrapper?.refresh?.();
-      })
-      .catch((error) => showError(error, "检测数据库同步状态失败"))
-      .finally(() => setButtonLoading(trigger, false));
+    withButtonLoading(trigger, () =>
+      store.actions
+        .syncStatus(clusterId)
+        .then(() => {
+          showToast("success", "数据库同步状态检测完成");
+          gridWrapper?.refresh?.();
+        })
+        .catch((error) => showError(error, "检测数据库同步状态失败"))
+    );
   }
 
   function openClusterAgDashboard(trigger) {
@@ -598,32 +598,32 @@ function mountClusterPage(global) {
       showToast("warning", "请选择群集后查看 AG 状态");
       return;
     }
-    setButtonLoading(trigger, true);
-    store.actions
-      .load(clusterId)
-      .then((detail) => {
-        const agItems = Array.isArray(detail.availability_groups) ? detail.availability_groups : [];
-        if (!agItems.length) {
-          showToast("warning", "当前群集暂无 AG 配置");
-          return;
-        }
-        const firstAg = agItems[0];
-        if (!firstAg?.id) {
-          showToast("warning", "当前 AG 信息不完整");
-          return;
-        }
-        currentDashboardContext = {
-          clusterId,
-          agId: String(firstAg.id),
-          agItems,
-        };
-        resetAgDashboard();
-        renderAgDashboardTabs(agItems, firstAg.id);
-        agStatusModal?.show();
-        loadAgDashboard(clusterId, firstAg.id);
-      })
-      .catch((error) => showError(error, "加载 AG 状态失败"))
-      .finally(() => setButtonLoading(trigger, false));
+    withButtonLoading(trigger, () =>
+      store.actions
+        .load(clusterId)
+        .then((detail) => {
+          const agItems = Array.isArray(detail.availability_groups) ? detail.availability_groups : [];
+          if (!agItems.length) {
+            showToast("warning", "当前群集暂无 AG 配置");
+            return;
+          }
+          const firstAg = agItems[0];
+          if (!firstAg?.id) {
+            showToast("warning", "当前 AG 信息不完整");
+            return;
+          }
+          currentDashboardContext = {
+            clusterId,
+            agId: String(firstAg.id),
+            agItems,
+          };
+          resetAgDashboard();
+          renderAgDashboardTabs(agItems, firstAg.id);
+          agStatusModal?.show();
+          loadAgDashboard(clusterId, firstAg.id);
+        })
+        .catch((error) => showError(error, "加载 AG 状态失败"))
+    );
   }
 
   function loadAgDashboard(clusterId, agId) {
@@ -643,27 +643,27 @@ function mountClusterPage(global) {
       showToast("warning", "请选择 AG 后检测状态");
       return;
     }
-    setButtonLoading(trigger, true);
-    store.actions
-      .syncStatus(clusterId)
-      .then(() => {
-        showToast("success", "数据库同步状态检测完成");
-        gridWrapper?.refresh?.();
-        return store.actions.load(clusterId);
-      })
-      .then((detail) => {
-        const agItems = Array.isArray(detail.availability_groups) ? detail.availability_groups : [];
-        currentDashboardContext = {
-          clusterId,
-          agId,
-          agItems,
-        };
-        renderAgTable(agItems);
-        renderAgDashboardTabs(agItems, agId);
-      })
-      .then(() => loadAgDashboard(clusterId, agId))
-      .catch((error) => showError(error, "检测数据库同步状态失败"))
-      .finally(() => setButtonLoading(trigger, false));
+    withButtonLoading(trigger, () =>
+      store.actions
+        .syncStatus(clusterId)
+        .then(() => {
+          showToast("success", "数据库同步状态检测完成");
+          gridWrapper?.refresh?.();
+          return store.actions.load(clusterId);
+        })
+        .then((detail) => {
+          const agItems = Array.isArray(detail.availability_groups) ? detail.availability_groups : [];
+          currentDashboardContext = {
+            clusterId,
+            agId,
+            agItems,
+          };
+          renderAgTable(agItems);
+          renderAgDashboardTabs(agItems, agId);
+        })
+        .then(() => loadAgDashboard(clusterId, agId))
+        .catch((error) => showError(error, "检测数据库同步状态失败"))
+    );
   }
 
   function switchAgDashboard(trigger) {
@@ -963,7 +963,6 @@ function mountClusterPage(global) {
   function fillMySQLBasic(cluster) {
     document.getElementById("mysqlClusterIdInput").value = cluster.id || "";
     document.getElementById("mysqlClusterNameInput").value = cluster.name || "";
-    document.getElementById("mysqlClusterTopologyTypeInput").value = cluster.topology_type || "replication";
     document.getElementById("mysqlClusterDescriptionInput").value = cluster.description || "";
     document.getElementById("mysqlClusterEnabledInput").checked = cluster.is_enabled !== false;
   }
@@ -989,7 +988,6 @@ function mountClusterPage(global) {
   function buildMySQLClusterPayload() {
     return {
       name: document.getElementById("mysqlClusterNameInput").value.trim(),
-      topology_type: document.getElementById("mysqlClusterTopologyTypeInput").value || "replication",
       description: document.getElementById("mysqlClusterDescriptionInput").value.trim(),
       is_enabled: document.getElementById("mysqlClusterEnabledInput").checked,
     };
@@ -1034,17 +1032,17 @@ function mountClusterPage(global) {
       showToast("warning", "请先保存 MySQL 群集后同步主从信息");
       return;
     }
-    setButtonLoading(trigger, true);
-    mysqlStore.actions
-      .syncTopology(clusterId)
-      .then(() => mysqlStore.actions.load(clusterId))
-      .then((detail) => {
-        renderMySQLTopologyTable(detail.instances || []);
-        showToast("success", "MySQL 主从信息同步完成");
-        mysqlGridWrapper?.refresh?.();
-      })
-      .catch((error) => showError(error, "同步 MySQL 主从信息失败"))
-      .finally(() => setButtonLoading(trigger, false));
+    withButtonLoading(trigger, () =>
+      mysqlStore.actions
+        .syncTopology(clusterId)
+        .then(() => mysqlStore.actions.load(clusterId))
+        .then((detail) => {
+          renderMySQLTopologyTable(detail.instances || []);
+          showToast("success", "MySQL 主从信息同步完成");
+          mysqlGridWrapper?.refresh?.();
+        })
+        .catch((error) => showError(error, "同步 MySQL 主从信息失败"))
+    );
   }
 
   function renderMySQLTopologyTable(items) {
@@ -1163,16 +1161,16 @@ function mountClusterPage(global) {
       showToast("warning", "请选择账户采集凭据后启用");
       return;
     }
-    setButtonLoading(button, true);
-    store.actions
-      .updateAvailabilityGroup(clusterId, agId, { is_enabled: !item.is_enabled })
-      .then(() => store.actions.load(clusterId))
-      .then((detail) => {
-        renderAgTable(detail.availability_groups || []);
-        showToast("success", "AG 采集状态已更新");
-      })
-      .catch((error) => showError(error, "更新 AG 采集状态失败"))
-      .finally(() => setButtonLoading(button, false));
+    withButtonLoading(button, () =>
+      store.actions
+        .updateAvailabilityGroup(clusterId, agId, { is_enabled: !item.is_enabled })
+        .then(() => store.actions.load(clusterId))
+        .then((detail) => {
+          renderAgTable(detail.availability_groups || []);
+          showToast("success", "AG 采集状态已更新");
+        })
+        .catch((error) => showError(error, "更新 AG 采集状态失败"))
+    );
   }
 
   function renderBoolean(value) {
@@ -1263,6 +1261,13 @@ function mountClusterPage(global) {
   function showError(error, fallback) {
     const message = resolveErrorMessage(error, fallback);
     showToast("error", message);
+  }
+
+  function withButtonLoading(button, action) {
+    setButtonLoading(button, true);
+    return Promise.resolve()
+      .then(action)
+      .finally(() => setButtonLoading(button, false));
   }
 
   function setButtonLoading(button, loading) {

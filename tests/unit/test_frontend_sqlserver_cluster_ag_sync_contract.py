@@ -206,38 +206,6 @@ def test_mysql_cluster_topology_modal_displays_failure_reason() -> None:
     assert "mysql-cluster-topology-reason" in css_content
 
 
-def test_sqlserver_status_page_contract() -> None:
-    template_content = _read_text("app/templates/cluster/sqlserver_status.html")
-    view_content = _read_text("app/static/js/modules/views/cluster/sqlserver-status.js")
-
-    required_template_fragments = (
-        "SQL Server AG 数据库状态",
-        "sqlserver-status-root",
-        "sqlserver-status-filter-form",
-        "sqlserver-status-grid",
-        'name="cluster_id"',
-        'name="ag_name"',
-        'name="status"',
-        'data-action="sync-current-cluster"',
-    )
-    for fragment in required_template_fragments:
-        assert fragment in template_content
-
-    required_view_fragments = (
-        "/api/v1/sqlserver-clusters/database-sync-states",
-        "sync-current-cluster",
-        "syncStatus(clusterId)",
-        "renderStatusPill",
-        "GridPage.mount",
-        "total_databases",
-        "abnormal_databases",
-        "normal_databases",
-        "affected_replicas",
-    )
-    for fragment in required_view_fragments:
-        assert fragment in view_content
-
-
 def test_run_center_session_detail_labels_ag_cluster_items() -> None:
     content = _read_text("app/static/js/modules/views/history/sessions/session-detail.js")
 

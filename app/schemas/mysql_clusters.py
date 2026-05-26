@@ -90,7 +90,6 @@ class MySQLClusterCreatePayload(PayloadSchema):
     """创建 MySQL 群集 payload."""
 
     name: StrictStr
-    topology_type: StrictStr = "replication"
     description: StrictStr | None = ""
     is_enabled: bool = True
 
@@ -107,14 +106,6 @@ class MySQLClusterCreatePayload(PayloadSchema):
     def _clean_name(cls, value: str) -> str:
         return _validate_name(value)
 
-    @field_validator("topology_type", mode="before")
-    @classmethod
-    def _parse_topology_type(cls, value: Any) -> str:
-        cleaned = parse_text(value).lower() or "replication"
-        if cleaned != "replication":
-            raise ValueError("topology_type 目前仅支持 replication")
-        return cleaned
-
     @field_validator("description", mode="before")
     @classmethod
     def _clean_description(cls, value: Any) -> str:
@@ -130,7 +121,6 @@ class MySQLClusterUpdatePayload(PayloadSchema):
     """更新 MySQL 群集 payload."""
 
     name: StrictStr | None = None
-    topology_type: StrictStr | None = None
     description: StrictStr | None = None
     is_enabled: bool | None = None
 
@@ -144,16 +134,6 @@ class MySQLClusterUpdatePayload(PayloadSchema):
     @classmethod
     def _clean_name(cls, value: str | None) -> str | None:
         return _validate_name(value) if value is not None else None
-
-    @field_validator("topology_type", mode="before")
-    @classmethod
-    def _parse_topology_type(cls, value: Any) -> str | None:
-        if value is None:
-            return None
-        cleaned = parse_text(value).lower() or "replication"
-        if cleaned != "replication":
-            raise ValueError("topology_type 目前仅支持 replication")
-        return cleaned
 
     @field_validator("description", mode="before")
     @classmethod

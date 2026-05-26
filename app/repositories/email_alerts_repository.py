@@ -34,31 +34,14 @@ class EmailAlertsRepository:
 
     @staticmethod
     def upsert_backup_issue_event(**payload: object) -> bool:
-        alert_type = str(payload.get("alert_type") or "")
-        bucket_date = payload.get("bucket_date")
-        dedupe_key = str(payload.get("dedupe_key") or "")
-        existing = (
-            EmailAlertEvent.query.filter(
-                EmailAlertEvent.alert_type == alert_type,
-                EmailAlertEvent.bucket_date == bucket_date,
-                EmailAlertEvent.dedupe_key == dedupe_key,
-            )
-            .order_by(EmailAlertEvent.id.asc())
-            .first()
-        )
-        if existing is None:
-            EmailAlertsRepository.create_event(**payload)
-            return True
-        if existing.digest_sent_at is not None:
-            return False
-        for field_name, value in payload.items():
-            if hasattr(existing, str(field_name)):
-                setattr(existing, str(field_name), value)
-        db.session.flush()
-        return False
+        return EmailAlertsRepository._upsert_pending_event(payload)
 
     @staticmethod
     def upsert_cluster_status_event(**payload: object) -> bool:
+        return EmailAlertsRepository._upsert_pending_event(payload, protect_sent_delivery=True)
+
+    @staticmethod
+    def _upsert_pending_event(payload: dict[str, object], *, protect_sent_delivery: bool = False) -> bool:
         alert_type = str(payload.get("alert_type") or "")
         bucket_date = payload.get("bucket_date")
         dedupe_key = str(payload.get("dedupe_key") or "")
@@ -75,16 +58,9 @@ class EmailAlertsRepository:
             EmailAlertsRepository.create_event(**payload)
             return True
 
-        sent_delivery_exists = (
-            db.session.query(EmailAlertEventDelivery.id)
-            .filter(
-                EmailAlertEventDelivery.event_id == existing.id,
-                EmailAlertEventDelivery.status == "sent",
-            )
-            .first()
-            is not None
-        )
-        if existing.digest_sent_at is not None or sent_delivery_exists:
+        if existing.digest_sent_at is not None:
+            return False
+        if protect_sent_delivery and EmailAlertsRepository._has_sent_delivery(int(existing.id)):
             return False
         for field_name, value in payload.items():
             if hasattr(existing, str(field_name)):
@@ -94,29 +70,40 @@ class EmailAlertsRepository:
 
     @staticmethod
     def delete_pending_cluster_status_event(*, bucket_date: date, dedupe_key: str) -> int:
-        sent_delivery_exists = (
-            db.session.query(EmailAlertEventDelivery.id)
-            .filter(
-                EmailAlertEventDelivery.event_id == EmailAlertEvent.id,
-                EmailAlertEventDelivery.status == "sent",
-            )
-            .exists()
+        return EmailAlertsRepository._delete_pending_events(
+            alert_type="cluster_status_issue",
+            bucket_date=bucket_date,
+            dedupe_key=dedupe_key,
         )
-        deleted = (
-            EmailAlertEvent.query.filter(
-                EmailAlertEvent.alert_type == "cluster_status_issue",
-                EmailAlertEvent.bucket_date == bucket_date,
-                EmailAlertEvent.dedupe_key == dedupe_key,
-                EmailAlertEvent.digest_sent_at.is_(None),
-                ~sent_delivery_exists,
-            ).delete(synchronize_session=False)
-            or 0
-        )
-        db.session.flush()
-        return int(deleted)
 
     @staticmethod
     def delete_pending_backup_issue_events_not_in(*, bucket_date: date, dedupe_keys: set[str]) -> int:
+        return EmailAlertsRepository._delete_pending_events(
+            alert_type="backup_status_issue",
+            bucket_date=bucket_date,
+            keep_dedupe_keys=dedupe_keys,
+        )
+
+    @staticmethod
+    def _has_sent_delivery(event_id: int) -> bool:
+        return (
+            db.session.query(EmailAlertEventDelivery.id)
+            .filter(
+                EmailAlertEventDelivery.event_id == event_id,
+                EmailAlertEventDelivery.status == "sent",
+            )
+            .first()
+            is not None
+        )
+
+    @staticmethod
+    def _delete_pending_events(
+        *,
+        alert_type: str,
+        bucket_date: date,
+        dedupe_key: str | None = None,
+        keep_dedupe_keys: set[str] | None = None,
+    ) -> int:
         sent_delivery_exists = (
             db.session.query(EmailAlertEventDelivery.id)
             .filter(
@@ -126,13 +113,15 @@ class EmailAlertsRepository:
             .exists()
         )
         query = EmailAlertEvent.query.filter(
-            EmailAlertEvent.alert_type == "backup_status_issue",
+            EmailAlertEvent.alert_type == alert_type,
             EmailAlertEvent.bucket_date == bucket_date,
             EmailAlertEvent.digest_sent_at.is_(None),
             ~sent_delivery_exists,
         )
-        if dedupe_keys:
-            query = query.filter(EmailAlertEvent.dedupe_key.notin_(sorted(dedupe_keys)))
+        if dedupe_key is not None:
+            query = query.filter(EmailAlertEvent.dedupe_key == dedupe_key)
+        if keep_dedupe_keys:
+            query = query.filter(EmailAlertEvent.dedupe_key.notin_(sorted(keep_dedupe_keys)))
         deleted = query.delete(synchronize_session=False)
         db.session.flush()
         return int(deleted or 0)

@@ -7,6 +7,7 @@
     }
     ["getGridUrl", "getCluster", "createCluster", "updateCluster", "replaceInstances", "syncTopology"].forEach(
       (method) => {
+        // eslint-disable-next-line security/detect-object-injection
         if (typeof service[method] !== "function") {
           throw new Error("createMySQLClustersStore: service." + method + " 未实现");
         }

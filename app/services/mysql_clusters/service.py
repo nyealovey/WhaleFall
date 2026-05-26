@@ -71,7 +71,7 @@ class MySQLClusterManagementService:
         self._ensure_cluster_name_unique(parsed.name, resource=None)
         cluster = MySQLCluster()
         cluster.name = parsed.name
-        cluster.topology_type = parsed.topology_type
+        cluster.topology_type = "replication"
         cluster.description = parsed.description or ""
         cluster.is_enabled = parsed.is_enabled
         try:
@@ -100,8 +100,6 @@ class MySQLClusterManagementService:
         if parsed.name is not None:
             self._ensure_cluster_name_unique(parsed.name, resource=cluster)
             cluster.name = parsed.name
-        if parsed.topology_type is not None:
-            cluster.topology_type = parsed.topology_type
         if "description" in parsed.model_fields_set:
             cluster.description = parsed.description or ""
         if parsed.is_enabled is not None:

@@ -14,7 +14,7 @@ from app.api.v1.resources.query_parsers import new_parser
 from app.core.constants import HttpStatus
 from app.core.constants.system_constants import SuccessMessages
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.schemas.sqlserver_clusters import SQLServerClusterListQuery, SQLServerDatabaseSyncStatesQuery
+from app.schemas.sqlserver_clusters import SQLServerClusterListQuery
 from app.schemas.validation import validate_or_raise
 from app.services.accounts_sync.sqlserver_ag_accounts_sync_service import SQLServerAgAccountsSyncService
 from app.services.cluster_status_sync import ClusterStatusSyncService
@@ -122,22 +122,6 @@ AvailabilityGroupAccountsSyncEnvelope = make_success_envelope_model(
 )
 ClusterStatusSyncData = ns.model("SQLServerClusterStatusSyncData", {"sync_result": fields.Raw})
 ClusterStatusSyncEnvelope = make_success_envelope_model(ns, "SQLServerClusterStatusSyncEnvelope", ClusterStatusSyncData)
-DatabaseSyncStatesData = ns.model(
-    "SQLServerDatabaseSyncStatesData",
-    {
-        "items": fields.List(fields.Raw),
-        "total": fields.Integer(),
-        "page": fields.Integer(),
-        "pages": fields.Integer(),
-        "limit": fields.Integer(),
-        "kpis": fields.Raw,
-    },
-)
-DatabaseSyncStatesEnvelope = make_success_envelope_model(
-    ns,
-    "SQLServerDatabaseSyncStatesEnvelope",
-    DatabaseSyncStatesData,
-)
 AvailabilityGroupDashboardData = ns.model(
     "SQLServerAvailabilityGroupDashboardData",
     {
@@ -160,15 +144,6 @@ _clusters_list_query_parser.add_argument("search", type=str, default="", locatio
 _clusters_list_query_parser.add_argument("status", type=str, default="", location="args")
 _clusters_list_query_parser.add_argument("sort", type=str, default="id", location="args")
 _clusters_list_query_parser.add_argument("order", type=str, default="desc", location="args")
-
-_database_sync_states_query_parser = new_parser()
-_database_sync_states_query_parser.add_argument("page", type=int, default=1, location="args")
-_database_sync_states_query_parser.add_argument("limit", type=int, default=20, location="args")
-_database_sync_states_query_parser.add_argument("cluster_id", type=int, default=None, location="args")
-_database_sync_states_query_parser.add_argument("ag_name", type=str, default="", location="args")
-_database_sync_states_query_parser.add_argument("status", type=str, default="all", location="args")
-_database_sync_states_query_parser.add_argument("search", type=str, default="", location="args")
-
 
 @ns.route("")
 class SQLServerClustersResource(BaseResource):
@@ -225,40 +200,6 @@ class SQLServerClustersResource(BaseResource):
             public_error="创建 SQL Server 群集失败",
             context={"cluster_name": payload.get("name") if isinstance(payload, dict) else None},
             expected_exceptions=(ValidationError,),
-        )
-
-
-@ns.route("/database-sync-states")
-class SQLServerDatabaseSyncStatesResource(BaseResource):
-    """SQL Server AG 数据库同步状态聚合资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", DatabaseSyncStatesEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.expect(_database_sync_states_query_parser)
-    @api_permission_required("view")
-    def get(self):
-        """按数据库聚合读取最近一次 SQL Server AG 同步状态."""
-        parsed = cast("dict[str, object]", _database_sync_states_query_parser.parse_args())
-        query = validate_or_raise(SQLServerDatabaseSyncStatesQuery, parsed)
-
-        def _execute():
-            data = SQLServerAgDatabaseSyncStatesReadService().list_states(query)
-            return self.success(data=data, message=SuccessMessages.OPERATION_SUCCESS)
-
-        return self.safe_call(
-            _execute,
-            module="sqlserver_clusters",
-            action="list_database_sync_states",
-            public_error="获取 SQL Server AG 数据库状态失败",
-            context={
-                "cluster_id": query.cluster_id,
-                "ag_name": query.ag_name,
-                "status": query.status,
-                "search": query.search,
-            },
         )
 
 

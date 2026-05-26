@@ -27,7 +27,6 @@ ClusterPayload = ns.model(
     "MySQLClusterPayload",
     {
         "name": fields.String(required=True, description="群集名称"),
-        "topology_type": fields.String(required=False, description="拓扑类型,默认 replication"),
         "description": fields.String(required=False, description="描述"),
         "is_enabled": fields.Boolean(required=False, description="是否启用"),
     },

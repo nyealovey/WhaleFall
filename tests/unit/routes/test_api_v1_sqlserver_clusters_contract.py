@@ -272,61 +272,6 @@ def test_api_v1_sqlserver_clusters_sync_ag_accounts_contract(monkeypatch) -> Non
 
 
 @pytest.mark.unit
-def test_api_v1_sqlserver_cluster_database_sync_states_contract() -> None:
-    app = create_app(init_scheduler_on_start=False)
-    app.config["TESTING"] = True
-
-    with app.app_context():
-        _create_schema()
-        user = User(username="viewer", password="TestPass1", role="user")
-        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
-        db.session.add_all([user, cluster])
-        db.session.flush()
-        db.session.add(SQLServerAvailabilityGroup(cluster_id=cluster.id, name="AG01", listener_host="ag01"))
-        db.session.add_all(
-            [
-                SQLServerAgDatabaseSyncState(
-                    cluster_id=cluster.id,
-                    ag_name="AG01",
-                    database_name="billing",
-                    replica_server_name="sql-1",
-                    is_abnormal=False,
-                ),
-                SQLServerAgDatabaseSyncState(
-                    cluster_id=cluster.id,
-                    ag_name="AG01",
-                    database_name="billing",
-                    replica_server_name="sql-2",
-                    is_abnormal=True,
-                    error_summary="health=NOT_HEALTHY",
-                ),
-            ],
-        )
-        db.session.commit()
-
-        client = app.test_client()
-        _login(client, user)
-
-        response = client.get(
-            "/api/v1/sqlserver-clusters/database-sync-states",
-            query_string={"cluster_id": cluster.id, "status": "abnormal"},
-        )
-
-        assert response.status_code == 200
-        payload = response.get_json()
-        data = payload["data"]
-        assert {"items", "total", "page", "pages", "limit", "kpis"}.issubset(data.keys())
-        assert data["total"] == 1
-        assert data["kpis"]["abnormal_databases"] == 1
-        item = data["items"][0]
-        assert item["cluster_name"] == "cluster-a"
-        assert item["ag_name"] == "AG01"
-        assert item["database_name"] == "billing"
-        assert item["status"] == "abnormal"
-        assert item["abnormal_replica_names"] == ["sql-2"]
-
-
-@pytest.mark.unit
 def test_api_v1_sqlserver_availability_group_dashboard_contract() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
