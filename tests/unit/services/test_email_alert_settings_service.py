@@ -21,6 +21,7 @@ class _DummySettings:
     database_sync_failure_enabled: bool = False
     privileged_account_enabled: bool = False
     backup_issue_enabled: bool = False
+    cluster_status_enabled: bool = False
     feishu_enabled: bool = False
     feishu_webhook_url_encrypted: str | None = None
 
@@ -51,6 +52,7 @@ class _DummySettings:
             "database_sync_failure_enabled": self.database_sync_failure_enabled,
             "privileged_account_enabled": self.privileged_account_enabled,
             "backup_issue_enabled": self.backup_issue_enabled,
+            "cluster_status_enabled": self.cluster_status_enabled,
             "feishu_enabled": self.feishu_enabled,
             "feishu_webhook_url_configured": masked_url is not None,
             "feishu_webhook_url_masked": masked_url,
@@ -137,6 +139,7 @@ def test_email_alert_settings_service_encrypts_masks_and_clears_feishu_webhook_u
                 "database_sync_failure_enabled": False,
                 "privileged_account_enabled": False,
                 "backup_issue_enabled": False,
+                "cluster_status_enabled": True,
                 "feishu_enabled": True,
                 "feishu_webhook_url": webhook_url,
                 "clear_feishu_webhook_url": False,
@@ -144,6 +147,7 @@ def test_email_alert_settings_service_encrypts_masks_and_clears_feishu_webhook_u
         )
 
         assert updated.feishu_enabled is True
+        assert updated.cluster_status_enabled is True
         assert updated.feishu_webhook_url_encrypted
         assert updated.feishu_webhook_url_encrypted != webhook_url
         view_payload = service.build_view_payload()
@@ -167,6 +171,7 @@ def test_email_alert_settings_service_encrypts_masks_and_clears_feishu_webhook_u
                 "database_sync_failure_enabled": False,
                 "privileged_account_enabled": False,
                 "backup_issue_enabled": False,
+                "cluster_status_enabled": True,
                 "feishu_enabled": True,
                 "feishu_webhook_url": "",
                 "clear_feishu_webhook_url": False,
@@ -185,6 +190,7 @@ def test_email_alert_settings_service_encrypts_masks_and_clears_feishu_webhook_u
                 "database_sync_failure_enabled": False,
                 "privileged_account_enabled": False,
                 "backup_issue_enabled": False,
+                "cluster_status_enabled": False,
                 "feishu_enabled": False,
                 "feishu_webhook_url": "",
                 "clear_feishu_webhook_url": True,

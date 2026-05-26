@@ -40,6 +40,7 @@ class EmailAlertSettingsService:
         settings.database_capacity_absolute_gb_threshold = 20
         settings.account_sync_failure_enabled = False
         settings.database_sync_failure_enabled = False
+        settings.cluster_status_enabled = False
         settings.privileged_account_enabled = False
         settings.backup_issue_enabled = False
         settings.feishu_enabled = False
@@ -66,6 +67,7 @@ class EmailAlertSettingsService:
         settings.database_capacity_absolute_gb_threshold = int(payload_dict["database_capacity_absolute_gb_threshold"])
         settings.account_sync_failure_enabled = bool(payload_dict["account_sync_failure_enabled"])
         settings.database_sync_failure_enabled = bool(payload_dict["database_sync_failure_enabled"])
+        settings.cluster_status_enabled = bool(payload_dict.get("cluster_status_enabled", False))
         settings.privileged_account_enabled = bool(payload_dict["privileged_account_enabled"])
         settings.backup_issue_enabled = bool(payload_dict["backup_issue_enabled"])
         settings.feishu_enabled = bool(payload_dict.get("feishu_enabled", False))

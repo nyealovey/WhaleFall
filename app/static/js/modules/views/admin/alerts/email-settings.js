@@ -26,6 +26,7 @@
         databaseCapacityAbsoluteGbThreshold: document.getElementById('databaseCapacityAbsoluteGbThreshold'),
         accountSyncFailureEnabled: document.getElementById('accountSyncFailureEnabled'),
         databaseSyncFailureEnabled: document.getElementById('databaseSyncFailureEnabled'),
+        clusterStatusEnabled: document.getElementById('clusterStatusEnabled'),
         privilegedAccountEnabled: document.getElementById('privilegedAccountEnabled'),
         backupIssueEnabled: document.getElementById('backupIssueEnabled'),
         sendTestButton: document.getElementById('sendTestEmailBtn'),
@@ -54,6 +55,13 @@
             iconClass: 'fas fa-database',
             activeHint: '数据库同步异常将进入汇总',
             idleHint: '同步链路信号',
+        },
+        {
+            input: elements.clusterStatusEnabled,
+            card: pageRoot.querySelector('[data-rule-card="clusterStatus"]'),
+            iconClass: 'fas fa-heart-pulse',
+            activeHint: '群集检测失败或同步状态异常将进入汇总',
+            idleHint: '群集状态信号',
         },
         {
             input: elements.privilegedAccountEnabled,
@@ -170,6 +178,7 @@
         elements.databaseCapacityAbsoluteGbThreshold.value = settings.database_capacity_absolute_gb_threshold || 20;
         elements.accountSyncFailureEnabled.checked = Boolean(settings.account_sync_failure_enabled);
         elements.databaseSyncFailureEnabled.checked = Boolean(settings.database_sync_failure_enabled);
+        elements.clusterStatusEnabled.checked = Boolean(settings.cluster_status_enabled);
         elements.privilegedAccountEnabled.checked = Boolean(settings.privileged_account_enabled);
         elements.backupIssueEnabled.checked = Boolean(settings.backup_issue_enabled);
 
@@ -212,6 +221,7 @@
             database_capacity_absolute_gb_threshold: Number(elements.databaseCapacityAbsoluteGbThreshold.value || 20),
             account_sync_failure_enabled: elements.accountSyncFailureEnabled.checked,
             database_sync_failure_enabled: elements.databaseSyncFailureEnabled.checked,
+            cluster_status_enabled: elements.clusterStatusEnabled.checked,
             privileged_account_enabled: elements.privilegedAccountEnabled.checked,
             backup_issue_enabled: elements.backupIssueEnabled.checked,
             feishu_enabled: elements.feishuEnabled.checked,

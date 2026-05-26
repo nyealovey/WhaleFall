@@ -20,6 +20,7 @@ class _DummySettings:
     database_capacity_enabled: bool = False
     account_sync_failure_enabled: bool = False
     database_sync_failure_enabled: bool = False
+    cluster_status_enabled: bool = False
     privileged_account_enabled: bool = False
     backup_issue_enabled: bool = False
 
@@ -181,6 +182,15 @@ def test_email_alert_digest_service_sends_pending_events_and_marks_sent() -> Non
             "summary": "规则未启用，累计待发送事件 1 条",
         },
         {
+            "item_key": "cluster_status_issue",
+            "item_name": "群集状态异常",
+            "enabled": False,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "disabled",
+            "summary": "规则未启用",
+        },
+        {
             "item_key": "privileged_account_discovery",
             "item_name": "新增高权限账户",
             "enabled": False,
@@ -336,6 +346,7 @@ def test_email_alert_digest_service_reports_skip_structure_when_no_pending_event
         database_capacity_enabled=True,
         account_sync_failure_enabled=True,
         database_sync_failure_enabled=True,
+        cluster_status_enabled=True,
         privileged_account_enabled=True,
         backup_issue_enabled=True,
     )
@@ -390,6 +401,15 @@ def test_email_alert_digest_service_reports_skip_structure_when_no_pending_event
             "summary": "当天未产生事件",
         },
         {
+            "item_key": "cluster_status_issue",
+            "item_name": "群集状态异常",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
+        },
+        {
             "item_key": "privileged_account_discovery",
             "item_name": "新增高权限账户",
             "enabled": True,
@@ -418,6 +438,7 @@ def test_email_alert_digest_service_distinguishes_already_sent_from_no_event() -
         database_capacity_enabled=True,
         account_sync_failure_enabled=True,
         database_sync_failure_enabled=True,
+        cluster_status_enabled=True,
         privileged_account_enabled=True,
         backup_issue_enabled=True,
     )
@@ -476,6 +497,15 @@ def test_email_alert_digest_service_distinguishes_already_sent_from_no_event() -
             "sent_count": 2,
             "display_state": "already_sent",
             "summary": "当天已发送 2 条，本次待发送 0 条",
+        },
+        {
+            "item_key": "cluster_status_issue",
+            "item_name": "群集状态异常",
+            "enabled": True,
+            "pending_count": 0,
+            "sent_count": 0,
+            "display_state": "no_event",
+            "summary": "当天未产生事件",
         },
         {
             "item_key": "privileged_account_discovery",
@@ -544,3 +574,44 @@ def test_email_alert_digest_service_renders_backup_issue_events() -> None:
     assert sender.calls
     assert "sqlserver-prod-1 - 当天没有备份" in str(sender.calls[0]["text_body"])
     assert "sqlserver-prod-2 - 备份异常（最近备份超过24小时）" in str(sender.calls[0]["text_body"])
+
+
+@pytest.mark.unit
+def test_email_alert_digest_service_renders_cluster_status_issue_events() -> None:
+    settings = _DummySettings(global_enabled=True, recipients_json=["ops@example.com"], cluster_status_enabled=True)
+    events = [
+        _DummyEvent(
+            id=11,
+            alert_type="cluster_status_issue",
+            payload_json={
+                "cluster_type": "mysql_cluster",
+                "cluster_name": "mysql-prod",
+                "summary_text": "mysql-replica-1: Got fatal error 1236 from master",
+            },
+            occurred_at=datetime(2026, 3, 17, 3, 0, tzinfo=UTC),
+        ),
+    ]
+    repository = _StubRepository(events)
+    sender = _StubSender()
+    service = EmailAlertDigestService(
+        repository=cast(EmailAlertsRepository, repository),
+        sender=cast(EmailSender, sender),
+        settings_service=cast(EmailAlertSettingsService, _StubSettingsService(settings)),
+    )
+
+    summary = service.send_pending_digest(now=datetime(2026, 3, 17, 9, 0, tzinfo=UTC))
+
+    assert summary["sent"] is True
+    rule = next(item for item in summary["rule_results"] if item["item_key"] == "cluster_status_issue")
+    assert rule == {
+        "item_key": "cluster_status_issue",
+        "item_name": "群集状态异常",
+        "enabled": True,
+        "pending_count": 1,
+        "sent_count": 0,
+        "display_state": "pending",
+        "summary": "待发送事件 1 条",
+    }
+    assert "mysql_cluster / mysql-prod - mysql-replica-1: Got fatal error 1236 from master" in str(
+        sender.calls[0]["text_body"],
+    )

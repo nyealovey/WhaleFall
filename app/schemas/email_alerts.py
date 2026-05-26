@@ -19,6 +19,7 @@ class EmailAlertSettingsPayload(PayloadSchema):
     database_capacity_absolute_gb_threshold: int
     account_sync_failure_enabled: bool
     database_sync_failure_enabled: bool
+    cluster_status_enabled: bool = False
     privileged_account_enabled: bool
     backup_issue_enabled: bool
     feishu_enabled: bool = False

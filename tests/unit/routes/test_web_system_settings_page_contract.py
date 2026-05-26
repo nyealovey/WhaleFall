@@ -35,6 +35,7 @@ def test_web_system_settings_page_renders_aggregated_sections(auth_client) -> No
     assert "发送测试邮件" in html
     assert "发送飞书测试" in html
     assert "备份告警" in html
+    assert "群集状态" in html
     assert 'id="feishuEnabled"' in html
     assert 'id="feishuWebhookUrl"' in html
     assert 'id="clearFeishuWebhookUrl"' in html
@@ -42,3 +43,4 @@ def test_web_system_settings_page_renders_aggregated_sections(auth_client) -> No
     assert "同步 JumpServer 资源" in html
     assert "同步 Veeam 备份" in html
     assert 'id="backupIssueEnabled"' in html
+    assert 'id="clusterStatusEnabled"' in html

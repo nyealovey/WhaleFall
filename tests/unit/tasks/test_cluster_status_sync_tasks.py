@@ -77,6 +77,14 @@ def test_sync_cluster_status_writes_items_and_completed_with_errors(monkeypatch)
             },
         )
         monkeypatch.setattr(cluster_status_sync_tasks, "ClusterStatusSyncService", lambda: stub)
+        cluster_alert_calls: list[dict[str, Any]] = []
+
+        class _StubEmailAlertEventService:
+            def record_cluster_status_event(self, **kwargs: Any) -> bool:
+                cluster_alert_calls.append(dict(kwargs))
+                return True
+
+        monkeypatch.setattr(cluster_status_sync_tasks, "EmailAlertEventService", lambda: _StubEmailAlertEventService(), raising=False)
 
         cluster_status_sync_tasks.sync_cluster_status(manual_run=True)
 
@@ -90,3 +98,29 @@ def test_sync_cluster_status_writes_items_and_completed_with_errors(monkeypatch)
 
         item_types = {item.item_type for item in TaskRunItem.query.filter_by(run_id=run.run_id).all()}
         assert item_types == {"mysql_cluster", "sqlserver_cluster"}
+        assert cluster_alert_calls == [
+            {
+                "cluster_type": "mysql_cluster",
+                "cluster_id": mysql.id,
+                "cluster_name": "mysql-a",
+                "run_id": run.run_id,
+                "result": {
+                    "status": "completed",
+                    "abnormal_database_count": 0,
+                    "abnormal_replica_count": 0,
+                    "items": [],
+                },
+            },
+            {
+                "cluster_type": "sqlserver_cluster",
+                "cluster_id": sqlserver.id,
+                "cluster_name": "sql-a",
+                "run_id": run.run_id,
+                "result": {
+                    "status": "failed",
+                    "error_message": "connection failed",
+                    "abnormal_database_count": 0,
+                    "abnormal_replica_count": 0,
+                },
+            },
+        ]

@@ -26,6 +26,7 @@ class EmailAlertSetting(db.Model):
     database_capacity_absolute_gb_threshold = db.Column(db.Integer, nullable=False, default=20)
     account_sync_failure_enabled = db.Column(db.Boolean, nullable=False, default=False)
     database_sync_failure_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    cluster_status_enabled = db.Column(db.Boolean, nullable=False, default=False)
     privileged_account_enabled = db.Column(db.Boolean, nullable=False, default=False)
     backup_issue_enabled = db.Column(db.Boolean, nullable=False, default=False)
     feishu_enabled = db.Column(db.Boolean, nullable=False, default=False)
@@ -74,6 +75,7 @@ class EmailAlertSetting(db.Model):
             "database_capacity_absolute_gb_threshold": int(self.database_capacity_absolute_gb_threshold or 0),
             "account_sync_failure_enabled": bool(self.account_sync_failure_enabled),
             "database_sync_failure_enabled": bool(self.database_sync_failure_enabled),
+            "cluster_status_enabled": bool(self.cluster_status_enabled),
             "privileged_account_enabled": bool(self.privileged_account_enabled),
             "backup_issue_enabled": bool(self.backup_issue_enabled),
             "feishu_enabled": bool(self.feishu_enabled),

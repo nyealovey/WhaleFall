@@ -16,6 +16,7 @@ class _DummySettings:
     database_capacity_percent_threshold: int = 30
     database_capacity_absolute_gb_threshold: int = 20
     backup_issue_enabled: bool = True
+    cluster_status_enabled: bool = True
 
 
 @dataclass(slots=True)
@@ -50,6 +51,14 @@ class _StubRepository:
     def delete_pending_backup_issue_events_not_in(self, *, bucket_date, dedupe_keys: set[str]) -> int:
         _ = (bucket_date, dedupe_keys)
         return 0
+
+    def upsert_cluster_status_event(self, **payload: object) -> bool:
+        self.created_events.append(dict(payload))
+        return True
+
+    def delete_pending_cluster_status_event(self, *, bucket_date, dedupe_key: str) -> int:
+        self.created_events.append({"deleted_bucket_date": bucket_date, "deleted_dedupe_key": dedupe_key})
+        return 1
 
 
 class _StubSettingsService:
@@ -159,3 +168,72 @@ def test_email_alert_event_service_records_backup_issue_events_for_not_backed_up
     assert repository.created_events[0]["alert_type"] == "backup_status_issue"
     assert repository.created_events[0]["payload_json"]["reason_text"] == "当天没有备份"
     assert repository.created_events[1]["payload_json"]["reason_text"] == "备份异常（最近备份超过24小时）"
+
+
+@pytest.mark.unit
+def test_email_alert_event_service_records_cluster_status_issue_for_abnormal_mysql_cluster() -> None:
+    repository = _StubRepository(baselines={})
+    service = EmailAlertEventService(
+        repository=repository,
+        settings_service=_StubSettingsService(_DummySettings()),
+    )
+
+    created = service.record_cluster_status_event(
+        cluster_type="mysql_cluster",
+        cluster_id=7,
+        cluster_name="mysql-prod",
+        run_id="run-1",
+        result={
+            "status": "completed",
+            "abnormal_replica_count": 1,
+            "abnormal_database_count": 0,
+            "items": [
+                {
+                    "name": "mysql-replica-1",
+                    "replication_status": "unhealthy",
+                    "last_error": "Got fatal error 1236 from master",
+                    "seconds_behind_source": None,
+                },
+            ],
+        },
+        occurred_at=datetime(2026, 3, 17, 9, 0, tzinfo=UTC),
+    )
+
+    assert created is True
+    payload = repository.created_events[0]
+    assert payload["alert_type"] == "cluster_status_issue"
+    assert payload["dedupe_key"] == "mysql_cluster:7"
+    assert payload["run_id"] == "run-1"
+    assert payload["payload_json"]["cluster_name"] == "mysql-prod"
+    assert payload["payload_json"]["cluster_type"] == "mysql_cluster"
+    assert payload["payload_json"]["abnormal_replica_count"] == 1
+    assert "mysql-replica-1" in payload["payload_json"]["summary_text"]
+    assert "Got fatal error 1236" in payload["payload_json"]["summary_text"]
+
+
+@pytest.mark.unit
+def test_email_alert_event_service_deletes_pending_cluster_status_issue_when_cluster_recovers() -> None:
+    repository = _StubRepository(baselines={})
+    service = EmailAlertEventService(
+        repository=repository,
+        settings_service=_StubSettingsService(_DummySettings()),
+    )
+
+    created = service.record_cluster_status_event(
+        cluster_type="sqlserver_cluster",
+        cluster_id=8,
+        cluster_name="sql-ag-prod",
+        run_id="run-2",
+        result={
+            "status": "completed",
+            "abnormal_replica_count": 0,
+            "abnormal_database_count": 0,
+            "items": [],
+        },
+        occurred_at=datetime(2026, 3, 17, 9, 0, tzinfo=UTC),
+    )
+
+    assert created is False
+    assert repository.created_events == [
+        {"deleted_bucket_date": date(2026, 3, 17), "deleted_dedupe_key": "sqlserver_cluster:8"},
+    ]

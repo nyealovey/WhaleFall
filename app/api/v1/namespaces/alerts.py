@@ -41,6 +41,7 @@ AlertSettingsPayloadModel = ns.model(
         "database_capacity_absolute_gb_threshold": fields.Integer(required=True),
         "account_sync_failure_enabled": fields.Boolean(required=True),
         "database_sync_failure_enabled": fields.Boolean(required=True),
+        "cluster_status_enabled": fields.Boolean(required=False),
         "privileged_account_enabled": fields.Boolean(required=True),
         "backup_issue_enabled": fields.Boolean(required=True),
         "feishu_enabled": fields.Boolean(required=False),

@@ -64,6 +64,12 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
                         "summary": "当天未产生事件",
                     },
                     {
+                        "item_key": "cluster_status_issue",
+                        "item_name": "群集状态异常",
+                        "display_state": "no_event",
+                        "summary": "当天未产生事件",
+                    },
+                    {
                         "item_key": "privileged_account_discovery",
                         "item_name": "新增高权限账户",
                         "display_state": "no_event",
@@ -170,6 +176,7 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
         ("rule", "database_capacity_growth", "数据库容量异常增长"),
         ("rule", "account_sync_failure", "账户同步异常"),
         ("rule", "database_sync_failure", "数据库同步异常"),
+        ("rule", "cluster_status_issue", "群集状态异常"),
         ("rule", "privileged_account_discovery", "新增高权限账户"),
         ("rule", "backup_status_issue", "备份告警"),
         ("step", "deliver_email_digest", "发送汇总邮件"),

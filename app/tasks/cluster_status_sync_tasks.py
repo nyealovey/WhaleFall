@@ -15,6 +15,7 @@ from app.models.sqlserver_cluster import SQLServerCluster
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.schemas.task_run_summary import TaskRunSummaryFactory
+from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.cluster_status_sync import ClusterStatusSyncService
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
@@ -107,8 +108,10 @@ def _record_result(
     run_id: str,
     item_type: str,
     cluster_id: int,
+    cluster_name: str,
     result: dict[str, Any],
     totals: _ClusterStatusTotals,
+    alert_event_service: EmailAlertEventService,
 ) -> None:
     status = str(result.get("status") or "")
     abnormal_database_count = int(result.get("abnormal_database_count", 0) or 0)
@@ -136,6 +139,13 @@ def _record_result(
             },
             details_json=result,
         )
+    alert_event_service.record_cluster_status_event(
+        cluster_type=item_type,
+        cluster_id=cluster_id,
+        cluster_name=cluster_name,
+        run_id=run_id,
+        result=result,
+    )
     db.session.commit()
 
 
@@ -185,6 +195,7 @@ def sync_cluster_status(
             run_id=run_id,
         )
         service = ClusterStatusSyncService()
+        alert_event_service = EmailAlertEventService()
         mysql_clusters = service.list_enabled_mysql_clusters()
         sqlserver_clusters = service.list_enabled_sqlserver_clusters()
         totals = _ClusterStatusTotals(
@@ -208,8 +219,10 @@ def sync_cluster_status(
                     run_id=resolved_run_id,
                     item_type="mysql_cluster",
                     cluster_id=int(cluster.id),
+                    cluster_name=str(cluster.name),
                     result=result,
                     totals=totals,
+                    alert_event_service=alert_event_service,
                 )
             for cluster in sqlserver_clusters:
                 item_key = str(cluster.id)
@@ -221,8 +234,10 @@ def sync_cluster_status(
                     run_id=resolved_run_id,
                     item_type="sqlserver_cluster",
                     cluster_id=int(cluster.id),
+                    cluster_name=str(cluster.name),
                     result=result,
                     totals=totals,
+                    alert_event_service=alert_event_service,
                 )
             _finalize_run(task_runs_service, resolved_run_id, totals)
             sync_logger.info(

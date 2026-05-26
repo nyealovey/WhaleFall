@@ -243,3 +243,15 @@ def test_run_center_session_detail_labels_ag_cluster_items() -> None:
 
     assert "sqlserver_ag_cluster" in content
     assert "AG群集" in content
+
+
+def test_email_alert_settings_frontend_exposes_cluster_status_rule() -> None:
+    template_content = _read_text("app/templates/admin/system-settings/_email-alert-settings-section.html")
+    view_content = _read_text("app/static/js/modules/views/admin/alerts/email-settings.js")
+
+    assert 'data-rule-card="clusterStatus"' in template_content
+    assert 'id="clusterStatusEnabled"' in template_content
+    assert "群集状态" in template_content
+    assert "clusterStatusEnabled" in view_content
+    assert "cluster_status_enabled" in view_content
+    assert "群集检测失败或同步状态异常将进入汇总" in view_content

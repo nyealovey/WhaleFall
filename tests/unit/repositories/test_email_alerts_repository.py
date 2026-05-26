@@ -90,3 +90,40 @@ def test_email_alerts_repository_email_channel_excludes_legacy_sent_and_historic
         )
 
         assert [event.dedupe_key for event in events] == ["today"]
+
+
+@pytest.mark.unit
+def test_email_alerts_repository_upserts_and_deletes_pending_cluster_status_events(app) -> None:
+    _ensure_email_alert_tables(app)
+
+    with app.app_context():
+        created = EmailAlertsRepository.upsert_cluster_status_event(
+            alert_type="cluster_status_issue",
+            occurred_at=datetime(2026, 3, 17, 1, 0, tzinfo=UTC),
+            bucket_date=date(2026, 3, 17),
+            dedupe_key="mysql_cluster:7",
+            run_id="run-1",
+            payload_json={"summary_text": "old"},
+        )
+        updated = EmailAlertsRepository.upsert_cluster_status_event(
+            alert_type="cluster_status_issue",
+            occurred_at=datetime(2026, 3, 17, 2, 0, tzinfo=UTC),
+            bucket_date=date(2026, 3, 17),
+            dedupe_key="mysql_cluster:7",
+            run_id="run-2",
+            payload_json={"summary_text": "new"},
+        )
+
+        assert created is True
+        assert updated is False
+        event = EmailAlertEvent.query.filter_by(alert_type="cluster_status_issue").one()
+        assert event.run_id == "run-2"
+        assert event.payload_json == {"summary_text": "new"}
+
+        deleted = EmailAlertsRepository.delete_pending_cluster_status_event(
+            bucket_date=date(2026, 3, 17),
+            dedupe_key="mysql_cluster:7",
+        )
+
+        assert deleted == 1
+        assert EmailAlertEvent.query.filter_by(alert_type="cluster_status_issue").count() == 0

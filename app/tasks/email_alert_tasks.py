@@ -19,6 +19,7 @@ _RULE_ITEMS = (
     ("database_capacity_growth", "数据库容量异常增长"),
     ("account_sync_failure", "账户同步异常"),
     ("database_sync_failure", "数据库同步异常"),
+    ("cluster_status_issue", "群集状态异常"),
     ("privileged_account_discovery", "新增高权限账户"),
     ("backup_status_issue", "备份告警"),
 )
