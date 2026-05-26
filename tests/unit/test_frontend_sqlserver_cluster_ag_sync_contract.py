@@ -193,6 +193,19 @@ def test_cluster_instance_options_show_bound_cluster_without_disabling_selection
     assert "disabled" not in template_content.split("cluster-instance-option--bound", 1)[0].rsplit("<option", 1)[-1]
 
 
+def test_mysql_cluster_topology_modal_displays_failure_reason() -> None:
+    template_content = _read_text("app/templates/cluster/list.html")
+    view_content = _read_text("app/static/js/modules/views/cluster/list.js")
+    css_content = _read_text("app/static/css/pages/cluster/list.css")
+
+    assert "<th>原因</th>" in template_content
+    assert 'colspan="7"' in template_content
+    assert 'colspan="7"' in view_content
+    assert "item.last_error" in view_content
+    assert "mysql-cluster-topology-reason" in view_content
+    assert "mysql-cluster-topology-reason" in css_content
+
+
 def test_sqlserver_status_page_contract() -> None:
     template_content = _read_text("app/templates/cluster/sqlserver_status.html")
     view_content = _read_text("app/static/js/modules/views/cluster/sqlserver-status.js")

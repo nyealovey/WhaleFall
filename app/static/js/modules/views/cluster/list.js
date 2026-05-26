@@ -1053,13 +1053,14 @@ function mountClusterPage(global) {
       return;
     }
     if (!items.length) {
-      body.innerHTML = '<tr><td colspan="6" class="text-muted">暂无主从状态</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="text-muted">暂无主从状态</td></tr>';
       return;
     }
     body.innerHTML = items
       .map((item) => {
         const source = item.source_host ? `${item.source_host}:${item.source_port || 3306}` : "-";
         const lag = item.seconds_behind_source === null || item.seconds_behind_source === undefined ? "-" : `${item.seconds_behind_source}s`;
+        const reason = item.last_error || "-";
         return (
           `<tr>` +
           `<td>${escapeHtml(item.name || "-")}</td>` +
@@ -1067,6 +1068,7 @@ function mountClusterPage(global) {
           `<td>${renderSyncStatus(item.replication_status || "unknown")}</td>` +
           `<td>${escapeHtml(source)}</td>` +
           `<td>${escapeHtml(lag)}</td>` +
+          `<td class="mysql-cluster-topology-reason">${escapeHtml(reason)}</td>` +
           `<td>${escapeHtml(item.last_checked_at ? formatDate(item.last_checked_at) : "-")}</td>` +
           `</tr>`
         );
