@@ -341,7 +341,9 @@ class MySQLClusterManagementService:
                     raise
                 rows = []
             if rows:
-                return self._normalize_replica_status(rows[0], new_names=True)
+                detected = self._normalize_replica_status(rows[0], new_names=True)
+                detected.update(self._detect_read_only_state(connection))
+                return detected
             try:
                 rows = self._execute_rows(connection, _SLAVE_STATUS_QUERY)
             except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
@@ -349,7 +351,9 @@ class MySQLClusterManagementService:
                     raise
                 rows = []
             if rows:
-                return self._normalize_replica_status(rows[0], new_names=False)
+                detected = self._normalize_replica_status(rows[0], new_names=False)
+                detected.update(self._detect_read_only_state(connection))
+                return detected
             return self._detect_non_replica(connection)
         finally:
             connection.disconnect()
@@ -369,11 +373,14 @@ class MySQLClusterManagementService:
         io_running = str(mapping.get("Replica_IO_Running" if new_names else "Slave_IO_Running") or "").strip()
         sql_running = str(mapping.get("Replica_SQL_Running" if new_names else "Slave_SQL_Running") or "").strip()
         seconds_behind = mapping.get("Seconds_Behind_Source" if new_names else "Seconds_Behind_Master")
-        last_error = (
-            mapping.get("Last_SQL_Error")
-            or mapping.get("Last_IO_Error")
-            or mapping.get("Last_Error")
-        )
+        io_state = mapping.get("Replica_IO_State" if new_names else "Slave_IO_State")
+        source_log_file = mapping.get("Source_Log_File" if new_names else "Master_Log_File")
+        read_source_log_pos = mapping.get("Read_Source_Log_Pos" if new_names else "Read_Master_Log_Pos")
+        relay_source_log_file = mapping.get("Relay_Source_Log_File" if new_names else "Relay_Master_Log_File")
+        exec_source_log_pos = mapping.get("Exec_Source_Log_Pos" if new_names else "Exec_Master_Log_Pos")
+        last_io_error = MySQLClusterManagementService._optional_str(mapping.get("Last_IO_Error"))
+        last_sql_error = MySQLClusterManagementService._optional_str(mapping.get("Last_SQL_Error"))
+        last_error = last_sql_error or last_io_error or MySQLClusterManagementService._optional_str(mapping.get("Last_Error"))
         healthy = io_running.lower() == "yes" and sql_running.lower() == "yes"
         return {
             "replication_role": "replica",
@@ -383,11 +390,34 @@ class MySQLClusterManagementService:
             "io_running": io_running or None,
             "sql_running": sql_running or None,
             "seconds_behind_source": MySQLClusterManagementService._optional_int(seconds_behind),
-            "last_error": str(last_error).strip() if last_error else None,
+            "io_state": MySQLClusterManagementService._optional_str(io_state),
+            "source_log_file": MySQLClusterManagementService._optional_str(source_log_file),
+            "read_source_log_pos": MySQLClusterManagementService._optional_int(read_source_log_pos),
+            "relay_source_log_file": MySQLClusterManagementService._optional_str(relay_source_log_file),
+            "exec_source_log_pos": MySQLClusterManagementService._optional_int(exec_source_log_pos),
+            "sql_delay": MySQLClusterManagementService._optional_int(mapping.get("SQL_Delay")),
+            "retrieved_gtid_set": MySQLClusterManagementService._optional_str(mapping.get("Retrieved_Gtid_Set")),
+            "executed_gtid_set": MySQLClusterManagementService._optional_str(mapping.get("Executed_Gtid_Set")),
+            "last_io_error": last_io_error,
+            "last_sql_error": last_sql_error,
+            "last_error": last_error,
         }
 
     @staticmethod
     def _detect_non_replica(connection: SyncConnection) -> dict[str, Any]:
+        state = MySQLClusterManagementService._detect_read_only_state(connection)
+        read_only = state["read_only"]
+        super_read_only = state["super_read_only"]
+        role = "unknown" if read_only or super_read_only else "primary"
+        return {
+            "replication_role": role,
+            "replication_status": "healthy" if role == "primary" else "unknown",
+            "read_only": read_only,
+            "super_read_only": super_read_only,
+        }
+
+    @staticmethod
+    def _detect_read_only_state(connection: SyncConnection) -> dict[str, bool | None]:
         rows = list(connection.execute_query(_READ_ONLY_QUERY))
         read_only = None
         super_read_only = None
@@ -400,10 +430,7 @@ class MySQLClusterManagementService:
                 values = list(row)
                 read_only = MySQLClusterManagementService._as_bool(values[0]) if values else None
                 super_read_only = MySQLClusterManagementService._as_bool(values[1]) if len(values) > 1 else None
-        role = "unknown" if read_only or super_read_only else "primary"
         return {
-            "replication_role": role,
-            "replication_status": "healthy" if role == "primary" else "unknown",
             "read_only": read_only,
             "super_read_only": super_read_only,
         }
@@ -443,6 +470,13 @@ class MySQLClusterManagementService:
         return int(value)
 
     @staticmethod
+    def _optional_str(value: Any) -> str | None:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        return normalized or None
+
+    @staticmethod
     def _apply_detection(binding: MySQLClusterInstance, detected: Mapping[str, Any], checked_at: Any) -> None:
         binding.replication_role = str(detected.get("replication_role") or "unknown")
         binding.replication_status = str(detected.get("replication_status") or "unknown")
@@ -451,8 +485,18 @@ class MySQLClusterManagementService:
         binding.io_running = cast(str | None, detected.get("io_running"))
         binding.sql_running = cast(str | None, detected.get("sql_running"))
         binding.seconds_behind_source = cast(int | None, detected.get("seconds_behind_source"))
+        binding.io_state = cast(str | None, detected.get("io_state"))
+        binding.source_log_file = cast(str | None, detected.get("source_log_file"))
+        binding.read_source_log_pos = cast(int | None, detected.get("read_source_log_pos"))
+        binding.relay_source_log_file = cast(str | None, detected.get("relay_source_log_file"))
+        binding.exec_source_log_pos = cast(int | None, detected.get("exec_source_log_pos"))
+        binding.sql_delay = cast(int | None, detected.get("sql_delay"))
+        binding.retrieved_gtid_set = cast(str | None, detected.get("retrieved_gtid_set"))
+        binding.executed_gtid_set = cast(str | None, detected.get("executed_gtid_set"))
         binding.read_only = cast(bool | None, detected.get("read_only"))
         binding.super_read_only = cast(bool | None, detected.get("super_read_only"))
+        binding.last_io_error = cast(str | None, detected.get("last_io_error"))
+        binding.last_sql_error = cast(str | None, detected.get("last_sql_error"))
         binding.last_error = cast(str | None, detected.get("last_error"))
         binding.last_checked_at = checked_at
         db.session.add(binding)

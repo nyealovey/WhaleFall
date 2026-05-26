@@ -144,8 +144,18 @@ def test_mysql_topology_sync_prefers_show_replica_status() -> None:
                         "Replica_SQL_Running": "Yes",
                         "Seconds_Behind_Source": 0,
                         "Replica_IO_State": "Waiting for source to send event",
+                        "Source_Log_File": "mysql-bin.000010",
+                        "Read_Source_Log_Pos": "128",
+                        "Relay_Source_Log_File": "mysql-bin.000010",
+                        "Exec_Source_Log_Pos": "128",
+                        "SQL_Delay": "0",
+                        "Retrieved_Gtid_Set": "uuid:1-10",
+                        "Executed_Gtid_Set": "uuid:1-10",
+                        "Last_IO_Error": "",
+                        "Last_SQL_Error": "",
                     },
                 ],
+                "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only": [(1, 1)],
             },
         )
         service = MySQLClusterManagementService(connection_factory=_FakeFactory(connection))
@@ -155,7 +165,22 @@ def test_mysql_topology_sync_prefers_show_replica_status() -> None:
         assert result["items"][0]["replication_role"] == "replica"
         assert result["items"][0]["source_host"] == "10.0.0.1"
         assert result["items"][0]["replication_status"] == "healthy"
-        assert connection.queries == ["SHOW REPLICA STATUS"]
+        assert result["items"][0]["io_state"] == "Waiting for source to send event"
+        assert result["items"][0]["source_log_file"] == "mysql-bin.000010"
+        assert result["items"][0]["read_source_log_pos"] == 128
+        assert result["items"][0]["relay_source_log_file"] == "mysql-bin.000010"
+        assert result["items"][0]["exec_source_log_pos"] == 128
+        assert result["items"][0]["sql_delay"] == 0
+        assert result["items"][0]["retrieved_gtid_set"] == "uuid:1-10"
+        assert result["items"][0]["executed_gtid_set"] == "uuid:1-10"
+        assert result["items"][0]["last_io_error"] is None
+        assert result["items"][0]["last_sql_error"] is None
+        assert result["items"][0]["read_only"] is True
+        assert result["items"][0]["super_read_only"] is True
+        assert connection.queries == [
+            "SHOW REPLICA STATUS",
+            "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only",
+        ]
 
 
 @pytest.mark.unit
@@ -182,9 +207,19 @@ def test_mysql_topology_sync_falls_back_to_show_slave_status() -> None:
                         "Slave_IO_Running": "Yes",
                         "Slave_SQL_Running": "No",
                         "Seconds_Behind_Master": None,
+                        "Slave_IO_State": "Connecting to master",
+                        "Master_Log_File": "mysql-bin.000005",
+                        "Read_Master_Log_Pos": "64",
+                        "Relay_Master_Log_File": "mysql-bin.000004",
+                        "Exec_Master_Log_Pos": "32",
+                        "SQL_Delay": "7",
+                        "Retrieved_Gtid_Set": "uuid:1-3",
+                        "Executed_Gtid_Set": "uuid:1-2",
+                        "Last_IO_Error": "connecting failed",
                         "Last_SQL_Error": "duplicate key",
                     },
                 ],
+                "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only": [(1, 0)],
             },
         )
         service = MySQLClusterManagementService(connection_factory=_FakeFactory(connection))
@@ -195,7 +230,23 @@ def test_mysql_topology_sync_falls_back_to_show_slave_status() -> None:
         assert result["items"][0]["source_host"] == "10.0.0.1"
         assert result["items"][0]["replication_status"] == "unhealthy"
         assert result["items"][0]["last_error"] == "duplicate key"
-        assert connection.queries == ["SHOW REPLICA STATUS", "SHOW SLAVE STATUS"]
+        assert result["items"][0]["io_state"] == "Connecting to master"
+        assert result["items"][0]["source_log_file"] == "mysql-bin.000005"
+        assert result["items"][0]["read_source_log_pos"] == 64
+        assert result["items"][0]["relay_source_log_file"] == "mysql-bin.000004"
+        assert result["items"][0]["exec_source_log_pos"] == 32
+        assert result["items"][0]["sql_delay"] == 7
+        assert result["items"][0]["retrieved_gtid_set"] == "uuid:1-3"
+        assert result["items"][0]["executed_gtid_set"] == "uuid:1-2"
+        assert result["items"][0]["last_io_error"] == "connecting failed"
+        assert result["items"][0]["last_sql_error"] == "duplicate key"
+        assert result["items"][0]["read_only"] is True
+        assert result["items"][0]["super_read_only"] is False
+        assert connection.queries == [
+            "SHOW REPLICA STATUS",
+            "SHOW SLAVE STATUS",
+            "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only",
+        ]
 
 
 @pytest.mark.unit
@@ -437,3 +488,66 @@ def test_mysql_cluster_summary_distinguishes_no_replica_from_unknown_lag() -> No
         assert summaries["mysql-unknown-lag"]["unknown_replica_lag_count"] == 1
         assert summaries["mysql-unknown-lag"]["max_replica_lag_seconds"] is None
         assert summaries["mysql-never-checked"]["last_topology_sync_at"] is None
+
+
+@pytest.mark.unit
+def test_mysql_cluster_detail_returns_replication_diagnostic_fields_after_sync() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        mysql = Instance(name="mysql-replica", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
+        cluster = MySQLCluster(name="mysql-cluster-detail")
+        db.session.add_all([mysql, cluster])
+        db.session.flush()
+        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=mysql.id))
+        db.session.commit()
+
+        connection = _FakeConnection(
+            {
+                "SHOW REPLICA STATUS": [
+                    {
+                        "Source_Host": "10.0.0.1",
+                        "Source_Port": 3306,
+                        "Replica_IO_Running": "No",
+                        "Replica_SQL_Running": "Yes",
+                        "Seconds_Behind_Source": 11,
+                        "Replica_IO_State": "Reconnecting",
+                        "Source_Log_File": "mysql-bin.000011",
+                        "Read_Source_Log_Pos": "256",
+                        "Relay_Source_Log_File": "mysql-bin.000011",
+                        "Exec_Source_Log_Pos": "128",
+                        "SQL_Delay": "3",
+                        "Retrieved_Gtid_Set": "uuid:1-11",
+                        "Executed_Gtid_Set": "uuid:1-9",
+                        "Last_IO_Error": "network timeout",
+                        "Last_SQL_Error": "",
+                    },
+                ],
+                "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only": [(1, 1)],
+            },
+        )
+        service = MySQLClusterManagementService(connection_factory=_FakeFactory(connection))
+
+        service.sync_topology(cluster.id)
+        detail = service.get_detail(cluster.id)
+        instance = detail["instances"][0]
+
+        expected_keys = {
+            "io_state",
+            "source_log_file",
+            "read_source_log_pos",
+            "relay_source_log_file",
+            "exec_source_log_pos",
+            "sql_delay",
+            "retrieved_gtid_set",
+            "executed_gtid_set",
+            "last_io_error",
+            "last_sql_error",
+            "read_only",
+            "super_read_only",
+        }
+        assert expected_keys.issubset(instance.keys())
+        assert instance["io_state"] == "Reconnecting"
+        assert instance["last_io_error"] == "network timeout"

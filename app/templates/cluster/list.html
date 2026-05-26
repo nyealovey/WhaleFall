@@ -214,11 +214,6 @@
                 绑定实例
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="mysql-cluster-topology-tab" data-bs-toggle="tab" data-bs-target="#mysql-cluster-topology-pane" type="button" role="tab" aria-controls="mysql-cluster-topology-pane" aria-selected="false">
-                主从状态
-            </button>
-        </li>
     </ul>
 
     <div class="tab-content pt-3">
@@ -255,35 +250,6 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="mysql-cluster-topology-pane" role="tabpanel" aria-labelledby="mysql-cluster-topology-tab" tabindex="0">
-            <div class="cluster-ag-syncbar">
-                <div class="cluster-ag-syncbar__copy">
-                    <div class="fw-semibold">主从拓扑检测</div>
-                    <div class="text-muted small">检测已绑定 MySQL 实例的传统 replication 状态。</div>
-                </div>
-                <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-mysql-topology">
-                    <i class="fas fa-rotate me-1"></i>同步主从信息
-                </button>
-            </div>
-            <div class="table-responsive mt-3">
-                <table class="table table-sm align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>实例</th>
-                            <th>角色</th>
-                            <th>状态</th>
-                            <th>上游</th>
-                            <th>延迟</th>
-                            <th>原因</th>
-                            <th>最近检测</th>
-                        </tr>
-                    </thead>
-                    <tbody id="mysqlClusterTopologyTableBody">
-                        <tr><td colspan="7" class="text-muted">暂无主从状态</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 </form>
 {% endset %}
@@ -299,6 +265,173 @@
     title='<i class="fas fa-database me-2"></i><span id="mysqlClusterModalTitle">添加 MySQL 群集</span>',
     body=mysql_cluster_modal_body,
     footer=mysql_cluster_modal_footer,
+    size='xl',
+    body_class='p-4'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+
+{% set ag_accounts_dashboard_body %}
+<div class="ag-status-dashboard" data-ag-accounts-dashboard>
+    <div class="ag-status-dashboard__summary">
+        <div>
+            <div class="text-muted small">AG 账户</div>
+            <h5 class="mb-1" id="agAccountsDashboardTitle">-</h5>
+            <div class="text-muted small" data-ag-accounts-summary="listener">-</div>
+        </div>
+        <div class="ag-status-dashboard__actions btn-group btn-group-sm">
+            <button class="btn btn-outline-primary" type="button" data-action="sync-ag-accounts-dashboard">
+                <i class="fas fa-sync me-1"></i>同步 AG 账户
+            </button>
+            <button class="btn btn-outline-secondary" type="button" data-action="open-ag-accounts-ledger-dashboard">
+                <i class="fas fa-users me-1"></i>账户列表
+            </button>
+        </div>
+    </div>
+
+    <div class="ag-status-dashboard__tabs" id="agAccountsDashboardTabs" aria-label="AG 账户切换">
+        <button type="button" class="ag-status-dashboard__tab is-active" data-action="switch-ag-accounts-dashboard">
+            -
+        </button>
+    </div>
+
+    <div class="ag-status-dashboard__metrics" aria-label="AG 账户概览">
+        <div class="ag-status-dashboard__metric">
+            <span>AG 总数</span>
+            <strong data-ag-accounts-kpi="total_ag">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>Contained</span>
+            <strong data-ag-accounts-kpi="contained_ag">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>已配凭据</span>
+            <strong data-ag-accounts-kpi="credentialed_ag">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>启用采集</span>
+            <strong data-ag-accounts-kpi="enabled_ag">0</strong>
+        </div>
+    </div>
+
+    <div class="ag-status-dashboard__section">
+        <div class="ag-status-dashboard__section-title">
+            <span>采集配置</span>
+            <small data-ag-accounts-summary="last_sync">未同步</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>AG</th>
+                        <th>监听器</th>
+                        <th>连接地址</th>
+                        <th>账户采集凭据</th>
+                        <th>contained</th>
+                        <th>采集</th>
+                        <th>账户同步</th>
+                        <th>异常数</th>
+                    </tr>
+                </thead>
+                <tbody id="agAccountsDashboardTableBody">
+                    <tr><td colspan="8" class="text-muted">暂无 AG 账户配置</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endset %}
+
+{% set ag_accounts_dashboard_footer %}
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+{% endset %}
+
+{% with
+    modal_id='agAccountsDashboardModal',
+    modal_label_id='agAccountsDashboardModalLabel',
+    title='<i class="fas fa-users me-2"></i><span>AG 账户</span>',
+    body=ag_accounts_dashboard_body,
+    footer=ag_accounts_dashboard_footer,
+    size='xl',
+    body_class='p-4'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+
+{% set mysql_topology_dashboard_body %}
+<div class="ag-status-dashboard" data-mysql-topology-dashboard>
+    <div class="ag-status-dashboard__summary">
+        <div>
+            <div class="text-muted small">MySQL 主从状态</div>
+            <h5 class="mb-1" id="mysqlTopologyDashboardTitle">-</h5>
+            <div class="text-muted small" data-mysql-topology-summary="last_checked_at">未检测</div>
+        </div>
+        <div class="ag-status-dashboard__actions">
+            <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-mysql-topology-dashboard">
+                <i class="fas fa-rotate me-1"></i>同步主从信息
+            </button>
+        </div>
+    </div>
+
+    <div class="ag-status-dashboard__metrics" aria-label="MySQL 主从状态概览">
+        <div class="ag-status-dashboard__metric">
+            <span>绑定实例</span>
+            <strong data-mysql-topology-kpi="instance_count">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>副本数</span>
+            <strong data-mysql-topology-kpi="replica_count">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric ag-status-dashboard__metric--danger">
+            <span>异常实例</span>
+            <strong data-mysql-topology-kpi="abnormal_replica_count">0</strong>
+        </div>
+        <div class="ag-status-dashboard__metric">
+            <span>最大延迟</span>
+            <strong data-mysql-topology-kpi="max_replica_lag_seconds">-</strong>
+        </div>
+    </div>
+
+    <div class="ag-status-dashboard__section">
+        <div class="ag-status-dashboard__section-title">
+            <span>实例状态</span>
+            <small data-mysql-topology-summary="status">未检测</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 mysql-topology-dashboard-table">
+                <thead>
+                    <tr>
+                        <th>实例</th>
+                        <th>角色</th>
+                        <th>线程</th>
+                        <th>上游</th>
+                        <th>延迟</th>
+                        <th>日志位置</th>
+                        <th>GTID</th>
+                        <th>只读</th>
+                        <th>异常</th>
+                        <th>最近检测</th>
+                    </tr>
+                </thead>
+                <tbody id="mysqlTopologyDashboardTableBody">
+                    <tr><td colspan="10" class="text-muted">暂无主从状态</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endset %}
+
+{% set mysql_topology_dashboard_footer %}
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+{% endset %}
+
+{% with
+    modal_id='mysqlTopologyDashboardModal',
+    modal_label_id='mysqlTopologyDashboardModalLabel',
+    title='<i class="fas fa-database me-2"></i><span>MySQL 主从状态</span>',
+    body=mysql_topology_dashboard_body,
+    footer=mysql_topology_dashboard_footer,
     size='xl',
     body_class='p-4'
 %}

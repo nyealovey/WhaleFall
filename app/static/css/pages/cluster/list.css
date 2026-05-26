@@ -83,6 +83,14 @@
     word-break: break-word;
 }
 
+.mysql-topology-dashboard-table {
+    min-width: 78rem;
+}
+
+.mysql-topology-dashboard-table td {
+    vertical-align: top;
+}
+
 .cluster-instance-option--bound {
     background-color: rgba(148, 163, 184, 0.08);
     color: #8a94a3;

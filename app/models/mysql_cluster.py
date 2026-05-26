@@ -58,8 +58,18 @@ class MySQLClusterInstance(db.Model):
     io_running = db.Column(db.String(16), nullable=True)
     sql_running = db.Column(db.String(16), nullable=True)
     seconds_behind_source = db.Column(db.Integer, nullable=True)
+    io_state = db.Column(db.String(255), nullable=True)
+    source_log_file = db.Column(db.String(255), nullable=True)
+    read_source_log_pos = db.Column(db.Integer, nullable=True)
+    relay_source_log_file = db.Column(db.String(255), nullable=True)
+    exec_source_log_pos = db.Column(db.Integer, nullable=True)
+    sql_delay = db.Column(db.Integer, nullable=True)
+    retrieved_gtid_set = db.Column(db.Text, nullable=True)
+    executed_gtid_set = db.Column(db.Text, nullable=True)
     read_only = db.Column(db.Boolean, nullable=True)
     super_read_only = db.Column(db.Boolean, nullable=True)
+    last_io_error = db.Column(db.Text, nullable=True)
+    last_sql_error = db.Column(db.Text, nullable=True)
     last_error = db.Column(db.Text, nullable=True)
     last_checked_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
@@ -85,8 +95,18 @@ class MySQLClusterInstance(db.Model):
             "io_running": self.io_running,
             "sql_running": self.sql_running,
             "seconds_behind_source": self.seconds_behind_source,
+            "io_state": self.io_state,
+            "source_log_file": self.source_log_file,
+            "read_source_log_pos": self.read_source_log_pos,
+            "relay_source_log_file": self.relay_source_log_file,
+            "exec_source_log_pos": self.exec_source_log_pos,
+            "sql_delay": self.sql_delay,
+            "retrieved_gtid_set": self.retrieved_gtid_set,
+            "executed_gtid_set": self.executed_gtid_set,
             "read_only": self.read_only,
             "super_read_only": self.super_read_only,
+            "last_io_error": self.last_io_error,
+            "last_sql_error": self.last_sql_error,
             "last_error": self.last_error,
             "last_checked_at": self.last_checked_at.isoformat() if self.last_checked_at else None,
         }
