@@ -109,7 +109,7 @@ def test_cluster_list_exposes_ag_account_sync_and_account_ledger_actions() -> No
         'data-action="sync-ag-accounts-dashboard"',
         "syncAgAccounts(clusterId)",
         "loadAgAccountsLedger",
-        "owner_type: \"sqlserver_ag\"",
+        'owner_type: "sqlserver_ag"',
         "owner_id: agId",
     )
     for fragment in required_view_fragments:
@@ -178,6 +178,17 @@ def test_sqlserver_cluster_ag_status_dashboard_modal_contract() -> None:
     )
     for fragment in required_view_fragments:
         assert fragment in view_content
+
+
+def test_sqlserver_ag_views_show_missing_listener_label() -> None:
+    view_content = _read_text("app/static/js/modules/views/cluster/list.js")
+
+    assert "未配置侦听器" in view_content
+    assert "renderAgListenerSummary(item)" in view_content
+    assert "renderAgListenerSummary(ag)" in view_content
+    assert "renderAgListenerSummary(summary)" in view_content
+    assert '[item.listener_name, item.listener_host].filter(Boolean).join(" / ") || "-"' not in view_content
+    assert "[summary.listener_host, summary.listener_port].filter(Boolean).join" not in view_content
 
 
 def test_cluster_instance_options_show_bound_cluster_without_disabling_selection() -> None:

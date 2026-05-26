@@ -212,7 +212,7 @@ class SQLServerAvailabilityGroupCreatePayload(PayloadSchema):
 
     name: StrictStr
     listener_name: StrictStr | None = None
-    listener_host: StrictStr
+    listener_host: StrictStr | None = None
     listener_port: int = 1433
     credential_id: int | None = None
     account_credential_id: int | None = None
@@ -224,7 +224,7 @@ class SQLServerAvailabilityGroupCreatePayload(PayloadSchema):
     @classmethod
     def _require_fields(cls, data: Any) -> Any:
         mapping = _ensure_mapping(data)
-        for field in ("name", "listener_host"):
+        for field in ("name",):
             if not parse_text(mapping.get(field)):
                 raise ValueError(f"{field}不能为空")
         return data
@@ -234,18 +234,10 @@ class SQLServerAvailabilityGroupCreatePayload(PayloadSchema):
     def _clean_name(cls, value: str) -> str:
         return _validate_name(value)
 
-    @field_validator("listener_name", "connection_database", mode="before")
+    @field_validator("listener_name", "listener_host", "connection_database", mode="before")
     @classmethod
     def _parse_optional_text(cls, value: Any) -> str | None:
         return _parse_optional_text(value)
-
-    @field_validator("listener_host")
-    @classmethod
-    def _clean_listener_host(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("listener_host不能为空")
-        return cleaned
 
     @field_validator("listener_port", mode="before")
     @classmethod

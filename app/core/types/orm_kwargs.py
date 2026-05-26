@@ -172,7 +172,7 @@ class SQLServerAvailabilityGroupOrmFields(TypedDict, total=False):
     cluster_id: int
     name: str
     listener_name: str | None
-    listener_host: str
+    listener_host: str | None
     listener_port: int
     credential_id: int | None
     account_credential_id: int | None

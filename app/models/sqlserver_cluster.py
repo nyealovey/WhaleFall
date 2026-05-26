@@ -95,7 +95,7 @@ class SQLServerAvailabilityGroup(db.Model):
     cluster_id = db.Column(db.Integer, db.ForeignKey("sqlserver_clusters.id"), nullable=False, index=True)
     name = db.Column(db.String(128), nullable=False)
     listener_name = db.Column(db.String(255), nullable=True)
-    listener_host = db.Column(db.String(255), nullable=False)
+    listener_host = db.Column(db.String(255), nullable=True)
     listener_port = db.Column(db.Integer, nullable=False, default=1433)
     credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=True)
     account_credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=True)

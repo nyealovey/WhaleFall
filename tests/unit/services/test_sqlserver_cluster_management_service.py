@@ -282,6 +282,8 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
         assert result["source_instance"]["id"] == instance.id
         assert factory.targets[0].credential_id == credential.id
         assert factory.targets[0].credential == credential
+        assert "CROSS APPLY" not in factory.connection.last_query
+        assert "OUTER APPLY" in factory.connection.last_query
         assert "l.listener_id" in factory.connection.last_query
         assert "listener.listener_id" in factory.connection.last_query
         ags = SQLServerAvailabilityGroup.query.order_by(SQLServerAvailabilityGroup.name.asc()).all()
@@ -290,6 +292,52 @@ def test_sync_availability_groups_discovers_ags_from_bound_instance() -> None:
             ("ag-report", "ag-report.example.test", 1433, False),
         ]
         assert factory.connection.disconnected is True
+
+
+@pytest.mark.unit
+def test_sync_availability_groups_discovers_ag_without_listener() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        credential = Credential(
+            name="ag-sync-account",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="ag_reader",
+            password="secret",
+        )
+        instance = Instance(
+            name="sql-node-1",
+            db_type=DatabaseType.SQLSERVER,
+            host="10.0.0.11",
+            port=1433,
+            credential_id=credential.id,
+        )
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
+        db.session.add_all([credential, instance, cluster])
+        db.session.flush()
+        instance.credential_id = credential.id
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        db.session.commit()
+
+        service = SQLServerClusterManagementService(
+            connection_factory=_FakeAgDiscoveryFactory(
+                [("ag-no-listener", None, None, None, True)]
+            )
+        )
+
+        result = service.sync_availability_groups(cluster.id, {"connection_database": "master"})
+
+        assert result["created"] == 1
+        assert result["total"] == 1
+        ag = SQLServerAvailabilityGroup.query.one()
+        assert ag.name == "ag-no-listener"
+        assert ag.listener_name is None
+        assert ag.listener_host is None
+        assert ag.listener_port == 1433
+        assert result["items"][0]["connection_endpoint"] is None
 
 
 @pytest.mark.unit
@@ -433,6 +481,45 @@ def test_availability_group_collection_requires_contained_and_account_credential
         assert updated["account_credential_id"] == credential.id
         assert updated["account_credential_name"] == "ag-account-sync-account"
         assert updated["is_enabled"] is True
+
+
+@pytest.mark.unit
+def test_availability_group_collection_requires_listener_endpoint() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        credential = Credential(
+            name="ag-account-sync-account",
+            credential_type="database",
+            db_type=DatabaseType.SQLSERVER,
+            username="contained_reader",
+            password="secret",
+        )
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
+        ag = SQLServerAvailabilityGroup(
+            cluster_id=1,
+            name="ag-no-listener",
+            listener_host=None,
+            listener_port=1433,
+            contained_enabled=True,
+            is_enabled=False,
+        )
+        db.session.add_all([credential, cluster])
+        db.session.flush()
+        ag.cluster_id = cluster.id
+        db.session.add(ag)
+        db.session.commit()
+
+        service = SQLServerClusterManagementService()
+
+        with pytest.raises(ValidationError, match="AG 未配置侦听器"):
+            service.update_availability_group(
+                cluster.id,
+                ag.id,
+                {"account_credential_id": credential.id, "is_enabled": True},
+            )
 
 
 @pytest.mark.unit

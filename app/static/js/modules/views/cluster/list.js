@@ -766,7 +766,7 @@ function mountClusterPage(global) {
   }
 
   function renderAgRow(item, rowClass = "", clusterId = "") {
-    const listener = [item.listener_name, item.listener_host].filter(Boolean).join(" / ") || "-";
+    const listener = renderAgListenerSummary(item);
     const syncLabel = item.last_sync_status || "未同步";
     return `
       <tr class="${escapeHtml(rowClass)}">
@@ -788,6 +788,11 @@ function mountClusterPage(global) {
       return `<span class="status-pill status-pill--danger">异常 ${abnormal}</span>`;
     }
     return '<span class="status-pill status-pill--muted">查看状态</span>';
+  }
+
+  function renderAgListenerSummary(item) {
+    const listener = [item?.listener_name, item?.listener_host].filter(Boolean).join(" / ");
+    return listener || "未配置侦听器";
   }
 
   function resetAgAccountsDashboard() {
@@ -820,7 +825,7 @@ function mountClusterPage(global) {
     if (!ag?.id) {
       return "-";
     }
-    const listener = [ag.listener_name, ag.listener_host].filter(Boolean).join(" / ");
+    const listener = renderAgListenerSummary(ag);
     return [ag.name, listener || null, ag.connection_endpoint].filter(Boolean).join(" · ") || "-";
   }
 
@@ -995,8 +1000,8 @@ function mountClusterPage(global) {
   }
 
   function renderListenerSummary(summary) {
-    const endpoint = [summary.listener_host, summary.listener_port].filter(Boolean).join(":");
-    return [summary.cluster_name, summary.listener_name, endpoint].filter(Boolean).join(" · ") || "-";
+    const endpoint = summary.listener_host ? `${summary.listener_host}:${summary.listener_port || 1433}` : "";
+    return [summary.cluster_name, renderAgListenerSummary(summary), endpoint].filter(Boolean).join(" · ") || "-";
   }
 
   function renderAgDashboardStatus(status) {

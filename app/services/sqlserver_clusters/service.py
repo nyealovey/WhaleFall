@@ -49,7 +49,7 @@ SELECT
     COALESCE(listener.port, 1433) AS listener_port,
     ' + @contained_expr + N' AS contained_enabled
 FROM sys.availability_groups AS ag
-CROSS APPLY (
+OUTER APPLY (
     SELECT TOP (1)
         l.listener_id,
         l.dns_name,
@@ -230,6 +230,8 @@ class SQLServerClusterManagementService:
             ag.account_credential_id,
             ag.is_enabled,
             cluster.domain_name,
+            ag.listener_name,
+            ag.listener_host,
         )
         try:
             self._repository.add(ag)
@@ -270,7 +272,16 @@ class SQLServerClusterManagementService:
         )
         contained_enabled = parsed.contained_enabled if parsed.contained_enabled is not None else ag.contained_enabled
         is_enabled = parsed.is_enabled if parsed.is_enabled is not None else ag.is_enabled
-        self._ensure_ag_collection_allowed(contained_enabled, account_credential_id, is_enabled, cluster.domain_name)
+        listener_name = parsed.listener_name if "listener_name" in parsed.model_fields_set else ag.listener_name
+        listener_host = parsed.listener_host if "listener_host" in parsed.model_fields_set else ag.listener_host
+        self._ensure_ag_collection_allowed(
+            contained_enabled,
+            account_credential_id,
+            is_enabled,
+            cluster.domain_name,
+            listener_name,
+            listener_host,
+        )
 
         for field in (
             "listener_name",
@@ -399,6 +410,8 @@ class SQLServerClusterManagementService:
         account_credential_id: object | None,
         is_enabled: bool,
         domain_name: str | None,
+        listener_name: str | None,
+        listener_host: str | None,
     ) -> None:
         if not is_enabled:
             return
@@ -406,6 +419,8 @@ class SQLServerClusterManagementService:
             raise ValidationError("非 contained AG 不允许启用账户采集")
         if account_credential_id is None:
             raise ValidationError("请选择 AG 账户采集凭据后启用")
+        if not (listener_name or listener_host):
+            raise ValidationError("AG 未配置侦听器，无法启用账户采集")
         if not domain_name:
             raise ValidationError("请先配置群集域名后启用 AG 账户采集")
 
@@ -693,9 +708,9 @@ class SQLServerClusterManagementService:
     def _normalize_discovered_ag(row: Any) -> dict[str, Any]:
         values = list(row)
         name = str(values[0]).strip()
-        listener_name = str(values[1]).strip() if values[1] is not None else None
-        listener_ip = str(values[5]).strip() if len(values) > 5 and values[5] is not None else ""
-        listener_host = listener_ip or str(values[2]).strip()
+        listener_name = SQLServerClusterManagementService._clean_optional_discovered_text(values[1] if len(values) > 1 else None)
+        listener_ip = SQLServerClusterManagementService._clean_optional_discovered_text(values[5] if len(values) > 5 else None)
+        listener_host = listener_ip or SQLServerClusterManagementService._clean_optional_discovered_text(values[2] if len(values) > 2 else None)
         listener_port = int(values[3] or 1433)
         contained_value = values[4] if len(values) > 4 else False
         return {
@@ -705,6 +720,13 @@ class SQLServerClusterManagementService:
             "listener_port": listener_port,
             "contained_enabled": bool(contained_value),
         }
+
+    @staticmethod
+    def _clean_optional_discovered_text(value: Any) -> str | None:
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
 
     @staticmethod
     def _normalize_db_error(action: str, error: Exception) -> str:
