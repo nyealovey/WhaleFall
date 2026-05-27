@@ -33,6 +33,7 @@ RISK_RULE_DEFINITIONS: tuple[RiskRuleDefinition, ...] = (
     RiskRuleDefinition("audit_missing", "audit", "审计未配置", "未发现实例审计配置快照或审计目标", "medium"),
     RiskRuleDefinition("access_superuser", "access", "存在高权账号", "账号具备超级权限", "low"),
     RiskRuleDefinition("access_recent_change", "access", "权限近期变更", "最近 24 小时有账户变更", "medium"),
+    RiskRuleDefinition("cluster_abnormal", "cluster", "群集异常", "副节点实例存在群集同步或复制异常", "medium"),
     RiskRuleDefinition("task_failed", "task", "定时任务失败", "最近 24 小时存在失败任务", "medium"),
 )
 

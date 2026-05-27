@@ -17,6 +17,9 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
 from app.models.risk_center_rule_setting import RiskCenterRuleSetting
+from app.models.mysql_cluster import MySQLCluster, MySQLClusterInstance
+from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState, SQLServerAgReplicaSyncState
+from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
@@ -57,6 +60,13 @@ def _create_tables() -> None:
             db.metadata.tables["risk_center_rule_settings"],
             db.metadata.tables["veeam_source_bindings"],
             db.metadata.tables["veeam_machine_backup_snapshots"],
+            db.metadata.tables["mysql_clusters"],
+            db.metadata.tables["mysql_cluster_instances"],
+            db.metadata.tables["sqlserver_clusters"],
+            db.metadata.tables["sqlserver_cluster_instances"],
+            db.metadata.tables["sqlserver_availability_groups"],
+            db.metadata.tables["sqlserver_ag_database_sync_states"],
+            db.metadata.tables["sqlserver_ag_replica_sync_states"],
         ],
     )
     db.session.execute(
@@ -625,11 +635,202 @@ def test_risk_center_rule_defaults_exclude_capacity_stale_capacity_missing_and_i
 
 
 @pytest.mark.unit
+def test_risk_center_rule_defaults_include_cluster_abnormal() -> None:
+    rules = RiskCenterRuleSettingsService.build_default_map()
+
+    assert rules["cluster_abnormal"]["label"] == "群集异常"
+    assert rules["cluster_abnormal"]["severity"] == "medium"
+
+
+@pytest.mark.unit
+def test_risk_center_marks_sqlserver_cluster_abnormal_on_secondary_instance(app) -> None:
+    now = datetime.now(UTC)
+    with app.app_context():
+        _create_tables()
+        source = _create_veeam_source()
+        primary = Instance(name="sql-primary", db_type="sqlserver", host="10.0.0.51", port=1433, is_active=True)
+        secondary = Instance(name="sql-secondary", db_type="sqlserver", host="10.0.0.52", port=1433, is_active=True)
+        cluster = SQLServerCluster(name="sql-cluster")
+        db.session.add_all([primary, secondary, cluster])
+        db.session.flush()
+        ag = SQLServerAvailabilityGroup(cluster_id=cluster.id, name="ag-main", is_enabled=True)
+        db.session.add(ag)
+        db.session.flush()
+        db.session.add_all(
+            [
+                SQLServerClusterInstance(cluster_id=cluster.id, instance_id=primary.id),
+                SQLServerClusterInstance(cluster_id=cluster.id, instance_id=secondary.id),
+            ]
+        )
+        for index, instance in enumerate([primary, secondary], start=1):
+            _add_recent_backup(source, instance, now)
+            _add_capacity(instance, now, index)
+            _add_audit_snapshot(instance, now, has_audit=True, enabled_count=1)
+        db.session.add(
+            SQLServerAgReplicaSyncState(
+                cluster_id=cluster.id,
+                availability_group_id=ag.id,
+                ag_name=ag.name,
+                replica_server_name=primary.name,
+                role_desc="PRIMARY",
+                synchronization_health_desc="HEALTHY",
+                connected_state_desc="CONNECTED",
+                operational_state_desc="ONLINE",
+                recovery_health_desc="ONLINE",
+                is_primary=True,
+                is_abnormal=False,
+                last_checked_at=now,
+            )
+        )
+        db.session.add(
+            SQLServerAgReplicaSyncState(
+                cluster_id=cluster.id,
+                availability_group_id=ag.id,
+                ag_name=ag.name,
+                replica_server_name=secondary.name,
+                role_desc="SECONDARY",
+                synchronization_health_desc="NOT_HEALTHY",
+                connected_state_desc="DISCONNECTED",
+                operational_state_desc="ONLINE",
+                recovery_health_desc="ONLINE",
+                is_primary=False,
+                is_abnormal=True,
+                error_summary="health=NOT_HEALTHY; connected=DISCONNECTED",
+                last_checked_at=now,
+            )
+        )
+        db.session.commit()
+
+        cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
+
+        primary_risks = {item["rule_key"] for item in cards["sql-primary"]["risk_items"]}
+        secondary_risks = {item["rule_key"] for item in cards["sql-secondary"]["risk_items"]}
+        assert "cluster_abnormal" not in primary_risks
+        assert "cluster_abnormal" in secondary_risks
+        cluster_risk = next(item for item in cards["sql-secondary"]["risk_items"] if item["rule_key"] == "cluster_abnormal")
+        assert cluster_risk["severity"] == "medium"
+        assert cluster_risk["label"] == "群集异常"
+        assert "ag-main" in str(cluster_risk["detail"])
+
+
+@pytest.mark.unit
+def test_risk_center_marks_sqlserver_database_sync_abnormal_on_secondary_instance(app) -> None:
+    now = datetime.now(UTC)
+    with app.app_context():
+        _create_tables()
+        source = _create_veeam_source()
+        primary = Instance(name="sql-primary-db", db_type="sqlserver", host="10.0.0.61", port=1433, is_active=True)
+        secondary = Instance(name="sql-secondary-db", db_type="sqlserver", host="10.0.0.62", port=1433, is_active=True)
+        cluster = SQLServerCluster(name="sql-cluster-db")
+        db.session.add_all([primary, secondary, cluster])
+        db.session.flush()
+        ag = SQLServerAvailabilityGroup(cluster_id=cluster.id, name="ag-db", is_enabled=True)
+        db.session.add(ag)
+        db.session.flush()
+        db.session.add_all(
+            [
+                SQLServerClusterInstance(cluster_id=cluster.id, instance_id=primary.id),
+                SQLServerClusterInstance(cluster_id=cluster.id, instance_id=secondary.id),
+            ]
+        )
+        for index, instance in enumerate([primary, secondary], start=1):
+            _add_recent_backup(source, instance, now)
+            _add_capacity(instance, now, index)
+            _add_audit_snapshot(instance, now, has_audit=True, enabled_count=1)
+        db.session.add(
+            SQLServerAgReplicaSyncState(
+                cluster_id=cluster.id,
+                availability_group_id=ag.id,
+                ag_name=ag.name,
+                replica_server_name=secondary.name,
+                role_desc="SECONDARY",
+                synchronization_health_desc="HEALTHY",
+                connected_state_desc="CONNECTED",
+                operational_state_desc="ONLINE",
+                recovery_health_desc="ONLINE",
+                is_primary=False,
+                is_abnormal=False,
+                last_checked_at=now,
+            )
+        )
+        db.session.add(
+            SQLServerAgDatabaseSyncState(
+                cluster_id=cluster.id,
+                availability_group_id=ag.id,
+                ag_name=ag.name,
+                database_name="billing",
+                replica_server_name=secondary.name,
+                synchronization_state_desc="NOT_SYNCHRONIZING",
+                synchronization_health_desc="NOT_HEALTHY",
+                database_state_desc="ONLINE",
+                is_suspended=False,
+                is_abnormal=True,
+                error_summary="sync_state=NOT_SYNCHRONIZING; health=NOT_HEALTHY",
+                last_checked_at=now,
+            )
+        )
+        db.session.commit()
+
+        cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
+
+        primary_risks = {item["rule_key"] for item in cards["sql-primary-db"]["risk_items"]}
+        secondary_risks = {item["rule_key"] for item in cards["sql-secondary-db"]["risk_items"]}
+        assert "cluster_abnormal" not in primary_risks
+        assert "cluster_abnormal" in secondary_risks
+        cluster_risk = next(item for item in cards["sql-secondary-db"]["risk_items"] if item["rule_key"] == "cluster_abnormal")
+        assert "billing" in str(cluster_risk["detail"])
+
+
+@pytest.mark.unit
+def test_risk_center_marks_mysql_replica_abnormal_on_replica_instance(app) -> None:
+    now = datetime.now(UTC)
+    with app.app_context():
+        _create_tables()
+        source = _create_veeam_source()
+        primary = Instance(name="mysql-primary", db_type="mysql", host="10.0.0.71", port=3306, is_active=True)
+        replica = Instance(name="mysql-replica", db_type="mysql", host="10.0.0.72", port=3306, is_active=True)
+        cluster = MySQLCluster(name="mysql-cluster", is_enabled=True)
+        db.session.add_all([primary, replica, cluster])
+        db.session.flush()
+        db.session.add_all(
+            [
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=primary.id,
+                    replication_role="primary",
+                    replication_status="healthy",
+                    last_checked_at=now,
+                ),
+                MySQLClusterInstance(
+                    cluster_id=cluster.id,
+                    instance_id=replica.id,
+                    replication_role="replica",
+                    replication_status="unhealthy",
+                    last_io_error="Got fatal error 1236 from source",
+                    last_checked_at=now,
+                ),
+            ]
+        )
+        for index, instance in enumerate([primary, replica], start=1):
+            _add_recent_backup(source, instance, now)
+            _add_capacity(instance, now, index)
+            _add_audit_snapshot(instance, now, has_audit=True, enabled_count=1)
+        db.session.commit()
+
+        cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
+
+        primary_risks = {item["rule_key"] for item in cards["mysql-primary"]["risk_items"]}
+        replica_risks = {item["rule_key"] for item in cards["mysql-replica"]["risk_items"]}
+        assert "cluster_abnormal" not in primary_risks
+        assert "cluster_abnormal" in replica_risks
+
+
+@pytest.mark.unit
 def test_risk_center_omits_capacity_missing_capacity_stale_and_inactive_risks() -> None:
     now = datetime.now(UTC)
     instance = SimpleNamespace(id=46, name="db-muted", db_type="mysql", host="10.0.0.46", port=3306, is_active=False)
 
-    card = RiskCenterReadService()._build_card(  # noqa: SLF001
+    card = RiskCenterReadService()._build_card(
         instance=instance,
         now=now,
         backup={"latest_backup_at": (now - timedelta(hours=2)).isoformat()},
@@ -642,6 +843,7 @@ def test_risk_center_omits_capacity_missing_capacity_stale_and_inactive_risks() 
         managed=False,
         access={},
         failed_task=None,
+        cluster_issues=[],
         tags=[],
         rule_map={},
     )
@@ -658,7 +860,7 @@ def test_risk_center_group_ignores_instance_tags() -> None:
     now = datetime.now(UTC)
     instance = SimpleNamespace(id=45, name="db-prod", db_type="mysql", host="10.0.0.45", port=3306, is_active=True)
 
-    card = RiskCenterReadService()._build_card(  # noqa: SLF001
+    card = RiskCenterReadService()._build_card(
         instance=instance,
         now=now,
         backup={},
@@ -668,6 +870,7 @@ def test_risk_center_group_ignores_instance_tags() -> None:
         managed=False,
         access={},
         failed_task=None,
+        cluster_issues=[],
         tags=[SimpleNamespace(name="prod", display_name="生产"), SimpleNamespace(name="replica", display_name="主从")],
         rule_map={},
     )
