@@ -711,6 +711,8 @@ def test_risk_center_marks_sqlserver_cluster_abnormal_on_secondary_instance(app)
         assert cluster_risk["severity"] == "medium"
         assert cluster_risk["label"] == "群集异常"
         assert "ag-main" in str(cluster_risk["detail"])
+        assert cards["sql-secondary"]["cluster"]["label"] == "群集异常"
+        assert cards["sql-secondary"]["cluster"]["tone"] == "warning"
 
 
 @pytest.mark.unit

@@ -415,7 +415,7 @@
 
 .risk-instance-card__signals {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.38rem;
     margin-top: 0.62rem;
 }

@@ -22,6 +22,7 @@
     { key: "backup", label: "备份", icon: "fa-hard-drive" },
     { key: "audit", label: "审计", icon: "fa-shield-halved" },
     { key: "managed", label: "托管", icon: "fa-sitemap" },
+    { key: "cluster", label: "群集", icon: "fa-diagram-project" },
     { key: "tasks", label: "任务", icon: "fa-list-check" },
   ];
   let dbTypeMetaMap = new Map();

@@ -70,11 +70,11 @@ def test_risk_center_cards_render_icon_signals_without_visible_metric_text() -> 
     assert "risk-signal__icon" in script
     assert "risk-signal__icon" in css
     assert 'data-risk-signal="{{ signal_name }}"' in template
-    for signal in ("backup", "audit", "managed", "tasks"):
+    for signal in ("backup", "audit", "managed", "cluster", "tasks"):
         assert f"'{signal}')" in template
         assert f'key: "{signal}"' in script
     assert 'data-risk-signal="${escapeHtml(signal.key)}"' in script
-    assert "grid-template-columns: repeat(4, minmax(0, 1fr));" in css
+    assert "grid-template-columns: repeat(5, minmax(0, 1fr));" in css
 
 
 def test_risk_center_cards_use_severity_icon_and_accessible_signal_labels() -> None:

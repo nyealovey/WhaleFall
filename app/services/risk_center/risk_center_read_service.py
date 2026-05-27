@@ -312,6 +312,7 @@ class RiskCenterReadService:
         managed_metric = self._build_managed_metric(instance, managed)
         access_metric, access_risks = self._build_access_metric(instance, access)
         task_metric, task_risks = self._build_task_metric(instance, failed_task)
+        cluster_metric = self._build_cluster_metric(cluster_issues)
         risks.extend(backup_risks)
         risks.extend(capacity_risks)
         risks.extend(audit_risks)
@@ -325,6 +326,7 @@ class RiskCenterReadService:
         audit_metric["tone"] = self._resolve_metric_tone(audit_metric, risks, "audit")
         access_metric["tone"] = self._resolve_metric_tone(access_metric, risks, "access")
         task_metric["tone"] = self._resolve_metric_tone(task_metric, risks, "task")
+        cluster_metric["tone"] = self._resolve_metric_tone(cluster_metric, risks, "cluster")
         overall = self._resolve_overall_severity(risks)
         risk_score = min(sum(SEVERITY_SCORE.get(str(risk["severity"]), 0) for risk in risks), 999)
         risk_flags = self._build_visible_risk_flags(risks)
@@ -358,6 +360,7 @@ class RiskCenterReadService:
             "capacity": capacity_metric,
             "access": access_metric,
             "tasks": task_metric,
+            "cluster": cluster_metric,
             "status_band": status_band,
             "tags": tag_payload,
             "group": group,
@@ -756,6 +759,27 @@ class RiskCenterReadService:
                 target_url=f"/history/sessions?instance_id={int(instance.id)}",
             )
         ]
+
+    @staticmethod
+    def _build_cluster_metric(cluster_issues: list[dict[str, object]]) -> dict[str, object]:
+        if not cluster_issues:
+            return {
+                "label": "正常",
+                "detail": "群集",
+                "tone": "success",
+                "issue_count": 0,
+                "last_seen_at": None,
+            }
+        seen_candidates = [_to_utc_datetime(issue.get("occurred_at")) for issue in cluster_issues]
+        last_seen = max((item for item in seen_candidates if item is not None), default=None)
+        return {
+            "label": "群集异常",
+            "detail": "群集",
+            "tone": "warning",
+            "issue_count": len(cluster_issues),
+            "last_seen_at": _iso(last_seen),
+            "target_url": "/cluster/",
+        }
 
     @staticmethod
     def _resolve_overall_severity(risks: list[dict[str, object]]) -> str:
