@@ -29,14 +29,11 @@ RISK_RULE_DEFINITIONS: tuple[RiskRuleDefinition, ...] = (
     RiskRuleDefinition("backup_stale", "backup", "备份滞后", "最近备份超过 24 小时", "medium"),
     RiskRuleDefinition("capacity_growth_critical", "capacity", "容量增长过快", "容量聚合增长率超过高风险阈值", "high"),
     RiskRuleDefinition("capacity_growth_warning", "capacity", "容量增长偏快", "容量聚合增长率超过中风险阈值", "medium"),
-    RiskRuleDefinition("capacity_stale", "capacity", "容量采集过期", "容量采集数据超过 48 小时", "medium"),
-    RiskRuleDefinition("capacity_missing", "capacity", "容量未采集", "缺少实例容量采集数据", "low"),
     RiskRuleDefinition("audit_disabled", "audit", "审计未启用", "发现审计配置但没有启用目标", "medium"),
     RiskRuleDefinition("audit_missing", "audit", "审计未配置", "未发现实例审计配置快照或审计目标", "medium"),
     RiskRuleDefinition("access_superuser", "access", "存在高权账号", "账号具备超级权限", "low"),
     RiskRuleDefinition("access_recent_change", "access", "权限近期变更", "最近 24 小时有账户变更", "medium"),
     RiskRuleDefinition("task_failed", "task", "定时任务失败", "最近 24 小时存在失败任务", "medium"),
-    RiskRuleDefinition("instance_inactive", "instance", "实例停用", "实例当前处于停用状态", "medium"),
 )
 
 RISK_RULE_DEFINITION_MAP = {definition.rule_key: definition for definition in RISK_RULE_DEFINITIONS}

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -22,6 +23,7 @@ from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
 from app.models.veeam_source_binding import VeeamSourceBinding
 from app.settings import Settings
 from app.services.risk_center.risk_center_read_service import RiskCenterReadService
+from app.services.risk_center.risk_center_rule_settings_service import RiskCenterRuleSettingsService
 
 
 def _card_items(result: dict[str, object]) -> list[dict[str, Any]]:
@@ -323,6 +325,19 @@ def test_risk_center_orders_high_medium_low_ok(app) -> None:
                 raw_payload={},
             )
         )
+        account = InstanceAccount(instance_id=unknown.id, username="root", db_type="oracle", is_active=True)
+        db.session.add(account)
+        db.session.flush()
+        db.session.add(
+            AccountPermission(
+                instance_id=unknown.id,
+                instance_account_id=account.id,
+                db_type="oracle",
+                username="root",
+                permission_facts={"capabilities": ["SUPERUSER"]},
+                last_sync_time=now,
+            )
+        )
         db.session.add(
             VeeamMachineBackupSnapshot(
                 source_binding_id=source.id,
@@ -598,3 +613,111 @@ def test_risk_center_locked_accounts_do_not_hide_superuser_access_risk() -> None
     assert access_metric["label"] == "1 高权"
     assert access_metric["tone"] == "info"
     assert [risk["label"] for risk in access_risks] == ["存在高权账号"]
+
+
+@pytest.mark.unit
+def test_risk_center_rule_defaults_exclude_capacity_stale_capacity_missing_and_inactive() -> None:
+    rules = RiskCenterRuleSettingsService.build_default_map()
+
+    assert "capacity_stale" not in rules
+    assert "capacity_missing" not in rules
+    assert "instance_inactive" not in rules
+
+
+@pytest.mark.unit
+def test_risk_center_omits_capacity_missing_capacity_stale_and_inactive_risks() -> None:
+    now = datetime.now(UTC)
+    instance = SimpleNamespace(id=46, name="db-muted", db_type="mysql", host="10.0.0.46", port=3306, is_active=False)
+
+    card = RiskCenterReadService()._build_card(  # noqa: SLF001
+        instance=instance,
+        now=now,
+        backup={"latest_backup_at": (now - timedelta(hours=2)).isoformat()},
+        capacity=SimpleNamespace(total_size_mb=1024, collected_at=now - timedelta(hours=72)),
+        growth=None,
+        audit=SimpleNamespace(
+            facts={"has_audit": True, "enabled_audit_count": 1},
+            last_sync_time=now - timedelta(hours=1),
+        ),
+        managed=False,
+        access={},
+        failed_task=None,
+        tags=[],
+        rule_map={},
+    )
+
+    rule_keys = {str(item["rule_key"]) for item in card["risk_items"]}
+    assert "capacity_stale" not in rule_keys
+    assert "capacity_missing" not in rule_keys
+    assert "instance_inactive" not in rule_keys
+    assert card["overall_severity"] == "ok"
+
+
+@pytest.mark.unit
+def test_risk_center_group_ignores_instance_tags() -> None:
+    now = datetime.now(UTC)
+    instance = SimpleNamespace(id=45, name="db-prod", db_type="mysql", host="10.0.0.45", port=3306, is_active=True)
+
+    card = RiskCenterReadService()._build_card(  # noqa: SLF001
+        instance=instance,
+        now=now,
+        backup={},
+        capacity=None,
+        growth=None,
+        audit=None,
+        managed=False,
+        access={},
+        failed_task=None,
+        tags=[SimpleNamespace(name="prod", display_name="生产"), SimpleNamespace(name="replica", display_name="主从")],
+        rule_map={},
+    )
+
+    assert card["group"] == "MYSQL"
+
+
+@pytest.mark.unit
+def test_risk_center_top_risks_include_only_high_and_medium_without_twelve_item_cap() -> None:
+    cards = [
+        {
+            "instance_id": index,
+            "name": f"db-{index:02d}",
+            "db_type": "mysql",
+            "host": f"10.0.0.{index}",
+            "group": "MYSQL",
+            "risk_items": [
+                {
+                    "rule_key": "backup_stale",
+                    "category": "backup",
+                    "severity": "medium",
+                    "label": "备份滞后",
+                    "detail": "最近备份过期",
+                    "occurred_at": f"2026-05-27T00:{index:02d}:00+00:00",
+                }
+            ],
+        }
+        for index in range(13)
+    ]
+    cards.append(
+        {
+            "instance_id": 99,
+            "name": "db-low",
+            "db_type": "mysql",
+            "host": "10.0.0.99",
+            "group": "MYSQL",
+            "risk_items": [
+                {
+                    "rule_key": "access_superuser",
+                    "category": "access",
+                    "severity": "low",
+                    "label": "存在高权账号",
+                    "detail": "1 个账号具备超级权限",
+                    "occurred_at": "2026-05-27T01:00:00+00:00",
+                }
+            ],
+        }
+    )
+
+    top_risks = RiskCenterReadService._build_top_risks(cards)
+
+    assert len(top_risks) == 13
+    assert {risk["severity"] for risk in top_risks} == {"medium"}

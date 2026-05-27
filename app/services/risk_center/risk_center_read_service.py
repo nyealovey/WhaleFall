@@ -311,17 +311,6 @@ class RiskCenterReadService:
         risks.extend(audit_risks)
         risks.extend(access_risks)
         risks.extend(task_risks)
-        if not bool(instance.is_active):
-            risks.append(
-                _risk(
-                    rule_key="instance_inactive",
-                    category="instance",
-                    severity="medium",
-                    label="实例停用",
-                    detail="实例当前处于停用状态",
-                    target_url=f"/instances/{int(instance.id)}",
-                )
-            )
 
         risks = self._apply_rule_settings(risks, rule_map)
         backup_metric["tone"] = self._resolve_metric_tone(backup_metric, risks, "backup")
@@ -343,7 +332,7 @@ class RiskCenterReadService:
             for tag in tags
             if getattr(tag, "name", None)
         ]
-        group = tag_payload[0]["display_name"] if tag_payload else str(instance.db_type).upper()
+        group = str(instance.db_type).upper()
         return {
             "instance_id": int(instance.id),
             "name": str(instance.name),
@@ -432,6 +421,8 @@ class RiskCenterReadService:
             for risk in card_risks:
                 if not isinstance(risk, dict):
                     continue
+                if str(risk.get("severity") or "") not in {"high", "medium"}:
+                    continue
                 risks.append(
                     {
                         **risk,
@@ -449,7 +440,7 @@ class RiskCenterReadService:
                 str(item.get("instance_name") or "").lower(),
             )
         )
-        return risks[:12]
+        return risks
 
     @staticmethod
     def _apply_rule_settings(
@@ -633,16 +624,7 @@ class RiskCenterReadService:
                 "tone": "muted",
                 "status": "unknown",
                 "last_seen_at": None,
-            }, [
-                _risk(
-                    rule_key="capacity_missing",
-                    category="capacity",
-                    severity="low",
-                    label="容量未采集",
-                    detail="缺少实例容量采集数据",
-                    target_url=f"/capacity/instances?instance_id={int(instance.id)}",
-                )
-            ]
+            }, []
 
         risks: list[dict[str, object]] = []
         collected_at = _to_utc_datetime(capacity.collected_at)
@@ -686,17 +668,6 @@ class RiskCenterReadService:
         if stale:
             tone = "warning" if tone == "success" else tone
             status = "medium" if status == "ok" else status
-            risks.append(
-                _risk(
-                    rule_key="capacity_stale",
-                    category="capacity",
-                    severity="medium",
-                    label="容量采集过期",
-                    detail=f"最近采集为 {_format_age(collected_at, now=now)}",
-                    occurred_at=collected_at,
-                    target_url=f"/capacity/instances?instance_id={int(instance.id)}",
-                )
-            )
         return {
             "label": label,
             "detail": "Capacity",
