@@ -252,10 +252,9 @@ def test_risk_center_omits_disabled_rule_from_cards_and_summary(app) -> None:
         result = service.list_cards()
         summary = service.build_summary()
 
-        card = _card_items(result)[0]
-        assert card["overall_severity"] == "ok"
-        assert card["risk_items"] == []
-        assert summary["severity_counts"] == {"high": 0, "medium": 0, "low": 0, "ok": 1}
+        assert _card_items(result) == []
+        assert summary["total_instances"] == 0
+        assert summary["severity_counts"] == {"high": 0, "medium": 0, "low": 0, "ok": 0}
         assert summary["top_risks"] == []
 
 
@@ -290,9 +289,7 @@ def test_risk_center_builds_audit_and_managed_metrics_without_unmanaged_risk(app
 
         cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
 
-        assert cards["a-audit-enabled"]["audit"]["label"] == "已启用"
-        assert cards["a-audit-enabled"]["managed"]["label"] == "已托管"
-        assert cards["a-audit-enabled"]["overall_severity"] == "ok"
+        assert "a-audit-enabled" not in cards
         assert cards["b-audit-disabled"]["audit"]["label"] == "未启用"
         assert cards["b-audit-disabled"]["managed"]["label"] == "未托管"
         assert cards["b-audit-disabled"]["overall_severity"] == "medium"
@@ -401,8 +398,8 @@ def test_risk_center_orders_high_medium_low_ok(app) -> None:
         result = RiskCenterReadService().list_cards()
 
         cards = _card_items(result)
-        assert [item["name"] for item in cards] == ["a-critical", "b-warning", "c-unknown", "d-ok"]
-        assert [item["overall_severity"] for item in cards] == ["high", "medium", "low", "ok"]
+        assert [item["name"] for item in cards] == ["a-critical", "b-warning", "c-unknown"]
+        assert [item["overall_severity"] for item in cards] == ["high", "medium", "low"]
 
 
 @pytest.mark.unit
@@ -436,6 +433,31 @@ def test_risk_center_ok_filter_includes_non_warning_non_critical_cards() -> None
     ]
 
     assert [card["overall_severity"] for card in filtered] == ["ok"]
+
+
+@pytest.mark.unit
+def test_risk_center_list_cards_excludes_healthy_instances(app) -> None:
+    now = datetime.now(UTC)
+    with app.app_context():
+        _create_tables()
+        source = _create_veeam_source()
+        risky = Instance(name="db-risky", db_type="mysql", host="10.0.0.81", port=3306, is_active=True)
+        healthy = Instance(name="db-healthy", db_type="mysql", host="10.0.0.82", port=3306, is_active=True)
+        db.session.add_all([risky, healthy])
+        db.session.flush()
+        _add_recent_backup(source, risky, now)
+        _add_recent_backup(source, healthy, now)
+        _add_capacity(risky, now, 1)
+        _add_capacity(healthy, now, 2)
+        _add_audit_snapshot(risky, now, has_audit=True, enabled_count=0)
+        _add_audit_snapshot(healthy, now, has_audit=True, enabled_count=1)
+        db.session.commit()
+
+        result = RiskCenterReadService().list_cards()
+
+        cards = _card_items(result)
+        assert [card["name"] for card in cards] == ["db-risky"]
+        assert result["total"] == 1
 
 
 @pytest.mark.unit
@@ -703,9 +725,8 @@ def test_risk_center_marks_sqlserver_cluster_abnormal_on_secondary_instance(app)
 
         cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
 
-        primary_risks = {item["rule_key"] for item in cards["sql-primary"]["risk_items"]}
+        assert "sql-primary" not in cards
         secondary_risks = {item["rule_key"] for item in cards["sql-secondary"]["risk_items"]}
-        assert "cluster_abnormal" not in primary_risks
         assert "cluster_abnormal" in secondary_risks
         cluster_risk = next(item for item in cards["sql-secondary"]["risk_items"] if item["rule_key"] == "cluster_abnormal")
         assert cluster_risk["severity"] == "medium"
@@ -775,9 +796,8 @@ def test_risk_center_marks_sqlserver_database_sync_abnormal_on_secondary_instanc
 
         cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
 
-        primary_risks = {item["rule_key"] for item in cards["sql-primary-db"]["risk_items"]}
+        assert "sql-primary-db" not in cards
         secondary_risks = {item["rule_key"] for item in cards["sql-secondary-db"]["risk_items"]}
-        assert "cluster_abnormal" not in primary_risks
         assert "cluster_abnormal" in secondary_risks
         cluster_risk = next(item for item in cards["sql-secondary-db"]["risk_items"] if item["rule_key"] == "cluster_abnormal")
         assert "billing" in str(cluster_risk["detail"])
@@ -821,9 +841,8 @@ def test_risk_center_marks_mysql_replica_abnormal_on_replica_instance(app) -> No
 
         cards = {card["name"]: card for card in _card_items(RiskCenterReadService().list_cards())}
 
-        primary_risks = {item["rule_key"] for item in cards["mysql-primary"]["risk_items"]}
+        assert "mysql-primary" not in cards
         replica_risks = {item["rule_key"] for item in cards["mysql-replica"]["risk_items"]}
-        assert "cluster_abnormal" not in primary_risks
         assert "cluster_abnormal" in replica_risks
 
 

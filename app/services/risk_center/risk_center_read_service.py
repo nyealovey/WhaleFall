@@ -280,6 +280,7 @@ class RiskCenterReadService:
             )
             for instance in instances
         ]
+        cards = [card for card in cards if _visible_severity_bucket(card.get("overall_severity")) != "ok"]
         cards.sort(
             key=lambda item: (
                 SEVERITY_ORDER.get(str(item["overall_severity"]), 99),
