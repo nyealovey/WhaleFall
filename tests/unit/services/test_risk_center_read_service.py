@@ -828,6 +828,38 @@ def test_risk_center_marks_mysql_replica_abnormal_on_replica_instance(app) -> No
 
 
 @pytest.mark.unit
+def test_risk_center_marks_mysql_failed_unknown_role_as_cluster_abnormal(app) -> None:
+    now = datetime.now(UTC)
+    with app.app_context():
+        _create_tables()
+        source = _create_veeam_source()
+        instance = Instance(name="mysql-unknown-failed", db_type="mysql", host="10.0.0.73", port=3306, is_active=True)
+        cluster = MySQLCluster(name="mysql-cluster-failed", is_enabled=True)
+        db.session.add_all([instance, cluster])
+        db.session.flush()
+        db.session.add(
+            MySQLClusterInstance(
+                cluster_id=cluster.id,
+                instance_id=instance.id,
+                replication_role="unknown",
+                replication_status="failed",
+                last_error="(1227, 'Access denied; you need REPLICATION CLIENT')",
+                last_checked_at=now,
+            )
+        )
+        _add_recent_backup(source, instance, now)
+        _add_capacity(instance, now, 1)
+        _add_audit_snapshot(instance, now, has_audit=True, enabled_count=1)
+        db.session.commit()
+
+        card = _card_items(RiskCenterReadService().list_cards())[0]
+
+        assert any(item["rule_key"] == "cluster_abnormal" for item in card["risk_items"])
+        assert card["cluster"]["label"] == "群集异常"
+        assert card["cluster"]["tone"] == "warning"
+
+
+@pytest.mark.unit
 def test_risk_center_omits_capacity_missing_capacity_stale_and_inactive_risks() -> None:
     now = datetime.now(UTC)
     instance = SimpleNamespace(id=46, name="db-muted", db_type="mysql", host="10.0.0.46", port=3306, is_active=False)

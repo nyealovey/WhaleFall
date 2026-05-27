@@ -960,8 +960,11 @@ class RiskCenterReadService:
             .filter(
                 MySQLClusterInstance.instance_id.in_(instance_ids),
                 MySQLCluster.is_enabled.is_(True),
-                func.lower(MySQLClusterInstance.replication_role) == "replica",
                 MySQLClusterInstance.replication_status != "healthy",
+                (
+                    (func.lower(MySQLClusterInstance.replication_role) == "replica")
+                    | (MySQLClusterInstance.replication_status == "failed")
+                ),
             )
             .all()
         )
