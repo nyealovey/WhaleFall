@@ -11,7 +11,8 @@ from app.models.instance import Instance
 from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState, SQLServerAgReplicaSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
 from app.services.cluster_status_sync.read_service import SQLServerAgDatabaseSyncStatesReadService
-from app.services.cluster_status_sync.service import ClusterStatusSyncService
+from app.services.cluster_status_sync.service import ClusterStatusSyncService, _AG_DATABASE_SYNC_STATUS_QUERY
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 
 
 def _create_schema() -> None:
@@ -64,6 +65,16 @@ class _FakeFactoryByInstance:
     def create_connection(self, instance: Instance) -> SyncConnection:
         self.requested_instance_names.append(instance.name)
         return cast(SyncConnection, self.connections[instance.name])
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_status_query_guards_newer_columns_for_sqlserver_2012() -> None:
+    assert "COL_LENGTH(N'sys.availability_replicas', N'seeding_mode_desc')" in _AG_DATABASE_SYNC_STATUS_QUERY
+    assert "COL_LENGTH(N'sys.availability_groups', N'cluster_type_desc')" in _AG_DATABASE_SYNC_STATUS_QUERY
+    assert "THEN N'ar.seeding_mode_desc'" in _AG_DATABASE_SYNC_STATUS_QUERY
+    assert "THEN N'ag.cluster_type_desc'" in _AG_DATABASE_SYNC_STATUS_QUERY
+    assert "CONVERT(nvarchar(64), NULL)" in _AG_DATABASE_SYNC_STATUS_QUERY
+    assert "EXEC sys.sp_executesql @sql" in _AG_DATABASE_SYNC_STATUS_QUERY
 
 
 @pytest.mark.unit
@@ -304,6 +315,39 @@ def test_sqlserver_ag_status_sync_connection_failure_is_cluster_scoped() -> None
         assert cluster.last_status_sync_status == "failed"
         assert cluster.last_status_sync_error == "sql-1 boom"
         assert cluster.last_status_sync_at is not None
+
+
+@pytest.mark.unit
+def test_sqlserver_ag_status_sync_adapter_query_error_is_cluster_scoped() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        instance = Instance(name="sql-1", db_type=DatabaseType.SQLSERVER, host="10.0.0.10", port=1433)
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
+        db.session.add_all([instance, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=instance.id))
+        db.session.add(
+            SQLServerAvailabilityGroup(
+                cluster_id=cluster.id,
+                name="AG01",
+                listener_name="AG01",
+                listener_host="10.0.0.20",
+            ),
+        )
+        db.session.commit()
+
+        service = ClusterStatusSyncService(connection_factory=_FakeFactory(_FakeConnection(ConnectionAdapterError("207"))))
+
+        result = service.sync_sqlserver_cluster(cluster.id)
+
+        assert result["status"] == "failed"
+        assert result["error_message"] == "sql-1 207"
+        db.session.refresh(cluster)
+        assert cluster.last_status_sync_status == "failed"
+        assert cluster.last_status_sync_error == "sql-1 207"
 
 
 @pytest.mark.unit

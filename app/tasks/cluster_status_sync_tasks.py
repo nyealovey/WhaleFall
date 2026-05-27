@@ -149,6 +149,38 @@ def _record_result(
     db.session.commit()
 
 
+def _record_cluster_exception(
+    *,
+    task_runs_service: TaskRunsWriteService,
+    run_id: str,
+    item_type: str,
+    cluster_id: int,
+    cluster_name: str,
+    exc: Exception,
+    totals: _ClusterStatusTotals,
+    alert_event_service: EmailAlertEventService,
+) -> None:
+    result = {
+        "cluster_id": cluster_id,
+        "status": "failed",
+        "error_message": str(exc) or "群集同步状态检测失败",
+        "abnormal_database_count": 0,
+        "abnormal_replica_count": 0,
+        "items": [],
+        "replicas": [],
+    }
+    _record_result(
+        task_runs_service=task_runs_service,
+        run_id=run_id,
+        item_type=item_type,
+        cluster_id=cluster_id,
+        cluster_name=cluster_name,
+        result=result,
+        totals=totals,
+        alert_event_service=alert_event_service,
+    )
+
+
 def _finalize_run(task_runs_service: TaskRunsWriteService, run_id: str, totals: _ClusterStatusTotals) -> None:
     run = TaskRun.query.filter_by(run_id=run_id).first()
     if run is not None:
@@ -194,26 +226,49 @@ def sync_cluster_status(
             created_by=created_by,
             run_id=run_id,
         )
-        service = ClusterStatusSyncService()
-        alert_event_service = EmailAlertEventService()
-        mysql_clusters = service.list_enabled_mysql_clusters()
-        sqlserver_clusters = service.list_enabled_sqlserver_clusters()
-        totals = _ClusterStatusTotals(
-            mysql_clusters_total=len(mysql_clusters),
-            sqlserver_clusters_total=len(sqlserver_clusters),
-        )
-        _init_items(
-            task_runs_service=task_runs_service,
-            run_id=resolved_run_id,
-            mysql_clusters=mysql_clusters,
-            sqlserver_clusters=sqlserver_clusters,
-        )
         try:
+            service = ClusterStatusSyncService()
+            alert_event_service = EmailAlertEventService()
+            mysql_clusters = service.list_enabled_mysql_clusters()
+            sqlserver_clusters = service.list_enabled_sqlserver_clusters()
+            totals = _ClusterStatusTotals(
+                mysql_clusters_total=len(mysql_clusters),
+                sqlserver_clusters_total=len(sqlserver_clusters),
+            )
+            _init_items(
+                task_runs_service=task_runs_service,
+                run_id=resolved_run_id,
+                mysql_clusters=mysql_clusters,
+                sqlserver_clusters=sqlserver_clusters,
+            )
             for cluster in mysql_clusters:
                 item_key = str(cluster.id)
                 task_runs_service.start_item(resolved_run_id, item_type="mysql_cluster", item_key=item_key)
                 db.session.commit()
-                result = service.sync_mysql_cluster(int(cluster.id))
+                try:
+                    result = service.sync_mysql_cluster(int(cluster.id))
+                except Exception as exc:
+                    db.session.rollback()
+                    sync_logger.exception(
+                        "MySQL 群集同步状态检测异常",
+                        module="cluster_status_sync",
+                        operation="sync_cluster_status",
+                        run_id=resolved_run_id,
+                        cluster_id=int(cluster.id),
+                        cluster_name=str(cluster.name),
+                        error=str(exc),
+                    )
+                    _record_cluster_exception(
+                        task_runs_service=task_runs_service,
+                        run_id=resolved_run_id,
+                        item_type="mysql_cluster",
+                        cluster_id=int(cluster.id),
+                        cluster_name=str(cluster.name),
+                        exc=exc,
+                        totals=totals,
+                        alert_event_service=alert_event_service,
+                    )
+                    continue
                 _record_result(
                     task_runs_service=task_runs_service,
                     run_id=resolved_run_id,
@@ -228,7 +283,30 @@ def sync_cluster_status(
                 item_key = str(cluster.id)
                 task_runs_service.start_item(resolved_run_id, item_type="sqlserver_cluster", item_key=item_key)
                 db.session.commit()
-                result = service.sync_sqlserver_cluster(int(cluster.id))
+                try:
+                    result = service.sync_sqlserver_cluster(int(cluster.id))
+                except Exception as exc:
+                    db.session.rollback()
+                    sync_logger.exception(
+                        "SQL Server 群集同步状态检测异常",
+                        module="cluster_status_sync",
+                        operation="sync_cluster_status",
+                        run_id=resolved_run_id,
+                        cluster_id=int(cluster.id),
+                        cluster_name=str(cluster.name),
+                        error=str(exc),
+                    )
+                    _record_cluster_exception(
+                        task_runs_service=task_runs_service,
+                        run_id=resolved_run_id,
+                        item_type="sqlserver_cluster",
+                        cluster_id=int(cluster.id),
+                        cluster_name=str(cluster.name),
+                        exc=exc,
+                        totals=totals,
+                        alert_event_service=alert_event_service,
+                    )
+                    continue
                 _record_result(
                     task_runs_service=task_runs_service,
                     run_id=resolved_run_id,
@@ -254,6 +332,16 @@ def sync_cluster_status(
             _fail_run(task_runs_service, resolved_run_id, exc)
             sync_logger.exception(
                 "群集同步状态检测失败",
+                module="cluster_status_sync",
+                operation="sync_cluster_status",
+                run_id=resolved_run_id,
+                error=str(exc),
+            )
+        except Exception as exc:
+            db.session.rollback()
+            _fail_run(task_runs_service, resolved_run_id, exc)
+            sync_logger.exception(
+                "群集同步状态检测失败(未分类)",
                 module="cluster_status_sync",
                 operation="sync_cluster_status",
                 run_id=resolved_run_id,

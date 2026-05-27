@@ -19,6 +19,21 @@ from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 _AG_DATABASE_SYNC_STATUS_QUERY = """
+DECLARE @seeding_expr nvarchar(128) =
+    CASE
+        WHEN COL_LENGTH(N'sys.availability_replicas', N'seeding_mode_desc') IS NOT NULL
+        THEN N'ar.seeding_mode_desc'
+        ELSE N'CONVERT(nvarchar(64), NULL)'
+    END;
+
+DECLARE @cluster_type_expr nvarchar(128) =
+    CASE
+        WHEN COL_LENGTH(N'sys.availability_groups', N'cluster_type_desc') IS NOT NULL
+        THEN N'ag.cluster_type_desc'
+        ELSE N'CONVERT(nvarchar(64), NULL)'
+    END;
+
+DECLARE @sql nvarchar(max) = N'
 SELECT
     ag.name AS ag_name,
     DB_NAME(drs.database_id) AS database_name,
@@ -33,20 +48,22 @@ SELECT
     ars.role_desc AS replica_role_desc,
     ar.availability_mode_desc AS availability_mode_desc,
     ar.failover_mode_desc AS failover_mode_desc,
-    ar.seeding_mode_desc AS seeding_mode_desc,
+    ' + @seeding_expr + N' AS seeding_mode_desc,
     ars.synchronization_health_desc AS replica_synchronization_health_desc,
     ars.connected_state_desc AS connected_state_desc,
     ars.operational_state_desc AS operational_state_desc,
     ars.recovery_health_desc AS recovery_health_desc,
     hc.quorum_state_desc AS cluster_state_desc,
-    ag.cluster_type_desc AS cluster_type_desc
+    ' + @cluster_type_expr + N' AS cluster_type_desc
 FROM sys.dm_hadr_database_replica_states AS drs
 JOIN sys.availability_groups AS ag ON drs.group_id = ag.group_id
 JOIN sys.availability_replicas AS ar ON drs.replica_id = ar.replica_id
 LEFT JOIN sys.dm_hadr_availability_replica_states AS ars
     ON drs.group_id = ars.group_id AND drs.replica_id = ars.replica_id
 OUTER APPLY (SELECT TOP 1 quorum_state_desc FROM sys.dm_hadr_cluster) AS hc
-ORDER BY ag.name, DB_NAME(drs.database_id), ar.replica_server_name;
+ORDER BY ag.name, DB_NAME(drs.database_id), ar.replica_server_name;';
+
+EXEC sys.sp_executesql @sql;
 """
 
 
