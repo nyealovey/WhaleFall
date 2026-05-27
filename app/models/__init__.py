@@ -44,6 +44,7 @@ __all__ = [
     "MySQLCluster",
     "MySQLClusterInstance",
     "PermissionConfig",
+    "RiskCenterRuleSetting",
     "SQLServerAgDatabaseSyncState",
     "SQLServerAvailabilityGroup",
     "SQLServerCluster",
@@ -80,6 +81,7 @@ _MODEL_MODULE_MAP: dict[str, str] = {
     "MySQLCluster": "app.models.mysql_cluster",
     "MySQLClusterInstance": "app.models.mysql_cluster",
     "PermissionConfig": "app.models.permission_config",
+    "RiskCenterRuleSetting": "app.models.risk_center_rule_setting",
     "SQLServerAgDatabaseSyncState": "app.models.sqlserver_ag_sync_state",
     "SQLServerAvailabilityGroup": "app.models.sqlserver_cluster",
     "SQLServerCluster": "app.models.sqlserver_cluster",
@@ -119,6 +121,7 @@ if TYPE_CHECKING:
     from app.models.jumpserver_source_binding import JumpServerSourceBinding
     from app.models.mysql_cluster import MySQLCluster, MySQLClusterInstance
     from app.models.permission_config import PermissionConfig
+    from app.models.risk_center_rule_setting import RiskCenterRuleSetting
     from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState
     from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster, SQLServerClusterInstance
     from app.models.sync_instance_record import SyncInstanceRecord

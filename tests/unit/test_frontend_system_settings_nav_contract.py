@@ -18,6 +18,7 @@ def test_system_settings_template_base_nav_and_assets_contract() -> None:
     template_fragments = (
         'data-system-settings-nav="true"',
         'data-system-settings-nav-link="system-settings-email-alerts"',
+        'data-system-settings-nav-link="system-settings-risk-rules"',
         'data-system-settings-nav-link="system-settings-jumpserver"',
         'data-system-settings-nav-link="system-settings-veeam"',
         'role="tablist"',
@@ -26,17 +27,20 @@ def test_system_settings_template_base_nav_and_assets_contract() -> None:
         'aria-selected="true"',
         'aria-selected="false"',
         'href="#system-settings-email-alerts"',
+        'href="#system-settings-risk-rules"',
         'href="#system-settings-jumpserver"',
         'href="#system-settings-veeam"',
         'id="system-settings-email-alerts"',
+        'id="system-settings-risk-rules"',
         'id="system-settings-jumpserver"',
         'id="system-settings-veeam"',
-        'hidden',
+        "hidden",
     )
     for fragment in template_fragments:
         assert fragment in template
 
     assert "告警设置" in template
+    assert "风险规则" in template
     assert "邮件设置" not in template
 
     assert "系统设置" in base_template

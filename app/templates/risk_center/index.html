@@ -27,17 +27,17 @@
 
 {% macro render_severity_icon(card) -%}
     {%- set severity_label = {
-        'critical': '严重',
-        'warning': '警告',
+        'high': '高风险',
+        'medium': '中风险',
+        'low': '低风险',
         'ok': '正常',
-        'info': '关注',
         'unknown': '未知'
     }.get(card.overall_severity, '未知') -%}
     {%- set severity_icon = {
-        'critical': 'fa-triangle-exclamation',
-        'warning': 'fa-circle-exclamation',
+        'high': 'fa-triangle-exclamation',
+        'medium': 'fa-circle-exclamation',
+        'low': 'fa-circle-info',
         'ok': 'fa-circle-check',
-        'info': 'fa-circle-info',
         'unknown': 'fa-circle-question'
     }.get(card.overall_severity, 'fa-circle-question') -%}
     <span class="risk-instance-card__severity risk-instance-card__severity--{{ card.overall_severity }}"
@@ -46,6 +46,19 @@
           role="img">
         <i class="fas {{ severity_icon }}" aria-hidden="true"></i>
     </span>
+{%- endmacro %}
+
+{% macro render_alert_item(risk) -%}
+<a class="risk-alert-item risk-alert-item--{{ risk.severity }}" href="{{ risk.target_url or '#' }}">
+    <span class="risk-alert-item__icon">
+        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+    </span>
+    <span class="risk-alert-item__main">
+        <strong>{{ risk.instance_name }} · {{ risk.label }}</strong>
+        <small>{{ risk.detail }}</small>
+    </span>
+    <span class="risk-alert-item__meta">{{ risk.group or risk.db_type|upper }}</span>
+</a>
 {%- endmacro %}
 
 {% macro render_status_signal(metric, label, icon_class, signal_name) -%}
@@ -95,11 +108,28 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="risk-kpi-grid" data-risk-summary>
-                {% call metric_card('严重', value=summary.severity_counts.critical, icon_class='fas fa-triangle-exclamation', tone='danger', card_class='risk-kpi-card', data_stat_key='critical') %}{% endcall %}
-                {% call metric_card('警告', value=summary.severity_counts.warning, icon_class='fas fa-circle-exclamation', tone='warning', card_class='risk-kpi-card', data_stat_key='warning') %}{% endcall %}
-                {% call metric_card('正常', value=summary.severity_counts.ok, icon_class='fas fa-circle-check', tone='success', card_class='risk-kpi-card', data_stat_key='ok') %}{% endcall %}
+                {% call metric_card('高风险', value=summary.severity_counts.high, icon_class='fas fa-triangle-exclamation', tone='danger', card_class='risk-kpi-card', data_stat_key='high') %}{% endcall %}
+                {% call metric_card('中风险', value=summary.severity_counts.medium, icon_class='fas fa-circle-exclamation', tone='warning', card_class='risk-kpi-card', data_stat_key='medium') %}{% endcall %}
+                {% call metric_card('低风险', value=summary.severity_counts.low, icon_class='fas fa-circle-info', tone='info', card_class='risk-kpi-card', data_stat_key='low') %}{% endcall %}
+                {% call metric_card('健康', value=summary.severity_counts.ok, icon_class='fas fa-circle-check', tone='success', card_class='risk-kpi-card', data_stat_key='ok') %}{% endcall %}
                 {% call metric_card('总实例', value=summary.total_instances, icon_class='fas fa-server', tone='info', card_class='risk-kpi-card', data_stat_key='total') %}{% endcall %}
             </div>
+
+            <section class="risk-alert-board" data-risk-alert-board>
+                <div class="risk-alert-board__head">
+                    <h2>当前风险事件</h2>
+                    <span>{{ summary.top_risks|length }} 项</span>
+                </div>
+                <div class="risk-alert-list">
+                    {% for risk in summary.top_risks %}
+                        {{ render_alert_item(risk) }}
+                    {% endfor %}
+                </div>
+                <div class="risk-alert-board__empty {{ '' if summary.top_risks|length == 0 else 'd-none' }}">
+                    <i class="fas fa-circle-check" aria-hidden="true"></i>
+                    <strong>当前没有启用的风险命中</strong>
+                </div>
+            </section>
 
             <form class="risk-filter-band" data-risk-filter-form>
                 <label class="risk-filter-band__field">
@@ -110,8 +140,9 @@
                     <span>严重度</span>
                     <select class="form-select" name="severity">
                         <option value="" {{ 'selected' if not filters.severity else '' }}>全部</option>
-                        <option value="critical" {{ 'selected' if filters.severity == 'critical' else '' }}>严重</option>
-                        <option value="warning" {{ 'selected' if filters.severity == 'warning' else '' }}>警告</option>
+                        <option value="high" {{ 'selected' if filters.severity == 'high' else '' }}>高风险</option>
+                        <option value="medium" {{ 'selected' if filters.severity == 'medium' else '' }}>中风险</option>
+                        <option value="low" {{ 'selected' if filters.severity == 'low' else '' }}>低风险</option>
                         <option value="ok" {{ 'selected' if filters.severity == 'ok' else '' }}>正常</option>
                     </select>
                 </label>
@@ -145,9 +176,29 @@
 
             <div class="risk-center-feedback d-none" data-risk-feedback></div>
 
-            <div class="risk-card-grid" data-risk-card-grid>
-                {% for card in cards["items"] %}
-                    {{ render_risk_card(card) }}
+            <div class="risk-group-wall" data-risk-group-wall>
+                {% for group in cards["items"]|groupby("group") %}
+                    {% set total = group.list|length %}
+                    {% set high = group.list|selectattr("overall_severity", "equalto", "high")|list|length %}
+                    {% set medium = group.list|selectattr("overall_severity", "equalto", "medium")|list|length %}
+                    {% set low = group.list|selectattr("overall_severity", "equalto", "low")|list|length %}
+                    {% set ok = group.list|selectattr("overall_severity", "equalto", "ok")|list|length %}
+                    <section class="risk-group" data-risk-group>
+                        <header class="risk-group__head">
+                            <h2>{{ group.grouper }} ({{ total }})</h2>
+                            <div class="risk-group__bar" aria-hidden="true">
+                                <span class="risk-group__bar-segment risk-group__bar-segment--high" style="width: {{ (high / total * 100) if total else 0 }}%"></span>
+                                <span class="risk-group__bar-segment risk-group__bar-segment--medium" style="width: {{ (medium / total * 100) if total else 0 }}%"></span>
+                                <span class="risk-group__bar-segment risk-group__bar-segment--low" style="width: {{ (low / total * 100) if total else 0 }}%"></span>
+                                <span class="risk-group__bar-segment risk-group__bar-segment--ok" style="width: {{ (ok / total * 100) if total else 0 }}%"></span>
+                            </div>
+                        </header>
+                        <div class="risk-card-grid">
+                            {% for card in group.list %}
+                                {{ render_risk_card(card) }}
+                            {% endfor %}
+                        </div>
+                    </section>
                 {% endfor %}
             </div>
 

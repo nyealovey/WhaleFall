@@ -1,0 +1,29 @@
+<input type="hidden" id="risk-rule-csrf-token" value="{{ csrf_token() }}">
+<div
+    id="risk-rule-settings-page"
+    class="risk-rule-settings-page"
+    data-api-url="/api/v1/risk-center/rules"
+>
+    <section class="card risk-rule-settings-card" aria-label="风险规则配置">
+        <div class="card-header risk-rule-settings-card__header">
+            <div>
+                <h2 class="risk-rule-settings-card__title">风险规则</h2>
+            </div>
+            <button id="saveRiskRuleSettingsBtn" class="btn btn-primary" type="button">
+                <i class="fas fa-save me-2"></i>保存规则
+            </button>
+        </div>
+        <div class="card-body risk-rule-settings-card__body">
+            <div class="risk-rule-settings-toolbar">
+                <span class="status-pill status-pill--muted">
+                    <i class="fas fa-bell-slash" aria-hidden="true"></i>仅影响风险中心展示
+                </span>
+            </div>
+            <div class="risk-rule-list" data-risk-rule-list></div>
+            <div class="risk-rule-empty d-none" data-risk-rule-empty>
+                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                <strong>暂无风险规则</strong>
+            </div>
+        </div>
+    </section>
+</div>

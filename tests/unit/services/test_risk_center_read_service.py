@@ -15,6 +15,7 @@ from app.models.instance_config_snapshot import InstanceConfigSnapshot
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.models.jumpserver_asset_snapshot import JumpServerAssetSnapshot
+from app.models.risk_center_rule_setting import RiskCenterRuleSetting
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.models.veeam_machine_backup_snapshot import VeeamMachineBackupSnapshot
@@ -51,6 +52,7 @@ def _create_tables() -> None:
             db.metadata.tables["credentials"],
             db.metadata.tables["instance_config_snapshots"],
             db.metadata.tables["jumpserver_asset_snapshots"],
+            db.metadata.tables["risk_center_rule_settings"],
             db.metadata.tables["veeam_source_bindings"],
             db.metadata.tables["veeam_machine_backup_snapshots"],
         ],
@@ -188,12 +190,61 @@ def test_risk_center_marks_missing_backup_as_critical(app) -> None:
         result = RiskCenterReadService().list_cards()
 
         card = _card_items(result)[0]
-        assert card["overall_severity"] == "critical"
+        assert card["overall_severity"] == "high"
         assert card["backup"]["label"] == "未备份"
         assert card["status_band"]["tone"] == "danger"
-        assert card["status_band"]["label"] == "Critical · 备份缺失"
+        assert card["status_band"]["label"] == "High · 备份缺失"
         assert all(item["label"] != "未备份" for item in card["risk_flags"])
-        assert any(item["category"] == "backup" and item["severity"] == "critical" for item in card["risk_items"])
+        assert any(item["rule_key"] == "backup_missing" and item["severity"] == "high" for item in card["risk_items"])
+
+
+@pytest.mark.unit
+def test_risk_center_uses_configured_rule_severity_for_missing_backup(app) -> None:
+    with app.app_context():
+        _create_tables()
+        rule_setting = RiskCenterRuleSetting()
+        rule_setting.rule_key = "backup_missing"
+        rule_setting.enabled = True
+        rule_setting.severity = "medium"
+        db.session.add(rule_setting)
+        db.session.add(Instance(name="db-medium-backup", db_type="mysql", host="10.0.0.1", port=3306, is_active=True))
+        db.session.commit()
+
+        result = RiskCenterReadService().list_cards()
+
+        card = _card_items(result)[0]
+        assert card["overall_severity"] == "medium"
+        assert card["backup"]["tone"] == "warning"
+        assert card["risk_items"][0]["rule_key"] == "backup_missing"
+        assert card["risk_items"][0]["severity"] == "medium"
+
+
+@pytest.mark.unit
+def test_risk_center_omits_disabled_rule_from_cards_and_summary(app) -> None:
+    now = datetime.now(UTC)
+    with app.app_context():
+        _create_tables()
+        rule_setting = RiskCenterRuleSetting()
+        rule_setting.rule_key = "backup_missing"
+        rule_setting.enabled = False
+        rule_setting.severity = "high"
+        db.session.add(rule_setting)
+        instance = Instance(name="db-muted-backup", db_type="mysql", host="10.0.0.1", port=3306, is_active=True)
+        db.session.add(instance)
+        db.session.flush()
+        _add_capacity(instance, now, 1)
+        _add_audit_snapshot(instance, now, has_audit=True, enabled_count=1)
+        db.session.commit()
+
+        service = RiskCenterReadService()
+        result = service.list_cards()
+        summary = service.build_summary()
+
+        card = _card_items(result)[0]
+        assert card["overall_severity"] == "ok"
+        assert card["risk_items"] == []
+        assert summary["severity_counts"] == {"high": 0, "medium": 0, "low": 0, "ok": 1}
+        assert summary["top_risks"] == []
 
 
 @pytest.mark.unit
@@ -232,15 +283,15 @@ def test_risk_center_builds_audit_and_managed_metrics_without_unmanaged_risk(app
         assert cards["a-audit-enabled"]["overall_severity"] == "ok"
         assert cards["b-audit-disabled"]["audit"]["label"] == "未启用"
         assert cards["b-audit-disabled"]["managed"]["label"] == "未托管"
-        assert cards["b-audit-disabled"]["overall_severity"] == "warning"
+        assert cards["b-audit-disabled"]["overall_severity"] == "medium"
         assert cards["c-audit-missing"]["audit"]["label"] == "未配置"
         assert cards["c-audit-missing"]["managed"]["label"] == "未托管"
-        assert cards["c-audit-missing"]["overall_severity"] == "warning"
+        assert cards["c-audit-missing"]["overall_severity"] == "medium"
         assert not any(item["category"] == "managed" for item in cards["b-audit-disabled"]["risk_items"])
 
 
 @pytest.mark.unit
-def test_risk_center_orders_critical_warning_unknown_ok(app) -> None:
+def test_risk_center_orders_high_medium_low_ok(app) -> None:
     now = datetime.now(UTC)
     with app.app_context():
         _create_tables()
@@ -326,32 +377,30 @@ def test_risk_center_orders_critical_warning_unknown_ok(app) -> None:
 
         cards = _card_items(result)
         assert [item["name"] for item in cards] == ["a-critical", "b-warning", "c-unknown", "d-ok"]
-        assert [item["overall_severity"] for item in cards] == ["critical", "warning", "unknown", "ok"]
+        assert [item["overall_severity"] for item in cards] == ["high", "medium", "low", "ok"]
 
 
 @pytest.mark.unit
 def test_risk_center_summary_counts_each_instance_in_three_visible_buckets() -> None:
     cards: list[dict[str, object]] = [
-        {"overall_severity": "critical", "risk_items": [{"severity": "critical"}, {"severity": "warning"}]},
-        {"overall_severity": "warning", "risk_items": [{"severity": "warning"}, {"severity": "warning"}]},
-        {"overall_severity": "info", "risk_items": [{"severity": "info"}]},
-        {"overall_severity": "unknown", "risk_items": [{"severity": "unknown"}]},
+        {"overall_severity": "high", "risk_items": [{"severity": "high"}, {"severity": "medium"}]},
+        {"overall_severity": "medium", "risk_items": [{"severity": "medium"}, {"severity": "medium"}]},
+        {"overall_severity": "low", "risk_items": [{"severity": "low"}]},
         {"overall_severity": "ok", "risk_items": []},
     ]
 
     counts = RiskCenterReadService._build_severity_counts(cards)
 
-    assert counts == {"critical": 1, "warning": 1, "ok": 3}
+    assert counts == {"high": 1, "medium": 1, "low": 1, "ok": 1}
     assert sum(counts.values()) == len(cards)
 
 
 @pytest.mark.unit
 def test_risk_center_ok_filter_includes_non_warning_non_critical_cards() -> None:
     cards = [
-        {"overall_severity": "critical", "db_type": "mysql", "status": "active", "tags": [], "name": "a", "host": "1"},
-        {"overall_severity": "warning", "db_type": "mysql", "status": "active", "tags": [], "name": "b", "host": "2"},
-        {"overall_severity": "info", "db_type": "mysql", "status": "active", "tags": [], "name": "c", "host": "3"},
-        {"overall_severity": "unknown", "db_type": "mysql", "status": "active", "tags": [], "name": "d", "host": "4"},
+        {"overall_severity": "high", "db_type": "mysql", "status": "active", "tags": [], "name": "a", "host": "1"},
+        {"overall_severity": "medium", "db_type": "mysql", "status": "active", "tags": [], "name": "b", "host": "2"},
+        {"overall_severity": "low", "db_type": "mysql", "status": "active", "tags": [], "name": "c", "host": "3"},
         {"overall_severity": "ok", "db_type": "mysql", "status": "active", "tags": [], "name": "e", "host": "5"},
     ]
 
@@ -361,14 +410,14 @@ def test_risk_center_ok_filter_includes_non_warning_non_critical_cards() -> None
         if RiskCenterReadService._matches_filters(card, severity="ok", db_type="", status="", tag="", search="")
     ]
 
-    assert [card["overall_severity"] for card in filtered] == ["info", "unknown", "ok"]
+    assert [card["overall_severity"] for card in filtered] == ["ok"]
 
 
 @pytest.mark.unit
 def test_risk_center_filters_match_search_db_type_status_and_tag() -> None:
     cards = [
         {
-            "overall_severity": "warning",
+            "overall_severity": "medium",
             "db_type": "mysql",
             "status": "active",
             "tags": [{"name": "prod"}],
@@ -376,7 +425,7 @@ def test_risk_center_filters_match_search_db_type_status_and_tag() -> None:
             "host": "10.2.0.10",
         },
         {
-            "overall_severity": "critical",
+            "overall_severity": "high",
             "db_type": "sqlserver",
             "status": "inactive",
             "tags": [{"name": "finance"}],

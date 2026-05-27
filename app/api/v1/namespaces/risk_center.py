@@ -4,20 +4,38 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from flask_restx import Namespace
+from flask import request
+from flask_restx import Namespace, fields
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
-from app.api.v1.resources.decorators import api_login_required
+from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import new_parser
 from app.core.constants.system_constants import SuccessMessages
 from app.services.risk_center.risk_center_read_service import RiskCenterReadService
+from app.services.risk_center.risk_center_rule_settings_service import RiskCenterRuleSettingsService
+from app.utils.decorators import require_csrf
 
 ns = Namespace("risk-center", description="风险中心")
 
 ErrorEnvelope = get_error_envelope_model(ns)
 RiskCenterSummarySuccessEnvelope = make_success_envelope_model(ns, "RiskCenterSummarySuccessEnvelope", None)
 RiskCenterCardsSuccessEnvelope = make_success_envelope_model(ns, "RiskCenterCardsSuccessEnvelope", None)
+RiskCenterRulesSuccessEnvelope = make_success_envelope_model(ns, "RiskCenterRulesSuccessEnvelope", None)
+RiskCenterRulePayloadModel = ns.model(
+    "RiskCenterRulePayloadModel",
+    {
+        "rule_key": fields.String(required=True),
+        "enabled": fields.Boolean(required=True),
+        "severity": fields.String(required=True),
+    },
+)
+RiskCenterRulesPayloadModel = ns.model(
+    "RiskCenterRulesPayloadModel",
+    {
+        "rules": fields.List(fields.Nested(RiskCenterRulePayloadModel), required=True),
+    },
+)
 
 _cards_query_parser = new_parser()
 _cards_query_parser.add_argument("severity", type=str, default="", location="args")
@@ -27,6 +45,57 @@ _cards_query_parser.add_argument("tag", type=str, default="", location="args")
 _cards_query_parser.add_argument("search", type=str, default="", location="args")
 _cards_query_parser.add_argument("page", type=int, default=1, location="args")
 _cards_query_parser.add_argument("limit", type=int, default=0, location="args")
+
+
+@ns.route("/rules")
+class RiskCenterRulesResource(BaseResource):
+    """风险中心规则配置资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
+
+    @ns.response(200, "OK", RiskCenterRulesSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        """获取风险中心规则配置."""
+
+        def _execute():
+            return self.success(
+                data=RiskCenterRuleSettingsService().list_rules(),
+                message=SuccessMessages.OPERATION_SUCCESS,
+            )
+
+        return self.safe_call(
+            _execute,
+            module="risk_center",
+            action="list_risk_center_rules",
+            public_error="获取风险规则配置失败",
+        )
+
+    @ns.response(200, "OK", RiskCenterRulesSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @ns.expect(RiskCenterRulesPayloadModel, validate=False)
+    @require_csrf
+    def put(self):
+        """更新风险中心规则配置."""
+
+        def _execute():
+            payload = request.get_json(silent=True) or {}
+            return self.success(
+                data=RiskCenterRuleSettingsService().update_rules(payload),
+                message="更新风险规则配置成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="risk_center",
+            action="update_risk_center_rules",
+            public_error="更新风险规则配置失败",
+        )
 
 
 @ns.route("/summary")

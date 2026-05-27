@@ -44,6 +44,22 @@
                         </a>
                         <a
                             class="system-settings-page__nav-link"
+                            id="system-settings-risk-rules-tab"
+                            href="#system-settings-risk-rules"
+                            data-system-settings-nav-link="system-settings-risk-rules"
+                            role="tab"
+                            aria-controls="system-settings-risk-rules"
+                            aria-selected="false"
+                        >
+                            <span class="system-settings-page__nav-icon">
+                                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                            </span>
+                            <span class="system-settings-page__nav-text">
+                                <strong>风险规则</strong>
+                            </span>
+                        </a>
+                        <a
+                            class="system-settings-page__nav-link"
                             id="system-settings-jumpserver-tab"
                             href="#system-settings-jumpserver"
                             data-system-settings-nav-link="system-settings-jumpserver"
@@ -126,6 +142,22 @@
                     </section>
 
                     <section
+                        id="system-settings-risk-rules"
+                        class="system-settings-page__section system-settings-page__panel"
+                        data-system-settings-section
+                        role="tabpanel"
+                        aria-labelledby="system-settings-risk-rules-tab"
+                        hidden
+                    >
+                        <header class="system-settings-page__section-header">
+                            <h2>风险规则</h2>
+                        </header>
+                        <div class="system-settings-page__section-body">
+                            {% include 'admin/system-settings/_risk-rule-settings-section.html' %}
+                        </div>
+                    </section>
+
+                    <section
                         id="system-settings-veeam"
                         class="system-settings-page__section system-settings-page__panel"
                         data-system-settings-section
@@ -165,10 +197,12 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/modules/services/email_alert_settings_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/risk_center_rule_settings_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/jumpserver_source_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/veeam_source_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/ad_domain_configs_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/alerts/email-settings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/admin/risk-center/rule-settings.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/integrations/jumpserver/source.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/integrations/veeam/source.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/integrations/ad-domain/configs.js') }}"></script>

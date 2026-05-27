@@ -22,6 +22,7 @@ def _ensure_risk_center_tables(app) -> None:
                 db.metadata.tables["credentials"],
                 db.metadata.tables["instance_config_snapshots"],
                 db.metadata.tables["jumpserver_asset_snapshots"],
+                db.metadata.tables["risk_center_rule_settings"],
                 db.metadata.tables["veeam_source_bindings"],
                 db.metadata.tables["veeam_machine_backup_snapshots"],
             ],
@@ -56,7 +57,9 @@ def test_api_v1_risk_center_summary_contract(app, auth_client) -> None:
     assert isinstance(data, dict)
     assert {"total_instances", "severity_counts", "db_type_counts", "top_risks", "generated_at"}.issubset(data)
     assert data["total_instances"] == 1
-    assert data["severity_counts"]["critical"] == 1
+    assert data["severity_counts"]["high"] == 1
+    assert data["top_risks"][0]["rule_key"] == "backup_missing"
+    assert data["top_risks"][0]["instance_name"] == "db01"
 
 
 @pytest.mark.unit
@@ -71,7 +74,7 @@ def test_api_v1_risk_center_cards_contract_and_filters(app, auth_client) -> None
         )
         db.session.commit()
 
-    response = auth_client.get("/api/v1/risk-center/cards?severity=critical&db_type=mysql")
+    response = auth_client.get("/api/v1/risk-center/cards?severity=high&db_type=mysql")
 
     assert response.status_code == 200
     payload = response.get_json()
@@ -99,10 +102,45 @@ def test_api_v1_risk_center_cards_contract_and_filters(app, auth_client) -> None
         "access",
         "tasks",
         "status_band",
+        "group",
         "links",
     }
     assert expected_keys.issubset(item)
     assert item["name"] == "db-critical"
+
+
+@pytest.mark.unit
+def test_api_v1_risk_center_rules_contract(app, auth_client) -> None:
+    _ensure_risk_center_tables(app)
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_token = csrf_response.get_json()["data"]["csrf_token"]
+
+    get_response = auth_client.get("/api/v1/risk-center/rules")
+
+    assert get_response.status_code == 200
+    get_payload = get_response.get_json()
+    assert isinstance(get_payload, dict)
+    data = get_payload.get("data")
+    assert isinstance(data, dict)
+    rules = data.get("rules")
+    assert isinstance(rules, list)
+    backup_rule = next(item for item in rules if item["rule_key"] == "backup_missing")
+    assert backup_rule["enabled"] is True
+    assert backup_rule["severity"] == "high"
+
+    update_response = auth_client.put(
+        "/api/v1/risk-center/rules",
+        json={"rules": [{"rule_key": "backup_missing", "enabled": True, "severity": "medium"}]},
+        headers={"X-CSRFToken": csrf_token},
+    )
+
+    assert update_response.status_code == 200
+    update_payload = update_response.get_json()
+    assert isinstance(update_payload, dict)
+    updated_rules = update_payload["data"]["rules"]
+    updated_backup_rule = next(item for item in updated_rules if item["rule_key"] == "backup_missing")
+    assert updated_backup_rule["severity"] == "medium"
 
 
 @pytest.mark.unit

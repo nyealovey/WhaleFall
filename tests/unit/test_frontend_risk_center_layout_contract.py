@@ -9,13 +9,19 @@ def _read_text(relative_path: str) -> str:
     return (ROOT_DIR / relative_path).read_text(encoding="utf-8")
 
 
-def test_risk_center_cards_use_four_column_desktop_grid() -> None:
+def test_risk_center_uses_alert_board_and_group_wall() -> None:
+    template = _read_text("app/templates/risk_center/index.html")
+    script = _read_text("app/static/js/modules/views/risk-center/index.js")
     css = _read_text("app/static/css/pages/risk-center.css")
 
-    assert ".risk-card-grid {" in css
-    assert "grid-template-columns: repeat(4, minmax(0, 1fr));" in css
-    assert "grid-template-columns: repeat(auto-fill" not in css
-    assert "grid-template-columns: repeat(6, minmax(0, 1fr));" not in css
+    assert "risk-alert-board" in template
+    assert "risk-alert-board" in script
+    assert "risk-alert-board" in css
+    assert "risk-group-wall" in template
+    assert "risk-group-wall" in script
+    assert "risk-group-wall" in css
+    assert "renderAlertBoard" in script
+    assert "renderGroupWall" in script
 
 
 def test_risk_center_cards_hide_action_menu_and_use_db_type_icon() -> None:
@@ -88,18 +94,13 @@ def test_risk_center_cards_use_severity_icon_and_accessible_signal_labels() -> N
 
 def test_risk_center_summary_uses_four_visible_kpi_cards() -> None:
     template = _read_text("app/templates/risk_center/index.html")
-    script = _read_text("app/static/js/modules/views/risk-center/index.js")
     css = _read_text("app/static/css/pages/risk-center.css")
 
     assert "grid-template-columns: repeat(4, minmax(0, 1fr));" in css
-    assert "metric_card('未知'" not in template
-    assert "data_stat_key='unknown'" not in template
-    assert "counts.unknown" not in script
-    assert '<option value="unknown"' not in template
-    assert '<option value="info"' not in template
-    assert "metric_card('严重'" in template
-    assert "metric_card('警告'" in template
-    assert "metric_card('正常'" in template
+    assert "metric_card('高风险'" in template
+    assert "metric_card('中风险'" in template
+    assert "metric_card('低风险'" in template
+    assert "metric_card('健康'" in template
     assert "metric_card('总实例'" in template
 
 

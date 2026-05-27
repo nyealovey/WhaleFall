@@ -12,10 +12,10 @@
     ["oracle", { fallbackIcon: "fa-circle", tone: "danger" }],
   ]);
   const SEVERITY_VISUALS = new Map([
-    ["critical", { label: "严重", icon: "fa-triangle-exclamation" }],
-    ["warning", { label: "警告", icon: "fa-circle-exclamation" }],
+    ["high", { label: "高风险", icon: "fa-triangle-exclamation" }],
+    ["medium", { label: "中风险", icon: "fa-circle-exclamation" }],
+    ["low", { label: "低风险", icon: "fa-circle-info" }],
     ["ok", { label: "正常", icon: "fa-circle-check" }],
-    ["info", { label: "关注", icon: "fa-circle-info" }],
     ["unknown", { label: "未知", icon: "fa-circle-question" }],
   ]);
   const RISK_SIGNALS = [
@@ -118,6 +118,38 @@
     `;
   }
 
+  function renderAlertItem(risk) {
+    return `
+      <a class="risk-alert-item risk-alert-item--${escapeHtml(risk?.severity || "low")}" href="${escapeHtml(risk?.target_url || "#")}">
+        <span class="risk-alert-item__icon">
+          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+        </span>
+        <span class="risk-alert-item__main">
+          <strong>${escapeHtml(risk?.instance_name || "-")} · ${escapeHtml(risk?.label || "-")}</strong>
+          <small>${escapeHtml(risk?.detail || "")}</small>
+        </span>
+        <span class="risk-alert-item__meta">${escapeHtml(risk?.group || String(risk?.db_type || "").toUpperCase())}</span>
+      </a>
+    `;
+  }
+
+  function renderAlertBoard(summary) {
+    const risks = Array.isArray(summary?.top_risks) ? summary.top_risks : [];
+    return `
+      <div class="risk-alert-board__head">
+        <h2>当前风险事件</h2>
+        <span>${risks.length} 项</span>
+      </div>
+      <div class="risk-alert-list">
+        ${risks.map(renderAlertItem).join("")}
+      </div>
+      <div class="risk-alert-board__empty ${risks.length === 0 ? "" : "d-none"}">
+        <i class="fas fa-circle-check" aria-hidden="true"></i>
+        <strong>当前没有启用的风险命中</strong>
+      </div>
+    `;
+  }
+
   function renderSignal(metric, signal) {
     const safeMetric = metric || {};
     return `
@@ -155,11 +187,58 @@
     `;
   }
 
+  function groupCards(cards) {
+    return cards.reduce((groups, card) => {
+      const group = String(card?.group || card?.db_type || "未分组").toUpperCase();
+      if (!groups.has(group)) {
+        groups.set(group, []);
+      }
+      groups.get(group).push(card);
+      return groups;
+    }, new Map());
+  }
+
+  function countCardsBySeverity(cards, severity) {
+    return cards.filter((card) => String(card?.overall_severity || "") === severity).length;
+  }
+
+  function renderGroupWall(cards) {
+    const groups = groupCards(cards);
+    return Array.from(groups.entries())
+      .map(([group, groupCards]) => {
+        const total = groupCards.length || 1;
+        const counts = {
+          high: countCardsBySeverity(groupCards, "high"),
+          medium: countCardsBySeverity(groupCards, "medium"),
+          low: countCardsBySeverity(groupCards, "low"),
+          ok: countCardsBySeverity(groupCards, "ok"),
+        };
+        return `
+          <section class="risk-group" data-risk-group>
+            <header class="risk-group__head">
+              <h2>${escapeHtml(group)} (${groupCards.length})</h2>
+              <div class="risk-group__bar" aria-hidden="true">
+                <span class="risk-group__bar-segment risk-group__bar-segment--high" style="width: ${(counts.high / total) * 100}%"></span>
+                <span class="risk-group__bar-segment risk-group__bar-segment--medium" style="width: ${(counts.medium / total) * 100}%"></span>
+                <span class="risk-group__bar-segment risk-group__bar-segment--low" style="width: ${(counts.low / total) * 100}%"></span>
+                <span class="risk-group__bar-segment risk-group__bar-segment--ok" style="width: ${(counts.ok / total) * 100}%"></span>
+              </div>
+            </header>
+            <div class="risk-card-grid">
+              ${groupCards.map(renderCard).join("")}
+            </div>
+          </section>
+        `;
+      })
+      .join("");
+  }
+
   function updateSummary(root, summary) {
     const counts = summary?.severity_counts || {};
     const values = {
-      critical: counts.critical || 0,
-      warning: counts.warning || 0,
+      high: counts.high || 0,
+      medium: counts.medium || 0,
+      low: counts.low || 0,
       ok: counts.ok || 0,
       total: summary?.total_instances || 0,
     };
@@ -178,7 +257,8 @@
     }
     dbTypeMetaMap = new Map(Object.entries(safeParseJSON(root.dataset.dbTypeMap || "{}", {})));
     const form = root.querySelector("[data-risk-filter-form]");
-    const grid = root.querySelector("[data-risk-card-grid]");
+    const wall = root.querySelector("[data-risk-group-wall]");
+    const alertBoard = root.querySelector("[data-risk-alert-board]");
     const empty = root.querySelector("[data-risk-empty]");
     const feedback = root.querySelector("[data-risk-feedback]");
     const refreshButton = document.querySelector('[data-action="refresh-risk-center"]');
@@ -192,7 +272,7 @@
     }
 
     function refresh() {
-      if (!form || !grid) return Promise.resolve();
+      if (!form || !wall) return Promise.resolve();
       setFeedback("");
       return store.actions.refresh(readFilters(form)).catch((error) => {
         setFeedback(error?.message || "加载风险中心失败");
@@ -208,8 +288,11 @@
     store.subscribe("risk-center:updated", (payload) => {
       const cards = Array.isArray(payload?.cards?.items) ? payload.cards.items : [];
       updateSummary(root, payload?.summary || {});
-      if (grid) {
-        grid.innerHTML = cards.map(renderCard).join("");
+      if (alertBoard) {
+        alertBoard.innerHTML = renderAlertBoard(payload?.summary || {});
+      }
+      if (wall) {
+        wall.innerHTML = renderGroupWall(cards);
       }
       if (empty) {
         empty.classList.toggle("d-none", cards.length > 0);

@@ -26,36 +26,33 @@ from app.models.task_run_item import TaskRunItem
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.jumpserver_repository import JumpServerRepository
 from app.repositories.veeam_repository import VeeamRepository
+from app.services.risk_center.risk_center_rule_settings_service import RiskCenterRuleSettingsService
 from app.services.veeam.instance_backup_read_service import resolve_backup_status
 from app.utils.time_utils import time_utils
 
 SEVERITY_ORDER = {
-    "critical": 0,
-    "warning": 1,
-    "info": 2,
-    "unknown": 3,
-    "ok": 4,
+    "high": 0,
+    "medium": 1,
+    "low": 2,
+    "ok": 3,
 }
 SEVERITY_SCORE = {
-    "critical": 100,
-    "warning": 50,
-    "info": 10,
-    "unknown": 1,
+    "high": 100,
+    "medium": 50,
+    "low": 10,
     "ok": 0,
 }
-VISIBLE_SEVERITY_KEYS = ("critical", "warning", "ok")
+VISIBLE_SEVERITY_KEYS = ("high", "medium", "low", "ok")
 SEVERITY_TONE = {
-    "critical": "danger",
-    "warning": "warning",
-    "info": "info",
-    "unknown": "muted",
+    "high": "danger",
+    "medium": "warning",
+    "low": "info",
     "ok": "success",
 }
 SEVERITY_STATUS_TEXT = {
-    "critical": "Critical",
-    "warning": "Warning",
-    "info": "Notice",
-    "unknown": "Unknown",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
     "ok": "Healthy",
 }
 BACKUP_STALE_HOURS = 24
@@ -148,13 +145,14 @@ def _task_failure_label(failed_task: TaskRunItem) -> str:
 
 def _visible_severity_bucket(severity: object) -> str:
     normalized = str(severity or "").strip()
-    if normalized in {"critical", "warning"}:
+    if normalized in {"high", "medium", "low"}:
         return normalized
     return "ok"
 
 
 def _risk(
     *,
+    rule_key: str,
     category: str,
     severity: str,
     label: str,
@@ -163,6 +161,7 @@ def _risk(
     target_url: str | None = None,
 ) -> dict[str, object]:
     return {
+        "rule_key": rule_key,
         "category": category,
         "severity": severity,
         "label": label,
@@ -181,7 +180,7 @@ class RiskCenterReadService:
         db_type_counts: dict[str, dict[str, int]] = {}
         for card in cards:
             db_type = str(card["db_type"])
-            db_type_counts.setdefault(db_type, {"total": 0, "critical": 0, "warning": 0, "ok": 0})
+            db_type_counts.setdefault(db_type, {"total": 0, "high": 0, "medium": 0, "low": 0, "ok": 0})
             db_type_counts[db_type]["total"] += 1
             db_type_counts[db_type][_visible_severity_bucket(card["overall_severity"])] += 1
 
@@ -189,7 +188,7 @@ class RiskCenterReadService:
             "total_instances": len(cards),
             "severity_counts": severity_counts,
             "db_type_counts": db_type_counts,
-            "top_risks": cards[:8],
+            "top_risks": self._build_top_risks(cards),
             "generated_at": time_utils.now().isoformat(),
         }
 
@@ -253,6 +252,7 @@ class RiskCenterReadService:
         managed_ids = JumpServerRepository.fetch_managed_instance_ids(instances)
         access_map = self._access_summary_map(instance_ids, since=now - timedelta(hours=RECENT_WINDOW_HOURS))
         failed_task_map = self._failed_task_map(instance_ids, since=now - timedelta(hours=RECENT_WINDOW_HOURS))
+        rule_map = RiskCenterRuleSettingsService().get_rule_map()
         tag_map = (
             InstancesRepository.fetch_tags_map(instance_ids)
             if _table_exists("tags") and _table_exists("instance_tags")
@@ -271,6 +271,7 @@ class RiskCenterReadService:
                 access=access_map.get(int(instance.id), {}),
                 failed_task=failed_task_map.get(int(instance.id)),
                 tags=tag_map.get(int(instance.id), []),
+                rule_map=rule_map,
             )
             for instance in instances
         ]
@@ -296,6 +297,7 @@ class RiskCenterReadService:
         access: dict[str, int],
         failed_task: TaskRunItem | None,
         tags: list[Any],
+        rule_map: dict[str, dict[str, object]],
     ) -> dict[str, object]:
         risks: list[dict[str, object]] = []
         backup_metric, backup_risks = self._build_backup_metric(instance, backup, now=now)
@@ -312,14 +314,21 @@ class RiskCenterReadService:
         if not bool(instance.is_active):
             risks.append(
                 _risk(
+                    rule_key="instance_inactive",
                     category="instance",
-                    severity="warning",
+                    severity="medium",
                     label="实例停用",
                     detail="实例当前处于停用状态",
                     target_url=f"/instances/{int(instance.id)}",
                 )
             )
 
+        risks = self._apply_rule_settings(risks, rule_map)
+        backup_metric["tone"] = self._resolve_metric_tone(backup_metric, risks, "backup")
+        capacity_metric["tone"] = self._resolve_metric_tone(capacity_metric, risks, "capacity")
+        audit_metric["tone"] = self._resolve_metric_tone(audit_metric, risks, "audit")
+        access_metric["tone"] = self._resolve_metric_tone(access_metric, risks, "access")
+        task_metric["tone"] = self._resolve_metric_tone(task_metric, risks, "task")
         overall = self._resolve_overall_severity(risks)
         risk_score = min(sum(SEVERITY_SCORE.get(str(risk["severity"]), 0) for risk in risks), 999)
         risk_flags = self._build_visible_risk_flags(risks)
@@ -334,6 +343,7 @@ class RiskCenterReadService:
             for tag in tags
             if getattr(tag, "name", None)
         ]
+        group = tag_payload[0]["display_name"] if tag_payload else str(instance.db_type).upper()
         return {
             "instance_id": int(instance.id),
             "name": str(instance.name),
@@ -354,6 +364,7 @@ class RiskCenterReadService:
             "tasks": task_metric,
             "status_band": status_band,
             "tags": tag_payload,
+            "group": group,
             "links": {
                 "detail": f"/instances/{int(instance.id)}",
                 "backup": f"/instances/{int(instance.id)}#backup",
@@ -412,6 +423,70 @@ class RiskCenterReadService:
         return severity_matches and db_type_matches and status_matches and tag_matches and search_matches
 
     @staticmethod
+    def _build_top_risks(cards: list[dict[str, object]]) -> list[dict[str, object]]:
+        risks: list[dict[str, object]] = []
+        for card in cards:
+            card_risks = card.get("risk_items", [])
+            if not isinstance(card_risks, list):
+                continue
+            for risk in card_risks:
+                if not isinstance(risk, dict):
+                    continue
+                risks.append(
+                    {
+                        **risk,
+                        "instance_id": card["instance_id"],
+                        "instance_name": card["name"],
+                        "db_type": card["db_type"],
+                        "host": card["host"],
+                        "group": card.get("group"),
+                    }
+                )
+        risks.sort(
+            key=lambda item: (
+                SEVERITY_ORDER.get(str(item.get("severity")), 99),
+                str(item.get("occurred_at") or ""),
+                str(item.get("instance_name") or "").lower(),
+            )
+        )
+        return risks[:12]
+
+    @staticmethod
+    def _apply_rule_settings(
+        risks: list[dict[str, object]],
+        rule_map: dict[str, dict[str, object]],
+    ) -> list[dict[str, object]]:
+        applied: list[dict[str, object]] = []
+        for risk in risks:
+            rule_key = str(risk.get("rule_key") or "").strip()
+            rule = rule_map.get(rule_key)
+            if rule is not None and not bool(rule.get("enabled", True)):
+                continue
+            severity = str(rule.get("severity") if rule else risk.get("severity") or "medium")
+            normalized = severity if severity in SEVERITY_ORDER and severity != "ok" else str(risk.get("severity") or "medium")
+            applied.append(
+                {
+                    **risk,
+                    "severity": normalized,
+                    "rule_label": str(rule.get("label") if rule else risk.get("label") or rule_key),
+                    "rule_enabled": True,
+                }
+            )
+        return applied
+
+    @staticmethod
+    def _resolve_metric_tone(metric: dict[str, object], risks: list[dict[str, object]], category: str) -> str:
+        matching_risks = [risk for risk in risks if str(risk.get("category")) == category]
+        if matching_risks:
+            severity = min(
+                (str(risk.get("severity") or "low") for risk in matching_risks),
+                key=lambda item: SEVERITY_ORDER.get(item, 99),
+            )
+            return SEVERITY_TONE.get(severity, "muted")
+        original_tone = str(metric.get("tone") or "muted")
+        return "success" if original_tone == "success" else "muted"
+
+    @staticmethod
     def _build_backup_metric(
         instance: Instance,
         backup: dict[str, object],
@@ -437,8 +512,9 @@ class RiskCenterReadService:
                 "last_seen_at": _iso(latest_backup_at),
             }, [
                 _risk(
+                    rule_key="backup_stale",
                     category="backup",
-                    severity="warning",
+                    severity="medium",
                     label="备份滞后",
                     detail=f"最近备份为 {_format_age(latest_backup_at, now=now)}",
                     occurred_at=latest_backup_at,
@@ -453,8 +529,9 @@ class RiskCenterReadService:
             "last_seen_at": None,
         }, [
             _risk(
+                rule_key="backup_missing",
                 category="backup",
-                severity="critical",
+                severity="high",
                 label="备份缺失",
                 detail="未匹配到 Veeam 机器备份快照",
                 target_url=f"/instances/{int(instance.id)}#backup",
@@ -493,8 +570,9 @@ class RiskCenterReadService:
                 "target_url": target_url,
             }, [
                 _risk(
+                    rule_key="audit_disabled",
                     category="audit",
-                    severity="warning",
+                    severity="medium",
                     label="审计未启用",
                     detail="已发现审计配置，但当前没有启用的审计目标",
                     occurred_at=last_sync_at,
@@ -511,8 +589,9 @@ class RiskCenterReadService:
             "target_url": target_url,
         }, [
             _risk(
+                rule_key="audit_missing",
                 category="audit",
-                severity="warning",
+                severity="medium",
                 label="审计未配置",
                 detail="未发现实例审计配置快照或审计目标",
                 occurred_at=last_sync_at,
@@ -556,8 +635,9 @@ class RiskCenterReadService:
                 "last_seen_at": None,
             }, [
                 _risk(
+                    rule_key="capacity_missing",
                     category="capacity",
-                    severity="unknown",
+                    severity="low",
                     label="容量未采集",
                     detail="缺少实例容量采集数据",
                     target_url=f"/capacity/instances?instance_id={int(instance.id)}",
@@ -576,11 +656,12 @@ class RiskCenterReadService:
         if growth_rate is not None and growth_rate >= CAPACITY_CRITICAL_GROWTH_RATE:
             tone = "danger"
             label = f"+{growth_rate:.0f}%"
-            status = "critical"
+            status = "high"
             risks.append(
                 _risk(
+                    rule_key="capacity_growth_critical",
                     category="capacity",
-                    severity="critical",
+                    severity="high",
                     label="容量增长过快",
                     detail=f"最近聚合增长率 {growth_rate:.0f}%",
                     occurred_at=growth_calculated_at,
@@ -590,11 +671,12 @@ class RiskCenterReadService:
         elif growth_rate is not None and growth_rate >= CAPACITY_WARNING_GROWTH_RATE:
             tone = "warning"
             label = f"+{growth_rate:.0f}%"
-            status = "warning"
+            status = "medium"
             risks.append(
                 _risk(
+                    rule_key="capacity_growth_warning",
                     category="capacity",
-                    severity="warning",
+                    severity="medium",
                     label="容量增长偏快",
                     detail=f"最近聚合增长率 {growth_rate:.0f}%",
                     occurred_at=growth_calculated_at,
@@ -603,11 +685,12 @@ class RiskCenterReadService:
             )
         if stale:
             tone = "warning" if tone == "success" else tone
-            status = "warning" if status == "ok" else status
+            status = "medium" if status == "ok" else status
             risks.append(
                 _risk(
+                    rule_key="capacity_stale",
                     category="capacity",
-                    severity="warning",
+                    severity="medium",
                     label="容量采集过期",
                     detail=f"最近采集为 {_format_age(collected_at, now=now)}",
                     occurred_at=collected_at,
@@ -637,8 +720,9 @@ class RiskCenterReadService:
             tone = "info"
             risks.append(
                 _risk(
+                    rule_key="access_superuser",
                     category="access",
-                    severity="info",
+                    severity="low",
                     label="存在高权账号",
                     detail=f"{superuser_count} 个账号具备超级权限",
                     target_url=f"/accounts/ledgers?instance_id={int(instance.id)}",
@@ -650,8 +734,9 @@ class RiskCenterReadService:
                 tone = "warning"
             risks.append(
                 _risk(
+                    rule_key="access_recent_change",
                     category="access",
-                    severity="warning",
+                    severity="medium",
                     label="权限近期变更",
                     detail=f"最近 24 小时有 {change_count} 条账户变更",
                     target_url=f"/history/account-change-logs?instance_id={int(instance.id)}",
@@ -684,8 +769,9 @@ class RiskCenterReadService:
             "last_seen_at": _iso(occurred_at),
         }, [
             _risk(
+                rule_key="task_failed",
                 category="task",
-                severity="warning",
+                severity="medium",
                 label=failure_label,
                 detail=str(failed_task.error_message or failed_task.item_name or "最近 24 小时存在失败任务"),
                 occurred_at=occurred_at,
