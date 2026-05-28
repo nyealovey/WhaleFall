@@ -310,6 +310,10 @@ def test_mysql_topology_sync_marks_non_replica_read_write_as_primary() -> None:
 
         assert result["items"][0]["replication_role"] == "primary"
         assert result["items"][0]["replication_status"] == "healthy"
+        assert connection.queries == [
+            "SHOW REPLICA STATUS",
+            "SELECT @@global.read_only AS read_only, @@global.super_read_only AS super_read_only",
+        ]
 
 
 @pytest.mark.unit

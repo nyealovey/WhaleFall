@@ -334,16 +334,20 @@ class MySQLClusterManagementService:
                 raise ExternalServiceError("无法连接 MySQL 实例", extra={"instance_id": instance.id})
             try:
                 rows = self._execute_rows(connection, _REPLICA_STATUS_QUERY)
+                replica_status_supported = True
             except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:
                 if self._is_replication_status_permission_error(exc):
                     raise
                 if not self._is_replica_status_unsupported(exc):
                     raise
                 rows = []
+                replica_status_supported = False
             if rows:
                 detected = self._normalize_replica_status(rows[0], new_names=True)
                 detected.update(self._detect_read_only_state(connection))
                 return detected
+            if replica_status_supported:
+                return self._detect_non_replica(connection)
             try:
                 rows = self._execute_rows(connection, _SLAVE_STATUS_QUERY)
             except (RuntimeError, ValueError, LookupError, ConnectionError, TimeoutError, OSError) as exc:

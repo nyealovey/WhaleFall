@@ -30,7 +30,7 @@ class TaskRun(db.Model):
     task_category = db.Column(db.String(50), nullable=False, index=True)
     trigger_source = db.Column(db.String(20), nullable=False, index=True)
 
-    status = db.Column(db.String(20), nullable=False, default=TaskRunStatus.RUNNING, index=True)
+    status = db.Column(db.String(32), nullable=False, default=TaskRunStatus.RUNNING, index=True)
 
     started_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
     completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
