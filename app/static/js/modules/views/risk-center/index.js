@@ -119,38 +119,6 @@
     `;
   }
 
-  function renderAlertItem(risk) {
-    return `
-      <a class="risk-alert-item risk-alert-item--${escapeHtml(risk?.severity || "low")}" href="${escapeHtml(risk?.target_url || "#")}">
-        <span class="risk-alert-item__icon">
-          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-        </span>
-        <span class="risk-alert-item__main">
-          <strong>${escapeHtml(risk?.instance_name || "-")} · ${escapeHtml(risk?.label || "-")}</strong>
-          <small>${escapeHtml(risk?.detail || "")}</small>
-        </span>
-        <span class="risk-alert-item__meta">${escapeHtml(risk?.group || String(risk?.db_type || "").toUpperCase())}</span>
-      </a>
-    `;
-  }
-
-  function renderAlertBoard(summary) {
-    const risks = Array.isArray(summary?.top_risks) ? summary.top_risks : [];
-    return `
-      <div class="risk-alert-board__head">
-        <h2>当前风险事件</h2>
-        <span>${risks.length} 项</span>
-      </div>
-      <div class="risk-alert-list">
-        ${risks.map(renderAlertItem).join("")}
-      </div>
-      <div class="risk-alert-board__empty ${risks.length === 0 ? "" : "d-none"}">
-        <i class="fas fa-circle-check" aria-hidden="true"></i>
-        <strong>当前没有启用的风险命中</strong>
-      </div>
-    `;
-  }
-
   function renderSignal(metric, signal) {
     const safeMetric = metric || {};
     return `
@@ -259,7 +227,6 @@
     dbTypeMetaMap = new Map(Object.entries(safeParseJSON(root.dataset.dbTypeMap || "{}", {})));
     const form = root.querySelector("[data-risk-filter-form]");
     const wall = root.querySelector("[data-risk-group-wall]");
-    const alertBoard = root.querySelector("[data-risk-alert-board]");
     const empty = root.querySelector("[data-risk-empty]");
     const feedback = root.querySelector("[data-risk-feedback]");
     const refreshButton = document.querySelector('[data-action="refresh-risk-center"]');
@@ -289,9 +256,6 @@
     store.subscribe("risk-center:updated", (payload) => {
       const cards = Array.isArray(payload?.cards?.items) ? payload.cards.items : [];
       updateSummary(root, payload?.summary || {});
-      if (alertBoard) {
-        alertBoard.innerHTML = renderAlertBoard(payload?.summary || {});
-      }
       if (wall) {
         wall.innerHTML = renderGroupWall(cards);
       }

@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard/overview.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/risk-center.css') }}">
 {% endblock %}
 
 {% from 'components/ui/page_header.html' import page_header %}
@@ -107,6 +108,7 @@
                     {% endcall %}
                 </div>
             </div>
+            {% include 'risk_center/_risk_alert_board.html' %}
         </div>
     </div>
 </section>

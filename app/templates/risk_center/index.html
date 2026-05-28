@@ -48,19 +48,6 @@
     </span>
 {%- endmacro %}
 
-{% macro render_alert_item(risk) -%}
-<a class="risk-alert-item risk-alert-item--{{ risk.severity }}" href="{{ risk.target_url or '#' }}">
-    <span class="risk-alert-item__icon">
-        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-    </span>
-    <span class="risk-alert-item__main">
-        <strong>{{ risk.instance_name }} · {{ risk.label }}</strong>
-        <small>{{ risk.detail }}</small>
-    </span>
-    <span class="risk-alert-item__meta">{{ risk.group or risk.db_type|upper }}</span>
-</a>
-{%- endmacro %}
-
 {% macro render_status_signal(metric, label, icon_class, signal_name) -%}
     <span class="risk-signal risk-signal--{{ metric.tone or 'muted' }}"
           data-risk-signal="{{ signal_name }}"
@@ -115,22 +102,6 @@
                 {% call metric_card('健康', value=summary.severity_counts.ok, icon_class='fas fa-circle-check', tone='success', card_class='risk-kpi-card', data_stat_key='ok') %}{% endcall %}
                 {% call metric_card('总实例', value=summary.total_instances, icon_class='fas fa-server', tone='info', card_class='risk-kpi-card', data_stat_key='total') %}{% endcall %}
             </div>
-
-            <section class="risk-alert-board" data-risk-alert-board>
-                <div class="risk-alert-board__head">
-                    <h2>当前风险事件</h2>
-                    <span>{{ summary.top_risks|length }} 项</span>
-                </div>
-                <div class="risk-alert-list">
-                    {% for risk in summary.top_risks %}
-                        {{ render_alert_item(risk) }}
-                    {% endfor %}
-                </div>
-                <div class="risk-alert-board__empty {{ '' if summary.top_risks|length == 0 else 'd-none' }}">
-                    <i class="fas fa-circle-check" aria-hidden="true"></i>
-                    <strong>当前没有启用的风险命中</strong>
-                </div>
-            </section>
 
             <form class="risk-filter-band" data-risk-filter-form>
                 <label class="risk-filter-band__field">

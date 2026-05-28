@@ -8,6 +8,7 @@ from app.infra.flask_typing import RouteReturn
 from app.infra.route_safety import safe_route_call
 from app.services.dashboard.dashboard_charts_service import get_chart_data
 from app.services.dashboard.dashboard_overview_service import get_system_overview, get_system_status
+from app.services.risk_center.risk_center_read_service import RiskCenterReadService
 from app.utils.response_utils import jsonify_unified_success
 
 # 创建蓝图
@@ -30,6 +31,7 @@ def index() -> RouteReturn:
         overview_data = get_system_overview()
         chart_data = get_chart_data()
         system_status = get_system_status()
+        risk_summary = RiskCenterReadService().build_summary()
 
         if request.is_json:
             return jsonify_unified_success(
@@ -37,6 +39,7 @@ def index() -> RouteReturn:
                     "overview": overview_data,
                     "charts": chart_data,
                     "status": system_status,
+                    "risk_summary": risk_summary,
                 },
                 message=SuccessMessages.OPERATION_SUCCESS,
             )
@@ -46,6 +49,7 @@ def index() -> RouteReturn:
             overview=overview_data,
             charts=chart_data,
             status=system_status,
+            risk_summary=risk_summary,
         )
 
     return safe_route_call(

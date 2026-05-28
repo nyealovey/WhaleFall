@@ -11,16 +11,19 @@ def _read_text(relative_path: str) -> str:
 
 def test_risk_center_uses_alert_board_and_group_wall() -> None:
     template = _read_text("app/templates/risk_center/index.html")
+    dashboard_template = _read_text("app/templates/dashboard/overview.html")
     script = _read_text("app/static/js/modules/views/risk-center/index.js")
     css = _read_text("app/static/css/pages/risk-center.css")
 
-    assert "risk-alert-board" in template
-    assert "risk-alert-board" in script
+    assert "risk-alert-board" not in template
+    assert "risk-alert-board" not in script
+    assert "{% include 'risk_center/_risk_alert_board.html' %}" in dashboard_template
+    assert dashboard_template.index("dashboard-metrics") < dashboard_template.index("risk_center/_risk_alert_board.html")
     assert "risk-alert-board" in css
     assert "risk-group-wall" in template
     assert "risk-group-wall" in script
     assert "risk-group-wall" in css
-    assert "renderAlertBoard" in script
+    assert "renderAlertBoard" not in script
     assert "renderGroupWall" in script
 
 

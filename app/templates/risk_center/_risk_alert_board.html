@@ -1,0 +1,31 @@
+{% set alert_summary = risk_summary if risk_summary is defined else summary %}
+{% set top_risks = alert_summary.top_risks if alert_summary and alert_summary.top_risks else [] %}
+
+{% macro render_alert_item(risk) -%}
+<a class="risk-alert-item risk-alert-item--{{ risk.severity }}" href="{{ risk.target_url or '#' }}">
+    <span class="risk-alert-item__icon">
+        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+    </span>
+    <span class="risk-alert-item__main">
+        <strong>{{ risk.instance_name }} · {{ risk.label }}</strong>
+        <small>{{ risk.detail }}</small>
+    </span>
+    <span class="risk-alert-item__meta">{{ risk.group or risk.db_type|upper }}</span>
+</a>
+{%- endmacro %}
+
+<section class="risk-alert-board" data-risk-alert-board>
+    <div class="risk-alert-board__head">
+        <h2>当前风险事件</h2>
+        <span>{{ top_risks|length }} 项</span>
+    </div>
+    <div class="risk-alert-list">
+        {% for risk in top_risks %}
+            {{ render_alert_item(risk) }}
+        {% endfor %}
+    </div>
+    <div class="risk-alert-board__empty {{ '' if top_risks|length == 0 else 'd-none' }}">
+        <i class="fas fa-circle-check" aria-hidden="true"></i>
+        <strong>当前没有启用的风险命中</strong>
+    </div>
+</section>

@@ -63,6 +63,19 @@ def test_api_v1_dashboard_overview_contract(app, auth_client) -> None:
 
 
 @pytest.mark.unit
+def test_dashboard_page_places_current_risks_below_metric_cards(app, auth_client) -> None:
+    _ensure_dashboard_tables(app)
+
+    response = auth_client.get("/dashboard/")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "dashboard-metrics" in html
+    assert "当前风险事件" in html
+    assert html.index("dashboard-metrics") < html.index("当前风险事件")
+
+
+@pytest.mark.unit
 def test_api_v1_dashboard_status_contract(app, auth_client) -> None:
     _ensure_dashboard_tables(app)
 

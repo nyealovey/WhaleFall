@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -7,6 +8,28 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 def _read_text(relative_path: str) -> str:
     return (ROOT_DIR / relative_path).read_text(encoding="utf-8")
+
+
+def test_base_nav_moves_unified_settings_items_into_admin_center() -> None:
+    base_template = _read_text("app/templates/base.html")
+    admin_dropdown = re.search(
+        r'<ul class="app-nav__dropdown dropdown-menu" aria-labelledby="adminDropdown">(?P<body>.*?)</ul>',
+        base_template,
+        re.S,
+    )
+
+    assert "settingsDropdown" not in base_template
+    assert ">统一设置<" not in base_template
+    assert admin_dropdown is not None
+
+    admin_body = admin_dropdown.group("body")
+    for fragment in (
+        "url_for('credentials.index')",
+        "url_for('tags.index')",
+        "url_for('accounts_classifications.index')",
+        "url_for('partition.partitions_page')",
+    ):
+        assert fragment in admin_body
 
 
 def test_system_settings_template_base_nav_and_assets_contract() -> None:

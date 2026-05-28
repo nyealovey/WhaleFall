@@ -126,23 +126,6 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog me-1"></i>统一设置
-                        </a>
-                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('credentials.index') }}">
-                                    <i class="fas fa-key me-2"></i>凭据管理
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('tags.index') }}">
-                                    <i class="fas fa-tag me-2"></i>标签管理
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('accounts_classifications.index') }}">
-                                    <i class="fas fa-tags me-2"></i>账户分类管理
-                                </a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="historyDropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-history me-1"></i>历史记录
@@ -180,6 +163,15 @@
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
+                            <li><a class="dropdown-item" href="{{ url_for('credentials.index') }}">
+                                    <i class="fas fa-key me-2"></i>凭据管理
+                                </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('tags.index') }}">
+                                    <i class="fas fa-tag me-2"></i>标签管理
+                                </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('accounts_classifications.index') }}">
+                                    <i class="fas fa-tags me-2"></i>账户分类管理
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('partition.partitions_page') }}">
                                     <i class="fas fa-layer-group me-2"></i>分区管理
                                 </a></li>
