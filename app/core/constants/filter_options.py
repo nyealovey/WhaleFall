@@ -62,6 +62,7 @@ STATUS_TASK_RUN_OPTIONS: Final[list[dict[str, str]]] = [
     {"value": "", "label": "全部状态"},
     {"value": "running", "label": "运行中"},
     {"value": "completed", "label": "已完成"},
+    {"value": "completed_with_errors", "label": "部分完成"},
     {"value": "failed", "label": "失败"},
     {"value": "cancelled", "label": "已取消"},
 ]
@@ -81,6 +82,7 @@ TASK_RUN_CATEGORIES: Final[list[dict[str, str]]] = [
     {"value": "capacity", "label": "容量"},
     {"value": "aggregation", "label": "聚合"},
     {"value": "classification", "label": "分类"},
+    {"value": "cluster", "label": "群集"},
     {"value": "notification", "label": "告警"},
     {"value": "other", "label": "其他"},
 ]

@@ -223,6 +223,25 @@ def test_run_center_session_detail_labels_ag_cluster_items() -> None:
     assert "AG群集" in content
 
 
+def test_run_center_frontend_maps_partial_status_and_cluster_category() -> None:
+    terms = _read_text("app/static/js/modules/ui/terms.js")
+    list_view = _read_text("app/static/js/modules/views/history/sessions/sync-sessions.js")
+    detail_view = _read_text("app/static/js/modules/views/history/sessions/session-detail.js")
+
+    assert "completed_with_errors" in terms
+    assert "部分完成" in terms
+
+    assert "completed_with_errors" in list_view
+    assert "部分完成" in list_view
+    assert "case 'cluster':" in list_view
+    assert "群集" in list_view
+
+    assert "completed_with_errors" in detail_view
+    assert "部分完成" in detail_view
+    assert "case 'cluster':" in detail_view
+    assert "群集" in detail_view
+
+
 def test_email_alert_settings_frontend_exposes_cluster_status_rule() -> None:
     template_content = _read_text("app/templates/admin/system-settings/_email-alert-settings-section.html")
     view_content = _read_text("app/static/js/modules/views/admin/alerts/email-settings.js")

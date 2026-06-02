@@ -23,6 +23,8 @@
         return "已暂停";
       case "completed":
         return "已完成";
+      case "completed_with_errors":
+        return "部分完成";
       case "failed":
         return "失败";
       case "cancelled":
@@ -46,6 +48,7 @@
       case "running":
       case "paused":
       case "completed":
+      case "completed_with_errors":
       case "failed":
       case "cancelled":
         return resolveRunStatusText(status);

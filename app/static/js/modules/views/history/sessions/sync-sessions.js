@@ -715,6 +715,8 @@ function getStatusText(status) {
       return '运行中';
     case 'completed':
       return '已完成';
+    case 'completed_with_errors':
+      return '部分完成';
     case 'failed':
       return '失败';
     case 'cancelled':
@@ -738,6 +740,8 @@ function getStatusColor(status) {
       return 'success';
     case 'completed':
       return 'info';
+    case 'completed_with_errors':
+      return 'warning';
     case 'failed':
       return 'danger';
     case 'cancelled':
@@ -775,6 +779,8 @@ function getStatusIcon(status) {
       return 'fas fa-hourglass-half';
     case 'completed':
       return 'fas fa-check';
+    case 'completed_with_errors':
+      return 'fas fa-exclamation-triangle';
     case 'failed':
       return 'fas fa-times';
     case 'cancelled':
@@ -867,6 +873,8 @@ function getTaskCategoryText(category) {
       return '聚合';
     case 'classification':
       return '分类';
+    case 'cluster':
+      return '群集';
     case 'notification':
       return '告警';
     case 'other':

@@ -444,6 +444,12 @@
         return { text: typeof resolver === 'function' ? resolver('pending') : '等待中', tone: 'warning', icon: 'fas fa-hourglass-half' };
       case 'completed':
         return { text: typeof resolver === 'function' ? resolver('completed') : '已完成', tone: 'success', icon: 'fas fa-check' };
+      case 'completed_with_errors':
+        return {
+          text: typeof resolver === 'function' ? resolver('completed_with_errors') : '部分完成',
+          tone: 'warning',
+          icon: 'fas fa-exclamation-triangle',
+        };
       case 'failed':
         return { text: typeof resolver === 'function' ? resolver('failed') : '失败', tone: 'danger', icon: 'fas fa-times' };
       case 'cancelled':
@@ -544,6 +550,8 @@
         return '聚合';
       case 'classification':
         return '分类';
+      case 'cluster':
+        return '群集';
       case 'notification':
         return '告警';
       case 'other':
