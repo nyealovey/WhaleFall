@@ -12,9 +12,9 @@ from flask import Blueprint, Response, jsonify
 
 from app.api.v1.api import WhaleFallApi
 from app.api.v1.namespaces.account_change_logs import ns as account_change_logs_ns
-from app.api.v1.namespaces.ad_domain_configs import ns as ad_domain_configs_ns
 from app.api.v1.namespaces.accounts import ns as accounts_ns
 from app.api.v1.namespaces.accounts_classifications import ns as accounts_classifications_ns
+from app.api.v1.namespaces.ad_domain_configs import ns as ad_domain_configs_ns
 from app.api.v1.namespaces.alerts import ns as alerts_ns
 from app.api.v1.namespaces.auth import ns as auth_ns
 from app.api.v1.namespaces.cache import ns as cache_ns

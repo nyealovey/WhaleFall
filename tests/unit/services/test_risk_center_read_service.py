@@ -33,6 +33,34 @@ def _card_items(result: dict[str, object]) -> list[dict[str, Any]]:
     return cast(list[dict[str, Any]], result["items"])
 
 
+def _make_mysql_cluster(*, name: str, is_enabled: bool = True) -> MySQLCluster:
+    cluster = MySQLCluster()
+    cluster.name = name
+    cluster.is_enabled = is_enabled
+    return cluster
+
+
+def _make_mysql_cluster_instance(
+    *,
+    cluster_id: int,
+    instance_id: int,
+    replication_role: str,
+    replication_status: str,
+    last_checked_at: datetime,
+    last_io_error: str | None = None,
+    last_error: str | None = None,
+) -> MySQLClusterInstance:
+    binding = MySQLClusterInstance()
+    binding.cluster_id = cluster_id
+    binding.instance_id = instance_id
+    binding.replication_role = replication_role
+    binding.replication_status = replication_status
+    binding.last_checked_at = last_checked_at
+    binding.last_io_error = last_io_error
+    binding.last_error = last_error
+    return binding
+
+
 @pytest.fixture(scope="function")
 def app(monkeypatch):
     monkeypatch.setenv("FLASK_ENV", "testing")
@@ -811,19 +839,19 @@ def test_risk_center_marks_mysql_replica_abnormal_on_replica_instance(app) -> No
         source = _create_veeam_source()
         primary = Instance(name="mysql-primary", db_type="mysql", host="10.0.0.71", port=3306, is_active=True)
         replica = Instance(name="mysql-replica", db_type="mysql", host="10.0.0.72", port=3306, is_active=True)
-        cluster = MySQLCluster(name="mysql-cluster", is_enabled=True)
+        cluster = _make_mysql_cluster(name="mysql-cluster", is_enabled=True)
         db.session.add_all([primary, replica, cluster])
         db.session.flush()
         db.session.add_all(
             [
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=primary.id,
                     replication_role="primary",
                     replication_status="healthy",
                     last_checked_at=now,
                 ),
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=replica.id,
                     replication_role="replica",
@@ -853,11 +881,11 @@ def test_risk_center_marks_mysql_failed_unknown_role_as_cluster_abnormal(app) ->
         _create_tables()
         source = _create_veeam_source()
         instance = Instance(name="mysql-unknown-failed", db_type="mysql", host="10.0.0.73", port=3306, is_active=True)
-        cluster = MySQLCluster(name="mysql-cluster-failed", is_enabled=True)
+        cluster = _make_mysql_cluster(name="mysql-cluster-failed", is_enabled=True)
         db.session.add_all([instance, cluster])
         db.session.flush()
         db.session.add(
-            MySQLClusterInstance(
+            _make_mysql_cluster_instance(
                 cluster_id=cluster.id,
                 instance_id=instance.id,
                 replication_role="unknown",
@@ -881,17 +909,23 @@ def test_risk_center_marks_mysql_failed_unknown_role_as_cluster_abnormal(app) ->
 @pytest.mark.unit
 def test_risk_center_omits_capacity_missing_capacity_stale_and_inactive_risks() -> None:
     now = datetime.now(UTC)
-    instance = SimpleNamespace(id=46, name="db-muted", db_type="mysql", host="10.0.0.46", port=3306, is_active=False)
+    instance = cast(
+        Instance,
+        SimpleNamespace(id=46, name="db-muted", db_type="mysql", host="10.0.0.46", port=3306, is_active=False),
+    )
 
     card = RiskCenterReadService()._build_card(
         instance=instance,
         now=now,
         backup={"latest_backup_at": (now - timedelta(hours=2)).isoformat()},
-        capacity=SimpleNamespace(total_size_mb=1024, collected_at=now - timedelta(hours=72)),
+        capacity=cast(InstanceSizeStat, SimpleNamespace(total_size_mb=1024, collected_at=now - timedelta(hours=72))),
         growth=None,
-        audit=SimpleNamespace(
-            facts={"has_audit": True, "enabled_audit_count": 1},
-            last_sync_time=now - timedelta(hours=1),
+        audit=cast(
+            InstanceConfigSnapshot,
+            SimpleNamespace(
+                facts={"has_audit": True, "enabled_audit_count": 1},
+                last_sync_time=now - timedelta(hours=1),
+            ),
         ),
         managed=False,
         access={},
@@ -901,7 +935,8 @@ def test_risk_center_omits_capacity_missing_capacity_stale_and_inactive_risks() 
         rule_map={},
     )
 
-    rule_keys = {str(item["rule_key"]) for item in card["risk_items"]}
+    risk_items = cast(list[dict[str, object]], card["risk_items"])
+    rule_keys = {str(item["rule_key"]) for item in risk_items}
     assert "capacity_stale" not in rule_keys
     assert "capacity_missing" not in rule_keys
     assert "instance_inactive" not in rule_keys
@@ -911,7 +946,10 @@ def test_risk_center_omits_capacity_missing_capacity_stale_and_inactive_risks() 
 @pytest.mark.unit
 def test_risk_center_group_ignores_instance_tags() -> None:
     now = datetime.now(UTC)
-    instance = SimpleNamespace(id=45, name="db-prod", db_type="mysql", host="10.0.0.45", port=3306, is_active=True)
+    instance = cast(
+        Instance,
+        SimpleNamespace(id=45, name="db-prod", db_type="mysql", host="10.0.0.45", port=3306, is_active=True),
+    )
 
     card = RiskCenterReadService()._build_card(
         instance=instance,

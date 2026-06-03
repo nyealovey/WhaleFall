@@ -10,6 +10,12 @@ function mountAccountsStatisticsPage(global) {
   "use strict";
 
   const REFRESH_SELECTOR = '[data-action="refresh-stats"]';
+  const AD_STATUS_FIELDS = [
+    { rowKey: "normal", field: "normal" },
+    { rowKey: "disabled", field: "disabled" },
+    { rowKey: "orphaned", field: "orphaned" },
+    { rowKey: "unmatched", field: "unmatched" },
+  ];
 
   const document = global.document;
   if (!document) {
@@ -150,24 +156,42 @@ function mountAccountsStatisticsPage(global) {
     }
     const total = adStatusStats.total || {};
     const byOwnerType = adStatusStats.by_owner_type || {};
-    ["normal", "disabled", "orphaned", "unmatched"].forEach((statusKey) => {
-      const row = document.querySelector(`[data-ad-status-row="${statusKey}"]`);
+    AD_STATUS_FIELDS.forEach((status) => {
+      const row = document.querySelector(`[data-ad-status-row="${status.rowKey}"]`);
       if (!row) {
         return;
       }
       const totalCell = row.querySelector('[data-ad-status-field="total"]');
       if (totalCell) {
-        totalCell.textContent = formatInteger(total?.[statusKey] ?? 0);
+        totalCell.textContent = formatInteger(readAdStatusCount(total, status.field));
       }
       const instanceCell = row.querySelector('[data-ad-status-field="instance"]');
       if (instanceCell) {
-        instanceCell.textContent = formatInteger(byOwnerType?.instance?.[statusKey] ?? 0);
+        instanceCell.textContent = formatInteger(readAdStatusCount(byOwnerType?.instance, status.field));
       }
       const agCell = row.querySelector('[data-ad-status-field="sqlserver_ag"]');
       if (agCell) {
-        agCell.textContent = formatInteger(byOwnerType?.sqlserver_ag?.[statusKey] ?? 0);
+        agCell.textContent = formatInteger(readAdStatusCount(byOwnerType?.sqlserver_ag, status.field));
       }
     });
+  }
+
+  function readAdStatusCount(source, field) {
+    if (!source) {
+      return 0;
+    }
+    switch (field) {
+      case "normal":
+        return source.normal ?? 0;
+      case "disabled":
+        return source.disabled ?? 0;
+      case "orphaned":
+        return source.orphaned ?? 0;
+      case "unmatched":
+        return source.unmatched ?? 0;
+      default:
+        return 0;
+    }
   }
 
   function setValue(key, value) {

@@ -1,4 +1,4 @@
-"""add sqlserver cluster status sync summary
+"""add sqlserver cluster status sync summary.
 
 Revision ID: 20260525080000
 Revises: 20260525060000
@@ -7,8 +7,8 @@ Create Date: 2026-05-25 08:00:00.000000
 
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "20260525080000"
 down_revision = "20260525060000"

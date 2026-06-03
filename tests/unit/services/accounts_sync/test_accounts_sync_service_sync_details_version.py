@@ -117,6 +117,6 @@ def test_manual_single_instance_sync_does_not_sync_sqlserver_ag_accounts(monkeyp
     result = service._sync_single_instance(cast(Any, _DummyInstance()))
 
     assert not hasattr(accounts_sync_service_module, "SQLServerAgAccountsSyncService")
-    assert result["success"] is True
-    assert result["synced_count"] == 1
+    assert result.get("success") is True
+    assert result.get("synced_count") == 1
     assert "ag_accounts" not in result.get("details", {})

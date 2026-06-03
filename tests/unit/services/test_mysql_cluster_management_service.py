@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 from app import create_app, db
 from app.core.constants import DatabaseType
 from app.core.exceptions import ConflictError, ValidationError
+from app.core.types import JsonValue
 from app.models.instance import Instance
 from app.models.mysql_cluster import MySQLCluster, MySQLClusterInstance
 from app.schemas.mysql_clusters import MySQLClusterListQuery
@@ -25,6 +27,59 @@ def _create_schema() -> None:
     )
 
 
+def _make_instance(
+    *,
+    name: str,
+    db_type: str,
+    host: str,
+    port: int,
+) -> Instance:
+    instance = Instance()
+    instance.name = name
+    instance.db_type = db_type
+    instance.host = host
+    instance.port = port
+    return instance
+
+
+def _make_mysql_cluster(
+    *,
+    name: str,
+    description: str = "",
+    last_topology_sync_at: Any = None,
+    last_topology_sync_status: str | None = None,
+) -> MySQLCluster:
+    cluster = MySQLCluster()
+    cluster.name = name
+    cluster.description = description
+    cluster.last_topology_sync_at = last_topology_sync_at
+    cluster.last_topology_sync_status = last_topology_sync_status
+    return cluster
+
+
+def _make_mysql_cluster_instance(
+    *,
+    cluster_id: int,
+    instance_id: int,
+    replication_role: str = "unknown",
+    replication_status: str = "unknown",
+    seconds_behind_source: int | None = None,
+    read_only: bool | None = None,
+    super_read_only: bool | None = None,
+    last_checked_at: Any = None,
+) -> MySQLClusterInstance:
+    binding = MySQLClusterInstance()
+    binding.cluster_id = cluster_id
+    binding.instance_id = instance_id
+    binding.replication_role = replication_role
+    binding.replication_status = replication_status
+    binding.seconds_behind_source = seconds_behind_source
+    binding.read_only = read_only
+    binding.super_read_only = super_read_only
+    binding.last_checked_at = last_checked_at
+    return binding
+
+
 class _FakeConnection:
     def __init__(self, responses: dict[str, Any]) -> None:
         self.responses = responses
@@ -36,7 +91,11 @@ class _FakeConnection:
     def disconnect(self) -> None:
         return None
 
-    def execute_query(self, query: str, params=None):
+    def execute_query(
+        self,
+        query: str,
+        params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None,
+    ) -> Iterable[Sequence[JsonValue]]:
         del params
         self.queries.append(query)
         response = self.responses.get(query)
@@ -49,7 +108,8 @@ class _FakeFactory:
     def __init__(self, connection: _FakeConnection) -> None:
         self.connection = connection
 
-    def create_connection(self, _instance: Instance) -> _FakeConnection:
+    def create_connection(self, instance: Instance) -> _FakeConnection:
+        del instance
         return self.connection
 
 
@@ -60,9 +120,9 @@ def test_mysql_cluster_replace_instances_allows_only_existing_mysql_instances() 
 
     with app.app_context():
         _create_schema()
-        mysql = Instance(name="mysql-1", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
-        sqlserver = Instance(name="sql-1", db_type=DatabaseType.SQLSERVER, host="127.0.0.1", port=1433)
-        cluster = MySQLCluster(name="mysql-cluster-a")
+        mysql = _make_instance(name="mysql-1", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
+        sqlserver = _make_instance(name="sql-1", db_type=DatabaseType.SQLSERVER, host="127.0.0.1", port=1433)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a")
         db.session.add_all([mysql, sqlserver, cluster])
         db.session.commit()
 
@@ -82,12 +142,12 @@ def test_mysql_instance_can_only_bind_one_cluster() -> None:
 
     with app.app_context():
         _create_schema()
-        mysql = Instance(name="mysql-1", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
-        first = MySQLCluster(name="mysql-cluster-a")
-        second = MySQLCluster(name="mysql-cluster-b")
+        mysql = _make_instance(name="mysql-1", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
+        first = _make_mysql_cluster(name="mysql-cluster-a")
+        second = _make_mysql_cluster(name="mysql-cluster-b")
         db.session.add_all([mysql, first, second])
         db.session.flush()
-        db.session.add(MySQLClusterInstance(cluster_id=first.id, instance_id=mysql.id))
+        db.session.add(_make_mysql_cluster_instance(cluster_id=first.id, instance_id=mysql.id))
         db.session.commit()
 
         service = MySQLClusterManagementService()
@@ -103,12 +163,12 @@ def test_mysql_instance_options_include_bound_cluster_name() -> None:
 
     with app.app_context():
         _create_schema()
-        bound = Instance(name="mysql-bound", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
-        unbound = Instance(name="mysql-free", db_type=DatabaseType.MYSQL, host="127.0.0.2", port=3306)
-        cluster = MySQLCluster(name="mysql-cluster-a")
+        bound = _make_instance(name="mysql-bound", db_type=DatabaseType.MYSQL, host="127.0.0.1", port=3306)
+        unbound = _make_instance(name="mysql-free", db_type=DatabaseType.MYSQL, host="127.0.0.2", port=3306)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a")
         db.session.add_all([bound, unbound, cluster])
         db.session.flush()
-        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=bound.id))
+        db.session.add(_make_mysql_cluster_instance(cluster_id=cluster.id, instance_id=bound.id))
         db.session.commit()
 
         options = MySQLClusterManagementService().list_mysql_instance_options()
@@ -127,11 +187,11 @@ def test_mysql_topology_sync_prefers_show_replica_status() -> None:
 
     with app.app_context():
         _create_schema()
-        mysql = Instance(name="mysql-replica", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
-        cluster = MySQLCluster(name="mysql-cluster-a")
+        mysql = _make_instance(name="mysql-replica", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a")
         db.session.add_all([mysql, cluster])
         db.session.flush()
-        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=mysql.id))
+        db.session.add(_make_mysql_cluster_instance(cluster_id=cluster.id, instance_id=mysql.id))
         db.session.commit()
 
         connection = _FakeConnection(
@@ -190,11 +250,11 @@ def test_mysql_topology_sync_falls_back_to_show_slave_status() -> None:
 
     with app.app_context():
         _create_schema()
-        mysql = Instance(name="mysql-57", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
-        cluster = MySQLCluster(name="mysql-cluster-a")
+        mysql = _make_instance(name="mysql-57", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a")
         db.session.add_all([mysql, cluster])
         db.session.flush()
-        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=mysql.id))
+        db.session.add(_make_mysql_cluster_instance(cluster_id=cluster.id, instance_id=mysql.id))
         db.session.commit()
 
         connection = _FakeConnection(
@@ -256,11 +316,11 @@ def test_mysql_topology_sync_marks_replication_status_permission_denied_as_faile
 
     with app.app_context():
         _create_schema()
-        mysql = Instance(name="mysql-57", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
-        cluster = MySQLCluster(name="mysql-cluster-a")
+        mysql = _make_instance(name="mysql-57", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a")
         db.session.add_all([mysql, cluster])
         db.session.flush()
-        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=mysql.id))
+        db.session.add(_make_mysql_cluster_instance(cluster_id=cluster.id, instance_id=mysql.id))
         db.session.commit()
 
         connection = _FakeConnection(
@@ -290,11 +350,11 @@ def test_mysql_topology_sync_marks_non_replica_read_write_as_primary() -> None:
 
     with app.app_context():
         _create_schema()
-        mysql = Instance(name="mysql-primary", db_type=DatabaseType.MYSQL, host="10.0.0.1", port=3306)
-        cluster = MySQLCluster(name="mysql-cluster-a")
+        mysql = _make_instance(name="mysql-primary", db_type=DatabaseType.MYSQL, host="10.0.0.1", port=3306)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a")
         db.session.add_all([mysql, cluster])
         db.session.flush()
-        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=mysql.id))
+        db.session.add(_make_mysql_cluster_instance(cluster_id=cluster.id, instance_id=mysql.id))
         db.session.commit()
 
         connection = _FakeConnection(
@@ -324,10 +384,10 @@ def test_mysql_cluster_summary_reports_healthy_replica_counts_and_max_lag() -> N
     with app.app_context():
         _create_schema()
         checked_at = time_utils.now()
-        primary = Instance(name="mysql-primary", db_type=DatabaseType.MYSQL, host="10.0.0.1", port=3306)
-        replica_fast = Instance(name="mysql-replica-fast", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
-        replica_slow = Instance(name="mysql-replica-slow", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
-        cluster = MySQLCluster(
+        primary = _make_instance(name="mysql-primary", db_type=DatabaseType.MYSQL, host="10.0.0.1", port=3306)
+        replica_fast = _make_instance(name="mysql-replica-fast", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
+        replica_slow = _make_instance(name="mysql-replica-slow", db_type=DatabaseType.MYSQL, host="10.0.0.3", port=3306)
+        cluster = _make_mysql_cluster(
             name="mysql-cluster-summary",
             last_topology_sync_at=checked_at,
             last_topology_sync_status="completed",
@@ -336,14 +396,14 @@ def test_mysql_cluster_summary_reports_healthy_replica_counts_and_max_lag() -> N
         db.session.flush()
         db.session.add_all(
             [
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=primary.id,
                     replication_role="primary",
                     replication_status="healthy",
                     last_checked_at=checked_at,
                 ),
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=replica_fast.id,
                     replication_role="replica",
@@ -351,7 +411,7 @@ def test_mysql_cluster_summary_reports_healthy_replica_counts_and_max_lag() -> N
                     seconds_behind_source=0,
                     last_checked_at=checked_at,
                 ),
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=replica_slow.id,
                     replication_role="replica",
@@ -382,10 +442,10 @@ def test_mysql_cluster_summary_counts_unhealthy_failed_and_unknown_instances() -
         _create_schema()
         checked_at = time_utils.now()
         instances = [
-            Instance(name=f"mysql-{index}", db_type=DatabaseType.MYSQL, host=f"10.0.1.{index}", port=3306)
+            _make_instance(name=f"mysql-{index}", db_type=DatabaseType.MYSQL, host=f"10.0.1.{index}", port=3306)
             for index in range(1, 5)
         ]
-        cluster = MySQLCluster(
+        cluster = _make_mysql_cluster(
             name="mysql-cluster-abnormal",
             last_topology_sync_at=checked_at,
             last_topology_sync_status="completed",
@@ -394,14 +454,14 @@ def test_mysql_cluster_summary_counts_unhealthy_failed_and_unknown_instances() -
         db.session.flush()
         db.session.add_all(
             [
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=instances[0].id,
                     replication_role="primary",
                     replication_status="healthy",
                     last_checked_at=checked_at,
                 ),
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=instances[1].id,
                     replication_role="replica",
@@ -409,14 +469,14 @@ def test_mysql_cluster_summary_counts_unhealthy_failed_and_unknown_instances() -
                     seconds_behind_source=8,
                     last_checked_at=checked_at,
                 ),
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=instances[2].id,
                     replication_role="replica",
                     replication_status="failed",
                     last_checked_at=checked_at,
                 ),
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=cluster.id,
                     instance_id=instances[3].id,
                     replication_role="unknown",
@@ -445,31 +505,31 @@ def test_mysql_cluster_summary_distinguishes_no_replica_from_unknown_lag() -> No
     with app.app_context():
         _create_schema()
         checked_at = time_utils.now()
-        primary = Instance(name="mysql-primary-only", db_type=DatabaseType.MYSQL, host="10.0.2.1", port=3306)
-        replica = Instance(name="mysql-replica-unknown-lag", db_type=DatabaseType.MYSQL, host="10.0.2.2", port=3306)
-        no_replica_cluster = MySQLCluster(
+        primary = _make_instance(name="mysql-primary-only", db_type=DatabaseType.MYSQL, host="10.0.2.1", port=3306)
+        replica = _make_instance(name="mysql-replica-unknown-lag", db_type=DatabaseType.MYSQL, host="10.0.2.2", port=3306)
+        no_replica_cluster = _make_mysql_cluster(
             name="mysql-no-replica",
             last_topology_sync_at=checked_at,
             last_topology_sync_status="completed",
         )
-        unknown_lag_cluster = MySQLCluster(
+        unknown_lag_cluster = _make_mysql_cluster(
             name="mysql-unknown-lag",
             last_topology_sync_at=checked_at,
             last_topology_sync_status="completed",
         )
-        never_checked_cluster = MySQLCluster(name="mysql-never-checked")
+        never_checked_cluster = _make_mysql_cluster(name="mysql-never-checked")
         db.session.add_all([primary, replica, no_replica_cluster, unknown_lag_cluster, never_checked_cluster])
         db.session.flush()
         db.session.add_all(
             [
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=no_replica_cluster.id,
                     instance_id=primary.id,
                     replication_role="primary",
                     replication_status="healthy",
                     last_checked_at=checked_at,
                 ),
-                MySQLClusterInstance(
+                _make_mysql_cluster_instance(
                     cluster_id=unknown_lag_cluster.id,
                     instance_id=replica.id,
                     replication_role="replica",
@@ -501,11 +561,11 @@ def test_mysql_cluster_detail_returns_replication_diagnostic_fields_after_sync()
 
     with app.app_context():
         _create_schema()
-        mysql = Instance(name="mysql-replica", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
-        cluster = MySQLCluster(name="mysql-cluster-detail")
+        mysql = _make_instance(name="mysql-replica", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
+        cluster = _make_mysql_cluster(name="mysql-cluster-detail")
         db.session.add_all([mysql, cluster])
         db.session.flush()
-        db.session.add(MySQLClusterInstance(cluster_id=cluster.id, instance_id=mysql.id))
+        db.session.add(_make_mysql_cluster_instance(cluster_id=cluster.id, instance_id=mysql.id))
         db.session.commit()
 
         connection = _FakeConnection(

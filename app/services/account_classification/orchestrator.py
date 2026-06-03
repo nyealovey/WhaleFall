@@ -77,6 +77,7 @@ class AccountClassificationService:
         Args:
             instance_id: 限定的实例 ID,None 时表示全量处理.
             created_by: 触发任务的用户 ID.
+            account_scope: 限定的账户归属范围,None 时沿用实例或全量范围.
 
         Returns:
             dict[str, Any]: 包含 success、message 及统计结果的字典.

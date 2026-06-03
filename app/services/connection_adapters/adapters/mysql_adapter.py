@@ -190,7 +190,7 @@ class MySQLConnection(DatabaseConnection):
             raise ConnectionAdapterError(msg)
 
         conn = cast(DBAPIConnection, self.connection)
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = cast(DBAPICursor, conn.cursor(pymysql.cursors.DictCursor))
         try:
             bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
             if isinstance(params, Mapping):
@@ -200,7 +200,8 @@ class MySQLConnection(DatabaseConnection):
             else:
                 bound_params = tuple(params)
             cursor.execute(query, bound_params)
-            return [dict(row) for row in cursor.fetchall()]
+            rows = cast("Sequence[Mapping[str, JsonValue]]", cursor.fetchall())
+            return [dict(row) for row in rows]
         except MYSQL_DRIVER_EXCEPTIONS as exc:
             self.db_logger.exception(
                 "MySQL查询失败",

@@ -17,13 +17,13 @@ from app.api.v1.restx_models.accounts import (
     ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS,
     ACCOUNT_STATISTICS_FIELDS,
 )
-from app.core.types.account_scope import parse_account_scope
 from app.api.v1.restx_models.instances import (
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
 )
 from app.core.exceptions import ValidationError
+from app.core.types.account_scope import parse_account_scope
 from app.core.types.accounts_ledgers import AccountFilters
 from app.schemas.accounts_query import AccountsFiltersQuery, AccountsLedgersListQuery
 from app.schemas.validation import validate_or_raise

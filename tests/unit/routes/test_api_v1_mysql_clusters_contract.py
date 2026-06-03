@@ -33,6 +33,43 @@ def _csrf(client) -> str:
     return token
 
 
+def _make_instance(*, name: str, db_type: str, host: str, port: int) -> Instance:
+    instance = Instance()
+    instance.name = name
+    instance.db_type = db_type
+    instance.host = host
+    instance.port = port
+    return instance
+
+
+def _make_mysql_cluster(*, name: str, description: str = "") -> MySQLCluster:
+    cluster = MySQLCluster()
+    cluster.name = name
+    cluster.description = description
+    return cluster
+
+
+def _make_mysql_cluster_instance(
+    *,
+    cluster_id: int,
+    instance_id: int,
+    replication_role: str,
+    replication_status: str,
+    seconds_behind_source: int | None = None,
+    read_only: bool | None = None,
+    super_read_only: bool | None = None,
+) -> MySQLClusterInstance:
+    binding = MySQLClusterInstance()
+    binding.cluster_id = cluster_id
+    binding.instance_id = instance_id
+    binding.replication_role = replication_role
+    binding.replication_status = replication_status
+    binding.seconds_behind_source = seconds_behind_source
+    binding.read_only = read_only
+    binding.super_read_only = super_read_only
+    return binding
+
+
 @pytest.mark.unit
 def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() -> None:
     app = create_app(init_scheduler_on_start=False)
@@ -41,12 +78,12 @@ def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() ->
     with app.app_context():
         _create_schema()
         user = User(username="viewer", password="TestPass1", role="user")
-        instance = Instance(name="mysql-1", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
-        cluster = MySQLCluster(name="mysql-cluster-a", description="")
+        instance = _make_instance(name="mysql-1", db_type=DatabaseType.MYSQL, host="10.0.0.2", port=3306)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a", description="")
         db.session.add_all([user, instance, cluster])
         db.session.flush()
         db.session.add(
-            MySQLClusterInstance(
+            _make_mysql_cluster_instance(
                 cluster_id=cluster.id,
                 instance_id=instance.id,
                 replication_role="replica",
@@ -90,7 +127,7 @@ def test_api_v1_mysql_clusters_sync_topology_envelope_contract(monkeypatch) -> N
     with app.app_context():
         _create_schema()
         user = User(username="admin", password="TestPass1", role="admin")
-        cluster = MySQLCluster(name="mysql-cluster-a", description="")
+        cluster = _make_mysql_cluster(name="mysql-cluster-a", description="")
         db.session.add_all([user, cluster])
         db.session.commit()
 

@@ -2,6 +2,8 @@ import pytest
 
 from app import create_app, db
 from app.core.constants import DatabaseType
+from app.core.types import RemoteAccount
+from typing import cast
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup, SQLServerCluster
@@ -54,18 +56,21 @@ def test_inventory_sync_reuses_ag_account_created_by_other_cluster_instance() ->
         db.session.add(ag)
         db.session.commit()
 
-        remote_account = {
-            "username": "sa",
-            "db_type": DatabaseType.SQLSERVER,
-            "is_active": True,
-            "is_superuser": True,
-            "is_locked": False,
-            "permissions": {"type_specific": {}},
-            "owner_type": "sqlserver_ag",
-            "owner_id": ag.id,
-            "cluster_id": cluster.id,
-            "availability_group_id": ag.id,
-        }
+        remote_account = cast(
+            RemoteAccount,
+            {
+                "username": "sa",
+                "db_type": DatabaseType.SQLSERVER,
+                "is_active": True,
+                "is_superuser": True,
+                "is_locked": False,
+                "permissions": {"type_specific": {}},
+                "owner_type": "sqlserver_ag",
+                "owner_id": ag.id,
+                "cluster_id": cluster.id,
+                "availability_group_id": ag.id,
+            },
+        )
 
         first_summary, first_active = AccountInventoryManager().synchronize(instance_1, [remote_account])
         second_summary, second_active = AccountInventoryManager().synchronize(instance_2, [remote_account])

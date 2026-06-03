@@ -1,4 +1,4 @@
-"""add account classification owner scope
+"""add account classification owner scope.
 
 Revision ID: 20260521130000
 Revises: 20260520110000
@@ -7,8 +7,8 @@ Create Date: 2026-05-21 13:00:00.000000
 
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "20260521130000"
 down_revision = "20260520110000"

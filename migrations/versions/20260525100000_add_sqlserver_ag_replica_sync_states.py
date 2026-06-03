@@ -1,4 +1,4 @@
-"""add sqlserver ag replica sync states
+"""add sqlserver ag replica sync states.
 
 Revision ID: 20260525100000
 Revises: 20260525080000
@@ -7,8 +7,8 @@ Create Date: 2026-05-25 10:00:00.000000
 
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "20260525100000"
 down_revision = "20260525080000"

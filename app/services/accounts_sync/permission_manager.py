@@ -731,6 +731,7 @@ class AccountPermissionManager:
 
         Args:
             instance: 数据库实例.
+            account: 实例账户记录,可为空以回落到实例归属.
             username: 变更的账户名.
             change_type: 变更类型.
             diff_payload: 差异结果.

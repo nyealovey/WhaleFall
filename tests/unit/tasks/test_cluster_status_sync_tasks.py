@@ -89,6 +89,12 @@ class _ListFailingClusterStatusSyncService:
         raise AssertionError("should not sync when listing failed")
 
 
+def _make_mysql_cluster(*, name: str) -> MySQLCluster:
+    cluster = MySQLCluster()
+    cluster.name = name
+    return cluster
+
+
 @pytest.mark.unit
 def test_sync_cluster_status_writes_items_and_completed_with_errors(monkeypatch) -> None:
     from app.tasks import cluster_status_sync_tasks
@@ -99,7 +105,7 @@ def test_sync_cluster_status_writes_items_and_completed_with_errors(monkeypatch)
 
     with app.app_context():
         _create_schema()
-        mysql = MySQLCluster(name="mysql-a")
+        mysql = _make_mysql_cluster(name="mysql-a")
         sqlserver = SQLServerCluster(name="sql-a", domain_name="wz.dc", description="")
         db.session.add_all([mysql, sqlserver])
         db.session.commit()

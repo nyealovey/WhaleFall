@@ -1,7 +1,9 @@
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 
+from app.models.instance import Instance
 from app.services.connection_adapters.adapters import sqlserver_adapter
 from app.services.connection_adapters.adapters.sqlserver_adapter import SQLServerConnection
 
@@ -15,7 +17,7 @@ def test_sqlserver_connection_failure_log_keeps_database_target_host(monkeypatch
         database_name="master",
         credential=SimpleNamespace(username="jt_mssqlinfo_srv", get_plain_password=lambda: "secret"),
     )
-    connection = SQLServerConnection(instance)
+    connection = SQLServerConnection(cast(Instance, instance))
     logged: dict[str, object] = {}
 
     class _FakeLogger:
@@ -27,7 +29,7 @@ def test_sqlserver_connection_failure_log_keeps_database_target_host(monkeypatch
         _ = (args, kwargs)
         raise RuntimeError("18456 登录失败")
 
-    connection.db_logger = _FakeLogger()
+    connection.db_logger = cast(Any, _FakeLogger())
     monkeypatch.setattr(sqlserver_adapter.pymssql, "connect", _raise_connect_error)
 
     assert connection.connect() is False

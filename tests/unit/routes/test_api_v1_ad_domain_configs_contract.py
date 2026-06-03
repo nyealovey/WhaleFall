@@ -7,6 +7,25 @@ from app.models.user import User
 from app.utils.time_utils import time_utils
 
 
+def _make_task_run_item(
+    *,
+    run_id: str,
+    item_type: str,
+    item_key: str,
+    item_name: str,
+    status: str,
+    metrics_json: dict[str, object],
+) -> TaskRunItem:
+    item = TaskRunItem()
+    item.run_id = run_id
+    item.item_type = item_type
+    item.item_key = item_key
+    item.item_name = item_name
+    item.status = status
+    item.metrics_json = metrics_json
+    return item
+
+
 @pytest.mark.unit
 def test_api_v1_ad_domain_configs_create_and_list_contract() -> None:
     app = create_app(init_scheduler_on_start=False)
@@ -129,7 +148,7 @@ def test_api_v1_ad_domain_configs_list_includes_last_sync_metrics() -> None:
             db.select(config.c.id).where(config.c.name == "corp.example.com")
         ).scalar_one()
         db.session.add(
-            TaskRunItem(
+            _make_task_run_item(
                 run_id="run-ad-1",
                 item_type="ad_domain",
                 item_key=str(created_config_id),

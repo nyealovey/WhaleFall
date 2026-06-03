@@ -30,6 +30,13 @@ from app.utils.query_filter_utils import (
 from .options_cache import OptionsCache
 
 
+def _cached_int(value: object, default: int = 0) -> int:
+    """将缓存中的数值字段收窄为 int."""
+    if isinstance(value, (int, str)):
+        return int(value)
+    return default
+
+
 class FilterOptionsService:
     """筛选器选项读取服务."""
 
@@ -139,7 +146,7 @@ class FilterOptionsService:
         if cached is not None:
             items = [
                 CommonInstanceOptionItem(
-                    id=int(item.get("id", 0)),
+                    id=_cached_int(item.get("id", 0)),
                     name=cast(str, item.get("name", "")),
                     db_type=cast(str, item.get("db_type", "")),
                     display_name=cast(str, item.get("display_name", "")),

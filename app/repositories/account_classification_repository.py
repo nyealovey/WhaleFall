@@ -69,6 +69,7 @@ class ClassificationRepository:
 
         Args:
             instance_id: 可选的实例 ID,用于筛选特定实例的账户.
+            account_scope: 可选的账户归属范围,用于筛选物理实例或 AG 范围账户.
 
         Returns:
             符合条件的账户权限列表(仅活跃实例和账户).

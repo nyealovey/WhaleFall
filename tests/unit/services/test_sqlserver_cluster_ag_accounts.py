@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 
 from app import create_app, db
@@ -536,8 +538,8 @@ def test_sqlserver_ag_sync_uses_cluster_domain_listener_address(app, monkeypatch
         monkeypatch.setattr(ag_sync_module, "get_account_adapter", lambda db_type: _FakeAdapter())
 
         result = SQLServerAgAccountsSyncService(
-            inventory_manager=_FakeInventoryManager(),
-            permission_manager=_FakePermissionManager(),
+            inventory_manager=cast(Any, _FakeInventoryManager()),
+            permission_manager=cast(Any, _FakePermissionManager()),
         ).sync_for_instance(instance, session_id="test")
 
         assert result["status"] == "completed"
@@ -596,7 +598,9 @@ def test_sqlserver_ag_sync_failure_reports_real_connection_error(app, monkeypatc
 
         assert result["status"] == "failed"
         assert result["items"][0]["error"] == "AG 监听器连接失败: AGDB08.wz.dc:1433 OperationalError: 18456 用户 'ag_user' 登录失败"
-        assert SQLServerAvailabilityGroup.query.get(ag.id).last_error == result["items"][0]["error"]
+        refreshed_ag = SQLServerAvailabilityGroup.query.get(ag.id)
+        assert refreshed_ag is not None
+        assert refreshed_ag.last_error == result["items"][0]["error"]
 
 
 @pytest.mark.unit
