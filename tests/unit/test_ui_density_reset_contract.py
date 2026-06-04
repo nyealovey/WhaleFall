@@ -63,6 +63,52 @@ def test_sample_pages_opt_into_dense_without_changing_data_hooks() -> None:
     assert "accounts-grid" in accounts
 
 
+def test_dense_console_removes_intro_header_copy() -> None:
+    base_template = _read_text("app/templates/base.html")
+    page_header_macro = _read_text("app/templates/components/ui/page_header.html")
+    global_css = _read_text("app/static/css/global.css")
+
+    assert "WhaleFall Operations" not in base_template
+    assert "数据库资源与同步管理平台" not in base_template
+    assert "app-topbar__identity" not in base_template
+    assert "page-header__content" not in page_header_macro
+    assert "page-header__eyebrow" not in page_header_macro
+    assert "<h1>{{ title }}</h1>" not in page_header_macro
+    assert "page-header__actions" in page_header_macro
+    assert "app-topbar__identity" not in global_css
+    assert "app-topbar__eyebrow" not in global_css
+    assert "app-topbar__title" not in global_css
+    assert "page-header__content" not in global_css
+    assert "page-header__icon" not in global_css
+    assert "page-header__eyebrow" not in global_css
+    assert "page-header__title" not in global_css
+
+
+def test_dashboard_risk_alert_board_has_gap_after_metrics() -> None:
+    dashboard_css = _read_text("app/static/css/pages/dashboard/overview.css")
+
+    assert ".dashboard-metrics + .risk-alert-board" in dashboard_css
+    assert "margin-top: var(--page-spacing-dense);" in dashboard_css
+
+
+def test_sidebar_navigation_preserves_active_item_visibility_after_reload() -> None:
+    base_template = _read_text("app/templates/base.html")
+    sidebar_scroll_js = _read_text("app/static/js/modules/ui/sidebar-scroll.js")
+
+    assert 'data-sidebar-scroll-root' in base_template
+    assert "js/modules/ui/sidebar-scroll.js" in base_template
+    assert base_template.index("js/modules/ui/sidebar-scroll.js") < base_template.index(
+        "js/bootstrap/page-loader.js"
+    )
+
+    assert "wf.sidebar.scrollTop" in sidebar_scroll_js
+    assert "sessionStorage" in sidebar_scroll_js
+    assert ".app-sidebar__link.is-active" in sidebar_scroll_js
+    assert "getBoundingClientRect" in sidebar_scroll_js
+    assert ".scrollTop" in sidebar_scroll_js
+    assert "scrollIntoView" not in sidebar_scroll_js
+
+
 def test_risk_center_uses_data_weighted_bars_without_inline_width() -> None:
     template = _read_text("app/templates/risk_center/index.html")
     script = _read_text("app/static/js/modules/views/risk-center/index.js")

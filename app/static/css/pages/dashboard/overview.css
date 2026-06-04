@@ -9,6 +9,10 @@
     flex: 1 1 auto;
 }
 
+.dashboard-metrics + .risk-alert-board {
+    margin-top: var(--page-spacing-dense);
+}
+
 .dashboard-layout {
     align-items: stretch;
 }

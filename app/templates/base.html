@@ -64,7 +64,7 @@
     <a class="skip-link" href="#main-content">跳到主要内容</a>
 
     <div class="app-layout">
-        <aside class="app-sidebar" aria-label="主导航">
+        <aside class="app-sidebar" data-sidebar-scroll-root aria-label="主导航">
             <a class="app-sidebar__brand" href="{{ url_for('main.index') }}">
                 <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" width="40" height="40">
                 <span class="app-sidebar__brand-copy">
@@ -205,10 +205,6 @@
 
         <div class="app-workspace">
             <header class="app-topbar">
-                <div class="app-topbar__identity">
-                    <span class="app-topbar__eyebrow">WhaleFall Operations</span>
-                    <span class="app-topbar__title">数据库资源与同步管理平台</span>
-                </div>
                 <div class="app-topbar__actions">
                     {% if current_user.is_authenticated %}
                     <button type="button" class="app-topbar__button" data-action="open-change-password">
@@ -322,6 +318,7 @@
     <script src="{{ url_for('static', filename='js/modules/ui/async-action-feedback.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/ui/button-loading.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/ui/danger-confirm.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/sidebar-scroll.js') }}"></script>
 
 	    <!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
 	    <script src="{{ url_for('static', filename='js/modules/services/service_utils.js') }}"></script>
