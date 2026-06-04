@@ -13,9 +13,9 @@
 {% endblock %}
 
 {% block content_outer %}
-<div class="capacity-page capacity-instances">
+<div class="capacity-page capacity-instances console-stats-page">
 {% call page_header('fas fa-chart-pie', '容量统计(实例)', '按实例维度统计数据库容量大小分析', eyebrow='Instance Capacity') %}
-<div class="btn-group capacity-actions">
+<div class="btn-group capacity-actions console-command-deck">
     <button class="btn btn-outline-secondary" id="refreshData">
         <i class="fas fa-sync-alt me-1"></i>刷新数据
     </button>
@@ -29,6 +29,7 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
     <!-- 统计概览 -->
+    <div class="console-context-strip">
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 capacity-stats mb-4">
         <div class="col">
             {% call metric_card('在线实例数', value_id='totalInstances', icon_class='fas fa-server') %}
@@ -58,8 +59,9 @@
             {{ metric_card('最大容量', value_id='maxSize', icon_class='fas fa-expand-arrows-alt') }}
         </div>
     </div>
+    </div>
 
-    <div class="page-section page-section--stacked filter-card-wrapper mb-4">
+    <div class="page-section page-section--stacked filter-card-wrapper console-filter-shell mb-4">
         {% call filter_card(form_id=filter_scope, scope=filter_scope, action=url_for('capacity_instances.list_instances'), auto_register=False) %}
             {{ db_type_filter(database_type_options, db_type, width_preset='lg', multiple=True) }}
             {{ instance_filter(filter_scope, instance_options, instance, width_preset='xl', disabled=(not db_type), multiple=True) }}
@@ -70,7 +72,7 @@
     <!-- 图表区域 -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
+            <div class="card console-analysis-shell">
                 <div class="card-header">
                     <div class="row align-items-center">
                         <div class="col-3">
@@ -140,7 +142,7 @@
     <!-- 容量变化趋势图 -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
+            <div class="card console-analysis-shell">
                 <div class="card-header">
                     <div class="row align-items-center">
                         <div class="col-3">
@@ -210,7 +212,7 @@
     <!-- 容量变化趋势图（百分比） -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
+            <div class="card console-analysis-shell">
                 <div class="card-header">
                     <div class="row align-items-center">
                         <div class="col-3">

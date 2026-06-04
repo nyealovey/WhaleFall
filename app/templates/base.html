@@ -5,6 +5,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title id="page-title">{% block title %}{{ app_name }} - 数据同步管理平台{% endblock %}</title>
 
@@ -59,212 +60,208 @@
 </head>
 
 <body class="app-shell" data-page="{{ page_id|default('') }}">
-    <!-- 导航栏 -->
-    <nav class="app-nav navbar navbar-expand-lg navbar-light">
-        <div class="layout-shell layout-shell--wide">
-            <div class="layout-shell-inner">
-                <div class="app-nav__frame navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
-                    <a class="app-nav__brand navbar-brand" href="{{ url_for('main.index') }}">
-                        <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2">
-                        <span id="app-name" class="app-nav__brand-text">{{ app_name }}</span>
+    {% set active_endpoint = request.endpoint|default('', true) %}
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+    <div class="app-layout">
+        <aside class="app-sidebar" aria-label="主导航">
+            <a class="app-sidebar__brand" href="{{ url_for('main.index') }}">
+                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" width="40" height="40">
+                <span class="app-sidebar__brand-copy">
+                    <span id="app-name" class="app-sidebar__brand-name">{{ app_name }}</span>
+                    <span class="app-sidebar__brand-meta">OPS CONSOLE</span>
+                </span>
+            </a>
+
+            <nav class="app-sidebar__nav" aria-label="运维控制台导航">
+                {% if current_user.is_authenticated %}
+                <section class="app-sidebar__section" aria-labelledby="sidebar-section-overview">
+                    <h2 class="app-sidebar__section-label" id="sidebar-section-overview">态势总览</h2>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'dashboard.index' else '' }}"
+                       href="{{ url_for('dashboard.index') }}">
+                        <i class="fas fa-gauge-high" aria-hidden="true"></i><span>仪表盘</span>
                     </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'risk_center.index' else '' }}"
+                       href="{{ url_for('risk_center.index') }}">
+                        <i class="fas fa-heart-pulse" aria-hidden="true"></i><span>风险中心</span>
+                    </a>
+                </section>
 
-            <button class="navbar-toggler app-nav__toggle" type="button" data-bs-toggle="collapse"
-                data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="切换导航">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+                <section class="app-sidebar__section" aria-labelledby="sidebar-section-resource">
+                    <h2 class="app-sidebar__section-label" id="sidebar-section-resource">资源管理</h2>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint in ['instances.index', 'instances_detail.detail'] else '' }}"
+                       href="{{ url_for('instances.index') }}">
+                        <i class="fas fa-server" aria-hidden="true"></i><span>实例管理</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'cluster.index' else '' }}"
+                       href="{{ url_for('cluster.index') }}">
+                        <i class="fas fa-layer-group" aria-hidden="true"></i><span>群集管理</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'databases_ledgers.list_databases' else '' }}"
+                       href="{{ url_for('databases_ledgers.list_databases') }}">
+                        <i class="fas fa-database" aria-hidden="true"></i><span>数据库台账</span>
+                    </a>
+                </section>
 
-            <div class="app-nav__menu collapse navbar-collapse justify-content-center" id="navbarNav">
-                <div class="app-nav__menu-group app-nav__menu-group--primary">
-                <ul class="navbar-nav app-nav__list">
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard.index') }}">
-                            <i class="fas fa-tachometer-alt me-1"></i>仪表盘
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('risk_center.index') }}">
-                            <i class="fas fa-heart-pulse me-1"></i>风险中心
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="databaseDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-database me-1"></i>数据管理
-                        </a>
-                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="databaseDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('instances.index') }}">
-                                    <i class="fas fa-server me-2"></i>实例管理
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('cluster.index') }}">
-                                    <i class="fas fa-layer-group me-2"></i><span>群集管理</span>
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('accounts_ledgers.list_accounts') }}">
-                                    <i class="fas fa-users me-2"></i>账户台账
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('databases_ledgers.list_databases') }}">
-                                    <i class="fas fa-database me-2"></i>数据库台账
-                                </a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="statisticsDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-chart-line me-1"></i>数据统计
-                        </a>
-                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="statisticsDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('capacity_instances.list_instances') }}">
-                                    <i class="fas fa-chart-pie me-2"></i>容量统计(实例)
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('capacity_databases.list_databases') }}">
-                                    <i class="fas fa-database me-2"></i>容量统计(数据库)
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('accounts_classification_statistics.classification_statistics') }}">
-                                    <i class="fas fa-tags me-2"></i>账户分类统计
-                                </a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="historyDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-history me-1"></i>历史记录
-                        </a>
-                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="historyDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('history_logs.logs_dashboard') }}">
-                                    <i class="fas fa-chart-line me-2"></i>日志中心
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('history_sessions.index') }}">
-                                    <i class="fas fa-tasks me-2"></i>会话中心
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('history_account_change_logs.index') }}">
-                                    <i class="fas fa-history me-2"></i>账户变更历史
-                                </a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle nav-link--admin-center" href="#" id="adminDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{% endif %}
-                        </a>
-                        <ul class="app-nav__dropdown dropdown-menu" aria-labelledby="adminDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('users.index') }}">
-                                    <i class="fas fa-users me-2"></i>用户管理{% if current_user.role != 'admin' %}（只读）{%
-                                    endif %}
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('scheduler.index') }}">
-                                    <i class="fas fa-clock me-2"></i>定时任务
-                                </a></li>
-                            {% if current_user.role == 'admin' %}
-                            <li><a class="dropdown-item" href="{{ url_for('system_settings.index') }}">
-                                    <i class="fas fa-sliders me-2"></i>系统设置
-                                </a></li>
-                            {% endif %}
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li><a class="dropdown-item" href="{{ url_for('credentials.index') }}">
-                                    <i class="fas fa-key me-2"></i>凭据管理
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('tags.index') }}">
-                                    <i class="fas fa-tag me-2"></i>标签管理
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('accounts_classifications.index') }}">
-                                    <i class="fas fa-tags me-2"></i>账户分类管理
-                                </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('partition.partitions_page') }}">
-                                    <i class="fas fa-layer-group me-2"></i>分区管理
-                                </a></li>
-                        </ul>
-                    </li>
+                <section class="app-sidebar__section" aria-labelledby="sidebar-section-account">
+                    <h2 class="app-sidebar__section-label" id="sidebar-section-account">账户与权限</h2>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'accounts_ledgers.list_accounts' else '' }}"
+                       href="{{ url_for('accounts_ledgers.list_accounts') }}">
+                        <i class="fas fa-users" aria-hidden="true"></i><span>账户台账</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'accounts_classifications.index' else '' }}"
+                       href="{{ url_for('accounts_classifications.index') }}">
+                        <i class="fas fa-tags" aria-hidden="true"></i><span>账户分类</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'accounts_classification_statistics.classification_statistics' else '' }}"
+                       href="{{ url_for('accounts_classification_statistics.classification_statistics') }}">
+                        <i class="fas fa-chart-simple" aria-hidden="true"></i><span>分类统计</span>
+                    </a>
+                </section>
+
+                <section class="app-sidebar__section" aria-labelledby="sidebar-section-insight">
+                    <h2 class="app-sidebar__section-label" id="sidebar-section-insight">容量与审计</h2>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'capacity_instances.list_instances' else '' }}"
+                       href="{{ url_for('capacity_instances.list_instances') }}">
+                        <i class="fas fa-chart-pie" aria-hidden="true"></i><span>实例容量</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'capacity_databases.list_databases' else '' }}"
+                       href="{{ url_for('capacity_databases.list_databases') }}">
+                        <i class="fas fa-chart-line" aria-hidden="true"></i><span>数据库容量</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint in ['instances.statistics', 'accounts_statistics.statistics', 'databases_statistics.statistics'] else '' }}"
+                       href="{{ url_for('instances.statistics') }}">
+                        <i class="fas fa-chart-column" aria-hidden="true"></i><span>统计洞察</span>
+                    </a>
+                </section>
+
+                <section class="app-sidebar__section" aria-labelledby="sidebar-section-automation">
+                    <h2 class="app-sidebar__section-label" id="sidebar-section-automation">自动化</h2>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'scheduler.index' else '' }}"
+                       href="{{ url_for('scheduler.index') }}">
+                        <i class="fas fa-clock" aria-hidden="true"></i><span>定时任务</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'history_sessions.index' else '' }}"
+                       href="{{ url_for('history_sessions.index') }}">
+                        <i class="fas fa-list-check" aria-hidden="true"></i><span>会话中心</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'history_logs.logs_dashboard' else '' }}"
+                       href="{{ url_for('history_logs.logs_dashboard') }}">
+                        <i class="fas fa-file-lines" aria-hidden="true"></i><span>日志中心</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'history_account_change_logs.index' else '' }}"
+                       href="{{ url_for('history_account_change_logs.index') }}">
+                        <i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>变更历史</span>
+                    </a>
+                </section>
+
+                <section class="app-sidebar__section" aria-labelledby="sidebar-section-system">
+                    <h2 class="app-sidebar__section-label" id="sidebar-section-system">
+                        {% if current_user.role == 'admin' %}系统管理{% else %}用户中心{% endif %}
+                    </h2>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'users.index' else '' }}"
+                       href="{{ url_for('users.index') }}">
+                        <i class="fas fa-user-gear" aria-hidden="true"></i>
+                        <span>用户管理{% if current_user.role != 'admin' %}（只读）{% endif %}</span>
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'system_settings.index' else '' }}"
+                       href="{{ url_for('system_settings.index') }}">
+                        <i class="fas fa-sliders" aria-hidden="true"></i><span>系统设置</span>
+                    </a>
                     {% endif %}
-                </ul>
-                </div>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'credentials.index' else '' }}"
+                       href="{{ url_for('credentials.index') }}">
+                        <i class="fas fa-key" aria-hidden="true"></i><span>凭据管理</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'tags.index' else '' }}"
+                       href="{{ url_for('tags.index') }}">
+                        <i class="fas fa-tag" aria-hidden="true"></i><span>标签管理</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'partition.partitions_page' else '' }}"
+                       href="{{ url_for('partition.partitions_page') }}">
+                        <i class="fas fa-boxes-stacked" aria-hidden="true"></i><span>分区管理</span>
+                    </a>
+                </section>
+                {% else %}
+                <section class="app-sidebar__section" aria-labelledby="sidebar-section-entry">
+                    <h2 class="app-sidebar__section-label" id="sidebar-section-entry">访问入口</h2>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'auth.login' else '' }}"
+                       href="{{ url_for('auth.login') }}">
+                        <i class="fas fa-right-to-bracket" aria-hidden="true"></i><span>登录</span>
+                    </a>
+                </section>
+                {% endif %}
+            </nav>
+        </aside>
 
-                <div class="app-nav__menu-group app-nav__menu-group--secondary">
-                <ul class="navbar-nav app-nav__list app-nav__list--secondary ms-auto">
+        <div class="app-workspace">
+            <header class="app-topbar">
+                <div class="app-topbar__identity">
+                    <span class="app-topbar__eyebrow">WhaleFall Operations</span>
+                    <span class="app-topbar__title">数据库资源与同步管理平台</span>
+                </div>
+                <div class="app-topbar__actions">
                     {% if current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
-                            data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i>{{ current_user.username }}
-                        </a>
-                        <ul class="app-nav__dropdown dropdown-menu">
-                            <li>
-                                <button type="button" class="dropdown-item" data-action="open-change-password">
-                                    <i class="fas fa-key me-2"></i>修改密码
-                                </button>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <form method="post" action="{{ url_for('auth.logout') }}" class="m-0">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="dropdown-item">
-                                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
+                    <button type="button" class="app-topbar__button" data-action="open-change-password">
+                        <i class="fas fa-key" aria-hidden="true"></i><span>修改密码</span>
+                    </button>
+                    <form method="post" action="{{ url_for('auth.logout') }}" class="app-topbar__logout">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="app-topbar__button">
+                            <i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i><span>退出</span>
+                        </button>
+                    </form>
+                    <span class="app-topbar__user" translate="no">
+                        <i class="fas fa-user" aria-hidden="true"></i>{{ current_user.username }}
+                    </span>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">
-                            <i class="fas fa-sign-in-alt me-1"></i>登录
-                        </a>
-                    </li>
+                    <a class="app-topbar__button" href="{{ url_for('auth.login') }}">
+                        <i class="fas fa-right-to-bracket" aria-hidden="true"></i><span>登录</span>
+                    </a>
                     {% endif %}
-                </ul>
                 </div>
-            </div>
-            </div>
-            </div>
-        </div>
-    </nav>
+            </header>
 
-    <!-- 主要内容 -->
-    <div class="app-main main-content" data-density="{{ page_density|default('regular') }}">
-        <div class="layout-shell">
-            <div class="layout-shell-inner">
-            <!-- 消息提示 -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
-                role="alert">
-                <i
-                    class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
-                {{ message }}
-                {{ btn_close('alert') }}
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
-        </div>
-        </div>
+            <main class="app-content" id="main-content" tabindex="-1">
+                <div class="main-content app-content__inner" data-density="{{ page_density|default('regular') }}">
+                    <div class="layout-shell">
+                        <div class="layout-shell-inner">
+                            {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                            {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                                role="alert">
+                                <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"
+                                   aria-hidden="true"></i>
+                                {{ message }}
+                                {{ btn_close('alert') }}
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
 
-        {% block content_outer %}
-        <div class="layout-shell">
-            <div class="layout-shell-inner">
-                {% block content %}{% endblock %}
-            </div>
+                    {% block content_outer %}
+                    <div class="layout-shell">
+                        <div class="layout-shell-inner">
+                            {% block content %}{% endblock %}
+                        </div>
+                    </div>
+                    {% endblock %}
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <p class="mb-0 app-footer__meta">
+                    &copy; {{ current_year }} <span id="footer-app-name">{{ app_name }}</span>
+                    {{ config.APP_VERSION or 'unknown' }} - 数据同步管理平台 |
+                    <a href="{{ url_for('main.about') }}" class="app-footer__link text-decoration-none">关于</a>
+                </p>
+            </footer>
         </div>
-        {% endblock %}
     </div>
-
-    <!-- 页脚 -->
-    <footer class="app-footer">
-        <div class="layout-shell">
-            <div class="layout-shell-inner">
-            <p class="mb-0 app-footer__meta">
-                &copy; {{ current_year }} <span id="footer-app-name">{{ app_name }}</span>
-                {{ config.APP_VERSION or 'unknown' }} - 数据同步管理平台 |
-                <a href="{{ url_for('main.about') }}" class="app-footer__link text-decoration-none">关于</a> |
-            </p>
-        </div>
-        </div>
-    </footer>
 
     {% include 'components/ui/danger_confirm_modal.html' %}
     {% if current_user.is_authenticated %}

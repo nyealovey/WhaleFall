@@ -15,7 +15,7 @@
 {% block content_outer %}
 {% set instance_desc = '管理数据库实例，包括增删改查和连接测试' if current_user.role == 'admin' else '查看数据库实例信息（只读模式）' %}
 {% call page_header('fas fa-database', '数据库实例管理', instance_desc, eyebrow='Instance Registry') %}
-<div class="btn-group">
+<div class="btn-group console-command-deck">
     <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-primary">
         <i class="fas fa-chart-bar me-2"></i>实例统计
     </a>
@@ -28,12 +28,13 @@
 {% endcall %}
 
 <div id="instances-page-root"
+     class="console-list-page"
      data-export-url="/api/v1/instances/exports"
      data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
      data-db-type-map='{{ database_type_map | tojson | safe }}'
      data-detail-base="{{ url_for('instances_detail.detail', instance_id=0)[:-1] }}">
 
-    <section class="page-section page-section--stacked">
+    <section class="page-section page-section--stacked console-filter-shell">
         <div class="layout-shell">
             <div class="layout-shell-inner">
                 {% call filter_card(form_id='instance-filter-form', action='#', auto_register=False, layout='nowrap-desktop') %}
@@ -49,7 +50,7 @@
         </div>
     </section>
 
-    <section class="page-section page-section--stacked">
+    <section class="page-section page-section--stacked console-grid-shell">
         <div class="layout-shell">
             <div class="layout-shell-inner">
                 <div class="card instances-card">

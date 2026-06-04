@@ -10,8 +10,9 @@
 {% endblock %}
 
 {% block content_outer %}
+<div class="console-workbench-page">
 {% call page_header('fas fa-tasks', '批量分配标签', '批量管理数据库实例的标签分配', eyebrow='Batch Tagging') %}
-<div class="btn-group">
+<div class="btn-group console-command-deck">
     <a href="{{ url_for('tags.index') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left me-2"></i>返回标签管理
     </a>
@@ -45,7 +46,7 @@
 </div>
 
 <!-- 选择区域 -->
-<div class="batch-layout-grid" id="batchLayoutGrid" data-mode="assign">
+<div class="batch-layout-grid console-workbench-grid" id="batchLayoutGrid" data-mode="assign">
     <!-- 实例列 -->
     <div class="batch-layout__column">
         <article class="batch-selection-card">
@@ -97,7 +98,7 @@
             <input type="hidden" id="selectedTagsInput" name="selected_tags" value="">
             <input type="hidden" id="batchModeField" name="mode" value="assign">
 
-            <article class="batch-summary-card summary-card-sticky" id="selectionSummary">
+            <article class="batch-summary-card summary-card-sticky console-rail-card" id="selectionSummary">
                 <header class="batch-summary-card__header">
                     <div>
                         <p class="batch-summary-card__eyebrow">操作概览</p>
@@ -153,6 +154,7 @@
         </div>
     </div>
 </section>
+</div>
 
 {% endblock %}
 

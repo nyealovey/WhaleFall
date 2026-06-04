@@ -14,7 +14,7 @@
 
 {% block content_outer %}
 {% call page_header('fas fa-users', '账户台账', '集中查看数据库账户与实例归属', eyebrow='Account Ledger') %}
-<div class="btn-group">
+<div class="btn-group console-command-deck">
     <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
         <i class="fas fa-chart-bar me-2"></i>账户统计
     </a>
@@ -25,11 +25,12 @@
 {% endcall %}
 
 <div id="accounts-page-root"
+     class="console-list-page"
      data-current-db-type="{{ current_db_type or 'all' }}"
      data-export-url="/api/v1/accounts/ledgers/exports"
      data-db-type-map='{{ database_type_map | tojson | safe }}'>
 
-    <section class="page-section page-section--stacked">
+    <section class="page-section page-section--stacked console-filter-shell">
         <div class="layout-shell">
             <div class="layout-shell-inner">
                 {% call filter_card(form_id='account-filter-form', action=url_for('accounts_ledgers.list_accounts'), auto_register=False) %}
@@ -42,7 +43,7 @@
         </div>
     </section>
 
-    <section class="page-section page-section--stacked">
+    <section class="page-section page-section--stacked console-grid-shell">
         <div class="layout-shell">
             <div class="layout-shell-inner">
                 <div class="btn-group flex-wrap" role="group">

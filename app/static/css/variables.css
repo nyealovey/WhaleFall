@@ -4,16 +4,16 @@
     color-scheme: light;
 
     /* Core neutrals */
-    --ink-950: #161d26;
-    --ink-900: #22303d;
-    --ink-800: #334252;
-    --ink-700: #49586a;
-    --ink-600: #6f7d8d;
-    --ink-500: #8a97a4;
-    --ink-400: #afb8c2;
-    --ink-300: #d0d6dc;
-    --ink-200: #e4e8ec;
-    --ink-100: #f2f4f6;
+    --ink-950: #17202a;
+    --ink-900: #24313d;
+    --ink-800: #33424f;
+    --ink-700: #4c5c69;
+    --ink-600: #6b7985;
+    --ink-500: #8995a0;
+    --ink-400: #aeb7bf;
+    --ink-300: #cfd6dc;
+    --ink-200: #e3e8ec;
+    --ink-100: #f3f5f7;
 
     /* Brand / signal */
     --signal-orange-700: #8f3e09;
@@ -28,26 +28,40 @@
     --signal-amber-500: #cb8a1f;
 
     /* Surfaces */
-    --surface-canvas: #eef1f3;
-    --surface-panel: rgba(255, 255, 255, 0.9);
-    --surface-panel-raised: #ffffff;
-    --surface-panel-strong: #f7f5f1;
-    --surface-panel-alt: #f1ede6;
-    --surface-muted: #dde4e8;
+    --surface-canvas: #edf1f4;
+    --surface-panel: rgba(255, 255, 255, 0.88);
+    --surface-panel-raised: #fbfcfd;
+    --surface-elevated: #ffffff;
+    --surface-overlay: rgba(251, 252, 253, 0.94);
+    --surface-panel-strong: #f6f8fa;
+    --surface-panel-alt: #eef2f5;
+    --surface-muted: #dfe6eb;
     --surface-contrast: var(--ink-950);
     --surface-default: var(--surface-canvas);
-    --surface-light: #faf8f5;
+    --surface-light: #f8fafb;
+    --panel-backdrop: rgba(255, 255, 255, 0.74);
+    --panel-border-strong: rgba(23, 32, 42, 0.18);
+    --panel-highlight: rgba(221, 107, 32, 0.12);
+    --metric-hero-value: clamp(1.9rem, 1.2vw + 1.3rem, 2.65rem);
+    --metric-card-min-height: 8.25rem;
+    --density-control-height: 2.5rem;
 
     /* Borders */
     --border-subtle: rgba(36, 47, 59, 0.08);
     --border-default: rgba(36, 47, 59, 0.12);
     --border-strong: rgba(25, 34, 44, 0.22);
+    --focus-ring-color: rgba(221, 107, 32, 0.24);
 
     /* Text */
     --text-primary: var(--ink-950);
     --text-muted: var(--ink-700);
     --text-secondary: var(--text-muted);
     --text-inverse: #f7f5f1;
+    --wf-surface: var(--surface-elevated);
+    --wf-surface-muted: var(--surface-panel-alt);
+    --wf-border-color: var(--border-default);
+    --wf-muted-color: var(--text-muted);
+    --wf-heading-color: var(--text-primary);
 
     /* Primary aliases for existing components */
     --accent-primary: var(--signal-orange-500);
@@ -121,9 +135,13 @@
     --chart-color-20: #d9dee3;
     --chart-color-21: #f0e3d1;
     --chart-color-22: #e8ecef;
+    --legend-color: var(--chart-color-2);
 
     /* Sidebar compatibility */
-    --sidebar-surface: #fbfaf8;
+    --sidebar-width: 17.5rem;
+    --sidebar-width-collapsed: 5.5rem;
+    --topbar-height: 4.5rem;
+    --sidebar-surface: #f8fafb;
     --sidebar-foreground: var(--ink-950);
     --sidebar-accent: var(--accent-primary);
     --sidebar-accent-foreground: #fff8f1;
@@ -143,12 +161,12 @@
     --gray-900: #201d1a;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #f3a655 0%, #d5621d 100%);
-    --gradient-primary-soft: linear-gradient(140deg, rgba(243, 166, 85, 0.25) 0%, rgba(221, 107, 32, 0.04) 100%);
-    --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(246, 243, 238, 0.94) 100%);
-    --gradient-mesh: radial-gradient(circle at 15% 20%, rgba(240, 141, 55, 0.18), transparent 34%),
-        radial-gradient(circle at 85% 12%, rgba(44, 150, 198, 0.12), transparent 24%),
-        radial-gradient(circle at 60% 78%, rgba(203, 138, 31, 0.12), transparent 30%);
+    --gradient-primary: linear-gradient(135deg, #df7930 0%, #b55211 100%);
+    --gradient-primary-soft: linear-gradient(140deg, rgba(221, 107, 32, 0.16) 0%, rgba(221, 107, 32, 0.03) 100%);
+    --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 248, 250, 0.96) 100%);
+    --gradient-mesh: radial-gradient(circle at 12% 18%, rgba(221, 107, 32, 0.1), transparent 30%),
+        radial-gradient(circle at 88% 14%, rgba(44, 150, 198, 0.08), transparent 24%),
+        radial-gradient(circle at 62% 84%, rgba(36, 49, 61, 0.06), transparent 32%);
     --gradient-success: linear-gradient(45deg, var(--status-success), color-mix(in srgb, var(--status-success) 80%, white));
     --gradient-danger: linear-gradient(45deg, var(--status-danger), color-mix(in srgb, var(--status-danger) 80%, white));
     --gradient-warning: linear-gradient(45deg, var(--status-warning), color-mix(in srgb, var(--status-warning) 82%, white));
@@ -183,9 +201,9 @@
     --layout-max-width: 1440px;
     --layout-max-width-wide: 1680px;
     --layout-max-width-narrow: 1180px;
-    --layout-navbar-height: var(--nav-height);
-    --layout-main-content-offset-top: calc(var(--nav-height) + 1rem);
-    --layout-main-content-min-height: calc(100vh - var(--nav-height));
+    --layout-navbar-height: var(--topbar-height);
+    --layout-main-content-offset-top: 0;
+    --layout-main-content-min-height: calc(100dvh - var(--topbar-height));
     --layout-gutter: 1.75rem;
     --page-spacing-regular: 1.5rem;
     --page-spacing-tight: 1rem;

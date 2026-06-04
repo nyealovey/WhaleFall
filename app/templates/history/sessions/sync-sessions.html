@@ -13,10 +13,12 @@
 {% endblock %}
 
 {% block content_outer %}
-<div id="task-runs-page-root">
-{{ page_header('fas fa-tasks', '运行中心', '查看和管理后台任务运行记录', eyebrow='Operations Center') }}
+<div id="task-runs-page-root" class="console-list-page">
+{% call page_header('fas fa-tasks', '运行中心', '查看和管理后台任务运行记录', eyebrow='Operations Center') %}
+<div class="console-command-deck"></div>
+{% endcall %}
 
-<section class="page-section page-section--stacked">
+<section class="page-section page-section--stacked console-filter-shell">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='task-runs-filter-form', action=url_for('history_sessions.index'), auto_register=False) %}
@@ -28,7 +30,7 @@
     </div>
 </section>
 
-<section class="page-section page-section--stacked">
+<section class="page-section page-section--stacked console-grid-shell">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="card">

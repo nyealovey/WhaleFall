@@ -20,8 +20,9 @@
 {% set avg_per_instance = (total_accounts / total_instances) if total_instances else 0 %}
 {% set normal_per_instance = (normal_accounts / total_instances) if total_instances else 0 %}
 {% set locked_per_instance = (locked_accounts / total_instances) if total_instances else 0 %}
+<div class="console-stats-page">
 {% call page_header('fas fa-chart-bar', '账户统计', '概览账户规模、分类与数据库类型分布', eyebrow='Account Insights') %}
-<div class="page-header-actions d-flex gap-2 flex-wrap">
+<div class="page-header-actions d-flex gap-2 flex-wrap console-command-deck">
     <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-secondary">
         <i class="fas fa-list me-2"></i>账户列表
     </a>
@@ -31,7 +32,7 @@
 </div>
 {% endcall %}
 
-	<section class="page-section page-section--stacked">
+	<section class="page-section page-section--stacked console-context-strip">
 	    <div class="layout-shell">
 	        <div class="layout-shell-inner">
 	            <div class="row g-3 accounts-stats-row">
@@ -80,7 +81,7 @@
 	    </div>
 	</section>
 
-<section class="page-section page-section--stacked">
+<section class="page-section page-section--stacked console-analysis-shell">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="row g-3">
@@ -208,7 +209,7 @@
     </div>
 </section>
 
-<section class="page-section page-section--stacked">
+<section class="page-section page-section--stacked console-analysis-shell">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="row g-3">
@@ -322,6 +323,7 @@
         </div>
     </div>
 </section>
+</div>
 {% endblock %}
 
 {% block extra_css %}

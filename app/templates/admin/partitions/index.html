@@ -13,9 +13,9 @@
 {% endblock %}
 
 {% block content_outer %}
-<div id="admin-partitions-page-root">
+<div id="admin-partitions-page-root" class="console-stats-page">
 {% call page_header('fas fa-layer-group', '分区管理', '创建新分区、清理旧分区，并查看核心指标', eyebrow='Partition Operations') %}
-<div class="btn-group">
+<div class="btn-group console-command-deck">
     <button type="button" class="btn btn-primary" id="createPartitionBtn">
         <i class="fas fa-plus me-1"></i>创建分区
     </button>
@@ -25,7 +25,7 @@
 </div>
 {% endcall %}
 
-	<section class="page-section page-section--stacked">
+	<section class="page-section page-section--stacked console-context-strip">
 	    <div class="layout-shell">
 	        <div class="layout-shell-inner">
 	            <div class="row g-3 admin-partitions__stats" id="partitionStats">
@@ -56,7 +56,7 @@
 	    </div>
 	</section>
 
-<section class="page-section page-section--stacked">
+<section class="page-section page-section--stacked console-analysis-shell">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% include 'admin/partitions/charts/partitions-charts.html' %}

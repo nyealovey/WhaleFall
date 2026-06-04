@@ -213,7 +213,7 @@ class AggregationsChartManager {
         const axisTitleColor = ColorTokens.withAlpha(contrastColor, 0.92);
         const legendTextColor = ColorTokens.withAlpha(contrastColor, 0.82);
         const tooltipBackground = ColorTokens.withAlpha(contrastColor, 0.96);
-        const tooltipText = ColorTokens.resolveCssVar('--text-inverse') || '#f7f5f1';
+        const tooltipText = ColorTokens.resolveCssVar('--text-inverse') || 'var(--text-inverse)';
         const tooltipBorder = ColorTokens.getAccentColor();
         const gridColor = ColorTokens.withAlpha(contrastColor, 0.15);
         const axisBaselineColor = ColorTokens.withAlpha(contrastColor, 0.45);
@@ -440,7 +440,7 @@ class AggregationsChartManager {
                 pointRadius: 5,
                 pointHoverRadius: 7,
                 pointBackgroundColor: borderColor,
-                pointBorderColor: ColorTokens.resolveCssVar('--surface-panel-raised') || '#ffffff',
+                pointBorderColor: ColorTokens.resolveCssVar('--surface-panel-raised') || 'var(--surface-panel-raised)',
                 pointBorderWidth: 2,
                 pointHoverBorderWidth: 3,
                 borderWidth: 3,

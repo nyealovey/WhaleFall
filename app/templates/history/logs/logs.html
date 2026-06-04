@@ -14,8 +14,10 @@
 {% endblock %}
 
 {% block content_outer %}
-<div id="logs-page-root">
-{{ page_header('fas fa-chart-line', '日志中心', '查看系统日志和操作记录', eyebrow='Log Monitoring') }}
+<div id="logs-page-root" class="console-list-page">
+{% call page_header('fas fa-chart-line', '日志中心', '查看系统日志和操作记录', eyebrow='Log Monitoring') %}
+<div class="console-command-deck"></div>
+{% endcall %}
 
 <section class="page-section">
     <div class="layout-shell">
@@ -69,7 +71,7 @@
     </div>
 </section>
 
-<section class="page-section page-section--stacked">
+<section class="page-section page-section--stacked console-filter-shell">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='logs-filter-form', action=url_for('history_logs.logs_dashboard'), auto_register=False) %}
@@ -82,7 +84,7 @@
     </div>
 </section>
 
-<section class="page-section page-section--stacked">
+<section class="page-section page-section--stacked console-grid-shell">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             <div class="card logs-container">
