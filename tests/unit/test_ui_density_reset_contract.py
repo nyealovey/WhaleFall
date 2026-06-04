@@ -3,10 +3,23 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+TEMPLATES_DIR = ROOT_DIR / "app/templates"
 
 
 def _read_text(relative_path: str) -> str:
     return (ROOT_DIR / relative_path).read_text(encoding="utf-8")
+
+
+def _iter_base_templates() -> list[Path]:
+    return sorted(
+        path
+        for path in TEMPLATES_DIR.rglob("*.html")
+        if '{% extends "base.html" %}' in path.read_text(encoding="utf-8")
+    )
+
+
+def _relative(path: Path) -> str:
+    return path.relative_to(ROOT_DIR).as_posix()
 
 
 def test_stitch_design_doc_defines_cockpit_dense_exceptions() -> None:
@@ -63,6 +76,20 @@ def test_sample_pages_opt_into_dense_without_changing_data_hooks() -> None:
     assert "accounts-grid" in accounts
 
 
+def test_all_web_pages_follow_dense_console_density() -> None:
+    missing_density = []
+    compact_density = []
+    for path in _iter_base_templates():
+        content = path.read_text(encoding="utf-8")
+        if "{% set page_density = 'compact' %}" in content:
+            compact_density.append(_relative(path))
+        if "{% set page_density = 'dense' %}" not in content:
+            missing_density.append(_relative(path))
+
+    assert compact_density == []
+    assert missing_density == []
+
+
 def test_dense_console_removes_intro_header_copy() -> None:
     base_template = _read_text("app/templates/base.html")
     page_header_macro = _read_text("app/templates/components/ui/page_header.html")
@@ -82,6 +109,28 @@ def test_dense_console_removes_intro_header_copy() -> None:
     assert "page-header__icon" not in global_css
     assert "page-header__eyebrow" not in global_css
     assert "page-header__title" not in global_css
+
+
+def test_web_pages_remove_legacy_direct_page_header_calls() -> None:
+    offenders = []
+    for path in _iter_base_templates():
+        content = path.read_text(encoding="utf-8")
+        if "{{ page_header(" in content:
+            offenders.append(_relative(path))
+
+    assert offenders == []
+
+
+def test_auth_and_about_pages_use_console_surfaces_not_marketing_hero() -> None:
+    login_css = _read_text("app/static/css/pages/auth/login.css")
+    about_template = _read_text("app/templates/about.html")
+    about_css = _read_text("app/static/css/pages/about.css")
+
+    assert "WhaleFall\\A 数据同步平台" not in login_css
+    assert "inset: 0 42% 0 0" not in login_css
+    assert "about-hero" not in about_template
+    assert ".about-hero" not in about_css
+    assert 'height="200"' not in about_template
 
 
 def test_dashboard_risk_alert_board_has_gap_after_metrics() -> None:
@@ -132,6 +181,35 @@ def test_dashboard_resource_bars_use_data_attributes_without_inline_width() -> N
     assert "data-resource-percent" in template
     assert "initResourceBars" in script
     assert "dataset.resourcePercent" in script
+
+
+def test_progress_bars_use_data_attributes_without_template_inline_width() -> None:
+    base_template = _read_text("app/templates/base.html")
+    progress_js = _read_text("app/static/js/modules/ui/progress-bars.js")
+    templates_with_progress = (
+        "app/templates/accounts/statistics.html",
+        "app/templates/databases/statistics.html",
+        "app/templates/instances/statistics.html",
+        "app/templates/tags/bulk/assign.html",
+    )
+
+    offenders = []
+    for path in TEMPLATES_DIR.rglob("*.html"):
+        content = path.read_text(encoding="utf-8")
+        if 'style="width:' in content or "style='width:" in content:
+            offenders.append(_relative(path))
+    assert offenders == []
+
+    assert "js/modules/ui/progress-bars.js" in base_template
+    assert base_template.index("js/modules/ui/progress-bars.js") < base_template.index(
+        "js/bootstrap/page-loader.js"
+    )
+    assert "data-progress-percent" in progress_js
+    assert "applyProgressBars" in progress_js
+    assert ".style.width" in progress_js
+
+    for template_path in templates_with_progress:
+        assert "data-progress-percent" in _read_text(template_path)
 
 
 def test_core_components_are_tuned_for_dense_operations_ui() -> None:

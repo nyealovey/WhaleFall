@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'DatabaseStatisticsPage' %}
+{% set page_density = 'dense' %}
 {% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
@@ -120,7 +121,7 @@
                                                 <td class="text-end"><span class="statistics-number">{{ item.count }}</span></td>
                                                 <td>
                                                     <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
-                                                        <div class="statistics-progress__bar statistics-progress__bar--info" style="width: {{ percent }}%"></div>
+                                                        <div class="statistics-progress__bar statistics-progress__bar--info" data-progress-percent="{{ percent }}"></div>
                                                     </div>
                                                     <span class="statistics-progress__value">{{ '%.1f'|format(percent) }}%</span>
                                                 </td>
@@ -171,7 +172,7 @@
                                                 <td class="text-end"><span class="statistics-number">{{ item.count }}</span></td>
                                                 <td>
                                                     <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
-                                                        <div class="statistics-progress__bar statistics-progress__bar--success" style="width: {{ percent }}%"></div>
+                                                        <div class="statistics-progress__bar statistics-progress__bar--success" data-progress-percent="{{ percent }}"></div>
                                                     </div>
                                                     <span class="statistics-progress__value">{{ '%.1f'|format(percent) }}%</span>
                                                 </td>
@@ -217,7 +218,7 @@
                                                 <td class="text-end"><span class="statistics-number">{{ item.count }}</span></td>
                                                 <td>
                                                     <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
-                                                        <div class="statistics-progress__bar statistics-progress__bar--muted" style="width: {{ percent }}%"></div>
+                                                        <div class="statistics-progress__bar statistics-progress__bar--muted" data-progress-percent="{{ percent }}"></div>
                                                     </div>
                                                     <span class="statistics-progress__value">{{ '%.1f'|format(percent) }}%</span>
                                                 </td>

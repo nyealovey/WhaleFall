@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'TagsIndexPage' %}
-{% set page_density = 'compact' %}
+{% set page_density = 'dense' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, tag_category_filter, status_active_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
@@ -26,8 +26,6 @@
     </a>
 </div>
 {% endcall %}
-{% else %}
-{{ page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Tag Registry') }}
 {% endif %}
 
 {% set stats = tag_stats or {'total': 0, 'active': 0, 'inactive': 0, 'category_count': 0} %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'TagsBatchAssignPage' %}
+{% set page_density = 'dense' %}
 
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -144,7 +145,7 @@
                         <small class="text-muted" id="progressText">准备中...</small>
                     </div>
                     <div class="progress">
-                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        <div class="progress-bar" role="progressbar" data-progress-percent="0"></div>
                     </div>
                 </div>
             </article>

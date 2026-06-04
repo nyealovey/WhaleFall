@@ -5,7 +5,7 @@
     padding: var(--page-spacing-regular);
 }
 
-.about-hero,
+.about-identity-card,
 .about-section-card,
 .about-release-card,
 .about-timeline-card {
@@ -15,7 +15,7 @@
     background: var(--surface-elevated);
 }
 
-.about-hero-subtitle {
+.about-identity-subtitle {
     color: var(--text-muted);
     font-size: var(--font-size-lg);
 }

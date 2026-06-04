@@ -501,7 +501,7 @@
       const bar = dom.progressContainer.querySelector(".progress-bar");
       dom.progressContainer.style.display = "block";
       if (bar) {
-        bar.style.width = "0%";
+        setProgressPercent(bar, 0);
       }
       dom.progressText.textContent = "准备中...";
 
@@ -512,7 +512,7 @@
           progress = 90;
         }
         if (bar) {
-          bar.style.width = `${Math.round(progress)}%`;
+          setProgressPercent(bar, Math.round(progress));
         }
         dom.progressText.textContent = `处理中... ${Math.round(progress)}%`;
       }, 200);
@@ -528,7 +528,7 @@
       }
       const bar = dom.progressContainer.querySelector(".progress-bar");
       if (bar) {
-        bar.style.width = "100%";
+        setProgressPercent(bar, 100);
       }
       dom.progressText.textContent = success ? "完成" : "失败";
       setTimeout(() => {
@@ -547,6 +547,11 @@
         hideProgress(false);
         toast.error(error?.message || "操作失败");
       }
+    }
+
+    function setProgressPercent(bar, percent) {
+      bar.dataset.progressPercent = String(percent);
+      global.UI?.applyProgressBars?.(bar);
     }
 
     function refreshSelectionUI() {

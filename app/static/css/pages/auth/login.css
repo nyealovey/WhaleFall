@@ -6,7 +6,7 @@
 
 .auth-main {
     min-height: calc(100dvh - var(--layout-navbar-height));
-    padding: clamp(2rem, 5vw, 4.75rem) 0;
+    padding: var(--page-spacing-dense) 0;
     background: transparent;
 }
 
@@ -23,56 +23,26 @@
 .login-shell {
     position: relative;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: stretch;
-    width: min(100%, 72rem);
-    min-height: min(72vh, 44rem);
+    width: min(100%, 34rem);
+    min-height: auto;
     margin: 0 auto;
-    padding: clamp(1rem, 3vw, 2rem);
-    border-radius: calc(var(--border-radius-xl) + 0.5rem);
-    overflow: hidden;
-}
-
-.login-shell::before {
-    content: "WhaleFall\A 数据同步平台";
-    white-space: pre-line;
-    position: absolute;
-    inset: 0 42% 0 0;
-    display: flex;
-    align-items: flex-end;
-    padding: clamp(2rem, 5vw, 4rem);
-    background: var(--surface-contrast);
-    color: rgba(250, 246, 239, 0.9);
-    font-family: var(--font-family-display);
-    font-size: clamp(2.1rem, 3vw + 1rem, 4rem);
-    line-height: 0.98;
-    letter-spacing: 0.04em;
-    text-transform: none;
-}
-
-.login-shell::after {
-    content: "";
-    position: absolute;
-    inset: auto auto 2.2rem 2.2rem;
-    width: 7rem;
-    height: 0.3rem;
-    border-radius: var(--border-radius-pill);
-    background: var(--accent-primary);
+    padding: var(--page-spacing-dense);
 }
 
 .login-panel {
     position: relative;
     z-index: 1;
-    width: min(100%, 31rem);
-    margin-left: auto;
-    border: 1px solid rgba(255, 255, 255, 0.65);
-    background: rgba(251, 248, 243, 0.96);
-    box-shadow: var(--shadow-xl);
-    backdrop-filter: blur(18px);
+    width: 100%;
+    margin: 0 auto;
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-panel-raised);
+    box-shadow: var(--shadow-xs);
 }
 
 .login-panel .card-body {
-    padding: clamp(1.4rem, 3vw, 2rem);
+    padding: 1rem;
 }
 
 .login-panel__header {
@@ -97,15 +67,15 @@
 
 .login-logo {
     flex-shrink: 0;
-    filter: drop-shadow(0 18px 26px rgba(221, 107, 32, 0.2));
+    filter: drop-shadow(0 8px 16px rgba(221, 107, 32, 0.14));
 }
 
 .login-panel__title {
     font-family: var(--font-family-display);
-    font-size: clamp(2rem, 2vw + 1rem, 2.8rem);
-    line-height: 0.98;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    font-size: 1.55rem;
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: none;
     margin-bottom: 0.2rem;
 }
 
@@ -228,11 +198,6 @@
         justify-content: center;
         min-height: auto;
         padding: 0;
-    }
-
-    .login-shell::before,
-    .login-shell::after {
-        display: none;
     }
 
     .login-panel {

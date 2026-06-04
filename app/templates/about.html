@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'AboutPage' %}
+{% set page_density = 'dense' %}
 
 {% block title %}关于鲸落{% endblock %}
 
@@ -62,12 +63,12 @@
 <div class="container-fluid about-page">
     <div class="row g-4">
         <div class="col-lg-6">
-            <div class="card about-hero mb-4">
+            <div class="card about-identity-card mb-4">
                 <div class="card-body text-center">
-                    <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="200"
+                    <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="72"
                         class="mb-4 about-logo">
                     <div class="chip-outline chip-outline--brand mb-3">鲸落 WhaleFall</div>
-                    <p class="about-hero-subtitle mb-3">面向 DBA 的数据库资源管理平台</p>
+                    <p class="about-identity-subtitle mb-3">面向 DBA 的数据库资源管理平台</p>
                     <span class="status-pill status-pill--info">
                         <i class="fas fa-bullseye me-2"></i> Kurtis.Jin
                     </span>

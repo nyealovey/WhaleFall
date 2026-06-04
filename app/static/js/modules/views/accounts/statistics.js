@@ -139,7 +139,7 @@ function mountAccountsStatisticsPage(global) {
       const percent = Number(meta?.percent ?? resolvePercent(meta?.total, normalizedTotal)) || 0;
       const progress = row.querySelector('[data-field="owner-type-progress"]');
       if (progress) {
-        progress.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+        setProgressPercent(progress, percent);
       }
       const percentLabel = row.querySelector('[data-field="owner-type-percent"]');
       if (percentLabel) {
@@ -226,7 +226,7 @@ function mountAccountsStatisticsPage(global) {
       const percent = resolvePercent(meta?.total, normalizedTotal);
       const progress = row.querySelector('[data-field="db-type-progress"]');
       if (progress) {
-        progress.style.width = `${percent}%`;
+        setProgressPercent(progress, percent);
       }
       const percentLabel = row.querySelector('[data-field="db-type-percent"]');
       if (percentLabel) {
@@ -258,7 +258,7 @@ function mountAccountsStatisticsPage(global) {
       const percent = resolvePercent(meta?.account_count, normalizedTotal);
       const progress = row.querySelector('[data-field="classification-progress"]');
       if (progress) {
-        progress.style.width = `${percent}%`;
+        setProgressPercent(progress, percent);
       }
       const percentLabel = row.querySelector('[data-field="classification-percent"]');
       if (percentLabel) {
@@ -290,6 +290,11 @@ function mountAccountsStatisticsPage(global) {
     if (node) {
       node.textContent = `${label} ${formatInteger(value)}`;
     }
+  }
+
+  function setProgressPercent(progress, percent) {
+    progress.dataset.progressPercent = String(percent);
+    global.UI?.applyProgressBars?.(progress);
   }
 
   function resolvePercent(count, total) {

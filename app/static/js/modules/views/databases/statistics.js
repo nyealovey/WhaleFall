@@ -230,12 +230,13 @@ function mountDatabaseStatisticsPage(global) {
         </table>
       </div>
     `;
+    global.UI?.applyProgressBars?.(container);
   }
 
   function renderPercentCell(percent, barClass) {
     return `
       <div class="statistics-progress" aria-label="占比 ${percent.toFixed(1)}%">
-        <div class="statistics-progress__bar ${barClass}" style="width: ${percent}%"></div>
+        <div class="statistics-progress__bar ${barClass}" data-progress-percent="${percent}"></div>
       </div>
       <span class="statistics-progress__value">${percent.toFixed(1)}%</span>
     `;

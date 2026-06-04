@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'SystemSettingsPage' %}
-{% set page_density = 'compact' %}
+{% set page_density = 'dense' %}
 
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -13,8 +13,6 @@
 {% endblock %}
 
 {% block content_outer %}
-{{ page_header('fas fa-sliders', '系统设置', None, eyebrow='Control Plane') }}
-
 <section class="page-section">
     <div class="layout-shell">
         <div class="layout-shell-inner">
