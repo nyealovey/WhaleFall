@@ -20,8 +20,9 @@ related:
 
 ## 目的
 
-- 统一全站“顶部指标/统计卡片”的结构与视觉基线，避免每个页面一套私有 `*-stat-card` 样式。
+- 统一全站“顶部指标/统计卡片”的结构契约，避免每个页面一套私有 `*-stat-card` 结构。
 - 让 JS 更新指标值的定位方式稳定（`id` / `data-stat-key` / `[data-role="metric-value"]`），便于门禁与重构。
+- 视觉口径以根目录 `DESIGN.md` 为准；本文不再固定具体视觉基线。
 
 ## 适用范围
 
@@ -37,10 +38,10 @@ related:
   - Prefer：`id="xxx"`（页面唯一）。
   - 或：在卡片根节点设置 `data-stat-key="xxx"`（用于批量更新/列表型 stats）。
 
-### 2) 视觉与 CSS（MUST/SHOULD）
+### 2) CSS 承载边界（MUST/SHOULD）
 
-- MUST：卡片视觉（border/shadow/padding/typography）只能由组件 CSS `app/static/css/components/metric-card.css` 定义。
-- MUST NOT：在页面 CSS 中新增/恢复 `.xxx-stat-card { border/shadow/padding/... }` 这类视觉覆盖。
+- MUST：MetricCard 的共享样式只能由组件 CSS `app/static/css/components/metric-card.css` 定义。
+- MUST NOT：在页面 CSS 中新增/恢复 `.xxx-stat-card` 这类私有指标卡体系。
 - SHOULD：页面 CSS 仅负责布局（`row/grid/gap`），例如 `.xxx-stats-row` / `.xxx-stats-grid`。
 
 ### 3) Tone 与状态色（SHOULD）
@@ -76,4 +77,3 @@ related:
 ## 门禁/检查方式
 
 - `pytest -m unit`（包含模板/JS 扫描测试）
-

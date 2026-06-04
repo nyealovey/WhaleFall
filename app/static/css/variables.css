@@ -17,9 +17,9 @@
 
     /* Brand / signal */
     --signal-orange-700: #8f3e09;
-    --signal-orange-600: #b55211;
-    --signal-orange-500: #dd6b20;
-    --signal-orange-400: #f08d37;
+    --signal-orange-600: #b85c1e;
+    --signal-orange-500: #c66a25;
+    --signal-orange-400: #d8843c;
     --signal-orange-300: #f5b56e;
     --signal-orange-200: #f9d8af;
     --signal-cyan-500: #2c96c6;
@@ -28,29 +28,29 @@
     --signal-amber-500: #cb8a1f;
 
     /* Surfaces */
-    --surface-canvas: #edf1f4;
-    --surface-panel: rgba(255, 255, 255, 0.88);
-    --surface-panel-raised: #fbfcfd;
+    --surface-canvas: #e8edf1;
+    --surface-panel: rgba(248, 250, 251, 0.92);
+    --surface-panel-raised: #f8fafb;
     --surface-elevated: #ffffff;
-    --surface-overlay: rgba(251, 252, 253, 0.94);
-    --surface-panel-strong: #f6f8fa;
-    --surface-panel-alt: #eef2f5;
-    --surface-muted: #dfe6eb;
+    --surface-overlay: rgba(248, 250, 251, 0.96);
+    --surface-panel-strong: #f3f6f8;
+    --surface-panel-alt: #edf2f5;
+    --surface-muted: #d8e1e7;
     --surface-contrast: var(--ink-950);
     --surface-default: var(--surface-canvas);
     --surface-light: #f8fafb;
     --panel-backdrop: rgba(255, 255, 255, 0.74);
     --panel-border-strong: rgba(23, 32, 42, 0.18);
-    --panel-highlight: rgba(221, 107, 32, 0.12);
-    --metric-hero-value: clamp(1.9rem, 1.2vw + 1.3rem, 2.65rem);
-    --metric-card-min-height: 8.25rem;
-    --density-control-height: 2.5rem;
+    --panel-highlight: rgba(184, 92, 30, 0.1);
+    --metric-hero-value: clamp(1.55rem, 0.9vw + 1.1rem, 2.2rem);
+    --metric-card-min-height: 6.25rem;
+    --density-control-height: 2.2rem;
 
     /* Borders */
     --border-subtle: rgba(36, 47, 59, 0.08);
     --border-default: rgba(36, 47, 59, 0.12);
     --border-strong: rgba(25, 34, 44, 0.22);
-    --focus-ring-color: rgba(221, 107, 32, 0.24);
+    --focus-ring-color: rgba(184, 92, 30, 0.24);
 
     /* Text */
     --text-primary: var(--ink-950);
@@ -64,9 +64,9 @@
     --wf-heading-color: var(--text-primary);
 
     /* Primary aliases for existing components */
-    --accent-primary: var(--signal-orange-500);
+    --accent-primary: var(--signal-orange-600);
     --accent-primary-hover: var(--signal-orange-600);
-    --accent-primary-ring: rgba(221, 107, 32, 0.22);
+    --accent-primary-ring: rgba(184, 92, 30, 0.22);
     --accent-primary-soft: var(--signal-orange-200);
     --accent-primary-strong: var(--signal-orange-700);
     --accent-primary-muted: rgba(221, 107, 32, 0.35);
@@ -88,7 +88,7 @@
     --status-info: var(--signal-cyan-500);
 
     /* Nav */
-    --nav-height: 80px;
+    --nav-height: 60px;
     --nav-pill-bg: rgba(22, 29, 38, 0.04);
     --nav-pill-active: rgba(221, 107, 32, 0.14);
     --nav-pill-border: rgba(221, 107, 32, 0.26);
@@ -101,8 +101,8 @@
     --font-family-data: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
     --font-family-base: var(--font-family-body);
     --font-family-monospace: var(--font-family-data);
-    --letter-spacing-display: 0.04em;
-    --letter-spacing-label: 0.08em;
+    --letter-spacing-display: 0.01em;
+    --letter-spacing-label: 0.06em;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -138,10 +138,10 @@
     --legend-color: var(--chart-color-2);
 
     /* Sidebar compatibility */
-    --sidebar-width: 17.5rem;
+    --sidebar-width: 15.75rem;
     --sidebar-width-collapsed: 5.5rem;
-    --topbar-height: 4.5rem;
-    --sidebar-surface: #f8fafb;
+    --topbar-height: 3.75rem;
+    --sidebar-surface: #f3f6f8;
     --sidebar-foreground: var(--ink-950);
     --sidebar-accent: var(--accent-primary);
     --sidebar-accent-foreground: #fff8f1;
@@ -161,12 +161,12 @@
     --gray-900: #201d1a;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #df7930 0%, #b55211 100%);
-    --gradient-primary-soft: linear-gradient(140deg, rgba(221, 107, 32, 0.16) 0%, rgba(221, 107, 32, 0.03) 100%);
-    --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 248, 250, 0.96) 100%);
-    --gradient-mesh: radial-gradient(circle at 12% 18%, rgba(221, 107, 32, 0.1), transparent 30%),
-        radial-gradient(circle at 88% 14%, rgba(44, 150, 198, 0.08), transparent 24%),
-        radial-gradient(circle at 62% 84%, rgba(36, 49, 61, 0.06), transparent 32%);
+    --gradient-primary: linear-gradient(180deg, #c66a25 0%, #9d470e 100%);
+    --gradient-primary-soft: linear-gradient(180deg, rgba(184, 92, 30, 0.1) 0%, rgba(184, 92, 30, 0.03) 100%);
+    --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 251, 0.96) 100%);
+    --gradient-mesh: radial-gradient(circle at 10% 12%, rgba(184, 92, 30, 0.06), transparent 28%),
+        radial-gradient(circle at 86% 10%, rgba(44, 150, 198, 0.05), transparent 22%),
+        radial-gradient(circle at 62% 88%, rgba(36, 49, 61, 0.04), transparent 30%);
     --gradient-success: linear-gradient(45deg, var(--status-success), color-mix(in srgb, var(--status-success) 80%, white));
     --gradient-danger: linear-gradient(45deg, var(--status-danger), color-mix(in srgb, var(--status-danger) 80%, white));
     --gradient-warning: linear-gradient(45deg, var(--status-warning), color-mix(in srgb, var(--status-warning) 82%, white));
@@ -175,18 +175,18 @@
     --gradient-light: linear-gradient(135deg, var(--surface-panel-raised), var(--surface-panel-alt));
 
     /* Shadows */
-    --shadow-xs: 0 1px 2px rgba(22, 29, 38, 0.06);
-    --shadow-sm: 0 10px 24px rgba(22, 29, 38, 0.06);
-    --shadow-md: 0 18px 40px rgba(22, 29, 38, 0.08);
-    --shadow-lg: 0 28px 70px rgba(22, 29, 38, 0.12);
-    --shadow-xl: 0 36px 90px rgba(22, 29, 38, 0.16);
+    --shadow-xs: 0 1px 2px rgba(22, 29, 38, 0.05);
+    --shadow-sm: 0 6px 14px rgba(22, 29, 38, 0.05);
+    --shadow-md: 0 12px 28px rgba(22, 29, 38, 0.07);
+    --shadow-lg: 0 20px 48px rgba(22, 29, 38, 0.1);
+    --shadow-xl: 0 28px 64px rgba(22, 29, 38, 0.14);
 
     /* Radius */
-    --border-radius-sm: 0.5rem;
-    --border-radius-md: 0.875rem;
-    --border-radius-lg: 1.25rem;
-    --border-radius-xl: 1.75rem;
-    --border-radius-xxl: 2rem;
+    --border-radius-sm: 0.375rem;
+    --border-radius-md: 0.625rem;
+    --border-radius-lg: 0.75rem;
+    --border-radius-xl: 1rem;
+    --border-radius-xxl: 1.25rem;
     --border-radius-pill: 999px;
 
     /* Spacing */
@@ -199,22 +199,26 @@
 
     /* Layout */
     --layout-max-width: 1440px;
-    --layout-max-width-wide: 1680px;
+    --layout-max-width-wide: 1920px;
     --layout-max-width-narrow: 1180px;
     --layout-navbar-height: var(--topbar-height);
     --layout-main-content-offset-top: 0;
     --layout-main-content-min-height: calc(100dvh - var(--topbar-height));
-    --layout-gutter: 1.75rem;
-    --page-spacing-regular: 1.5rem;
-    --page-spacing-tight: 1rem;
+    --layout-gutter: 1.2rem;
+    --page-spacing-regular: 1.15rem;
+    --page-spacing-tight: 0.8rem;
+    --page-spacing-dense: 0.6rem;
 
     /* Controls */
-    --control-height-regular: 2.8rem;
-    --control-height-compact: 2.5rem;
-    --control-padding-y-regular: 0.6rem;
-    --control-padding-x-regular: 1rem;
-    --control-padding-y-compact: 0.42rem;
-    --control-padding-x-compact: 0.875rem;
+    --control-height-regular: 2.5rem;
+    --control-height-compact: 2.28rem;
+    --control-height-dense: 2.12rem;
+    --control-padding-y-regular: 0.5rem;
+    --control-padding-x-regular: 0.85rem;
+    --control-padding-y-compact: 0.34rem;
+    --control-padding-x-compact: 0.72rem;
+    --control-padding-y-dense: 0.26rem;
+    --control-padding-x-dense: 0.62rem;
     --filter-field-width-sm: clamp(8.25rem, 8vw, 9.5rem);
     --filter-field-width-md: clamp(9.5rem, 11vw, 11.5rem);
     --filter-field-width-lg: clamp(11.5rem, 18vw, 15rem);
@@ -228,10 +232,10 @@
     --modal-width-xl: min(99vw, 1180px);
 
     /* Motion */
-    --transition-base: background-color 0.28s ease, border-color 0.28s ease, color 0.28s ease,
-        box-shadow 0.28s ease, transform 0.28s ease, opacity 0.28s ease;
-    --transition-fast: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease,
-        box-shadow 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+    --transition-base: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+        box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+    --transition-fast: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease,
+        box-shadow 0.14s ease, transform 0.14s ease, opacity 0.14s ease;
     --transition-slow: background-color 0.45s ease, border-color 0.45s ease, color 0.45s ease,
         box-shadow 0.45s ease, transform 0.45s ease, opacity 0.45s ease;
 

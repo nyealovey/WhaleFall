@@ -24,6 +24,7 @@ related:
 - 控制单屏色彩数量与饱和度，降低“信息噪声”造成的视觉疲劳。
 - 强化语义映射：同一语义状态绑定固定 token/组件，避免页面自定义样式。
 - 通过组件化（pill/chip）承载色彩，而不是靠页面随意上色。
+- 配色口径以根目录 `DESIGN.md` 为准；本文只保留 token 来源与语义使用边界。
 
 ## 适用范围
 
@@ -40,11 +41,10 @@ related:
 - MUST：新增颜色必须先在 `variables.css` 定义 Token，并在评审中说明“原因 + 退场机制”。
 - SHOULD：优先通过组件 class（`status-pill`、`chip-outline`、`ledger-chip` 等）承载色彩，而不是页面级别自定义。
 
-### 2) 色彩 2-3-4 规则（默认基线）
+### 2) 视觉 SSOT
 
-- SHOULD：主色 ≤2（品牌主色 + 一种中性色）。
-- SHOULD：辅助色 ≤3（用于导航/次级按钮/图表，不得另行定义新 Token）。
-- SHOULD：语义色 ≤4（固定使用 `--success-color`、`--warning-color`、`--danger-color`、`--info-color`，禁止装饰性滥用）。
+- SHOULD：新增或调整配色前先检查根目录 `DESIGN.md`，避免恢复旧主题或页面私有调色。
+- SHOULD：语义色只用于对应状态，装饰性强调应使用 `DESIGN.md` 指定的主 accent。
 
 ### 3) 组件级约束
 

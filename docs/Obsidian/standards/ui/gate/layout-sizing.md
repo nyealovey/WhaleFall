@@ -66,10 +66,11 @@ related:
 
 ### 5) 控件尺寸 tier (SHOULD)
 
-- SHOULD: 表单控件与按钮至少提供 2 套密度:
+- SHOULD: 表单控件与按钮至少提供 3 套密度:
   - regular: 默认, 可读性优先
   - compact: 数据密集页面, 信息密度优先
-- SHOULD: 通过 `data-density="regular|compact"` 驱动, 而不是每个页面单独改 padding.
+  - dense: 运维 cockpit 页面, 首屏扫描与行数优先
+- SHOULD: 通过 `data-density="regular|compact|dense"` 驱动, 而不是每个页面单独改 padding.
 
 ### 6) 列表/表格密度 (MUST)
 
@@ -112,6 +113,7 @@ related:
 ### B) Controls
 
 - Regular 控件高度建议: 2.5rem (40px) 左右, 保持可点击与可读.
+- Dense 控件高度建议: 2.2rem (35px) 左右, 仅用于后台高密度样板页或同类列表页.
 - Icon button 建议:
   - md: 2.25rem
   - sm: 2rem

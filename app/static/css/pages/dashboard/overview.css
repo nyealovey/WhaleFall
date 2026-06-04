@@ -13,12 +13,26 @@
     align-items: stretch;
 }
 
+.dashboard-cockpit-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(20rem, 0.8fr);
+    gap: 0.85rem;
+    align-items: stretch;
+}
+
+.dashboard-cockpit-grid > .col-lg-8,
+.dashboard-cockpit-grid > .col-lg-4 {
+    width: auto;
+    max-width: none;
+    padding: 0;
+}
+
 .dashboard-panel {
     height: 100%;
 }
 
 .dashboard-panel .card-header {
-    padding-bottom: 0.8rem;
+    padding-bottom: 0.55rem;
 }
 
 .dashboard-panel .card-title {
@@ -42,26 +56,26 @@
 
 .chart-container {
     position: relative;
-    height: 400px;
-    padding-top: 0.4rem;
+    height: clamp(16rem, 34vh, 24rem);
+    padding-top: 0.2rem;
 }
 
 .resource-usage {
-    padding: 0.85rem 0.9rem;
-    border-radius: var(--border-radius-md);
+    padding: 0.62rem 0.68rem;
+    border-radius: var(--border-radius-sm);
     border: 1px solid rgba(22, 29, 38, 0.06);
     background: rgba(255, 255, 255, 0.72);
 }
 
 .resource-usage + .resource-usage {
-    margin-top: 0.75rem;
+    margin-top: 0.52rem;
 }
 
 .resource-usage__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.42rem;
     font-weight: 500;
 }
 
@@ -82,15 +96,22 @@
 .wf-progress .progress-bar {
     border-radius: inherit;
     background: linear-gradient(90deg, var(--signal-orange-500), var(--signal-cyan-500));
+    width: 0;
 }
 
 .system-service-status {
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    padding: 0.75rem 0;
+    padding: 0.52rem 0;
     border-bottom: 1px solid rgba(22, 29, 38, 0.06);
     font-size: 0.92rem;
+}
+
+@media (max-width: 991.98px) {
+    .dashboard-cockpit-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .system-service-status:last-of-type {

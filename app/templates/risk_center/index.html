@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'RiskCenterPage' %}
-{% set page_density = 'compact' %}
+{% set page_density = 'dense' %}
 
 {% block title %}风险中心 - 鲸落{% endblock %}
 
@@ -158,11 +158,17 @@
                     <section class="risk-group" data-risk-group>
                         <header class="risk-group__head">
                             <h2>{{ group.grouper }} ({{ total }})</h2>
-                            <div class="risk-group__bar" aria-hidden="true">
-                                <span class="risk-group__bar-segment risk-group__bar-segment--high" style="width: {{ (high / total * 100) if total else 0 }}%"></span>
-                                <span class="risk-group__bar-segment risk-group__bar-segment--medium" style="width: {{ (medium / total * 100) if total else 0 }}%"></span>
-                                <span class="risk-group__bar-segment risk-group__bar-segment--low" style="width: {{ (low / total * 100) if total else 0 }}%"></span>
-                                <span class="risk-group__bar-segment risk-group__bar-segment--ok" style="width: {{ (ok / total * 100) if total else 0 }}%"></span>
+                            <div class="risk-group__bar"
+                                 data-risk-total="{{ total }}"
+                                 data-risk-high="{{ high }}"
+                                 data-risk-medium="{{ medium }}"
+                                 data-risk-low="{{ low }}"
+                                 data-risk-ok="{{ ok }}"
+                                 aria-hidden="true">
+                                <span class="risk-group__bar-segment risk-group__bar-segment--high"></span>
+                                <span class="risk-group__bar-segment risk-group__bar-segment--medium"></span>
+                                <span class="risk-group__bar-segment risk-group__bar-segment--low"></span>
+                                <span class="risk-group__bar-segment risk-group__bar-segment--ok"></span>
                             </div>
                         </header>
                         <div class="risk-card-grid">

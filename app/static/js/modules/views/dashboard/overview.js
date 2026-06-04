@@ -56,6 +56,7 @@ function mountDashboardOverview(global) {
 
     ready(() => {
         bindActions();
+        initResourceBars();
         initCharts();
     });
 
@@ -82,6 +83,23 @@ function mountDashboardOverview(global) {
                 refreshDashboard(event.currentTarget || event);
             });
         }
+    }
+
+    /**
+     * 将服务端输出的资源使用率 data 属性应用到进度条。
+     *
+     * @return {void}
+     */
+    function initResourceBars() {
+        document.querySelectorAll('[data-resource-bar]').forEach((bar) => {
+            const percent = Number(bar.dataset.resourcePercent || 0);
+            const safePercent = Math.min(Math.max(percent, 0), 100);
+            bar.style.width = `${safePercent}%`;
+            bar.setAttribute('aria-valuenow', String(safePercent));
+            bar.setAttribute('aria-valuemin', '0');
+            bar.setAttribute('aria-valuemax', '100');
+            bar.setAttribute('role', 'progressbar');
+        });
     }
 
     /**

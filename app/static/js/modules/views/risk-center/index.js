@@ -171,11 +171,29 @@
     return cards.filter((card) => String(card?.overall_severity || "") === severity).length;
   }
 
+  function applyRiskBarWeights(container) {
+    container.querySelectorAll("[data-risk-total]").forEach((bar) => {
+      const total = Number(bar.dataset.riskTotal || 0) || 0;
+      const weights = {
+        high: Number(bar.dataset.riskHigh || 0) || 0,
+        medium: Number(bar.dataset.riskMedium || 0) || 0,
+        low: Number(bar.dataset.riskLow || 0) || 0,
+        ok: Number(bar.dataset.riskOk || 0) || 0,
+      };
+      Object.entries(weights).forEach(([severity, count]) => {
+        const segment = bar.querySelector(`.risk-group__bar-segment--${severity}`);
+        if (segment) {
+          const percent = total > 0 ? Math.max((count / total) * 100, 0) : 0;
+          segment.style.width = `${percent}%`;
+        }
+      });
+    });
+  }
+
   function renderGroupWall(cards) {
     const groups = groupCards(cards);
     return Array.from(groups.entries())
       .map(([group, groupCards]) => {
-        const total = groupCards.length || 1;
         const counts = {
           high: countCardsBySeverity(groupCards, "high"),
           medium: countCardsBySeverity(groupCards, "medium"),
@@ -186,11 +204,17 @@
           <section class="risk-group" data-risk-group>
             <header class="risk-group__head">
               <h2>${escapeHtml(group)} (${groupCards.length})</h2>
-              <div class="risk-group__bar" aria-hidden="true">
-                <span class="risk-group__bar-segment risk-group__bar-segment--high" style="width: ${(counts.high / total) * 100}%"></span>
-                <span class="risk-group__bar-segment risk-group__bar-segment--medium" style="width: ${(counts.medium / total) * 100}%"></span>
-                <span class="risk-group__bar-segment risk-group__bar-segment--low" style="width: ${(counts.low / total) * 100}%"></span>
-                <span class="risk-group__bar-segment risk-group__bar-segment--ok" style="width: ${(counts.ok / total) * 100}%"></span>
+              <div class="risk-group__bar"
+                   data-risk-total="${escapeHtml(groupCards.length)}"
+                   data-risk-high="${escapeHtml(counts.high)}"
+                   data-risk-medium="${escapeHtml(counts.medium)}"
+                   data-risk-low="${escapeHtml(counts.low)}"
+                   data-risk-ok="${escapeHtml(counts.ok)}"
+                   aria-hidden="true">
+                <span class="risk-group__bar-segment risk-group__bar-segment--high"></span>
+                <span class="risk-group__bar-segment risk-group__bar-segment--medium"></span>
+                <span class="risk-group__bar-segment risk-group__bar-segment--low"></span>
+                <span class="risk-group__bar-segment risk-group__bar-segment--ok"></span>
               </div>
             </header>
             <div class="risk-card-grid">
@@ -258,11 +282,16 @@
       updateSummary(root, payload?.summary || {});
       if (wall) {
         wall.innerHTML = renderGroupWall(cards);
+        applyRiskBarWeights(wall);
       }
       if (empty) {
         empty.classList.toggle("d-none", cards.length > 0);
       }
     });
+
+    if (wall) {
+      applyRiskBarWeights(wall);
+    }
 
     form?.addEventListener("submit", (event) => {
       event.preventDefault();

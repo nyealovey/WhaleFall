@@ -33,6 +33,24 @@
     --table-pagination-btn-height: 31px;
 }
 
+.main-content[data-density="dense"] {
+    --table-font-size: 11px;
+    --table-head-padding-y: 6px;
+    --table-head-padding-x: 9px;
+    --table-cell-padding-y: 4px;
+    --table-cell-padding-x: 9px;
+    --table-action-btn-font-size: 10px;
+    --table-action-btn-padding-y: 2px;
+    --table-action-btn-padding-x: 6px;
+    --table-action-btn-min-width: 26px;
+    --table-action-btn-height: 25px;
+    --table-pagination-btn-font-size: 11px;
+    --table-pagination-btn-padding-y: 2px;
+    --table-pagination-btn-padding-x: 8px;
+    --table-pagination-btn-min-width: 28px;
+    --table-pagination-btn-height: 28px;
+}
+
 .main-content .table {
     font-size: var(--table-font-size);
     --bs-table-cell-padding-y: var(--table-cell-padding-y);
@@ -41,7 +59,7 @@
 
 .gridjs-wrapper {
     border: 1px solid rgba(22, 29, 38, 0.08);
-    border-radius: var(--border-radius-lg);
+    border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-xs);
     font-size: var(--table-font-size);
     overflow-x: auto;
@@ -62,8 +80,8 @@
     padding: var(--table-head-padding-y) var(--table-head-padding-x) !important;
     font-family: var(--font-family-data);
     font-weight: 500;
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
     color: var(--text-muted);
     text-transform: uppercase;
 }
@@ -125,7 +143,7 @@
 }
 
 .gridjs-pagination {
-    padding: 10px 12px;
+    padding: 8px 10px;
 }
 
 .gridjs-pagination .gridjs-pages button {
@@ -140,7 +158,7 @@
 }
 
 .gridjs-search {
-    padding: 10px 12px;
+    padding: 8px 10px;
 }
 
 .gridjs-search-input {

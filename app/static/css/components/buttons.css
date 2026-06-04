@@ -1,9 +1,9 @@
 /* Button system */
 
 .btn {
-    border-radius: var(--border-radius-pill);
+    border-radius: var(--border-radius-sm);
     font-weight: 600;
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
     transition: var(--transition-fast);
 }
 
@@ -17,8 +17,8 @@
 }
 
 .btn-icon {
-    width: 2.35rem;
-    height: 2.35rem;
+    width: 2.2rem;
+    height: 2.2rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -27,8 +27,8 @@
 }
 
 .btn-sm.btn-icon {
-    width: 2rem;
-    height: 2rem;
+    width: 1.9rem;
+    height: 1.9rem;
 }
 
 .btn-icon--sm {
@@ -69,16 +69,16 @@
     --bs-btn-disabled-bg: rgba(221, 107, 32, 0.48);
     --bs-btn-disabled-border-color: transparent;
     background-image: var(--gradient-primary);
-    box-shadow: 0 14px 28px rgba(221, 107, 32, 0.18);
+    box-shadow: 0 8px 18px rgba(184, 92, 30, 0.16);
 }
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 18px 34px rgba(221, 107, 32, 0.24);
+    box-shadow: 0 10px 22px rgba(184, 92, 30, 0.22);
 }
 
 .btn-primary:focus-visible {
-    box-shadow: 0 0 0 0.2rem var(--accent-primary-ring), 0 18px 34px rgba(221, 107, 32, 0.24);
+    box-shadow: 0 0 0 0.18rem var(--accent-primary-ring), 0 10px 22px rgba(184, 92, 30, 0.22);
 }
 
 .btn-outline-primary {
@@ -93,6 +93,20 @@
     --bs-btn-disabled-color: color-mix(in srgb, var(--accent-primary-strong) 55%, white);
     --bs-btn-disabled-border-color: rgba(221, 107, 32, 0.18);
     background: rgba(255, 255, 255, 0.72);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.main-content[data-density="dense"] .btn {
+    font-size: 0.82rem;
+}
+
+.main-content[data-density="dense"] .btn-icon {
+    width: 1.85rem;
+    height: 1.85rem;
+    font-size: 0.8rem;
 }
 
 .btn-secondary,

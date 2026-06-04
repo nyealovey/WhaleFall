@@ -20,6 +20,12 @@ related:
 
 本目录定义前端/UI 的强约束标准, 目标是交互一致, 样式可复用, 可审查, 可门禁.
 
+## 视觉 SSOT
+
+- `DESIGN.md` 是视觉系统单一真源, 负责界面气质、密度、配色、动效与组件视觉口径.
+- 本目录只保留结构契约、可访问性、安全、数据 hook、分层、门禁与实现载体规则.
+- 若本文档树中的旧审美描述与 `DESIGN.md` 冲突, 以根目录 `DESIGN.md` 为准, 并优先移除旧描述.
+
 ## 关键入口(少量)
 
 - [[standards/ui/design/performance|前端性能标准(SSR + Progressive Enhancement)]]
