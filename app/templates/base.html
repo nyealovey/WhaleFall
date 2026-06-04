@@ -129,9 +129,17 @@
                        href="{{ url_for('capacity_databases.list_databases') }}">
                         <i class="fas fa-chart-line" aria-hidden="true"></i><span>数据库容量</span>
                     </a>
-                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint in ['instances.statistics', 'accounts_statistics.statistics', 'databases_statistics.statistics'] else '' }}"
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'instances.statistics' else '' }}"
                        href="{{ url_for('instances.statistics') }}">
-                        <i class="fas fa-chart-column" aria-hidden="true"></i><span>统计洞察</span>
+                        <i class="fas fa-chart-column" aria-hidden="true"></i><span>实例统计</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'accounts_statistics.statistics' else '' }}"
+                       href="{{ url_for('accounts_statistics.statistics') }}">
+                        <i class="fas fa-users" aria-hidden="true"></i><span>账户统计</span>
+                    </a>
+                    <a class="app-sidebar__link {{ 'is-active' if active_endpoint == 'databases_ledgers.statistics' else '' }}"
+                       href="{{ url_for('databases_ledgers.statistics') }}">
+                        <i class="fas fa-database" aria-hidden="true"></i><span>数据库统计</span>
                     </a>
                 </section>
 
