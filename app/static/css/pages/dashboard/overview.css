@@ -99,7 +99,7 @@
 
 .wf-progress .progress-bar {
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--signal-orange-500), var(--signal-cyan-500));
+    background: var(--accent-primary);
     width: 0;
 }
 

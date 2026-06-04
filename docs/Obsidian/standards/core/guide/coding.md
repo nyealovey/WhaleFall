@@ -66,7 +66,7 @@ related:
 ### 5) 前端与样式（以 UI 标准为准）
 
 - SHOULD：UI 相关细则以 [[standards/ui/README|UI 标准索引]] 为准(本文件不重复维护 UI 细粒度约束)。
-- SHOULD: 色彩优先使用 design token/CSS variables, 参考 [[standards/ui/gate/design-token-governance|设计 Token 治理]].
+- SHOULD: 视觉口径以根目录 `DESIGN.md` 为准；CSS token 生命周期参考 [[standards/ui/gate/design-token-governance|Design Token Governance]].
 
 ### 6) 测试（当前仓库基线）
 

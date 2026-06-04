@@ -234,17 +234,30 @@ def _check_instances_detail_no_legacy_instance_stat_card() -> None:
         _fail(f"{rel_path} 仍包含私有指标卡样式 token: {', '.join(hits)}")
 
 
-def _check_auth_login_css_no_gradient_background() -> None:
+def _check_first_party_css_no_legacy_visual_tokens() -> None:
     repo_root = _repo_root()
-    rel_path = "app/static/css/pages/auth/login.css"
-    css_text = (repo_root / rel_path).read_text(encoding="utf-8", errors="ignore")
     forbidden_tokens = [
         "radial-gradient(",
         "linear-gradient(",
+        "--gradient-",
+        "var(--gradient",
+        "border-radius-xl",
+        "border-radius-xxl",
+        "shadow-lg",
+        "shadow-xl",
     ]
-    hits = [token for token in forbidden_tokens if token in css_text]
-    if hits:
-        _fail(f"{rel_path} 禁止使用渐变背景 token: {', '.join(hits)}")
+    offenders: list[str] = []
+    for path in sorted((repo_root / "app/static/css").rglob("*.css")):
+        if "vendor" in path.parts:
+            continue
+        rel_path = path.relative_to(repo_root).as_posix()
+        css_text = path.read_text(encoding="utf-8", errors="ignore")
+        for token in forbidden_tokens:
+            if token in css_text:
+                offenders.append(f"- {rel_path}: {token}")
+
+    if offenders:
+        _fail("一方 CSS 禁止恢复旧视觉 token:\n" + "\n".join(offenders[:80]))
 
 
 def _check_templates_no_fixed_component_ids() -> None:
@@ -437,7 +450,7 @@ def main() -> int:
     checks = [
         _check_no_hardcoded_hex_colors_in_project_js,
         _check_instances_detail_no_legacy_instance_stat_card,
-        _check_auth_login_css_no_gradient_background,
+        _check_first_party_css_no_legacy_visual_tokens,
         _check_templates_no_fixed_component_ids,
         _check_no_direct_gridjs_grid_in_views_modules,
     ]

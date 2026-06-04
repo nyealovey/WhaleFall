@@ -37,26 +37,41 @@ def test_legacy_ui_docs_delegate_visual_rules_to_design_doc() -> None:
     metric_doc = _read_text("docs/Obsidian/standards/ui/design/metric-card.md")
     color_doc = _read_text("docs/Obsidian/standards/ui/guide/color.md")
 
-    assert "`DESIGN.md` 是视觉系统单一真源" in ui_readme
+    assert "根目录 `DESIGN.md` 是视觉系统单一真源" in ui_readme
     assert "视觉口径以根目录 `DESIGN.md` 为准" in metric_doc
     assert "border/shadow/padding/typography" not in metric_doc
+    assert "Semantic Color Contract" in color_doc
+    assert "Visual palette and color roles are defined by root `DESIGN.md`." in color_doc
     assert "色彩 2-3-4 规则" not in color_doc
-    assert "配色口径以根目录 `DESIGN.md` 为准" in color_doc
 
 
 def test_dense_density_tokens_and_global_shell_are_available() -> None:
     variables = _read_text("app/static/css/variables.css")
     global_css = _read_text("app/static/css/global.css")
     table_css = _read_text("app/static/css/components/table.css")
+    base_template = _read_text("app/templates/base.html")
 
     assert "--control-height-dense:" in variables
     assert "--control-padding-y-dense:" in variables
+    assert "--control-height-compact:" not in variables
+    assert "--control-height-regular:" not in variables
     assert "--page-spacing-dense:" in variables
+    assert "--page-spacing-regular:" not in variables
     assert "--metric-card-min-height: 6.25rem;" in variables
     assert "--layout-max-width-wide: 1920px;" in variables
+    assert "--gradient-" not in variables
+    assert "--shadow-lg:" not in variables
+    assert "--shadow-xl:" not in variables
+    assert "--border-radius-xl:" not in variables
+    assert "--border-radius-xxl:" not in variables
     assert 'font-variant-numeric: tabular-nums;' in global_css
-    assert '.main-content[data-density="dense"]' in global_css
-    assert '.main-content[data-density="dense"]' in table_css
+    assert "page_density|default('dense')" in base_template
+    assert '.main-content[data-density="compact"]' not in global_css
+    assert '.main-content[data-density="compact"]' not in table_css
+    assert '[data-density="dense"] .page-section + .page-section' in global_css
+    assert '.main-content[data-density="dense"]' not in table_css
+    assert ".main-content {" in table_css
+    assert "--table-font-size: 11px;" in table_css
 
 
 def test_sample_pages_opt_into_dense_without_changing_data_hooks() -> None:
@@ -79,32 +94,35 @@ def test_sample_pages_opt_into_dense_without_changing_data_hooks() -> None:
 def test_all_web_pages_follow_dense_console_density() -> None:
     missing_density = []
     compact_density = []
+    regular_density = []
     for path in _iter_base_templates():
         content = path.read_text(encoding="utf-8")
         if "{% set page_density = 'compact' %}" in content:
             compact_density.append(_relative(path))
+        if "{% set page_density = 'regular' %}" in content:
+            regular_density.append(_relative(path))
         if "{% set page_density = 'dense' %}" not in content:
             missing_density.append(_relative(path))
 
     assert compact_density == []
+    assert regular_density == []
     assert missing_density == []
 
 
 def test_dense_console_removes_intro_header_copy() -> None:
     base_template = _read_text("app/templates/base.html")
-    page_header_macro = _read_text("app/templates/components/ui/page_header.html")
     global_css = _read_text("app/static/css/global.css")
+    page_header_macro = ROOT_DIR / "app/templates/components/ui/page_header.html"
 
+    assert not page_header_macro.exists()
     assert "WhaleFall Operations" not in base_template
     assert "数据库资源与同步管理平台" not in base_template
     assert "app-topbar__identity" not in base_template
-    assert "page-header__content" not in page_header_macro
-    assert "page-header__eyebrow" not in page_header_macro
-    assert "<h1>{{ title }}</h1>" not in page_header_macro
-    assert "page-header__actions" in page_header_macro
+    assert "components/ui/page_header.html" not in base_template
     assert "app-topbar__identity" not in global_css
     assert "app-topbar__eyebrow" not in global_css
     assert "app-topbar__title" not in global_css
+    assert "page-header" not in global_css
     assert "page-header__content" not in global_css
     assert "page-header__icon" not in global_css
     assert "page-header__eyebrow" not in global_css
@@ -115,8 +133,38 @@ def test_web_pages_remove_legacy_direct_page_header_calls() -> None:
     offenders = []
     for path in _iter_base_templates():
         content = path.read_text(encoding="utf-8")
-        if "{{ page_header(" in content:
-            offenders.append(_relative(path))
+        forbidden_tokens = [
+            "components/ui/page_header.html",
+            "page_header(",
+            "call page_header",
+            "page-header",
+        ]
+        hits = [token for token in forbidden_tokens if token in content]
+        if hits:
+            offenders.append(f"{_relative(path)}: {', '.join(hits)}")
+
+    assert offenders == []
+
+
+def test_runtime_css_removes_legacy_visual_tokens() -> None:
+    forbidden_tokens = (
+        "radial-gradient(",
+        "linear-gradient(",
+        "--gradient-",
+        "var(--gradient",
+        "border-radius-xl",
+        "border-radius-xxl",
+        "shadow-lg",
+        "shadow-xl",
+    )
+    offenders = []
+    for path in sorted((ROOT_DIR / "app/static/css").rglob("*.css")):
+        if "vendor" in path.parts:
+            continue
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        hits = [token for token in forbidden_tokens if token in content]
+        if hits:
+            offenders.append(f"{_relative(path)}: {', '.join(hits)}")
 
     assert offenders == []
 

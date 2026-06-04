@@ -83,7 +83,7 @@ def test_instance_detail_filter_bands_use_shared_filter_band_semantics() -> None
 
 @pytest.mark.unit
 def test_filter_docs_use_width_preset_language() -> None:
-    standards_content = _read_text("docs/Obsidian/standards/ui/guide/color.md")
+    standards_content = _read_text("docs/Obsidian/standards/ui/gate/layout-sizing.md")
     prompt_content = _read_text("docs/prompts/frontend.md")
 
     for content in (standards_content, prompt_content):

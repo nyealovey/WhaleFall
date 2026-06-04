@@ -65,7 +65,7 @@
 .batch-selection-card {
     background-color: var(--surface-elevated);
     border: 1px solid color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
@@ -188,7 +188,7 @@
 
 .batch-summary-card {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     padding: var(--spacing-lg);
     background-color: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
@@ -252,7 +252,7 @@
 
 .batch-progress-card {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
     background-color: var(--surface-elevated);
     box-shadow: var(--shadow-sm);

@@ -9,17 +9,20 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/risk-center.css') }}">
 {% endblock %}
 
-{% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block content_outer %}
-{% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息', eyebrow='System Overview') %}
-<div class="btn-group">
-    <button type="button" class="btn btn-primary" data-action="refresh-dashboard">
-        <i class="fas fa-sync-alt me-2"></i>刷新数据
-    </button>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" data-action="refresh-dashboard">
+                    <i class="fas fa-sync-alt me-2"></i>刷新数据
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 <section class="page-section">
     <div class="layout-shell">

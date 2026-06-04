@@ -68,7 +68,7 @@
 
 .session-detail-card {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     background-color: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
     padding: var(--spacing-md);
@@ -160,7 +160,7 @@
 
 .session-detail-panel {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     background-color: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
 }

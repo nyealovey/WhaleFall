@@ -161,7 +161,7 @@
     }
 
     container.dataset.seriesCount = String(datasets.length);
-    container.dataset.density = datasets.length >= 12 ? "compact" : "default";
+    container.dataset.density = datasets.length >= 12 ? "dense" : "default";
 
     const fragment = document.createDocumentFragment();
     datasets.forEach((dataset, index) => {

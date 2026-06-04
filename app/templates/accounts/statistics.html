@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'AccountsStatisticsPage' %}
 {% set page_density = 'dense' %}
-{% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}账户统计 - 鲸落{% endblock %}
@@ -22,16 +21,20 @@
 {% set normal_per_instance = (normal_accounts / total_instances) if total_instances else 0 %}
 {% set locked_per_instance = (locked_accounts / total_instances) if total_instances else 0 %}
 <div class="console-stats-page">
-{% call page_header('fas fa-chart-bar', '账户统计', '概览账户规模、分类与数据库类型分布', eyebrow='Account Insights') %}
-<div class="page-header-actions d-flex gap-2 flex-wrap console-command-deck">
-    <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-list me-2"></i>账户列表
-    </a>
-    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新统计">
-        <i class="fas fa-sync-alt"></i>
-    </button>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list me-2"></i>账户列表
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新统计">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 	<section class="page-section page-section--stacked console-context-strip">
 	    <div class="layout-shell">

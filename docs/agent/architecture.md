@@ -114,6 +114,7 @@ def example_view() -> Response:
 
 ## 前端：Grid.js 列表页
 
+- 视觉系统：根目录 `DESIGN.md`
 - Grid 封装：`app/static/js/common/grid-wrapper.js`（`GridWrapper`）
 - 列表页骨架：`window.Views.GridPage.mount(...)`（收敛 wiring）
 - 分页参数：`page`（从 1 开始）与 `limit`

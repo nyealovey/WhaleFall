@@ -2,8 +2,6 @@
 {% set page_id = 'TagsBatchAssignPage' %}
 {% set page_density = 'dense' %}
 
-{% from 'components/ui/page_header.html' import page_header %}
-
 {% block title %}批量分配标签 - 鲸落{% endblock %}
 
 {% block extra_css %}
@@ -12,13 +10,17 @@
 
 {% block content_outer %}
 <div class="console-workbench-page">
-{% call page_header('fas fa-tasks', '批量分配标签', '批量管理数据库实例的标签分配', eyebrow='Batch Tagging') %}
-<div class="btn-group console-command-deck">
-    <a href="{{ url_for('tags.index') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-2"></i>返回标签管理
-    </a>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <a href="{{ url_for('tags.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>返回标签管理
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 <section class="page-section">
     <div class="layout-shell">

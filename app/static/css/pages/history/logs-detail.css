@@ -2,7 +2,7 @@
 
 .log-detail-modal .modal-content {
     border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-sm);
 }
 
 .log-detail-modal .modal-header {
@@ -30,7 +30,7 @@
 
 .log-detail__header {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     padding: var(--spacing-lg);
     background-color: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
@@ -54,7 +54,7 @@
 
 .log-detail-panel {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     background-color: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
 }

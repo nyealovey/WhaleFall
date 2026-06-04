@@ -54,13 +54,14 @@ related:
 
 ### C. 前端/UI(如涉及)
 
+- [ ] 视觉系统遵循根目录 `DESIGN.md`，不新增旧 page header、regular/compact 密度或页面私有视觉体系
 - [ ] modules 分层(services/stores/views/ui)遵循:
   - [[standards/ui/guide/layer/README]]
   - [[standards/ui/design/javascript-module]]
 - [ ] Grid 列表页: [[standards/ui/gate/grid]]
 - [ ] 危险操作二次确认: [[standards/ui/gate/danger-operation-confirmation]]
 - [ ] 异步任务反馈: [[standards/ui/guide/async-task-feedback]]
-- [ ] 设计 Token 与颜色治理: [[standards/ui/gate/design-token-governance]] / [[standards/ui/guide/color]]
+- [ ] 设计 Token 与语义色治理: [[standards/ui/gate/design-token-governance]] / [[standards/ui/guide/color]]
 
 ### D. 文档与变更记录
 

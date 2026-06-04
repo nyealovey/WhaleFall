@@ -2,7 +2,7 @@
 .about-page {
     max-width: var(--layout-max-width);
     margin: 0 auto;
-    padding: var(--page-spacing-regular);
+    padding: var(--page-spacing-dense);
 }
 
 .about-identity-card,

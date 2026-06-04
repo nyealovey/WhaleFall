@@ -17,7 +17,7 @@
     inset: 0 auto 0 0;
     width: 0.18rem;
     border-radius: var(--border-radius-md) 0 0 var(--border-radius-md);
-    background: linear-gradient(180deg, var(--accent-primary), rgba(184, 92, 30, 0.08));
+    background: var(--accent-primary);
 }
 
 .filter-card .card-body {

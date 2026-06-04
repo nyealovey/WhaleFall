@@ -66,11 +66,11 @@
 - 基于角色的访问控制（RBAC）
 - 全链路审计日志
 
-### 🎨 现代化前端
-- 基于 Bootstrap 5 的响应式界面
-- Grid.js 统一表格组件
-- 实时数据更新
-- 友好的用户交互体验
+### 运维控制台前端
+- 视觉系统以根目录 `DESIGN.md` 为单一真源
+- Flask + Jinja + Bootstrap 5 + Grid.js
+- 高密度 DBA cockpit 信息布局
+- 统一筛选、表格、异步任务反馈与语义状态组件
 
 更多模块拆解参见 [docs/Obsidian/architecture/project-structure.md](docs/Obsidian/architecture/project-structure.md)。
 
@@ -92,6 +92,7 @@
 - **表格组件**: Grid.js
 - **选择器**: Tom Select
 - **图标**: Font Awesome
+- **视觉系统**: `DESIGN.md`
 
 ### 数据库驱动
 - **PostgreSQL**: psycopg 3.2+

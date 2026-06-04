@@ -133,8 +133,4 @@
         width: 100%;
     }
 
-    .page-header .btn-group {
-        width: 100%;
-        justify-content: stretch;
-    }
 }

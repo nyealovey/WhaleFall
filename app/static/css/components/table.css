@@ -1,39 +1,6 @@
 /* Grid.js / Bootstrap table density */
 
 .main-content {
-    --table-font-size: 13px;
-    --table-head-padding-y: 10px;
-    --table-head-padding-x: 14px;
-    --table-cell-padding-y: 8px;
-    --table-cell-padding-x: 14px;
-    --table-action-btn-font-size: 12px;
-    --table-action-btn-padding-y: 4px;
-    --table-action-btn-padding-x: 8px;
-    --table-action-btn-min-width: 32px;
-    --table-action-btn-height: 30px;
-    --table-pagination-btn-font-size: 13px;
-    --table-pagination-btn-padding-y: 4px;
-    --table-pagination-btn-padding-x: 10px;
-    --table-pagination-btn-min-width: 32px;
-    --table-pagination-btn-height: 34px;
-}
-
-.main-content[data-density="compact"] {
-    --table-font-size: 12px;
-    --table-head-padding-y: 8px;
-    --table-head-padding-x: 12px;
-    --table-cell-padding-y: 6px;
-    --table-cell-padding-x: 12px;
-    --table-action-btn-font-size: 11px;
-    --table-action-btn-padding-y: 3px;
-    --table-action-btn-padding-x: 8px;
-    --table-pagination-btn-font-size: 12px;
-    --table-pagination-btn-padding-y: 3px;
-    --table-pagination-btn-padding-x: 10px;
-    --table-pagination-btn-height: 31px;
-}
-
-.main-content[data-density="dense"] {
     --table-font-size: 11px;
     --table-head-padding-y: 6px;
     --table-head-padding-x: 9px;

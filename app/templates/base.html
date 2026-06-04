@@ -228,7 +228,7 @@
             </header>
 
             <main class="app-content" id="main-content" tabindex="-1">
-                <div class="main-content app-content__inner" data-density="{{ page_density|default('regular') }}">
+                <div class="main-content app-content__inner" data-density="{{ page_density|default('dense') }}">
                     <div class="layout-shell">
                         <div class="layout-shell-inner">
                             {% with messages = get_flashed_messages(with_categories=true) %}

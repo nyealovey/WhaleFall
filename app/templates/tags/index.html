@@ -2,7 +2,6 @@
 {% set page_id = 'TagsIndexPage' %}
 {% set page_density = 'dense' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, tag_category_filter, status_active_filter %}
-{% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}标签管理 - 鲸落{% endblock %}
@@ -16,16 +15,20 @@
 <div id="tags-page-root">
 {% set tag_desc = '管理数据库实例的标签信息' if current_user.role == 'admin' else '查看数据库实例的标签信息（只读模式）' %}
 {% if current_user.role == 'admin' %}
-{% call page_header('fas fa-tags', '标签管理', tag_desc, eyebrow='Tag Registry') %}
-<div class="btn-group">
-    <button class="btn btn-primary" type="button" data-action="create-tag">
-        <i class="fas fa-plus me-2"></i>添加标签
-    </button>
-    <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-tasks me-2"></i>批量分配
-    </a>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <button class="btn btn-primary" type="button" data-action="create-tag">
+                    <i class="fas fa-plus me-2"></i>添加标签
+                </button>
+                <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-tasks me-2"></i>批量分配
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 {% endif %}
 
 {% set stats = tag_stats or {'total': 0, 'active': 0, 'inactive': 0, 'category_count': 0} %}

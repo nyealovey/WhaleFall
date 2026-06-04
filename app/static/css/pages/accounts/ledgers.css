@@ -1,11 +1,5 @@
 /* 账户列表页面特定样式 */
 
-/* 工具栏与按钮 */
-.page-header .btn-group .btn {
-    min-width: 7rem;
-    font-weight: 600;
-}
-
 .accounts-grid-stage .card-body {
     padding: 0.68rem;
 }

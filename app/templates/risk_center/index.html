@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/risk-center.css') }}">
 {% endblock %}
 
-{% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% macro render_db_type_icon(card) -%}
@@ -84,13 +83,17 @@
 {%- endmacro %}
 
 {% block content_outer %}
-{% call page_header('fas fa-heart-pulse', '风险中心', '以实例健康卡片快速查看备份、审计与托管状态', eyebrow='DBA Risk Board') %}
-<div class="btn-group">
-    <button type="button" class="btn btn-primary" data-action="refresh-risk-center">
-        <i class="fas fa-sync-alt me-2"></i>刷新
-    </button>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" data-action="refresh-risk-center">
+                    <i class="fas fa-sync-alt me-2"></i>刷新
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 <section class="page-section risk-center-page" data-risk-center-root data-db-type-map='{{ database_type_map | tojson | safe }}'>
     <div class="layout-shell">

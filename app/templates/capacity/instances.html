@@ -4,7 +4,6 @@
 {% set filter_scope = 'instance-aggregations-filter-form' %}
 {% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, period_type_filter %}
 {% from 'components/ui/macros.html' import metric_card %}
-{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}容量统计(实例) - 数据库大小监控{% endblock %}
 
@@ -14,16 +13,20 @@
 
 {% block content_outer %}
 <div class="capacity-page capacity-instances console-stats-page">
-{% call page_header('fas fa-chart-pie', '容量统计(实例)', '按实例维度统计数据库容量大小分析', eyebrow='Instance Capacity') %}
-<div class="btn-group capacity-actions console-command-deck">
-    <button class="btn btn-outline-secondary" id="refreshData">
-        <i class="fas fa-sync-alt me-1"></i>刷新数据
-    </button>
-    <button class="btn btn-primary" id="calculateAggregations">
-        <i class="fas fa-calculator me-1"></i>统计当前周期
-    </button>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group capacity-actions">
+                <button class="btn btn-outline-secondary" id="refreshData">
+                    <i class="fas fa-sync-alt me-1"></i>刷新数据
+                </button>
+                <button class="btn btn-primary" id="calculateAggregations">
+                    <i class="fas fa-calculator me-1"></i>统计当前周期
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 <section class="page-section">
     <div class="layout-shell">

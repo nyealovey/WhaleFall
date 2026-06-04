@@ -2,7 +2,6 @@
 {% set page_id = 'AccountChangeLogsPage' %}
 {% set page_density = 'dense' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, db_type_filter, time_range_filter, select_filter %}
-{% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}账户变更历史 - 鲸落{% endblock %}
@@ -15,9 +14,6 @@
 
 {% block content_outer %}
 <div id="account-change-logs-page-root" class="console-list-page">
-{% call page_header('fas fa-history', '账户变更历史', '集中查看账号新增、权限变更与属性变更记录', eyebrow='Change Audit') %}
-<div class="console-command-deck"></div>
-{% endcall %}
 
 	<section class="page-section">
 	    <div class="layout-shell">

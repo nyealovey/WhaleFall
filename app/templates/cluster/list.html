@@ -2,7 +2,6 @@
 {% set page_id = 'ClusterPage' %}
 {% set page_density = 'dense' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, status_active_filter %}
-{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}群集管理 - 鲸落{% endblock %}
 
@@ -21,13 +20,17 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 {% if current_user.role == 'admin' %}
-{% call page_header('fas fa-layer-group', '群集管理', '维护 SQL Server 群集、实例绑定与 AG 采集目标', eyebrow='SQL Server Cluster') %}
-<div class="btn-group">
-    <button class="btn btn-primary" type="button" data-action="create-cluster">
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <button class="btn btn-primary" type="button" data-action="create-cluster">
                     <i class="fas fa-plus me-2"></i>添加群集
-    </button>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 {% endif %}
 
 <section class="page-section page-section--stacked">

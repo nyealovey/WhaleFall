@@ -3,7 +3,6 @@
 {% set page_density = 'dense' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, log_level_filter, module_filter, time_range_filter %}
 {% from 'components/ui/macros.html' import metric_card %}
-{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}日志中心{% endblock %}
 
@@ -15,9 +14,6 @@
 
 {% block content_outer %}
 <div id="logs-page-root" class="console-list-page">
-{% call page_header('fas fa-chart-line', '日志中心', '查看系统日志和操作记录', eyebrow='Log Monitoring') %}
-<div class="console-command-deck"></div>
-{% endcall %}
 
 <section class="page-section">
     <div class="layout-shell">

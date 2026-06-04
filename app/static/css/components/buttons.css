@@ -68,7 +68,7 @@
     --bs-btn-disabled-color: rgba(255, 248, 241, 0.92);
     --bs-btn-disabled-bg: rgba(221, 107, 32, 0.48);
     --bs-btn-disabled-border-color: transparent;
-    background-image: var(--gradient-primary);
+    background-color: var(--accent-primary);
     box-shadow: 0 8px 18px rgba(184, 92, 30, 0.16);
 }
 

@@ -2,8 +2,6 @@
 {% set page_id = 'AccountClassificationPage' %}
 {% set page_density = 'dense' %}
 
-{% from 'components/ui/page_header.html' import page_header %}
-
 {% block title %}账户分类管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
@@ -14,15 +12,19 @@
 
 {% block content_outer %}
 {% set classification_desc = '管理账户分类和规则，包括增删改查和自动分类' if current_user.role == 'admin' else '查看账户分类和规则信息（只读模式）' %}
-{% call page_header('fas fa-tags', '账户分类管理', classification_desc, eyebrow='Classification Registry') %}
-<div class="btn-group">
-    {% if current_user.role == 'admin' %}
-    <button class="btn btn-outline-secondary" type="button" data-action="auto-classify-all">
-        <i class="fas fa-magic me-2"></i>自动分类
-    </button>
-    {% endif %}
+{% if current_user.role == 'admin' %}
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary" type="button" data-action="auto-classify-all">
+                    <i class="fas fa-magic me-2"></i>自动分类
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
+{% endif %}
 
 <section class="page-section page-section--stacked">
     <div class="layout-shell">

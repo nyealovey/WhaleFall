@@ -1,4 +1,4 @@
-"""容量统计共享图例紧凑样式契约测试."""
+"""容量统计共享图例密集样式契约测试."""
 
 from pathlib import Path
 
@@ -16,7 +16,7 @@ def test_capacity_chart_legend_css_supports_dense_scrollable_interactive_layout(
         ".capacity-chart-panel__legend {",
         "max-height:",
         "overflow-y: auto",
-        '.capacity-chart-panel__legend[data-density="compact"] {',
+        '.capacity-chart-panel__legend[data-density="dense"] {',
         ".capacity-chart-legend__item {",
         "cursor: pointer",
         ".capacity-chart-legend__item--muted {",
@@ -32,7 +32,7 @@ def test_capacity_chart_renderer_marks_dense_legends_and_clickable_items() -> No
 
     required_fragments = (
         "container.dataset.seriesCount = String(datasets.length);",
-        'container.dataset.density = datasets.length >= 12 ? "compact" : "default";',
+        'container.dataset.density = datasets.length >= 12 ? "dense" : "default";',
         'item.type = "button";',
         'item.className = "capacity-chart-legend__item";',
         'item.setAttribute("aria-pressed",',

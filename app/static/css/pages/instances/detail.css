@@ -8,19 +8,7 @@
     flex-direction: column;
     gap: 1.2rem;
     padding: 1.35rem;
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 236, 0.95) 100%);
-}
-
-.basic-info-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 10% 12%, rgba(44, 150, 198, 0.12) 0, transparent 28%),
-        radial-gradient(circle at 88% 10%, rgba(221, 107, 32, 0.08) 0, transparent 26%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 84%);
-    pointer-events: none;
+    background: var(--surface-panel-raised);
 }
 
 .basic-info-card::after {
@@ -31,7 +19,7 @@
     width: 4.6rem;
     height: 0.22rem;
     border-radius: var(--border-radius-pill);
-    background: linear-gradient(90deg, var(--status-info), rgba(44, 150, 198, 0));
+    background: var(--status-info);
 }
 
 .basic-info-card > * {
@@ -60,8 +48,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--status-info) 12%, white));
+    background: color-mix(in srgb, var(--status-info) 10%, var(--surface-panel-raised));
     border: 1px solid rgba(44, 150, 198, 0.16);
     box-shadow: 0 16px 32px rgba(44, 150, 198, 0.14);
     color: var(--status-info);
@@ -271,8 +258,7 @@
 
 .instance-data-card .card-header {
     padding: 1rem 1.1rem 0;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 239, 230, 0.58) 100%);
+    background: var(--surface-panel-strong);
 }
 
 .instance-data-panel {
@@ -353,21 +339,9 @@
     gap: 0.95rem;
     padding: 1.1rem 1.15rem;
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-xl);
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 236, 0.94) 100%);
+    border-radius: var(--border-radius-md);
+    background: var(--surface-panel-raised);
     box-shadow: var(--shadow-sm);
-}
-
-.instance-overview-band::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 12% 14%, color-mix(in srgb, var(--instance-overview-accent) 18%, transparent) 0, transparent 28%),
-        radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.88) 0, transparent 30%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 84%);
-    pointer-events: none;
 }
 
 .instance-overview-band::after {
@@ -378,7 +352,7 @@
     width: 3.8rem;
     height: 0.18rem;
     border-radius: var(--border-radius-pill);
-    background: linear-gradient(90deg, var(--instance-overview-accent), rgba(255, 255, 255, 0));
+    background: var(--instance-overview-accent);
 }
 
 .instance-overview-band > * {
@@ -563,9 +537,8 @@
     align-items: center;
     padding: 1.25rem 1.35rem;
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    border-radius: var(--border-radius-xl);
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 236, 0.94) 100%);
+    border-radius: var(--border-radius-md);
+    background: var(--surface-panel-raised);
     box-shadow: var(--shadow-sm);
 }
 
@@ -633,7 +606,7 @@
     gap: 0.85rem;
     padding: 1rem 1.05rem;
     border: 1px solid rgba(22, 29, 38, 0.06);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--border-radius-md);
     background: rgba(255, 255, 255, 0.82);
 }
 

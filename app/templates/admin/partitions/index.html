@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'AdminPartitionsPage' %}
 {% set page_density = 'dense' %}
-{% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}分区管理 - 管理中心{% endblock %}
@@ -14,16 +13,20 @@
 
 {% block content_outer %}
 <div id="admin-partitions-page-root" class="console-stats-page">
-{% call page_header('fas fa-layer-group', '分区管理', '创建新分区、清理旧分区，并查看核心指标', eyebrow='Partition Operations') %}
-<div class="btn-group console-command-deck">
-    <button type="button" class="btn btn-primary" id="createPartitionBtn">
-        <i class="fas fa-plus me-1"></i>创建分区
-    </button>
-    <button type="button" class="btn btn-outline-secondary" id="cleanupPartitionsBtn">
-        <i class="fas fa-trash me-1"></i>清理旧分区
-    </button>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="createPartitionBtn">
+                    <i class="fas fa-plus me-1"></i>创建分区
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="cleanupPartitionsBtn">
+                    <i class="fas fa-trash me-1"></i>清理旧分区
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 	<section class="page-section page-section--stacked console-context-strip">
 	    <div class="layout-shell">

@@ -2,7 +2,6 @@
 {% set page_id = 'AccountsListPage' %}
 {% set page_density = 'dense' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, classification_filter, ad_status_filter, tag_selector_filter %}
-{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}账户台账 - 鲸落{% endblock %}
 
@@ -13,16 +12,20 @@
 {% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-users', '账户台账', '集中查看数据库账户与实例归属', eyebrow='Account Ledger') %}
-<div class="btn-group console-command-deck">
-    <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
-        <i class="fas fa-chart-bar me-2"></i>账户统计
-    </a>
-    <button type="button" class="btn btn-primary" data-action="sync-all-accounts">
-        <i class="fas fa-sync me-2"></i>同步所有账户
-    </button>
+<div class="layout-shell layout-shell--wide">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-bar me-2"></i>账户统计
+                </a>
+                <button type="button" class="btn btn-primary" data-action="sync-all-accounts">
+                    <i class="fas fa-sync me-2"></i>同步所有账户
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 <div id="accounts-page-root"
      class="console-list-page"

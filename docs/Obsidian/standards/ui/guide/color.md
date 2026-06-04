@@ -1,5 +1,5 @@
 ---
-title: 界面色彩与视觉疲劳控制
+title: Semantic Color Contract
 aliases:
   - color-guidelines
 tags:
@@ -8,84 +8,31 @@ tags:
 status: active
 enforcement: guide
 created: 2025-12-02
-updated: 2026-01-25
+updated: 2026-06-04
 owner: WhaleFall Team
-scope: 所有管理页面(表格/卡片/详情弹窗/筛选区/标签与状态展示)
+scope: "`app/static/css/**`, `app/templates/**`, `app/static/js/**`"
 related:
+  - "[[standards/ui/README]]"
   - "[[standards/ui/gate/design-token-governance]]"
-  - "[[standards/ui/gate/button-hierarchy]]"
-  - "[[standards/ui/gate/danger-operation-confirmation]]"
 ---
 
-# 界面色彩与视觉疲劳控制
+# Semantic Color Contract
 
-## 目的
+## SSOT
 
-- 控制单屏色彩数量与饱和度，降低“信息噪声”造成的视觉疲劳。
-- 强化语义映射：同一语义状态绑定固定 token/组件，避免页面自定义样式。
-- 通过组件化（pill/chip）承载色彩，而不是靠页面随意上色。
-- 配色口径以根目录 `DESIGN.md` 为准；本文只保留 token 来源与语义使用边界。
+- Visual palette and color roles are defined by root `DESIGN.md`.
+- This document only preserves semantic usage boundaries and checks.
 
-## 适用范围
+## Rules
 
-- 全站 CSS：`app/static/css/**`
-- Token 定义：`app/static/css/variables.css`
-- 组件样式：`app/static/css/components/**`
-- 模板与页面：`app/templates/**`
+- MUST: First-party CSS uses tokens from `app/static/css/variables.css`; do not hardcode new HEX/RGB/RGBA outside token definitions.
+- MUST: `Signal Copper` is the only decorative accent. Status colors are semantic only: healthy, warning, danger, informational.
+- MUST NOT: Restore purple/neon gradients, decorative gradients, page-private color systems, or high-saturation badge variants.
+- SHOULD: Status information uses `status-pill`; lightweight metadata uses `chip-outline` or existing ledger chip stacks.
+- SHOULD: New visual changes first check `DESIGN.md`, then add or adjust tokens only when a reusable role is missing.
 
-## 规则（MUST/SHOULD/MAY）
+## Checks
 
-### 1) Token 与颜色来源
-
-- MUST：色彩统一由 Token 输出；除 `app/static/css/variables.css` 中用于定义 Token 的颜色字面量外，其余 CSS/HTML/JS 禁止硬编码 HEX/RGB/RGBA。
-- MUST：新增颜色必须先在 `variables.css` 定义 Token，并在评审中说明“原因 + 退场机制”。
-- SHOULD：优先通过组件 class（`status-pill`、`chip-outline`、`ledger-chip` 等）承载色彩，而不是页面级别自定义。
-
-### 2) 视觉 SSOT
-
-- SHOULD：新增或调整配色前先检查根目录 `DESIGN.md`，避免恢复旧主题或页面私有调色。
-- SHOULD：语义色只用于对应状态，装饰性强调应使用 `DESIGN.md` 指定的主 accent。
-
-### 3) 组件级约束
-
-- MUST：状态类信息使用 `status-pill`（变体 `success|info|warning|danger|muted`），禁止叠加高饱和 `badge bg-*` 作为状态载体。
-- MUST：类型/分类/轻量标签使用 `chip-outline` 体系，避免页面自建“彩色标签块”。
-- SHOULD：多标签或上下文元数据使用 `ledger-chip-stack`（展示全部，超出用 `+N`），避免一屏出现大量彩色块。
-
-### 4) 按钮与危险语义
-
-- MUST：触发层面的危险操作按钮优先使用 `btn-outline-danger` 或危险图标按钮(详见 [[standards/ui/gate/button-hierarchy|按钮层级与状态]])。
-- MUST：危险操作的“最终确认”按钮使用 `btn-danger`(详见 [[standards/ui/gate/danger-operation-confirmation|高风险操作二次确认]])。
-
-### 5) 筛选区（FilterCard）约束
-
-- MUST：所有 `filter_card` 渲染的搜索/下拉控件必须使用共享 `width_preset` 语义宽度，禁止回退到 `col-md-*` 栅格或模板内写死宽度。
-- SHOULD：需要桌面端单行稳定展示的筛选区显式使用 `layout='nowrap-desktop'`，其余页面默认使用 `layout='wrap'`。
-- SHOULD：详情页内嵌的带状筛选条应复用共享 `filter-band` 语义与宽度 token，禁止在页面 CSS 内另起一套近似实现。
-
-## 正反例
-
-### 正例：用组件承载语义色
-
-- 状态：`status-pill status-pill--success`
-- 标签：`chip-outline chip-outline--muted`
-
-### 反例：页面硬编码颜色
-
-- 在模板/CSS 里直接写 `#ff5a00`、`rgb(255, 90, 0)` 等。
-
-
-## 门禁/检查方式
-
-- Token 未定义门禁：`./scripts/ci/css-token-guard.sh`
-- JS 硬编码 HEX 颜色门禁（espree AST）：`./scripts/ci/ui-standards-audit-guard.sh`
-- 组件样式漂移门禁（按需）：`./scripts/ci/component-style-drift-guard.sh`
-- 人工评审检查：
-  - 是否出现硬编码颜色（HEX/RGB/RGBA）？
-  - 是否新增了不在组件体系内的“彩色标签/徽章”？
-  - 是否在单屏引入过多语义色？
-
-## 变更历史
-
-- 2025-12-25：按 `documentation-standards.md` 重写为标准结构，修正与仓库约束不一致的筛选栅格规则，补齐案例入口与门禁说明。
-- 2026-01-08: 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter.
+- `./scripts/ci/css-token-guard.sh`
+- `./scripts/ci/ui-standards-audit-guard.sh`
+- `./scripts/ci/component-style-drift-guard.sh`

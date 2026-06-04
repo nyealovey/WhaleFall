@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'InstanceStatisticsPage' %}
 {% set page_density = 'dense' %}
-{% from 'components/ui/page_header.html' import page_header %}
 {% from 'components/ui/macros.html' import metric_card %}
 
 {% block title %}实例统计 - 鲸落{% endblock %}
@@ -23,16 +22,20 @@
 {% set managed_rate = (managed_instances / current_instances * 100) if current_instances else 0 %}
 {% set backed_up_rate = (backed_up_instances / current_instances * 100) if current_instances else 0 %}
 <div class="console-stats-page">
-{% call page_header('fas fa-chart-bar', '实例统计', '查看数据库实例画像与分布', eyebrow='Instance Insights') %}
-<div class="page-header-actions d-flex gap-2 flex-wrap console-command-deck">
-    <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-2"></i>返回实例列表
-    </a>
-    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新统计">
-        <i class="fas fa-sync-alt"></i>
-    </button>
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>返回实例列表
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新统计">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 <section class="page-section page-section--stacked console-context-strip">
     <div class="layout-shell">

@@ -15,7 +15,7 @@
     height: 0.16rem;
     border-radius: var(--border-radius-pill);
     margin-bottom: 0.58rem;
-    background: linear-gradient(90deg, var(--accent-primary), rgba(184, 92, 30, 0.08));
+    background: var(--accent-primary);
 }
 
 .wf-metric-card__header {
@@ -90,7 +90,7 @@
 }
 
 .wf-metric-card[data-tone="success"] .wf-metric-card__signal {
-    background: linear-gradient(90deg, var(--status-success), rgba(40, 135, 102, 0.12));
+    background: var(--status-success);
 }
 
 .wf-metric-card[data-tone="warning"] .wf-metric-card__value {
@@ -98,7 +98,7 @@
 }
 
 .wf-metric-card[data-tone="warning"] .wf-metric-card__signal {
-    background: linear-gradient(90deg, var(--status-warning), rgba(203, 138, 31, 0.12));
+    background: var(--status-warning);
 }
 
 .wf-metric-card[data-tone="danger"] .wf-metric-card__value {
@@ -106,7 +106,7 @@
 }
 
 .wf-metric-card[data-tone="danger"] .wf-metric-card__signal {
-    background: linear-gradient(90deg, var(--status-danger), rgba(203, 93, 73, 0.12));
+    background: var(--status-danger);
 }
 
 .wf-metric-card[data-tone="info"] .wf-metric-card__value {
@@ -114,7 +114,7 @@
 }
 
 .wf-metric-card[data-tone="info"] .wf-metric-card__signal {
-    background: linear-gradient(90deg, var(--status-info), rgba(44, 150, 198, 0.12));
+    background: var(--status-info);
 }
 
 .wf-metric-card[data-tone="muted"] .wf-metric-card__value {
@@ -122,5 +122,5 @@
 }
 
 .wf-metric-card[data-tone="muted"] .wf-metric-card__signal {
-    background: linear-gradient(90deg, var(--ink-500), rgba(111, 125, 141, 0.12));
+    background: var(--ink-500);
 }

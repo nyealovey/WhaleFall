@@ -499,6 +499,35 @@ def _check_no_legacy_stat_card_classes() -> None:
     _assert_not_contains(macros, "macro stats_card", ctx="app/templates/components/ui/macros.html")
 
 
+def _check_no_legacy_page_header_contract() -> None:
+    if Path("app/templates/components/ui/page_header.html").exists():
+        raise AssertionError("page_header.html 应被移除: app/templates/components/ui/page_header.html")
+
+    forbidden_patterns = [
+        re.compile(r"components/ui/page_header\.html"),
+        re.compile(r"\bpage_header\s*\("),
+        re.compile(r"\bcall\s+page_header\b"),
+        re.compile(r"page-header"),
+    ]
+
+    matches: list[str] = []
+    for root, suffixes in (
+        (Path("app/templates"), {".html"}),
+        (Path("app/static/css"), {".css"}),
+    ):
+        for path in _iter_files(root, suffix_allow=suffixes):
+            if "vendor" in path.parts:
+                continue
+            content = path.read_text(encoding="utf-8", errors="ignore")
+            for lineno, line in enumerate(content.splitlines(), start=1):
+                for pattern in forbidden_patterns:
+                    if pattern.search(line):
+                        matches.append(f"{path}:{lineno}: {line.strip()}")
+
+    if matches:
+        raise AssertionError("发现旧 page_header/page-header 体系残留:\n" + "\n".join(matches[:80]))
+
+
 def _check_no_legacy_api_paths() -> None:
     legacy_api = re.compile(r"/api(?!/v1)(?:/|$)")
     targets = [
@@ -568,6 +597,7 @@ def _run_all_checks() -> list[str]:
         _check_metric_card_component_contract,
         _check_metric_card_migration_contract,
         _check_no_legacy_stat_card_classes,
+        _check_no_legacy_page_header_contract,
         _check_no_legacy_api_paths,
         _check_views_no_window_httpu,
         _check_views_no_silent_catch,

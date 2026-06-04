@@ -2,7 +2,6 @@
 {% set page_id = 'InstancesListPage' %}
 {% set page_density = 'dense' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, db_type_filter, status_active_filter, select_filter, tag_selector_filter %}
-{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}实例管理 - 鲸落{% endblock %}
 
@@ -14,18 +13,22 @@
 
 {% block content_outer %}
 {% set instance_desc = '管理数据库实例，包括增删改查和连接测试' if current_user.role == 'admin' else '查看数据库实例信息（只读模式）' %}
-{% call page_header('fas fa-database', '数据库实例管理', instance_desc, eyebrow='Instance Registry') %}
-<div class="btn-group console-command-deck">
-    <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-primary">
-        <i class="fas fa-chart-bar me-2"></i>实例统计
-    </a>
-    {% if current_user.role == 'admin' %}
-    <button class="btn btn-primary" type="button" data-action="create-instance">
-        <i class="fas fa-plus me-2"></i>添加实例
-    </button>
-    {% endif %}
+<div class="layout-shell">
+    <div class="layout-shell-inner">
+        <div class="console-command-deck">
+            <div class="btn-group">
+                <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-bar me-2"></i>实例统计
+                </a>
+                {% if current_user.role == 'admin' %}
+                <button class="btn btn-primary" type="button" data-action="create-instance">
+                    <i class="fas fa-plus me-2"></i>添加实例
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
-{% endcall %}
 
 <div id="instances-page-root"
      class="console-list-page"

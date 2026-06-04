@@ -118,6 +118,7 @@ related:
 
 ### 3.2 常见场景入口
 
+- 视觉系统: 根目录 `DESIGN.md`
 - Grid 列表页: [[standards/ui/gate/grid|Grid 列表页标准]]
 - modules 分层: [[standards/ui/design/javascript-module|前端模块化(modules)规范]] + [[standards/ui/guide/layer/README|前端分层(layer)标准索引]]
 - 异步任务反馈: [[standards/ui/guide/async-task-feedback|异步任务反馈规范]]

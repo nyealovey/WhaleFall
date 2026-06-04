@@ -23,6 +23,7 @@
 
 ## 新增 Grid.js 列表页（UI）
 
+0. 视觉与密度先对齐根目录 `DESIGN.md`，不要恢复旧 page header、多档页面密度或页面私有视觉体系
 1. 使用 `GridWrapper`：`app/static/js/common/grid-wrapper.js`
 2. 后端 API 支持分页参数 `page`/`limit`，并返回统一封套
 3. 前端使用 `Views.GridPage.mount()` 做 wiring（筛选/分页/URL 同步）
