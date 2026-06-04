@@ -47,9 +47,9 @@
     if (!modalEl) {
       return;
     }
-    const bootstrapLib = window.bootstrap;
-    if (!bootstrapLib?.Modal) {
-      console.error("ChangePasswordModals: bootstrap.Modal 未加载");
+    const ui = window.UI;
+    if (!ui?.createModal) {
+      console.error("ChangePasswordModals: UI.createModal 未加载");
       return;
     }
     const AuthService = window.AuthService;
@@ -72,7 +72,15 @@
     const FormValidator = window.FormValidator;
     const ValidationRules = window.ValidationRules;
 
-    const modal = new bootstrapLib.Modal(modalEl);
+    const modal = ui.createModal({
+      modalSelector: modalEl,
+      confirmSelector: "[data-change-password-modal-passive-confirm]",
+      onClose: resetForm,
+    });
+    if (!modal) {
+      console.error("ChangePasswordModals: 模态控制器初始化失败");
+      return;
+    }
     const form = document.getElementById("changePasswordModalForm");
     const submitBtn = document.getElementById("changePasswordModalSubmit");
     if (!(form instanceof HTMLFormElement)) {
@@ -86,14 +94,13 @@
       bindOpenActions();
       bindAutoOpenFromQuery();
       setupValidation();
-      modalEl.addEventListener("hidden.bs.modal", resetForm);
     }
 
     function bindOpenActions() {
       document.querySelectorAll('[data-action="open-change-password"]').forEach((node) => {
         node.addEventListener("click", (event) => {
           event.preventDefault();
-          modal.show();
+          modal.open();
         });
       });
     }
@@ -105,7 +112,7 @@
           return;
         }
         stripUrlParam("open_change_password");
-        modal.show();
+        modal.open();
       } catch {
         // 非关键路径: URLSearchParams 不可用时忽略
       }

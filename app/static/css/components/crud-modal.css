@@ -1,7 +1,7 @@
 .crud-modal {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
 }
 
 .crud-modal__heading {
@@ -36,19 +36,18 @@
 .crud-modal__sections {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
 }
 
 .crud-modal__section {
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 45%, transparent);
-    border-radius: var(--border-radius-lg);
-    padding: var(--spacing-lg);
-    background: var(--surface-elevated);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    padding: 0.85rem;
+    background: color-mix(in srgb, var(--surface-panel-raised) 82%, var(--surface-panel-strong));
 }
 
 .crud-modal__section-title {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-sm);
@@ -81,5 +80,5 @@
 
 .crud-modal__muted-text {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.84rem;
 }

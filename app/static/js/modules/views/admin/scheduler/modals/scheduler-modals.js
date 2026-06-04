@@ -32,8 +32,13 @@
 
         const editModalEl = document.getElementById('editJobModal');
         const editForm = document.getElementById('editJobForm');
-        const bootstrapLib = window.bootstrap;
-        const editModal = bootstrapLib && editModalEl ? new bootstrapLib.Modal(editModalEl) : null;
+        const ui = window.UI;
+        const editModal = ui?.createModal && editModalEl
+            ? ui.createModal({
+                modalSelector: editModalEl,
+                confirmSelector: '[data-scheduler-modal-passive-confirm]',
+            })
+            : null;
         let editValidator = null;
 
         /**
@@ -87,7 +92,7 @@
             }
             fillEditForm(job);
             editValidator?.refresh?.();
-            editModal?.show();
+            editModal?.open();
         }
 
         /**
@@ -193,7 +198,7 @@
             store.actions.updateJob(jobId, payload)
                 .then(function () {
                     toast?.success?.('任务更新成功');
-                    editModal?.hide();
+                    editModal?.close();
                     editValidator?.refresh?.();
                 })
                 .catch(function (error) {

@@ -42,11 +42,18 @@
     if (!modalEl) {
       throw new Error('TagModals: 找不到 #tagModal');
     }
-    const bootstrapLib = window.bootstrap;
-    if (!bootstrapLib) {
-      throw new Error('TagModals: bootstrap 未加载');
+    const ui = window.UI;
+    if (!ui?.createModal) {
+      throw new Error('TagModals: UI.createModal 未加载');
     }
-    const modal = new bootstrapLib.Modal(modalEl);
+    const modal = ui.createModal({
+      modalSelector: modalEl,
+      confirmSelector: '[data-tag-modal-passive-confirm]',
+      onClose: resetForm,
+    });
+    if (!modal) {
+      throw new Error('TagModals: 模态控制器初始化失败');
+    }
     const form = document.getElementById('tagModalForm');
     const submitBtn = document.getElementById('tagModalSubmit');
     const titleEl = document.getElementById('tagModalTitle');
@@ -93,7 +100,6 @@
         .onSuccess(handleSubmit)
         .onFail(() => toast?.error?.('请检查标签信息填写'));
 
-      modalEl.addEventListener('hidden.bs.modal', resetForm);
       submitBtn?.addEventListener('click', markSubmitIntent);
       form?.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && event.target?.tagName !== 'TEXTAREA') {
@@ -127,7 +133,7 @@
      */
     function openCreate() {
       resetForm();
-      modal.show();
+      modal.open();
     }
 
     /**
@@ -156,7 +162,7 @@
         form.category.value = tag.category || '';
         form.is_active.checked = Boolean(tag.is_active);
         setMetaState('编辑', 'status-pill--info');
-        modal.show();
+        modal.open();
       } catch (error) {
         console.error('加载标签失败', error);
         setMetaState('加载失败', 'status-pill--danger');
@@ -219,7 +225,7 @@
         .create(payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '添加标签成功');
-          modal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'create', response: resp });
           }
@@ -248,7 +254,7 @@
         .update(tagId, payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '保存成功');
-          modal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'edit', response: resp });
           }

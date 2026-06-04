@@ -63,11 +63,18 @@
     if (!modalEl) {
       throw new Error('CredentialModals: 找不到 #credentialModal');
     }
-    const bootstrapLib = window.bootstrap;
-    if (!bootstrapLib) {
-      throw new Error('CredentialModals: bootstrap 未加载');
+    const ui = window.UI;
+    if (!ui?.createModal) {
+      throw new Error('CredentialModals: UI.createModal 未加载');
     }
-    const modal = new bootstrapLib.Modal(modalEl);
+    const modal = ui.createModal({
+      modalSelector: modalEl,
+      confirmSelector: '[data-credential-modal-passive-confirm]',
+      onClose: resetForm,
+    });
+    if (!modal) {
+      throw new Error('CredentialModals: 模态控制器初始化失败');
+    }
     const form = document.getElementById('credentialModalForm');
     const submitBtn = document.getElementById('credentialModalSubmit');
     const titleEl = document.getElementById('credentialModalTitle');
@@ -99,7 +106,6 @@
     function init() {
       typeSelect?.addEventListener('change', handleCredentialTypeChange);
       togglePasswordBtn?.addEventListener('click', handleTogglePassword);
-      modalEl.addEventListener('hidden.bs.modal', resetForm);
       handleCredentialTypeChange();
     }
 
@@ -250,7 +256,7 @@
      */
     function openCreate() {
       resetForm();
-      modal.show();
+      modal.open();
     }
 
     /**
@@ -286,7 +292,7 @@
         handleCredentialTypeChange();
         setMetaState('编辑', 'status-pill--info');
         updateSubmitButtonCopy();
-        modal.show();
+        modal.open();
       } catch (error) {
         console.error('加载凭据失败', error);
         setMetaState('加载失败', 'status-pill--danger');
@@ -350,7 +356,7 @@
       store.actions.create(payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '添加凭据成功');
-          modal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'create', response: resp });
           }
@@ -378,7 +384,7 @@
       store.actions.update(credentialId, payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '保存成功');
-          modal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'edit', response: resp });
           }

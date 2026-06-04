@@ -621,33 +621,6 @@ a {
     border-color: rgba(33, 45, 58, 0.08);
 }
 
-.modal-content {
-    border-radius: var(--border-radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.65);
-    box-shadow: var(--shadow-sm);
-    background: rgba(251, 248, 243, 0.98);
-}
-
-.modal-header {
-    background: transparent;
-    color: var(--text-primary);
-    border-bottom: 1px solid rgba(22, 29, 38, 0.06);
-    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
-}
-
-.modal-header .modal-title {
-    font-family: var(--font-family-display);
-    letter-spacing: 0.03em;
-}
-
-.danger-confirm-modal .modal-content {
-    border-color: color-mix(in srgb, var(--status-danger) 25%, transparent);
-}
-
-.danger-confirm-modal .modal-header {
-    border-bottom-color: color-mix(in srgb, var(--status-danger) 20%, transparent);
-}
-
 .app-footer,
 .footer {
     position: relative;

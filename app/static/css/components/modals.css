@@ -2,7 +2,8 @@
 
 .modal-dialog {
     --bs-modal-width: var(--modal-width-md);
-    margin-top: 8vh;
+    margin-top: 6vh;
+    margin-bottom: 1.25rem;
 }
 
 .modal-dialog.modal-sm {
@@ -18,14 +19,78 @@
 }
 
 .modal-backdrop.show {
-    opacity: 0.55;
+    opacity: 0.48;
 }
 
-.modal-body {
-    padding: 1.15rem 1.2rem;
+.wf-modal .modal-content {
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-default);
+    background: var(--surface-panel-raised);
+    box-shadow: var(--shadow-sm);
+    color: var(--text-primary);
+    overflow: hidden;
 }
 
-.modal-footer {
-    border-top: 1px solid rgba(22, 29, 38, 0.06);
-    padding: 0.95rem 1.2rem 1.15rem;
+.wf-modal .modal-header {
+    min-height: 3.25rem;
+    padding: 0.8rem 1rem;
+    background: var(--surface-panel-strong);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+.wf-modal .modal-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 0;
+    margin: 0;
+    font-family: var(--font-family-display);
+    font-size: 1.08rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: var(--letter-spacing-display);
+    color: var(--text-primary);
+}
+
+.wf-modal .modal-title i {
+    color: var(--accent-primary);
+}
+
+.wf-modal .modal-body {
+    padding: 1rem;
+    background: var(--surface-panel-raised);
+}
+
+.wf-modal .modal-footer {
+    gap: var(--spacing-sm);
+    padding: 0.75rem 1rem 0.9rem;
+    border-top: 1px solid var(--border-default);
+    background: var(--surface-panel-strong);
+}
+
+.wf-modal .modal-footer .btn {
+    min-height: var(--control-height-dense);
+}
+
+.danger-confirm-modal .modal-content {
+    border-color: color-mix(in srgb, var(--status-danger) 28%, var(--border-default));
+}
+
+.danger-confirm-modal .modal-header {
+    border-bottom-color: color-mix(in srgb, var(--status-danger) 20%, var(--border-default));
+}
+
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 0.75rem;
+    }
+
+    .wf-modal .modal-header,
+    .wf-modal .modal-body,
+    .wf-modal .modal-footer {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
 }

@@ -8,13 +8,14 @@ function mountClusterPage(global) {
   const GridPlugins = global.Views?.GridPlugins;
   const escapeHtml = global.UI?.escapeHtml;
   const resolveErrorMessage = global.UI?.resolveErrorMessage;
+  const createModal = global.UI?.createModal;
   const rowMeta = global.GridRowMeta;
 
   if (!helpers || !gridjs || !GridWrapper || !GridPage?.mount || !GridPlugins) {
     console.error("群集管理页面依赖未加载");
     return;
   }
-  if (typeof escapeHtml !== "function" || typeof resolveErrorMessage !== "function" || !rowMeta?.get) {
+  if (typeof escapeHtml !== "function" || typeof resolveErrorMessage !== "function" || typeof createModal !== "function" || !rowMeta?.get) {
     console.error("群集管理页面 UI helpers 未加载");
     return;
   }
@@ -75,15 +76,15 @@ function mountClusterPage(global) {
     });
     accountsLedgersService = new AccountsLedgersService();
     modalEl = document.getElementById("clusterManagementModal");
-    modal = modalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(modalEl) : null;
+    modal = createPassiveModal(modalEl);
     mysqlModalEl = document.getElementById("mysqlClusterManagementModal");
-    mysqlModal = mysqlModalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(mysqlModalEl) : null;
+    mysqlModal = createPassiveModal(mysqlModalEl);
     agAccountsModalEl = document.getElementById("agAccountsDashboardModal");
-    agAccountsModal = agAccountsModalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(agAccountsModalEl) : null;
+    agAccountsModal = createPassiveModal(agAccountsModalEl);
     agStatusModalEl = document.getElementById("agStatusDashboardModal");
-    agStatusModal = agStatusModalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(agStatusModalEl) : null;
+    agStatusModal = createPassiveModal(agStatusModalEl);
     mysqlTopologyModalEl = document.getElementById("mysqlTopologyDashboardModal");
-    mysqlTopologyModal = mysqlTopologyModalEl && global.bootstrap?.Modal ? new global.bootstrap.Modal(mysqlTopologyModalEl) : null;
+    mysqlTopologyModal = createPassiveModal(mysqlTopologyModalEl);
     bindModalEvents();
     bindCreateButton();
     bindDbTabs();
@@ -136,6 +137,16 @@ function mountClusterPage(global) {
         }),
       ],
     })?.gridWrapper;
+  }
+
+  function createPassiveModal(modalElement) {
+    if (!modalElement) {
+      return null;
+    }
+    return createModal({
+      modalSelector: modalElement,
+      confirmSelector: "[data-cluster-passive-confirm]",
+    });
   }
 
   function initializeMySQLGrid() {
@@ -454,7 +465,7 @@ function mountClusterPage(global) {
     fillBasic({});
     setSelectedInstances([]);
     renderAgTable([]);
-    modal?.show();
+    modal?.open();
   }
 
   function openEditor(clusterId) {
@@ -468,7 +479,7 @@ function mountClusterPage(global) {
         fillBasic(detail.cluster || {});
         setSelectedInstances((detail.instances || []).map((item) => String(item.id)));
         renderAgTable(detail.availability_groups || []);
-        modal?.show();
+        modal?.open();
       })
       .catch((error) => showError(error, "加载群集失败"));
   }
@@ -545,7 +556,7 @@ function mountClusterPage(global) {
       })
       .then(() => {
         showToast("success", "群集已保存");
-        modal?.hide();
+        modal?.close();
         gridWrapper?.refresh?.();
       })
       .catch((error) => showError(error, "保存群集失败"));
@@ -590,7 +601,7 @@ function mountClusterPage(global) {
           };
           resetAgAccountsDashboard();
           renderAgAccountsDashboard(detail, currentAgAccountsContext.agId);
-          agAccountsModal?.show();
+          agAccountsModal?.open();
           loadAgAccountsLedger(currentAgAccountsContext.agId);
         })
         .catch((error) => showError(error, "加载 AG 账户失败"))
@@ -689,7 +700,7 @@ function mountClusterPage(global) {
           };
           resetAgDashboard();
           renderAgDashboardTabs(agItems, firstAg.id);
-          agStatusModal?.show();
+          agStatusModal?.open();
           loadAgDashboard(clusterId, firstAg.id);
         })
         .catch((error) => showError(error, "加载 AG 状态失败"))
@@ -1158,7 +1169,7 @@ function mountClusterPage(global) {
     setMySQLModalMode("create");
     fillMySQLBasic({});
     setSelectedMySQLInstances([]);
-    mysqlModal?.show();
+    mysqlModal?.open();
   }
 
   function openMySQLEditor(clusterId) {
@@ -1171,7 +1182,7 @@ function mountClusterPage(global) {
         setMySQLModalMode("edit");
         fillMySQLBasic(detail.cluster || {});
         setSelectedMySQLInstances((detail.instances || []).map((item) => String(item.instance_id || item.id)));
-        mysqlModal?.show();
+        mysqlModal?.open();
       })
       .catch((error) => showError(error, "加载 MySQL 群集失败"));
   }
@@ -1240,7 +1251,7 @@ function mountClusterPage(global) {
       })
       .then(() => {
         showToast("success", "MySQL 群集已保存");
-        mysqlModal?.hide();
+        mysqlModal?.close();
         mysqlGridWrapper?.refresh?.();
       })
       .catch((error) => showError(error, "保存 MySQL 群集失败"));
@@ -1261,7 +1272,7 @@ function mountClusterPage(global) {
             detail,
           };
           renderMySQLTopologyDashboard(detail);
-          mysqlTopologyModal?.show();
+          mysqlTopologyModal?.open();
         })
         .catch((error) => showError(error, "加载 MySQL 主从状态失败"))
     );

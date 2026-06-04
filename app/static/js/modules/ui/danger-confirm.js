@@ -138,9 +138,9 @@
     if (detailsEl) {
       detailsEl.innerHTML = '';
       if (!details.length) {
-        detailsEl.style.display = 'none';
+        detailsEl.hidden = true;
       } else {
-        detailsEl.style.display = '';
+        detailsEl.hidden = false;
         details.forEach((item) => {
           const row = document.createElement('li');
           const label = document.createElement('span');
@@ -159,11 +159,11 @@
 
     if (resultWrapper && resultLink) {
       if (resultUrl) {
-        resultWrapper.style.display = '';
+        resultWrapper.hidden = false;
         resultLink.setAttribute('href', resultUrl);
         resultLink.textContent = resultText;
       } else {
-        resultWrapper.style.display = 'none';
+        resultWrapper.hidden = true;
         resultLink.setAttribute('href', '#');
         resultLink.textContent = resultText;
       }

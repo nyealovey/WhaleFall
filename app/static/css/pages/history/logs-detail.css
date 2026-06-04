@@ -1,16 +1,5 @@
 /* 日志详情模态专用样式 */
 
-.log-detail-modal .modal-content {
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-sm);
-}
-
-.log-detail-modal .modal-header {
-    background-color: var(--surface-muted);
-    color: var(--text-primary);
-    border-bottom: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
-}
-
 .log-detail-modal__content {
     min-height: 360px;
 }

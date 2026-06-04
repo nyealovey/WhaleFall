@@ -37,9 +37,14 @@
 
     const modalEl = document.getElementById('instanceModal');
     if (!modalEl) throw new Error('InstanceModals: 找不到 #instanceModal');
-    const bootstrapLib = window.bootstrap;
-    if (!bootstrapLib) throw new Error('InstanceModals: bootstrap 未加载');
-    const modal = new bootstrapLib.Modal(modalEl);
+    const ui = window.UI;
+    if (!ui?.createModal) throw new Error('InstanceModals: UI.createModal 未加载');
+    const modal = ui.createModal({
+      modalSelector: modalEl,
+      confirmSelector: '[data-instance-modal-passive-confirm]',
+      onClose: resetForm,
+    });
+    if (!modal) throw new Error('InstanceModals: 模态控制器初始化失败');
     const form = document.getElementById('instanceModalForm');
     const submitBtn = document.getElementById('instanceModalSubmit');
     const titleEl = document.getElementById('instanceModalTitle');
@@ -73,7 +78,6 @@
         .onSuccess(handleSubmit)
         .onFail(() => toast?.error?.('请检查实例信息填写'));
 
-      modalEl.addEventListener('hidden.bs.modal', resetForm);
     }
 
     /**
@@ -108,7 +112,7 @@
      */
     function openCreate() {
       resetForm();
-      modal.show();
+      modal.open();
     }
 
     /**
@@ -131,7 +135,7 @@
         }
         fillForm(instance);
         setMetaState('编辑', 'status-pill--info');
-        modal.show();
+        modal.open();
       } catch (error) {
         console.error('加载实例失败', error);
         setMetaState('加载失败', 'status-pill--danger');
@@ -217,7 +221,7 @@
       store.actions.create(payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '添加实例成功');
-          modal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'create', response: resp });
           }
@@ -245,7 +249,7 @@
       store.actions.update(id, payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '保存成功');
-          modal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'edit', response: resp });
           }

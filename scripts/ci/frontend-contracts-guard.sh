@@ -528,6 +528,35 @@ def _check_no_legacy_page_header_contract() -> None:
         raise AssertionError("发现旧 page_header/page-header 体系残留:\n" + "\n".join(matches[:80]))
 
 
+def _check_modal_shell_and_controller_contract() -> None:
+    template = _read_text("app/templates/components/ui/modal.html")
+    for token in (
+        "wf-modal",
+        "wf-modal__dialog",
+        "wf-modal__content",
+        "wf-modal__header",
+        "wf-modal__body",
+        "wf-modal__footer",
+        "data-modal-shell",
+    ):
+        _assert_contains(template, token, ctx="app/templates/components/ui/modal.html")
+
+    offenders: list[str] = []
+    patterns = [
+        re.compile(r"new\s+(?:global\.)?bootstrap(?:Lib)?\.Modal\b"),
+        re.compile(r"new\s+bootstrapLib\.Modal\b"),
+        re.compile(r"\bbootstrap\.Modal\.getOrCreateInstance\b"),
+    ]
+    for path in _iter_files(Path("app/static/js/modules/views"), suffix_allow={".js"}):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        for lineno, line in enumerate(content.splitlines(), start=1):
+            if any(pattern.search(line) for pattern in patterns):
+                offenders.append(f"{path}:{lineno}: {line.strip()}")
+
+    if offenders:
+        raise AssertionError("views 层禁止直接实例化 Bootstrap Modal:\n" + "\n".join(offenders[:80]))
+
+
 def _check_no_legacy_api_paths() -> None:
     legacy_api = re.compile(r"/api(?!/v1)(?:/|$)")
     targets = [
@@ -598,6 +627,7 @@ def _run_all_checks() -> list[str]:
         _check_metric_card_migration_contract,
         _check_no_legacy_stat_card_classes,
         _check_no_legacy_page_header_contract,
+        _check_modal_shell_and_controller_contract,
         _check_no_legacy_api_paths,
         _check_views_no_window_httpu,
         _check_views_no_silent_catch,

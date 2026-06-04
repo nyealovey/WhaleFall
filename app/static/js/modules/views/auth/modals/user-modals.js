@@ -43,11 +43,18 @@
     if (!modalEl) {
       throw new Error('UserModals: 找不到 #userModal');
     }
-    const bootstrapLib = window.bootstrap;
-    if (!bootstrapLib) {
-      throw new Error('UserModals: bootstrap 未加载');
+    const ui = window.UI;
+    if (!ui?.createModal) {
+      throw new Error('UserModals: UI.createModal 未加载');
     }
-    const bootstrapModal = new bootstrapLib.Modal(modalEl);
+    const modal = ui.createModal({
+      modalSelector: modalEl,
+      confirmSelector: '[data-user-modal-passive-confirm]',
+      onClose: resetForm,
+    });
+    if (!modal) {
+      throw new Error('UserModals: 模态控制器初始化失败');
+    }
 
     const form = document.getElementById('userModalForm');
     const submitBtn = document.getElementById('userModalSubmit');
@@ -72,7 +79,6 @@
         return;
       }
       setupValidator('create');
-      modalEl.addEventListener('hidden.bs.modal', resetForm);
     }
 
     function setupValidator(targetMode) {
@@ -134,7 +140,7 @@
      */
     function openCreate() {
       resetForm();
-      bootstrapModal.show();
+      modal.open();
     }
 
     /**
@@ -173,7 +179,7 @@
           is_active: Boolean(user.is_active),
           username: user.username,
         };
-        bootstrapModal.show();
+        modal.open();
       } catch (error) {
         console.error('加载用户信息失败', error);
         toast?.error?.(error?.message || '加载用户信息失败');
@@ -273,7 +279,7 @@
         .create(payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '用户创建成功');
-          bootstrapModal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'create', response: resp });
           }
@@ -302,7 +308,7 @@
         .update(userId, payload)
         .then((resp) => {
           toast?.success?.(resp?.message || '用户更新成功');
-          bootstrapModal.hide();
+          modal.close();
           if (typeof onSaved === 'function') {
             onSaved({ mode: 'edit', response: resp });
           }
