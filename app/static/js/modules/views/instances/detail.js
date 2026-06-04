@@ -1122,11 +1122,11 @@ function renderAccountActions(meta) {
         return '';
     }
     return gridHtml(`
-        <div class="btn-group btn-group-sm" role="group">
-            <button class="btn btn-outline-primary" data-action="view-permissions" data-account-id="${safeId}" title="查看权限">
+        <div class="table-action-bar" role="group">
+            <button class="btn btn-outline-primary btn-table-action" data-action="view-permissions" data-account-id="${safeId}" title="查看权限" aria-label="查看权限">
                 <i class="fas fa-shield-alt"></i>
             </button>
-            <button class="btn btn-outline-secondary" data-action="view-history" data-account-id="${safeId}" title="变更历史">
+            <button class="btn btn-outline-secondary btn-table-action" data-action="view-history" data-account-id="${safeId}" title="变更历史" aria-label="变更历史">
                 <i class="fas fa-history"></i>
             </button>
         </div>
@@ -1386,7 +1386,7 @@ function renderDatabaseActionsCell(meta) {
     const isActive = meta?.is_active !== false;
     const buttonClass = isActive ? 'btn-outline-primary' : 'btn-outline-secondary';
     return gridHtml(`
-        <button type="button" class="btn btn-sm ${buttonClass}" data-action="open-table-sizes" data-database-id="${escapeHtml(databaseId)}" data-database-name="${escapeHtml(databaseName)}">
+        <button type="button" class="btn btn-table-action ${buttonClass}" data-action="open-table-sizes" data-database-id="${escapeHtml(databaseId)}" data-database-name="${escapeHtml(databaseName)}">
             <i class="fas fa-table me-1"></i>表容量
         </button>
     `);
@@ -3115,7 +3115,7 @@ function displayDatabaseSizesError(error) {
             <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
             <p class="text-muted">加载数据库容量信息失败</p>
             <p class="text-danger">${error}</p>
-            <button class="btn btn-outline-primary" data-action="retry-load-database-sizes">
+            <button class="btn btn-outline-primary btn-form-action" data-action="retry-load-database-sizes">
                 <i class="fas fa-redo me-1"></i>重试
             </button>
         </div>

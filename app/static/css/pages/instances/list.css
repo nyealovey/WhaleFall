@@ -6,10 +6,6 @@
     border-radius: var(--border-radius-md);
 }
 
-.instances-toolbar .btn-group .btn {
-    min-width: 130px;
-}
-
 #instances-grid .gridjs-th[data-column-id="db_type"],
 #instances-grid .gridjs-td[data-column-id="db_type"],
 #instances-grid .gridjs-th[data-column-id="status"],

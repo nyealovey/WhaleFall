@@ -319,7 +319,7 @@ function mountAccountClassificationPage(window, document) {
                             <div class="classification-card__code">${code}</div>
                         </div>
                     </div>
-                    <div class="classification-card__actions">
+                    <div class="classification-card__actions table-action-bar">
                         ${renderClassificationActions(classification)}
                     </div>
                 </div>
@@ -330,21 +330,21 @@ function mountAccountClassificationPage(window, document) {
     function renderClassificationActions(classification) {
         if (window.currentUserRole !== 'admin') {
             return `
-                <span class="btn btn-outline-secondary btn-sm btn-icon disabled" title="只读模式" aria-label="只读模式">
+                <span class="btn btn-outline-secondary btn-icon btn-table-action disabled" title="只读模式" aria-label="只读模式">
                     <i class="fas fa-lock"></i>
                 </span>
             `;
         }
 
         const editButton = `
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="编辑分类" aria-label="编辑分类">
+            <button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="edit-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="编辑分类" aria-label="编辑分类">
                 <i class="fas fa-edit"></i>
             </button>
         `;
         const deleteButton = classification.is_system
             ? ''
             : `
-                <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="删除分类" aria-label="删除分类">
+                <button type="button" class="btn btn-outline-danger btn-icon btn-table-action" data-action="delete-classification" data-classification-id="${escapeHtml(classification?.id ?? '')}" title="删除分类" aria-label="删除分类">
                     <i class="fas fa-trash"></i>
                 </button>
             `;
@@ -500,7 +500,7 @@ function mountAccountClassificationPage(window, document) {
                             ${renderMatchedAccountsPill(count)}
                         </div>
                     </div>
-                    <div class="rule-actions">${renderRuleActions(rule)}</div>
+                    <div class="rule-actions table-action-bar">${renderRuleActions(rule)}</div>
                 </div>
             </div>
         `;
@@ -516,19 +516,19 @@ function mountAccountClassificationPage(window, document) {
     function renderRuleActions(rule) {
         if (window.currentUserRole !== 'admin') {
             return `
-                <span class="btn btn-outline-secondary btn-sm btn-icon disabled" title="只读模式">
+                <span class="btn btn-outline-secondary btn-icon btn-table-action disabled" title="只读模式" aria-label="只读模式">
                     <i class="fas fa-lock"></i>
                 </span>
             `;
         }
         return `
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="view-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="查看详情">
+            <button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="view-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="查看详情" aria-label="查看详情">
                 <i class="fas fa-eye"></i>
             </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="编辑规则">
+            <button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="edit-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="编辑规则" aria-label="编辑规则">
                 <i class="fas fa-edit"></i>
             </button>
-            <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="删除规则">
+            <button type="button" class="btn btn-outline-danger btn-icon btn-table-action" data-action="delete-rule" data-rule-id="${escapeHtml(rule?.id ?? '')}" title="删除规则" aria-label="删除规则">
                 <i class="fas fa-trash"></i>
             </button>
         `;

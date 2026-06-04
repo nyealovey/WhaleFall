@@ -10,32 +10,6 @@
     min-width: 140px;
 }
 
-.chip-toggle-group {
-    display: inline-flex;
-    gap: 0.5rem;
-    flex-wrap: nowrap;
-}
-
-.chip-toggle-btn {
-    border-radius: var(--border-radius-lg);
-    border-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    color: var(--text-muted);
-    font-weight: 500;
-    padding: 0.2rem 0.9rem;
-}
-
-.btn-check:checked + .chip-toggle-btn,
-.btn-check:checked + .chip-toggle-btn:hover {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: var(--surface-elevated);
-}
-
-.chip-toggle-group .chip-toggle-btn:hover {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
 .capacity-page .card {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
     box-shadow: var(--shadow-sm);

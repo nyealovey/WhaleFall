@@ -15,11 +15,11 @@
 <div class="layout-shell layout-shell--wide">
     <div class="layout-shell-inner">
         <div class="console-command-deck">
-            <div class="btn-group">
-                <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
+            <div class="command-action-bar">
+                <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary btn-command">
                     <i class="fas fa-chart-bar me-2"></i>账户统计
                 </a>
-                <button type="button" class="btn btn-primary" data-action="sync-all-accounts">
+                <button type="button" class="btn btn-primary btn-command" data-action="sync-all-accounts">
                     <i class="fas fa-sync me-2"></i>同步所有账户
                 </button>
             </div>
@@ -49,16 +49,16 @@
     <section class="page-section page-section--stacked console-grid-shell">
         <div class="layout-shell layout-shell--wide">
             <div class="layout-shell-inner">
-                <div class="btn-group flex-wrap" role="group">
+                <div class="segmented-control" role="group">
                     <button type="button"
-                            class="btn {% if not current_db_type or current_db_type == 'all' %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                            class="btn btn-segment {% if not current_db_type or current_db_type == 'all' %}active{% endif %}"
                             data-db-type-btn
                             data-db-type="all">
                         <i class="fas fa-database me-1"></i>全部
                     </button>
                     {% for db_type in database_type_options %}
                     <button type="button"
-                            class="btn {% if current_db_type == db_type.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                            class="btn btn-segment {% if current_db_type == db_type.value %}active{% endif %}"
                             data-db-type-btn
                             data-db-type="{{ db_type.value }}">
                         <img src="{{ db_type.asset_url }}" alt="" class="db-type-filter__asset" aria-hidden="true">
@@ -79,7 +79,7 @@
                             <div class="d-flex align-items-center">
                                 <span class="text-muted">账户台账</span>
                                 <button type="button"
-                                        class="btn btn-outline-primary btn-sm ms-3"
+                                        class="btn btn-outline-primary btn-form-action ms-3"
                                         data-action="export-accounts-csv">
                                     <i class="fas fa-download me-1"></i>导出CSV
                                 </button>

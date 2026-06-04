@@ -86,8 +86,8 @@
 <div class="layout-shell">
     <div class="layout-shell-inner">
         <div class="console-command-deck">
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary" data-action="refresh-risk-center">
+            <div class="command-action-bar">
+                <button type="button" class="btn btn-primary btn-command" data-action="refresh-risk-center">
                     <i class="fas fa-sync-alt me-2"></i>刷新
                 </button>
             </div>
@@ -144,8 +144,8 @@
                     <input class="form-control" type="text" name="tag" placeholder="标签 code" value="{{ filters.tag }}">
                 </label>
                 <div class="risk-filter-band__actions">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-2"></i>筛选</button>
-                    <button type="button" class="btn btn-outline-secondary" data-action="clear-risk-filters">清空</button>
+                    <button type="submit" class="btn btn-primary btn-form-action"><i class="fas fa-filter me-2"></i>筛选</button>
+                    <button type="button" class="btn btn-outline-secondary btn-form-action" data-action="clear-risk-filters">清空</button>
                 </div>
             </form>
 

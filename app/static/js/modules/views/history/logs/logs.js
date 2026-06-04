@@ -647,7 +647,7 @@
             return '查看';
         }
         return global.gridjs.html(`
-            <button class="btn btn-outline-secondary btn-icon" data-action="open-log-detail" data-log-id="${logId}" title="查看详情">
+            <button class="btn btn-outline-secondary btn-icon btn-table-action" data-action="open-log-detail" data-log-id="${logId}" title="查看详情" aria-label="查看详情">
                 <i class="fas fa-eye"></i>
             </button>
         `);

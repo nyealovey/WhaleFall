@@ -33,11 +33,11 @@
 <div class="layout-shell">
     <div class="layout-shell-inner">
         <div class="console-command-deck">
-            <div class="btn-group">
-                <a href="{{ url_for('databases_ledgers.list_databases') }}" class="btn btn-outline-secondary">
+            <div class="command-action-bar">
+                <a href="{{ url_for('databases_ledgers.list_databases') }}" class="btn btn-outline-secondary btn-command">
                     <i class="fas fa-list me-2"></i>数据库台账
                 </a>
-                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新统计">
+                <button type="button" class="btn btn-outline-secondary btn-icon btn-command" data-action="refresh-stats" title="刷新统计" aria-label="刷新统计">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>

@@ -69,16 +69,16 @@
     --bs-btn-disabled-bg: rgba(221, 107, 32, 0.48);
     --bs-btn-disabled-border-color: transparent;
     background-color: var(--accent-primary);
-    box-shadow: 0 8px 18px rgba(184, 92, 30, 0.16);
+    box-shadow: none;
 }
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(184, 92, 30, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(255, 248, 241, 0.22);
 }
 
 .btn-primary:focus-visible {
-    box-shadow: 0 0 0 0.18rem var(--accent-primary-ring), 0 10px 22px rgba(184, 92, 30, 0.22);
+    box-shadow: 0 0 0 0.18rem var(--accent-primary-ring), inset 0 0 0 1px rgba(255, 248, 241, 0.22);
 }
 
 .btn-outline-primary {
@@ -185,4 +185,166 @@
     --bs-btn-active-color: var(--text-inverse);
     --bs-btn-active-bg: color-mix(in srgb, var(--status-info) 72%, black);
     --bs-btn-active-border-color: color-mix(in srgb, var(--status-info) 72%, black);
+}
+
+.command-action-bar,
+.form-action-row,
+.table-action-bar,
+.segmented-control {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.command-action-bar,
+.form-action-row {
+    flex-wrap: wrap;
+    gap: var(--button-group-gap);
+}
+
+.table-action-bar {
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: var(--button-group-gap-tight);
+}
+
+.segmented-control {
+    flex-wrap: wrap;
+    gap: 0;
+    overflow: hidden;
+    padding: 0.12rem;
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    background: rgba(255, 255, 255, 0.66);
+}
+
+.btn-command,
+.command-action-bar > .btn {
+    min-height: var(--button-height-command);
+    height: var(--button-height-command);
+    padding: 0 0.72rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.82rem;
+    line-height: 1;
+    box-shadow: none;
+}
+
+.btn-command.btn-icon,
+.command-action-bar > .btn-icon {
+    width: var(--button-icon-size-command);
+    min-width: var(--button-icon-size-command);
+    padding: 0;
+}
+
+.btn-form-action,
+.form-action-row > .btn,
+.wf-modal__footer .btn,
+.filter-actions .btn {
+    min-height: var(--button-height-form);
+    height: var(--button-height-form);
+    padding: 0 0.62rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    line-height: 1;
+    box-shadow: none;
+}
+
+.btn-form-action.btn-icon,
+.form-action-row > .btn-icon,
+.wf-modal__footer .btn-icon,
+.filter-actions .btn-icon {
+    width: var(--button-icon-size-form);
+    min-width: var(--button-icon-size-form);
+    padding: 0;
+}
+
+.btn-table-action,
+.table-action-bar > .btn {
+    min-height: var(--button-height-table);
+    height: var(--button-height-table);
+    min-width: var(--button-icon-size-table);
+    padding: 0 0.42rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.72rem;
+    line-height: 1;
+    box-shadow: none;
+}
+
+.btn-table-action.btn-icon,
+.table-action-bar > .btn-icon {
+    width: var(--button-icon-size-table);
+    min-width: var(--button-icon-size-table);
+    padding: 0;
+}
+
+.btn-table-action i,
+.table-action-bar .btn i {
+    font-size: 0.78rem;
+}
+
+.btn-segment,
+.segmented-control > .btn {
+    min-height: var(--button-height-form);
+    height: var(--button-height-form);
+    padding: 0 0.66rem;
+    border-color: transparent;
+    border-radius: calc(var(--border-radius-sm) - 1px);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    line-height: 1;
+    box-shadow: none;
+}
+
+.btn-segment:hover,
+.segmented-control > .btn:hover {
+    background: rgba(23, 32, 42, 0.05);
+    transform: none;
+}
+
+.btn-segment.active,
+.btn-segment.is-active,
+.btn-check:checked + .btn-segment,
+.btn-check:checked + .btn-segment:hover,
+.segmented-control > .btn.active,
+.segmented-control > .btn.is-active {
+    background: var(--accent-primary);
+    color: var(--text-inverse);
+}
+
+.btn-quick-action {
+    min-height: var(--button-height-form);
+    padding: 0.34rem 0.62rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.82rem;
+    line-height: 1.2;
+    box-shadow: none;
+}
+
+.segmented-control [data-db-type-btn] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 88px;
+}
+
+.segmented-control [data-db-type-btn]:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-xs);
+}
+
+.segmented-control [data-db-type-btn].active {
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .segmented-control {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .segmented-control [data-db-type-btn] {
+        width: 100%;
+    }
 }

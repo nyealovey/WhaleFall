@@ -312,8 +312,8 @@
           : capacityStatsUrl
         : "#";
       return gridHtml(`
-        <div class="btn-group btn-group-sm" role="group">
-            <a class="btn btn-outline-secondary btn-icon" href="${capacityHref}" target="_blank" rel="noreferrer" title="查看容量趋势">
+        <div class="table-action-bar" role="group">
+            <a class="btn btn-outline-secondary btn-icon btn-table-action" href="${capacityHref}" target="_blank" rel="noreferrer" title="查看容量趋势" aria-label="查看容量趋势">
                 <i class="fas fa-external-link-alt"></i>
             </a>
         </div>

@@ -194,10 +194,12 @@
             <td><span class="${statusClass}">${statusText}</span></td>
             <td>${syncText}</td>
             <td class="text-end">
-              <button class="btn btn-sm btn-outline-secondary" type="button" data-veeam-source-action="edit" data-source-id="${sourceId}">编辑</button>
-              <button class="btn btn-sm btn-outline-secondary" type="button" data-veeam-source-action="${source?.is_enabled ? "disable" : "enable"}" data-source-id="${sourceId}">
-                ${source?.is_enabled ? "停用" : "启用"}
-              </button>
+              <div class="table-action-bar justify-content-end" role="group">
+                <button class="btn btn-outline-secondary btn-table-action" type="button" data-veeam-source-action="edit" data-source-id="${sourceId}">编辑</button>
+                <button class="btn btn-outline-secondary btn-table-action" type="button" data-veeam-source-action="${source?.is_enabled ? "disable" : "enable"}" data-source-id="${sourceId}">
+                  ${source?.is_enabled ? "停用" : "启用"}
+                </button>
+              </div>
             </td>
           </tr>
         `;

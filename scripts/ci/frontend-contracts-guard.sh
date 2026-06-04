@@ -557,6 +557,82 @@ def _check_modal_shell_and_controller_contract() -> None:
         raise AssertionError("views 层禁止直接实例化 Bootstrap Modal:\n" + "\n".join(offenders[:80]))
 
 
+def _check_button_system_contract() -> None:
+    variables = _read_text("app/static/css/variables.css")
+    buttons_css = _read_text("app/static/css/components/buttons.css")
+    global_css = _read_text("app/static/css/global.css")
+    table_css = _read_text("app/static/css/components/table.css")
+
+    for token in (
+        "--button-height-command",
+        "--button-height-form",
+        "--button-height-table",
+        "--button-icon-size-command",
+        "--button-icon-size-table",
+        "--button-group-gap",
+        "--command-to-content-gap",
+    ):
+        _assert_contains(variables, token, ctx="app/static/css/variables.css")
+
+    for selector in (
+        ".btn-command",
+        ".btn-table-action",
+        ".btn-segment",
+        ".btn-form-action",
+        ".btn-quick-action",
+        ".command-action-bar",
+        ".table-action-bar",
+        ".segmented-control",
+        ".form-action-row",
+    ):
+        _assert_contains(buttons_css, selector, ctx="app/static/css/components/buttons.css")
+
+    _assert_contains(global_css, "--command-to-content-gap", ctx="app/static/css/global.css")
+    _assert_contains(table_css, ".table-action-bar", ctx="app/static/css/components/table.css")
+    _assert_contains(table_css, ".btn-table-action", ctx="app/static/css/components/table.css")
+
+    offenders: list[str] = []
+    icon_tag = re.compile(r"<(?:button|a|span)\b[^>]*\bbtn-icon\b[^>]*>", re.S)
+    button_with_btn_sm = re.compile(r"<(?:button|a|span)\b[^>]*\bbtn-sm\b[^>]*>", re.S)
+    legacy_group = re.compile(r"<div\b[^>]*class=[\"'][^\"']*\bbtn-group\b[^\"']*[\"'][^>]*>", re.S)
+    chip_group = re.compile(r"<div\b[^>]*\bchip-toggle-group\b[^>]*>", re.S)
+    db_type_button = re.compile(r"<button\b[^>]*\bdata-db-type-btn\b[^>]*>", re.S)
+
+    for root, suffixes in (
+        (Path("app/templates"), {".html"}),
+        (Path("app/static/js/modules/views"), {".js"}),
+    ):
+        for path in _iter_files(root, suffix_allow=suffixes):
+            content = path.read_text(encoding="utf-8", errors="ignore")
+
+            for match in legacy_group.finditer(content):
+                tag = match.group(0)
+                if "command-action-bar" not in tag and "table-action-bar" not in tag and "segmented-control" not in tag:
+                    offenders.append(f"{path}:{content.count(chr(10), 0, match.start()) + 1}: 发现裸 btn-group")
+
+            for match in icon_tag.finditer(content):
+                tag = match.group(0)
+                if "aria-label=" not in tag:
+                    offenders.append(f"{path}:{content.count(chr(10), 0, match.start()) + 1}: btn-icon 缺少 aria-label")
+
+            if path.suffix == ".js":
+                for match in button_with_btn_sm.finditer(content):
+                    offenders.append(f"{path}:{content.count(chr(10), 0, match.start()) + 1}: 动态按钮仍使用 btn-sm")
+
+            for match in chip_group.finditer(content):
+                tag = match.group(0)
+                if "segmented-control" not in tag:
+                    offenders.append(f"{path}:{content.count(chr(10), 0, match.start()) + 1}: chip-toggle-group 缺少 segmented-control")
+
+            for match in db_type_button.finditer(content):
+                tag = match.group(0)
+                if "btn-segment" not in tag:
+                    offenders.append(f"{path}:{content.count(chr(10), 0, match.start()) + 1}: data-db-type-btn 缺少 btn-segment")
+
+    if offenders:
+        raise AssertionError("按钮系统契约失败:\n" + "\n".join(offenders[:120]))
+
+
 def _check_no_legacy_api_paths() -> None:
     legacy_api = re.compile(r"/api(?!/v1)(?:/|$)")
     targets = [
@@ -628,6 +704,7 @@ def _run_all_checks() -> list[str]:
         _check_no_legacy_stat_card_classes,
         _check_no_legacy_page_header_contract,
         _check_modal_shell_and_controller_contract,
+        _check_button_system_contract,
         _check_no_legacy_api_paths,
         _check_views_no_window_httpu,
         _check_views_no_silent_catch,

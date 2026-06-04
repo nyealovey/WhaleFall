@@ -355,11 +355,11 @@ function mountCredentialsListPage(global) {
       return "管理";
     }
     return gridHtml(`
-      <div class="btn-group" role="group">
-        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-credential" data-credential-id="${credentialId}" title="编辑">
+      <div class="table-action-bar" role="group">
+        <button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="edit-credential" data-credential-id="${credentialId}" title="编辑" aria-label="编辑凭据">
           <i class="fas fa-pen"></i>
         </button>
-        <button type="button" class="btn btn-outline-danger btn-icon" data-action="delete-credential" data-credential-id="${credentialId}" data-credential-name="${encodedName}" title="删除">
+        <button type="button" class="btn btn-outline-danger btn-icon btn-table-action" data-action="delete-credential" data-credential-id="${credentialId}" data-credential-name="${encodedName}" title="删除" aria-label="删除凭据">
           <i class="fas fa-trash"></i>
         </button>
       </div>

@@ -67,11 +67,6 @@
     flex-wrap: wrap;
 }
 
-.job-actions .btn-icon {
-    width: 2.3rem;
-    height: 2.3rem;
-}
-
 .loading-state,
 .empty-state {
     text-align: center;

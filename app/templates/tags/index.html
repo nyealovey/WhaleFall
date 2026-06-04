@@ -18,11 +18,11 @@
 <div class="layout-shell">
     <div class="layout-shell-inner">
         <div class="console-command-deck">
-            <div class="btn-group">
-                <button class="btn btn-primary" type="button" data-action="create-tag">
+            <div class="command-action-bar">
+                <button class="btn btn-primary btn-command" type="button" data-action="create-tag">
                     <i class="fas fa-plus me-2"></i>添加标签
                 </button>
-                <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-outline-secondary">
+                <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-outline-secondary btn-command">
                     <i class="fas fa-tasks me-2"></i>批量分配
                 </a>
             </div>

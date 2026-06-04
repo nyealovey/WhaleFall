@@ -768,9 +768,9 @@ function mountInstancesListPage() {
             const name = escapeHtml(meta?.name || '');
             const hostLabel = meta?.host ? escapeHtml(`${meta.host}:${meta.port || ''}`) : '';
             return gridHtml(`
-                <div class="btn-group btn-group-sm" role="group">
+                <div class="table-action-bar" role="group">
                     <button type="button"
-                            class="btn btn-outline-primary btn-sm"
+                            class="btn btn-outline-primary btn-table-action"
                             data-action="restore-instance"
                             data-instance-id="${meta.id}"
                             data-instance-name="${name}"
@@ -781,10 +781,10 @@ function mountInstancesListPage() {
             `);
         }
         const buttons = [
-            `<a href="${detailBase}/${meta.id}" class="btn btn-outline-secondary btn-sm btn-icon" title="查看详情"><i class="fas fa-eye"></i></a>`,
-            `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="test-connection" data-instance-id="${meta.id}" title="测试连接"><i class="fas fa-plug"></i></button>`,
+            `<a href="${detailBase}/${meta.id}" class="btn btn-outline-secondary btn-icon btn-table-action" title="查看详情" aria-label="查看详情"><i class="fas fa-eye"></i></a>`,
+            `<button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="test-connection" data-instance-id="${meta.id}" title="测试连接" aria-label="测试连接"><i class="fas fa-plug"></i></button>`,
         ];
-        return gridHtml(`<div class="btn-group btn-group-sm" role="group">${buttons.join('')}</div>`);
+        return gridHtml(`<div class="table-action-bar" role="group">${buttons.join('')}</div>`);
     }
 
     /**

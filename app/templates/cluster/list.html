@@ -23,8 +23,8 @@
 <div class="layout-shell">
     <div class="layout-shell-inner">
         <div class="console-command-deck">
-            <div class="btn-group">
-                <button class="btn btn-primary" type="button" data-action="create-cluster">
+            <div class="command-action-bar">
+                <button class="btn btn-primary btn-command" type="button" data-action="create-cluster">
                     <i class="fas fa-plus me-2"></i>添加群集
                 </button>
             </div>
@@ -47,15 +47,15 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="btn-group flex-wrap cluster-db-type-switcher" role="group" aria-label="群集数据库类型">
+            <div class="segmented-control cluster-db-type-switcher" role="group" aria-label="群集数据库类型">
                 <button type="button"
-                        class="btn btn-primary"
+                        class="btn btn-segment active"
                         data-db-type-btn
                         data-cluster-db-type="sqlserver">
                     <i class="fas fa-server me-1" aria-hidden="true"></i>SQL Server
                 </button>
                 <button type="button"
-                        class="btn btn-outline-primary border-2 fw-bold"
+                        class="btn btn-segment"
                         data-db-type-btn
                         data-cluster-db-type="mysql">
                     <i class="fas fa-database me-1" aria-hidden="true"></i>MySQL
@@ -149,11 +149,11 @@
                     <div class="fw-semibold">AG 自动同步</div>
                     <div class="text-muted small">使用已绑定实例凭据读取 AG/listener 信息。</div>
                 </div>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" type="button" data-action="sync-ag">
+                <div class="form-action-row">
+                    <button class="btn btn-outline-primary btn-form-action" type="button" data-action="sync-ag">
                         <i class="fas fa-rotate me-1"></i>同步 AG 信息
                     </button>
-                    <button class="btn btn-outline-secondary" type="button" data-action="sync-sqlserver-status">
+                    <button class="btn btn-outline-secondary btn-form-action" type="button" data-action="sync-sqlserver-status">
                         <i class="fas fa-heart-pulse me-1"></i>数据库同步状态
                     </button>
                 </div>
@@ -280,8 +280,8 @@
             <h5 class="mb-1" id="agAccountsDashboardTitle">-</h5>
             <div class="text-muted small" data-ag-accounts-summary="listener">-</div>
         </div>
-        <div class="ag-status-dashboard__actions btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" type="button" data-action="sync-ag-accounts-dashboard">
+        <div class="ag-status-dashboard__actions form-action-row">
+            <button class="btn btn-outline-primary btn-form-action" type="button" data-action="sync-ag-accounts-dashboard">
                 <i class="fas fa-sync me-1"></i>同步 AG 账户
             </button>
         </div>
@@ -348,8 +348,8 @@
             <h5 class="mb-1" id="mysqlTopologyDashboardTitle">-</h5>
             <div class="text-muted small" data-mysql-topology-summary="last_checked_at">未检测</div>
         </div>
-        <div class="ag-status-dashboard__actions">
-            <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-mysql-topology-dashboard">
+        <div class="ag-status-dashboard__actions form-action-row">
+            <button class="btn btn-outline-primary btn-form-action" type="button" data-action="sync-mysql-topology-dashboard">
                 <i class="fas fa-rotate me-1"></i>同步主从信息
             </button>
         </div>
@@ -410,8 +410,8 @@
             <h5 class="mb-1" id="agStatusDashboardTitle">-</h5>
             <div class="text-muted small" data-ag-status-summary="listener">-</div>
         </div>
-        <div class="ag-status-dashboard__actions">
-            <button class="btn btn-outline-primary btn-sm" type="button" data-action="sync-ag-dashboard">
+        <div class="ag-status-dashboard__actions form-action-row">
+            <button class="btn btn-outline-primary btn-form-action" type="button" data-action="sync-ag-dashboard">
                 <i class="fas fa-heart-pulse me-1"></i>检测当前群集
             </button>
         </div>

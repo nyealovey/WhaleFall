@@ -256,12 +256,12 @@ function mountClusterPage(global) {
           const meta = rowMeta.get(row);
           const clusterId = escapeHtml(String(meta.id || ""));
           return gridHtml(
-            `<div class="btn-group btn-group-sm" role="group">` +
-              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-cluster" data-cluster-id="${clusterId}" title="管理" aria-label="管理">` +
+            `<div class="table-action-bar" role="group">` +
+              `<button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="edit-cluster" data-cluster-id="${clusterId}" title="管理" aria-label="管理">` +
               `<i class="fas fa-pen" aria-hidden="true"></i></button>` +
-              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-ag-accounts-dashboard" data-cluster-id="${clusterId}" title="AG账户" aria-label="AG账户">` +
+              `<button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="open-ag-accounts-dashboard" data-cluster-id="${clusterId}" title="AG账户" aria-label="AG账户">` +
               `<i class="fas fa-users" aria-hidden="true"></i></button>` +
-              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-ag-dashboard" data-cluster-id="${clusterId}" title="查看AG状态" aria-label="查看AG状态">` +
+              `<button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="open-ag-dashboard" data-cluster-id="${clusterId}" title="查看AG状态" aria-label="查看AG状态">` +
               `<i class="fas fa-chart-line" aria-hidden="true"></i></button>` +
               `</div>`
           );
@@ -316,10 +316,10 @@ function mountClusterPage(global) {
           const meta = rowMeta.get(row);
           const clusterId = escapeHtml(String(meta.id || ""));
           return gridHtml(
-            `<div class="btn-group btn-group-sm" role="group">` +
-              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-mysql-cluster" data-cluster-id="${clusterId}" title="管理" aria-label="管理">` +
+            `<div class="table-action-bar" role="group">` +
+              `<button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="edit-mysql-cluster" data-cluster-id="${clusterId}" title="管理" aria-label="管理">` +
               `<i class="fas fa-pen" aria-hidden="true"></i></button>` +
-              `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="open-mysql-topology-dashboard" data-cluster-id="${clusterId}" title="主从状态" aria-label="主从状态">` +
+              `<button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="open-mysql-topology-dashboard" data-cluster-id="${clusterId}" title="主从状态" aria-label="主从状态">` +
               `<i class="fas fa-rotate" aria-hidden="true"></i></button>` +
               `</div>`
           );

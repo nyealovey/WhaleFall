@@ -1,12 +1,5 @@
 /* 数据库台账页面样式 */
 
-.btn-group [data-db-type-btn] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-}
-
 #database-ledger-grid .gridjs-th[data-column-id="db_type"],
 #database-ledger-grid .gridjs-td[data-column-id="db_type"] {
     width: 64px;
@@ -121,16 +114,4 @@
     inset: 0;
     background: color-mix(in srgb, var(--surface-elevated) 85%, transparent);
     border-radius: var(--border-radius-lg);
-}
-
-@media (max-width: 768px) {
-    .btn-group {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .btn-group [data-db-type-btn] {
-        width: 100%;
-    }
-
 }

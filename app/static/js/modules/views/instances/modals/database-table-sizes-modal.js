@@ -138,7 +138,7 @@
           <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
           <p class="text-muted mb-2">加载表容量失败</p>
           <p class="text-danger">${escapeHtml(message || '请求失败')}</p>
-          <button type="button" class="btn btn-outline-primary" data-action="retry-load-table-sizes">
+          <button type="button" class="btn btn-outline-primary btn-form-action" data-action="retry-load-table-sizes">
             <i class="fas fa-redo me-1"></i>重试
           </button>
         </div>

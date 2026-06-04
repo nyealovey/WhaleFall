@@ -307,7 +307,7 @@ a {
 .console-stats-page,
 .console-workbench-page {
     display: grid;
-    gap: var(--page-spacing-dense);
+    gap: var(--command-to-content-gap);
 }
 
 .console-command-deck,
@@ -323,7 +323,8 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: var(--button-group-gap);
+    margin: 0;
 }
 
 .console-context-strip {

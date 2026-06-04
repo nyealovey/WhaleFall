@@ -16,12 +16,12 @@
 <div class="layout-shell">
     <div class="layout-shell-inner">
         <div class="console-command-deck">
-            <div class="btn-group">
-                <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-primary">
+            <div class="command-action-bar">
+                <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-primary btn-command">
                     <i class="fas fa-chart-bar me-2"></i>实例统计
                 </a>
                 {% if current_user.role == 'admin' %}
-                <button class="btn btn-primary" type="button" data-action="create-instance">
+                <button class="btn btn-primary btn-command" type="button" data-action="create-instance">
                     <i class="fas fa-plus me-2"></i>添加实例
                 </button>
                 {% endif %}
@@ -62,14 +62,14 @@
                             <div class="d-flex flex-wrap align-items-center gap-3">
                                 {% if current_user.role == 'admin' %}
                                 <div class="text-muted" id="instances-selection-summary">未选择实例</div>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-danger" data-action="batch-delete" disabled>
+                                <div class="form-action-row" role="group">
+                                    <button type="button" class="btn btn-outline-danger btn-form-action" data-action="batch-delete" disabled>
                                         <i class="fas fa-trash me-1"></i>移入回收站
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary" data-action="batch-test" disabled>
+                                    <button type="button" class="btn btn-outline-secondary btn-form-action" data-action="batch-test" disabled>
                                         <i class="fas fa-plug me-1"></i>批量测试连接
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary" data-action="create-instance-batch">
+                                    <button type="button" class="btn btn-outline-secondary btn-form-action" data-action="create-instance-batch">
                                         <i class="fas fa-file-upload me-1"></i>批量导入
                                     </button>
                                 </div>
@@ -85,7 +85,7 @@
                                            {% if include_deleted %}checked{% endif %}>
                                     <label class="form-check-label" for="include-deleted-toggle">显示已删除</label>
                                 </div>
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-action="export">
+                                <button type="button" class="btn btn-outline-primary btn-form-action" data-action="export">
                                     <i class="fas fa-download me-1"></i>导出CSV
                                 </button>
                             </div>

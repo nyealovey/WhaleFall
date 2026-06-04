@@ -486,11 +486,11 @@ function mountAuthListPage(global) {
       return isSelf ? "编辑" : "编辑/删除";
     }
     return gridHtml(`
-      <div class="d-flex justify-content-center gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-user" data-user-id="${userId}" title="编辑用户">
+      <div class="table-action-bar" role="group">
+        <button type="button" class="btn btn-outline-secondary btn-icon btn-table-action" data-action="edit-user" data-user-id="${userId}" title="编辑用户" aria-label="编辑用户">
           <i class="fas fa-edit"></i>
         </button>
-        <button type="button" class="btn btn-outline-danger btn-icon" data-action="delete-user" data-user-id="${userId}" data-username="${encodedUsername}" ${deleteDisabled} title="${deleteTitle}">
+        <button type="button" class="btn btn-outline-danger btn-icon btn-table-action" data-action="delete-user" data-user-id="${userId}" data-username="${encodedUsername}" ${deleteDisabled} title="${deleteTitle}" aria-label="${deleteTitle}">
           <i class="fas fa-trash"></i>
         </button>
       </div>

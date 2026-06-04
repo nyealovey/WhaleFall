@@ -6,11 +6,11 @@
     --table-head-padding-x: 9px;
     --table-cell-padding-y: 4px;
     --table-cell-padding-x: 9px;
-    --table-action-btn-font-size: 10px;
-    --table-action-btn-padding-y: 2px;
-    --table-action-btn-padding-x: 6px;
-    --table-action-btn-min-width: 26px;
-    --table-action-btn-height: 25px;
+    --table-action-btn-font-size: 0.72rem;
+    --table-action-btn-padding-y: 0;
+    --table-action-btn-padding-x: 0.42rem;
+    --table-action-btn-min-width: var(--button-icon-size-table);
+    --table-action-btn-height: var(--button-height-table);
     --table-pagination-btn-font-size: 11px;
     --table-pagination-btn-padding-y: 2px;
     --table-pagination-btn-padding-x: 8px;
@@ -89,7 +89,8 @@
     white-space: nowrap;
 }
 
-.gridjs-td .btn {
+.gridjs-td .btn,
+.gridjs-td .btn-table-action {
     padding: var(--table-action-btn-padding-y) var(--table-action-btn-padding-x);
     font-size: var(--table-action-btn-font-size);
     line-height: 1.2;
@@ -97,16 +98,18 @@
     height: var(--table-action-btn-height);
 }
 
-.gridjs-td .btn-group {
-    gap: 4px;
+.gridjs-td .table-action-bar {
+    justify-content: center;
+    gap: var(--button-group-gap-tight);
 }
 
-.gridjs-td .btn-group .btn {
+.gridjs-td .table-action-bar .btn {
     margin: 0;
 }
 
-.gridjs-td .btn i {
-    font-size: 13px;
+.gridjs-td .btn i,
+.gridjs-td .btn-table-action i {
+    font-size: 0.78rem;
 }
 
 .gridjs-pagination {
@@ -202,7 +205,8 @@
         padding: 2px 6px;
     }
 
-    .gridjs-td .btn {
+    .gridjs-td .btn,
+    .gridjs-td .btn-table-action {
         padding: 3px 6px;
         font-size: 11px;
         min-width: 28px;

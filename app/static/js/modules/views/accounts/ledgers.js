@@ -675,9 +675,11 @@ function mountAccountsListPage(global) {
       return "详情";
     }
     return gridHtml(`
-      <button type="button" class="btn btn-outline-primary btn-sm" data-action="view-permissions" data-account-id="${meta.id}" title="查看权限">
-        <i class="fas fa-eye"></i>
-      </button>
+      <div class="table-action-bar" role="group">
+        <button type="button" class="btn btn-outline-primary btn-table-action" data-action="view-permissions" data-account-id="${meta.id}" title="查看权限" aria-label="查看权限">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
     `);
   }
 

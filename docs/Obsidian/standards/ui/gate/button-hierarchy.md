@@ -10,7 +10,7 @@ enforcement: gate
 created: 2025-12-23
 updated: 2026-01-08
 owner: WhaleFall Team
-scope: "`app/templates/**` 与 `app/static/css/**` 中所有按钮与按钮状态实现"
+scope: "`app/templates/**`、`app/static/js/modules/views/**` 与 `app/static/css/**` 中所有按钮与按钮状态实现"
 related:
   - "[[standards/ui/gate/danger-operation-confirmation]]"
 ---
@@ -26,6 +26,7 @@ related:
 
 - Bootstrap `btn` 系列按钮（含 outline/图标按钮）。
 - 页面级按钮组、表格行内操作、模态框操作区按钮。
+- 动态渲染按钮（`app/static/js/modules/views/**`）。
 
 ## 规则（MUST/SHOULD/MAY）
 
@@ -34,15 +35,25 @@ related:
 - MUST：主操作（页面核心 CTA）使用 `btn btn-primary`，同屏 SHOULD ≤1 个主按钮。
 - MUST：次操作使用 `btn btn-outline-secondary`，保持“像按钮”的边框与焦点外观。
 - MUST：危险操作（删除/不可逆）优先使用 `btn btn-outline-danger`；只有在确认弹窗的最终确认动作等“强提醒场景”才使用 `btn btn-danger`。
-- MUST：仅图标操作使用 `btn btn-outline-secondary btn-icon`，并提供稳定的可访问名称（`aria-label` 优先，`title` 允许作为兜底）。
+- MUST：仅图标操作使用 `btn btn-outline-secondary btn-icon`，并提供稳定的可访问名称（必须有 `aria-label`，`title` 可补充）。
 - MUST NOT：使用 `text-danger` 叠加到次按钮/图标按钮以“伪装危险语义”（危险操作必须直接选择 danger 语义类）。
 
-### 2) 实现基线（禁止破坏）
+### 2) 按钮角色与容器
+
+- MUST：页面级命令区使用 `.console-command-deck` + `.command-action-bar`，按钮使用 `.btn-command`。
+- MUST：Grid.js / 表格行内操作使用 `.table-action-bar`，按钮使用 `.btn-table-action`。
+- MUST：周期、类型、图表模式、TOP 选择等分段控件使用 `.segmented-control`，按钮/label 使用 `.btn-segment`。
+- MUST：筛选、弹窗 footer、内嵌表单动作使用 `.form-action-row` 或 `.btn-form-action`。
+- SHOULD：详情页竖向快速动作使用 `.btn-quick-action`。
+- MUST NOT：在模板或 views 动态 HTML 中继续用裸 `.btn-group`、`.btn-group-sm` 或 `btn-sm` 表示按钮尺寸。
+
+### 3) 实现基线（禁止破坏）
 
 - MUST NOT：新增/恢复全局 `.btn { border: none; }` / `.btn { border: 0; }` 等破坏性覆盖（会让 `btn-outline-*` 失去语义边界）。
 - SHOULD：页面级差异如确需覆盖，必须限定在容器作用域内（例如 `.filter-actions .btn-primary { ... }`），不得影响全站 `btn-outline-*` 的边框语义。
+- MUST NOT：pages 层重新定义 `.btn-command`、`.btn-table-action`、`.btn-segment`、`.btn-form-action`、`.btn-quick-action`、`.command-action-bar`、`.table-action-bar`、`.segmented-control`、`.form-action-row`。
 
-### 3) Loading 与内容恢复（尤其是图标按钮）
+### 4) Loading 与内容恢复（尤其是图标按钮）
 
 - MUST：loading 必须可逆；进入 loading 前缓存并在结束后恢复原始 `innerHTML`，禁止把图标按钮“简化”为纯文本再恢复。
 - MUST：loading 时设置 `aria-busy="true"`，并至少禁用一个按钮以防重复提交。
@@ -54,7 +65,7 @@ related:
 
 ```html
 <!-- 列表行内：触发按钮 -->
-<button class="btn btn-outline-danger btn-icon" type="button" aria-label="删除">
+<button class="btn btn-outline-danger btn-icon btn-table-action" type="button" aria-label="删除">
   <i class="fa-solid fa-trash"></i>
 </button>
 
@@ -73,6 +84,8 @@ related:
 - `./scripts/ci/button-hierarchy-guard.sh`
 - `./scripts/ci/danger-button-semantics-guard.sh`
 - `./scripts/ci/component-style-drift-guard.sh`
+- `./scripts/ci/frontend-contracts-guard.sh`
+- `uv run pytest tests/unit/test_frontend_button_system_contract.py`
 
 ## 变更历史
 

@@ -489,26 +489,26 @@ function getActionButtons(job) {
 
     if (job.state === 'STATE_RUNNING' || job.state === 'STATE_EXECUTING') {
         buttons.push(
-            `<button class="btn btn-outline-secondary btn-icon btn-disable-job" type="button" data-job-id="${job.id}" title="暂停任务" aria-label="暂停任务">
+            `<button class="btn btn-outline-secondary btn-icon btn-table-action btn-disable-job" type="button" data-job-id="${job.id}" title="暂停任务" aria-label="暂停任务">
                 <i class="fas fa-pause" aria-hidden="true"></i>
             </button>`
         );
     } else {
         buttons.push(
-            `<button class="btn btn-outline-secondary btn-icon btn-enable-job" type="button" data-job-id="${job.id}" title="恢复任务" aria-label="恢复任务">
+            `<button class="btn btn-outline-secondary btn-icon btn-table-action btn-enable-job" type="button" data-job-id="${job.id}" title="恢复任务" aria-label="恢复任务">
                 <i class="fas fa-play" aria-hidden="true"></i>
             </button>`
         );
     }
 
     buttons.push(
-        `<button class="btn btn-outline-secondary btn-icon btn-run-job" type="button" data-job-id="${job.id}" title="立即执行" aria-label="立即执行">
+        `<button class="btn btn-outline-secondary btn-icon btn-table-action btn-run-job" type="button" data-job-id="${job.id}" title="立即执行" aria-label="立即执行">
             <i class="fas fa-bolt" aria-hidden="true"></i>
         </button>`
     );
 
     buttons.push(
-        `<button class="btn btn-outline-secondary btn-icon btn-edit-job" type="button" data-job-id="${job.id}" title="编辑任务" aria-label="编辑任务">
+        `<button class="btn btn-outline-secondary btn-icon btn-table-action btn-edit-job" type="button" data-job-id="${job.id}" title="编辑任务" aria-label="编辑任务">
             <i class="fas fa-edit" aria-hidden="true"></i>
         </button>`
     );

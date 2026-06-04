@@ -471,12 +471,12 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       return '查看';
     }
     const viewBtn = `
-      <button class="btn btn-outline-secondary btn-icon" data-action="view" data-id="${escapeHtml(meta.run_id)}" title="查看详情">
+      <button class="btn btn-outline-secondary btn-icon btn-table-action" data-action="view" data-id="${escapeHtml(meta.run_id)}" title="查看详情" aria-label="查看详情">
         <i class="fas fa-eye"></i>
       </button>`;
     const cancelBtn = meta.status === 'running'
       ? `
-        <button class="btn btn-outline-danger btn-icon" data-action="cancel" data-id="${escapeHtml(meta.run_id)}" title="取消任务">
+        <button class="btn btn-outline-danger btn-icon btn-table-action" data-action="cancel" data-id="${escapeHtml(meta.run_id)}" title="取消任务" aria-label="取消任务">
           <i class="fas fa-stop"></i>
         </button>`
       : '';

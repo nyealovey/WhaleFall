@@ -286,7 +286,7 @@
       return "详情";
     }
     return global.gridjs.html(`
-      <button type="button" class="btn btn-outline-primary btn-sm" data-action="open-change-log-detail" data-log-id="${escapeHtml(String(id))}">
+      <button type="button" class="btn btn-outline-primary btn-table-action" data-action="open-change-log-detail" data-log-id="${escapeHtml(String(id))}">
         <i class="fas fa-eye me-1"></i>详情
       </button>
     `);

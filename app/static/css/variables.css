@@ -192,6 +192,15 @@
     --control-height-dense: 2.12rem;
     --control-padding-y-dense: 0.26rem;
     --control-padding-x-dense: 0.62rem;
+    --button-height-command: 2.12rem;
+    --button-height-form: 2rem;
+    --button-height-table: 1.625rem;
+    --button-icon-size-command: 2.12rem;
+    --button-icon-size-form: 2rem;
+    --button-icon-size-table: 1.625rem;
+    --button-group-gap: 0.35rem;
+    --button-group-gap-tight: 0.22rem;
+    --command-to-content-gap: 0.64rem;
     --filter-field-width-sm: clamp(8.25rem, 8vw, 9.5rem);
     --filter-field-width-md: clamp(9.5rem, 11vw, 11.5rem);
     --filter-field-width-lg: clamp(11.5rem, 18vw, 15rem);

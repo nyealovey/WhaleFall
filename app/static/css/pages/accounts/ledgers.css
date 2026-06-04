@@ -30,27 +30,6 @@
     min-width: 76px;
 }
 
-/* 数据库类型按钮组 */
-.btn-group [data-db-type-btn] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-    min-width: 88px;
-    border-radius: var(--border-radius-sm);
-}
-
-.btn-group [data-db-type-btn]:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-xs);
-}
-
-.btn-group [data-db-type-btn].btn-primary {
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
-}
-
 /* 用户名列加粗 + 显示实例信息 */
 #accounts-grid td[data-column-id="username"] strong {
     font-weight: 600;
@@ -183,16 +162,6 @@
 }
 
 @media (max-width: 768px) {
-    .btn-group {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .btn-group [data-db-type-btn] {
-        width: 100%;
-        margin-bottom: 0.5rem;
-    }
-
     .card-body > .d-flex.justify-content-between {
         flex-direction: column;
         align-items: flex-start !important;

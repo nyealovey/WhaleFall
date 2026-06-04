@@ -15,11 +15,11 @@
 <div class="layout-shell">
     <div class="layout-shell-inner">
         <div class="console-command-deck">
-            <div class="btn-group">
-                <a href="{{ url_for('databases_ledgers.statistics') }}" class="btn btn-outline-primary">
+            <div class="command-action-bar">
+                <a href="{{ url_for('databases_ledgers.statistics') }}" class="btn btn-outline-primary btn-command">
                     <i class="fas fa-chart-bar me-2"></i>数据库统计
                 </a>
-                <button type="button" class="btn btn-primary" data-action="sync-all-databases">
+                <button type="button" class="btn btn-primary btn-command" data-action="sync-all-databases">
                     <i class="fas fa-sync me-2"></i>同步所有数据库
                 </button>
             </div>
@@ -51,10 +51,10 @@
     <section class="page-section page-section--stacked console-grid-shell">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-                <div class="btn-group flex-wrap" role="group">
+                <div class="segmented-control" role="group">
                     {% for option in database_type_options %}
                     <button type="button"
-                            class="btn {% if current_db_type == option.value %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                            class="btn btn-segment {% if current_db_type == option.value %}active{% endif %}"
                             data-db-type-btn
                             data-db-type="{{ option.value }}">
                         {% if option.asset_url %}
@@ -79,7 +79,7 @@
                             <div class="d-flex align-items-center">
                                 <span class="text-muted">数据库台账</span>
                                 <button type="button"
-                                        class="btn btn-outline-primary btn-sm ms-3"
+                                        class="btn btn-outline-primary btn-form-action ms-3"
                                         data-export-ledger>
                                     <i class="fas fa-download me-1"></i>导出CSV
                                 </button>
