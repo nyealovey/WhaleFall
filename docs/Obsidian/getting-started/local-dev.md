@@ -67,9 +67,8 @@ DATABASE_URL=postgresql+psycopg://whalefall_user:dev@localhost:5432/whalefall_de
 CACHE_TYPE=redis
 CACHE_REDIS_URL=redis://:dev@localhost:6379/0
 
-# (推荐) 固定 secret, 避免每次重启导致 session/jwt 失效
+# (推荐) 固定 secret, 避免每次重启导致 session 失效
 SECRET_KEY=dev_secret_key_replace_me
-JWT_SECRET_KEY=dev_jwt_secret_key_replace_me
 ```
 
 更多配置项说明见 [[reference/config/environment-variables]].

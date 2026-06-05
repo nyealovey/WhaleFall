@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from flask import request
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_login import current_user, logout_user
 from flask_restx import Namespace, fields
 from flask_wtf.csrf import generate_csrf
@@ -14,11 +13,12 @@ from app import limiter
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required
-from app.core.constants import TimeConstants
 from app.core.constants.system_constants import SuccessMessages
 from app.infra.rate_limiting import build_login_rate_limit, login_rate_limit_key, password_reset_rate_limit_key
+from app.models.user import User
 from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
+from app.utils.user_role_utils import get_user_role_permissions
 
 ns = Namespace("auth", description="认证")
 
@@ -57,14 +57,8 @@ AuthUserData = ns.model(
 LoginData = ns.model(
     "LoginData",
     {
-        "access_token": fields.String(
-            description="JWT access token",
-            example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        ),
-        "refresh_token": fields.String(
-            description="JWT refresh token",
-            example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        ),
+        "auth_model": fields.String(description="认证模式", example="session"),
+        "csrf_token": fields.String(description="CSRF token", example="csrf_token_example"),
         "user": fields.Nested(AuthUserData, description="当前用户信息"),
     },
 )
@@ -82,19 +76,6 @@ ChangePasswordPayload = ns.model(
     },
 )
 
-RefreshData = ns.model(
-    "RefreshData",
-    {
-        "access_token": fields.String(
-            description="JWT access token",
-            example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        ),
-        "token_type": fields.String(description="token 类型", example="Bearer"),
-        "expires_in": fields.Integer(description="过期时间(秒)", example=3600),
-    },
-)
-RefreshSuccessEnvelope = make_success_envelope_model(ns, "RefreshSuccessEnvelope", RefreshData)
-
 MeData = ns.model(
     "MeData",
     {
@@ -108,6 +89,41 @@ MeData = ns.model(
     },
 )
 MeSuccessEnvelope = make_success_envelope_model(ns, "MeSuccessEnvelope", MeData)
+
+SessionData = ns.model(
+    "SessionData",
+    {
+        "authenticated": fields.Boolean(description="是否已通过 session 登录", example=True),
+        "auth_model": fields.String(description="认证模式", example="session"),
+        "csrf_token": fields.String(description="CSRF token", example="csrf_token_example"),
+        "permissions": fields.List(fields.String, description="当前角色权限列表", example=["read", "admin"]),
+        "user": fields.Raw(description="当前用户信息；未登录时为 null", example=None),
+    },
+)
+SessionSuccessEnvelope = make_success_envelope_model(ns, "SessionSuccessEnvelope", SessionData)
+
+
+def _build_session_payload() -> dict[str, object]:
+    """构造前端启动所需的 session 认证状态."""
+    if not current_user.is_authenticated:
+        return {
+            "authenticated": False,
+            "auth_model": "session",
+            "csrf_token": generate_csrf(),
+            "permissions": [],
+            "user": None,
+        }
+
+    user = cast(User, current_user._get_current_object())
+    user_payload = AuthMeReadService.to_payload(user)
+    role = str(user_payload.get("role") or "")
+    return {
+        "authenticated": True,
+        "auth_model": "session",
+        "csrf_token": generate_csrf(),
+        "permissions": get_user_role_permissions(role),
+        "user": user_payload,
+    }
 
 
 @ns.route("/csrf-token")
@@ -153,10 +169,9 @@ class LoginResource(BaseResource):
         def _execute():
             raw_payload: Any = get_raw_payload()
             result = LoginService().login_from_payload(raw_payload)
-            return self.success(
-                data=result.to_payload(),
-                message=SuccessMessages.LOGIN_SUCCESS,
-            )
+            payload = result.to_payload()
+            payload["csrf_token"] = generate_csrf()
+            return self.success(data=payload, message=SuccessMessages.LOGIN_SUCCESS)
 
         return self.safe_call(
             _execute,
@@ -193,6 +208,30 @@ class LogoutResource(BaseResource):
         )
 
 
+@ns.route("/session")
+class SessionResource(BaseResource):
+    """当前 session 状态资源."""
+
+    @ns.response(200, "OK", SessionSuccessEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        """获取当前 session 认证状态."""
+
+        def _execute():
+            return self.success(
+                data=_build_session_payload(),
+                message=SuccessMessages.OPERATION_SUCCESS,
+            )
+
+        return self.safe_call(
+            _execute,
+            module="auth",
+            action="get_session",
+            public_error="获取 session 状态失败",
+            context={"route": "api_v1.auth.session"},
+        )
+
+
 @ns.route("/change-password")
 class ChangePasswordResource(BaseResource):
     """修改密码资源."""
@@ -224,40 +263,6 @@ class ChangePasswordResource(BaseResource):
         )
 
 
-@ns.route("/refresh")
-class RefreshResource(BaseResource):
-    """刷新 Token 资源."""
-
-    @ns.response(200, "OK", RefreshSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @require_csrf
-    @jwt_required(refresh=True)
-    def post(self):
-        """刷新访问 Token."""
-
-        def _execute():
-            current_user_id = get_jwt_identity()
-            access_token = create_access_token(identity=str(current_user_id))
-            return self.success(
-                data={
-                    "access_token": access_token,
-                    "token_type": "Bearer",
-                    "expires_in": TimeConstants.ONE_HOUR,
-                },
-                message=SuccessMessages.OPERATION_SUCCESS,
-            )
-
-        return self.safe_call(
-            _execute,
-            module="auth",
-            action="refresh",
-            public_error="刷新token失败",
-            context={"route": "api_v1.auth.refresh"},
-        )
-
-
 @ns.route("/me")
 class MeResource(BaseResource):
     """当前用户信息资源."""
@@ -266,12 +271,12 @@ class MeResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @jwt_required()
+    @api_login_required
     def get(self):
         """获取当前用户信息."""
 
         def _execute():
-            payload = AuthMeReadService().get_me(identity=get_jwt_identity())
+            payload = AuthMeReadService.to_payload(cast(User, current_user._get_current_object()))
             return self.success(
                 data=payload,
                 message=SuccessMessages.OPERATION_SUCCESS,

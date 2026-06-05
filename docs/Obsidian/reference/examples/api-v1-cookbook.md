@@ -57,7 +57,7 @@ CSRF_TOKEN="$(
 echo "CSRF_TOKEN=$CSRF_TOKEN"
 ```
 
-## 2. 登录(session cookie)并获取 JWT
+## 2. 登录(session cookie)
 
 ```bash
 USERNAME="admin"
@@ -73,17 +73,10 @@ LOGIN_RES="$(
 echo "$LOGIN_RES" | python -m json.tool
 ```
 
-提取 token:
-
-```bash
-ACCESS_TOKEN="$(echo "$LOGIN_RES" | python -c 'import json,sys; print(json.load(sys.stdin)["data"]["access_token"])')"
-REFRESH_TOKEN="$(echo "$LOGIN_RES" | python -c 'import json,sys; print(json.load(sys.stdin)["data"]["refresh_token"])')"
-```
-
 ## 3. 走 session cookie 的 API 调用示例
 
 > [!note]
-> 大多数 `/api/v1/**` 接口使用 `flask-login` 的 session cookie 做鉴权(`api_login_required`).
+> `/api/v1/**` 控制台接口使用 `flask-login` 的 session cookie 做鉴权(`api_login_required`).
 
 ### 3.1 列表 + 分页
 
@@ -152,27 +145,24 @@ curl -sS -b "$COOKIE_JAR" \
 
 错误码含义表见: [[reference/errors/message-code-catalog]].
 
-## 5. 走 JWT 的 API 调用示例
+## 5. 认证状态查询示例
 
 > [!note]
-> 当前 JWT 主要用于 `auth` 域的 `me/refresh`.
+> `/api/v1/auth/session` 未登录也返回 200，适合作为前端启动时的 bootstrap 接口。
 
-### 5.1 `GET /api/v1/auth/me`
-
-```bash
-curl -sS \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  "$BASE_URL/api/v1/auth/me" \
-| python -m json.tool
-```
-
-### 5.2 `POST /api/v1/auth/refresh`(refresh token + CSRF)
+### 5.1 `GET /api/v1/auth/session`
 
 ```bash
 curl -sS -c "$COOKIE_JAR" -b "$COOKIE_JAR" \
-  -H "Authorization: Bearer $REFRESH_TOKEN" \
-  -H "X-CSRFToken: $CSRF_TOKEN" \
-  -X POST "$BASE_URL/api/v1/auth/refresh" \
+  "$BASE_URL/api/v1/auth/session" \
+| python -m json.tool
+```
+
+### 5.2 `GET /api/v1/auth/me`
+
+```bash
+curl -sS -c "$COOKIE_JAR" -b "$COOKIE_JAR" \
+  "$BASE_URL/api/v1/auth/me" \
 | python -m json.tool
 ```
 

@@ -1,7 +1,7 @@
 """Auth Me Read Service.
 
 职责:
-- 读取当前用户信息(供 `/api/v1/auth/me` 使用)
+- 读取当前用户信息(供 `/api/v1/auth/me` 与 `/api/v1/auth/session` 使用)
 - 不返回 Response、不 commit
 """
 
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from app.core.constants.system_constants import ErrorMessages
 from app.core.exceptions import AuthenticationError, NotFoundError
+from app.models.user import User
 from app.repositories.users_repository import UsersRepository
 
 
@@ -20,10 +21,10 @@ class AuthMeReadService:
         self._repository = repository or UsersRepository()
 
     def get_me(self, *, identity: str | int | None) -> dict[str, object]:
-        """获取当前用户信息.
+        """按用户 ID 获取当前用户信息.
 
         Args:
-            identity: `jwt_identity`,通常为字符串形式的用户 ID.
+            identity: 用户 ID.
 
         Returns:
             dict[str, object]: 可 JSON 序列化的用户信息 payload.
@@ -45,6 +46,11 @@ class AuthMeReadService:
         if not user:
             raise NotFoundError(message="用户不存在")
 
+        return self.to_payload(user)
+
+    @staticmethod
+    def to_payload(user: User) -> dict[str, object]:
+        """转换为当前用户信息 payload."""
         return {
             "id": user.id,
             "username": user.username,

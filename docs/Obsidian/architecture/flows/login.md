@@ -88,8 +88,8 @@ sequenceDiagram
 
     C->>A: POST /api/v1/auth/login (CSRF + credentials)
     A->>S: login(username, password)
-    S-->>A: session cookie + jwt access/refresh
-    A-->>C: 200 success envelope + tokens
+    S-->>A: session cookie
+    A-->>C: 200 success envelope
 
     C->>A: GET /api/v1/instances (with session cookie)
     A-->>C: 200 success envelope
@@ -97,7 +97,7 @@ sequenceDiagram
     C->>A: POST /api/v1/instances (CSRF + session cookie)
     A-->>C: 200/4xx envelope
 
-    C->>A: GET /api/v1/auth/me (Authorization: Bearer)
+    C->>A: GET /api/v1/auth/me (with session cookie)
     A-->>C: 200 success envelope
 ```
 

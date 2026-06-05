@@ -6,7 +6,7 @@ tags:
   - api/contract
   - auth
   - csrf
-  - jwt
+  - session
 status: draft
 created: 2026-01-08
 updated: 2026-01-08
@@ -25,8 +25,8 @@ source_code:
 
 - ✅ CSRF Token：获取 token
 - ✅ Session Login/Logout：登录/登出（cookie session）
+- ✅ Session Bootstrap：读取当前登录状态、用户、权限与 CSRF token
 - ✅ Password：修改密码
-- ✅ JWT：refresh / me
 
 ## 快速导航
 
@@ -38,8 +38,7 @@ source_code:
 
 ### 鉴权方式
 
-- Session（cookie）：`POST /api/v1/auth/login` 会建立/刷新 session；`POST /api/v1/auth/logout`、`POST /api/v1/auth/change-password` 依赖该 session。
-- JWT：`GET /api/v1/auth/me` 与 `POST /api/v1/auth/refresh` 使用 `Authorization: Bearer <token>`（由 `jwt_required` 装饰器控制）。
+- Session（cookie）：`POST /api/v1/auth/login` 会建立/刷新 session；`GET /api/v1/auth/session`、`GET /api/v1/auth/me`、`POST /api/v1/auth/logout`、`POST /api/v1/auth/change-password` 依赖该 session。
 
 ### CSRF（仅 Header）
 
@@ -55,17 +54,16 @@ source_code:
 | Method | Path | Purpose | Service | Permission | CSRF | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | GET | `/api/v1/auth/csrf-token` | 获取 CSRF token | `generate_csrf` | - | - | 返回 `data.csrf_token` |
-| POST | `/api/v1/auth/login` | 登录（建立 session + 返回 JWT） | `LoginService.login` | - | ✅ | 需要 CSRF；body：`username/password`；受 rate limit 保护 |
+| GET | `/api/v1/auth/session` | 获取 session 状态 | `current_user` | - | - | 未登录也返回 200；返回 `authenticated/user/permissions/csrf_token` |
+| POST | `/api/v1/auth/login` | 登录（建立 session） | `LoginService.login` | - | ✅ | 需要 CSRF；body：`username/password`；受 rate limit 保护 |
 | POST | `/api/v1/auth/logout` | 登出（清理 session） | `logout_user` | - | ✅ | 需要登录（session）+ CSRF |
 | POST | `/api/v1/auth/change-password` | 修改密码 | `ChangePasswordService.change_password` | - | ✅ | 需要登录（session）+ CSRF；受 rate limit 保护 |
-| POST | `/api/v1/auth/refresh` | 刷新 access token | `create_access_token` | - | ✅ | 需要 refresh JWT + CSRF |
-| GET | `/api/v1/auth/me` | 获取当前用户信息 | `AuthMeReadService.get_me` | - | - | 需要 access JWT |
+| GET | `/api/v1/auth/me` | 获取当前用户信息 | `AuthMeReadService.to_payload` | - | - | 需要登录（session） |
 
 ## Login 流程（推荐）
 
 > [!example]
 > 1) `GET /api/v1/auth/csrf-token` 获取 `csrf_token`（并建立/刷新 cookie）  
 > 2) `POST /api/v1/auth/login` 携带 `X-CSRFToken` + cookie，完成登录  
-> 3) 后续调用：
-> - 走 session 的接口：继续复用 cookie（写操作仍需 `X-CSRFToken`）
-> - 走 JWT 的接口：使用 `Authorization: Bearer <access_token>`  
+> 3) `GET /api/v1/auth/session` 获取当前用户、权限和新的 `csrf_token`  
+> 4) 后续调用继续复用 cookie（写操作仍需 `X-CSRFToken`）

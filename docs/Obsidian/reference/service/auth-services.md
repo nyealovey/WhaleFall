@@ -43,9 +43,9 @@ related:
 
 - `LoginService.login(username, password) -> LoginResult`
   - 写入 session cookie: `login_user(user, remember=True)`
-  - 生成 JWT: `create_access_token` + `create_refresh_token`
 - `ChangePasswordService.change_password(payload, user=current_user) -> User` (flush only)
-- `AuthMeReadService.get_me(identity=jwt_identity) -> dict`
+- `AuthMeReadService.get_me(identity=user_id) -> dict`
+- `AuthMeReadService.to_payload(user) -> dict`
 
 不在这些 service 内做的事:
 
@@ -57,7 +57,6 @@ related:
 | --- | --- | --- | --- |
 | DB | `User.query` | 登录/读取用户 | 用户不存在或密码不匹配 -> INVALID_CREDENTIALS |
 | Session | `flask_login.login_user` | 写 session cookie + remember cookie | 依赖 Flask-Login 配置 |
-| JWT | `flask_jwt_extended.create_access_token/create_refresh_token` | 生成 access/refresh token | 依赖 JWT 配置 |
 | Payload | `parse_payload` + `validate_or_raise(ChangePasswordPayload)` | 改密入参校验 | ValidationError |
 | Errors | `AuthenticationError/AuthorizationError/NotFoundError` | 对外失败口径 | 由 route 层封套 |
 
@@ -66,7 +65,7 @@ related:
 - LoginService:
   - 用户名/密码错误 -> `AuthenticationError(message_key="INVALID_CREDENTIALS")`.
   - 用户被禁用 -> `AuthorizationError(message_key="ACCOUNT_DISABLED")`.
-  - 不做 DB 写事务, 仅写 session + 生成 JWT.
+  - 不做 DB 写事务, 仅写 session.
 - ChangePasswordService:
   - `user is None` -> ValidationError("用户未登录").
   - old_password 不匹配 -> `AuthenticationError(message_key="INVALID_OLD_PASSWORD")`.
@@ -85,8 +84,7 @@ flowchart TD
     Auth -->|User| Active{user.is_active?}
     Active -->|no| Disabled["raise AuthorizationError(ACCOUNT_DISABLED)"]
     Active -->|yes| Session["login_user(remember=True)"]
-    Session --> JWT["create_access_token + create_refresh_token"]
-    JWT --> Payload["return LoginResult(access,refresh,user)"]
+    Session --> Payload["return LoginResult(user)"]
 
     CP["ChangePasswordService.change_password(payload,user)"] --> Validate["parse_payload + validate_or_raise"]
     Validate --> CheckOld{check_password(old)?}
@@ -114,7 +112,6 @@ sequenceDiagram
     participant Svc as LoginService
     participant DB as User.query
     participant FL as flask_login
-    participant JWT as flask_jwt_extended
 
     C->>API: POST /api/v1/auth/login (CSRF + json)
     API->>Svc: login(username,password)
@@ -123,10 +120,9 @@ sequenceDiagram
         Svc-->>API: raise AuthenticationError
     else ok
         Svc->>FL: login_user(remember=True)
-        Svc->>JWT: create_access_token/create_refresh_token
         Svc-->>API: LoginResult
     end
-    API-->>C: success envelope + tokens + session cookie
+    API-->>C: success envelope + session cookie
 ```
 
 ## 6. 决策表/规则表(Decision Table)
@@ -137,7 +133,7 @@ sequenceDiagram
 | --- | --- | --- |
 | user 不存在或密码不匹配 | AuthenticationError | INVALID_CREDENTIALS |
 | user 存在但 `is_active=false` | AuthorizationError | ACCOUNT_DISABLED |
-| 其他 | 返回 tokens + user payload | - |
+| 其他 | 返回 user payload | - |
 
 ### 6.2 AuthMe: identity 解析
 

@@ -32,8 +32,6 @@ DOTENV_PATH = PROJECT_ROOT / ".env"
 
 DEFAULT_ENVIRONMENT = "development"
 APP_VERSION = "1.5.0"
-DEFAULT_JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
-DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS = 30 * 24 * 3600
 
 DEFAULT_DB_CONNECTION_TIMEOUT_SECONDS = 30
 DEFAULT_DB_MAX_CONNECTIONS = 20
@@ -169,17 +167,7 @@ class Settings(BaseSettings):
     runtime_instance_id: str = Field(default="", validation_alias="RUNTIME_INSTANCE_ID")
 
     secret_key: str = Field(default="", validation_alias="SECRET_KEY")
-    jwt_secret_key: str = Field(default="", validation_alias="JWT_SECRET_KEY")
     password_encryption_key: str = Field(default="", validation_alias="PASSWORD_ENCRYPTION_KEY")
-
-    jwt_access_token_expires_seconds: int = Field(
-        default=DEFAULT_JWT_ACCESS_TOKEN_EXPIRES_SECONDS,
-        validation_alias="JWT_ACCESS_TOKEN_EXPIRES",
-    )
-    jwt_refresh_token_expires_seconds: int = Field(
-        default=DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS,
-        validation_alias="JWT_REFRESH_TOKEN_EXPIRES",
-    )
 
     database_url: str = Field(default="", validation_alias="DATABASE_URL")
     db_connection_timeout_seconds: int = Field(
@@ -415,9 +403,6 @@ class Settings(BaseSettings):
             "DEPLOY_REGION": self.deploy_region,
             "RUNTIME_INSTANCE_ID": self.runtime_instance_id,
             "SECRET_KEY": self.secret_key,
-            "JWT_SECRET_KEY": self.jwt_secret_key,
-            "JWT_ACCESS_TOKEN_EXPIRES": self.jwt_access_token_expires_seconds,
-            "JWT_REFRESH_TOKEN_EXPIRES": self.jwt_refresh_token_expires_seconds,
             "SQLALCHEMY_DATABASE_URI": self.database_url,
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "SQLALCHEMY_ENGINE_OPTIONS": dict(self.sqlalchemy_engine_options),
@@ -533,12 +518,6 @@ class Settings(BaseSettings):
                 raise ValueError("SECRET_KEY environment variable must be set in production")
             object.__setattr__(self, "secret_key", secrets.token_urlsafe(32))
             logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY,生产环境请设置环境变量")
-
-        if not self.jwt_secret_key:
-            if not debug:
-                raise ValueError("JWT_SECRET_KEY environment variable must be set in production")
-            object.__setattr__(self, "jwt_secret_key", secrets.token_urlsafe(32))
-            logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY,生产环境请设置环境变量")
 
     def _ensure_password_encryption_key(self, debug: bool, environment_normalized: str) -> None:
         if self.password_encryption_key:

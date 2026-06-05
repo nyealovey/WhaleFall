@@ -32,7 +32,7 @@ def test_api_v1_auth_csrf_token_contract(client) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_auth_login_me_refresh_logout_contract(app, client) -> None:
+def test_api_v1_auth_session_login_me_logout_contract(app, client) -> None:
     with app.app_context():
         db.metadata.create_all(
             bind=db.engine,
@@ -41,6 +41,18 @@ def test_api_v1_auth_login_me_refresh_logout_contract(app, client) -> None:
         user = User(username="admin", password="TestPass1", role="admin")
         db.session.add(user)
         db.session.commit()
+
+        anonymous_session_response = client.get("/api/v1/auth/session")
+        assert anonymous_session_response.status_code == 200
+        anonymous_session_payload = anonymous_session_response.get_json()
+        assert isinstance(anonymous_session_payload, dict)
+        anonymous_session_data = anonymous_session_payload.get("data")
+        assert isinstance(anonymous_session_data, dict)
+        assert anonymous_session_data.get("authenticated") is False
+        assert anonymous_session_data.get("user") is None
+        assert anonymous_session_data.get("permissions") == []
+        assert anonymous_session_data.get("auth_model") == "session"
+        assert isinstance(anonymous_session_data.get("csrf_token"), str)
 
         csrf_token = _get_csrf_token(client)
 
@@ -57,20 +69,31 @@ def test_api_v1_auth_login_me_refresh_logout_contract(app, client) -> None:
 
         login_data = login_payload.get("data")
         assert isinstance(login_data, dict)
-        access_token = login_data.get("access_token")
-        refresh_token = login_data.get("refresh_token")
-        assert isinstance(access_token, str)
-        assert isinstance(refresh_token, str)
+        assert "access_token" not in login_data
+        assert "refresh_token" not in login_data
+        assert login_data.get("auth_model") == "session"
+        assert isinstance(login_data.get("csrf_token"), str)
 
         user_data = login_data.get("user")
         assert isinstance(user_data, dict)
         assert user_data.get("id") == user.id
         assert user_data.get("username") == "admin"
 
-        me_response = client.get(
-            "/api/v1/auth/me",
-            headers={HttpHeaders.AUTHORIZATION: f"Bearer {access_token}"},
-        )
+        session_response = client.get("/api/v1/auth/session")
+        assert session_response.status_code == 200
+        session_payload = session_response.get_json()
+        assert isinstance(session_payload, dict)
+        session_data = session_payload.get("data")
+        assert isinstance(session_data, dict)
+        assert session_data.get("authenticated") is True
+        assert session_data.get("auth_model") == "session"
+        assert isinstance(session_data.get("csrf_token"), str)
+        assert "admin" in session_data.get("permissions", [])
+        session_user = session_data.get("user")
+        assert isinstance(session_user, dict)
+        assert session_user.get("id") == user.id
+
+        me_response = client.get("/api/v1/auth/me")
         assert me_response.status_code == 200
         me_payload = me_response.get_json()
         assert isinstance(me_payload, dict)
@@ -81,24 +104,8 @@ def test_api_v1_auth_login_me_refresh_logout_contract(app, client) -> None:
         assert me_data.get("id") == user.id
         assert me_data.get("username") == "admin"
 
-        csrf_token = _get_csrf_token(client)
-        refresh_response = client.post(
-            "/api/v1/auth/refresh",
-            json={},
-            headers={
-                HttpHeaders.AUTHORIZATION: f"Bearer {refresh_token}",
-                HttpHeaders.X_CSRF_TOKEN: csrf_token,
-            },
-        )
-        assert refresh_response.status_code == 200
-        refresh_payload = refresh_response.get_json()
-        assert isinstance(refresh_payload, dict)
-        assert refresh_payload.get("success") is True
-        refresh_data = refresh_payload.get("data")
-        assert isinstance(refresh_data, dict)
-        assert isinstance(refresh_data.get("access_token"), str)
-        assert refresh_data.get("token_type") == "Bearer"
-        assert isinstance(refresh_data.get("expires_in"), int)
+        refresh_response = client.post("/api/v1/auth/refresh", json={})
+        assert refresh_response.status_code == 404
 
         csrf_token = _get_csrf_token(client)
         logout_response = client.post(
@@ -111,6 +118,25 @@ def test_api_v1_auth_login_me_refresh_logout_contract(app, client) -> None:
         assert isinstance(logout_payload, dict)
         assert logout_payload.get("success") is True
         assert logout_payload.get("error") is False
+
+        logged_out_session_response = client.get("/api/v1/auth/session")
+        assert logged_out_session_response.status_code == 200
+        logged_out_payload = logged_out_session_response.get_json()
+        assert isinstance(logged_out_payload, dict)
+        logged_out_data = logged_out_payload.get("data")
+        assert isinstance(logged_out_data, dict)
+        assert logged_out_data.get("authenticated") is False
+
+
+@pytest.mark.unit
+def test_api_v1_auth_me_requires_session(client) -> None:
+    response = client.get("/api/v1/auth/me")
+
+    assert response.status_code == 401
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("error") is True
+    assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
 
 @pytest.mark.unit

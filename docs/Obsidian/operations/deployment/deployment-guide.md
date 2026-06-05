@@ -57,7 +57,7 @@ related:
 ### 3) 配置与密钥(必须先看标准)
 
 - 按 [[standards/backend/standard/configuration-and-secrets]] 生成并填写生产密钥:
-  - `SECRET_KEY` / `JWT_SECRET_KEY` / `PASSWORD_ENCRYPTION_KEY`
+  - `SECRET_KEY` / `PASSWORD_ENCRYPTION_KEY`
   - `POSTGRES_PASSWORD` / `REDIS_PASSWORD`
 - `.env` 必须为未跟踪文件, 禁止提交到仓库.
 
@@ -87,7 +87,7 @@ ${EDITOR:-vim} .env
 
 最小检查清单(生产必须非空):
 - `POSTGRES_PASSWORD` / `REDIS_PASSWORD`
-- `SECRET_KEY` / `JWT_SECRET_KEY` / `PASSWORD_ENCRYPTION_KEY`
+- `SECRET_KEY` / `PASSWORD_ENCRYPTION_KEY`
 - `APP_NAME` / `APP_VERSION` / `FLASK_ENV=production`
 - `DATABASE_URL` (容器网络内用 `postgres` 服务名)
 - `CACHE_REDIS_URL` (容器网络内用 `redis` 服务名)

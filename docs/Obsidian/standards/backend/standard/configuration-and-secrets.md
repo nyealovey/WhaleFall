@@ -53,7 +53,6 @@ related:
 生产环境（`FLASK_ENV=production`）必须设置且保持稳定的典型密钥：
 
 - MUST：`SECRET_KEY`（会话签名）
-- MUST：`JWT_SECRET_KEY`（JWT 签名）
 - MUST：`PASSWORD_ENCRYPTION_KEY`（用于数据库凭据加/解密；缺失会导致重启后无法解密已存储凭据）
 - MUST：数据库与 Redis 口令（例如 `POSTGRES_PASSWORD`、`REDIS_PASSWORD`）
 

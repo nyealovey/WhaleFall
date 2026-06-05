@@ -11,7 +11,6 @@ def test_settings_fails_fast_when_database_url_missing_in_production(monkeypatch
     monkeypatch.setenv("FLASK_ENV", "production")
     monkeypatch.setenv("CACHE_TYPE", "simple")
     monkeypatch.setenv("SECRET_KEY", "test-secret-key")
-    monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret-key")
     # Prevent `load_dotenv()` from injecting a value from local `.env`.
     monkeypatch.setenv("DATABASE_URL", "")
 

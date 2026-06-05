@@ -16,7 +16,6 @@ from flask.typing import ResponseReturnValue
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.errors import RateLimitExceeded
 from flask_limiter.util import get_remote_address
@@ -50,7 +49,6 @@ if TYPE_CHECKING:
 db = SQLAlchemy()
 migrate = Migrate()
 cache = Cache()
-jwt = JWTManager()
 bcrypt = Bcrypt()
 login_manager: WhaleFallLoginManager = WhaleFallLoginManager()
 cors = CORS()
@@ -301,9 +299,6 @@ def initialize_extensions(app: Flask, settings: Settings) -> None:
 
     # 初始化CSRF保护
     csrf.init_app(app)
-
-    # 初始化JWT
-    jwt.init_app(app)
 
     # 初始化密码加密
     bcrypt.init_app(app)

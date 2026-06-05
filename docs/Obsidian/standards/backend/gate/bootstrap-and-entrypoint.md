@@ -56,7 +56,7 @@ related:
 - MUST: 配置解析/默认值/校验收敛到 `app/settings.py::Settings`，遵循 [[standards/backend/standard/configuration-and-secrets|配置与密钥]]。
 - MAY: `app.py`/`wsgi.py` 使用 `os.environ.setdefault(...)` 写入少量运行默认值（仅限入口脚本，且仅允许下列 allowlist）。
 - MUST: `os.environ.setdefault(...)` 仅用于“运行期识别/启动工具”类变量，不得用于业务语义、功能开关或安全边界变量。
-- MUST NOT: 对任何敏感/密钥/连接信息使用 `setdefault`（例如 `DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `PASSWORD_ENCRYPTION_KEY` 等）。
+- MUST NOT: 对任何敏感/密钥/连接信息使用 `setdefault`（例如 `DATABASE_URL`, `SECRET_KEY`, `PASSWORD_ENCRYPTION_KEY` 等）。
 - MUST NOT: 对任何会影响业务行为的 feature flag 使用 `setdefault`（例如 `ENABLE_SCHEDULER` 等），必须由部署注入或 Settings 默认值策略决定。
 - SHOULD: 如需新增 allowlist 项，必须在评审中说明“为何必须在入口写默认值”与“为何不应放到 Settings 默认值”，并更新本文档的 allowlist。
 - MUST NOT: 在业务模块中散落 `os.environ.get(...)` 决策业务逻辑。

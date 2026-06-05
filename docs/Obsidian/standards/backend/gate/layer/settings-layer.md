@@ -60,7 +60,7 @@ related:
   - 可选字典/元组入参：`options.get("x") or {}`
 - MUST NOT: 对可能合法为 `0/""/[]` 的业务值使用 `or` 兜底（会覆盖合法值），应使用 `is None` 或显式判断空白字符串。
 - SHOULD: env var alias 必须在文档或代码注释标注“旧变量名/迁移窗口/删除计划”，迁移完成后删除兼容入口，避免长期保留。
-- SHOULD: 当存在“开发环境降级”（如未提供 `DATABASE_URL` 回退 SQLite、未提供 `SECRET_KEY/JWT_SECRET_KEY` 生成随机值），必须记录结构化 warning 且禁止在生产环境触发。
+- SHOULD: 当存在“开发环境降级”（如未提供 `DATABASE_URL` 回退 SQLite、未提供 `SECRET_KEY` 生成随机值），必须记录结构化 warning 且禁止在生产环境触发。
 
 ### 4) 敏感信息处理
 

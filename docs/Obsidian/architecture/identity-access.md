@@ -10,7 +10,7 @@ status: active
 created: 2026-01-10
 updated: 2026-01-10
 owner: WhaleFall Team
-scope: Web UI + API v1 的 authentication/authorization/RBAC, 以及 CSRF/JWT 约束与落点
+scope: Web UI + API v1 的 authentication/authorization/RBAC, 以及 CSRF 约束与落点
 related:
   - "[[architecture/developer-entrypoint]]"
   - "[[standards/backend/gate/layer/api-layer]]"
@@ -23,13 +23,12 @@ related:
 # 认证与权限(Identity & Access)
 
 > [!note] 目标
-> 让你在改任何 endpoint/页面前, 先明确: 认证是什么, 权限检查在哪里做, CSRF/JWT 应该怎么接.
+> 让你在改任何 endpoint/页面前, 先明确: 认证是什么, 权限检查在哪里做, CSRF 应该怎么接.
 
 ## 1. 现状概览
 
 - Web UI(HTML): `flask_login` session cookie + CSRF.
 - API v1(JSON): 同样基于 `flask_login` session cookie, 写操作必须带 CSRF.
-- JWT: 登录时同时签发 access/refresh token, 当前主要用于 `auth` namespace 的 token 刷新与 `me` 查询, 不是全量替代 session 的鉴权机制.
 
 ## 2. 认证(Authentication)
 
@@ -38,12 +37,6 @@ related:
 - 会话写入: `app/services/auth/login_service.py` 里调用 `login_user(user, remember=True)`.
 - Cookie 名称与安全参数: `app/__init__.py` 里的 `configure_security()`.
 - 访问控制: 通过 `flask_login.current_user` 判断是否已登录.
-
-### 2.2 JWT(用于 token 刷新与可选的无状态调用)
-
-- 签发: `app/services/auth/login_service.py` 里 `create_access_token`/`create_refresh_token`.
-- 受保护资源: `app/api/v1/namespaces/auth.py` 中 `@jwt_required()`/`@jwt_required(refresh=True)` 的 endpoints.
-- 注意: 仅携带 `Authorization: Bearer <token>` 并不会让 `current_user` 自动变为已登录(当前实现未做 jwt -> user 的 request loader 绑定).
 
 ## 3. CSRF
 
@@ -98,10 +91,10 @@ related:
 
 ## 6. 常见坑
 
-### 6.1 JWT 和 current_user 混用
+### 6.1 session 与当前用户
 
-- 现状: 多数 API v1 endpoints 依赖 `current_user`(session).
-- 结果: 只带 JWT 访问这些 endpoints 会被当成未登录.
+- 现状: API v1 endpoints 依赖 `current_user`(session).
+- 结果: 前端必须通过同源或反代携带 session cookie；写操作继续带 `X-CSRFToken`.
 
 ### 6.2 装饰器顺序
 
@@ -121,8 +114,7 @@ related:
 ## 7. 新增 endpoint 的最小 checklist
 
 - contract: 更新 `docs/Obsidian/API/**-api-contract.md` 的 "Endpoints 总览" 表格(见 [[standards/doc/guide/api-contract-markdown]]).
-- auth: 明确是 session 还是 jwt, 并选用对应 decorator.
+- auth: 明确是否需要登录, 并选用 `api_login_required` 或 Web 侧登录 decorator.
 - permission: 给出 `api_permission_required(...)` 或 web 的 `*_required`, 同步更新 contract 的 Permission 列.
 - csrf: 写操作加 `@require_csrf`, token 走 `X-CSRFToken`.
 - errors: 对外口径走统一错误封套(见 [[standards/backend/standard/error-message-schema-unification]]).
-
