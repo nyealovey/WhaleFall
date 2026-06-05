@@ -9,7 +9,7 @@ status: active
 created: 2026-01-10
 updated: 2026-01-10
 owner: WhaleFall Team
-scope: 安全相关参考文档索引(permission strings, authn/authz, CSRF/JWT)
+scope: 安全相关参考文档索引(permission strings, authn/authz, CSRF/session)
 related:
   - "[[reference/README|reference]]"
   - "[[architecture/identity-access]]"
@@ -24,4 +24,3 @@ related:
 ## 索引
 
 - [[reference/security/permissions-catalog|Permission strings catalog]]
-

@@ -62,7 +62,7 @@
     color: var(--text-primary);
 }
 
-/* Tom Select（若启用）同步同一套配色 */
+/* 下拉控件同步同一套配色 */
 .log-level-select--danger .ts-control {
     color: var(--status-danger);
 }

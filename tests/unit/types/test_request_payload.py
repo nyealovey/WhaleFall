@@ -43,6 +43,15 @@ def test_parse_payload_mapping_list_field_accepts_scalar_and_list() -> None:
 
 
 @pytest.mark.unit
+def test_parse_payload_mapping_list_field_preserves_nested_objects() -> None:
+    sanitized = parse_payload(
+        {"rules": [{"rule_key": " backup_missing ", "enabled": True, "severity": " medium "}]},
+        list_fields=["rules"],
+    )
+    assert sanitized["rules"] == [{"rule_key": "backup_missing", "enabled": True, "severity": "medium"}]
+
+
+@pytest.mark.unit
 def test_parse_payload_sets_missing_boolean_fields_to_false_for_multidict() -> None:
     payload: MultiDict[str, str] = MultiDict([("username", "alice")])
     sanitized = parse_payload(payload, boolean_fields_default_false=["is_active"])

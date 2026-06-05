@@ -8,7 +8,6 @@
     const toast = global.toast;
     const setButtonLoading = global.UI?.setButtonLoading;
     const clearButtonLoading = global.UI?.clearButtonLoading;
-    const csrfToken = document.getElementById('risk-rule-csrf-token')?.value || '';
     const service = new global.RiskCenterRuleSettingsService(pageRoot.dataset.apiUrl);
     const list = pageRoot.querySelector('[data-risk-rule-list]');
     const empty = pageRoot.querySelector('[data-risk-rule-empty]');
@@ -96,7 +95,7 @@
     async function saveRules() {
         const stopLoading = startButtonLoading(saveButton, '保存中...');
         try {
-            const payload = await service.update({ rules: collectRules() }, csrfToken);
+            const payload = await service.update({ rules: collectRules() });
             if (!payload?.success) {
                 throw new Error(payload?.message || '保存风险规则失败');
             }

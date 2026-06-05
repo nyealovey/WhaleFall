@@ -11,7 +11,7 @@ status: active
 created: 2026-01-10
 updated: 2026-01-10
 owner: WhaleFall Team
-scope: 用可复制的 curl 演示 API v1 的 session cookie + CSRF + JWT 调用方式, 以及分页/筛选/错误封套
+scope: 用可复制的 curl 演示 API v1 的 session cookie + CSRF 调用方式, 以及分页/筛选/错误封套
 related:
   - "[[API/api-v1-api-contract]]"
   - "[[API/auth-api-contract]]"

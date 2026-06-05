@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Protocol, TypeAlias, TypedDict
 
 ScalarValue: TypeAlias = str | int | float | bool | None
-PayloadValue: TypeAlias = ScalarValue | Sequence[ScalarValue] | Mapping[str, ScalarValue]
+PayloadValue: TypeAlias = ScalarValue | Sequence["PayloadValue"] | Mapping[str, "PayloadValue"]
 PayloadMapping: TypeAlias = Mapping[str, PayloadValue]
 MutablePayloadDict: TypeAlias = dict[str, PayloadValue]
 FormErrorMapping: TypeAlias = Mapping[str, Sequence[str] | str]

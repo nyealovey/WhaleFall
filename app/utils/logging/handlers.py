@@ -22,7 +22,6 @@ CONTEXT_SCRUB_EXTRA_KEYS = (
     "access_token",
     "refresh_token",
     "secret_key",
-    "jwt_secret_key",
     "password_encryption_key",
     "key",
     "env_var",

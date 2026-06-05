@@ -48,7 +48,7 @@ API v1(SSOT: [[API/dashboard-api-contract]]):
 
 Web route:
 
-- `app/routes/dashboard.py`(HTML 或 JSON, 取决于 `request.is_json`)
+- `app/routes/dashboard.py`(HTML 页面; JSON 统一走 `/api/v1/dashboard/*`)
 
 API v1:
 
@@ -101,7 +101,7 @@ graph TB
 
 ## 常见坑
 
-- `request.is_json` 只在 client 明确发 JSON 请求时为 true, 不要把它当成 "Accept header 是否包含 json" 的等价物.
+- `/dashboard/` 只负责页面渲染; 前端异步数据与外部 JSON 调用统一使用 `/api/v1/dashboard/*`.
 - 概览服务内会先 `db.session.rollback()`:
   - 目的是避免前序异常导致 session 处于 failed 状态影响后续统计查询.
   - 如果你在同一请求里混入写路径, 可能会被 rollback 影响(因此 dashboard 域应保持只读).

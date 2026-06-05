@@ -312,7 +312,7 @@ sequenceDiagram
 
 > [!note]
 > API v1 的写操作普遍要求 CSRF header(`X-CSRFToken`). 同时, 多数资源鉴权依赖 session cookie(Flask-Login).
-> JWT 目前主要用于 `/api/v1/auth/me` 等 auth 域接口.
+> API v1 鉴权基于 Flask-Login session cookie；`/api/v1/auth/me` 读取当前 session 用户.
 
 ```mermaid
 sequenceDiagram
@@ -516,7 +516,7 @@ graph TB
 
 - Web UI: Flask-Login session cookie + CSRF(Flask-WTF/CSRFProtect)
 - API v1:
-  - 登录: `/api/v1/auth/login`(写入 session, 同时签发 JWT access/refresh token)
+  - 登录: `/api/v1/auth/login`(写入 session cookie)
   - CSRF: 写操作通常要求 `X-CSRFToken` 头
   - 权限检查: `app/utils/decorators.py:has_permission` + API decorators(`app/api/v1/resources/decorators.py`)
 

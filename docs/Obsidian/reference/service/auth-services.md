@@ -29,7 +29,7 @@ related:
 # Auth Services(Login/Change Password/Auth Me)
 
 > [!note] 本文目标
-> 把 Auth 域的 3 个高频 service 写清: 登录(LoginService), 改密(ChangePasswordService), JWT me(AuthMeReadService).
+> 把 Auth 域的 3 个高频 service 写清: 登录(LoginService), 改密(ChangePasswordService), 当前用户(AuthMeReadService).
 
 ## 1. 概览(Overview)
 
@@ -148,7 +148,7 @@ sequenceDiagram
 | 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
 | --- | --- | --- | --- | --- |
 | `app/services/auth/change_password_service.py:36` | 防御 | `parse_payload(payload or {}, ...)` 允许 payload 为 None | route 层未强约束 payload | route 层强约束后可移除 `or {}` |
-| `app/services/auth/auth_me_read_service.py:28` | 兼容 | `int(identity)` 允许 identity 为 str | JWT identity 存储为 str | 若统一 identity 类型, 可收敛 |
+| `app/services/auth/auth_me_read_service.py:28` | 兼容 | `int(identity)` 允许 identity 为 str | session user id 可能以字符串传入 | 若统一 identity 类型, 可收敛 |
 | `app/services/auth/login_service.py:61` | 业务 | `login_user(..., remember=True)` 固定开启 remember | 产品希望跨会话登录 | 若要可配置, 引入 settings 开关并补测试 |
 
 ## 8. 可观测性(Logs + Metrics)
@@ -164,7 +164,7 @@ sequenceDiagram
 
 关键用例:
 
-- 登录成功返回 cookie + access/refresh token
+- 登录成功返回 session cookie
 - 错密码返回 401 且 message_code=INVALID_CREDENTIALS
 - change-password 错旧密码返回 401 且 message_code=INVALID_OLD_PASSWORD
 - /auth/me identity 非法返回 INVALID_CREDENTIALS

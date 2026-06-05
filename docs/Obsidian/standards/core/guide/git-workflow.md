@@ -84,7 +84,7 @@ PR 合入 `dev` 或 `main` 前, MUST 完成以下自检:
 ### 6.1 正例
 
 - 新功能: 从 `dev` 拉出 `feat/api-bulk-create`, PR 合入 `dev`.
-- 修复线上: 从 `main` 拉出 `fix/auth-jwt-exp`, PR 合入 `main`, 再同步到 `dev`.
+- 修复线上: 从 `main` 拉出 `fix/auth-session-exp`, PR 合入 `main`, 再同步到 `dev`.
 
 ### 6.2 反例
 

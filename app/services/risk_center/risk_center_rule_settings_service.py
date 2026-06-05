@@ -9,6 +9,9 @@ from sqlalchemy import inspect
 from app import db
 from app.core.exceptions import ValidationError
 from app.models.risk_center_rule_setting import RiskCenterRuleSetting
+from app.schemas.risk_center import RiskCenterRulesUpdatePayload
+from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
 
 RISK_SEVERITIES = {"high", "medium", "low"}
 
@@ -81,31 +84,25 @@ class RiskCenterRuleSettingsService:
         rules = self.get_rule_map()
         return {"rules": [rules[definition.rule_key] for definition in RISK_RULE_DEFINITIONS]}
 
-    def update_rules(self, payload: dict[str, object]) -> dict[str, object]:
-        raw_rules = payload.get("rules")
-        if not isinstance(raw_rules, list):
-            raise ValidationError("rules 必须为数组")
+    def update_rules(self, payload: object) -> dict[str, object]:
+        sanitized = parse_payload(payload, list_fields=["rules"])
+        parsed = validate_or_raise(RiskCenterRulesUpdatePayload, sanitized)
         if not _rule_table_exists():
             raise ValidationError("风险规则配置表尚未初始化")
 
-        for raw_item in raw_rules:
-            if not isinstance(raw_item, dict):
-                raise ValidationError("风险规则项必须为对象")
-            rule_key = str(raw_item.get("rule_key") or "").strip()
+        for raw_item in parsed.rules:
+            rule_key = raw_item.rule_key
             definition = RISK_RULE_DEFINITION_MAP.get(rule_key)
             if definition is None:
                 raise ValidationError(f"未知风险规则: {rule_key}")
-            severity = str(raw_item.get("severity") or "").strip()
-            if severity not in RISK_SEVERITIES:
-                raise ValidationError("风险等级必须为 high、medium 或 low")
-            enabled = bool(raw_item.get("enabled", True))
+            severity = raw_item.severity
 
             setting = RiskCenterRuleSetting.query.filter(RiskCenterRuleSetting.rule_key == rule_key).first()
             if setting is None:
                 setting = RiskCenterRuleSetting()
                 setting.rule_key = rule_key
                 db.session.add(setting)
-            setting.enabled = enabled
+            setting.enabled = raw_item.enabled
             setting.severity = severity
 
         db.session.commit()

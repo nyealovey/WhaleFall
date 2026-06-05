@@ -143,6 +143,11 @@
       return this.httpClient.post(`/api/v1/instances/${instanceId}/actions/restore`);
     }
 
+    syncInstanceBackup(instanceId) {
+      this.assertInstanceId(instanceId, "syncInstanceBackup");
+      return this.httpClient.post(`/api/v1/integrations/veeam/actions/sync-instance/${instanceId}`, {});
+    }
+
     fetchStatistics() {
       return this.httpClient.get("/api/v1/instances/statistics");
     }

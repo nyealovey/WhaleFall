@@ -18,7 +18,7 @@ fi
 # 说明：
 # - env.example 是“示例模板”，真实值应放在未跟踪的 .env 或由部署系统/密钥管理系统注入。
 # - 这里仅对最核心的敏感项做“非空值”拦截，避免误把真实密钥提交进仓库。
-SENSITIVE_VALUE_PATTERN='^(POSTGRES_PASSWORD|REDIS_PASSWORD|SECRET_KEY|JWT_SECRET_KEY|PASSWORD_ENCRYPTION_KEY)=.*[^[:space:]]'
+SENSITIVE_VALUE_PATTERN='^(POSTGRES_PASSWORD|REDIS_PASSWORD|SECRET_KEY|PASSWORD_ENCRYPTION_KEY)=.*[^[:space:]]'
 
 RG_BIN="${RG_BIN:-rg}"
 if command -v "${RG_BIN}" >/dev/null 2>&1; then

@@ -142,26 +142,24 @@ def _sanitize_value(
     preserve_raw_password_fields_by_name: bool,
 ) -> PayloadValue:
     if force_list:
-        if value is None:
-            return []
-        if isinstance(value, Sequence) and not isinstance(value, _STRING_LIKE_TYPES):
-            return [
-                _sanitize_scalar_value(
-                    item,
-                    field_name=field_name,
-                    preserve_raw_fields=preserve_raw_fields,
-                    preserve_raw_password_fields_by_name=preserve_raw_password_fields_by_name,
-                )
-                for item in value
-            ]
-        return [
-            _sanitize_scalar_value(
-                value,
-                field_name=field_name,
+        return _sanitize_forced_list_value(
+            value,
+            field_name=field_name,
+            preserve_raw_fields=preserve_raw_fields,
+            preserve_raw_password_fields_by_name=preserve_raw_password_fields_by_name,
+        )
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): _sanitize_value(
+                nested_value,
+                field_name=str(key),
+                force_list=False,
                 preserve_raw_fields=preserve_raw_fields,
                 preserve_raw_password_fields_by_name=preserve_raw_password_fields_by_name,
-            ),
-        ]
+            )
+            for key, nested_value in value.items()
+        }
 
     if isinstance(value, Sequence) and not isinstance(value, _STRING_LIKE_TYPES):
         if not value:
@@ -179,6 +177,36 @@ def _sanitize_value(
         preserve_raw_fields=preserve_raw_fields,
         preserve_raw_password_fields_by_name=preserve_raw_password_fields_by_name,
     )
+
+
+def _sanitize_forced_list_value(
+    value: object,
+    *,
+    field_name: str,
+    preserve_raw_fields: set[str],
+    preserve_raw_password_fields_by_name: bool,
+) -> Sequence[PayloadValue]:
+    if value is None:
+        return []
+    if isinstance(value, Sequence) and not isinstance(value, _STRING_LIKE_TYPES):
+        return [
+            _sanitize_value(
+                item,
+                field_name=field_name,
+                force_list=False,
+                preserve_raw_fields=preserve_raw_fields,
+                preserve_raw_password_fields_by_name=preserve_raw_password_fields_by_name,
+            )
+            for item in value
+        ]
+    return [
+        _sanitize_scalar_value(
+            value,
+            field_name=field_name,
+            preserve_raw_fields=preserve_raw_fields,
+            preserve_raw_password_fields_by_name=preserve_raw_password_fields_by_name,
+        ),
+    ]
 
 
 def _sanitize_scalar_value(

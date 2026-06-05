@@ -1,19 +1,22 @@
 (function initAdDomainConfigsService(global) {
   "use strict";
 
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  if (typeof ensureHttpClient !== "function") {
+    throw new Error("AdDomainConfigsService: ServiceUtils 未初始化");
+  }
+
   class AdDomainConfigsService {
-    constructor(apiUrl, credentialsApiUrl) {
+    constructor(apiUrl, credentialsApiUrl, httpClient) {
       this.apiUrl = apiUrl;
       this.credentialsApiUrl = credentialsApiUrl;
+      this.httpClient = ensureHttpClient(httpClient, "AdDomainConfigsService");
     }
 
     async loadConfigs() {
-      const response = await fetch(this.apiUrl, {
-        method: "GET",
-        credentials: "same-origin",
+      return this.httpClient.get(this.apiUrl, {
         headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
     async loadLdapCredentials() {
@@ -22,94 +25,46 @@
         status: "active",
         limit: "200",
       });
-      const response = await fetch(`${this.credentialsApiUrl}?${params.toString()}`, {
-        method: "GET",
-        credentials: "same-origin",
+      return this.httpClient.get(this.credentialsApiUrl, {
+        params,
         headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async createConfig(payload, csrfToken) {
-      const response = await fetch(this.apiUrl, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify(payload),
+    async createConfig(payload) {
+      return this.httpClient.post(this.apiUrl, payload, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async updateConfig(configId, payload, csrfToken) {
-      const response = await fetch(`${this.apiUrl}/${configId}`, {
-        method: "PUT",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify(payload),
+    async updateConfig(configId, payload) {
+      return this.httpClient.put(`${this.apiUrl}/${configId}`, payload, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async deleteConfig(configId, csrfToken) {
-      const response = await fetch(`${this.apiUrl}/${configId}`, {
-        method: "DELETE",
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
+    async deleteConfig(configId) {
+      return this.httpClient.delete(`${this.apiUrl}/${configId}`, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async setEnabled(configId, enabled, csrfToken) {
-      const response = await fetch(`${this.apiUrl}/${configId}/actions/set-enabled`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify({ is_enabled: enabled }),
+    async setEnabled(configId, enabled) {
+      return this.httpClient.post(`${this.apiUrl}/${configId}/actions/set-enabled`, { is_enabled: enabled }, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async testConnection(configId, csrfToken) {
-      const response = await fetch(`${this.apiUrl}/${configId}/actions/test-connection`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify({}),
+    async testConnection(configId) {
+      return this.httpClient.post(`${this.apiUrl}/${configId}/actions/test-connection`, {}, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async syncAccounts(csrfToken) {
-      const response = await fetch(`${this.apiUrl}/actions/sync`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify({}),
+    async syncAccounts() {
+      return this.httpClient.post(`${this.apiUrl}/actions/sync`, {}, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
   }
 

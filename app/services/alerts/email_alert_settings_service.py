@@ -10,8 +10,11 @@ from app import db
 from app.core.exceptions import ValidationError
 from app.models.email_alert_setting import EmailAlertSetting
 from app.repositories.email_alerts_repository import EmailAlertsRepository
+from app.schemas.email_alerts import EmailAlertSettingsPayload, EmailAlertTestPayload, FeishuAlertTestPayload
+from app.schemas.validation import validate_or_raise
 from app.services.alerts.email_sender import EmailSender
 from app.services.alerts.feishu_sender import FeishuSender
+from app.utils.request_payload import parse_payload
 from app.utils.time_utils import time_utils
 
 
@@ -52,6 +55,11 @@ class EmailAlertSettingsService:
         if settings is not None:
             return settings
         return self._build_default_settings()
+
+    def update_settings_from_payload(self, payload: object) -> EmailAlertSetting:
+        sanitized = parse_payload(payload, list_fields=["recipients"])
+        parsed = validate_or_raise(EmailAlertSettingsPayload, sanitized)
+        return self.update_settings(parsed.model_dump())
 
     def update_settings(self, payload: dict[str, object]) -> EmailAlertSetting:
         payload_dict = cast("dict[str, Any]", payload)
@@ -96,6 +104,11 @@ class EmailAlertSettingsService:
         settings = self.get_or_create_settings()
         return settings.get_feishu_webhook_url()
 
+    def send_test_email_from_payload(self, payload: object) -> dict[str, object]:
+        sanitized = parse_payload(payload, list_fields=["recipients"])
+        parsed = validate_or_raise(EmailAlertTestPayload, sanitized)
+        return self.send_test_email(recipients=parsed.recipients)
+
     def send_test_email(self, *, recipients: list[str]) -> dict[str, object]:
         normalized_recipients = [item.strip() for item in recipients if item.strip()]
         if not normalized_recipients:
@@ -124,6 +137,11 @@ class EmailAlertSettingsService:
             "recipient_count": len(normalized_recipients),
             "recipients": normalized_recipients,
         }
+
+    def send_test_feishu_from_payload(self, payload: object) -> dict[str, object]:
+        sanitized = parse_payload(payload)
+        parsed = validate_or_raise(FeishuAlertTestPayload, sanitized)
+        return self.send_test_feishu(webhook_url=parsed.feishu_webhook_url)
 
     def send_test_feishu(self, *, webhook_url: str = "") -> dict[str, object]:
         normalized_webhook_url = webhook_url.strip()

@@ -1,30 +1,25 @@
 (function initRiskCenterRuleSettingsService(global) {
+    const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+    if (typeof ensureHttpClient !== 'function') {
+        throw new Error('RiskCenterRuleSettingsService: ServiceUtils 未初始化');
+    }
+
     class RiskCenterRuleSettingsService {
-        constructor(apiUrl) {
+        constructor(apiUrl, httpClient) {
             this.apiUrl = apiUrl;
+            this.httpClient = ensureHttpClient(httpClient, 'RiskCenterRuleSettingsService');
         }
 
         async load() {
-            const response = await fetch(this.apiUrl, {
-                method: 'GET',
-                credentials: 'same-origin',
+            return this.httpClient.get(this.apiUrl, {
                 headers: { Accept: 'application/json' },
             });
-            return response.json();
         }
 
-        async update(payload, csrfToken) {
-            const response = await fetch(this.apiUrl, {
-                method: 'PUT',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify(payload),
+        async update(payload) {
+            return this.httpClient.put(this.apiUrl, payload, {
+                headers: { Accept: 'application/json' },
             });
-            return response.json();
         }
     }
 

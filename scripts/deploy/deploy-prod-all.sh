@@ -189,7 +189,7 @@ check_environment() {
     source .env
 
     # 检查关键环境变量
-    local required_vars=("POSTGRES_PASSWORD" "REDIS_PASSWORD" "SECRET_KEY" "JWT_SECRET_KEY" "POSTGRES_DB" "POSTGRES_USER")
+    local required_vars=("POSTGRES_PASSWORD" "REDIS_PASSWORD" "SECRET_KEY" "POSTGRES_DB" "POSTGRES_USER")
     local missing_vars=()
 
     for var in "${required_vars[@]}"; do

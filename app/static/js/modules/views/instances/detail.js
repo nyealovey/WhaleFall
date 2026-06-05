@@ -684,21 +684,17 @@ function syncBackup(event) {
     buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
     buttonWrapper.attr('disabled', 'disabled');
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    console.info('开始同步实例备份', { instanceId, instanceName, action: 'sync_backup' });
 
-    console.info('开始同步实例备份', { instanceId, instanceName, action: 'sync_backup', csrfToken: !!csrfToken });
+    if (!ensureInstanceService() || typeof instanceService.syncInstanceBackup !== 'function') {
+        toast.error('实例管理服务未初始化');
+        buttonWrapper.html(originalText || '同步备份');
+        buttonWrapper.attr('disabled', null);
+        return;
+    }
 
-    fetch(`/api/v1/integrations/veeam/actions/sync-instance/${instanceId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-        },
-    })
-        .then((res) => {
-            console.info('同步备份响应状态', { status: res.status, ok: res.ok });
-            return res.json();
-        })
+    instanceService
+        .syncInstanceBackup(instanceId)
         .then((data) => {
             console.info('同步备份响应数据', data);
             if (data.success) {

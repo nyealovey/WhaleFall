@@ -1,6 +1,6 @@
 /**
  * 聚合数据图表管理器
- * 基于 Chart.js 4.4.0 和 jQuery 3.7.1
+ * 基于 Chart.js 和 ColorTokens
  */
 
 const ColorTokens = window.ColorTokens;

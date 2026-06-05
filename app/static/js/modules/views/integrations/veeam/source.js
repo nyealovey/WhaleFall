@@ -7,7 +7,6 @@
   }
 
   const toast = global.toast;
-  const csrfToken = document.getElementById("veeam-source-csrf-token")?.value || "";
   const apiUrl = pageRoot.dataset.apiUrl;
   const sourcesApiUrl = pageRoot.dataset.sourcesApiUrl;
   const syncApiUrl = pageRoot.dataset.syncApiUrl;
@@ -288,8 +287,8 @@
         match_domains: matchDomains,
       };
       const response = state.editingSourceId
-        ? await service.updateSource(state.editingSourceId, payload, csrfToken)
-        : await service.createSource(payload, csrfToken);
+        ? await service.updateSource(state.editingSourceId, payload)
+        : await service.createSource(payload);
       if (!response?.success) {
         throw new Error(response?.message || "保存 Veeam 数据源失败");
       }
@@ -309,7 +308,7 @@
     }
     const stop = setButtonBusy(elements.unbindButton, "解绑中...");
     try {
-      const response = await service.deleteSource(state.editingSourceId, csrfToken);
+      const response = await service.deleteSource(state.editingSourceId);
       if (!response?.success) {
         throw new Error(response?.message || "解绑数据源失败");
       }
@@ -344,7 +343,7 @@
     }
     const stop = setButtonBusy(target, action === "enable" ? "启用中..." : "停用中...");
     try {
-      const response = await service.setSourceEnabled(sourceId, action === "enable", csrfToken);
+      const response = await service.setSourceEnabled(sourceId, action === "enable");
       if (!response?.success) {
         throw new Error(response?.message || "更新数据源状态失败");
       }
@@ -360,7 +359,7 @@
   async function handleSyncBackups() {
     const stop = setButtonBusy(elements.syncButton, "同步中...");
     try {
-      const result = await service.syncBackups(csrfToken);
+      const result = await service.syncBackups();
       const resolver = global.UI?.resolveAsyncActionOutcome;
       const outcome =
         typeof resolver === "function"

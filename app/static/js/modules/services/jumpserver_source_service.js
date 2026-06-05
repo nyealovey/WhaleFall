@@ -1,59 +1,40 @@
 (function initJumpServerSourceService(global) {
   "use strict";
 
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  if (typeof ensureHttpClient !== "function") {
+    throw new Error("JumpServerSourceService: ServiceUtils 未初始化");
+  }
+
   class JumpServerSourceService {
-    constructor(apiUrl, syncApiUrl) {
+    constructor(apiUrl, syncApiUrl, httpClient) {
       this.apiUrl = apiUrl;
       this.syncApiUrl = syncApiUrl;
+      this.httpClient = ensureHttpClient(httpClient, "JumpServerSourceService");
     }
 
     async load() {
-      const response = await fetch(this.apiUrl, {
-        method: "GET",
-        credentials: "same-origin",
+      return this.httpClient.get(this.apiUrl, {
         headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async updateBinding(payload, csrfToken) {
-      const response = await fetch(this.apiUrl, {
-        method: "PUT",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify(payload),
+    async updateBinding(payload) {
+      return this.httpClient.put(this.apiUrl, payload, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async deleteBinding(csrfToken) {
-      const response = await fetch(this.apiUrl, {
-        method: "DELETE",
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
+    async deleteBinding() {
+      return this.httpClient.delete(this.apiUrl, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async syncAssets(csrfToken) {
-      const response = await fetch(this.syncApiUrl, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify({}),
+    async syncAssets() {
+      return this.httpClient.post(this.syncApiUrl, {}, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
   }
 

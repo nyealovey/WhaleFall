@@ -8,7 +8,6 @@
     const apiUrl = pageRoot.dataset.apiUrl;
     const testApiUrl = pageRoot.dataset.testApiUrl;
     const feishuTestApiUrl = pageRoot.dataset.feishuTestApiUrl;
-    const csrfToken = document.getElementById('email-alert-csrf-token')?.value || '';
     const service = new global.EmailAlertSettingsService(apiUrl, testApiUrl, feishuTestApiUrl);
     const setButtonLoading = global.UI?.setButtonLoading;
     const clearButtonLoading = global.UI?.clearButtonLoading;
@@ -235,7 +234,7 @@
         const stopLoading = startButtonLoading(elements.saveButton, '保存中...');
 
         try {
-            const response = await service.update(buildPayload(), csrfToken);
+            const response = await service.update(buildPayload());
             if (!response?.success) {
                 throw new Error(response?.message || '保存失败');
             }
@@ -257,7 +256,6 @@
                 {
                     recipients: linesToRecipients(elements.recipientsInput.value),
                 },
-                csrfToken,
             );
             if (!response?.success) {
                 throw new Error(response?.message || '发送测试邮件失败');
@@ -278,7 +276,6 @@
                 {
                     feishu_webhook_url: elements.feishuWebhookUrl.value.trim(),
                 },
-                csrfToken,
             );
             if (!response?.success) {
                 throw new Error(response?.message || '发送飞书测试消息失败');

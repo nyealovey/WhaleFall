@@ -30,7 +30,7 @@ updated: 2026-01-08
 | Logs | [[API/logs-api-contract]] | `logs` `admin` | - |
 | Sync Sessions | [[API/sessions-api-contract]] | `sync` `sessions` | - |
 | Scheduler | [[API/scheduler-api-contract]] | `scheduler` `jobs` | - |
-| Auth | [[API/auth-api-contract]] | `auth` `csrf` `jwt` | - |
+| Auth | [[API/auth-api-contract]] | `auth` `csrf` `session` | - |
 | Cache | [[API/cache-api-contract]] | `cache` `admin` | - |
 | Dashboard | [[API/dashboard-api-contract]] | `dashboard` | - |
 | Health | [[API/health-api-contract]] | `health` | - |

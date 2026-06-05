@@ -37,7 +37,7 @@ related:
 
 - 代码落点: [[architecture/project-structure|项目结构与代码落点]]
 - 关键流程 SOP: [[architecture/flows/README|关键流程索引(flows)]]
-- 认证与权限: [[architecture/identity-access|Identity & Access(认证/授权/RBAC/CSRF/JWT)]]
+- 认证与权限: [[architecture/identity-access|Identity & Access(认证/授权/RBAC/CSRF/session)]]
 - 标准(SSOT): [[standards/README|standards]] -> [[standards/backend/README|backend]] / [[standards/ui/README|ui]] / [[standards/doc/README|doc]]
 - 参考(查阅型): [[reference/README|reference]] -> [[reference/service/README|server]] / [[reference/config/README|config]] / [[reference/database/README|database]] / [[reference/security/README|security]] / [[reference/errors/README|errors]]
 - 可观测与排障: [[operations/observability-ops|Observability Ops(日志字段/定位路径/会话与任务排障)]]

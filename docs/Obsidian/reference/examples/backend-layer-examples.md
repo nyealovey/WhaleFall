@@ -365,44 +365,45 @@ def sync_accounts(instance_ids: list[int] | None = None) -> dict:
         return _execute()
 ```
 
-## Forms 示例
+## 写入 Payload 示例
 
-### 表单定义
+### Schema 定义
 
 ```python
-"""实例表单定义."""
+"""实例写入 schema."""
 
-from wtforms import IntegerField, SelectField, StringField
-from wtforms.validators import DataRequired, Length, NumberRange
+from pydantic import Field, field_validator
 
-from app.forms.definitions.base import BaseFormDefinition
+from app.schemas.base import PayloadSchema
 
 
-INSTANCE_FORM_DEFINITION = BaseFormDefinition(
-    model_name="Instance",
-    template="instances/form.html",
-    fields=[
-        {
-            "name": "name",
-            "type": StringField,
-            "label": "实例名称",
-            "validators": [
-                DataRequired(message="实例名称不能为空"),
-                Length(min=1, max=255, message="名称长度 1-255 字符"),
-            ],
-        },
-        {
-            "name": "port",
-            "type": IntegerField,
-            "label": "端口",
-            "validators": [DataRequired(), NumberRange(min=1, max=65535)],
-        },
-        {
-            "name": "db_type",
-            "type": SelectField,
-            "label": "数据库类型",
-            "choices": [("mysql", "MySQL"), ("postgresql", "PostgreSQL")],
-        },
-    ],
-)
+class InstanceCreatePayload(PayloadSchema):
+    """实例创建 payload."""
+
+    name: str = Field(min_length=1, max_length=255)
+    host: str = Field(min_length=1, max_length=255)
+    port: int = Field(ge=1, le=65535)
+    db_type: str
+
+    @field_validator("db_type")
+    @classmethod
+    def _validate_db_type(cls, value: str) -> str:
+        if value not in {"mysql", "postgresql", "sqlserver", "oracle"}:
+            raise ValueError("不支持的数据库类型")
+        return value
+```
+
+### Service 入口
+
+```python
+from app.schemas.instances import InstanceCreatePayload
+from app.schemas.validation import validate_or_raise
+from app.utils.request_payload import parse_payload
+
+
+class InstanceWriteService:
+    def create_from_payload(self, payload: object) -> dict[str, object]:
+        sanitized = parse_payload(payload)
+        parsed = validate_or_raise(InstanceCreatePayload, sanitized)
+        return self.create(parsed.model_dump())
 ```

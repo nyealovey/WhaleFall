@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from flask import request
 from flask_restx import Namespace, fields
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
-from app.api.v1.resources.base import BaseResource
+from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.schemas.email_alerts import EmailAlertSettingsPayload, EmailAlertTestPayload, FeishuAlertTestPayload
-from app.schemas.validation import validate_or_raise
 from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
 from app.utils.decorators import require_csrf
 
@@ -100,10 +97,8 @@ class AlertEmailSettingsResource(BaseResource):
         """更新邮件告警配置."""
 
         def _execute():
-            payload = request.get_json(silent=True)
-            parsed = validate_or_raise(EmailAlertSettingsPayload, payload or {})
             service = EmailAlertSettingsService()
-            service.update_settings(parsed.model_dump())
+            service.update_settings_from_payload(get_raw_payload())
             data = service.build_view_payload()
             return self.success(data=data, message="更新邮件告警配置成功")
 
@@ -132,9 +127,7 @@ class AlertEmailTestResource(BaseResource):
         """发送测试邮件."""
 
         def _execute():
-            payload = request.get_json(silent=True)
-            parsed = validate_or_raise(EmailAlertTestPayload, payload or {})
-            data = EmailAlertSettingsService().send_test_email(recipients=parsed.recipients)
+            data = EmailAlertSettingsService().send_test_email_from_payload(get_raw_payload())
             return self.success(data=data, message="测试邮件发送成功")
 
         return self.safe_call(
@@ -162,9 +155,7 @@ class AlertFeishuTestResource(BaseResource):
         """发送飞书测试消息."""
 
         def _execute():
-            payload = request.get_json(silent=True)
-            parsed = validate_or_raise(FeishuAlertTestPayload, payload or {})
-            data = EmailAlertSettingsService().send_test_feishu(webhook_url=parsed.feishu_webhook_url)
+            data = EmailAlertSettingsService().send_test_feishu_from_payload(get_raw_payload())
             return self.success(data=data, message="飞书测试消息发送成功")
 
         return self.safe_call(

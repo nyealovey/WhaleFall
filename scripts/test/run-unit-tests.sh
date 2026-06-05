@@ -101,7 +101,6 @@ CACHE_REDIS_URL=redis://localhost:6379/0
 
 # 安全密钥（仅测试用途）
 SECRET_KEY=test-secret-key
-JWT_SECRET_KEY=test-jwt-key
 
 # 测试加速（bcrypt rounds 最小允许值为 4）
 BCRYPT_LOG_ROUNDS=4

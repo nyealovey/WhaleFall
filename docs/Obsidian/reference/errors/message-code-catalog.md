@@ -76,7 +76,7 @@ related:
 | `CSRF_MISSING` | 缺少 CSRF token | 403 | `require_csrf`(`app/utils/decorators.py`) |
 | `CSRF_INVALID` | CSRF token 无效 | 403 | `require_csrf`(`app/utils/decorators.py`) |
 | `ADMIN_PERMISSION_REQUIRED` | 需要管理员权限 | 403 | Web `admin_required`, API `api_admin_required`(目前少用) |
-| `INVALID_CREDENTIALS` | 用户名/密码错误或 JWT identity 无效 | 401 | `LoginService`, `AuthMeReadService` |
+| `INVALID_CREDENTIALS` | 用户名/密码错误或 session identity 无效 | 401 | `LoginService`, `AuthMeReadService` |
 | `ACCOUNT_DISABLED` | 账户被禁用 | 403 | `LoginService` |
 | `RATE_LIMIT_EXCEEDED` | 触发限流 | 429 | `login_rate_limit`, `password_reset_rate_limit` |
 | `INVALID_OLD_PASSWORD` | 旧密码错误 | 401 | `ChangePasswordService` |

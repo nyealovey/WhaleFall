@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from flask import request
 from flask_restx import Namespace, fields
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
-from app.api.v1.resources.base import BaseResource
+from app.api.v1.resources.base import BaseResource, get_raw_payload
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.resources.query_parsers import new_parser
 from app.core.constants.system_constants import SuccessMessages
@@ -84,9 +83,8 @@ class RiskCenterRulesResource(BaseResource):
         """更新风险中心规则配置."""
 
         def _execute():
-            payload = request.get_json(silent=True) or {}
             return self.success(
-                data=RiskCenterRuleSettingsService().update_rules(payload),
+                data=RiskCenterRuleSettingsService().update_rules(get_raw_payload()),
                 message="更新风险规则配置成功",
             )
 

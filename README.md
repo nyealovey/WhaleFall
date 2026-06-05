@@ -84,13 +84,14 @@
 - **数据库**: PostgreSQL（主库）
 - **缓存**: Redis
 - **任务调度**: APScheduler 3.11+
-- **日志**: structlog + loguru
-- **认证**: Flask-Login + Flask-JWT-Extended
+- **日志**: structlog
+- **认证**: Flask-Login session + Flask-WTF CSRF
 
 ### 前端
 - **UI框架**: Bootstrap 5
 - **表格组件**: Grid.js
-- **选择器**: Tom Select
+- **图表组件**: Chart.js
+- **DOM/HTTP 工具**: Umbrella JS + httpU
 - **图标**: Font Awesome
 - **视觉系统**: `DESIGN.md`
 
@@ -390,6 +391,7 @@ def example_view() -> Response:
 - [APScheduler](https://apscheduler.readthedocs.io/) - 任务调度
 - [Grid.js](https://gridjs.io/) - 表格组件
 - [Bootstrap](https://getbootstrap.com/) - UI 框架
+- [Chart.js](https://www.chartjs.org/) - 图表组件
 
 ---
 

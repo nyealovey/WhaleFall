@@ -1,115 +1,66 @@
 (function initVeeamSourceService(global) {
   "use strict";
 
+  const ensureHttpClient = global.ServiceUtils?.ensureHttpClient;
+  if (typeof ensureHttpClient !== "function") {
+    throw new Error("VeeamSourceService: ServiceUtils 未初始化");
+  }
+
   class VeeamSourceService {
-    constructor(apiUrl, syncApiUrl, sourcesApiUrl) {
+    constructor(apiUrl, syncApiUrl, sourcesApiUrl, httpClient) {
       this.apiUrl = apiUrl;
       this.syncApiUrl = syncApiUrl;
       this.sourcesApiUrl = sourcesApiUrl || apiUrl.replace(/\/source$/, "/sources");
+      this.httpClient = ensureHttpClient(httpClient, "VeeamSourceService");
     }
 
     async load() {
-      const response = await fetch(this.apiUrl, {
-        method: "GET",
-        credentials: "same-origin",
+      return this.httpClient.get(this.apiUrl, {
         headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async updateBinding(payload, csrfToken) {
-      const response = await fetch(this.apiUrl, {
-        method: "PUT",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify(payload),
+    async updateBinding(payload) {
+      return this.httpClient.put(this.apiUrl, payload, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async createSource(payload, csrfToken) {
-      const response = await fetch(this.sourcesApiUrl, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify(payload),
+    async createSource(payload) {
+      return this.httpClient.post(this.sourcesApiUrl, payload, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async updateSource(sourceId, payload, csrfToken) {
-      const response = await fetch(`${this.sourcesApiUrl}/${sourceId}`, {
-        method: "PUT",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify(payload),
+    async updateSource(sourceId, payload) {
+      return this.httpClient.put(`${this.sourcesApiUrl}/${sourceId}`, payload, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async deleteSource(sourceId, csrfToken) {
-      const response = await fetch(`${this.sourcesApiUrl}/${sourceId}`, {
-        method: "DELETE",
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
+    async deleteSource(sourceId) {
+      return this.httpClient.delete(`${this.sourcesApiUrl}/${sourceId}`, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async setSourceEnabled(sourceId, enabled, csrfToken) {
+    async setSourceEnabled(sourceId, enabled) {
       const action = enabled ? "enable" : "disable";
-      const response = await fetch(`${this.sourcesApiUrl}/${sourceId}/actions/${action}`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify({}),
+      return this.httpClient.post(`${this.sourcesApiUrl}/${sourceId}/actions/${action}`, {}, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async deleteBinding(csrfToken) {
-      const response = await fetch(this.apiUrl, {
-        method: "DELETE",
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
+    async deleteBinding() {
+      return this.httpClient.delete(this.apiUrl, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
 
-    async syncBackups(csrfToken) {
-      const response = await fetch(this.syncApiUrl, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        body: JSON.stringify({}),
+    async syncBackups() {
+      return this.httpClient.post(this.syncApiUrl, {}, {
+        headers: { Accept: "application/json" },
       });
-      return response.json();
     }
   }
 

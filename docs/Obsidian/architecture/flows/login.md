@@ -10,7 +10,7 @@ status: active
 created: 2026-01-10
 updated: 2026-01-10
 owner: WhaleFall Team
-scope: Web 登录与 API v1 登录, 以及 CSRF/cookie/JWT 的调用口径
+scope: Web 登录与 API v1 登录, 以及 CSRF/session cookie 的调用口径
 related:
   - "[[architecture/identity-access]]"
   - "[[architecture/spec]]"

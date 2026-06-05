@@ -141,7 +141,10 @@ def test_api_v1_alerts_send_test_email_contract(app, auth_client, monkeypatch) -
     sent_payloads: list[dict[str, object]] = []
 
     class _StubEmailAlertSettingsService:
-        def send_test_email(self, *, recipients: list[str]) -> dict[str, object]:
+        def send_test_email_from_payload(self, payload: object) -> dict[str, object]:
+            assert isinstance(payload, dict)
+            recipients = payload.get("recipients")
+            assert isinstance(recipients, list)
             sent_payloads.append({"recipients": list(recipients)})
             return {
                 "sent": True,
@@ -178,7 +181,9 @@ def test_api_v1_alerts_send_feishu_test_contract(app, auth_client, monkeypatch) 
     sent_payloads: list[dict[str, object]] = []
 
     class _StubEmailAlertSettingsService:
-        def send_test_feishu(self, *, webhook_url: str = "") -> dict[str, object]:
+        def send_test_feishu_from_payload(self, payload: object) -> dict[str, object]:
+            assert isinstance(payload, dict)
+            webhook_url = str(payload.get("feishu_webhook_url") or "")
             sent_payloads.append({"webhook_url": webhook_url})
             return {
                 "sent": True,

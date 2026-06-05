@@ -7,7 +7,6 @@
   }
 
   const toast = global.toast;
-  const csrfToken = document.getElementById("jumpserver-source-csrf-token")?.value || "";
   const apiUrl = pageRoot.dataset.apiUrl;
   const syncApiUrl = pageRoot.dataset.syncApiUrl;
   const service = new global.JumpServerSourceService(apiUrl, syncApiUrl);
@@ -170,7 +169,6 @@
     try {
       const response = await service.updateBinding(
         { credential_id: credentialId, base_url: baseUrl, org_id: orgId, verify_ssl: verifySsl },
-        csrfToken,
       );
       if (!response?.success) {
         throw new Error(response?.message || "绑定 JumpServer 数据源失败");
@@ -187,7 +185,7 @@
   async function handleUnbindSource() {
     const stop = setButtonBusy(elements.unbindButton, "解绑中...");
     try {
-      const response = await service.deleteBinding(csrfToken);
+      const response = await service.deleteBinding();
       if (!response?.success) {
         throw new Error(response?.message || "解绑数据源失败");
       }
@@ -203,7 +201,7 @@
   async function handleSyncAssets() {
     const stop = setButtonBusy(elements.syncButton, "同步中...");
     try {
-      const response = await service.syncAssets(csrfToken);
+      const response = await service.syncAssets();
       if (!response?.success) {
         throw new Error(response?.message || "同步 JumpServer 资源失败");
       }

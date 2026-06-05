@@ -7,7 +7,6 @@
   }
 
   const toast = global.toast;
-  const csrfToken = document.getElementById("ad-domain-configs-csrf-token")?.value || "";
   const service = new global.AdDomainConfigsService(pageRoot.dataset.apiUrl, pageRoot.dataset.credentialsApiUrl);
   const setButtonLoading = global.UI?.setButtonLoading;
   const clearButtonLoading = global.UI?.clearButtonLoading;
@@ -343,8 +342,8 @@
     const stop = setButtonBusy(elements.saveButton, "保存中...");
     try {
       const response = state.editingConfigId
-        ? await service.updateConfig(state.editingConfigId, payload, csrfToken)
-        : await service.createConfig(payload, csrfToken);
+        ? await service.updateConfig(state.editingConfigId, payload)
+        : await service.createConfig(payload);
       if (!response?.success) {
         throw new Error(response?.message || "保存 AD 域配置失败");
       }
@@ -364,7 +363,7 @@
     }
     const stop = setButtonBusy(elements.deleteButton, "删除中...");
     try {
-      const response = await service.deleteConfig(state.editingConfigId, csrfToken);
+      const response = await service.deleteConfig(state.editingConfigId);
       if (!response?.success) {
         throw new Error(response?.message || "删除 AD 域配置失败");
       }
@@ -397,7 +396,7 @@
     if (action === "test") {
       const stop = setButtonBusy(target, "测试中...");
       try {
-        const response = await service.testConnection(configId, csrfToken);
+        const response = await service.testConnection(configId);
         if (!response?.success) {
           throw new Error(response?.message || "AD 域连接测试失败");
         }
@@ -414,7 +413,7 @@
     }
     const stop = setButtonBusy(target, action === "enable" ? "启用中..." : "停用中...");
     try {
-      const response = await service.setEnabled(configId, action === "enable", csrfToken);
+      const response = await service.setEnabled(configId, action === "enable");
       if (!response?.success) {
         throw new Error(response?.message || "更新 AD 域配置状态失败");
       }
@@ -430,7 +429,7 @@
   async function handleSyncAccounts() {
     const stop = setButtonBusy(elements.syncButton, "同步中...");
     try {
-      const response = await service.syncAccounts(csrfToken);
+      const response = await service.syncAccounts();
       if (!response?.success) {
         throw new Error(response?.message || "AD 域账户同步失败");
       }
