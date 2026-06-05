@@ -69,6 +69,14 @@ def _assert_regex(text: str, pattern: re.Pattern[str], *, ctx: str) -> None:
         raise AssertionError(f"{ctx}: 未命中必要 pattern: {pattern.pattern}")
 
 
+def _css_block(content: str, selector_prefix: str, *, ctx: str) -> str:
+    pattern = re.compile(rf"{re.escape(selector_prefix)}[^\{{]*\{{(?P<body>.*?)\n\}}", re.S)
+    match = pattern.search(content)
+    if match is None:
+        raise AssertionError(f"{ctx}: 找不到 CSS 块: {selector_prefix}")
+    return match.group("body")
+
+
 def _scan_lines(paths: list[Path], *, line_predicate) -> list[str]:
     hits: list[str] = []
     for path in paths:
@@ -591,12 +599,50 @@ def _check_button_system_contract() -> None:
     _assert_contains(table_css, ".table-action-bar", ctx="app/static/css/components/table.css")
     _assert_contains(table_css, ".btn-table-action", ctx="app/static/css/components/table.css")
 
+    primary_block = _css_block(buttons_css, ".btn-primary", ctx="app/static/css/components/buttons.css")
+    for state_var in (
+        "--bs-btn-bg",
+        "--bs-btn-border-color",
+        "--bs-btn-hover-bg",
+        "--bs-btn-hover-border-color",
+        "--bs-btn-active-bg",
+        "--bs-btn-active-border-color",
+    ):
+        declaration = re.search(rf"{re.escape(state_var)}:\s*([^;]+);", primary_block)
+        if declaration is None:
+            raise AssertionError(f"app/static/css/components/buttons.css: .btn-primary 缺少 {state_var}")
+        if declaration.group(1).strip() == "transparent":
+            raise AssertionError(f"app/static/css/components/buttons.css: .btn-primary {state_var} 不能是 transparent")
+
+    for selector in (".btn-command", ".btn-form-action", ".btn-table-action", ".btn-segment"):
+        block = _css_block(buttons_css, selector, ctx="app/static/css/components/buttons.css")
+        for declaration in (
+            "display: inline-flex;",
+            "align-items: center;",
+            "justify-content: center;",
+            "white-space: nowrap;",
+            "vertical-align: middle;",
+        ):
+            if declaration not in block:
+                raise AssertionError(f"app/static/css/components/buttons.css: {selector} 缺少 {declaration}")
+
+    active_block = _css_block(buttons_css, ".btn-segment.active", ctx="app/static/css/components/buttons.css")
+    _assert_contains(active_block, "border-color: var(--accent-primary);", ctx="app/static/css/components/buttons.css")
+
     offenders: list[str] = []
     icon_tag = re.compile(r"<(?:button|a|span)\b[^>]*\bbtn-icon\b[^>]*>", re.S)
     button_with_btn_sm = re.compile(r"<(?:button|a|span)\b[^>]*\bbtn-sm\b[^>]*>", re.S)
     legacy_group = re.compile(r"<div\b[^>]*class=[\"'][^\"']*\bbtn-group\b[^\"']*[\"'][^>]*>", re.S)
     chip_group = re.compile(r"<div\b[^>]*\bchip-toggle-group\b[^>]*>", re.S)
     db_type_button = re.compile(r"<button\b[^>]*\bdata-db-type-btn\b[^>]*>", re.S)
+    legacy_segment_tokens = (
+        'classList.remove("btn-primary"',
+        'classList.add("btn-outline-primary", "border-2", "fw-bold")',
+        'classList.toggle("btn-primary"',
+        'classList.toggle("btn-outline-primary"',
+        'classList.toggle("border-2"',
+        'classList.toggle("fw-bold"',
+    )
 
     for root, suffixes in (
         (Path("app/templates"), {".html"}),
@@ -618,6 +664,12 @@ def _check_button_system_contract() -> None:
             if path.suffix == ".js":
                 for match in button_with_btn_sm.finditer(content):
                     offenders.append(f"{path}:{content.count(chr(10), 0, match.start()) + 1}: 动态按钮仍使用 btn-sm")
+                for token in legacy_segment_tokens:
+                    index = content.find(token)
+                    if index != -1:
+                        offenders.append(
+                            f"{path}:{content.count(chr(10), 0, index) + 1}: 分段按钮状态仍使用旧 Bootstrap class: {token}"
+                        )
 
             for match in chip_group.finditer(content):
                 tag = match.group(0)

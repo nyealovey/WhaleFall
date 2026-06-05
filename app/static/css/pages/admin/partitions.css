@@ -28,7 +28,7 @@
     color: var(--text-muted);
 }
 
-.card-header .text-muted {
+.partition-list-card .card-header .text-muted {
     font-size: 0.9rem;
 }
 

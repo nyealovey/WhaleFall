@@ -387,10 +387,9 @@
       buttons.forEach((button) => {
         button.addEventListener("click", () => {
           currentDbType = button.dataset.dbType || "all";
-          buttons.forEach((btn) => btn.classList.remove("btn-primary"));
-          buttons.forEach((btn) => btn.classList.add("btn-outline-primary", "border-2", "fw-bold"));
-          button.classList.add("btn-primary");
-          button.classList.remove("btn-outline-primary", "border-2", "fw-bold");
+          buttons.forEach((btn) => {
+            btn.classList.toggle("active", btn === button);
+          });
           setDbTypeFieldValue(currentDbType);
           gridPage?.applyFiltersFromForm?.({ source: "type-button" });
         });

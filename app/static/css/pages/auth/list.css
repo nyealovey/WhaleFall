@@ -2,15 +2,15 @@
 
 /* 页面头部样式已移至全局样式 (global.css) */
 
-/* 卡片样式 - 利用全局卡片样式 */
-.card {
+/* 表格卡片样式 */
+.auth-users-grid-card {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
     border: none;
     margin-bottom: var(--spacing-lg);
 }
 
-.card-body {
+.auth-users-grid-card > .card-body {
     padding: var(--spacing-lg);
 }
 

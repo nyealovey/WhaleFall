@@ -21,6 +21,13 @@ def _line_number(content: str, offset: int) -> int:
     return content.count("\n", 0, offset) + 1
 
 
+def _css_block(content: str, selector_prefix: str) -> str:
+    pattern = re.compile(rf"{re.escape(selector_prefix)}[^\{{]*\{{(?P<body>.*?)\n\}}", re.S)
+    match = pattern.search(content)
+    assert match is not None, f"找不到 CSS 块: {selector_prefix}"
+    return match.group("body")
+
+
 def test_button_system_defines_shared_roles_and_size_tokens() -> None:
     variables = _read_text("app/static/css/variables.css")
     buttons_css = _read_text("app/static/css/components/buttons.css")
@@ -56,6 +63,73 @@ def test_button_system_defines_shared_roles_and_size_tokens() -> None:
     assert "--command-to-content-gap" in global_css
     assert ".table-action-bar" in table_css
     assert ".btn-table-action" in table_css
+
+
+def test_primary_buttons_keep_filled_background_across_hover_and_active_states() -> None:
+    buttons_css = _read_text("app/static/css/components/buttons.css")
+    primary_block = _css_block(buttons_css, ".btn-primary")
+    transparent_state_vars = (
+        "--bs-btn-bg",
+        "--bs-btn-border-color",
+        "--bs-btn-hover-bg",
+        "--bs-btn-hover-border-color",
+        "--bs-btn-active-bg",
+        "--bs-btn-active-border-color",
+    )
+
+    for state_var in transparent_state_vars:
+        declaration = re.search(rf"{re.escape(state_var)}:\s*([^;]+);", primary_block)
+        assert declaration is not None, f".btn-primary 缺少 {state_var}"
+        assert declaration.group(1).strip() != "transparent", f".btn-primary {state_var} 不能是 transparent"
+
+
+def test_fixed_height_button_roles_center_content() -> None:
+    buttons_css = _read_text("app/static/css/components/buttons.css")
+    role_selectors = (
+        ".btn-command",
+        ".btn-form-action",
+        ".btn-table-action",
+        ".btn-segment",
+    )
+
+    for selector in role_selectors:
+        block = _css_block(buttons_css, selector)
+        for declaration in (
+            "display: inline-flex;",
+            "align-items: center;",
+            "justify-content: center;",
+            "white-space: nowrap;",
+            "vertical-align: middle;",
+        ):
+            assert declaration in block, f"{selector} 缺少 {declaration}"
+
+
+def test_segmented_active_state_and_scripts_do_not_use_legacy_bootstrap_class_toggles() -> None:
+    buttons_css = _read_text("app/static/css/components/buttons.css")
+    active_block = _css_block(buttons_css, ".btn-segment.active")
+    assert "border-color: var(--accent-primary);" in active_block
+
+    forbidden_tokens = (
+        'classList.remove("btn-primary"',
+        'classList.add("btn-outline-primary", "border-2", "fw-bold")',
+        'classList.toggle("btn-primary"',
+        'classList.toggle("btn-outline-primary"',
+        'classList.toggle("border-2"',
+        'classList.toggle("fw-bold"',
+    )
+    offenders: list[str] = []
+
+    for path in _iter_files("app/static/js/modules/views", {".js"}):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        for token in forbidden_tokens:
+            index = content.find(token)
+            if index != -1:
+                offenders.append(
+                    f"{path.relative_to(ROOT_DIR).as_posix()}:{_line_number(content, index)}: "
+                    f"分段按钮状态仍使用旧 Bootstrap class: {token}"
+                )
+
+    assert offenders == []
 
 
 def test_console_command_decks_use_command_action_bar_not_bootstrap_groups() -> None:

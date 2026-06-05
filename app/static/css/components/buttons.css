@@ -57,22 +57,25 @@
 
 .btn-primary {
     --bs-btn-color: var(--text-inverse);
-    --bs-btn-bg: transparent;
-    --bs-btn-border-color: transparent;
+    --bs-btn-bg: var(--accent-primary);
+    --bs-btn-border-color: var(--accent-primary);
     --bs-btn-hover-color: var(--text-inverse);
-    --bs-btn-hover-bg: transparent;
-    --bs-btn-hover-border-color: transparent;
+    --bs-btn-hover-bg: var(--accent-primary-hover);
+    --bs-btn-hover-border-color: var(--accent-primary-hover);
     --bs-btn-active-color: var(--text-inverse);
-    --bs-btn-active-bg: transparent;
-    --bs-btn-active-border-color: transparent;
+    --bs-btn-active-bg: var(--accent-primary-strong);
+    --bs-btn-active-border-color: var(--accent-primary-strong);
     --bs-btn-disabled-color: rgba(255, 248, 241, 0.92);
     --bs-btn-disabled-bg: rgba(221, 107, 32, 0.48);
-    --bs-btn-disabled-border-color: transparent;
-    background-color: var(--accent-primary);
+    --bs-btn-disabled-border-color: rgba(221, 107, 32, 0.26);
+    background-color: var(--bs-btn-bg);
+    border-color: var(--bs-btn-border-color);
     box-shadow: none;
 }
 
 .btn-primary:hover {
+    background-color: var(--bs-btn-hover-bg);
+    border-color: var(--bs-btn-hover-border-color);
     transform: translateY(-1px);
     box-shadow: inset 0 0 0 1px rgba(255, 248, 241, 0.22);
 }
@@ -220,12 +223,18 @@
 
 .btn-command,
 .command-action-bar > .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.42rem;
     min-height: var(--button-height-command);
     height: var(--button-height-command);
     padding: 0 0.72rem;
     border-radius: var(--border-radius-sm);
     font-size: 0.82rem;
     line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
     box-shadow: none;
 }
 
@@ -233,6 +242,7 @@
 .command-action-bar > .btn-icon {
     width: var(--button-icon-size-command);
     min-width: var(--button-icon-size-command);
+    gap: 0;
     padding: 0;
 }
 
@@ -240,12 +250,18 @@
 .form-action-row > .btn,
 .wf-modal__footer .btn,
 .filter-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.38rem;
     min-height: var(--button-height-form);
     height: var(--button-height-form);
     padding: 0 0.62rem;
     border-radius: var(--border-radius-sm);
     font-size: 0.8rem;
     line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
     box-shadow: none;
 }
 
@@ -255,11 +271,16 @@
 .filter-actions .btn-icon {
     width: var(--button-icon-size-form);
     min-width: var(--button-icon-size-form);
+    gap: 0;
     padding: 0;
 }
 
 .btn-table-action,
 .table-action-bar > .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
     min-height: var(--button-height-table);
     height: var(--button-height-table);
     min-width: var(--button-icon-size-table);
@@ -267,6 +288,8 @@
     border-radius: var(--border-radius-sm);
     font-size: 0.72rem;
     line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
     box-shadow: none;
 }
 
@@ -274,6 +297,7 @@
 .table-action-bar > .btn-icon {
     width: var(--button-icon-size-table);
     min-width: var(--button-icon-size-table);
+    gap: 0;
     padding: 0;
 }
 
@@ -284,6 +308,10 @@
 
 .btn-segment,
 .segmented-control > .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
     min-height: var(--button-height-form);
     height: var(--button-height-form);
     padding: 0 0.66rem;
@@ -293,6 +321,8 @@
     color: var(--text-primary);
     font-size: 0.8rem;
     line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
     box-shadow: none;
 }
 
@@ -309,15 +339,22 @@
 .segmented-control > .btn.active,
 .segmented-control > .btn.is-active {
     background: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: var(--text-inverse);
 }
 
 .btn-quick-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.38rem;
     min-height: var(--button-height-form);
     padding: 0.34rem 0.62rem;
     border-radius: var(--border-radius-sm);
     font-size: 0.82rem;
     line-height: 1.2;
+    white-space: nowrap;
+    vertical-align: middle;
     box-shadow: none;
 }
 

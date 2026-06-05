@@ -169,6 +169,59 @@ def test_runtime_css_removes_legacy_visual_tokens() -> None:
     assert offenders == []
 
 
+def test_global_component_css_is_not_reloaded_by_pages() -> None:
+    globally_loaded_component_css = (
+        "css/components/chips.css",
+        "css/components/buttons.css",
+        "css/components/forms.css",
+        "css/components/table.css",
+        "css/components/charts.css",
+        "css/components/modals.css",
+        "css/components/crud-modal.css",
+        "css/components/metric-card.css",
+        "css/components/status-pill.css",
+        "css/components/progress.css",
+        "css/components/filters/filter-common.css",
+    )
+    offenders = []
+
+    for path in _iter_base_templates():
+        content = path.read_text(encoding="utf-8")
+        for css_path in globally_loaded_component_css:
+            if css_path in content:
+                offenders.append(f"{_relative(path)}: {css_path}")
+
+    assert offenders == []
+
+
+def test_tag_selector_stylesheet_is_loaded_by_pages_not_component_partial() -> None:
+    component_partial = _read_text("app/templates/components/tag_selector.html")
+    assert "css/components/tag-selector.css" not in component_partial
+
+    offenders = []
+    for path in _iter_base_templates():
+        content = path.read_text(encoding="utf-8")
+        if "components/tag_selector.html" in content and "css/components/tag-selector.css" not in content:
+            offenders.append(_relative(path))
+
+    assert offenders == []
+
+
+def test_view_scripts_do_not_use_browser_alerts() -> None:
+    offenders = []
+    forbidden_patterns = ("global.alert(", "window.alert(", "alert(")
+
+    for path in sorted((ROOT_DIR / "app/static/js/modules/views").rglob("*.js")):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        for token in forbidden_patterns:
+            index = content.find(token)
+            if index != -1:
+                line = content.count("\n", 0, index) + 1
+                offenders.append(f"{_relative(path)}:{line}: {token}")
+
+    assert offenders == []
+
+
 def test_auth_and_about_pages_use_console_surfaces_not_marketing_hero() -> None:
     login_css = _read_text("app/static/css/pages/auth/login.css")
     about_template = _read_text("app/templates/about.html")
@@ -244,6 +297,10 @@ def test_progress_bars_use_data_attributes_without_template_inline_width() -> No
     offenders = []
     for path in TEMPLATES_DIR.rglob("*.html"):
         content = path.read_text(encoding="utf-8")
+        if 'style="width:' in content or "style='width:" in content:
+            offenders.append(_relative(path))
+    for path in sorted((ROOT_DIR / "app/static/js/modules/views").rglob("*.js")):
+        content = path.read_text(encoding="utf-8", errors="ignore")
         if 'style="width:' in content or "style='width:" in content:
             offenders.append(_relative(path))
     assert offenders == []

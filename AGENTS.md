@@ -5,7 +5,7 @@
 ## Quick Reference
 
 - **目录**：`app/`（Flask） · `migrations/` · `sql/` · `docs/` · `scripts/` · `tests/unit/`
-- **依赖/启动**：`make install` · `make dev-start` · `make init-db` · `python app.py`（默认 `http://127.0.0.1:5001`）
+- **依赖/启动（仅用户明确要求时）**：`make install` · `make dev-start` · `make init-db` · `python app.py`（默认 `http://127.0.0.1:5001`）
 - **质量/测试**：`make format` · `make typecheck` · `uv run pytest -m unit`
 - **报告类检查**：`./scripts/ci/ruff-report.sh style` · `./scripts/ci/pyright-report.sh` · `./scripts/ci/eslint-report.sh quick`（改动 JS） · `./scripts/ci/refactor-naming.sh --dry-run`
 - **更多速查（非 SSOT）**：`docs/agent/README.md`
@@ -25,4 +25,5 @@
 - 分支/提交：日常 PR → `dev`；发布/线上修复 → `main`（详见 `docs/Obsidian/standards/core/guide/git-workflow.md`）；提交前缀建议 `fix:`/`feat:`/`refactor:`/`docs:`/`chore:`（≤72 字）
 - 除代码相关文本（文件路径/命令/字段/函数/路由/关键字等）外，说明尽量使用中文
 - 不要无依据添加 defensive fallback（吞异常、silent fallback 等）；如必须引入需写清运行时场景/复现用例/测试需求与验证方式
+- 用户本地没有可用测试/运行环境；除非用户明确要求，不要启动 `make dev-start`、`python app.py`、Docker Compose、Flask dev server、浏览器或任何本地 Web 服务。验证优先使用单元测试、静态检查、CI guard 和代码契约检查。
 - 每次输出信息前必须加称谓：以「金主大人」开头

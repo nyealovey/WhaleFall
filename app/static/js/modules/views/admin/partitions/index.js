@@ -79,7 +79,7 @@ function mountAdminPartitionsPage(global) {
             : partitionStore.init();
         loadPromise.catch((error) => {
             console.error('PartitionStore 加载失败', error);
-            notifyStatsError('分区数据加载失败，请刷新重试');
+            notifyError('分区数据加载失败，请刷新重试');
         });
         global.addEventListener('beforeunload', teardownPartitionStore, { once: true });
         return true;
@@ -320,7 +320,7 @@ function mountAdminPartitionsPage(global) {
         const target = payload?.meta?.target;
         if (target === 'info') {
             const message = payload?.error?.message || '加载分区统计失败';
-            notifyStatsError(message);
+            notifyError(message);
             setStatCard('health', {
                 label: '健康状态',
                 value: '异常',
@@ -328,9 +328,9 @@ function mountAdminPartitionsPage(global) {
                 tone: 'danger',
             });
         } else if (target === 'create') {
-            global.alert(payload?.error?.message || '创建分区失败');
+            notifyError(payload?.error?.message || '创建分区失败');
         } else if (target === 'cleanup') {
-            global.alert(payload?.error?.message || '清理分区失败');
+            notifyError(payload?.error?.message || '清理分区失败');
         } else if (target === 'metrics') {
             console.error('分区核心指标加载失败:', payload?.error);
         }
@@ -344,11 +344,7 @@ function mountAdminPartitionsPage(global) {
      */
     function handleCreateSuccess(payload) {
         const message = payload?.message || '分区创建成功';
-        if (global.toast?.success) {
-            global.toast.success(message);
-        } else {
-            global.alert(message);
-        }
+        notifySuccess(message);
         refreshPartitionData();
     }
 
@@ -360,21 +356,31 @@ function mountAdminPartitionsPage(global) {
      */
     function handleCleanupSuccess(payload) {
         const message = payload?.message || '分区清理成功';
-        if (global.toast?.success) {
-            global.toast.success(message);
-        } else {
-            global.alert(message);
-        }
+        notifySuccess(message);
         refreshPartitionData();
     }
 
     /**
-     * 显示统计相关错误。
+     * 显示操作成功提示。
      *
      * @param {string} message 提示文案。
      * @returns {void}
      */
-    function notifyStatsError(message) {
+    function notifySuccess(message) {
+        if (global.toast?.success) {
+            global.toast.success(message);
+        } else {
+            console.info(message);
+        }
+    }
+
+    /**
+     * 显示操作失败提示。
+     *
+     * @param {string} message 提示文案。
+     * @returns {void}
+     */
+    function notifyError(message) {
         if (global.toast?.error) {
             global.toast.error(message);
         } else {
@@ -464,7 +470,7 @@ function mountAdminPartitionsPage(global) {
                 });
             })
             .catch(error => {
-                notifyStatsError(error?.message || '获取健康状态失败');
+                notifyError(error?.message || '获取健康状态失败');
                 setStatCard('health', {
                     label: '健康状态',
                     value: '健康检查失败',

@@ -150,7 +150,7 @@
 }
 
 /* 统计信息 */
-.card-body > .d-flex.justify-content-between {
+.accounts-grid-stage > .card-body > .d-flex.justify-content-between {
     padding-bottom: 0.52rem;
     border-bottom: 1px solid var(--gray-200);
     margin-bottom: 0.55rem;
@@ -162,12 +162,12 @@
 }
 
 @media (max-width: 768px) {
-    .card-body > .d-flex.justify-content-between {
+    .accounts-grid-stage > .card-body > .d-flex.justify-content-between {
         flex-direction: column;
         align-items: flex-start !important;
     }
 
-    .card-body > .d-flex.justify-content-between > div {
+    .accounts-grid-stage > .card-body > .d-flex.justify-content-between > div {
         margin-bottom: 0.5rem;
     }
 }

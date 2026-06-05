@@ -6,7 +6,6 @@
 {% block title %}分区管理 - 管理中心{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/crud-modal.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/partitions.css') }}">
 {% endblock %}
@@ -70,7 +69,7 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="card">
+            <div class="card partition-list-card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>分区列表</h5>
                 </div>

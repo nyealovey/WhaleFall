@@ -388,10 +388,7 @@ function mountClusterPage(global) {
         activeDbTab = next;
         pageRoot.querySelectorAll("[data-cluster-db-type]").forEach((tab) => {
           const active = tab === button;
-          tab.classList.toggle("btn-primary", active);
-          tab.classList.toggle("btn-outline-primary", !active);
-          tab.classList.toggle("border-2", !active);
-          tab.classList.toggle("fw-bold", !active);
+          tab.classList.toggle("active", active);
         });
         pageRoot.querySelectorAll("[data-cluster-db-panel]").forEach((panel) => {
           panel.classList.toggle("d-none", panel.getAttribute("data-cluster-db-panel") !== next);

@@ -1317,7 +1317,7 @@ function renderDatabaseNameCell(value, meta) {
     return gridHtml(`
         <div class="d-flex align-items-start">
             <i class="fas fa-database ${iconClass} me-2 mt-1"></i>
-            <div class="${textClass}" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${escapeHtml(name)}</div>
+            <div class="${textClass} database-table-size-name">${escapeHtml(name)}</div>
         </div>
     `);
 }
@@ -2506,8 +2506,8 @@ function renderBackupRestorePointsSections({
         `);
     }
     return `
-        <div class="instance-audit-section__header" style="margin-bottom: 0;">
-            <h3 class="instance-audit-section__title" style="margin: 0;"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
+        <div class="instance-audit-section__header instance-audit-section__header--flush">
+            <h3 class="instance-audit-section__title"><i class="fas fa-clock-rotate-left"></i>恢复点明细</h3>
             <span class="instance-audit-section__meta">共 ${escapeHtml(String(groups.size))} 个备份任务 · ${escapeHtml(String(displayedRestorePointCount))} 个恢复点</span>
         </div>
         ${sections.join('')}
@@ -3017,10 +3017,10 @@ function displayDatabaseSizes(payload) {
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 38%;"><i class="fas fa-database me-1"></i>数据库名称</th>
-                        <th style="width: 18%;"><i class="fas fa-hdd me-1"></i>总大小</th>
-                        <th style="width: 14%;"><i class="fas fa-trash me-1"></i>状态</th>
-                        <th style="width: 30%;"><i class="fas fa-clock me-1"></i>采集时间</th>
+                        <th class="database-size-table__name-col"><i class="fas fa-database me-1"></i>数据库名称</th>
+                        <th class="database-size-table__size-col"><i class="fas fa-hdd me-1"></i>总大小</th>
+                        <th class="database-size-table__status-col"><i class="fas fa-trash me-1"></i>状态</th>
+                        <th class="database-size-table__collected-col"><i class="fas fa-clock me-1"></i>采集时间</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -3034,8 +3034,7 @@ function displayDatabaseSizes(payload) {
 
         const iconClass = isActive ? 'text-primary' : 'text-muted';
         const textClass = isActive ? '' : 'text-muted';
-        const rowClass = `database-row${isActive ? '' : ' table-light text-muted'}`;
-        const rowStyle = isActive ? '' : ' style="opacity: 0.7;"';
+        const rowClass = `database-row${isActive ? '' : ' database-row--inactive table-light text-muted'}`;
 
         // 根据总大小判断颜色
         let sizeBadgeClass = 'status-pill status-pill--success';
@@ -3061,12 +3060,12 @@ function displayDatabaseSizes(payload) {
             : '';
 
         html += `
-            <tr class="${rowClass}" data-is-active="${isActive}"${rowStyle}>
+            <tr class="${rowClass}" data-is-active="${isActive}">
                 <td>
                     <div class="d-flex align-items-start">
                         <i class="fas fa-database ${iconClass} me-2 mt-1"></i>
                         <div>
-                            <strong class="${textClass}" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${db.database_name}</strong>
+                            <strong class="${textClass} database-table-size-name">${db.database_name}</strong>
                         </div>
                     </div>
                 </td>
