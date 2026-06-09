@@ -406,9 +406,9 @@ class AccountStatisticsRepository:
         rows = AccountStatisticsRepository._query_classification_rows()
         classification_stats: dict[str, dict[str, Any]] = {}
         for row in rows:
-            classification_stats[row["name"]] = {
+            classification_stats[row["code"]] = {
                 "account_count": row["count"],
-                "display_name": row.get("display_name", row["name"]),
+                "display_name": row.get("display_name", row["code"]),
             }
         return classification_stats
 
@@ -482,7 +482,7 @@ class AccountStatisticsRepository:
         )
         return [
             {
-                "name": code,
+                "code": code,
                 "display_name": code if display_name in (None, "") else display_name,
                 "priority": priority,
                 "count": int(count),

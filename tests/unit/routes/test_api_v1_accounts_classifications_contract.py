@@ -86,6 +86,59 @@ def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, mon
 
 
 @pytest.mark.unit
+def test_api_v1_accounts_classifications_auto_classify_rejects_legacy_instance_id(auth_client) -> None:
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+
+    response = auth_client.post(
+        "/api/v1/accounts/classifications/actions/auto-classify",
+        json={"instance_id": 1},
+        headers={"X-CSRFToken": csrf_token},
+    )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("message_code") == "VALIDATION_ERROR"
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_classifications_auto_classify_rejects_non_string_account_scope(
+    auth_client,
+    monkeypatch,
+) -> None:
+    class _UnexpectedAutoClassifyService:
+        def prepare_background_auto_classify(self, **_kwargs):
+            pytest.fail("non-string account_scope must be rejected before launching auto classify")
+
+    import app.api.v1.namespaces.accounts_classifications as api_module
+
+    monkeypatch.setattr(api_module, "_auto_classify_service", _UnexpectedAutoClassifyService())
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+
+    response = auth_client.post(
+        "/api/v1/accounts/classifications/actions/auto-classify",
+        json={"account_scope": 42},
+        headers={"X-CSRFToken": csrf_token},
+    )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("message_code") == "VALIDATION_ERROR"
+
+
+@pytest.mark.unit
 def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) -> None:
     _ensure_account_classifications_tables(app)
 
@@ -179,6 +232,7 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert {"code", "display_name", "risk_level", "icon_name", "priority", "is_system"}.issubset(
         classification_data.keys()
     )
+    assert "name" not in classification_data
     classification_id = classification_data.get("id")
     assert isinstance(classification_id, int)
 
@@ -192,16 +246,28 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert {"id", "code", "display_name", "risk_level", "icon_name", "priority", "is_system", "rules_count"}.issubset(
         detail_data.keys()
     )
+    assert "name" not in detail_data
 
     update_response = auth_client.put(
         f"/api/v1/accounts/classifications/{classification_id}",
-        json={"name": "demo-classification-updated"},
+        json={"display_name": "demo-classification-updated"},
         headers=headers,
     )
     assert update_response.status_code == 200
     update_payload = update_response.get_json()
     assert isinstance(update_payload, dict)
     assert update_payload.get("success") is True
+    updated_data = update_payload.get("data", {}).get("classification")
+    assert isinstance(updated_data, dict)
+    assert updated_data.get("display_name") == "demo-classification-updated"
+    assert "name" not in updated_data
+
+    legacy_update_response = auth_client.put(
+        f"/api/v1/accounts/classifications/{classification_id}",
+        json={"name": "legacy-name"},
+        headers=headers,
+    )
+    assert legacy_update_response.status_code == 400
 
     rules_response = auth_client.get("/api/v1/accounts/classifications/rules")
     assert rules_response.status_code == 200

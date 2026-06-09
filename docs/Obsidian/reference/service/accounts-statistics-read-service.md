@@ -37,7 +37,7 @@ related:
 
 - `build_statistics()`:
   - `fetch_summary()` + `fetch_db_type_stats()` + `fetch_classification_stats()` 组装为 `AccountStatisticsResult`.
-- `fetch_summary(instance_id?, db_type?)`:
+- `fetch_summary(account_scope?, db_type?)`:
   - 用于 `/api/v1/accounts/statistics/summary`.
 
 持久化影响:

@@ -39,7 +39,7 @@ related:
   - `POST /api/v1/accounts/classifications/actions/auto-classify`
   - permission: `update`
   - CSRF: required
-  - body: `instance_id?`(为空表示全量)
+  - body: `account_scope?`(示例 `instance:1`; 为空表示全量)
 - Web UI:
   - 页面: `/accounts/classifications/`
   - action 按钮: auto-classify all / scoped auto-classify

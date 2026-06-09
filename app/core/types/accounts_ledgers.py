@@ -33,7 +33,7 @@ class AccountFilters:
 class AccountClassificationSummary:
     """账户分类展示结构."""
 
-    name: str
+    display_name: str
 
 
 @dataclass(slots=True)

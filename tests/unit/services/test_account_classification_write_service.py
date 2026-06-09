@@ -66,6 +66,28 @@ def test_create_classification_succeeds(monkeypatch) -> None:
 
 
 @pytest.mark.unit
+def test_create_classification_rejects_legacy_name_field(monkeypatch) -> None:
+    service = AccountClassificationsWriteService(repository=_StubAccountsClassificationsRepository())
+
+    monkeypatch.setattr(
+        AccountClassificationsWriteService,
+        "_code_exists",
+        lambda self, code, resource: False,
+        raising=False,
+    )
+
+    with pytest.raises(ValidationError) as exc:
+        service.create_classification(
+            {
+                "name": "legacy-name",
+                "display_name": "低风险",
+            },
+        )
+
+    assert exc.value.message_key == "FORBIDDEN"
+
+
+@pytest.mark.unit
 def test_create_classification_rejects_non_integer_priority(monkeypatch) -> None:
     service = AccountClassificationsWriteService(repository=_StubAccountsClassificationsRepository())
 
@@ -146,6 +168,32 @@ def test_update_classification_rejects_code_change(monkeypatch) -> None:
                 "code": "NEW_CODE",
             },
         )
+
+    assert exc.value.message_key == "FORBIDDEN"
+
+
+@pytest.mark.unit
+def test_update_classification_rejects_legacy_name_field(monkeypatch) -> None:
+    service = AccountClassificationsWriteService(repository=_StubAccountsClassificationsRepository())
+
+    monkeypatch.setattr(
+        AccountClassificationsWriteService,
+        "_code_exists",
+        lambda self, code, resource: False,
+        raising=False,
+    )
+
+    classification = AccountClassification(
+        code="low_risk",
+        display_name="低风险",
+        description="",
+        risk_level=6,
+        icon_name="fa-tag",
+        priority=10,
+    )
+
+    with pytest.raises(ValidationError) as exc:
+        service.update_classification(classification, {"name": "legacy-name"})
 
     assert exc.value.message_key == "FORBIDDEN"
 

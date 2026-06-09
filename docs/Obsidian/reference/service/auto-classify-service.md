@@ -24,7 +24,7 @@ related:
 # Auto Classify（手动触发：TaskRun + 后台线程）
 
 > [!note] 本文目标
-> 说明“账户分类管理 - 自动分类”按钮对应的后端链路：instance_id 解析、TaskRun/TaskRunItem 写入口径、后台线程执行入口，以及失败/取消语义。
+> 说明“账户分类管理 - 自动分类”按钮对应的后端链路：`account_scope` 解析、TaskRun/TaskRunItem 写入口径、后台线程执行入口，以及失败/取消语义。
 
 ## 1. 概览(Overview)
 
@@ -57,7 +57,7 @@ related:
 
 ```mermaid
 flowchart TB
-    A["POST /accounts/classifications/actions/auto-classify"] --> API["AccountsClassifications API\\nparse instance_id + create TaskRun"]
+    A["POST /accounts/classifications/actions/auto-classify"] --> API["AccountsClassifications API\\nparse account_scope + create TaskRun"]
     API --> Act["AutoClassifyActionsService\\nlaunch background thread"]
     Act --> Task["Task: auto_classify_accounts"]
     Task --> Run["execute DSL v4 + write assignments"]
@@ -67,26 +67,27 @@ flowchart TB
 
 ## 5. 决策表/规则表(Decision Table)
 
-### 5.1 instance_id 归一化
+### 5.1 account_scope 归一化
 
 | 输入 | 输出 | 失败 |
 | --- | --- | --- |
 | None/"" | None(全量) | - |
-| bool | - | `ValidationError("instance_id 参数无效")` |
-| int/str 可转 int | int | - |
-| 其他 | - | `ValidationError("instance_id 必须为整数")` |
+| `instance:<id>` | `AccountScope(owner_type="instance", owner_id=<id>)` | - |
+| 非法 owner/type/id | - | `ValidationError("account_scope 参数无效")` |
+| body 含 `instance_id` | - | `ValidationError("instance_id 已废弃,请使用 account_scope=instance:<id>")` |
 
 ## 6. 兼容/防御/回退/适配逻辑
 
 （以任务实现为准）：
 
-- `instance_id` 为空：执行全量自动分类
+- `account_scope` 为空：执行全量自动分类
+- 后台任务入口仍保留显式 `instance_id` 参数给内部调度调用；API action 不再接受 `instance_id`.
 - `rule_expression`：强制为 DSL v4；非法表达式会导致任务失败
 - 取消语义：通过 `TaskRun.status == cancelled` 在 task 侧实现“尽快退出”
 
 ## 7. 可观测性(Logs + Metrics)
 
-- 后台线程异常：`AutoClassifyActionsService` 会记录 `后台自动分类失败`（包含 `run_id/instance_id`）。
+- 后台线程异常：`AutoClassifyActionsService` 会记录 `后台自动分类失败`（包含 `run_id/account_scope`；内部实例调用会同时包含 `instance_id`）。
 - 运行进度：主要通过 `TaskRun/TaskRunItem` 展示（运行中心）。
 
 ## 8. 测试与验证(Tests)

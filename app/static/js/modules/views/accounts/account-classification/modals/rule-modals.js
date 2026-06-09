@@ -229,7 +229,7 @@
       (classifications || []).forEach(classification => {
         const option = document.createElement("option");
         option.value = classification.id;
-        option.textContent = classification.name;
+        option.textContent = classification.display_name || classification.code || "";
         select.appendChild(option);
       });
       return select;
@@ -334,7 +334,7 @@
             : "OR (任一条件满足即可)";
         document.getElementById("viewRuleOperator").textContent = operator;
 
-        const classification = rule.classification_name || rule.classification?.name;
+        const classification = rule.classification_name || rule.classification?.display_name || rule.classification?.code;
         const classificationEl = document.getElementById("viewRuleClassification");
         if (classificationEl) {
           classificationEl.textContent = classification || "未分类";

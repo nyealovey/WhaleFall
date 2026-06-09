@@ -88,7 +88,6 @@ class AccountClassificationsReadService:
             items.append(
                 AccountClassificationListItem(
                     id=classification.id,
-                    name=display_name,
                     code=classification.code,
                     display_name=display_name,
                     description=classification.description,
@@ -114,7 +113,6 @@ class AccountClassificationsReadService:
         display_name = getattr(classification, "display_name", None) or classification.code
         return AccountClassificationListItem(
             id=classification.id,
-            name=display_name,
             code=classification.code,
             display_name=display_name,
             description=classification.description,

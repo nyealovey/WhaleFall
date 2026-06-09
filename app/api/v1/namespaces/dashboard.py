@@ -107,7 +107,7 @@ DashboardOverviewAccountsCount = ns.model(
 DashboardOverviewClassificationItem = ns.model(
     "DashboardOverviewClassificationItem",
     {
-        "name": fields.String(description="分类名称", example="高风险"),
+        "code": fields.String(description="分类标识(code)", example="high_risk"),
         "display_name": fields.String(description="展示名", example="高风险"),
         "color": fields.String(required=False, description="颜色(可选)", example="#FF0000"),
         "priority": fields.Integer(required=False, description="优先级(可选)", example=10),

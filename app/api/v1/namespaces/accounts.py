@@ -53,8 +53,7 @@ TagModel = ns.model(
 ClassificationModel = ns.model(
     "AccountClassification",
     {
-        "name": fields.String(),
-        "color": fields.String(),
+        "display_name": fields.String(),
     },
 )
 
@@ -240,7 +239,6 @@ _accounts_ledgers_list_query_parser.add_argument("sort", type=str, default="user
 _accounts_ledgers_list_query_parser.add_argument("order", type=str, default="asc", location="args")
 
 _accounts_statistics_summary_query_parser = new_parser()
-_accounts_statistics_summary_query_parser.add_argument("instance_id", type=int, location="args")
 _accounts_statistics_summary_query_parser.add_argument("db_type", type=str, location="args")
 _accounts_statistics_summary_query_parser.add_argument("account_scope", type=str, location="args")
 
@@ -252,14 +250,12 @@ _account_classification_trend_query_parser.add_argument("classification_id", typ
 _account_classification_trend_query_parser.add_argument("period_type", type=str, default="daily", location="args")
 _account_classification_trend_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_trend_query_parser.add_argument("db_type", type=str, location="args")
-_account_classification_trend_query_parser.add_argument("instance_id", type=int, location="args")
 _account_classification_trend_query_parser.add_argument("account_scope", type=str, location="args")
 
 _account_classification_trends_query_parser = new_parser()
 _account_classification_trends_query_parser.add_argument("period_type", type=str, default="daily", location="args")
 _account_classification_trends_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_trends_query_parser.add_argument("db_type", type=str, location="args")
-_account_classification_trends_query_parser.add_argument("instance_id", type=int, location="args")
 _account_classification_trends_query_parser.add_argument("account_scope", type=str, location="args")
 
 _account_classification_rule_trend_query_parser = new_parser()
@@ -267,7 +263,6 @@ _account_classification_rule_trend_query_parser.add_argument("rule_id", type=int
 _account_classification_rule_trend_query_parser.add_argument("period_type", type=str, default="daily", location="args")
 _account_classification_rule_trend_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_rule_trend_query_parser.add_argument("db_type", type=str, location="args")
-_account_classification_rule_trend_query_parser.add_argument("instance_id", type=int, location="args")
 _account_classification_rule_trend_query_parser.add_argument("account_scope", type=str, location="args")
 
 _account_classification_rule_contributions_query_parser = new_parser()
@@ -276,7 +271,6 @@ _account_classification_rule_contributions_query_parser.add_argument(
     "period_type", type=str, default="daily", location="args"
 )
 _account_classification_rule_contributions_query_parser.add_argument("db_type", type=str, location="args")
-_account_classification_rule_contributions_query_parser.add_argument("instance_id", type=int, location="args")
 _account_classification_rule_contributions_query_parser.add_argument("account_scope", type=str, location="args")
 _account_classification_rule_contributions_query_parser.add_argument("limit", type=int, default=10, location="args")
 
@@ -287,7 +281,6 @@ _account_classification_rules_overview_query_parser.add_argument(
 )
 _account_classification_rules_overview_query_parser.add_argument("periods", type=int, default=7, location="args")
 _account_classification_rules_overview_query_parser.add_argument("db_type", type=str, location="args")
-_account_classification_rules_overview_query_parser.add_argument("instance_id", type=int, location="args")
 _account_classification_rules_overview_query_parser.add_argument("account_scope", type=str, location="args")
 _account_classification_rules_overview_query_parser.add_argument("status", type=str, default="active", location="args")
 
@@ -620,15 +613,14 @@ class AccountsStatisticsSummaryResource(BaseResource):
     @ns.expect(_accounts_statistics_summary_query_parser)
     def get(self):
         """获取账户统计汇总."""
-        parsed = _accounts_statistics_summary_query_parser.parse_args()
-        instance_id = parsed.get("instance_id") if isinstance(parsed.get("instance_id"), int) else None
+        parsed = _accounts_statistics_summary_query_parser.parse_args(strict=True)
         db_type = parsed.get("db_type") if isinstance(parsed.get("db_type"), str) else None
         raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
-        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
+        account_scope = parse_account_scope(raw_account_scope)
 
         def _execute():
             summary = AccountsStatisticsReadService().fetch_summary(
-                instance_id=instance_id,
+                instance_id=None,
                 db_type=db_type,
                 account_scope=account_scope,
             )
@@ -639,7 +631,7 @@ class AccountsStatisticsSummaryResource(BaseResource):
             module="accounts_statistics",
             action="get_account_statistics_summary",
             public_error="获取账户统计汇总失败",
-            context={"instance_id": instance_id, "db_type": db_type, "account_scope": raw_account_scope},
+            context={"db_type": db_type, "account_scope": raw_account_scope},
         )
 
 
@@ -739,24 +731,22 @@ class AccountClassificationTrendsResource(BaseResource):
     @ns.expect(_account_classification_trends_query_parser)
     def get(self):
         """获取全分类趋势(未选分类时用于多折线)."""
-        parsed = _account_classification_trends_query_parser.parse_args()
+        parsed = _account_classification_trends_query_parser.parse_args(strict=True)
         raw_period_type = parsed.get("period_type")
         period_type = raw_period_type if isinstance(raw_period_type, str) else "daily"
         raw_periods = parsed.get("periods")
         periods = raw_periods if isinstance(raw_periods, int) else 7
         raw_db_type = parsed.get("db_type")
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
-        raw_instance_id = parsed.get("instance_id")
-        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
         raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
-        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
+        account_scope = parse_account_scope(raw_account_scope)
 
         def _execute():
             result = AccountClassificationDailyStatsReadService().get_all_classifications_trends(
                 period_type=period_type,
                 periods=periods,
                 db_type=db_type,
-                instance_id=instance_id,
+                instance_id=None,
                 account_scope=account_scope,
             )
             return self.success(data=result, message="全分类趋势获取成功")
@@ -770,7 +760,6 @@ class AccountClassificationTrendsResource(BaseResource):
                 "period_type": period_type,
                 "periods": periods,
                 "db_type": db_type,
-                "instance_id": instance_id,
                 "account_scope": raw_account_scope,
             },
         )
@@ -790,7 +779,7 @@ class AccountClassificationTrendResource(BaseResource):
     @ns.expect(_account_classification_trend_query_parser)
     def get(self):
         """获取分类趋势(分类去重账号数)."""
-        parsed = _account_classification_trend_query_parser.parse_args()
+        parsed = _account_classification_trend_query_parser.parse_args(strict=True)
         raw_classification_id = parsed.get("classification_id")
         classification_id = raw_classification_id if isinstance(raw_classification_id, int) else None
         raw_period_type = parsed.get("period_type")
@@ -799,10 +788,8 @@ class AccountClassificationTrendResource(BaseResource):
         periods = raw_periods if isinstance(raw_periods, int) else 7
         raw_db_type = parsed.get("db_type")
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
-        raw_instance_id = parsed.get("instance_id")
-        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
         raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
-        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
+        account_scope = parse_account_scope(raw_account_scope)
 
         if not classification_id:
             raise ValidationError("classification_id 必填")
@@ -813,7 +800,7 @@ class AccountClassificationTrendResource(BaseResource):
                 period_type=period_type,
                 periods=periods,
                 db_type=db_type,
-                instance_id=instance_id,
+                instance_id=None,
                 account_scope=account_scope,
             )
             return self.success(data={"trend": trend}, message="分类趋势获取成功")
@@ -828,7 +815,6 @@ class AccountClassificationTrendResource(BaseResource):
                 "period_type": period_type,
                 "periods": periods,
                 "db_type": db_type,
-                "instance_id": instance_id,
                 "account_scope": raw_account_scope,
             },
         )
@@ -848,7 +834,7 @@ class AccountClassificationRuleTrendResource(BaseResource):
     @ns.expect(_account_classification_rule_trend_query_parser)
     def get(self):
         """获取规则趋势(规则命中账号数)."""
-        parsed = _account_classification_rule_trend_query_parser.parse_args()
+        parsed = _account_classification_rule_trend_query_parser.parse_args(strict=True)
         raw_rule_id = parsed.get("rule_id")
         rule_id = raw_rule_id if isinstance(raw_rule_id, int) else None
         raw_period_type = parsed.get("period_type")
@@ -857,10 +843,8 @@ class AccountClassificationRuleTrendResource(BaseResource):
         periods = raw_periods if isinstance(raw_periods, int) else 7
         raw_db_type = parsed.get("db_type")
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
-        raw_instance_id = parsed.get("instance_id")
-        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
         raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
-        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
+        account_scope = parse_account_scope(raw_account_scope)
 
         if not rule_id:
             raise ValidationError("rule_id 必填")
@@ -871,7 +855,7 @@ class AccountClassificationRuleTrendResource(BaseResource):
                 period_type=period_type,
                 periods=periods,
                 db_type=db_type,
-                instance_id=instance_id,
+                instance_id=None,
                 account_scope=account_scope,
             )
             return self.success(data={"trend": trend}, message="规则趋势获取成功")
@@ -886,7 +870,6 @@ class AccountClassificationRuleTrendResource(BaseResource):
                 "period_type": period_type,
                 "periods": periods,
                 "db_type": db_type,
-                "instance_id": instance_id,
                 "account_scope": raw_account_scope,
             },
         )
@@ -906,17 +889,15 @@ class AccountClassificationRuleContributionsResource(BaseResource):
     @ns.expect(_account_classification_rule_contributions_query_parser)
     def get(self):
         """获取规则贡献(未选规则时用于柱状图)."""
-        parsed = _account_classification_rule_contributions_query_parser.parse_args()
+        parsed = _account_classification_rule_contributions_query_parser.parse_args(strict=True)
         raw_classification_id = parsed.get("classification_id")
         classification_id = raw_classification_id if isinstance(raw_classification_id, int) else None
         raw_period_type = parsed.get("period_type")
         period_type = raw_period_type if isinstance(raw_period_type, str) else "daily"
         raw_db_type = parsed.get("db_type")
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
-        raw_instance_id = parsed.get("instance_id")
-        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
         raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
-        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
+        account_scope = parse_account_scope(raw_account_scope)
         raw_limit = parsed.get("limit")
         limit = raw_limit if isinstance(raw_limit, int) else 10
 
@@ -928,7 +909,7 @@ class AccountClassificationRuleContributionsResource(BaseResource):
                 classification_id=classification_id,
                 period_type=period_type,
                 db_type=db_type,
-                instance_id=instance_id,
+                instance_id=None,
                 account_scope=account_scope,
                 limit=limit,
             )
@@ -943,7 +924,6 @@ class AccountClassificationRuleContributionsResource(BaseResource):
                 "classification_id": classification_id,
                 "period_type": period_type,
                 "db_type": db_type,
-                "instance_id": instance_id,
                 "account_scope": raw_account_scope,
                 "limit": limit,
             },
@@ -964,7 +944,7 @@ class AccountClassificationRulesOverviewResource(BaseResource):
     @ns.expect(_account_classification_rules_overview_query_parser)
     def get(self):
         """获取规则列表(用于左侧排序/展示)."""
-        parsed = _account_classification_rules_overview_query_parser.parse_args()
+        parsed = _account_classification_rules_overview_query_parser.parse_args(strict=True)
         raw_classification_id = parsed.get("classification_id")
         classification_id = raw_classification_id if isinstance(raw_classification_id, int) else None
         raw_period_type = parsed.get("period_type")
@@ -973,10 +953,8 @@ class AccountClassificationRulesOverviewResource(BaseResource):
         periods = raw_periods if isinstance(raw_periods, int) else 7
         raw_db_type = parsed.get("db_type")
         db_type = raw_db_type if isinstance(raw_db_type, str) else None
-        raw_instance_id = parsed.get("instance_id")
-        instance_id = raw_instance_id if isinstance(raw_instance_id, int) else None
         raw_account_scope = parsed.get("account_scope") if isinstance(parsed.get("account_scope"), str) else None
-        account_scope = parse_account_scope(raw_account_scope, legacy_instance_id=instance_id)
+        account_scope = parse_account_scope(raw_account_scope)
         raw_status = parsed.get("status")
         status = raw_status if isinstance(raw_status, str) else "active"
 
@@ -989,7 +967,7 @@ class AccountClassificationRulesOverviewResource(BaseResource):
                 period_type=period_type,
                 periods=periods,
                 db_type=db_type,
-                instance_id=instance_id,
+                instance_id=None,
                 account_scope=account_scope,
                 status=status,
             )
@@ -1005,7 +983,6 @@ class AccountClassificationRulesOverviewResource(BaseResource):
                 "period_type": period_type,
                 "periods": periods,
                 "db_type": db_type,
-                "instance_id": instance_id,
                 "account_scope": raw_account_scope,
                 "status": status,
             },

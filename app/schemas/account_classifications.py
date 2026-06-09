@@ -55,6 +55,11 @@ def _parse_optional_string(value: Any) -> str | None:
     return str(value).strip() or None
 
 
+def _reject_legacy_name_field(mapping: Mapping[str, Any]) -> None:
+    if "name" in mapping:
+        raise SchemaMessageKeyError("分类 name 字段已废弃,请使用 display_name", message_key="FORBIDDEN")
+
+
 def _parse_description(value: Any, *, fallback: str | None) -> str:
     if value is None:
         return fallback or ""
@@ -124,6 +129,7 @@ class AccountClassificationCreatePayload(PayloadSchema):
     @classmethod
     def _normalize_aliases(cls, data: Any) -> Any:
         mapping = _ensure_mapping(data)
+        _reject_legacy_name_field(mapping)
         mutable = dict(mapping)
 
         code_value = _parse_optional_string(mutable.get("code"))
@@ -219,6 +225,7 @@ class AccountClassificationUpdatePayload(PayloadSchema):
     @classmethod
     def _normalize_aliases_and_reject_code_change(cls, data: Any) -> Any:
         mapping = _ensure_mapping(data)
+        _reject_legacy_name_field(mapping)
         # code 创建后不可改（拒绝写入端尝试修改）
         if "code" in mapping:
             raise SchemaMessageKeyError("分类标识(code)创建后不可修改", message_key="FORBIDDEN")

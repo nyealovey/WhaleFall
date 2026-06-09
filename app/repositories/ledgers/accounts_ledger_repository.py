@@ -299,7 +299,7 @@ class AccountsLedgerRepository:
         for account_id, display_name in rows:
             classifications[account_id].append(
                 AccountClassificationSummary(
-                    name=display_name,
+                    display_name=display_name,
                 ),
             )
         return dict(classifications)

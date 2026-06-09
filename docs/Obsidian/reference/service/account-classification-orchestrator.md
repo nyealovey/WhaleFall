@@ -35,7 +35,7 @@ related:
 - 对 rule_expression 强制 DSL v4 守卫(非法则抛 `ValidationError`)
 
 入口方法：
-- `auto_classify_accounts(instance_id=None, created_by=None) -> dict`
+- `auto_classify_accounts(instance_id=None, account_scope=None, created_by=None) -> dict`
 - `invalidate_cache() -> bool`
 - `invalidate_db_type_cache(db_type) -> bool`
 
@@ -68,10 +68,10 @@ related:
 
 ```mermaid
 flowchart TB
-    A["auto_classify_accounts(instance_id?)"] --> B["rules = get_rules_sorted_by_priority()"]
+    A["auto_classify_accounts(instance_id?, account_scope?)"] --> B["rules = get_rules_sorted_by_priority()"]
     B --> C{"rules empty?"}
     C -- yes --> C1["return success=false: no rules"]
-    C -- no --> D["accounts = repository.fetch_accounts(instance_id)"]
+    C -- no --> D["accounts = repository.fetch_accounts(instance_id, account_scope)"]
     D --> E{"accounts empty?"}
     E -- yes --> E1["return success=false: no accounts"]
     E -- no --> F["cleanup_all_assignments()"]
@@ -92,7 +92,7 @@ sequenceDiagram
     participant Repo as "ClassificationRepository"
     participant DSL as "DslV4Evaluator"
 
-    Caller->>Svc: auto_classify_accounts(instance_id?)
+    Caller->>Svc: auto_classify_accounts(instance_id?, account_scope?)
     Svc->>Cache: get_rules()
     alt cache hit
         Svc->>Repo: hydrate_rules(serialized)
@@ -102,7 +102,7 @@ sequenceDiagram
         Svc->>Cache: set_rules(serialized)
     end
 
-    Svc->>Repo: fetch_accounts(instance_id?)
+    Svc->>Repo: fetch_accounts(instance_id?, account_scope?)
     Svc->>Repo: cleanup_all_assignments()
 
     loop for each db_type
@@ -152,7 +152,7 @@ sequenceDiagram
 ## 8. 可观测性(Logs + Metrics)
 
 - 主要事件：
-  - `开始账户分类`(含 total_rules/total_accounts/instance_id/created_by)
+  - `开始账户分类`(含 total_rules/total_accounts/instance_id/account_scope/created_by)
   - `规则处理完成`(rule_id/db_type/matched_accounts)
   - `账户分类完成`(含 classification_details)
   - `账户分类性能统计`(duration/accounts_per_second/total_classifications_added/failed_count)

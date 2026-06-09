@@ -93,8 +93,6 @@ class AccountClassification(db.Model):
         display_name = getattr(self, "display_name", None) or self.code
         return {
             "id": self.id,
-            # 兼容旧前端：name 继续返回展示名
-            "name": display_name,
             "code": self.code,
             "display_name": display_name,
             "description": self.description,

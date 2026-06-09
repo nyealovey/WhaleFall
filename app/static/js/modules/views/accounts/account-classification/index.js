@@ -301,9 +301,14 @@ function mountAccountClassificationPage(window, document) {
         container.innerHTML = list.map(renderClassificationCard).join('');
     }
 
+    function resolveClassificationLabel(classification) {
+        return classification?.display_name || classification?.code || '未命名分类';
+    }
+
     function renderClassificationCard(classification) {
         const iconHtml = getClassificationIcon(classification.icon_name);
         const code = classification?.code ? `#${escapeHtml(classification.code)}` : '#-';
+        const label = resolveClassificationLabel(classification);
 
         return `
             <div class="classification-card" data-id="${escapeHtml(classification?.id ?? '')}">
@@ -311,7 +316,7 @@ function mountAccountClassificationPage(window, document) {
                     <div class="classification-card__identity">
                         ${iconHtml}
                         <div class="classification-card__identity-copy">
-                            <div class="classification-card__name">${escapeHtml(classification?.name || '未命名分类')}</div>
+                            <div class="classification-card__name">${escapeHtml(label)}</div>
                             <div class="classification-card__signals">
                                 ${renderSystemClassificationPill(classification.is_system)}
                                 ${renderRiskLevelPill(classification.risk_level)}

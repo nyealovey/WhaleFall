@@ -38,8 +38,6 @@ ErrorEnvelope = get_error_envelope_model(ns)
 AccountClassificationWritePayload = ns.model(
     "AccountClassificationWritePayload",
     {
-        # 兼容旧前端：name 视为展示名；若未提供 code，则默认 code=name
-        "name": fields.String(required=False, description="分类展示名(兼容字段)"),
         "code": fields.String(required=False, description="分类标识(code)，创建后不可修改"),
         "display_name": fields.String(required=False, description="分类展示名"),
         "description": fields.String(required=False, description="分类描述"),
@@ -71,7 +69,6 @@ AccountClassificationRuleExpressionValidatePayload = ns.model(
 AccountClassificationAutoClassifyPayload = ns.model(
     "AccountClassificationAutoClassifyPayload",
     {
-        "instance_id": fields.Raw(required=False, description="实例 ID(可选)"),
         "account_scope": fields.String(required=False, description="账户归属范围(instance:<id>/sqlserver_ag:<id>)"),
     },
 )
@@ -241,8 +238,6 @@ def _serialize_classification(classification: Any) -> dict[str, object]:
     display_name = getattr(classification, "display_name", None) or classification.code
     return {
         "id": classification.id,
-        # 兼容旧前端：name 继续作为展示名输出
-        "name": display_name,
         "code": classification.code,
         "display_name": display_name,
         "description": classification.description,
@@ -339,7 +334,7 @@ class AccountClassificationsResource(BaseResource):
         """创建账户分类."""
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
-        classification_name = payload.get("name")
+        classification_name = payload.get("display_name")
         if not isinstance(classification_name, str):
             classification_name = None
 
@@ -793,30 +788,12 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
     def post(self):
         """执行自动分类."""
         payload_snapshot = _parse_json_payload()
+        if "instance_id" in payload_snapshot:
+            raise ValidationError("instance_id 已废弃,请使用 account_scope=instance:<id>")
         created_by = current_user.id if current_user.is_authenticated else None
-        instance_id_raw = payload_snapshot.get("instance_id")
         account_scope_raw = payload_snapshot.get("account_scope")
-        instance_id: int | None = None
-        if instance_id_raw not in (None, ""):
-            if isinstance(instance_id_raw, bool):
-                raise ValidationError("instance_id 参数无效", extra={"instance_id": instance_id_raw})
-            if isinstance(instance_id_raw, int):
-                instance_id = instance_id_raw
-            elif isinstance(instance_id_raw, str):
-                try:
-                    instance_id = int(instance_id_raw)
-                except ValueError as exc:
-                    raise ValidationError(
-                        "instance_id 必须为整数",
-                        extra={"instance_id": instance_id_raw},
-                    ) from exc
-            else:
-                raise ValidationError(
-                    "instance_id 必须为整数",
-                    extra={"instance_id": str(instance_id_raw)},
-                )
+        account_scope = parse_account_scope(account_scope_raw)
         account_scope_text = account_scope_raw if isinstance(account_scope_raw, str) else None
-        account_scope = parse_account_scope(account_scope_text, legacy_instance_id=instance_id)
 
         actions_service = _auto_classify_service
         prepared = None
@@ -825,7 +802,7 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
             nonlocal prepared
             prepared = actions_service.prepare_background_auto_classify(
                 created_by=created_by,
-                instance_id=instance_id,
+                instance_id=None,
                 account_scope=account_scope,
             )
             return self.success(
@@ -838,7 +815,7 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
             module="accounts_classifications",
             action="auto_classify",
             public_error="自动分类失败",
-            context={"instance_id": instance_id, "account_scope": account_scope_text},
+            context={"account_scope": account_scope_text},
         )
 
         if prepared is not None:

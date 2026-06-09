@@ -84,6 +84,21 @@ def test_api_v1_accounts_ledgers_contract() -> None:
             is_active=True,
         )
         instance.tags.append(tag)
+        classification = AccountClassification(
+            code="privileged",
+            display_name="高权限账户",
+            is_active=True,
+        )
+        db.session.add(classification)
+        db.session.flush()
+        db.session.add(
+            AccountClassificationAssignment(
+                account_id=permission.id,
+                classification_id=classification.id,
+                is_active=True,
+                assignment_type="manual",
+            )
+        )
 
         assert AccountClassification.__tablename__ == "account_classifications"
         assert ClassificationRule.__tablename__ == "classification_rules"
@@ -139,7 +154,9 @@ def test_api_v1_accounts_ledgers_contract() -> None:
         assert isinstance(tags, list)
         assert len(tags) == 1
         assert tags[0] == {"name": "ledger_tag", "display_name": "台账标签"}
-        assert isinstance(item.get("classifications"), list)
+        classifications = item.get("classifications")
+        assert isinstance(classifications, list)
+        assert classifications == [{"display_name": "高权限账户"}]
 
 
 @pytest.mark.unit

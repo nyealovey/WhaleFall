@@ -491,13 +491,13 @@ function mountAccountsListPage(global) {
   }
 
   function renderClassifications(list) {
-    if (!gridHtml) {
-      return list.map((item) => item?.name).filter(Boolean).join(", ") || "未分类";
-    }
-    const names = list
-      .map((item) => item?.name)
+    const labels = list
+      .map((item) => item?.display_name || item?.code)
       .filter((name) => typeof name === "string" && name.trim().length > 0);
-    return renderChipStack(names, {
+    if (!gridHtml) {
+      return labels.join(", ") || "未分类";
+    }
+    return renderChipStack(labels, {
       gridHtml,
       emptyText: "未分类",
       baseClass: "chip-outline",

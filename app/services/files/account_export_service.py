@@ -48,7 +48,11 @@ class AccountExportService:
             instance_db_type = getattr(instance, "db_type", None) if instance else None
 
             account_classifications = classifications_map.get(getattr(account, "id", 0), [])
-            classification_names = [item.name for item in account_classifications if getattr(item, "name", None)]
+            classification_names = [
+                label
+                for item in account_classifications
+                if (label := getattr(item, "display_name", None) or getattr(item, "code", None))
+            ]
             classification_str = ", ".join(classification_names) if classification_names else "未分类"
 
             username = getattr(account, "username", "")

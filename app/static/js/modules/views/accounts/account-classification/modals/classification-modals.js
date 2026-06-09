@@ -328,7 +328,7 @@
         codeInput.disabled = true;
         codeInput.readOnly = true;
       }
-      document.getElementById("editClassificationName").value = classification.display_name || classification.name || "";
+      document.getElementById("editClassificationName").value = classification.display_name || classification.code || "";
       document.getElementById("editClassificationDescription").value = classification.description || "";
       document.getElementById("editClassificationRiskLevel").value = String(classification.risk_level || 4);
       document.getElementById("editClassificationPriority").value = classification.priority ?? 0;

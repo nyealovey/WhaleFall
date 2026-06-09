@@ -289,7 +289,9 @@ def auto_classify_accounts(
         sync_logger = get_sync_logger()
         task_runs_service = TaskRunsWriteService()
         try:
-            resolved_account_scope = parse_account_scope(account_scope, legacy_instance_id=instance_id)
+            resolved_account_scope = parse_account_scope(account_scope)
+            if resolved_account_scope is None and instance_id is not None:
+                resolved_account_scope = AccountScope(owner_type="instance", owner_id=int(instance_id))
             resolved_run_id = _resolve_run_id(
                 task_runs_service=task_runs_service,
                 instance_id=instance_id,

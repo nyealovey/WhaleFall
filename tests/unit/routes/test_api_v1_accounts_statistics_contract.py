@@ -170,6 +170,27 @@ def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/accounts/statistics/summary?instance_id=1",
+        "/api/v1/accounts/statistics/classifications/trends?period_type=daily&periods=7&instance_id=1",
+        "/api/v1/accounts/statistics/classifications/trend?classification_id=1&period_type=daily&periods=7&instance_id=1",
+        "/api/v1/accounts/statistics/rules/trend?rule_id=1&period_type=daily&periods=7&instance_id=1",
+        "/api/v1/accounts/statistics/rules/contributions?classification_id=1&period_type=daily&instance_id=1",
+        "/api/v1/accounts/statistics/rules/overview?classification_id=1&period_type=daily&periods=7&instance_id=1",
+    ],
+)
+def test_api_v1_account_statistics_rejects_legacy_instance_id_query(auth_client, path: str) -> None:
+    response = auth_client.get(path)
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("message_code") in {"VALIDATION_ERROR", "INVALID_REQUEST"}
+
+
+@pytest.mark.unit
 def test_api_v1_accounts_statistics_summary_includes_disabled_instances(app, auth_client) -> None:
     _ensure_account_statistics_tables(app)
 
