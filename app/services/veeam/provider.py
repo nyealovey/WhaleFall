@@ -7,7 +7,6 @@ import os
 import ssl
 import threading
 import time
-from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, Protocol, TypedDict
 from urllib.error import HTTPError, URLError
@@ -18,8 +17,19 @@ from flask import current_app, has_app_context
 
 from app.core.types import JsonValue
 from app.infra.route_safety import log_with_context
-from app.services.veeam.matching import normalize_ip_address, normalize_machine_name
+from app.services.veeam.match_sampler import VeeamMatchSampler, resolve_backup_machine_ip
 from app.settings import Settings
+from app.services.veeam.types import (
+    VeeamBackupFileCollection,
+    VeeamBackupFileRecord,
+    VeeamBackupObjectMatchResult,
+    VeeamMachineBackupCollection,
+    VeeamMachineBackupRecord,
+    VeeamMatchedBackupObject,
+    VeeamProviderSession,
+    VeeamRequestTimeoutError,
+    VeeamRestorePointsFetchError,
+)
 from app.utils.time_utils import time_utils
 
 VEEAM_TOKEN_PATH = "/api/oauth2/token"
@@ -29,6 +39,20 @@ VEEAM_BACKUPS_PATH = "/api/v1/backups"
 VEEAM_ACCEPT_HEADER = "application/json"
 _VEEAM_DATA_REQUEST_ATTEMPTS = 2
 _VEEAM_DATA_REQUEST_INTERVAL_SECONDS = 1
+
+__all__ = [
+    "HttpVeeamProvider",
+    "VeeamBackupFileCollection",
+    "VeeamBackupFileRecord",
+    "VeeamBackupObjectMatchResult",
+    "VeeamMachineBackupCollection",
+    "VeeamMachineBackupRecord",
+    "VeeamMatchedBackupObject",
+    "VeeamProvider",
+    "VeeamProviderSession",
+    "VeeamRequestTimeoutError",
+    "VeeamRestorePointsFetchError",
+]
 
 
 class _ProviderSettings(TypedDict):
@@ -42,165 +66,6 @@ class _ProviderSettings(TypedDict):
 
 def _default_open(request: Request, *, timeout: int, context: ssl.SSLContext):
     return urlopen(request, timeout=timeout, context=context)
-
-
-@dataclass(frozen=True, slots=True)
-class VeeamMachineBackupRecord:
-    """标准化后的 Veeam 机器备份记录."""
-
-    machine_name: str
-    backup_at: datetime
-    machine_ip: str | None = None
-    backup_id: str | None = None
-    backup_file_id: str | None = None
-    job_name: str | None = None
-    restore_point_name: str | None = None
-    source_record_id: str | None = None
-    restore_point_size_bytes: int | None = None
-    backup_chain_size_bytes: int | None = None
-    restore_point_count: int | None = None
-    raw_payload: dict[str, object] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class VeeamMachineBackupCollection:
-    """本次备份拉取的标准化结果."""
-
-    records: list[VeeamMachineBackupRecord]
-    received_total: int
-    snapshots_written_total: int
-    skipped_invalid: int
-    backups_received_total: int = 0
-    backups_matched_total: int = 0
-    backups_unmatched_total: int = 0
-    backups_missing_machine_name: int = 0
-    matched_backup_ids_sample: list[str] = field(default_factory=list)
-    unmatched_backup_ids_sample: list[str] = field(default_factory=list)
-    unmatched_machine_names_sample: list[str] = field(default_factory=list)
-    missing_machine_name_backup_ids_sample: list[str] = field(default_factory=list)
-    missing_machine_name_backup_names_sample: list[str] = field(default_factory=list)
-    restore_points_backup_objects_total: int = 0
-    restore_points_backup_objects_completed: int = 0
-    timed_out_backup_objects_total: int = 0
-    timed_out_backup_ids_sample: list[str] = field(default_factory=list)
-    timed_out_machine_names_sample: list[str] = field(default_factory=list)
-    timed_out_urls_sample: list[str] = field(default_factory=list)
-    timed_out_reason_types_sample: list[str] = field(default_factory=list)
-    timed_out_elapsed_ms_sample: list[int] = field(default_factory=list)
-    failed_backup_objects_total: int = 0
-    failed_backup_ids_sample: list[str] = field(default_factory=list)
-    failed_machine_names_sample: list[str] = field(default_factory=list)
-
-
-@dataclass(frozen=True, slots=True)
-class VeeamBackupFileRecord:
-    """标准化后的 Veeam backupFile 记录."""
-
-    backup_id: str
-    backup_file_id: str | None = None
-    object_id: str | None = None
-    restore_point_ids: list[str] = field(default_factory=list)
-    data_size_bytes: int | None = None
-    backup_size_bytes: int | None = None
-    dedup_ratio: int | None = None
-    compress_ratio: int | None = None
-    backup_at: datetime | None = None
-    raw_payload: dict[str, object] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class VeeamBackupFileCollection:
-    """本次 backupFiles 拉取结果."""
-
-    records: list[VeeamBackupFileRecord]
-    received_total: int
-    backup_ids_total: int
-    backup_ids_completed: int
-    timed_out_backup_ids_total: int = 0
-    timed_out_backup_ids_sample: list[str] = field(default_factory=list)
-    timed_out_urls_sample: list[str] = field(default_factory=list)
-    timed_out_reason_types_sample: list[str] = field(default_factory=list)
-    timed_out_elapsed_ms_sample: list[int] = field(default_factory=list)
-    failed_backup_ids_total: int = 0
-    failed_backup_ids_sample: list[str] = field(default_factory=list)
-    failed_urls_sample: list[str] = field(default_factory=list)
-
-
-@dataclass(frozen=True, slots=True)
-class VeeamProviderSession:
-    """Veeam 同步会话上下文."""
-
-    base_url: str
-    access_token: str
-    api_version: str
-    verify_ssl: bool
-
-
-@dataclass(frozen=True, slots=True)
-class VeeamMatchedBackupObject:
-    """匹配后的 backupObject."""
-
-    backup_object_id: str
-    machine_name: str | None = None
-    backup_item: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class VeeamBackupObjectMatchResult:
-    """backupObjects 匹配统计结果."""
-
-    matched_backup_objects: list[VeeamMatchedBackupObject]
-    backups_received_total: int
-    backups_matched_total: int
-    backups_unmatched_total: int
-    backups_missing_machine_name: int
-    matched_backup_ids_sample: list[str] = field(default_factory=list)
-    unmatched_backup_ids_sample: list[str] = field(default_factory=list)
-    unmatched_machine_names_sample: list[str] = field(default_factory=list)
-    missing_machine_name_backup_ids_sample: list[str] = field(default_factory=list)
-    missing_machine_name_backup_names_sample: list[str] = field(default_factory=list)
-
-
-class VeeamRestorePointsFetchError(RuntimeError):
-    """restorePoints 拉取失败时携带阶段进度."""
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        matched_backup_objects_total: int,
-        completed_backup_objects_total: int,
-        failed_backup_object_id: str | None,
-        failed_machine_name: str | None,
-        failed_url: str,
-    ) -> None:
-        super().__init__(message)
-        self.matched_backup_objects_total = matched_backup_objects_total
-        self.completed_backup_objects_total = completed_backup_objects_total
-        self.failed_backup_object_id = failed_backup_object_id
-        self.failed_machine_name = failed_machine_name
-        self.failed_url = failed_url
-
-
-class VeeamRequestTimeoutError(RuntimeError):
-    """Veeam 单次请求超时."""
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        url: str,
-        timeout_seconds: int,
-        elapsed_ms: int,
-        reason_type: str | None,
-        reason_repr: str | None,
-    ) -> None:
-        super().__init__(message)
-        self.url = url
-        self.timeout_seconds = timeout_seconds
-        self.elapsed_ms = elapsed_ms
-        self.reason_type = reason_type
-        self.reason_repr = reason_repr
 
 
 class VeeamProvider(Protocol):
@@ -382,97 +247,17 @@ class HttpVeeamProvider:
             stage="backup_objects",
         )
 
-    def match_backup_objects(  # noqa: PLR0912
+    def match_backup_objects(
         self,
         *,
         backup_items: list[dict[str, Any]],
         match_machine_names: set[str] | None = None,
         match_machine_ips: set[str] | None = None,
     ) -> VeeamBackupObjectMatchResult:
-        backups_received_total = len(backup_items)
-        backups_matched_total = 0
-        backups_unmatched_total = 0
-        backups_missing_machine_name = 0
-        matched_backup_ids_sample: list[str] = []
-        unmatched_backup_ids_sample: list[str] = []
-        unmatched_machine_names_sample: list[str] = []
-        missing_machine_name_backup_ids_sample: list[str] = []
-        missing_machine_name_backup_names_sample: list[str] = []
-        matched_backup_objects: list[VeeamMatchedBackupObject] = []
-
-        for backup_item in backup_items:
-            backup_object_id = self._pick_string(backup_item, ("id", "backupObjectId", "backup_object_id"))
-            if not backup_object_id:
-                continue
-            backup_machine_name = self._resolve_backup_machine_name(backup_item)
-            backup_machine_ip = self._resolve_backup_machine_ip(backup_item)
-            if match_machine_names or match_machine_ips:
-                normalized_backup_machine_name = normalize_machine_name(backup_machine_name)
-                backup_name_as_ip = normalize_ip_address(backup_machine_name)
-                normalized_backup_machine_ip = normalize_ip_address(backup_machine_ip) if backup_machine_ip else None
-                if backup_name_as_ip and not normalized_backup_machine_ip:
-                    normalized_backup_machine_ip = backup_name_as_ip
-
-                name_matched = False
-                ip_matched = False
-
-                if match_machine_names:
-                    if normalized_backup_machine_name in match_machine_names:
-                        name_matched = True
-                    elif not normalized_backup_machine_name:
-                        backups_missing_machine_name += 1
-                        if len(missing_machine_name_backup_ids_sample) < 20:
-                            missing_machine_name_backup_ids_sample.append(backup_object_id)
-                        backup_name = self._pick_string(backup_item, ("name", "jobName", "backupName"))
-                        if backup_name and len(missing_machine_name_backup_names_sample) < 20:
-                            missing_machine_name_backup_names_sample.append(backup_name)
-
-                if match_machine_ips and normalized_backup_machine_ip and normalized_backup_machine_ip in match_machine_ips:
-                    ip_matched = True
-
-                if not name_matched and not ip_matched:
-                    backups_unmatched_total += 1
-                    if len(unmatched_backup_ids_sample) < 20:
-                        unmatched_backup_ids_sample.append(backup_object_id)
-                    if backup_machine_name and len(unmatched_machine_names_sample) < 20:
-                        unmatched_machine_names_sample.append(str(backup_machine_name))
-                    continue
-
-                backups_matched_total += 1
-                if len(matched_backup_ids_sample) < 20:
-                    matched_backup_ids_sample.append(backup_object_id)
-                matched_backup_objects.append(
-                    VeeamMatchedBackupObject(
-                        backup_object_id=backup_object_id,
-                        machine_name=backup_machine_name,
-                        backup_item=dict(backup_item),
-                    )
-                )
-
-        if unmatched_machine_names_sample:
-            log_with_context(
-                "info",
-                "Veeam 备份未匹配到实例",
-                module="veeam",
-                action="match_backup_objects",
-                extra={
-                    "unmatched_count": backups_unmatched_total,
-                    "unmatched_machine_names": sorted(unmatched_machine_names_sample)[:20],
-                },
-                include_actor=False,
-            )
-
-        return VeeamBackupObjectMatchResult(
-            matched_backup_objects=matched_backup_objects,
-            backups_received_total=backups_received_total,
-            backups_matched_total=backups_matched_total,
-            backups_unmatched_total=backups_unmatched_total,
-            backups_missing_machine_name=backups_missing_machine_name,
-            matched_backup_ids_sample=matched_backup_ids_sample,
-            unmatched_backup_ids_sample=unmatched_backup_ids_sample,
-            unmatched_machine_names_sample=unmatched_machine_names_sample,
-            missing_machine_name_backup_ids_sample=missing_machine_name_backup_ids_sample,
-            missing_machine_name_backup_names_sample=missing_machine_name_backup_names_sample,
+        return VeeamMatchSampler().match_backup_objects(
+            backup_items=backup_items,
+            match_machine_names=match_machine_names,
+            match_machine_ips=match_machine_ips,
         )
 
     def fetch_restore_point_records(
@@ -1292,44 +1077,8 @@ class HttpVeeamProvider:
         )
 
     @staticmethod
-    def _resolve_backup_machine_name(item: dict[str, Any]) -> str | None:
-        return HttpVeeamProvider._pick_string(
-            item,
-            (
-                "name",
-                "machineName",
-                "machine_name",
-                "objectName",
-                "object_name",
-                "workloadName",
-                "workload_name",
-                "computerName",
-                "computer_name",
-                "vmName",
-                "vm_name",
-                "hostName",
-                "host_name",
-            ),
-        )
-
-    @staticmethod
     def _resolve_backup_machine_ip(item: dict[str, Any]) -> str | None:
-        return HttpVeeamProvider._pick_string(
-            item,
-            (
-                "ipAddress",
-                "ip_address",
-                "hostIp",
-                "host_ip",
-                "guestIp",
-                "guest_ip",
-                "ip",
-                "ipAddress1",
-                "ip_address_1",
-                "networkIp",
-                "network_ip",
-            ),
-        )
+        return resolve_backup_machine_ip(item)
 
     @staticmethod
     def _resolve_machine_name(item: dict[str, Any]) -> str | None:

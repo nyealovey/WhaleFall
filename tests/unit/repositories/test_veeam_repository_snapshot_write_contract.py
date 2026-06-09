@@ -259,3 +259,78 @@ def test_upsert_machine_backup_snapshots_allows_same_machine_name_across_sources
             (source_a.id, "db01.domain.com", "rp-a"),
             (source_b.id, "db01.domain.com", "rp-b"),
         ]
+
+
+@pytest.mark.unit
+def test_find_best_backup_for_instance_name_returns_latest_source_payload_by_name() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_veeam_tables()
+        source_a = _binding("Veeam A", credential_id=1)
+        source_b = _binding("Veeam B", credential_id=2)
+        source_a.last_sync_at = datetime(2026, 3, 25, 2, 5, tzinfo=UTC)
+        source_b.last_sync_at = datetime(2026, 3, 25, 3, 5, tzinfo=UTC)
+        db.session.add_all([source_a, source_b])
+        db.session.flush()
+        db.session.add_all(
+            [
+                _snapshot(
+                    machine_name="db01.domain.com",
+                    backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+                    source_binding_id=source_a.id,
+                    raw_payload_id="rp-a",
+                    sync_run_id="run-a",
+                ),
+                _snapshot(
+                    machine_name="db01.domain.com",
+                    backup_at=datetime(2026, 3, 25, 3, 0, tzinfo=UTC),
+                    source_binding_id=source_b.id,
+                    raw_payload_id="rp-b",
+                    sync_run_id="run-b",
+                ),
+            ]
+        )
+        db.session.commit()
+
+        payload = VeeamRepository.find_best_backup_for_instance_name("db01", "db01.local")
+
+        assert payload is not None
+        assert payload["source_binding_id"] == source_b.id
+        assert payload["source_name"] == "Veeam B"
+        assert payload["source_server_host"] == "10.0.0.2"
+        assert payload["matched_machine_name"] == "db01.domain.com"
+        assert payload["match_candidates"] == ["db01", "db01.domain.com"]
+        assert payload["latest_backup_at"] == "2026-03-25T03:00:00"
+        assert payload["last_sync_time"] == "2026-03-25T03:05:00"
+
+
+@pytest.mark.unit
+def test_find_best_backup_for_instance_name_matches_ip_when_name_does_not_match() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_veeam_tables()
+        source = _binding("Veeam A", credential_id=1)
+        db.session.add(source)
+        db.session.flush()
+        row = _snapshot(
+            machine_name="renamed-vm.domain.com",
+            backup_at=datetime(2026, 3, 25, 2, 0, tzinfo=UTC),
+            source_binding_id=source.id,
+            raw_payload_id="rp-ip",
+            sync_run_id="run-ip",
+        )
+        row.machine_ip = "10.0.0.8"
+        row.normalized_machine_ip = "10.0.0.8"
+        db.session.add(row)
+        db.session.commit()
+
+        payload = VeeamRepository.find_best_backup_for_instance_name("db02", "10.0.0.8")
+
+        assert payload is not None
+        assert payload["matched_machine_name"] == "renamed-vm.domain.com"
+        assert payload["matched_machine_ip"] == "10.0.0.8"
+        assert payload["match_candidates"] == ["db02", "db02.domain.com", "10.0.0.8"]

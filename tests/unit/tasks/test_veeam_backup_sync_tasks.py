@@ -23,16 +23,9 @@ def test_sync_veeam_backups_commits_prepared_run_before_sync_once(monkeypatch) -
             ],
         )
 
-        class _StubBinding:
-            credential_id = 21
-
         def _fake_create_app(*, init_scheduler_on_start: bool = False):
             _ = init_scheduler_on_start
             return app
-
-        def _fake_get_binding_or_error(self):
-            _ = self
-            return _StubBinding()
 
         def _fake_prepare_background_sync(
             self,
@@ -60,16 +53,13 @@ def test_sync_veeam_backups_commits_prepared_run_before_sync_once(monkeypatch) -
 
         observed: dict[str, object] = {}
 
-        def _fake_sync_once(self, *, created_by: int | None, run_id: str, credential_id: int) -> None:
-            _ = (self, created_by, credential_id)
+        def _fake_sync_once(self, *, created_by: int | None, run_id: str) -> None:
+            _ = (self, created_by)
             db.session.rollback()
             observed["run_id"] = run_id
             observed["run_exists_after_rollback"] = TaskRun.query.filter_by(run_id=run_id).first() is not None
 
         monkeypatch.setattr(task_module, "create_app", _fake_create_app)
-        monkeypatch.setattr(
-            task_module.VeeamSourceService, "get_binding_or_error", _fake_get_binding_or_error, raising=True
-        )
         monkeypatch.setattr(
             task_module.VeeamSyncActionsService, "prepare_background_sync", _fake_prepare_background_sync, raising=True
         )
@@ -77,6 +67,7 @@ def test_sync_veeam_backups_commits_prepared_run_before_sync_once(monkeypatch) -
 
         task_module.sync_veeam_backups(manual_run=True, created_by=1)
 
+        assert not hasattr(task_module, "VeeamSourceService")
         assert isinstance(observed.get("run_id"), str)
         assert observed["run_exists_after_rollback"] is True
 
@@ -87,19 +78,12 @@ def test_sync_veeam_backups_logs_entry_context(monkeypatch) -> None:
     app.config["TESTING"] = True
 
     with app.app_context():
-        class _StubBinding:
-            credential_id = 21
-
         def _fake_create_app(*, init_scheduler_on_start: bool = False):
             _ = init_scheduler_on_start
             return app
 
-        def _fake_get_binding_or_error(self):
-            _ = self
-            return _StubBinding()
-
-        def _fake_sync_once(self, *, created_by: int | None, run_id: str, credential_id: int) -> None:
-            _ = (self, created_by, run_id, credential_id)
+        def _fake_sync_once(self, *, created_by: int | None, run_id: str) -> None:
+            _ = (self, created_by, run_id)
 
         calls: list[dict[str, object]] = []
 
@@ -107,14 +91,12 @@ def test_sync_veeam_backups_logs_entry_context(monkeypatch) -> None:
             calls.append({"level": level, "message": message, **kwargs})
 
         monkeypatch.setattr(task_module, "create_app", _fake_create_app)
-        monkeypatch.setattr(
-            task_module.VeeamSourceService, "get_binding_or_error", _fake_get_binding_or_error, raising=True
-        )
         monkeypatch.setattr(task_module.VeeamSyncActionsService, "_sync_once", _fake_sync_once, raising=True)
         monkeypatch.setattr(task_module, "log_with_context", _fake_log_with_context, raising=False)
 
         task_module.sync_veeam_backups(manual_run=False, created_by=None, run_id="run-scheduled-1")
 
+        assert not hasattr(task_module, "VeeamSourceService")
         assert len(calls) == 1
         assert calls[0]["message"] == "Veeam 备份任务入口"
         extra = calls[0]["extra"]

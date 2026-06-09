@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -13,15 +13,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.core.exceptions import NotFoundError, ValidationError
 from app.infra.route_safety import log_with_context
-from app.models.task_run import TaskRun
 from app.models.veeam_source_binding import VeeamSourceBinding
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
-from app.services.task_runs.task_run_summary_builders import (
-    build_sync_veeam_backups_summary,
-    merge_sync_veeam_sources_summary,
-)
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
+from app.services.veeam.backup_file_metric_merger import VeeamBackupFileMetricMerger, extract_backup_metric_int
 from app.services.veeam.matching import (
     build_instance_ip_candidates,
     build_instance_match_candidates,
@@ -30,7 +26,6 @@ from app.services.veeam.matching import (
 from app.services.veeam.provider import (
     HttpVeeamProvider,
     VeeamBackupFileCollection,
-    VeeamBackupFileRecord,
     VeeamBackupObjectMatchResult,
     VeeamMachineBackupCollection,
     VeeamMachineBackupRecord,
@@ -38,6 +33,7 @@ from app.services.veeam.provider import (
     VeeamProviderSession,
     VeeamRestorePointsFetchError,
 )
+from app.services.veeam.run_summary_writer import VeeamRunSummaryWriter
 from app.services.veeam.source_service import VeeamSourceService
 from app.utils.time_utils import time_utils
 
@@ -146,12 +142,16 @@ class VeeamSyncActionsService:
         instances_repository: InstancesRepository | None = None,
         provider: VeeamProvider | Any | None = None,
         task: Callable[..., Any] | None = None,
+        backup_file_metric_merger: VeeamBackupFileMetricMerger | None = None,
+        run_summary_writer: VeeamRunSummaryWriter | None = None,
     ) -> None:
         self._source_service = source_service or VeeamSourceService(provider=provider)
         self._veeam_repository = veeam_repository or VeeamRepository()
         self._instances_repository = instances_repository or InstancesRepository()
         self._provider = provider or HttpVeeamProvider()
         self._task = task or _resolve_default_task()
+        self._backup_file_metric_merger = backup_file_metric_merger or VeeamBackupFileMetricMerger()
+        self._run_summary_writer = run_summary_writer or VeeamRunSummaryWriter()
 
     def prepare_background_sync(
         self,
@@ -319,7 +319,7 @@ class VeeamSyncActionsService:
         if records:
             backup_ids = self._collect_unique_strings([record.backup_id for record in records])
             backup_files_result = self._provider.fetch_backup_file_records(session=session, backup_ids=backup_ids)
-            enriched_records = self._merge_backup_file_metrics_into_records(
+            enriched_records = self._backup_file_metric_merger.merge_metrics_into_records(
                 records=records,
                 backup_files_result=backup_files_result,
             )
@@ -383,8 +383,9 @@ class VeeamSyncActionsService:
                     finalize_run=not is_multi_source,
                 )
                 source_results.append(
-                    self._build_source_summary(
-                        binding=binding,
+                    self._run_summary_writer.build_source_summary(
+                        source_binding_id=int(binding.id),
+                        source_name=self._source_name(binding),
                         status="completed",
                         snapshots_written_total=snapshots_written_total,
                         error_message=None,
@@ -394,8 +395,9 @@ class VeeamSyncActionsService:
                 snapshots_written_sum += snapshots_written_total
             except Exception as exc:
                 source_results.append(
-                    self._build_source_summary(
-                        binding=binding,
+                    self._run_summary_writer.build_source_summary(
+                        source_binding_id=int(binding.id),
+                        source_name=self._source_name(binding),
                         status="failed",
                         snapshots_written_total=0,
                         error_message=str(exc),
@@ -405,7 +407,7 @@ class VeeamSyncActionsService:
                 continue
 
         if is_multi_source:
-            self._write_multi_source_run_result(
+            self._run_summary_writer.write_multi_source_run_result(
                 run_id=run_id,
                 sources=source_results,
                 partial_success=successes > 0 and bool(failures),
@@ -413,7 +415,7 @@ class VeeamSyncActionsService:
                 error_message=str(failures[0]) if successes <= 0 and failures else None,
             )
         else:
-            self._append_sources_to_run_summary(
+            self._run_summary_writer.append_sources_to_run_summary(
                 run_id=run_id,
                 sources=source_results,
                 partial_success=successes > 0 and bool(failures),
@@ -683,7 +685,7 @@ class VeeamSyncActionsService:
                 session=cast("VeeamProviderSession", session),
                 backup_ids=backup_ids,
             )
-            backup_file_coverage = self._summarize_backup_file_coverage(
+            backup_file_coverage = self._backup_file_metric_merger.summarize_coverage(
                 records=restore_point_records,
                 backup_files_result=cast("VeeamBackupFileCollection", backup_files_result),
             )
@@ -757,7 +759,7 @@ class VeeamSyncActionsService:
                 ),
             )
 
-            enriched_restore_point_records = self._merge_backup_file_metrics_into_records(
+            enriched_restore_point_records = self._backup_file_metric_merger.merge_metrics_into_records(
                 records=restore_point_records,
                 backup_files_result=cast("VeeamBackupFileCollection", backup_files_result),
             )
@@ -833,8 +835,7 @@ class VeeamSyncActionsService:
             if finalize_run:
                 task_runs_service.finalize_run_with_summary(
                     run_id,
-                    summary_json=build_sync_veeam_backups_summary(
-                        task_key="sync_veeam_backups",
+                    summary_json=self._run_summary_writer.build_backups_summary(
                         inputs={"credential_id": int(binding.credential_id)},
                         received_total=cast("VeeamMachineBackupCollection", restore_points_result).received_total,
                         snapshots_written_total=snapshots_written_total,
@@ -937,8 +938,7 @@ class VeeamSyncActionsService:
             if finalize_run:
                 task_runs_service.finalize_run_with_summary(
                     run_id,
-                    summary_json=build_sync_veeam_backups_summary(
-                        task_key="sync_veeam_backups",
+                    summary_json=self._run_summary_writer.build_backups_summary(
                         inputs={"credential_id": int(binding.credential_id)},
                         received_total=0,
                         snapshots_written_total=0,
@@ -961,72 +961,6 @@ class VeeamSyncActionsService:
             )
             raise
         return snapshots_written_total
-
-    @staticmethod
-    def _build_source_summary(
-        *,
-        binding: VeeamSourceBinding,
-        status: str,
-        snapshots_written_total: int,
-        error_message: str | None,
-    ) -> dict[str, object]:
-        return {
-            "source_binding_id": int(binding.id),
-            "source_name": str(binding.name or ""),
-            "status": status,
-            "snapshots_written_total": snapshots_written_total,
-            "error_message": error_message,
-        }
-
-    @staticmethod
-    def _append_sources_to_run_summary(
-        *,
-        run_id: str,
-        sources: list[dict[str, object]],
-        partial_success: bool,
-    ) -> None:
-        try:
-            run = TaskRun.query.filter_by(run_id=run_id).first()
-        except SQLAlchemyError:
-            return
-        if run is None:
-            return
-        summary = merge_sync_veeam_sources_summary(
-            cast("dict[str, Any]", run.summary_json),
-            sources=sources,
-            partial_success=partial_success,
-        )
-        task_runs_service = TaskRunsWriteService()
-        if task_runs_service.write_summary(run_id, summary):
-            db.session.commit()
-
-    @staticmethod
-    def _write_multi_source_run_result(
-        *,
-        run_id: str,
-        sources: list[dict[str, object]],
-        partial_success: bool,
-        snapshots_written_total: int,
-        error_message: str | None,
-    ) -> None:
-        task_runs_service = TaskRunsWriteService()
-        task_runs_service.finalize_run_with_summary(
-            run_id,
-            summary_json=build_sync_veeam_backups_summary(
-                task_key="sync_veeam_backups",
-                inputs={"source_binding_ids": [source["source_binding_id"] for source in sources]},
-                received_total=0,
-                snapshots_written_total=snapshots_written_total,
-                skipped_invalid=0,
-                sources=sources,
-                partial_success=partial_success,
-                error_message=error_message,
-            ),
-            error_message=error_message,
-            status_override="completed" if partial_success else None,
-            clear_error=partial_success,
-        )
-        db.session.commit()
 
     @staticmethod
     def _start_stage(*, task_runs_service: TaskRunsWriteService, run_id: str, item_key: str) -> None:
@@ -1276,7 +1210,7 @@ class VeeamSyncActionsService:
             value
             for record in ordered_records
             if (
-                value := VeeamSyncActionsService._extract_backup_metric_int(
+                value := extract_backup_metric_int(
                     record.raw_payload,
                     ("backupSize", "backup_size", "backupSizeBytes", "backup_size_bytes"),
                 )
@@ -1285,7 +1219,7 @@ class VeeamSyncActionsService:
         ]
         restore_point_size_bytes = (
             latest_record.restore_point_size_bytes
-            or VeeamSyncActionsService._extract_backup_metric_int(
+            or extract_backup_metric_int(
                 latest_record.raw_payload,
                 ("dataSize", "data_size", "dataSizeBytes", "data_size_bytes"),
             )
@@ -1348,172 +1282,6 @@ class VeeamSyncActionsService:
         if timed_out_backup_ids_total > 0 or failed_backup_ids_total > 0:
             return True
         return backup_ids_total > 0 and backup_ids_completed < backup_ids_total
-
-    @staticmethod
-    def _summarize_backup_file_coverage(
-        *,
-        records: list[VeeamMachineBackupRecord],
-        backup_files_result: VeeamBackupFileCollection,
-    ) -> dict[str, int]:
-        expected_restore_point_ids_by_backup: dict[str, set[str]] = {}
-        for record in records:
-            backup_id = str(record.backup_id or "").strip()
-            restore_point_id = str(record.source_record_id or "").strip()
-            if not backup_id or not restore_point_id:
-                continue
-            expected_restore_point_ids_by_backup.setdefault(backup_id, set()).add(restore_point_id)
-
-        matched_restore_point_ids_by_backup: dict[str, set[str]] = {
-            backup_id: set() for backup_id in expected_restore_point_ids_by_backup
-        }
-        for backup_file in backup_files_result.records:
-            backup_id = str(backup_file.backup_id or "").strip()
-            if backup_id not in expected_restore_point_ids_by_backup:
-                continue
-            expected_restore_point_ids = expected_restore_point_ids_by_backup[backup_id]
-            matched_restore_point_ids = matched_restore_point_ids_by_backup.setdefault(backup_id, set())
-            for restore_point_id in backup_file.restore_point_ids:
-                normalized_restore_point_id = str(restore_point_id or "").strip()
-                if normalized_restore_point_id and normalized_restore_point_id in expected_restore_point_ids:
-                    matched_restore_point_ids.add(normalized_restore_point_id)
-
-        restore_points_expected_total = sum(
-            len(restore_point_ids) for restore_point_ids in expected_restore_point_ids_by_backup.values()
-        )
-        restore_points_enriched_total = sum(
-            len(restore_point_ids) for restore_point_ids in matched_restore_point_ids_by_backup.values()
-        )
-        backup_ids_fully_covered_total = 0
-        backup_ids_partially_covered_total = 0
-        for backup_id, expected_restore_point_ids in expected_restore_point_ids_by_backup.items():
-            matched_count = len(matched_restore_point_ids_by_backup.get(backup_id, set()))
-            expected_count = len(expected_restore_point_ids)
-            if expected_count <= 0 or matched_count <= 0:
-                continue
-            if matched_count >= expected_count:
-                backup_ids_fully_covered_total += 1
-                continue
-            backup_ids_partially_covered_total += 1
-
-        return {
-            "restore_points_expected_total": restore_points_expected_total,
-            "restore_points_enriched_total": restore_points_enriched_total,
-            "restore_points_missing_metrics_total": max(
-                restore_points_expected_total - restore_points_enriched_total, 0
-            ),
-            "backup_ids_fully_covered_total": backup_ids_fully_covered_total,
-            "backup_ids_partially_covered_total": backup_ids_partially_covered_total,
-        }
-
-    @staticmethod
-    def _merge_backup_file_metrics_into_records(  # noqa: PLR0912
-        *,
-        records: list[VeeamMachineBackupRecord],
-        backup_files_result: VeeamBackupFileCollection,
-    ) -> list[VeeamMachineBackupRecord]:
-        if not records or not backup_files_result.records:
-            return records
-
-        backup_files_by_restore_point_id: dict[str, list[VeeamBackupFileRecord]] = {}
-        for backup_file in backup_files_result.records:
-            for restore_point_id in backup_file.restore_point_ids:
-                normalized_restore_point_id = str(restore_point_id or "").strip()
-                if not normalized_restore_point_id:
-                    continue
-                backup_files_by_restore_point_id.setdefault(normalized_restore_point_id, []).append(backup_file)
-
-        merged_records: list[VeeamMachineBackupRecord] = []
-        for record in records:
-            restore_point_id = str(record.source_record_id or "").strip()
-            candidates = backup_files_by_restore_point_id.get(restore_point_id, [])
-            selected = VeeamSyncActionsService._select_best_backup_file_record(record=record, candidates=candidates)
-            if selected is None:
-                merged_records.append(record)
-                continue
-
-            merged_payload = dict(record.raw_payload) if isinstance(record.raw_payload, dict) else {}
-            if selected.object_id and not merged_payload.get("objectId"):
-                merged_payload["objectId"] = selected.object_id
-            if selected.restore_point_ids:
-                merged_payload["restorePointIds"] = list(selected.restore_point_ids)
-            if selected.data_size_bytes is not None:
-                merged_payload["dataSize"] = selected.data_size_bytes
-            if selected.backup_size_bytes is not None:
-                merged_payload["backupSize"] = selected.backup_size_bytes
-            if selected.dedup_ratio is not None:
-                merged_payload["dedupRatio"] = selected.dedup_ratio
-            if selected.compress_ratio is not None:
-                merged_payload["compressRatio"] = selected.compress_ratio
-            gfs_periods = selected.raw_payload.get("gfsPeriods")
-            if isinstance(gfs_periods, list):
-                merged_payload["gfsPeriods"] = list(gfs_periods)
-            if selected.backup_file_id and not merged_payload.get("backupFileId"):
-                merged_payload["backupFileId"] = selected.backup_file_id
-
-            merged_records.append(
-                replace(
-                    record,
-                    raw_payload=merged_payload,
-                    restore_point_size_bytes=selected.data_size_bytes or record.restore_point_size_bytes,
-                )
-            )
-        return merged_records
-
-    @staticmethod
-    def _select_best_backup_file_record(
-        *,
-        record: VeeamMachineBackupRecord,
-        candidates: list[VeeamBackupFileRecord],
-    ) -> VeeamBackupFileRecord | None:
-        if not candidates:
-            return None
-
-        filtered_candidates = candidates
-        if record.backup_file_id:
-            exact_matches = [candidate for candidate in candidates if candidate.backup_file_id == record.backup_file_id]
-            if exact_matches:
-                filtered_candidates = exact_matches
-
-        record_backup_at = record.backup_at
-        if record_backup_at is not None:
-            candidates_with_time = [candidate for candidate in filtered_candidates if candidate.backup_at is not None]
-            if candidates_with_time:
-
-                def _time_distance_key(candidate: VeeamBackupFileRecord) -> tuple[float, int, str]:
-                    if candidate.backup_at is None:
-                        return (float("inf"), 1, candidate.backup_file_id or "")
-                    return (
-                        abs((candidate.backup_at - record_backup_at).total_seconds()),
-                        0 if candidate.backup_file_id == record.backup_file_id else 1,
-                        candidate.backup_file_id or "",
-                    )
-
-                return min(
-                    candidates_with_time,
-                    key=_time_distance_key,
-                )
-
-        return sorted(
-            filtered_candidates,
-            key=lambda candidate: (
-                0 if candidate.backup_file_id == record.backup_file_id else 1,
-                candidate.backup_file_id or "",
-            ),
-        )[0]
-
-    @staticmethod
-    def _extract_backup_metric_int(payload: object, keys: tuple[str, ...]) -> int | None:
-        if not isinstance(payload, dict):
-            return None
-        for key in keys:
-            value = payload.get(key)
-            if value is None or value == "":
-                continue
-            try:
-                return int(value)
-            except (TypeError, ValueError):
-                continue
-        return None
 
     @staticmethod
     def _raise_restore_points_all_timeout(

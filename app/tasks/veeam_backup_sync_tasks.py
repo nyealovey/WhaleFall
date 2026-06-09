@@ -7,7 +7,6 @@ import threading
 
 from app import create_app, db
 from app.infra.route_safety import log_with_context
-from app.services.veeam.source_service import VeeamSourceService
 from app.services.veeam.sync_actions_service import VeeamSyncActionsService
 
 
@@ -23,7 +22,6 @@ def sync_veeam_backups(
     with app.app_context():
         trigger_source = "manual" if manual_run else "scheduled"
         service = VeeamSyncActionsService()
-        binding = VeeamSourceService().get_binding_or_error()
         resolved_run_id = run_id
         if not resolved_run_id:
             prepared = service.prepare_background_sync(
@@ -49,5 +47,4 @@ def sync_veeam_backups(
         service._sync_once(
             created_by=created_by if manual_run else None,
             run_id=resolved_run_id,
-            credential_id=int(binding.credential_id),
         )

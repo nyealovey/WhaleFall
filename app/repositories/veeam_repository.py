@@ -45,6 +45,13 @@ class _SnapshotSummaryMatch:
     ip_candidates: list[str]
 
 
+@dataclass(frozen=True, slots=True)
+class _SnapshotLookupCandidate:
+    binding: VeeamSourceBinding
+    name_candidates: list[str]
+    ip_candidates: list[str]
+
+
 def _normalize_string(value: object) -> str | None:
     if isinstance(value, str):
         cleaned = value.strip()
@@ -308,6 +315,74 @@ def _is_newer_snapshot(
     return current is None or (row.latest_backup_at, row.id) > (current.row.latest_backup_at, current.row.id)
 
 
+def _build_snapshot_lookup_candidates(
+    *,
+    instance_name: str,
+    instance_host: str | None,
+    bindings: list[VeeamSourceBinding],
+) -> list[_SnapshotLookupCandidate]:
+    candidates: list[_SnapshotLookupCandidate] = []
+    for binding in bindings:
+        domains = binding.match_domains if isinstance(binding.match_domains, list) else []
+        name_candidates = build_instance_match_candidates(instance_name, domains)
+        ip_candidates = build_instance_ip_candidates(instance_host)
+        if name_candidates or ip_candidates:
+            candidates.append(
+                _SnapshotLookupCandidate(
+                    binding=binding,
+                    name_candidates=name_candidates,
+                    ip_candidates=ip_candidates,
+                )
+            )
+    return candidates
+
+
+def _fetch_best_snapshot_for_candidate(candidate: _SnapshotLookupCandidate) -> VeeamMachineBackupSnapshot | None:
+    binding_id = int(candidate.binding.id)
+    name_rows = _fetch_snapshot_rows_by_names(binding_id, set(candidate.name_candidates))
+    ip_rows = _fetch_snapshot_rows_by_ips(binding_id, set(candidate.ip_candidates))
+    rows_by_object_id = {id(row): row for row in [*name_rows, *ip_rows]}
+    if not rows_by_object_id:
+        return None
+    return max(rows_by_object_id.values(), key=lambda row: (row.latest_backup_at, row.id))
+
+
+def _find_best_snapshot_match(candidates: list[_SnapshotLookupCandidate]) -> _SnapshotSummaryMatch | None:
+    best_match: _SnapshotSummaryMatch | None = None
+    for candidate in candidates:
+        row = _fetch_best_snapshot_for_candidate(candidate)
+        if row is None:
+            continue
+        if _is_newer_snapshot(row, best_match):
+            best_match = _SnapshotSummaryMatch(
+                row=row,
+                binding=candidate.binding,
+                name_candidates=candidate.name_candidates,
+                ip_candidates=candidate.ip_candidates,
+            )
+    return best_match
+
+
+def _serialize_snapshot_match(
+    match: _SnapshotSummaryMatch,
+    *,
+    prefer_name_candidates_only: bool,
+) -> dict[str, object]:
+    best = match.row
+    payload = _serialize_snapshot_row(best)
+    payload["matched_machine_name"] = best.machine_name
+    payload["matched_machine_ip"] = best.machine_ip
+    if prefer_name_candidates_only and best.normalized_machine_name in match.name_candidates:
+        payload["match_candidates"] = match.name_candidates
+    else:
+        payload["match_candidates"] = match.name_candidates + match.ip_candidates
+    payload["source_binding_id"] = int(match.binding.id)
+    payload["source_name"] = str(match.binding.name or "")
+    payload["source_server_host"] = str(match.binding.server_host or "")
+    payload["last_sync_time"] = match.binding.last_sync_at.isoformat() if match.binding.last_sync_at else None
+    return payload
+
+
 class VeeamRepository:
     """Veeam 绑定与快照访问."""
 
@@ -503,59 +578,18 @@ class VeeamRepository:
         if not VeeamRepository._has_machine_backup_snapshot_table():
             return None
 
-        candidates: list[tuple[VeeamSourceBinding, list[str], list[str]]] = []
-        for binding in VeeamRepository.list_enabled_bindings():
-            domains = binding.match_domains if isinstance(binding.match_domains, list) else []
-            name_candidates = build_instance_match_candidates(instance_name, domains)
-            ip_candidates = build_instance_ip_candidates(instance_host)
-            if name_candidates or ip_candidates:
-                candidates.append((binding, name_candidates, ip_candidates))
-
+        candidates = _build_snapshot_lookup_candidates(
+            instance_name=instance_name,
+            instance_host=instance_host,
+            bindings=VeeamRepository.list_enabled_bindings(),
+        )
         if not candidates:
             return None
 
-        best_row: VeeamMachineBackupSnapshot | None = None
-        best_binding: VeeamSourceBinding | None = None
-        best_name_candidates: list[str] = []
-        best_ip_candidates: list[str] = []
-        for binding, name_candidates, ip_candidates in candidates:
-            filters = []
-            if name_candidates:
-                filters.append(VeeamMachineBackupSnapshot.normalized_machine_name.in_(name_candidates))
-            if ip_candidates:
-                filters.append(VeeamMachineBackupSnapshot.normalized_machine_ip.in_(ip_candidates))
-            rows = (
-                VeeamMachineBackupSnapshot.query.filter(
-                    VeeamMachineBackupSnapshot.source_binding_id == int(binding.id),
-                    filters[0] if len(filters) == 1 else filters[0] | filters[1],
-                )
-                .order_by(VeeamMachineBackupSnapshot.latest_backup_at.desc(), VeeamMachineBackupSnapshot.id.desc())
-                .all()
-            )
-            if not rows:
-                continue
-            row = rows[0]
-            if best_row is None or (row.latest_backup_at, row.id) > (best_row.latest_backup_at, best_row.id):
-                best_row = row
-                best_binding = binding
-                best_name_candidates = name_candidates
-                best_ip_candidates = ip_candidates
-
-        if best_row is None or best_binding is None:
+        match = _find_best_snapshot_match(candidates)
+        if match is None:
             return None
-        best = best_row
-        payload = _serialize_snapshot_row(best)
-        payload["matched_machine_name"] = best.machine_name
-        payload["matched_machine_ip"] = best.machine_ip
-        if best.normalized_machine_name in best_name_candidates:
-            payload["match_candidates"] = best_name_candidates
-        else:
-            payload["match_candidates"] = best_name_candidates + best_ip_candidates
-        payload["source_binding_id"] = int(best_binding.id)
-        payload["source_name"] = str(best_binding.name or "")
-        payload["source_server_host"] = str(best_binding.server_host or "")
-        payload["last_sync_time"] = best_binding.last_sync_at.isoformat() if best_binding.last_sync_at else None
-        return payload
+        return _serialize_snapshot_match(match, prefer_name_candidates_only=True)
 
     @staticmethod
     def fetch_backup_summary_map(instances: list[Instance]) -> dict[int, dict[str, object]]:
@@ -608,14 +642,5 @@ class VeeamRepository:
 
         summary_map: dict[int, dict[str, object]] = {}
         for instance_id, match in best_by_instance.items():
-            best = match.row
-            payload = _serialize_snapshot_row(best)
-            payload["matched_machine_name"] = best.machine_name
-            payload["matched_machine_ip"] = best.machine_ip
-            payload["match_candidates"] = match.name_candidates + match.ip_candidates
-            payload["source_binding_id"] = int(match.binding.id)
-            payload["source_name"] = str(match.binding.name or "")
-            payload["source_server_host"] = str(match.binding.server_host or "")
-            payload["last_sync_time"] = match.binding.last_sync_at.isoformat() if match.binding.last_sync_at else None
-            summary_map[instance_id] = payload
+            summary_map[instance_id] = _serialize_snapshot_match(match, prefer_name_candidates_only=False)
         return summary_map
