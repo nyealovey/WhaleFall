@@ -14,6 +14,10 @@ from app.models.mysql_cluster import MySQLCluster
 from app.models.sqlserver_cluster import SQLServerCluster
 from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.cluster_status_sync import ClusterStatusSyncService
+from app.services.cluster_status_sync.issue_contract import (
+    ClusterStatusDetectionResult,
+    build_failed_cluster_status_result,
+)
 from app.services.task_runs.task_run_summary_builders import build_sync_cluster_status_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
@@ -104,19 +108,23 @@ def _record_result(
     totals: _ClusterStatusTotals,
     alert_event_service: EmailAlertEventService,
 ) -> None:
-    status = str(result.get("status") or "")
-    abnormal_database_count = int(result.get("abnormal_database_count", 0) or 0)
-    abnormal_replica_count = int(result.get("abnormal_replica_count", 0) or 0)
-    totals.abnormal_database_count += abnormal_database_count
-    totals.abnormal_replica_count += abnormal_replica_count
-    if status == "failed":
+    detection = ClusterStatusDetectionResult.from_result(
+        cluster_type=item_type,
+        cluster_id=cluster_id,
+        cluster_name=cluster_name,
+        run_id=run_id,
+        result=result,
+    )
+    totals.abnormal_database_count += detection.abnormal_database_count
+    totals.abnormal_replica_count += detection.abnormal_replica_count
+    if detection.is_failed:
         totals.clusters_failed += 1
         task_runs_service.fail_item(
             run_id,
             item_type=item_type,
             item_key=str(cluster_id),
-            error_message=str(result.get("error_message") or "群集同步状态检测失败"),
-            details_json=result,
+            error_message=detection.task_error_message(),
+            details_json=detection.to_details_json(),
         )
     else:
         totals.clusters_successful += 1
@@ -124,11 +132,8 @@ def _record_result(
             run_id,
             item_type=item_type,
             item_key=str(cluster_id),
-            metrics_json={
-                "abnormal_database_count": abnormal_database_count,
-                "abnormal_replica_count": abnormal_replica_count,
-            },
-            details_json=result,
+            metrics_json=detection.task_metrics(),
+            details_json=detection.to_details_json(),
         )
     alert_event_service.record_cluster_status_event(
         cluster_type=item_type,
@@ -151,15 +156,7 @@ def _record_cluster_exception(
     totals: _ClusterStatusTotals,
     alert_event_service: EmailAlertEventService,
 ) -> None:
-    result = {
-        "cluster_id": cluster_id,
-        "status": "failed",
-        "error_message": str(exc) or "群集同步状态检测失败",
-        "abnormal_database_count": 0,
-        "abnormal_replica_count": 0,
-        "items": [],
-        "replicas": [],
-    }
+    result = build_failed_cluster_status_result(cluster_id=cluster_id, error_message=str(exc))
     _record_result(
         task_runs_service=task_runs_service,
         run_id=run_id,

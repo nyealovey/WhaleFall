@@ -29,6 +29,11 @@ from app.models.task_run_item import TaskRunItem
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.jumpserver_repository import JumpServerRepository
 from app.repositories.veeam_repository import VeeamRepository
+from app.services.cluster_status_sync.issue_contract import (
+    ClusterAbnormalIssue,
+    is_sqlserver_secondary_replica,
+    sqlserver_replica_scope,
+)
 from app.services.risk_center.risk_center_rule_settings_service import RiskCenterRuleSettingsService
 from app.services.veeam.instance_backup_read_service import resolve_backup_status
 from app.utils.time_utils import time_utils
@@ -943,17 +948,22 @@ class RiskCenterReadService:
         if not instance_ids:
             return output
 
-        for instance_id, risks in RiskCenterReadService._mysql_cluster_issue_map(instance_ids).items():
-            output.setdefault(instance_id, []).extend(risks)
-        for instance_id, risks in RiskCenterReadService._sqlserver_cluster_issue_map(instance_ids).items():
-            output.setdefault(instance_id, []).extend(risks)
+        for issue in RiskCenterReadService._cluster_issues(instance_ids):
+            output.setdefault(issue.instance_id, []).append(_risk(**issue.to_risk_kwargs()))
         return output
 
     @staticmethod
-    def _mysql_cluster_issue_map(instance_ids: list[int]) -> dict[int, list[dict[str, object]]]:
-        output: dict[int, list[dict[str, object]]] = {}
+    def _cluster_issues(instance_ids: list[int]) -> list[ClusterAbnormalIssue]:
+        return [
+            *RiskCenterReadService._mysql_cluster_issues(instance_ids),
+            *RiskCenterReadService._sqlserver_cluster_issues(instance_ids),
+        ]
+
+    @staticmethod
+    def _mysql_cluster_issues(instance_ids: list[int]) -> list[ClusterAbnormalIssue]:
+        issues: list[ClusterAbnormalIssue] = []
         if not (_table_exists(MySQLCluster.__tablename__) and _table_exists(MySQLClusterInstance.__tablename__)):
-            return output
+            return issues
 
         rows = (
             db.session.query(MySQLClusterInstance, MySQLCluster)
@@ -970,31 +980,26 @@ class RiskCenterReadService:
             .all()
         )
         for binding, cluster in rows:
-            instance_id = int(binding.instance_id)
             status = str(binding.replication_status or "unknown")
-            detail_suffix = str(binding.last_error or status)
-            output.setdefault(instance_id, []).append(
-                _risk(
-                    rule_key="cluster_abnormal",
-                    category="cluster",
-                    severity="medium",
-                    label="群集异常",
-                    detail=f"MySQL 群集 {cluster.name} 副节点复制异常: {detail_suffix}",
+            issues.append(
+                ClusterAbnormalIssue.mysql_replication(
+                    instance_id=int(binding.instance_id),
+                    cluster_name=str(cluster.name),
+                    detail_suffix=str(binding.last_error or status),
                     occurred_at=_to_utc_datetime(binding.last_checked_at),
-                    target_url="/cluster/",
                 )
             )
-        return output
+        return issues
 
     @staticmethod
-    def _sqlserver_cluster_issue_map(instance_ids: list[int]) -> dict[int, list[dict[str, object]]]:
-        output: dict[int, list[dict[str, object]]] = {}
+    def _sqlserver_cluster_issues(instance_ids: list[int]) -> list[ClusterAbnormalIssue]:
+        issues: list[ClusterAbnormalIssue] = []
         if not (
             _table_exists(SQLServerCluster.__tablename__)
             and _table_exists(SQLServerClusterInstance.__tablename__)
             and _table_exists(SQLServerAgReplicaSyncState.__tablename__)
         ):
-            return output
+            return issues
 
         bound_rows = (
             db.session.query(SQLServerClusterInstance, SQLServerCluster, Instance)
@@ -1019,47 +1024,41 @@ class RiskCenterReadService:
         for row in replica_rows:
             replica_name = str(row.replica_server_name or "").strip()
             scope = (int(row.cluster_id), replica_name.lower())
-            if bool(row.is_primary) or str(row.role_desc or "").upper() == "PRIMARY":
+            if not is_sqlserver_secondary_replica(row):
                 continue
             resolved = instance_by_replica_scope.get(scope)
             if resolved is None:
                 continue
             instance_id, cluster_name = resolved
-            secondary_scopes.add((int(row.cluster_id), str(row.ag_name), replica_name.lower()))
+            secondary_scopes.add(sqlserver_replica_scope(row))
             if not bool(row.is_abnormal):
                 continue
-            output.setdefault(instance_id, []).append(
-                _risk(
-                    rule_key="cluster_abnormal",
-                    category="cluster",
-                    severity="medium",
-                    label="群集异常",
-                    detail=f"SQL Server 群集 {cluster_name} AG {row.ag_name} 副本 {replica_name} 异常: {row.error_summary or '副本状态异常'}",
+            issues.append(
+                ClusterAbnormalIssue.sqlserver_replica(
+                    instance_id=instance_id,
+                    cluster_name=cluster_name,
+                    row=row,
                     occurred_at=_to_utc_datetime(row.last_checked_at),
-                    target_url="/cluster/",
                 )
             )
 
         if not _table_exists(SQLServerAgDatabaseSyncState.__tablename__):
-            return output
+            return issues
         database_rows = SQLServerAgDatabaseSyncState.query.filter(SQLServerAgDatabaseSyncState.is_abnormal.is_(True)).all()
         for row in database_rows:
             replica_name = str(row.replica_server_name or "").strip()
-            if (int(row.cluster_id), str(row.ag_name), replica_name.lower()) not in secondary_scopes:
+            if sqlserver_replica_scope(row) not in secondary_scopes:
                 continue
             resolved = instance_by_replica_scope.get((int(row.cluster_id), replica_name.lower()))
             if resolved is None:
                 continue
             instance_id, cluster_name = resolved
-            output.setdefault(instance_id, []).append(
-                _risk(
-                    rule_key="cluster_abnormal",
-                    category="cluster",
-                    severity="medium",
-                    label="群集异常",
-                    detail=f"SQL Server 群集 {cluster_name} AG {row.ag_name} 数据库 {row.database_name} 同步异常: {row.error_summary or '数据库同步状态异常'}",
+            issues.append(
+                ClusterAbnormalIssue.sqlserver_database(
+                    instance_id=instance_id,
+                    cluster_name=cluster_name,
+                    row=row,
                     occurred_at=_to_utc_datetime(row.last_checked_at),
-                    target_url="/cluster/",
                 )
             )
-        return output
+        return issues

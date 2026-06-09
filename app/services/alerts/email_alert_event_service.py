@@ -10,12 +10,13 @@ from sqlalchemy.exc import IntegrityError
 from app.repositories.email_alerts_repository import EmailAlertsRepository
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
+from app.services.alerts.alert_event_candidates import DatabaseCapacityGrowthCandidate
 from app.services.alerts.email_alert_settings_service import EmailAlertSettingsService
+from app.services.cluster_status_sync.issue_contract import ClusterStatusDetectionResult
 from app.services.veeam.instance_backup_read_service import resolve_backup_status
 from app.utils.time_utils import time_utils
 
 LOOKBACK_DAYS = 3
-MB_PER_GB = 1024
 
 
 def _has_enabled_delivery_channel(settings: object) -> bool:
@@ -69,48 +70,24 @@ class EmailAlertEventService:
                 current_collected_date=current_date,
                 lookback_days=LOOKBACK_DAYS,
             )
-            if baseline is None:
-                continue
-            baseline_size_mb = cast(int, baseline.size_mb)
-            baseline_collected_date = cast(date, baseline.collected_date)
-            if baseline_size_mb <= 0:
-                continue
-
-            current_size_mb = int(cast("int | str", raw_size_mb))
-            size_change_mb = current_size_mb - baseline_size_mb
-            if size_change_mb <= 0:
-                continue
-
-            size_change_percent = round((size_change_mb / baseline_size_mb) * 100, 2)
-            size_change_gb = size_change_mb / MB_PER_GB
-            if size_change_percent < int(settings.database_capacity_percent_threshold):
-                continue
-            if size_change_gb < int(settings.database_capacity_absolute_gb_threshold):
-                continue
-
-            baseline_age_days = (current_date - baseline_collected_date).days
-            if baseline_age_days < 1 or baseline_age_days > LOOKBACK_DAYS:
+            candidate = DatabaseCapacityGrowthCandidate.from_row(
+                row=row,
+                baseline=baseline,
+                percent_threshold=int(settings.database_capacity_percent_threshold),
+                absolute_gb_threshold=int(settings.database_capacity_absolute_gb_threshold),
+                lookback_days=LOOKBACK_DAYS,
+            )
+            if candidate is None:
                 continue
 
             if self._create_event(
                 alert_type="database_capacity_growth",
                 occurred_at=resolved_occurred_at,
                 bucket_date=bucket_date,
-                dedupe_key=f"{instance_id}:{database_name}",
-                instance_id=instance_id,
-                database_name=database_name,
-                payload_json={
-                    "instance_id": instance_id,
-                    "instance_name": row.get("instance_name"),
-                    "database_name": database_name,
-                    "current_size_mb": current_size_mb,
-                    "baseline_size_mb": baseline_size_mb,
-                    "size_change_mb": size_change_mb,
-                    "size_change_percent": size_change_percent,
-                    "baseline_collected_date": baseline_collected_date.isoformat(),
-                    "baseline_age_days": baseline_age_days,
-                    "current_collected_date": current_date.isoformat(),
-                },
+                dedupe_key=candidate.dedupe_key,
+                instance_id=candidate.instance_id,
+                database_name=candidate.database_name,
+                payload_json=candidate.payload_json(),
             ):
                 created += 1
 
@@ -269,30 +246,26 @@ class EmailAlertEventService:
 
         resolved_occurred_at = occurred_at or time_utils.now()
         bucket_date = self._resolve_bucket_date(resolved_occurred_at)
-        dedupe_key = f"{cluster_type}:{cluster_id}"
-        if not self._is_cluster_status_result_abnormal(result):
+        detection = ClusterStatusDetectionResult.from_result(
+            cluster_type=cluster_type,
+            cluster_id=cluster_id,
+            cluster_name=cluster_name,
+            run_id=run_id,
+            result=result,
+        )
+        if not detection.is_abnormal:
+            dedupe_key = detection.alert_dedupe_key
             self._repository.delete_pending_cluster_status_event(bucket_date=bucket_date, dedupe_key=dedupe_key)
             return False
 
-        payload_json = {
-            "cluster_id": cluster_id,
-            "cluster_name": cluster_name,
-            "cluster_type": cluster_type,
-            "status": str(result.get("status") or "unknown"),
-            "error_message": result.get("error_message"),
-            "abnormal_database_count": int(result.get("abnormal_database_count", 0) or 0),
-            "abnormal_replica_count": int(result.get("abnormal_replica_count", 0) or 0),
-            "run_id": run_id,
-            "summary_text": self._build_cluster_status_summary(result),
-        }
         return bool(
             self._repository.upsert_cluster_status_event(
                 alert_type="cluster_status_issue",
                 occurred_at=resolved_occurred_at,
                 bucket_date=bucket_date,
-                dedupe_key=dedupe_key,
+                dedupe_key=detection.alert_dedupe_key,
                 run_id=run_id,
-                payload_json=payload_json,
+                payload_json=detection.alert_payload(),
             ),
         )
 
@@ -317,65 +290,3 @@ class EmailAlertEventService:
         if backup_status == "backup_stale":
             return "备份异常（最近备份超过24小时）"
         return None
-
-    @staticmethod
-    def _is_cluster_status_result_abnormal(result: dict[str, Any]) -> bool:
-        if str(result.get("status") or "") == "failed":
-            return True
-        return int(result.get("abnormal_database_count", 0) or 0) > 0 or int(result.get("abnormal_replica_count", 0) or 0) > 0
-
-    @classmethod
-    def _build_cluster_status_summary(cls, result: dict[str, Any]) -> str:
-        error_message = str(result.get("error_message") or "").strip()
-        if str(result.get("status") or "") == "failed" and error_message:
-            return error_message
-
-        source_errors = result.get("source_errors")
-        if isinstance(source_errors, list) and source_errors:
-            return "; ".join(str(item) for item in source_errors if str(item).strip())
-
-        item_summaries = cls._build_mysql_cluster_item_summaries(result)
-        item_summaries.extend(cls._build_sqlserver_cluster_item_summaries(result))
-        if item_summaries:
-            return "; ".join(item_summaries[:5])
-
-        abnormal_database_count = int(result.get("abnormal_database_count", 0) or 0)
-        abnormal_replica_count = int(result.get("abnormal_replica_count", 0) or 0)
-        return f"异常数据库 {abnormal_database_count} 个，异常副本 {abnormal_replica_count} 个"
-
-    @staticmethod
-    def _build_mysql_cluster_item_summaries(result: dict[str, Any]) -> list[str]:
-        summaries: list[str] = []
-        items = result.get("items")
-        if not isinstance(items, list):
-            return summaries
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            status = str(item.get("replication_status") or "").strip()
-            if status == "healthy":
-                continue
-            name = str(item.get("name") or item.get("instance_name") or item.get("instance_id") or "unknown").strip()
-            reason = str(item.get("last_error") or status or "状态异常").strip()
-            lag = item.get("seconds_behind_source")
-            if lag not in {None, ""}:
-                reason = f"{reason}, lag={lag}s"
-            summaries.append(f"{name}: {reason}")
-        return summaries
-
-    @staticmethod
-    def _build_sqlserver_cluster_item_summaries(result: dict[str, Any]) -> list[str]:
-        summaries: list[str] = []
-        for collection_name in ("items", "replicas"):
-            rows = result.get(collection_name)
-            if not isinstance(rows, list):
-                continue
-            for row in rows:
-                if not isinstance(row, dict) or not bool(row.get("is_abnormal")):
-                    continue
-                replica = str(row.get("replica_server_name") or "unknown").strip()
-                database = str(row.get("database_name") or "").strip()
-                name = f"{replica}/{database}" if database else replica
-                reason = str(row.get("error_summary") or row.get("synchronization_health_desc") or "状态异常").strip()
-                summaries.append(f"{name}: {reason}")
-        return summaries
