@@ -54,6 +54,14 @@ source_code:
 | POST   | `/api/v1/scheduler/jobs/{job_id}/actions/run`    | 立即执行任务  | `SchedulerActionsService.run_job_in_background` | `admin`            | ✅    | 成功返回 `data.manual_job_id`（后台线程名） |
 | POST   | `/api/v1/scheduler/jobs/actions/reload`          | 重新加载任务  | `SchedulerActionsService.reload_jobs`           | `admin`            | ✅    | 会移除当前任务并重新注册；调度器未启动返回 409        |
 
+## Job List Metadata
+
+`GET /api/v1/scheduler/jobs` 的列表项会返回调度器管理页需要的任务元数据：
+
+- `task_id` / `task_name`：任务身份与展示名称；内置任务来自 `app/core/constants/scheduler_jobs.py`
+- `is_builtin`：是否内置任务
+- `editable_fields`：前端可编辑字段清单；当前内置任务为 `["trigger"]`
+
 ## Update Job Trigger（内置任务）
 
 ### `PUT /api/v1/scheduler/jobs/{job_id}`

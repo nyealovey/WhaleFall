@@ -4,7 +4,9 @@ from flask_restx import fields
 
 SCHEDULER_JOB_LIST_ITEM_FIELDS: dict[str, fields.Raw] = {
     "id": fields.String(description="Job ID", example="job_1"),
+    "task_id": fields.String(description="任务 ID", example="sync_accounts"),
     "name": fields.String(description="Job 名称", example="sync_accounts"),
+    "task_name": fields.String(description="任务名称", example="账户同步"),
     "description": fields.String(description="描述", example="同步账号任务"),
     "next_run_time": fields.String(description="下次运行时间(ISO8601, 可选)", example="2025-01-01T01:00:00"),
     "last_run_time": fields.String(description="上次运行时间(ISO8601, 可选)", example="2025-01-01T00:00:00"),
@@ -12,6 +14,7 @@ SCHEDULER_JOB_LIST_ITEM_FIELDS: dict[str, fields.Raw] = {
     "trigger_args": fields.Raw(description="触发器参数", example={}),
     "state": fields.String(description="状态", example="scheduled"),
     "is_builtin": fields.Boolean(description="是否内置任务", example=True),
+    "editable_fields": fields.List(fields.String, description="可编辑字段", example=["trigger"]),
     "func": fields.String(description="执行函数", example="app.tasks.accounts_sync_tasks:sync_accounts"),
     "args": fields.Raw(description="位置参数", example=[]),
     "kwargs": fields.Raw(description="关键字参数", example={}),

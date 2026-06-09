@@ -141,7 +141,7 @@ related:
 
 - Web: `app/routes/scheduler.py` + `app/templates/admin/scheduler/*`
 - API v1: `app/api/v1/namespaces/scheduler.py`
-- Scheduler: `app/scheduler.py` + `app/config/scheduler_tasks.yaml`
+- Scheduler: `app/scheduler.py` + `app/core/constants/scheduler_jobs.py` + `app/config/scheduler_tasks.yaml`
 - Tasks: `app/tasks/**`
 
 ### 3.7 History(历史) + Logs(统一日志) + Sync sessions(同步会话)

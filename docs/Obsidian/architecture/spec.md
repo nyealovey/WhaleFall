@@ -525,7 +525,8 @@ graph TB
 调度器实现:
 
 - `app/scheduler.py`: APScheduler 封装, SQLite jobstore, `ENABLE_SCHEDULER` 开关
-- `app/config/scheduler_tasks.yaml`: 默认任务配置
+- `app/core/constants/scheduler_jobs.py`: 默认任务身份、名称、函数入口与可编辑字段
+- `app/config/scheduler_tasks.yaml`: 默认任务调度配置（只保存触发器与启停策略）
 
 ```mermaid
 flowchart TD
@@ -533,7 +534,7 @@ flowchart TD
     Should -->|no| Skip["skip scheduler init"]
     Should -->|yes| Init["init APScheduler (SQLite jobstore)"]
     Init --> Load["load existing jobs"]
-    Load --> Defaults["register default jobs from scheduler_tasks.yaml"]
+    Load --> Defaults["register default jobs from registry + scheduler_tasks.yaml"]
     Defaults --> Run["BackgroundScheduler running"]
 ```
 

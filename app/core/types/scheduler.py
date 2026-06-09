@@ -10,7 +10,9 @@ class SchedulerJobListItem:
     """任务列表项."""
 
     id: str
+    task_id: str
     name: str
+    task_name: str
     description: str
     next_run_time: str | None
     last_run_time: str | None
@@ -18,6 +20,7 @@ class SchedulerJobListItem:
     trigger_args: dict[str, str]
     state: str
     is_builtin: bool
+    editable_fields: tuple[str, ...]
     func: str
     args: tuple[object, ...]
     kwargs: dict[str, object] | None

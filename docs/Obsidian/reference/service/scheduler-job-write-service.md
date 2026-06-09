@@ -24,7 +24,7 @@ related:
 
 > [!note] 本文目标
 > 说明如何在不依赖 form_service 的前提下更新 APScheduler 内置任务的 trigger，并明确：
-> - 只允许修改内置任务（BUILTIN_TASK_IDS）
+> - 只允许修改内置任务（`BUILTIN_TASK_IDS`，由 `BUILTIN_SCHEDULER_TASKS` 派生）
 > - trigger 参数的解析规则（cron）
 > - cron_expression 解析规则（5/6/7 段），并收敛为单一输入源（不再做多 key pick / `or` 兜底）
 
@@ -38,7 +38,7 @@ related:
 范围：
 
 - 不 commit（由 route 层提交/回滚）
-- 仅允许修改 `BUILTIN_TASK_IDS` 内的任务触发器。`app/services/scheduler/scheduler_job_write_service.py:70`
+- 仅允许修改 `BUILTIN_TASK_IDS` 内的任务触发器；内置任务身份、函数入口和可编辑字段统一维护在 `BUILTIN_SCHEDULER_TASKS`。`app/services/scheduler/scheduler_job_write_service.py:70`
 
 ## 2. 依赖与边界(Dependencies)
 

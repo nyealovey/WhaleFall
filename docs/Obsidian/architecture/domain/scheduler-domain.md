@@ -32,7 +32,8 @@ related:
 ## 关键配置与文件
 
 - scheduler 开关: `ENABLE_SCHEDULER`
-- 默认任务配置: `app/config/scheduler_tasks.yaml`
+- 默认任务身份元数据: `app/core/constants/scheduler_jobs.py`
+- 默认任务调度配置: `app/config/scheduler_tasks.yaml`（只保存触发器与启停策略）
 - jobstore(SQLite): `userdata/scheduler.db`
 
 ## 代码落点(常用)

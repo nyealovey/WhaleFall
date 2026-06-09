@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from app import scheduler
-from app.core.constants.scheduler_jobs import BUILTIN_TASK_IDS
+from app.core.constants.scheduler_jobs import BUILTIN_SCHEDULER_TASKS, BUILTIN_TASK_IDS
 from app.schemas.yaml_configs import SchedulerTaskConfig
 
 
@@ -12,6 +12,7 @@ def test_scheduler_builtin_task_ids_and_functions_use_short_names() -> None:
     tasks = scheduler._read_default_task_configs()
     task_ids = {task.id for task in tasks}
     function_names = {task.function for task in tasks}
+    registry_task_ids = set(BUILTIN_SCHEDULER_TASKS)
 
     assert "email_alert" in task_ids
     assert "calculate_database" in task_ids
@@ -34,6 +35,12 @@ def test_scheduler_builtin_task_ids_and_functions_use_short_names() -> None:
     assert "send_email_alert_digest" not in function_names
     assert "calculate_database_aggregations" not in function_names
     assert "calculate_account_classification" not in function_names
+
+    assert task_ids == registry_task_ids
+    assert registry_task_ids == BUILTIN_TASK_IDS
+    assert {
+        task.function_name: task.function_target for task in BUILTIN_SCHEDULER_TASKS.values()
+    } == scheduler.TASK_FUNCTIONS
 
     assert {
         "email_alert",

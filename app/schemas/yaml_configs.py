@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.base import PayloadSchema
 
@@ -73,10 +73,37 @@ class SchedulerTaskConfig(PayloadSchema):
         return dict(value)
 
 
+class SchedulerTaskScheduleConfig(PayloadSchema):
+    """单条 scheduler task 调度配置."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    trigger_type: str
+    trigger_params: dict[str, Any] = Field(default_factory=dict)
+    enabled: bool = True
+
+    @field_validator("id", "trigger_type")
+    @classmethod
+    def _strip_required_text(cls, value: str) -> str:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("字段不能为空")
+        return value.strip()
+
+    @field_validator("trigger_params", mode="before")
+    @classmethod
+    def _coerce_trigger_params(cls, value: Any) -> Any:
+        if value is None:
+            return {}
+        if not isinstance(value, Mapping):
+            raise ValueError("trigger_params 必须为对象")  # noqa: TRY004
+        return dict(value)
+
+
 class SchedulerTasksConfigFile(PayloadSchema):
     """`scheduler_tasks.yaml` 文件结构."""
 
-    default_tasks: list[SchedulerTaskConfig]
+    default_tasks: list[SchedulerTaskScheduleConfig]
 
     @model_validator(mode="before")
     @classmethod
@@ -150,5 +177,6 @@ __all__ = [
     "DatabaseFilterRuleConfig",
     "DatabaseFiltersConfigFile",
     "SchedulerTaskConfig",
+    "SchedulerTaskScheduleConfig",
     "SchedulerTasksConfigFile",
 ]

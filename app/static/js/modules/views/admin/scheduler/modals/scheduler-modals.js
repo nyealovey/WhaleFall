@@ -104,19 +104,56 @@
         function fillEditForm(job) {
             setFieldValue('#editJobId', job.id);
             setFieldValue('#editJobName', job.name);
+            const nameField = document.getElementById('editJobName');
+            if (nameField) {
+                const canEditName = canEditField(job, 'name');
+                nameField.disabled = !canEditName;
+                nameField.classList.toggle('form-control-plaintext', !canEditName);
+            }
 
             const funcValue = job.func || job.name;
             const funcField = document.getElementById('editJobFunction');
             if (funcField) {
-                funcField.value = funcValue;
-                funcField.disabled = true;
-                funcField.classList.add('form-control-plaintext');
+                fillFunctionField(funcField, job, funcValue);
+                const canEditFunc = canEditField(job, 'func');
+                funcField.disabled = !canEditFunc;
+                funcField.classList.toggle('form-control-plaintext', !canEditFunc);
             }
 
             // 触发器固定为 cron
             toggleTriggerConfig('cron');
             const triggerArgs = parseTriggerArgs(job.trigger_args);
             populateCron(triggerArgs);
+        }
+
+        /**
+         * 判断指定字段是否允许编辑。
+         *
+         * @param {Object} job - 任务对象
+         * @param {string} fieldName - 字段名
+         * @return {boolean} 字段是否可编辑
+         */
+        function canEditField(job, fieldName) {
+            return Array.isArray(job?.editable_fields) && job.editable_fields.includes(fieldName);
+        }
+
+        /**
+         * 使用后端任务元数据填充函数下拉框。
+         *
+         * @param {HTMLSelectElement} funcField - 函数字段
+         * @param {Object} job - 任务对象
+         * @param {string} funcValue - 函数值
+         * @return {void}
+         */
+        function fillFunctionField(funcField, job, funcValue) {
+            while (funcField.firstChild) {
+                funcField.removeChild(funcField.firstChild);
+            }
+            const option = document.createElement('option');
+            option.value = funcValue;
+            option.textContent = job.task_name ? `${job.task_name} (${funcValue})` : funcValue;
+            funcField.appendChild(option);
+            funcField.value = funcValue;
         }
 
         /**
@@ -219,15 +256,6 @@
          * @return {Object} 提交数据对象
          */
         function buildPayload(formElement, formData, originalJob) {
-            const isBuiltInJob = [
-                'sync_accounts',
-                'sync_veeam_backups',
-                'sync_databases',
-                'calculate_database',
-                'calculate_account',
-                'email_alert',
-            ].includes(originalJob.id);
-
             const payload = {
                 trigger_type: 'cron',
             };
@@ -252,8 +280,10 @@
                 payload.year = year;
             }
 
-            if (!isBuiltInJob) {
+            if (canEditField(originalJob, 'name')) {
                 payload.name = formData.get('name') || originalJob.name;
+            }
+            if (canEditField(originalJob, 'func')) {
                 const editFuncField = formElement.querySelector('#editJobFunction');
                 if (editFuncField && !editFuncField.disabled) {
                     payload.func = editFuncField.value;

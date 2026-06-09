@@ -16,8 +16,6 @@ def test_read_default_task_configs_validates_and_canonicalizes(tmp_path, monkeyp
             [
                 "default_tasks:",
                 "  - id: '  sync_accounts  '",
-                "    name: '  账户同步  '",
-                "    function: ' sync_accounts '",
                 "    trigger_type: ' cron '",
                 "    trigger_params: {}",
                 "    enabled: true",
@@ -38,6 +36,55 @@ def test_read_default_task_configs_validates_and_canonicalizes(tmp_path, monkeyp
     assert tasks[0].trigger_type == "cron"
     assert tasks[0].trigger_params == {}
     assert tasks[0].enabled is True
+
+
+@pytest.mark.unit
+def test_read_default_task_configs_rejects_identity_fields_from_yaml(tmp_path, monkeypatch) -> None:
+    """内置任务身份字段只能来自 Python registry，YAML 只描述调度策略."""
+    config_path = tmp_path / "scheduler_tasks.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "default_tasks:",
+                "  - id: sync_accounts",
+                "    name: 账户同步",
+                "    function: sync_accounts",
+                "    description: 每日同步所有数据库实例的账户信息",
+                "    trigger_type: cron",
+                "    trigger_params: {}",
+            ],
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(scheduler, "TASK_CONFIG_PATH", config_path)
+
+    with pytest.raises(ValueError):
+        scheduler._read_default_task_configs()
+
+
+@pytest.mark.unit
+def test_read_default_task_configs_rejects_unknown_builtin_task_id(tmp_path, monkeypatch) -> None:
+    """未知默认任务不能绕过 registry 进入调度器."""
+    config_path = tmp_path / "scheduler_tasks.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "default_tasks:",
+                "  - id: missing_builtin_task",
+                "    trigger_type: cron",
+                "    trigger_params: {}",
+            ],
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(scheduler, "TASK_CONFIG_PATH", config_path)
+
+    with pytest.raises(ValueError):
+        scheduler._read_default_task_configs()
 
 
 @pytest.mark.unit

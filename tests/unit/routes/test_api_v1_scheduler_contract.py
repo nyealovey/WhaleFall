@@ -70,7 +70,9 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
         return [
             SchedulerJobListItem(
                 id="job-1",
+                task_id="job-1",
                 name="job-1",
+                task_name="job-1",
                 description="job-1",
                 next_run_time=None,
                 last_run_time=None,
@@ -78,6 +80,7 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
                 trigger_args={"minute": "*"},
                 state="STATE_RUNNING",
                 is_builtin=True,
+                editable_fields=("trigger",),
                 func="func",
                 args=(),
                 kwargs={},
@@ -122,6 +125,9 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
     assert payload.get("success") is True
     data = payload.get("data")
     assert isinstance(data, list)
+    assert data[0]["task_id"] == "job-1"
+    assert data[0]["task_name"] == "job-1"
+    assert data[0]["editable_fields"] == ["trigger"]
 
     detail_response = auth_client.get("/api/v1/scheduler/jobs/job-1")
     assert detail_response.status_code == 200

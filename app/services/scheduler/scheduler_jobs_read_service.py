@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.constants.scheduler_jobs import BUILTIN_TASK_IDS
+from app.core.constants.scheduler_jobs import BUILTIN_SCHEDULER_TASKS
 from app.core.exceptions import NotFoundError, SystemError
 from app.core.types.scheduler import SchedulerJobDetail, SchedulerJobListItem
 from app.repositories.scheduler_jobs_repository import SchedulerJobsRepository
@@ -82,17 +82,23 @@ class SchedulerJobsReadService:
         state = "STATE_RUNNING" if scheduler.running and job.next_run_time else "STATE_PAUSED"
 
         last_run_time = self._repository.lookup_job_last_run(job_id=job.id)
+        builtin_task = BUILTIN_SCHEDULER_TASKS.get(job.id)
+        is_builtin = builtin_task is not None
+        task_name = builtin_task.task_name if builtin_task else job.name
 
         return SchedulerJobListItem(
             id=job.id,
-            name=job.name,
-            description=job.name,
+            task_id=job.id,
+            name=task_name,
+            task_name=task_name,
+            description=builtin_task.description if builtin_task else job.name,
             next_run_time=(job.next_run_time.isoformat() if job.next_run_time else None),
             last_run_time=last_run_time,
             trigger_type=trigger_type,
             trigger_args=trigger_args,
             state=state,
-            is_builtin=(job.id in BUILTIN_TASK_IDS),
+            is_builtin=is_builtin,
+            editable_fields=builtin_task.editable_fields if builtin_task else (),
             func=(job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)),
             args=job.args,
             kwargs=job.kwargs,

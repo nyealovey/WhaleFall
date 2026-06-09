@@ -24,7 +24,8 @@ from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from yaml import YAMLError
 
-from app.schemas.yaml_configs import SchedulerTaskConfig, SchedulerTasksConfigFile
+from app.core.constants.scheduler_jobs import BUILTIN_SCHEDULER_TASKS
+from app.schemas.yaml_configs import SchedulerTaskConfig, SchedulerTaskScheduleConfig, SchedulerTasksConfigFile
 from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
@@ -62,28 +63,18 @@ DEFAULT_TASK_CREATION_EXCEPTIONS: tuple[type[Exception], ...] = (
 CONFIG_IO_EXCEPTIONS: tuple[type[Exception], ...] = (OSError, YAMLError)
 CRON_FIELDS = ("second", "minute", "hour", "day", "month", "day_of_week", "year")
 TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
-TASK_FUNCTIONS: dict[str, JobFunc | str] = {
-    "sync_accounts": "app.tasks.accounts_sync_tasks:sync_accounts",
-    "sync_veeam_backups": "app.tasks.veeam_backup_sync_tasks:sync_veeam_backups",
-    "sync_databases": "app.tasks.capacity_collection_tasks:sync_databases",
-    "calculate_database": "app.tasks.capacity_aggregation_tasks:calculate_database",
-    "calculate_account": "app.tasks.account_classification_daily_tasks:calculate_account",
-    "email_alert": "app.tasks.email_alert_tasks:email_alert",
-    "sync_cluster_status": "app.tasks.cluster_status_sync_tasks:sync_cluster_status",
+TASK_FUNCTIONS: dict[str, str] = {
+    task.function_name: task.function_target for task in BUILTIN_SCHEDULER_TASKS.values()
 }
 
 
 def _load_task_callable(function_name: str) -> JobFunc | None:
     """按需加载任务函数,避免在导入阶段触发循环依赖."""
     target = TASK_FUNCTIONS.get(function_name)
-    if callable(target):
-        return target
     if isinstance(target, str):
         module_path, attr_name = target.split(":", 1)
         module = import_module(module_path)
-        func = getattr(module, attr_name)
-        TASK_FUNCTIONS[function_name] = func
-        return func
+        return getattr(module, attr_name)
     return None
 
 
@@ -496,7 +487,25 @@ def _read_default_task_configs() -> list[SchedulerTaskConfig]:
     except PydanticValidationError as exc:
         msg = f"配置文件格式错误: {exc}"
         raise ValueError(msg) from exc
-    return parsed.default_tasks
+    return [_build_default_task_config(task_schedule) for task_schedule in parsed.default_tasks]
+
+
+def _build_default_task_config(task_schedule: SchedulerTaskScheduleConfig) -> SchedulerTaskConfig:
+    """用 registry 身份元数据补齐 YAML 调度策略."""
+    task_meta = BUILTIN_SCHEDULER_TASKS.get(task_schedule.id)
+    if task_meta is None:
+        msg = f"未知内置任务: {task_schedule.id}"
+        raise ValueError(msg)
+
+    return SchedulerTaskConfig(
+        id=task_schedule.id,
+        name=task_meta.task_name,
+        function=task_meta.function_name,
+        trigger_type=task_schedule.trigger_type,
+        trigger_params=task_schedule.trigger_params,
+        enabled=task_schedule.enabled,
+        description=task_meta.description,
+    )
 
 
 def _register_task_from_config(task_config: SchedulerTaskConfig, *, force: bool) -> None:
