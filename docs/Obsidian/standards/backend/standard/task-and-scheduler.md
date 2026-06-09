@@ -8,7 +8,7 @@ tags:
 status: active
 enforcement: standard
 created: 2025-12-25
-updated: 2026-01-22
+updated: 2026-06-09
 owner: WhaleFall Team
 scope: "`app/scheduler.py`, `app/tasks/**`, 调度器管理路由与后台线程"
 related:
@@ -45,14 +45,15 @@ related:
 
 ### 3) 任务注册与配置（强约束）
 
-- MUST：新增任务需同时更新：
-  - `app/scheduler.py` 的 `TASK_FUNCTIONS`（注册任务名到可导入的函数路径）
-  - `app/config/scheduler_tasks.yaml`（新增/调整默认 job 配置）
+- MUST：内置任务元数据以 `app/core/constants/scheduler_jobs.py` 的 `BUILTIN_SCHEDULER_TASKS` 为源头；`app/scheduler.py` 的 `TASK_FUNCTIONS` 必须从该 registry 派生，不得手写第二份映射。
+- MUST：`app/config/scheduler_tasks.yaml` 只维护默认 job 调度配置（trigger/启停/时间参数等），不得重复维护任务名称、函数路径、内置可编辑字段等元数据。
+- MUST：新增内置任务时需更新 `BUILTIN_SCHEDULER_TASKS`；如需要默认启用或预置调度，再同步更新 `scheduler_tasks.yaml`。
 - SHOULD：任务函数保持稳定的导入路径，避免重构导致调度器找不到 callable。
 
 ### 4) 可观测性与失败处理
 
 - MUST：任务必须使用结构化日志（`get_system_logger()` 或模块 logger），禁止 `print`。
+- MUST：写入 `TaskRun`/`TaskRunItem` 的任务必须通过 `TaskRunsWriteService` 处理 run 复用/创建、取消判断、summary 写入、失败收尾与 `finalize_run`，不得在任务文件里重复手写 pending/running item 扫描和 run 状态终结。
 - SHOULD：任务日志包含 `job_id/task_name` 等维度，便于在日志中心过滤。
 - SHOULD：任务失败时只记录必要诊断信息，避免把敏感数据写入日志(详见 [[standards/backend/standard/sensitive-data-handling|敏感数据处理]])。
 
@@ -93,7 +94,9 @@ def run_task() -> None:
 ## 门禁/检查方式
 
 - 评审检查：
-  - 新增任务是否同时更新 `TASK_FUNCTIONS` 与 `scheduler_tasks.yaml`？
+  - 新增内置任务是否更新 `BUILTIN_SCHEDULER_TASKS`，且 `TASK_FUNCTIONS` 仍由 registry 派生？
+  - 默认调度是否只在 `scheduler_tasks.yaml` 维护 trigger/启停/时间参数？
+  - 任务失败路径是否通过 `TaskRunsWriteService.mark_run_failed()` 或 `finalize_run_with_summary()` 收尾？
   - 是否在无 app context 场景里安全地创建 app 并包裹？
 - 运行期观察：通过调度器页面/日志中心确认任务未重复执行（同一时间窗口只有一个实例在跑）。
 
@@ -101,3 +104,4 @@ def run_task() -> None:
 
 - 2025-12-25：新增标准文档，固化 app context、单实例锁与任务注册配置要求。
 - 2026-01-08: 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter.
+- 2026-06-09：同步内置任务 registry 源头与 `TaskRun` 生命周期 helper 要求。

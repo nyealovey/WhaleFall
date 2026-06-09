@@ -11,7 +11,6 @@ from app import create_app, db
 from app.core.constants.status_types import TaskRunStatus
 from app.core.exceptions import ValidationError
 from app.models.ad_domain_config import AdDomainConfig
-from app.models.task_run import TaskRun
 from app.repositories.ad_domain_config_repository import AdDomainConfigRepository
 from app.services.ad_sync.ad_account_match_service import AdAccountMatchService, AdDomainMatchResult
 from app.services.ad_sync.ldap_provider import AdPrincipalsFetchResult, LdapProvider
@@ -50,12 +49,8 @@ def _resolve_run_id(
     created_by: int | None,
     run_id: str | None,
 ) -> str:
-    if run_id:
-        existing_run = TaskRun.query.filter_by(run_id=run_id).first()
-        if existing_run is None:
-            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": run_id})
-        return run_id
-    resolved_run_id = task_runs_service.start_run(
+    resolved_run_id = task_runs_service.resolve_or_start_run(
+        run_id=run_id,
         task_key="sync_ad_accounts",
         task_name="AD 域账户同步",
         task_category="ad_sync",
@@ -256,19 +251,17 @@ def _finalize_run(
     totals: AdDomainMatchResult,
     fetch_totals: AdFetchTotals,
 ) -> None:
-    run = TaskRun.query.filter_by(run_id=run_id).first()
-    if run is not None:
-        run.summary_json = _summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=_summary(
             domains_total=domains_total,
             domains_successful=domains_successful,
             domains_failed=domains_failed,
             totals=totals,
             fetch_totals=fetch_totals,
-        )
-    task_runs_service.finalize_run(run_id)
-    run = TaskRun.query.filter_by(run_id=run_id).first()
-    if run is not None and domains_failed and domains_successful:
-        run.status = TaskRunStatus.COMPLETED_WITH_ERRORS
+        ),
+        status_override=TaskRunStatus.COMPLETED_WITH_ERRORS if domains_failed and domains_successful else None,
+    )
     db.session.commit()
 
 

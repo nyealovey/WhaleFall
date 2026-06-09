@@ -14,8 +14,6 @@ from app.core.exceptions import AppError, ValidationError
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.sqlserver_cluster import SQLServerCluster, SQLServerClusterInstance
-from app.models.task_run import TaskRun
-from app.models.task_run_item import TaskRunItem
 from app.services.accounts_sync.accounts_sync_task_service import AccountsSyncTaskService
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
@@ -75,14 +73,8 @@ def _resolve_run_id(
     run_id: str | None,
 ) -> str:
     trigger_source = "manual" if manual_run else "scheduled"
-    resolved_run_id = run_id
-    if resolved_run_id:
-        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-        if existing_run is None:
-            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
-        return resolved_run_id
-
-    resolved_run_id = task_runs_service.start_run(
+    resolved_run_id = task_runs_service.resolve_or_start_run(
+        run_id=run_id,
         task_key="sync_accounts",
         task_name="账户同步",
         task_category="account",
@@ -95,15 +87,10 @@ def _resolve_run_id(
     return resolved_run_id
 
 
-def _is_cancelled(run_id: str) -> bool:
-    current = TaskRun.query.filter_by(run_id=run_id).first()
-    return bool(current and current.status == "cancelled")
-
-
 def _finalize_no_instances(*, task_runs_service: TaskRunsWriteService, run_id: str, manual_run: bool) -> None:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_sync_accounts_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_sync_accounts_summary(
             task_key="sync_accounts",
             inputs={"manual_run": manual_run},
             instances_total=0,
@@ -116,8 +103,8 @@ def _finalize_no_instances(*, task_runs_service: TaskRunsWriteService, run_id: s
             session_id=None,
             skipped=True,
             skip_reason="没有找到启用的数据库实例",
-        )
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
 
 
@@ -249,7 +236,7 @@ def _sync_instances(
     totals = _AccountsSyncTotals()
 
     for i, instance in enumerate(instances):
-        if _is_cancelled(run_id):
+        if task_runs_service.is_cancelled(run_id):
             sync_logger.info(
                 "任务已取消,提前退出实例循环",
                 module="accounts_sync",
@@ -456,9 +443,9 @@ def _finalize_success(
     session.completed_at = time_utils.now()
     db.session.commit()
 
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_sync_accounts_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_sync_accounts_summary(
             task_key="sync_accounts",
             inputs={"manual_run": manual_run},
             instances_total=len(instances),
@@ -472,9 +459,8 @@ def _finalize_success(
             ag_clusters_failed=ag_totals.clusters_failed,
             ag_accounts_synced=ag_totals.accounts_synced,
             session_id=session.session_id,
-        )
-
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
 
     sync_logger.info(
@@ -505,18 +491,8 @@ def _finalize_failure(
         session.failed_instances = len(instances)
         db.session.commit()
 
-    now = time_utils.now()
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run and current_run.status != "cancelled":
-        current_run.error_message = str(exc)
-        current_run.completed_at = now
-        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-            if item.status in {"pending", "running"}:
-                item.status = "failed"
-                item.error_message = str(exc)
-                item.completed_at = now
-        task_runs_service.finalize_run(run_id)
-        db.session.commit()
+    task_runs_service.mark_run_failed(run_id, error_message=str(exc))
+    db.session.commit()
 
     sync_logger.exception(
         "账户同步任务失败",
@@ -678,7 +654,7 @@ def sync_accounts(
         session: SyncSession | None = None
         instances: list[Instance] = []
         try:
-            if _is_cancelled(resolved_run_id):
+            if task_runs_service.is_cancelled(resolved_run_id):
                 sync_logger.info(
                     "任务已取消,跳过执行",
                     module="accounts_sync",
@@ -737,7 +713,7 @@ def sync_accounts(
             )
             ag_totals = (
                 _AgAccountsSyncTotals()
-                if _is_cancelled(resolved_run_id)
+                if task_runs_service.is_cancelled(resolved_run_id)
                 else _sync_ag_clusters(
                     sync_logger=sync_logger,
                     task_runs_service=task_runs_service,

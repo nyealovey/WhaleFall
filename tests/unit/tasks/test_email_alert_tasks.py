@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
-from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -112,17 +111,6 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
 
     monkeypatch.setattr(email_alert_tasks, "EmailAlertDigestService", lambda: _StubDigestService())
 
-    run = SimpleNamespace(status="running", error_message=None, completed_at=None, summary_json=None)
-
-    class _StubQuery:
-        def filter_by(self, **_: object):
-            return self
-
-        def first(self):
-            return run
-
-    monkeypatch.setattr(email_alert_tasks, "TaskRun", SimpleNamespace(query=_StubQuery()))
-
     class _StubTaskRunsWriteService:
         def __init__(self) -> None:
             self.finalized: list[str] = []
@@ -130,7 +118,7 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
             self.init_calls: list[tuple[str, list[TaskRunItemInit]]] = []
             self.completed_calls: list[dict[str, object]] = []
 
-        def start_run(self, **kwargs: object) -> str:
+        def resolve_or_start_run(self, **kwargs: object) -> str:
             self.started.append(dict(kwargs))
             return "run-1"
 
@@ -145,7 +133,7 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
             payload.update(cast("dict[str, object]", kwargs))
             self.completed_calls.append(payload)
 
-        def finalize_run(self, run_id: str) -> None:
+        def finalize_run_with_summary(self, run_id: str, **_: object) -> None:
             self.finalized.append(run_id)
 
     task_runs_service = _StubTaskRunsWriteService()
@@ -161,6 +149,7 @@ def test_email_alert_skips_send_step_when_no_pending_events(monkeypatch) -> None
     assert result["event_count"] == 0
     assert task_runs_service.started == [
         {
+            "run_id": None,
             "task_key": "email_alert",
             "task_name": "邮件告警汇总",
             "task_category": "notification",

@@ -16,6 +16,7 @@ from uuid import uuid4
 
 from app import db
 from app.core.constants.status_types import TaskRunStatus
+from app.core.exceptions import ValidationError
 from app.models.task_run import TaskRun
 from app.models.task_run_item import TaskRunItem
 from app.repositories.task_runs_repository import TaskRunsRepository
@@ -87,6 +88,35 @@ class TaskRunsWriteService:
         run.progress_failed = 0
         db.session.add(run)
         return run_id
+
+    def resolve_or_start_run(
+        self,
+        *,
+        run_id: str | None,
+        task_key: str,
+        task_name: str,
+        task_category: str,
+        trigger_source: str,
+        created_by: int | None = None,
+        summary_json: dict[str, Any] | None = None,
+        result_url: str | None = None,
+    ) -> str:
+        """复用外部 run_id，或创建新的 TaskRun."""
+        if run_id:
+            run = TaskRun.query.filter_by(run_id=run_id).first()
+            if run is None:
+                raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": run_id})
+            return run_id
+
+        return self.start_run(
+            task_key=task_key,
+            task_name=task_name,
+            task_category=task_category,
+            trigger_source=trigger_source,
+            created_by=created_by,
+            summary_json=summary_json,
+            result_url=result_url,
+        )
 
     def init_items(self, run_id: str, *, items: list[TaskRunItemInit]) -> None:
         """批量初始化 TaskRunItem，并更新 run.progress_total."""
@@ -198,6 +228,71 @@ class TaskRunsWriteService:
             run.status = TaskRunStatus.FAILED if failed > 0 else TaskRunStatus.COMPLETED
 
         run.completed_at = time_utils.now()
+
+    def is_cancelled(self, run_id: str) -> bool:
+        """判断 TaskRun 是否已取消."""
+        return self._get_run_or_error(run_id).status == TaskRunStatus.CANCELLED
+
+    def write_summary(self, run_id: str, summary_json: dict[str, Any]) -> bool:
+        """写入 TaskRun.summary_json；已取消的 run 保持不变."""
+        run = self._get_run_or_error(run_id)
+        if run.status == TaskRunStatus.CANCELLED:
+            return False
+
+        run.summary_json = self._ensure_json_serializable(summary_json)
+        return True
+
+    def mark_run_failed(
+        self,
+        run_id: str,
+        *,
+        error_message: str,
+        summary_json: dict[str, Any] | None = None,
+    ) -> None:
+        """将 run 标记为 failed，并统一收尾 pending/running 子项."""
+        run = self._get_run_or_error(run_id)
+        if run.status == TaskRunStatus.CANCELLED:
+            return
+
+        now = time_utils.now()
+        for item in TaskRunsRepository.list_run_items(run_id):
+            if item.status in TaskRunStatus.IN_PROGRESS:
+                item.status = TaskRunStatus.FAILED
+                item.completed_at = now
+                item.error_message = error_message
+
+        if summary_json is not None:
+            self.write_summary(run_id, summary_json)
+
+        run.status = TaskRunStatus.FAILED
+        run.error_message = error_message
+        self.finalize_run(run_id)
+
+    def finalize_run_with_summary(
+        self,
+        run_id: str,
+        *,
+        summary_json: dict[str, Any] | None = None,
+        status_override: str | None = None,
+        error_message: str | None = None,
+        clear_error: bool = False,
+    ) -> None:
+        """写入 summary 后汇总 run，支持任务侧的最终状态覆盖."""
+        run = self._get_run_or_error(run_id)
+        if run.status == TaskRunStatus.CANCELLED:
+            return
+
+        if summary_json is not None:
+            self.write_summary(run_id, summary_json)
+
+        self.finalize_run(run_id)
+
+        if status_override is not None:
+            run.status = status_override
+        if error_message is not None:
+            run.error_message = error_message
+        elif clear_error:
+            run.error_message = None
 
     def cancel_run(self, run_id: str) -> bool:
         """取消任务运行(仅 running 可取消)，并将 pending/running 子项标记为 cancelled."""

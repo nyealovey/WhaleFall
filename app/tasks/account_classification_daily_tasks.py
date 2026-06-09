@@ -9,9 +9,6 @@ from datetime import date
 from typing import Any
 
 from app import create_app, db
-from app.core.exceptions import ValidationError
-from app.models.task_run import TaskRun
-from app.models.task_run_item import TaskRunItem
 from app.repositories.account_classification_daily_stats_repository import AccountClassificationDailyStatsRepository
 from app.repositories.account_classification_repository import ClassificationRepository
 from app.services.account_classification.dsl_v4 import DslV4Evaluator
@@ -33,14 +30,8 @@ def _resolve_run_id(
     run_id: str | None,
 ) -> str:
     trigger_source = "manual" if manual_run else "scheduled"
-    resolved_run_id = run_id
-    if resolved_run_id:
-        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-        if existing_run is None:
-            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
-        return resolved_run_id
-
-    resolved_run_id = task_runs_service.start_run(
+    resolved_run_id = task_runs_service.resolve_or_start_run(
+        run_id=run_id,
         task_key="calculate_account",
         task_name="统计账户分类",
         task_category="classification",
@@ -53,11 +44,6 @@ def _resolve_run_id(
     return resolved_run_id
 
 
-def _is_cancelled(run_id: str) -> bool:
-    current = TaskRun.query.filter_by(run_id=run_id).first()
-    return bool(current and current.status == "cancelled")
-
-
 def _finalize_no_rules(
     *,
     task_runs_service: TaskRunsWriteService,
@@ -67,11 +53,10 @@ def _finalize_no_rules(
     computed_at: Any,
     accounts_count: int,
 ) -> dict[str, Any]:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.status = "failed"
-        current_run.error_message = "没有可用的分类规则"
-        current_run.summary_json = build_calculate_account_summary(
+    task_runs_service.mark_run_failed(
+        run_id,
+        error_message="没有可用的分类规则",
+        summary_json=build_calculate_account_summary(
             task_key="calculate_account",
             inputs={"manual_run": manual_run},
             stat_date=stat_date,
@@ -80,8 +65,8 @@ def _finalize_no_rules(
             accounts_count=accounts_count,
             rule_match_rows=0,
             classification_match_rows=0,
-        )
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
     return {"success": False, "message": "没有可用的分类规则", "run_id": run_id}
 
@@ -95,11 +80,10 @@ def _finalize_no_accounts(
     computed_at: Any,
     rules_count: int,
 ) -> dict[str, Any]:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.status = "failed"
-        current_run.error_message = "没有需要统计的账户"
-        current_run.summary_json = build_calculate_account_summary(
+    task_runs_service.mark_run_failed(
+        run_id,
+        error_message="没有需要统计的账户",
+        summary_json=build_calculate_account_summary(
             task_key="calculate_account",
             inputs={"manual_run": manual_run},
             stat_date=stat_date,
@@ -108,14 +92,8 @@ def _finalize_no_accounts(
             accounts_count=0,
             rule_match_rows=0,
             classification_match_rows=0,
-        )
-        now = time_utils.now()
-        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-            if item.status in {"pending", "running"}:
-                item.status = "failed"
-                item.error_message = "没有需要统计的账户"
-                item.completed_at = now
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
     return {"success": False, "message": "没有需要统计的账户", "run_id": run_id}
 
@@ -249,19 +227,7 @@ def _finalize_rule_failure(
         },
     )
 
-    now = time_utils.now()
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.status = "failed"
-        current_run.error_message = str(exc)
-        current_run.completed_at = now
-        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-            if item.status in {"pending", "running"}:
-                item.status = "failed"
-                item.error_message = str(exc)
-                item.completed_at = now
-
-    task_runs_service.finalize_run(run_id)
+    task_runs_service.mark_run_failed(run_id, error_message=str(exc))
     db.session.commit()
 
 
@@ -311,9 +277,9 @@ def _finalize_success(
     rule_match_rows: int,
     classification_match_rows: int,
 ) -> dict[str, Any]:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_calculate_account_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_calculate_account_summary(
             task_key="calculate_account",
             inputs={"manual_run": manual_run},
             stat_date=resolved_date,
@@ -322,9 +288,8 @@ def _finalize_success(
             accounts_count=accounts_count,
             rule_match_rows=rule_match_rows,
             classification_match_rows=classification_match_rows,
-        )
-
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
     return {
         "success": True,
@@ -353,19 +318,8 @@ def _finalize_task_failure(
         error=str(exc),
         run_id=run_id,
     )
-    now = time_utils.now()
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.status = "failed"
-        current_run.error_message = str(exc)
-        current_run.completed_at = now
-        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-            if item.status in {"pending", "running"}:
-                item.status = "failed"
-                item.error_message = str(exc)
-                item.completed_at = now
-        task_runs_service.finalize_run(run_id)
-        db.session.commit()
+    task_runs_service.mark_run_failed(run_id, error_message=str(exc))
+    db.session.commit()
     return {
         "success": False,
         "message": f"账户分类每日统计计算失败: {exc!s}",
@@ -391,7 +345,7 @@ def _calculate_rule_statistics(
     rule_records: list[dict[str, object]] = []
 
     for rule in rules:
-        if _is_cancelled(run_id):
+        if task_runs_service.is_cancelled(run_id):
             sync_logger.info(
                 "任务已取消,提前退出规则循环",
                 module="account_classification_daily_stats",
@@ -480,7 +434,7 @@ def calculate_account(
         )
 
         try:
-            if _is_cancelled(resolved_run_id):
+            if task_runs_service.is_cancelled(resolved_run_id):
                 sync_logger.info(
                     "任务已取消,跳过执行",
                     module="account_classification_daily_stats",
@@ -542,7 +496,7 @@ def calculate_account(
                 daily_stats_repo=daily_stats_repo,
             )
 
-            if _is_cancelled(resolved_run_id):
+            if task_runs_service.is_cancelled(resolved_run_id):
                 return {"success": True, "message": "任务已取消", "run_id": resolved_run_id}
 
             result = _finalize_success(

@@ -826,9 +826,9 @@ class VeeamSyncActionsService:
                 ),
             )
             if finalize_run:
-                self._write_run_summary(
-                    run_id=run_id,
-                    payload=build_sync_veeam_backups_summary(
+                task_runs_service.finalize_run_with_summary(
+                    run_id,
+                    summary_json=build_sync_veeam_backups_summary(
                         task_key="sync_veeam_backups",
                         inputs={"credential_id": int(binding.credential_id)},
                         received_total=cast("VeeamMachineBackupCollection", restore_points_result).received_total,
@@ -854,9 +854,8 @@ class VeeamSyncActionsService:
                         partial_success=(skipped_backup_objects_total > 0 or backup_files_partial_success),
                         error_message=None,
                     ),
-                    error_message=None,
+                    clear_error=True,
                 )
-                task_runs_service.finalize_run(run_id)
             db.session.commit()
             log_with_context(
                 "info",
@@ -929,9 +928,9 @@ class VeeamSyncActionsService:
                 stage_key_prefix=stage_key_prefix,
             )
             if finalize_run:
-                self._write_run_summary(
-                    run_id=run_id,
-                    payload=build_sync_veeam_backups_summary(
+                task_runs_service.finalize_run_with_summary(
+                    run_id,
+                    summary_json=build_sync_veeam_backups_summary(
                         task_key="sync_veeam_backups",
                         inputs={"credential_id": int(binding.credential_id)},
                         received_total=0,
@@ -943,7 +942,6 @@ class VeeamSyncActionsService:
                     ),
                     error_message=str(exc),
                 )
-                task_runs_service.finalize_run(run_id)
             db.session.commit()
             log_with_context(
                 "error",
@@ -996,9 +994,9 @@ class VeeamSyncActionsService:
         data["partial_success"] = bool(data.get("partial_success")) or partial_success
         ext["data"] = data
         summary["ext"] = ext
-        run.summary_json = summary
-        db.session.add(run)
-        db.session.commit()
+        task_runs_service = TaskRunsWriteService()
+        if task_runs_service.write_summary(run_id, summary):
+            db.session.commit()
 
     @staticmethod
     def _write_multi_source_run_result(
@@ -1010,9 +1008,9 @@ class VeeamSyncActionsService:
         error_message: str | None,
     ) -> None:
         task_runs_service = TaskRunsWriteService()
-        VeeamSyncActionsService._write_run_summary(
-            run_id=run_id,
-            payload=build_sync_veeam_backups_summary(
+        task_runs_service.finalize_run_with_summary(
+            run_id,
+            summary_json=build_sync_veeam_backups_summary(
                 task_key="sync_veeam_backups",
                 inputs={"source_binding_ids": [source["source_binding_id"] for source in sources]},
                 received_total=0,
@@ -1023,13 +1021,9 @@ class VeeamSyncActionsService:
                 error_message=error_message,
             ),
             error_message=error_message,
+            status_override="completed" if partial_success else None,
+            clear_error=partial_success,
         )
-        task_runs_service.finalize_run(run_id)
-        if partial_success:
-            run = TaskRun.query.filter_by(run_id=run_id).first()
-            if run is not None and run.status != "cancelled":
-                run.status = "completed"
-                run.error_message = None
         db.session.commit()
 
     @staticmethod
@@ -1222,14 +1216,6 @@ class VeeamSyncActionsService:
                 item_key=VeeamSyncActionsService._stage_item_key(item_key, stage_key_prefix),
                 details_json={"summary": "前序步骤失败，未继续执行"},
             )
-
-    @staticmethod
-    def _write_run_summary(*, run_id: str, payload: dict[str, object], error_message: str | None) -> None:
-        current_run = TaskRun.query.filter_by(run_id=run_id).first()
-        if current_run is None or current_run.status == "cancelled":
-            return
-        current_run.summary_json = payload
-        current_run.error_message = error_message
 
     def _build_all_match_candidates(self, *, match_domains: object) -> tuple[set[str], set[str]]:
         domains = match_domains if isinstance(match_domains, list) else []

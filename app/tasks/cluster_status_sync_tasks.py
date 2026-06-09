@@ -9,11 +9,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
 from app.core.constants.status_types import TaskRunStatus
-from app.core.exceptions import AppError, ValidationError
+from app.core.exceptions import AppError
 from app.models.mysql_cluster import MySQLCluster
 from app.models.sqlserver_cluster import SQLServerCluster
-from app.models.task_run import TaskRun
-from app.models.task_run_item import TaskRunItem
 from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.cluster_status_sync import ClusterStatusSyncService
@@ -63,12 +61,8 @@ def _resolve_run_id(
     created_by: int | None,
     run_id: str | None,
 ) -> str:
-    if run_id:
-        existing_run = TaskRun.query.filter_by(run_id=run_id).first()
-        if existing_run is None:
-            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": run_id})
-        return run_id
-    resolved_run_id = task_runs_service.start_run(
+    resolved_run_id = task_runs_service.resolve_or_start_run(
+        run_id=run_id,
         task_key="sync_cluster_status",
         task_name="群集同步状态检测",
         task_category="cluster",
@@ -182,29 +176,18 @@ def _record_cluster_exception(
 
 
 def _finalize_run(task_runs_service: TaskRunsWriteService, run_id: str, totals: _ClusterStatusTotals) -> None:
-    run = TaskRun.query.filter_by(run_id=run_id).first()
-    if run is not None:
-        run.summary_json = _summary(totals)
-    task_runs_service.finalize_run(run_id)
-    run = TaskRun.query.filter_by(run_id=run_id).first()
-    if run is not None and totals.clusters_failed and totals.clusters_successful:
-        run.status = TaskRunStatus.COMPLETED_WITH_ERRORS
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=_summary(totals),
+        status_override=(
+            TaskRunStatus.COMPLETED_WITH_ERRORS if totals.clusters_failed and totals.clusters_successful else None
+        ),
+    )
     db.session.commit()
 
 
 def _fail_run(task_runs_service: TaskRunsWriteService, run_id: str, exc: Exception) -> None:
-    now = None
-    run = TaskRun.query.filter_by(run_id=run_id).first()
-    if run is not None:
-        run.error_message = str(exc)
-        run.status = TaskRunStatus.FAILED
-        now = run.completed_at
-    for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-        if item.status in TaskRunStatus.IN_PROGRESS:
-            item.status = TaskRunStatus.FAILED
-            item.error_message = str(exc)
-            item.completed_at = now
-    task_runs_service.finalize_run(run_id)
+    task_runs_service.mark_run_failed(run_id, error_message=str(exc))
     db.session.commit()
 
 

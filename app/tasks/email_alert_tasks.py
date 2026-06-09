@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from collections.abc import Mapping
 from typing import Any
 
 from app import create_app, db
-from app.core.exceptions import ValidationError
-from app.models.task_run import TaskRun
 from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.alerts.email_alert_digest_service import EmailAlertDigestService
 from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_system_logger
-from app.utils.time_utils import time_utils
 
 _RULE_ITEMS = (
     ("database_capacity_growth", "数据库容量异常增长"),
@@ -64,13 +62,8 @@ def _resolve_run_id(
     run_id: str | None,
 ) -> str:
     trigger_source = "manual" if manual_run else "scheduled"
-    if run_id:
-        existing_run = TaskRun.query.filter_by(run_id=run_id).first()
-        if existing_run is None:
-            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": run_id})
-        return run_id
-
-    return task_runs_service.start_run(
+    return task_runs_service.resolve_or_start_run(
+        run_id=run_id,
         task_key="email_alert",
         task_name="邮件告警汇总",
         task_category="notification",
@@ -151,46 +144,45 @@ def _write_delivery_steps(
         _write_send_step(task_runs_service, run_id, send_step)
 
 
-def _write_summary(run_id: str, summary: dict[str, Any]) -> None:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is None or current_run.status == "cancelled":
-        return
-
+def _write_summary(task_runs_service: TaskRunsWriteService, run_id: str, summary: dict[str, Any]) -> None:
     delivery_steps = [_as_dict(item) for item in summary.get("delivery_steps") or [] if isinstance(item, Mapping)]
     failed_steps = [step for step in delivery_steps if step.get("status") == "failed"]
     sent_steps = [step for step in delivery_steps if step.get("display_state") == "sent"]
     send_step = _as_dict(summary.get("send_step"))
+    error_message = None
     if failed_steps and not sent_steps:
-        current_run.status = "failed"
-        current_run.error_message = str(
+        error_message = str(
             failed_steps[0].get("error_message") or failed_steps[0].get("summary") or "发送告警汇总失败"
         )
-        current_run.completed_at = time_utils.now()
 
-    current_run.summary_json = TaskRunSummaryFactory.base(
-        task_key="email_alert",
-        metrics=[
-            {"key": "event_count", "label": "事件数", "value": _as_int(summary.get("event_count")), "unit": "条"},
-            {
-                "key": "recipient_count",
-                "label": "收件人数",
-                "value": _as_int(summary.get("recipient_count")),
-                "unit": "个",
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=TaskRunSummaryFactory.base(
+            task_key="email_alert",
+            metrics=[
+                {"key": "event_count", "label": "事件数", "value": _as_int(summary.get("event_count")), "unit": "条"},
+                {
+                    "key": "recipient_count",
+                    "label": "收件人数",
+                    "value": _as_int(summary.get("recipient_count")),
+                    "unit": "个",
+                },
+            ],
+            flags={
+                "skipped": bool(summary.get("skipped", False)),
+                "skip_reason": summary.get("skip_reason"),
             },
-        ],
-        flags={
-            "skipped": bool(summary.get("skipped", False)),
-            "skip_reason": summary.get("skip_reason"),
-        },
-        ext_data={
-            "sent": bool(summary.get("sent", False)),
-            "subject": summary.get("subject"),
-            "event_count": _as_int(summary.get("event_count")),
-            "recipient_count": _as_int(summary.get("recipient_count")),
-            "rule_results": summary.get("rule_results") or [],
-            "send_step": send_step,
-            "delivery_steps": delivery_steps,
-        },
+            ext_data={
+                "sent": bool(summary.get("sent", False)),
+                "subject": summary.get("subject"),
+                "event_count": _as_int(summary.get("event_count")),
+                "recipient_count": _as_int(summary.get("recipient_count")),
+                "rule_results": summary.get("rule_results") or [],
+                "send_step": send_step,
+                "delivery_steps": delivery_steps,
+            },
+        ),
+        error_message=error_message,
     )
 
 
@@ -200,16 +192,14 @@ def _fail_unexpected(
     run_id: str,
     exc: Exception,
 ) -> None:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.status = "failed"
-        current_run.error_message = str(exc)
-        current_run.completed_at = time_utils.now()
-        current_run.summary_json = TaskRunSummaryFactory.base(
+    task_runs_service.write_summary(
+        run_id,
+        TaskRunSummaryFactory.base(
             task_key="email_alert",
             ext_data={"error": str(exc)},
-        )
-    try:
+        ),
+    )
+    with suppress(Exception):
         task_runs_service.fail_item(
             run_id,
             item_type="step",
@@ -217,8 +207,7 @@ def _fail_unexpected(
             error_message=str(exc),
             details_json={"display_state": "failed", "summary": "发送汇总邮件失败"},
         )
-    except Exception:
-        return
+    task_runs_service.mark_run_failed(run_id, error_message=str(exc))
 
 
 def email_alert(
@@ -247,13 +236,11 @@ def email_alert(
             summary = EmailAlertDigestService().send_pending_digest()
             _complete_rule_items(task_runs_service, resolved_run_id, _as_rule_results(summary.get("rule_results")))
             _write_delivery_steps(task_runs_service, resolved_run_id, _as_rule_results(summary.get("delivery_steps")))
-            _write_summary(resolved_run_id, summary)
-            task_runs_service.finalize_run(resolved_run_id)
+            _write_summary(task_runs_service, resolved_run_id, summary)
             db.session.commit()
         except Exception as exc:
             db.session.rollback()
             _fail_unexpected(task_runs_service=task_runs_service, run_id=resolved_run_id, exc=exc)
-            task_runs_service.finalize_run(resolved_run_id)
             db.session.commit()
             logger.exception(
                 "发送邮件告警汇总失败",

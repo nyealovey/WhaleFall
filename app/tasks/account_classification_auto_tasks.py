@@ -14,8 +14,6 @@ from typing import Any
 from app import create_app, db
 from app.core.exceptions import ValidationError
 from app.core.types.account_scope import AccountScope, parse_account_scope
-from app.models.task_run import TaskRun
-from app.models.task_run_item import TaskRunItem
 from app.repositories.account_classification_repository import ClassificationRepository
 from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.account_classification.dsl_v4 import (
@@ -26,7 +24,6 @@ from app.services.account_classification.dsl_v4 import (
 from app.services.task_runs.task_run_summary_builders import build_auto_classify_accounts_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
-from app.utils.time_utils import time_utils
 
 
 def _duration_ms(started_at: float) -> int:
@@ -41,14 +38,8 @@ def _resolve_run_id(
     created_by: int | None,
     run_id: str | None,
 ) -> str:
-    resolved_run_id = run_id
-    if resolved_run_id:
-        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-        if existing_run is None:
-            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
-        return resolved_run_id
-
-    resolved_run_id = task_runs_service.start_run(
+    resolved_run_id = task_runs_service.resolve_or_start_run(
+        run_id=run_id,
         task_key="auto_classify_accounts",
         task_name="自动分类",
         task_category="classification",
@@ -62,11 +53,6 @@ def _resolve_run_id(
     )
     db.session.commit()
     return resolved_run_id
-
-
-def _is_cancelled(run_id: str) -> bool:
-    current = TaskRun.query.filter_by(run_id=run_id).first()
-    return bool(current and current.status == "cancelled")
 
 
 def _get_valid_dsl_v4_expression(rule: Any) -> str:
@@ -121,11 +107,10 @@ def _finalize_run_no_rules(
     started_at: float,
     accounts_count: int,
 ) -> dict[str, Any]:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.status = "failed"
-        current_run.error_message = "没有可用的分类规则"
-        current_run.summary_json = build_auto_classify_accounts_summary(
+    task_runs_service.mark_run_failed(
+        run_id,
+        error_message="没有可用的分类规则",
+        summary_json=build_auto_classify_accounts_summary(
             task_key="auto_classify_accounts",
             inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
             rules_count=0,
@@ -134,8 +119,8 @@ def _finalize_run_no_rules(
             total_classifications_added=0,
             failed_count=0,
             duration_ms=_duration_ms(started_at),
-        )
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
     return {"success": False, "message": "没有可用的分类规则", "run_id": run_id}
 
@@ -168,9 +153,9 @@ def _finalize_run_no_accounts(
             details_json={"skipped": True, "skip_reason": "没有需要分类的账户"},
         )
 
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_auto_classify_accounts_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_auto_classify_accounts_summary(
             task_key="auto_classify_accounts",
             inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
             rules_count=len(rules),
@@ -181,9 +166,8 @@ def _finalize_run_no_accounts(
             duration_ms=_duration_ms(started_at),
             skipped=True,
             skip_reason="没有需要分类的账户",
-        )
-
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
     return {"success": True, "message": "没有需要分类的账户", "run_id": run_id}
 
@@ -233,18 +217,7 @@ def _finalize_rule_failure(
             "classification_id": getattr(rule, "classification_id", None),
         },
     )
-    now = time_utils.now()
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.status = "failed"
-        current_run.error_message = str(exc)
-        current_run.completed_at = now
-        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-            if item.status in {"pending", "running"}:
-                item.status = "failed"
-                item.error_message = str(exc)
-                item.completed_at = now
-    task_runs_service.finalize_run(run_id)
+    task_runs_service.mark_run_failed(run_id, error_message=str(exc))
     db.session.commit()
 
 
@@ -261,9 +234,9 @@ def _finalize_run_success(
     total_matches: int,
     total_classifications_added: int,
 ) -> dict[str, Any]:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_auto_classify_accounts_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_auto_classify_accounts_summary(
             task_key="auto_classify_accounts",
             inputs={"instance_id": instance_id, "account_scope": account_scope.value if account_scope else None},
             rules_count=rules_count,
@@ -272,9 +245,8 @@ def _finalize_run_success(
             total_classifications_added=total_classifications_added,
             failed_count=0,
             duration_ms=_duration_ms(started_at),
-        )
-
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
 
     sync_logger.info(
@@ -325,7 +297,7 @@ def auto_classify_accounts(
                 created_by=created_by,
                 run_id=run_id,
             )
-            if _is_cancelled(resolved_run_id):
+            if task_runs_service.is_cancelled(resolved_run_id):
                 sync_logger.info(
                     "任务已取消,跳过执行",
                     module="account_classification",
@@ -389,7 +361,7 @@ def auto_classify_accounts(
             total_classifications_added = 0
 
             for rule in rules:
-                if _is_cancelled(resolved_run_id):
+                if task_runs_service.is_cancelled(resolved_run_id):
                     sync_logger.info(
                         "任务已取消,提前退出规则循环",
                         module="account_classification",

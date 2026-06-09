@@ -7,9 +7,6 @@ from contextlib import suppress
 from typing import Any
 
 from app import create_app, db
-from app.core.exceptions import ValidationError
-from app.models.task_run import TaskRun
-from app.models.task_run_item import TaskRunItem
 from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.capacity_aggregation_task_runner import (
@@ -207,14 +204,8 @@ def _resolve_task_run_id(
     periods: list[str] | None,
 ) -> str:
     trigger_source = "manual" if manual_run else "scheduled"
-    resolved_run_id = run_id
-    if resolved_run_id:
-        existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-        if existing_run is None:
-            raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
-        return resolved_run_id
-
-    resolved_run_id = task_runs_service.start_run(
+    resolved_run_id = task_runs_service.resolve_or_start_run(
+        run_id=run_id,
         task_key="calculate_database",
         task_name="统计数据库聚合",
         task_category="aggregation",
@@ -237,9 +228,9 @@ def _finalize_skip_run(
     periods: list[str] | None,
     response: dict[str, Any],
 ) -> dict[str, Any]:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_calculate_database_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_calculate_database_summary(
             task_key="calculate_database",
             inputs={"requested_periods": periods},
             periods_executed=[],
@@ -251,8 +242,8 @@ def _finalize_skip_run(
             session_id=None,
             skipped=True,
             skip_reason=str(response.get("message") or ""),
-        )
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
     return {"run_id": run_id, **response}
 
@@ -272,19 +263,8 @@ def _handle_aggregation_task_failure(
 ) -> dict[str, Any]:
     db.session.rollback()
 
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        now = time_utils.now()
-        current_run.status = "failed"
-        current_run.error_message = str(exc)
-        current_run.completed_at = now
-        for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-            if item.status in {"pending", "running"}:
-                item.status = "failed"
-                item.error_message = str(exc)
-                item.completed_at = now
-        task_runs_service.finalize_run(run_id)
-        db.session.commit()
+    task_runs_service.mark_run_failed(run_id, error_message=str(exc))
+    db.session.commit()
 
     result = _handle_aggregation_task_exception(
         exc=exc,
@@ -324,9 +304,9 @@ def _finalize_aggregation_success(
     session.completed_at = time_utils.now()
     db.session.commit()
 
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_calculate_database_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_calculate_database_summary(
             task_key="calculate_database",
             inputs={"requested_periods": periods},
             periods_executed=selected_periods,
@@ -336,9 +316,8 @@ def _finalize_aggregation_success(
             record_instance=total_instance_aggregations,
             record_database=total_database_aggregations,
             session_id=session.session_id if session is not None else None,
-        )
-
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
 
     session_id = getattr(session, "session_id", None)
@@ -417,8 +396,7 @@ def calculate_database(
         )
 
         def _is_cancelled() -> bool:
-            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            return bool(current and current.status == "cancelled")
+            return task_runs_service.is_cancelled(resolved_run_id)
 
         try:
             if _is_cancelled():

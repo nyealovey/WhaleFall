@@ -7,9 +7,6 @@ from typing import Any, cast
 from flask import has_app_context
 
 from app import create_app, db
-from app.core.exceptions import ValidationError
-from app.models.task_run import TaskRun
-from app.models.task_run_item import TaskRunItem
 from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.capacity.capacity_collection_task_runner import (
     CAPACITY_TASK_EXCEPTIONS,
@@ -45,19 +42,8 @@ def _finalize_task_failed(
         db.session.commit()
 
     if run_id and task_runs_service:
-        now = time_utils.now()
-        current_run = TaskRun.query.filter_by(run_id=run_id).first()
-        if current_run is not None and current_run.status != "cancelled":
-            current_run.status = "failed"
-            current_run.error_message = str(exc)
-            current_run.completed_at = now
-            for item in TaskRunItem.query.filter_by(run_id=run_id).all():
-                if item.status in {"pending", "running"}:
-                    item.status = "failed"
-                    item.error_message = str(exc)
-                    item.completed_at = now
-            task_runs_service.finalize_run(run_id)
-            db.session.commit()
+        task_runs_service.mark_run_failed(run_id, error_message=str(exc))
+        db.session.commit()
 
     return {
         "success": False,
@@ -122,9 +108,9 @@ def _finalize_no_active_instances(
     run_id: str,
     manual_run: bool,
 ) -> dict[str, Any]:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_sync_databases_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_sync_databases_summary(
             task_key="sync_databases",
             inputs={"manual_run": manual_run},
             instances_total=0,
@@ -134,8 +120,8 @@ def _finalize_no_active_instances(
             session_id=None,
             skipped=True,
             skip_reason="没有找到活跃的数据库实例",
-        )
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
     return {"run_id": run_id, **runner.no_active_instances_result()}
 
@@ -256,9 +242,9 @@ def _finalize_task_run_success(
     totals: CapacitySyncTotals,
     session_obj: Any | None,
 ) -> None:
-    current_run = TaskRun.query.filter_by(run_id=run_id).first()
-    if current_run is not None and current_run.status != "cancelled":
-        current_run.summary_json = build_sync_databases_summary(
+    task_runs_service.finalize_run_with_summary(
+        run_id,
+        summary_json=build_sync_databases_summary(
             task_key="sync_databases",
             inputs={"manual_run": manual_run},
             instances_total=len(active_instances),
@@ -266,9 +252,8 @@ def _finalize_task_run_success(
             instances_failed=totals.total_failed,
             total_size_mb=totals.total_collected_size_mb,
             session_id=getattr(session_obj, "session_id", None),
-        )
-
-    task_runs_service.finalize_run(run_id)
+        ),
+    )
     db.session.commit()
 
 
@@ -306,27 +291,20 @@ def sync_databases(
         task_runs_service = TaskRunsWriteService()
         alert_event_service = EmailAlertEventService()
 
-        trigger_source = "manual" if manual_run else "scheduled"
-        resolved_run_id = run_id
-        if resolved_run_id:
-            existing_run = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            if existing_run is None:
-                raise ValidationError("run_id 不存在,无法写入任务运行记录", extra={"run_id": resolved_run_id})
-        else:
-            resolved_run_id = task_runs_service.start_run(
-                task_key="sync_databases",
-                task_name="数据库同步",
-                task_category="capacity",
-                trigger_source=trigger_source,
-                created_by=created_by,
-                summary_json=None,
-                result_url="/databases/ledgers",
-            )
-            db.session.commit()
+        resolved_run_id = task_runs_service.resolve_or_start_run(
+            run_id=run_id,
+            task_key="sync_databases",
+            task_name="数据库同步",
+            task_category="capacity",
+            trigger_source="manual" if manual_run else "scheduled",
+            created_by=created_by,
+            summary_json=None,
+            result_url="/databases/ledgers",
+        )
+        db.session.commit()
 
         def _is_cancelled() -> bool:
-            current = TaskRun.query.filter_by(run_id=resolved_run_id).first()
-            return bool(current and current.status == "cancelled")
+            return task_runs_service.is_cancelled(resolved_run_id)
 
         active_instances: list[Any] = []
         session_obj: Any | None = None

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any
@@ -107,39 +106,19 @@ def test_sync_databases_unclassified_exception_finalizes_run(monkeypatch) -> Non
 
     monkeypatch.setattr(capacity_collection_tasks, "CapacityCollectionTaskRunner", lambda: _StubRunner())
 
-    run = SimpleNamespace(status="running", error_message=None, completed_at=None, summary_json=None)
-    run_items = [SimpleNamespace(status="pending", error_message=None, completed_at=None)]
-
-    class _StubQuery:
-        def __init__(self, first_result: object | None, all_result: Sequence[object] | None = None) -> None:
-            self._first_result = first_result
-            self._all_result = list(all_result or [])
-
-        def filter_by(self, **_: object):
-            return self
-
-        def first(self):
-            return self._first_result
-
-        def all(self):
-            return list(self._all_result)
-
-    monkeypatch.setattr(capacity_collection_tasks, "TaskRun", SimpleNamespace(query=_StubQuery(run)))
-    monkeypatch.setattr(
-        capacity_collection_tasks,
-        "TaskRunItem",
-        SimpleNamespace(query=_StubQuery(None, all_result=run_items)),
-    )
-
     class _StubTaskRunsService:
         def __init__(self) -> None:
-            self.finalized: list[str] = []
+            self.failed: list[tuple[str, str]] = []
 
-        def start_run(self, **_: object) -> str:
+        def resolve_or_start_run(self, **_: object) -> str:
             return "run-1"
 
-        def finalize_run(self, run_id: str) -> None:
-            self.finalized.append(run_id)
+        def is_cancelled(self, run_id: str) -> bool:
+            _ = run_id
+            return False
+
+        def mark_run_failed(self, run_id: str, *, error_message: str, **_: object) -> None:
+            self.failed.append((run_id, error_message))
 
     task_runs_service = _StubTaskRunsService()
     monkeypatch.setattr(capacity_collection_tasks, "TaskRunsWriteService", lambda: task_runs_service)
@@ -154,7 +133,5 @@ def test_sync_databases_unclassified_exception_finalizes_run(monkeypatch) -> Non
 
     assert result["success"] is False
     assert rollbacks
-    assert run.status == "failed"
-    assert task_runs_service.finalized == ["run-1"]
-    assert run_items[0].status == "failed"
+    assert task_runs_service.failed == [("run-1", "boom")]
     assert logger.exceptions
