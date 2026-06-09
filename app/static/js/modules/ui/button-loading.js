@@ -146,6 +146,28 @@
     });
   }
 
+  /**
+   * 用统一按钮加载态包裹同步或异步动作。
+   *
+   * @param {string|Element|NodeList|Array<Element>|Object} target 目标按钮或选择器/Umbrella 集合。
+   * @param {Function} action 需要执行的动作。
+   * @param {Object} [options={}] 配置项。
+   * @param {string} [options.loadingText] loading 文案。
+   * @param {string} [options.fallbackText] 恢复时的兜底文本。
+   * @param {"auto"|"icon-only"|"with-text"} [options.mode="auto"] 渲染模式。
+   * @returns {Promise<*>} action 的执行结果。
+   */
+  function withButtonLoading(target, action, options = {}) {
+    const fallbackText = options?.fallbackText || "";
+    setButtonLoading(target, options);
+    return Promise.resolve()
+      .then(action)
+      .finally(() => {
+        clearButtonLoading(target, { fallbackText });
+      });
+  }
+
   global.UI.setButtonLoading = setButtonLoading;
   global.UI.clearButtonLoading = clearButtonLoading;
+  global.UI.withButtonLoading = withButtonLoading;
 })(window);

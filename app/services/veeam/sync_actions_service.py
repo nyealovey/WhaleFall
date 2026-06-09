@@ -17,7 +17,10 @@ from app.models.task_run import TaskRun
 from app.models.veeam_source_binding import VeeamSourceBinding
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.veeam_repository import VeeamRepository
-from app.services.task_runs.task_run_summary_builders import build_sync_veeam_backups_summary
+from app.services.task_runs.task_run_summary_builders import (
+    build_sync_veeam_backups_summary,
+    merge_sync_veeam_sources_summary,
+)
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.services.veeam.matching import (
     build_instance_ip_candidates,
@@ -805,7 +808,9 @@ class VeeamSyncActionsService:
                 context=sync_context,
                 extra={
                     "snapshots_written_total": snapshots_written_total,
-                    "write_strategy": "upsert_preserve_existing" if skipped_backup_objects_total > 0 else "replace_full",
+                    "write_strategy": "upsert_preserve_existing"
+                    if skipped_backup_objects_total > 0
+                    else "replace_full",
                     "preserved_existing_due_to_partial_restore_points": skipped_backup_objects_total > 0,
                 },
                 include_actor=False,
@@ -893,7 +898,9 @@ class VeeamSyncActionsService:
                     "backup_ids_partially_covered_total": backup_file_coverage["backup_ids_partially_covered_total"],
                     "latest_machine_count": len(latest_records),
                     "snapshots_written_total": snapshots_written_total,
-                    "write_strategy": "upsert_preserve_existing" if skipped_backup_objects_total > 0 else "replace_full",
+                    "write_strategy": "upsert_preserve_existing"
+                    if skipped_backup_objects_total > 0
+                    else "replace_full",
                     "preserved_existing_due_to_partial_restore_points": skipped_backup_objects_total > 0,
                     "skipped_invalid": getattr(restore_points_result, "skipped_invalid", 0),
                 },
@@ -984,16 +991,11 @@ class VeeamSyncActionsService:
             return
         if run is None:
             return
-        raw_summary: object = run.summary_json
-        summary: dict[str, Any] = dict(cast("dict[str, Any]", raw_summary)) if isinstance(raw_summary, dict) else {}
-        raw_ext: object = summary.get("ext")
-        ext: dict[str, Any] = dict(cast("dict[str, Any]", raw_ext)) if isinstance(raw_ext, dict) else {}
-        raw_data: object = ext.get("data")
-        data: dict[str, Any] = dict(cast("dict[str, Any]", raw_data)) if isinstance(raw_data, dict) else {}
-        data["sources"] = sources
-        data["partial_success"] = bool(data.get("partial_success")) or partial_success
-        ext["data"] = data
-        summary["ext"] = ext
+        summary = merge_sync_veeam_sources_summary(
+            cast("dict[str, Any]", run.summary_json),
+            sources=sources,
+            partial_success=partial_success,
+        )
         task_runs_service = TaskRunsWriteService()
         if task_runs_service.write_summary(run_id, summary):
             db.session.commit()
@@ -1476,6 +1478,7 @@ class VeeamSyncActionsService:
         if record_backup_at is not None:
             candidates_with_time = [candidate for candidate in filtered_candidates if candidate.backup_at is not None]
             if candidates_with_time:
+
                 def _time_distance_key(candidate: VeeamBackupFileRecord) -> tuple[float, int, str]:
                     if candidate.backup_at is None:
                         return (float("inf"), 1, candidate.backup_file_id or "")

@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from app.schemas.task_run_summary import TaskRunSummaryFactory
+from app.schemas.task_run_summary import TaskRunSummaryFactory, TaskRunSummaryV1
 
 _CHINA_TZ = "Asia/Shanghai"
 
@@ -67,7 +67,9 @@ def build_sync_accounts_summary(
         _metric(key="accounts_created", label="新增账户", value=accounts_created, unit="个", tone="info"),
         _metric(key="accounts_updated", label="更新账户", value=accounts_updated, unit="个", tone="info"),
         _metric(key="accounts_deactivated", label="停用账户", value=accounts_deactivated, unit="个", tone="info"),
-        _metric(key="ag_clusters_successful", label="成功 AG 群集", value=ag_clusters_successful, unit="个", tone="success"),
+        _metric(
+            key="ag_clusters_successful", label="成功 AG 群集", value=ag_clusters_successful, unit="个", tone="success"
+        ),
         _metric(key="ag_clusters_failed", label="失败 AG 群集", value=ag_clusters_failed, unit="个", tone="danger"),
         _metric(key="ag_accounts_synced", label="同步 AG 账户", value=ag_accounts_synced, unit="个", tone="info"),
     ]
@@ -118,6 +120,151 @@ def build_sync_databases_summary(
         "instances": {"total": instances_total, "successful": instances_successful, "failed": instances_failed},
         "total_size_mb": total_size_mb,
         "session_id": session_id,
+    }
+    return TaskRunSummaryFactory.base(
+        task_key=task_key,
+        inputs=_inputs(inputs),
+        metrics=metrics,
+        flags=_flags(skipped=skipped, skip_reason=skip_reason),
+        ext_data=ext_data,
+    )
+
+
+def build_sync_cluster_status_summary(
+    *,
+    inputs: dict[str, Any] | None = None,
+    mysql_clusters_total: int,
+    sqlserver_clusters_total: int,
+    clusters_successful: int,
+    clusters_failed: int,
+    abnormal_database_count: int,
+    abnormal_replica_count: int,
+    task_key: str = "sync_cluster_status",
+    skipped: bool = False,
+    skip_reason: str | None = None,
+) -> dict[str, Any]:
+    """构建 sync_cluster_status 的最终 summary_json(v1)."""
+    metrics = [
+        _metric(key="mysql_clusters_total", label="MySQL 群集", value=mysql_clusters_total, unit="个", tone="info"),
+        _metric(
+            key="sqlserver_clusters_total",
+            label="SQL Server 群集",
+            value=sqlserver_clusters_total,
+            unit="个",
+            tone="info",
+        ),
+        _metric(key="clusters_successful", label="成功群集", value=clusters_successful, unit="个", tone="success"),
+        _metric(
+            key="clusters_failed",
+            label="失败群集",
+            value=clusters_failed,
+            unit="个",
+            tone="danger" if clusters_failed else "success",
+        ),
+        _metric(
+            key="abnormal_database_count",
+            label="异常数据库",
+            value=abnormal_database_count,
+            unit="个",
+            tone="warning" if abnormal_database_count else "success",
+        ),
+        _metric(
+            key="abnormal_replica_count",
+            label="异常副本",
+            value=abnormal_replica_count,
+            unit="个",
+            tone="warning" if abnormal_replica_count else "success",
+        ),
+    ]
+    ext_data = {
+        "clusters": {
+            "mysql_total": mysql_clusters_total,
+            "sqlserver_total": sqlserver_clusters_total,
+            "successful": clusters_successful,
+            "failed": clusters_failed,
+        },
+        "abnormal": {
+            "database_count": abnormal_database_count,
+            "replica_count": abnormal_replica_count,
+        },
+    }
+    return TaskRunSummaryFactory.base(
+        task_key=task_key,
+        inputs=_inputs(inputs),
+        metrics=metrics,
+        flags=_flags(skipped=skipped, skip_reason=skip_reason),
+        ext_data=ext_data,
+    )
+
+
+def build_sync_ad_accounts_summary(
+    *,
+    inputs: dict[str, Any] | None = None,
+    domains_total: int,
+    domains_successful: int,
+    domains_failed: int,
+    accounts_total: int,
+    accounts_normal: int,
+    accounts_disabled: int,
+    accounts_orphaned: int,
+    accounts_updated: int,
+    ad_users_total: int,
+    ad_groups_total: int,
+    ad_principals_total: int,
+    task_key: str = "sync_ad_accounts",
+    skipped: bool = False,
+    skip_reason: str | None = None,
+) -> dict[str, Any]:
+    """构建 sync_ad_accounts 的最终 summary_json(v1)."""
+    metrics = [
+        _metric(key="domains_total", label="域总数", value=domains_total, unit="个", tone="info"),
+        _metric(key="domains_successful", label="成功域", value=domains_successful, unit="个", tone="success"),
+        _metric(
+            key="domains_failed",
+            label="失败域",
+            value=domains_failed,
+            unit="个",
+            tone="danger" if domains_failed else "success",
+        ),
+        _metric(key="accounts_total", label="账户总数", value=accounts_total, unit="个", tone="info"),
+        _metric(key="accounts_normal", label="正常账户", value=accounts_normal, unit="个", tone="success"),
+        _metric(
+            key="accounts_disabled",
+            label="禁用账户",
+            value=accounts_disabled,
+            unit="个",
+            tone="warning" if accounts_disabled else "success",
+        ),
+        _metric(
+            key="accounts_orphaned",
+            label="孤儿账户",
+            value=accounts_orphaned,
+            unit="个",
+            tone="warning" if accounts_orphaned else "success",
+        ),
+        _metric(key="accounts_updated", label="更新账户", value=accounts_updated, unit="个", tone="info"),
+        _metric(key="ad_users_total", label="AD 用户", value=ad_users_total, unit="个", tone="info"),
+        _metric(key="ad_groups_total", label="AD 组", value=ad_groups_total, unit="个", tone="info"),
+        _metric(key="ad_principals_total", label="AD 主体", value=ad_principals_total, unit="个", tone="info"),
+    ]
+    ext_data = {
+        "domains": {
+            "total": domains_total,
+            "successful": domains_successful,
+            "failed": domains_failed,
+        },
+        "accounts": {
+            "total": accounts_total,
+            "normal": accounts_normal,
+            "disabled": accounts_disabled,
+            "orphaned": accounts_orphaned,
+            "updated": accounts_updated,
+        },
+        "ad_principals": {
+            "users_total": ad_users_total,
+            "groups_total": ad_groups_total,
+            "principals_total": ad_principals_total,
+        },
     }
     return TaskRunSummaryFactory.base(
         task_key=task_key,
@@ -331,6 +478,25 @@ def build_sync_veeam_backups_summary(
         flags=_flags(skipped=skipped, skip_reason=skip_reason),
         ext_data=ext_data,
     )
+
+
+def merge_sync_veeam_sources_summary(
+    summary_json: dict[str, Any],
+    *,
+    sources: list[dict[str, object]],
+    partial_success: bool,
+) -> dict[str, Any]:
+    """在合法 sync_veeam_backups envelope 内合并多 source 执行结果."""
+    payload = (
+        TaskRunSummaryV1.model_validate(summary_json).validate_task_key("sync_veeam_backups").model_dump(mode="json")
+    )
+    ext = dict(payload["ext"])
+    data = dict(ext["data"])
+    data["sources"] = [dict(source) for source in sources]
+    data["partial_success"] = bool(data.get("partial_success")) or partial_success
+    ext["data"] = data
+    payload["ext"] = ext
+    return payload
 
 
 def build_calculate_database_aggregations_summary(

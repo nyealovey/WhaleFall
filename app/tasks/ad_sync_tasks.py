@@ -14,6 +14,7 @@ from app.models.ad_domain_config import AdDomainConfig
 from app.repositories.ad_domain_config_repository import AdDomainConfigRepository
 from app.services.ad_sync.ad_account_match_service import AdAccountMatchService, AdDomainMatchResult
 from app.services.ad_sync.ldap_provider import AdPrincipalsFetchResult, LdapProvider
+from app.services.task_runs.task_run_summary_builders import build_sync_ad_accounts_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -85,25 +86,19 @@ def _summary(
     totals: AdDomainMatchResult,
     fetch_totals: AdFetchTotals,
 ) -> dict[str, object]:
-    return {
-        "version": 1,
-        "task_key": "sync_ad_accounts",
-        "status": "ok",
-        "ext": {
-            "type": "sync_ad_accounts",
-            "domains_total": domains_total,
-            "domains_successful": domains_successful,
-            "domains_failed": domains_failed,
-            "accounts_total": totals.total,
-            "accounts_normal": totals.normal,
-            "accounts_disabled": totals.disabled,
-            "accounts_orphaned": totals.orphaned,
-            "accounts_updated": totals.updated,
-            "ad_users_total": fetch_totals.users,
-            "ad_groups_total": fetch_totals.groups,
-            "ad_principals_total": fetch_totals.principals,
-        },
-    }
+    return build_sync_ad_accounts_summary(
+        domains_total=domains_total,
+        domains_successful=domains_successful,
+        domains_failed=domains_failed,
+        accounts_total=totals.total,
+        accounts_normal=totals.normal,
+        accounts_disabled=totals.disabled,
+        accounts_orphaned=totals.orphaned,
+        accounts_updated=totals.updated,
+        ad_users_total=fetch_totals.users,
+        ad_groups_total=fetch_totals.groups,
+        ad_principals_total=fetch_totals.principals,
+    )
 
 
 def _add_results(left: AdDomainMatchResult, right: AdDomainMatchResult) -> AdDomainMatchResult:

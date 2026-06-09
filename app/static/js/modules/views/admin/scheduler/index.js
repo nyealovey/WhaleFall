@@ -180,51 +180,45 @@ function initializeEventHandlers() {
     const purgeButton = selectOne('#purgeKeepBuiltinBtn').first();
     if (purgeButton) {
         purgeButton.addEventListener('click', async function () {
-        const confirmDanger = window.UI?.confirmDanger;
-        if (typeof confirmDanger !== 'function') {
-            toast.error('确认组件未初始化');
-            return;
-        }
+            const confirmDanger = window.UI?.confirmDanger;
+            if (typeof confirmDanger !== 'function') {
+                toast.error('确认组件未初始化');
+                return;
+            }
 
-        const confirmed = await confirmDanger({
-            title: '确认重新初始化任务',
-            message: '该操作将删除所有现有任务，并从配置文件重新加载。',
-            details: [
-                { label: '影响范围', value: '将删除当前任务列表（含暂停/运行中任务）', tone: 'warning' },
-                { label: '提示', value: '建议在低峰期执行，并确认配置文件已更新', tone: 'warning' },
-            ],
-            confirmText: '继续执行',
-            confirmButtonClass: 'btn-warning',
-        });
-        if (!confirmed) {
-            return;
-        }
-        // 显示加载态
-        const original = purgeButton.innerHTML;
-        purgeButton.disabled = true;
-        purgeButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>重新初始化中...';
-
-        if (!ensureSchedulerStore()) {
-            purgeButton.disabled = false;
-            purgeButton.innerHTML = original;
-            return;
-        }
-
-    schedulerStore.actions.reloadJobs()
-        .then(function (resp) {
-            const deletedCount = resp?.data?.deleted_count || 0;
-            const reloadedCount = resp?.data?.reloaded_count || 0;
-            toast.success(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`);
-        })
-        .catch(function (error) {
-            console.error('重新初始化失败:', error);
-            const message = error?.response?.message || error?.message || '网络或服务器错误';
-            toast.error('重新初始化失败: ' + message);
-        })
-        .finally(function () {
-                purgeButton.disabled = false;
-                purgeButton.innerHTML = original;
+            const confirmed = await confirmDanger({
+                title: '确认重新初始化任务',
+                message: '该操作将删除所有现有任务，并从配置文件重新加载。',
+                details: [
+                    { label: '影响范围', value: '将删除当前任务列表（含暂停/运行中任务）', tone: 'warning' },
+                    { label: '提示', value: '建议在低峰期执行，并确认配置文件已更新', tone: 'warning' },
+                ],
+                confirmText: '继续执行',
+                confirmButtonClass: 'btn-warning',
             });
+            if (!confirmed) {
+                return;
+            }
+
+            if (!ensureSchedulerStore()) {
+                return;
+            }
+
+            withSchedulerButtonLoading(
+                purgeButton,
+                () => schedulerStore.actions.reloadJobs(),
+                { loadingText: '重新初始化中...', fallbackText: '重新初始化任务' }
+            )
+                .then(function (resp) {
+                    const deletedCount = resp?.data?.deleted_count || 0;
+                    const reloadedCount = resp?.data?.reloaded_count || 0;
+                    toast.success(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`);
+                })
+                .catch(function (error) {
+                    console.error('重新初始化失败:', error);
+                    const message = error?.response?.message || error?.message || '网络或服务器错误';
+                    toast.error('重新初始化失败: ' + message);
+                });
         });
     }
 
@@ -529,18 +523,18 @@ function enableJob(jobId) {
         return;
     }
     const button = select(`[data-job-id="${jobId}"].btn-enable-job`);
-    showLoadingState(button, '恢复中...');
 
-    schedulerStore.actions.resumeJob(jobId)
+    withSchedulerButtonLoading(
+        button,
+        () => schedulerStore.actions.resumeJob(jobId),
+        { loadingText: '恢复中...', fallbackText: '恢复' }
+    )
         .then(function () {
             toast.success('任务已恢复');
         })
         .catch(function (error) {
             const message = error?.response?.message || error?.message || '未知错误';
             toast.error('恢复失败: ' + message);
-        })
-        .finally(function () {
-            hideLoadingState(button, '恢复');
         });
 }
 
@@ -555,18 +549,18 @@ function disableJob(jobId) {
         return;
     }
     const button = select(`[data-job-id="${jobId}"].btn-disable-job`);
-    showLoadingState(button, '暂停中...');
 
-    schedulerStore.actions.pauseJob(jobId)
+    withSchedulerButtonLoading(
+        button,
+        () => schedulerStore.actions.pauseJob(jobId),
+        { loadingText: '暂停中...', fallbackText: '暂停' }
+    )
         .then(function () {
             toast.success('任务已暂停');
         })
         .catch(function (error) {
             const message = error?.response?.message || error?.message || '未知错误';
             toast.error('暂停失败: ' + message);
-        })
-        .finally(function () {
-            hideLoadingState(button, '暂停');
         });
 }
 
@@ -581,18 +575,18 @@ function runJobNow(jobId) {
         return;
     }
     const button = select(`[data-job-id="${jobId}"].btn-run-job`);
-    showLoadingState(button, '执行中...');
 
-    schedulerStore.actions.runJob(jobId)
+    withSchedulerButtonLoading(
+        button,
+        () => schedulerStore.actions.runJob(jobId),
+        { loadingText: '执行中...', fallbackText: '执行' }
+    )
         .then(function () {
             toast.success('任务已开始执行');
         })
         .catch(function (error) {
             const message = error?.response?.message || error?.message || '未知错误';
             toast.error('执行失败: ' + message);
-        })
-        .finally(function () {
-            hideLoadingState(button, '执行');
         });
 }
 
@@ -633,39 +627,37 @@ async function deleteJob(jobId) {
     }
 
     const button = select(`[data-job-id="${jobId}"].btn-delete-job`);
-    showLoadingState(button, '删除中...');
 
-    schedulerStore.actions.deleteJob(jobId)
+    withSchedulerButtonLoading(
+        button,
+        () => schedulerStore.actions.deleteJob(jobId),
+        { loadingText: '删除中...', fallbackText: '删除' }
+    )
         .then(function () {
             toast.success('任务已删除');
         })
         .catch(function (error) {
             const message = error?.response?.message || error?.message || '未知错误';
             toast.error('删除失败: ' + message);
-        })
-        .finally(function () {
-            hideLoadingState(button, '删除');
         });
 }
 
 /**
- * 占位：查看任务日志。
+ * 使用全局按钮加载态包裹调度器动作。
  *
- * @param {string|number} jobId 任务标识。
- * @returns {void}
+ * @param {string|Element|Object} element 可解析为 Umbrella.js 集合的目标。
+ * @param {Function} action 需要执行的动作。
+ * @param {Object} options loading 配置。
+ * @returns {Promise<*>} action 的执行结果。
  */
-function viewJobLogs(jobId) {
-    const job = getSchedulerJob(jobId);
-    if (!job) {
-        toast.error('任务不存在');
-        return;
+function withSchedulerButtonLoading(element, action, options) {
+    const withButtonLoading = window.UI?.withButtonLoading;
+    if (typeof withButtonLoading !== 'function') {
+        return Promise.reject(new Error('按钮加载组件未初始化'));
     }
-
-    // 这里可以实现查看日志的功能
-    toast.info('日志查看功能待实现');
+    return withButtonLoading(element, action, options);
 }
 
-// 显示加载状态
 /**
  * 为按钮显示加载态。
  *
@@ -675,55 +667,13 @@ function viewJobLogs(jobId) {
  */
 function showLoadingState(element, text) {
     const setButtonLoading = window.UI?.setButtonLoading;
-    if (typeof setButtonLoading === 'function') {
-        setButtonLoading(element, { loadingText: text });
+    if (typeof setButtonLoading !== 'function') {
+        toast.error('按钮加载组件未初始化');
         return;
     }
-
-    const normalized = normalizeElements(element);
-    if (!normalized.length) {
-        return;
-    }
-    normalized.each((node) => {
-        if (!node) {
-            return;
-        }
-        if (typeof node.dataset?.uiOriginalHtml === 'undefined') {
-            node.dataset.uiOriginalHtml = node.innerHTML;
-        }
-        if (typeof node.dataset?.uiOriginalDisabled === 'undefined' && 'disabled' in node) {
-            node.dataset.uiOriginalDisabled = node.disabled ? '1' : '0';
-        }
-
-        const isIconButton = Boolean(node?.classList?.contains('btn-icon'));
-        node.innerHTML = '';
-        const icon = document.createElement('i');
-        icon.className = isIconButton ? 'fas fa-spinner fa-spin' : 'fas fa-spinner fa-spin me-2';
-        icon.setAttribute('aria-hidden', 'true');
-        node.appendChild(icon);
-        if (!isIconButton && text) {
-            node.appendChild(document.createTextNode(text));
-        }
-
-        node.dataset.uiLoading = '1';
-        node.setAttribute('aria-busy', 'true');
-
-        const hasAriaLabel = node.hasAttribute?.('aria-label');
-        const hasAriaLabelledBy = node.hasAttribute?.('aria-labelledby');
-        const title = node.getAttribute?.('title');
-        if (!hasAriaLabel && !hasAriaLabelledBy && title) {
-            node.setAttribute('aria-label', title);
-        }
-
-        if ('disabled' in node) {
-            node.disabled = true;
-        } else {
-            node.setAttribute('aria-disabled', 'true');
-        }
-    });
+    setButtonLoading(element, { loadingText: text });
 }
 
-// 隐藏加载状态
 /**
  * 恢复按钮原有文案并取消禁用。
  *
@@ -733,41 +683,11 @@ function showLoadingState(element, text) {
  */
 function hideLoadingState(element, originalText) {
     const clearButtonLoading = window.UI?.clearButtonLoading;
-    if (typeof clearButtonLoading === 'function') {
-        clearButtonLoading(element, { fallbackText: originalText });
+    if (typeof clearButtonLoading !== 'function') {
+        toast.error('按钮加载组件未初始化');
         return;
     }
-
-    const normalized = normalizeElements(element);
-    if (!normalized.length) {
-        return;
-    }
-    normalized.each((node) => {
-        if (!node) {
-            return;
-        }
-        const originalHtml = node.dataset?.uiOriginalHtml;
-        if (typeof originalHtml !== 'undefined') {
-            node.innerHTML = originalHtml;
-            delete node.dataset.uiOriginalHtml;
-        } else if (originalText) {
-            node.textContent = originalText;
-        }
-
-        delete node.dataset.uiLoading;
-        node.removeAttribute?.('aria-busy');
-        node.removeAttribute?.('aria-disabled');
-
-        if ('disabled' in node) {
-            const originalDisabled = node.dataset?.uiOriginalDisabled;
-            if (typeof originalDisabled !== 'undefined') {
-                node.disabled = originalDisabled === '1';
-                delete node.dataset.uiOriginalDisabled;
-            } else {
-                node.disabled = false;
-            }
-        }
-    });
+    clearButtonLoading(element, { fallbackText: originalText });
 }
 
 
@@ -832,7 +752,6 @@ window.enableJob = enableJob;
 window.disableJob = disableJob;
 window.runJobNow = runJobNow;
 window.deleteJob = deleteJob;
-window.viewJobLogs = viewJobLogs;
 window.getSchedulerJob = getSchedulerJob;
 
 /**

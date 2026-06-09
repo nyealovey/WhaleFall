@@ -54,6 +54,7 @@ related:
 
 - MUST：任务必须使用结构化日志（`get_system_logger()` 或模块 logger），禁止 `print`。
 - MUST：写入 `TaskRun`/`TaskRunItem` 的任务必须通过 `TaskRunsWriteService` 处理 run 复用/创建、取消判断、summary 写入、失败收尾与 `finalize_run`，不得在任务文件里重复手写 pending/running item 扫描和 run 状态终结。
+- MUST：新写入的 `TaskRun.summary_json` 必须是 `version/common/ext` envelope，且 `common.metrics` 必须是 list；任务侧应通过 `app/services/task_runs/task_run_summary_builders.py` 的 builder/facade 构建，不得在任务或业务 service 内手写多种 summary 形状。
 - SHOULD：任务日志包含 `job_id/task_name` 等维度，便于在日志中心过滤。
 - SHOULD：任务失败时只记录必要诊断信息，避免把敏感数据写入日志(详见 [[standards/backend/standard/sensitive-data-handling|敏感数据处理]])。
 
@@ -97,6 +98,7 @@ def run_task() -> None:
   - 新增内置任务是否更新 `BUILTIN_SCHEDULER_TASKS`，且 `TASK_FUNCTIONS` 仍由 registry 派生？
   - 默认调度是否只在 `scheduler_tasks.yaml` 维护 trigger/启停/时间参数？
   - 任务失败路径是否通过 `TaskRunsWriteService.mark_run_failed()` 或 `finalize_run_with_summary()` 收尾？
+  - 新写入的 `TaskRun.summary_json` 是否由 summary builder/facade 生成，并能通过 `TaskRunSummaryV1` 校验？
   - 是否在无 app context 场景里安全地创建 app 并包裹？
 - 运行期观察：通过调度器页面/日志中心确认任务未重复执行（同一时间窗口只有一个实例在跑）。
 
@@ -104,4 +106,4 @@ def run_task() -> None:
 
 - 2025-12-25：新增标准文档，固化 app context、单实例锁与任务注册配置要求。
 - 2026-01-08: 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter.
-- 2026-06-09：同步内置任务 registry 源头与 `TaskRun` 生命周期 helper 要求。
+- 2026-06-09：同步内置任务 registry 源头、`TaskRun` 生命周期 helper 与 `summary_json` envelope 要求。

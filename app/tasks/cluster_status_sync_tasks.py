@@ -12,9 +12,9 @@ from app.core.constants.status_types import TaskRunStatus
 from app.core.exceptions import AppError
 from app.models.mysql_cluster import MySQLCluster
 from app.models.sqlserver_cluster import SQLServerCluster
-from app.schemas.task_run_summary import TaskRunSummaryFactory
 from app.services.alerts.email_alert_event_service import EmailAlertEventService
 from app.services.cluster_status_sync import ClusterStatusSyncService
+from app.services.task_runs.task_run_summary_builders import build_sync_cluster_status_summary
 from app.services.task_runs.task_runs_write_service import TaskRunItemInit, TaskRunsWriteService
 from app.utils.structlog_config import get_sync_logger
 
@@ -42,16 +42,14 @@ class _ClusterStatusTotals:
 
 
 def _summary(totals: _ClusterStatusTotals) -> dict[str, Any]:
-    payload = TaskRunSummaryFactory.base(task_key="sync_cluster_status")
-    payload["metrics"] = {
-        "mysql_clusters_total": totals.mysql_clusters_total,
-        "sqlserver_clusters_total": totals.sqlserver_clusters_total,
-        "clusters_successful": totals.clusters_successful,
-        "clusters_failed": totals.clusters_failed,
-        "abnormal_database_count": totals.abnormal_database_count,
-        "abnormal_replica_count": totals.abnormal_replica_count,
-    }
-    return payload
+    return build_sync_cluster_status_summary(
+        mysql_clusters_total=totals.mysql_clusters_total,
+        sqlserver_clusters_total=totals.sqlserver_clusters_total,
+        clusters_successful=totals.clusters_successful,
+        clusters_failed=totals.clusters_failed,
+        abnormal_database_count=totals.abnormal_database_count,
+        abnormal_replica_count=totals.abnormal_replica_count,
+    )
 
 
 def _resolve_run_id(
@@ -68,7 +66,6 @@ def _resolve_run_id(
         task_category="cluster",
         trigger_source="manual" if manual_run else "scheduled",
         created_by=created_by,
-        summary_json=TaskRunSummaryFactory.base(task_key="sync_cluster_status"),
         result_url="/cluster",
     )
     db.session.commit()

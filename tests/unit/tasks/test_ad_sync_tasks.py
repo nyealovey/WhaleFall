@@ -87,6 +87,14 @@ class _FakeSyncLogger:
         self.exceptions.append((event, fields))
 
 
+def _metric_values(summary_json: dict[str, object]) -> dict[str, object]:
+    common = summary_json["common"]
+    assert isinstance(common, dict)
+    metrics = common["metrics"]
+    assert isinstance(metrics, list)
+    return {metric["key"]: metric["value"] for metric in metrics}
+
+
 @pytest.mark.unit
 def test_sync_ad_accounts_marks_partial_success_and_preserves_failed_domain_accounts(monkeypatch) -> None:
     app = create_app(init_scheduler_on_start=False)
@@ -135,8 +143,10 @@ def test_sync_ad_accounts_marks_partial_success_and_preserves_failed_domain_acco
 
         run = TaskRun.query.filter_by(task_key="sync_ad_accounts").one()
         assert run.status == TaskRunStatus.COMPLETED_WITH_ERRORS
-        assert run.summary_json["ext"]["domains_successful"] == 1
-        assert run.summary_json["ext"]["domains_failed"] == 1
+        assert run.summary_json["ext"]["type"] == "sync_ad_accounts"
+        assert run.summary_json["ext"]["data"]["domains"]["successful"] == 1
+        assert run.summary_json["ext"]["data"]["domains"]["failed"] == 1
+        assert _metric_values(run.summary_json)["domains_failed"] == 1
         assert ok_domain.last_sync_status == "success"
         assert failed_domain.last_sync_status == "failed"
         assert ok_account.ad_disabled_at is not None
@@ -207,9 +217,13 @@ def test_sync_ad_accounts_records_ad_fetch_counts_in_summary_and_item_metrics(mo
 
         run = TaskRun.query.filter_by(task_key="sync_ad_accounts").one()
         item = TaskRunItem.query.filter_by(run_id=run.run_id, item_type="ad_domain").one()
-        assert run.summary_json["ext"]["ad_users_total"] == 2
-        assert run.summary_json["ext"]["ad_groups_total"] == 1
-        assert run.summary_json["ext"]["ad_principals_total"] == 3
+        assert run.summary_json["ext"]["data"]["ad_principals"]["users_total"] == 2
+        assert run.summary_json["ext"]["data"]["ad_principals"]["groups_total"] == 1
+        assert run.summary_json["ext"]["data"]["ad_principals"]["principals_total"] == 3
+        metrics = _metric_values(run.summary_json)
+        assert metrics["ad_users_total"] == 2
+        assert metrics["ad_groups_total"] == 1
+        assert metrics["ad_principals_total"] == 3
         assert item.metrics_json["ad_users_total"] == 2
         assert item.metrics_json["ad_groups_total"] == 1
         assert item.metrics_json["ad_principals_total"] == 3

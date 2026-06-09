@@ -97,6 +97,25 @@ def test_task_runs_write_service_start_run_rejects_raw_dict_summary(app) -> None
 
 
 @pytest.mark.unit
+def test_task_runs_write_service_write_summary_rejects_raw_dict_summary(app) -> None:
+    from app.services.task_runs.task_runs_write_service import TaskRunsWriteService
+
+    _ensure_task_run_tables(app)
+
+    with app.app_context():
+        service = TaskRunsWriteService()
+        run_id = service.start_run(
+            task_key="sync_accounts",
+            task_name="账户同步",
+            task_category="account",
+            trigger_source="manual",
+        )
+
+        with pytest.raises(ValidationError):
+            service.write_summary(run_id, {"hello": "world"})
+
+
+@pytest.mark.unit
 def test_task_runs_write_service_init_items_creates_pending_items_and_updates_total(app) -> None:
     try:
         from app.models.task_run import TaskRun

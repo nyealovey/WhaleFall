@@ -65,6 +65,15 @@ def test_button_system_defines_shared_roles_and_size_tokens() -> None:
     assert ".btn-table-action" in table_css
 
 
+def test_button_loading_exposes_shared_with_button_loading_wrapper() -> None:
+    content = _read_text("app/static/js/modules/ui/button-loading.js")
+
+    assert "function withButtonLoading" in content
+    assert "setButtonLoading(target, options);" in content
+    assert "clearButtonLoading(target, { fallbackText });" in content
+    assert "global.UI.withButtonLoading = withButtonLoading;" in content
+
+
 def test_primary_buttons_keep_filled_background_across_hover_and_active_states() -> None:
     buttons_css = _read_text("app/static/css/components/buttons.css")
     primary_block = _css_block(buttons_css, ".btn-primary")

@@ -7,10 +7,13 @@ from app.services.task_runs.task_run_summary_builders import (
     build_calculate_account_classification_summary,
     build_calculate_database_aggregations_summary,
     build_capacity_aggregate_current_summary,
+    build_sync_ad_accounts_summary,
     build_sync_accounts_summary,
+    build_sync_cluster_status_summary,
     build_sync_databases_summary,
     build_sync_jumpserver_assets_summary,
     build_sync_veeam_backups_summary,
+    merge_sync_veeam_sources_summary,
 )
 
 
@@ -45,6 +48,62 @@ def test_build_sync_databases_summary_has_ext_data() -> None:
     )
     assert payload["ext"]["type"] == "sync_databases"
     assert payload["ext"]["data"]["instances"]["total"] == 2
+
+
+@pytest.mark.unit
+def test_build_sync_cluster_status_summary_has_common_metrics_and_ext_data() -> None:
+    payload = build_sync_cluster_status_summary(
+        inputs={"manual_run": True},
+        mysql_clusters_total=2,
+        sqlserver_clusters_total=3,
+        clusters_successful=4,
+        clusters_failed=1,
+        abnormal_database_count=5,
+        abnormal_replica_count=6,
+    )
+
+    metrics = {metric["key"]: metric["value"] for metric in payload["common"]["metrics"]}
+    assert payload["ext"]["type"] == "sync_cluster_status"
+    assert payload["ext"]["data"]["clusters"] == {
+        "mysql_total": 2,
+        "sqlserver_total": 3,
+        "successful": 4,
+        "failed": 1,
+    }
+    assert payload["ext"]["data"]["abnormal"] == {
+        "database_count": 5,
+        "replica_count": 6,
+    }
+    assert metrics["clusters_failed"] == 1
+
+
+@pytest.mark.unit
+def test_build_sync_ad_accounts_summary_has_common_metrics_and_ext_data() -> None:
+    payload = build_sync_ad_accounts_summary(
+        inputs={"manual_run": True},
+        domains_total=2,
+        domains_successful=1,
+        domains_failed=1,
+        accounts_total=10,
+        accounts_normal=7,
+        accounts_disabled=2,
+        accounts_orphaned=1,
+        accounts_updated=4,
+        ad_users_total=8,
+        ad_groups_total=3,
+        ad_principals_total=11,
+    )
+
+    metrics = {metric["key"]: metric["value"] for metric in payload["common"]["metrics"]}
+    assert payload["ext"]["type"] == "sync_ad_accounts"
+    assert payload["ext"]["data"]["domains"] == {"total": 2, "successful": 1, "failed": 1}
+    assert payload["ext"]["data"]["accounts"]["updated"] == 4
+    assert payload["ext"]["data"]["ad_principals"] == {
+        "users_total": 8,
+        "groups_total": 3,
+        "principals_total": 11,
+    }
+    assert metrics["ad_principals_total"] == 11
 
 
 @pytest.mark.unit
@@ -196,3 +255,43 @@ def test_build_sync_veeam_backups_summary_has_coverage_counts() -> None:
             "error_message": "token error",
         },
     ]
+
+
+@pytest.mark.unit
+def test_merge_sync_veeam_sources_summary_preserves_envelope_and_common_metrics() -> None:
+    payload = build_sync_veeam_backups_summary(
+        task_key="sync_veeam_backups",
+        inputs={"manual_run": True},
+        received_total=3,
+        snapshots_written_total=1,
+        skipped_invalid=0,
+        partial_success=False,
+    )
+
+    merged = merge_sync_veeam_sources_summary(
+        payload,
+        sources=[
+            {
+                "source_binding_id": 1,
+                "source_name": "Veeam A",
+                "status": "completed",
+                "snapshots_written_total": 1,
+                "error_message": None,
+            }
+        ],
+        partial_success=True,
+    )
+
+    assert merged["version"] == 1
+    assert merged["ext"]["type"] == "sync_veeam_backups"
+    assert isinstance(merged["common"]["metrics"], list)
+    assert merged["ext"]["data"]["sources"] == [
+        {
+            "source_binding_id": 1,
+            "source_name": "Veeam A",
+            "status": "completed",
+            "snapshots_written_total": 1,
+            "error_message": None,
+        }
+    ]
+    assert merged["ext"]["data"]["partial_success"] is True

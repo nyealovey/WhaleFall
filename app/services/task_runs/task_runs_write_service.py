@@ -239,7 +239,10 @@ class TaskRunsWriteService:
         if run.status == TaskRunStatus.CANCELLED:
             return False
 
-        run.summary_json = self._ensure_json_serializable(summary_json)
+        resolved_summary_json = (
+            TaskRunSummaryV1.model_validate(summary_json).validate_task_key(run.task_key).model_dump(mode="python")
+        )
+        run.summary_json = self._ensure_json_serializable(resolved_summary_json)
         return True
 
     def mark_run_failed(
