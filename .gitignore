@@ -85,15 +85,16 @@ docs/reports/eslint_*.txt
 # pipenv
 Pipfile.lock
 # Docker
-.dockerignore
 # Temporary files
 *.tmp
 *.temp
 cookies.txt
 # Nginx local SSL (cert/key) - 禁止提交到仓库
 /nginx/local/ssl/
-# Frontend (temporarily disabled)
-frontend/
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
 
 # Git worktrees (Crystal)
 /worktrees/

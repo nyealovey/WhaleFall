@@ -1,4 +1,25 @@
 # 支持代理的Dockerfile - 生产环境
+FROM node:22-alpine AS frontend-build
+
+WORKDIR /frontend
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
+ENV http_proxy=${HTTP_PROXY}
+ENV https_proxy=${HTTPS_PROXY}
+ENV no_proxy=${NO_PROXY}
+
+COPY frontend/package.json frontend/package-lock.json /frontend/
+RUN npm ci
+
+COPY frontend/ /frontend/
+RUN npm run build
+
 FROM ubuntu:22.04 AS base
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive
@@ -92,6 +113,9 @@ RUN /app/.venv/bin/python --version
 
 # 复制应用代码
 COPY . /app/
+
+# 复制 React 控制台构建产物(`/console`)
+COPY --from=frontend-build /frontend/dist /app/frontend/dist
 
 # 创建必要的目录（临时存储）
 RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads

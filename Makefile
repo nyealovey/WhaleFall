@@ -1,7 +1,7 @@
 # 鲸落项目 Makefile
 # 环境选择器和通用命令
 
-.PHONY: help dev prod install clean typecheck
+.PHONY: help dev prod install clean typecheck frontend-install frontend-build frontend-lint frontend-test frontend-typecheck
 
 # 默认目标
 help:
@@ -35,6 +35,11 @@ help:
 	@echo "  clean       - 清理Docker资源"
 	@echo "  version     - 查看版本信息"
 	@echo "  typecheck   - 使用 Pyright 扫描类型问题"
+	@echo "  frontend-install - 安装 React 前端依赖"
+	@echo "  frontend-build   - 构建 React 前端(`/console`)"
+	@echo "  frontend-lint    - 检查 React 前端 lint"
+	@echo "  frontend-test    - 运行 React 前端测试"
+	@echo "  frontend-typecheck - 检查 React 前端类型"
 	@echo ""
 	@echo "=================================="
 
@@ -172,6 +177,26 @@ typecheck:
 	else \
 		pyright; \
 	fi
+
+frontend-install:
+	@echo "📦 安装 React 前端依赖..."
+	@npm --prefix frontend ci
+
+frontend-build:
+	@echo "🏗️ 构建 React 前端..."
+	@npm --prefix frontend run build
+
+frontend-lint:
+	@echo "🔍 检查 React 前端 lint..."
+	@npm --prefix frontend run lint
+
+frontend-test:
+	@echo "🧪 运行 React 前端测试..."
+	@npm --prefix frontend run test
+
+frontend-typecheck:
+	@echo "🔍 检查 React 前端类型..."
+	@npm --prefix frontend run typecheck
 
 # 防止目标被当作文件
 %:

@@ -347,6 +347,7 @@ def configure_blueprints(app: Flask) -> None:
 
     """
     blueprint_specs: list[tuple[str, str, str | None]] = [
+        ("app.routes.console_frontend", "console_frontend_bp", None),
         ("app.routes.main", "main_bp", None),
         ("app.routes.auth", "auth_bp", "/auth"),
         ("app.routes.dashboard", "dashboard_bp", "/dashboard"),

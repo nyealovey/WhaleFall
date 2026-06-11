@@ -19,6 +19,34 @@ server {
         try_files $uri =404;
     }
 
+    # React 控制台(`/console`)构建产物。旧站点继续由 Flask 处理根路径。
+    location = /console {
+        alias /app/frontend/dist/index.html;
+        add_header Cache-Control "no-store";
+    }
+
+    location = /console/ {
+        alias /app/frontend/dist/index.html;
+        add_header Cache-Control "no-store";
+    }
+
+    location = /console/index.html {
+        alias /app/frontend/dist/index.html;
+        add_header Cache-Control "no-store";
+    }
+
+    location ^~ /console/assets/ {
+        alias /app/frontend/dist/assets/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    location ^~ /console/ {
+        alias /app/frontend/dist/;
+        try_files $uri $uri/ /console/index.html;
+    }
+
     # 健康检查
     location /health {
         proxy_pass http://127.0.0.1:5001/health;

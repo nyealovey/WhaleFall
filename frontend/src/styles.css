@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-display: var(--font-family-display);
+  --font-sans: var(--font-family-body);
+  --font-mono: var(--font-family-data);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  color-scheme: light;
+
+  --radius: 0.625rem;
+
+  --font-family-display: "IBM Plex Sans Condensed", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", sans-serif;
+  --font-family-body: "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
+    sans-serif;
+  --font-family-data: "IBM Plex Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+
+  --background: #e8edf1;
+  --foreground: #17202a;
+  --card: rgba(248, 250, 251, 0.94);
+  --card-foreground: #17202a;
+  --popover: #f8fafb;
+  --popover-foreground: #17202a;
+  --primary: #b85c1e;
+  --primary-foreground: #fff8f1;
+  --secondary: #edf2f5;
+  --secondary-foreground: #24313d;
+  --muted: #f3f6f8;
+  --muted-foreground: #4c5c69;
+  --accent: rgba(184, 92, 30, 0.12);
+  --accent-foreground: #8f3e09;
+  --destructive: #cb5d49;
+  --border: rgba(36, 47, 59, 0.12);
+  --input: rgba(36, 47, 59, 0.18);
+  --ring: rgba(184, 92, 30, 0.28);
+
+  --sidebar: #f3f6f8;
+  --sidebar-foreground: #17202a;
+  --sidebar-accent: rgba(22, 29, 38, 0.04);
+  --sidebar-accent-foreground: #17202a;
+  --sidebar-border: rgba(36, 47, 59, 0.12);
+  --sidebar-ring: rgba(184, 92, 30, 0.28);
+
+  --sidebar-width: 15.75rem;
+  --topbar-height: 3.75rem;
+  --layout-max-width-wide: 1920px;
+  --page-spacing-dense: 0.6rem;
+  --metric-card-min-height: 6.25rem;
+  --metric-hero-value: clamp(1.55rem, 0.9vw + 1.1rem, 2.2rem);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    min-width: 320px;
+    margin: 0;
+    font-family: var(--font-family-body);
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+}
