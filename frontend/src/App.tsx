@@ -6,7 +6,10 @@ import { ApiError } from "./api/client";
 import { useLogin, useLogout, useSession } from "./auth/useSession";
 import { AppShell } from "./layout/AppShell";
 import { filterNavigationForRole, flattenNavigationItems, navigationGroups } from "./navigation";
+import { AccountChangeLogsPage, HistoryLogsPage } from "./pages/AuditPages";
+import { CapacityDatabasesPage, CapacityInstancesPage } from "./pages/CapacityPages";
 import { DashboardPage } from "./pages/DashboardPage";
+import { AccountLedgersPage, DatabaseLedgersPage, InstancesPage } from "./pages/ListPages";
 import { LoginPage } from "./pages/LoginPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { RiskCenterPage } from "./pages/RiskCenterPage";
@@ -21,7 +24,20 @@ const queryClient = new QueryClient({
   }
 });
 
-const migratedConsolePaths = ["/dashboard", "/risk-center", "/instance-statistics", "/account-statistics", "/database-statistics"];
+const migratedConsolePaths = [
+  "/dashboard",
+  "/risk-center",
+  "/instances",
+  "/database-ledgers",
+  "/account-ledgers",
+  "/capacity/instances",
+  "/capacity/databases",
+  "/instance-statistics",
+  "/account-statistics",
+  "/database-statistics",
+  "/logs",
+  "/account-change-logs"
+];
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -73,9 +89,16 @@ function ConsoleRoutes() {
           <Route element={<Navigate to="/dashboard" replace />} path="/" />
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<RiskCenterPage />} path="/risk-center" />
+          <Route element={<InstancesPage />} path="/instances" />
+          <Route element={<DatabaseLedgersPage />} path="/database-ledgers" />
+          <Route element={<AccountLedgersPage />} path="/account-ledgers" />
+          <Route element={<CapacityInstancesPage />} path="/capacity/instances" />
+          <Route element={<CapacityDatabasesPage />} path="/capacity/databases" />
           <Route element={<InstanceStatisticsPage />} path="/instance-statistics" />
           <Route element={<AccountStatisticsPage />} path="/account-statistics" />
           <Route element={<DatabaseStatisticsPage />} path="/database-statistics" />
+          <Route element={<HistoryLogsPage />} path="/logs" />
+          <Route element={<AccountChangeLogsPage />} path="/account-change-logs" />
           {visibleItems
             .filter((item) => !migratedConsolePaths.includes(item.consolePath))
             .map((item) => (

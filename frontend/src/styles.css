@@ -66,6 +66,9 @@
   --border: rgba(36, 47, 59, 0.12);
   --input: rgba(36, 47, 59, 0.18);
   --ring: rgba(184, 92, 30, 0.28);
+  --chart-1: #b85c1e;
+  --chart-2: #256b8f;
+  --chart-3: #48715b;
 
   --sidebar: #f3f6f8;
   --sidebar-foreground: #17202a;

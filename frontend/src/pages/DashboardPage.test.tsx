@@ -62,6 +62,9 @@ describe("DashboardPage", () => {
     expect(screen.getByText("25")).toBeInTheDocument();
     expect(screen.getByText("DBA")).toBeInTheDocument();
     expect(screen.getByText("ERROR")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "日志等级折线图" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "同步趋势面积图" })).toBeInTheDocument();
+    expect(screen.getAllByRole("progressbar")).toHaveLength(3);
     expect(screen.queryByText("迁移状态")).not.toBeInTheDocument();
   });
 });

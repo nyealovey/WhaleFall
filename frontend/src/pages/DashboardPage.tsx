@@ -1,10 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Activity, AlertCircle, Cpu, Database, HardDrive, Server, Users } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { fetchDashboardSnapshot, type DashboardCharts, type DashboardOverview, type DashboardStatus } from "@/api/dashboard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function formatNumber(value: number | undefined): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
@@ -81,9 +86,7 @@ function UsageBar({ label, value }: { label: string; value: number }) {
         <span className="text-muted-foreground">{label}</span>
         <span className="font-mono">{bounded.toFixed(1)}%</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-sm bg-secondary">
-        <div className="h-full rounded-sm bg-primary" style={{ width: `${bounded}%` }} />
-      </div>
+      <Progress value={bounded} />
     </div>
   );
 }
@@ -125,8 +128,27 @@ function SystemStatus({ status }: { status: DashboardStatus }) {
 }
 
 function ChartLists({ charts }: { charts: DashboardCharts }) {
-  const maxLogCount = Math.max(...(charts.log_levels ?? []).map((item) => item.count), 1);
-  const maxSyncCount = Math.max(...(charts.sync_trend ?? []).map((item) => item.count), 1);
+  const logLevelData = (charts.log_levels ?? []).map((item) => ({
+    level: item.level,
+    count: item.count
+  }));
+  const syncTrendData = (charts.sync_trend ?? []).slice(-14).map((item) => ({
+    date: item.date,
+    label: item.date.slice(5),
+    count: item.count
+  }));
+  const logLevelChartConfig = {
+    count: {
+      label: "日志数",
+      color: "var(--chart-2)"
+    }
+  } satisfies ChartConfig;
+  const syncTrendChartConfig = {
+    count: {
+      label: "同步数",
+      color: "var(--chart-1)"
+    }
+  } satisfies ChartConfig;
 
   return (
     <Card>
@@ -137,34 +159,71 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
       <CardContent className="grid grid-cols-2 gap-5 max-lg:grid-cols-1">
         <div className="grid gap-2">
           <h2 className="text-sm font-medium">日志等级</h2>
-          {(charts.log_levels ?? []).length > 0 ? (
-            charts.log_levels?.map((item) => (
-              <div className="grid gap-1" key={item.level}>
-                <div className="flex items-center justify-between text-xs">
-                  <span>{item.level}</span>
-                  <span className="font-mono">{formatNumber(item.count)}</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-sm bg-secondary">
-                  <div className="h-full rounded-sm bg-foreground/70" style={{ width: `${(item.count / maxLogCount) * 100}%` }} />
-                </div>
-              </div>
-            ))
+          {logLevelData.length > 0 ? (
+            <div aria-label="日志等级折线图" className="min-h-[190px]" role="img">
+              <ul className="sr-only" aria-label="日志等级数据">
+                {logLevelData.map((item) => (
+                  <li key={item.level}>
+                    {item.level}: {formatNumber(item.count)}
+                  </li>
+                ))}
+              </ul>
+              <ChartContainer config={logLevelChartConfig} className="h-[190px] w-full">
+                <LineChart accessibilityLayer data={logLevelData} margin={{ left: -12, right: 10, top: 12, bottom: 0 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="level" tickLine={false} axisLine={false} tickMargin={8} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                  <Line
+                    dataKey="count"
+                    name="日志数"
+                    type="monotone"
+                    stroke="var(--color-count)"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">暂无日志分布</p>
           )}
         </div>
         <div className="grid gap-2">
           <h2 className="text-sm font-medium">同步趋势</h2>
-          {(charts.sync_trend ?? []).length > 0 ? (
-            charts.sync_trend?.slice(-7).map((item) => (
-              <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_3rem] items-center gap-2 text-xs" key={item.date}>
-                <span className="text-muted-foreground">{item.date.slice(5)}</span>
-                <div className="h-2 overflow-hidden rounded-sm bg-secondary">
-                  <div className="h-full rounded-sm bg-primary" style={{ width: `${(item.count / maxSyncCount) * 100}%` }} />
-                </div>
-                <span className="text-right font-mono">{formatNumber(item.count)}</span>
-              </div>
-            ))
+          {syncTrendData.length > 0 ? (
+            <div aria-label="同步趋势面积图" className="min-h-[190px]" role="img">
+              <ul className="sr-only" aria-label="同步趋势数据">
+                {syncTrendData.map((item) => (
+                  <li key={item.date}>
+                    {item.date}: {formatNumber(item.count)}
+                  </li>
+                ))}
+              </ul>
+              <ChartContainer config={syncTrendChartConfig} className="h-[190px] w-full">
+                <AreaChart accessibilityLayer data={syncTrendData} margin={{ left: -12, right: 10, top: 12, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="syncTrendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-count)" stopOpacity={0.34} />
+                      <stop offset="95%" stopColor="var(--color-count)" stopOpacity={0.04} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area
+                    dataKey="count"
+                    name="同步数"
+                    type="monotone"
+                    stroke="var(--color-count)"
+                    strokeWidth={2}
+                    fill="url(#syncTrendFill)"
+                  />
+                </AreaChart>
+              </ChartContainer>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">暂无同步趋势</p>
           )}
@@ -228,9 +287,9 @@ export function DashboardPage() {
           {["实例", "账户", "数据库", "容量"].map((label) => (
             <Card className="min-h-[var(--metric-card-min-height)]" key={label}>
               <CardContent className="grid gap-3">
-                <div className="h-4 w-24 rounded-sm bg-secondary" />
-                <div className="h-8 w-20 rounded-sm bg-secondary" />
-                <div className="h-3 w-32 rounded-sm bg-secondary" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-3 w-32" />
               </CardContent>
             </Card>
           ))}
@@ -238,17 +297,15 @@ export function DashboardPage() {
       ) : null}
 
       {dashboardQuery.isError ? (
-        <Card>
-          <CardContent className="flex items-center justify-between gap-4 text-sm max-sm:grid">
-            <span className="flex items-center gap-2 text-destructive">
-              <AlertCircle aria-hidden size={16} />
-              仪表盘数据加载失败
-            </span>
+        <Alert variant="destructive" className="grid-cols-[1rem_minmax(0,1fr)] items-center sm:grid-cols-[1rem_minmax(0,1fr)_auto]">
+          <AlertCircle aria-hidden size={16} />
+          <AlertDescription>仪表盘数据加载失败</AlertDescription>
+          <div className="col-start-2 mt-2 sm:col-start-3 sm:row-span-2 sm:mt-0">
             <Button variant="outline" onClick={() => void dashboardQuery.refetch()}>
               重新加载
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </Alert>
       ) : null}
 
       {snapshot ? (

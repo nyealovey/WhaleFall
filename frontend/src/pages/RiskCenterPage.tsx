@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Database, ShieldAlert } from "lucide-react";
 
 import { fetchRiskCenterSnapshot, type RiskCenterCard, type RiskSeverity } from "@/api/riskCenter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/utils/cn";
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -95,8 +97,8 @@ export function RiskCenterPage() {
           {["high", "medium", "low", "ok"].map((item) => (
             <Card key={item}>
               <CardContent className="grid gap-3">
-                <div className="h-4 w-20 rounded-sm bg-secondary" />
-                <div className="h-8 w-12 rounded-sm bg-secondary" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-12" />
               </CardContent>
             </Card>
           ))}
@@ -104,17 +106,15 @@ export function RiskCenterPage() {
       ) : null}
 
       {riskQuery.isError ? (
-        <Card>
-          <CardContent className="flex items-center justify-between gap-4 text-sm max-sm:grid">
-            <span className="flex items-center gap-2 text-destructive">
-              <AlertCircle aria-hidden size={16} />
-              风险中心数据加载失败
-            </span>
+        <Alert variant="destructive" className="grid-cols-[1rem_minmax(0,1fr)] items-center sm:grid-cols-[1rem_minmax(0,1fr)_auto]">
+          <AlertCircle aria-hidden size={16} />
+          <AlertDescription>风险中心数据加载失败</AlertDescription>
+          <div className="col-start-2 mt-2 sm:col-start-3 sm:row-span-2 sm:mt-0">
             <Button variant="outline" onClick={() => void riskQuery.refetch()}>
               重新加载
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </Alert>
       ) : null}
 
       {snapshot ? (
