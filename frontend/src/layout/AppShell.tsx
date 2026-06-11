@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 import type { NavigationGroup } from "../navigation";
 import type { SessionUser } from "../types/auth";

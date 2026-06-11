@@ -18,6 +18,24 @@ def test_prod_dockerfile_builds_react_console_assets() -> None:
     assert "COPY --from=frontend-build /frontend/dist /app/frontend/dist" in dockerfile
 
 
+def test_shadcn_utility_module_does_not_use_ignored_lib_directory() -> None:
+    frontend_files = list((ROOT_DIR / "frontend").rglob("*"))
+    text_files = [
+        path
+        for path in frontend_files
+        if path.is_file()
+        and "node_modules" not in path.parts
+        and "dist" not in path.parts
+        and path.suffix in {".json", ".ts", ".tsx"}
+    ]
+
+    assert (ROOT_DIR / "frontend/src/utils/cn.ts").is_file()
+    assert not (ROOT_DIR / "frontend/src/lib").exists()
+    for path in text_files:
+        content = path.read_text(encoding="utf-8")
+        assert "@/lib" not in content
+
+
 def test_prod_nginx_domain_and_tls_are_rendered_from_env() -> None:
     dockerfile = _read_project_file("Dockerfile.prod")
     compose = _read_project_file("docker-compose.prod.yml")
