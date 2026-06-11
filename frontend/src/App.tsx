@@ -9,6 +9,8 @@ import { filterNavigationForRole, flattenNavigationItems, navigationGroups } fro
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { RiskCenterPage } from "./pages/RiskCenterPage";
+import { AccountStatisticsPage, DatabaseStatisticsPage, InstanceStatisticsPage } from "./pages/StatisticsPages";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +20,8 @@ const queryClient = new QueryClient({
     }
   }
 });
+
+const migratedConsolePaths = ["/dashboard", "/risk-center", "/instance-statistics", "/account-statistics", "/database-statistics"];
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -68,8 +72,12 @@ function ConsoleRoutes() {
         <Routes>
           <Route element={<Navigate to="/dashboard" replace />} path="/" />
           <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<RiskCenterPage />} path="/risk-center" />
+          <Route element={<InstanceStatisticsPage />} path="/instance-statistics" />
+          <Route element={<AccountStatisticsPage />} path="/account-statistics" />
+          <Route element={<DatabaseStatisticsPage />} path="/database-statistics" />
           {visibleItems
-            .filter((item) => item.consolePath !== "/dashboard")
+            .filter((item) => !migratedConsolePaths.includes(item.consolePath))
             .map((item) => (
               <Route
                 element={
