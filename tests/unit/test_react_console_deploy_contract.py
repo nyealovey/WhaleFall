@@ -18,6 +18,25 @@ def test_prod_dockerfile_builds_react_console_assets() -> None:
     assert "COPY --from=frontend-build /frontend/dist /app/frontend/dist" in dockerfile
 
 
+def test_prod_nginx_domain_and_tls_are_rendered_from_env() -> None:
+    dockerfile = _read_project_file("Dockerfile.prod")
+    compose = _read_project_file("docker-compose.prod.yml")
+    env_example = _read_project_file("env.example")
+    prod_nginx = _read_project_file("nginx/sites-available/whalefall-prod")
+    start_script = _read_project_file("scripts/ops/docker/start-prod-services.sh")
+
+    assert "gettext-base" in dockerfile
+    assert "/etc/nginx/templates/whalefall-prod.template" in dockerfile
+    assert "${WHALEFALL_NGINX_SSL_HOST_DIR:-./nginx/local/ssl}:/etc/nginx/ssl:ro" in compose
+    assert 'WHALEFALL_NGINX_SERVER_NAMES="example.com www.example.com"' in env_example
+    assert "server_name ${WHALEFALL_NGINX_SERVER_NAMES};" in prod_nginx
+    assert "ssl_certificate ${WHALEFALL_NGINX_SSL_CERTIFICATE};" in prod_nginx
+    assert "ssl_certificate_key ${WHALEFALL_NGINX_SSL_CERTIFICATE_KEY};" in prod_nginx
+    assert "envsubst" in start_script
+    assert "render_nginx_site_config" in start_script
+    assert "nginx -t" in start_script
+
+
 def test_nginx_serves_react_console_without_proxying_assets_to_flask() -> None:
     configs = {
         "nginx/sites-available/whalefall-dev": 1,

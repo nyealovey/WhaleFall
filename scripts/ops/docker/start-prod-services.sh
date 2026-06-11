@@ -58,6 +58,34 @@ cleanup_stale_pid() {
     log_success "残留 PID 已清理"
 }
 
+render_nginx_site_config() {
+    local template="/etc/nginx/templates/whalefall-prod.template"
+    local rendered="/etc/nginx/sites-available/whalefall"
+    local enabled="/etc/nginx/sites-enabled/whalefall"
+    local variables='${WHALEFALL_NGINX_SERVER_NAMES} ${WHALEFALL_NGINX_SSL_CERTIFICATE} ${WHALEFALL_NGINX_SSL_CERTIFICATE_KEY}'
+
+    if [ ! -f "$template" ]; then
+        log_error "缺少 Nginx 站点模板：$template"
+        exit 1
+    fi
+
+    export WHALEFALL_NGINX_SERVER_NAMES="${WHALEFALL_NGINX_SERVER_NAMES:-example.com www.example.com}"
+    export WHALEFALL_NGINX_SSL_CERTIFICATE="${WHALEFALL_NGINX_SSL_CERTIFICATE:-/etc/nginx/ssl/cert.pem}"
+    export WHALEFALL_NGINX_SSL_CERTIFICATE_KEY="${WHALEFALL_NGINX_SSL_CERTIFICATE_KEY:-/etc/nginx/ssl/key.pem}"
+
+    log_info "渲染 Nginx 站点配置：server_name=${WHALEFALL_NGINX_SERVER_NAMES}"
+    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+    envsubst "$variables" < "$template" > "$rendered"
+    ln -sf "$rendered" "$enabled"
+
+    if nginx -t; then
+        log_success "Nginx 配置校验通过"
+    else
+        log_error "Nginx 配置校验失败，请检查 WHALEFALL_NGINX_* 与证书挂载"
+        exit 1
+    fi
+}
+
 verify_supervisor_config() {
     local conf="/etc/supervisor/conf.d/whalefall.conf"
     if [ ! -f "$conf" ]; then
@@ -77,6 +105,7 @@ main() {
     load_env_file
     prepare_runtime_dirs
     cleanup_stale_pid
+    render_nginx_site_config
     verify_supervisor_config
     start_supervisor
 }

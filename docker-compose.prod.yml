@@ -104,6 +104,7 @@ services:
     # 将宿主机 .env 挂载进容器，供 /usr/local/bin/start-prod-services.sh 读取（不写入镜像）
     volumes:
       - ./.env:/app/.env:ro
+      - ${WHALEFALL_NGINX_SSL_HOST_DIR:-./nginx/local/ssl}:/etc/nginx/ssl:ro
     ports:
       - "80:80"
       - "443:443"

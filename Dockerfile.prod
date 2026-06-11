@@ -58,6 +58,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
+    gettext-base \
     unzip \
     libaio1 \
     supervisor \
@@ -132,8 +133,10 @@ COPY nginx/gunicorn/gunicorn-prod.conf.py /app/gunicorn.conf.py
 # 复制Nginx配置文件
 COPY nginx/conf.d/whalefall-prod.conf /etc/nginx/conf.d/whalefall.conf
 
-# 复制Nginx站点配置
-COPY nginx/sites-available/whalefall-prod /etc/nginx/sites-available/whalefall
+# 复制Nginx站点模板。启动脚本会用 .env 渲染域名与证书路径，避免生产服务器改动仓库文件。
+RUN mkdir -p /etc/nginx/templates
+COPY nginx/sites-available/whalefall-prod /etc/nginx/templates/whalefall-prod.template
+RUN cp /etc/nginx/templates/whalefall-prod.template /etc/nginx/sites-available/whalefall
 
 # 复制错误页面
 COPY nginx/error_pages/404.html /usr/share/nginx/html/404.html
