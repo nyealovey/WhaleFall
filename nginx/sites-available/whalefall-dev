@@ -21,16 +21,19 @@ server {
 
     # React 控制台(`/console`)构建产物。旧站点继续由 Flask 处理根路径。
     location = /console {
+        default_type text/html;
         alias /app/frontend/dist/index.html;
         add_header Cache-Control "no-store";
     }
 
     location = /console/ {
+        default_type text/html;
         alias /app/frontend/dist/index.html;
         add_header Cache-Control "no-store";
     }
 
     location = /console/index.html {
+        default_type text/html;
         alias /app/frontend/dist/index.html;
         add_header Cache-Control "no-store";
     }

@@ -68,6 +68,7 @@ def test_nginx_serves_react_console_without_proxying_assets_to_flask() -> None:
         assert config.count("alias /app/frontend/dist/assets/;") >= expected_server_count
         assert config.count("location ^~ /console/") >= expected_server_count
         assert config.count("alias /app/frontend/dist/;") >= expected_server_count
+        assert config.count("default_type text/html;") >= expected_server_count * 3
         assert config.index("location ^~ /console/assets/") < config.index("location / {")
 
 
