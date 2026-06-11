@@ -87,3 +87,18 @@ def test_makefile_exposes_frontend_lifecycle_commands() -> None:
 
     assert "构建生产镜像（包含 React /console 前端）" in prod_makefile
     assert "部署生产环境（包含 React /console 前端）" in prod_makefile
+
+
+def test_hot_update_script_can_publish_react_console_assets() -> None:
+    script = _read_project_file("scripts/deploy/update-prod-flask.sh")
+
+    assert "copy_frontend_files_to_temp_dir" in script
+    assert '[ ! -d "frontend" ]' in script
+    assert "frontend/node_modules" in script
+    assert "frontend/coverage" in script
+    assert "frontend/dist/index.html" in script
+    assert "/app/frontend/dist/index.html" in script
+    assert "rendered=/etc/nginx/sites-available/whalefall" in script
+    assert "envsubst" in script
+    assert "http://localhost/console" in script
+    assert "npm --prefix frontend run build" not in script

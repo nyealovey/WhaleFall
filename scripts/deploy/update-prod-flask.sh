@@ -203,6 +203,25 @@ pull_latest_code() {
     log_info "远端最新提交: $remote_commit"
 }
 
+copy_frontend_files_to_temp_dir() {
+    local temp_dir="$1"
+
+    if [ ! -d "frontend" ]; then
+        log_info "未找到 frontend 目录，跳过 React /console 前端文件同步"
+        return 0
+    fi
+
+    log_info "准备 React /console 前端文件（仅拷贝，不构建）..."
+    cp -r frontend "$temp_dir/"
+    rm -rf "$temp_dir/frontend/node_modules" "$temp_dir/frontend/coverage"
+
+    if [ -f "$temp_dir/frontend/dist/index.html" ]; then
+        log_success "检测到 React 前端产物：frontend/dist/index.html，将同步到容器 /app/frontend/dist"
+    else
+        log_warning "未找到 frontend/dist/index.html，本次只同步前端源码，容器内 /app/frontend/dist 将保持现有产物"
+    fi
+}
+
 # 拷贝代码到容器
 copy_code_to_container() {
     log_step "拷贝最新代码到Flask容器..."
@@ -234,6 +253,7 @@ copy_code_to_container() {
     [ -d "tests" ] && cp -r tests "$temp_dir/" || log_warning "tests目录不存在，跳过"
     [ -d "scripts" ] && cp -r scripts "$temp_dir/" || log_warning "scripts目录不存在，跳过"
     [ -d "nginx" ] && cp -r nginx "$temp_dir/" || log_warning "nginx目录不存在，跳过"
+    copy_frontend_files_to_temp_dir "$temp_dir"
 
     # 拷贝根目录文件（静默处理不存在的文件）
     cp *.py "$temp_dir/" 2>/dev/null || true
@@ -283,6 +303,12 @@ copy_code_to_container() {
         log_error "新代码拷贝失败"
         rm -rf "$temp_dir"
         exit 1
+    fi
+
+    if docker exec "$flask_container_id" test -f /app/frontend/dist/index.html; then
+        log_success "React /console 前端产物存在：/app/frontend/dist/index.html"
+    else
+        log_warning "容器内未找到 /app/frontend/dist/index.html；/console 仍需完整镜像构建或手动同步 dist"
     fi
 
     # 同步关键部署配置（避免“热更新仅覆盖 /app 代码，但容器内 /etc 配置仍为旧版本”）
@@ -337,13 +363,16 @@ copy_code_to_container() {
         exit 1
     fi
 
-    # 处理 Nginx 站点配置（默认保留现有配置，显式传参时才覆盖）
+    # 处理 Nginx 站点配置（默认保留现有配置，显式传参时才渲染仓库模板）
     log_info "处理 Nginx 站点配置..."
     if docker exec "$flask_container_id" bash -c "
         set -e
         src=/app/nginx/sites-available/whalefall-prod
-        dest=/etc/nginx/sites-available/whalefall
+        template=/etc/nginx/templates/whalefall-prod.template
+        rendered=/etc/nginx/sites-available/whalefall
+        dest=\$rendered
         force_sync=${FORCE_SYNC_NGINX_SITE_CONFIG}
+        variables='\${WHALEFALL_NGINX_SERVER_NAMES} \${WHALEFALL_NGINX_SSL_CERTIFICATE} \${WHALEFALL_NGINX_SSL_CERTIFICATE_KEY}'
         ts=\$(date +%Y%m%d_%H%M%S)
         backup=''
 
@@ -352,10 +381,13 @@ copy_code_to_container() {
             exit 1
         fi
 
+        mkdir -p /etc/nginx/templates /etc/nginx/sites-available /etc/nginx/sites-enabled
+        cp \"\$src\" \"\$template\"
+
         if [ -f \"\$dest\" ] && [ \"\$force_sync\" != \"1\" ]; then
             ln -sf /etc/nginx/sites-available/whalefall /etc/nginx/sites-enabled/whalefall
             if nginx -t; then
-                echo '保留现有 Nginx 站点配置（如需覆盖请使用 --sync-nginx-site-config）'
+                echo '已更新 Nginx 站点模板，保留现有渲染配置（如需重新渲染请使用 --sync-nginx-site-config）'
                 exit 0
             fi
             echo '当前 Nginx 配置校验失败，请手动修复或使用 --sync-nginx-site-config 后重试'
@@ -367,11 +399,26 @@ copy_code_to_container() {
             cp \"\$dest\" \"\$backup\" 2>/dev/null || true
         fi
 
-        cp \"\$src\" \"\$dest\"
+        if ! command -v envsubst >/dev/null 2>&1; then
+            echo '错误：容器内缺少 envsubst，无法渲染 Nginx 模板；请先用 make prod deploy 重建镜像'
+            exit 1
+        fi
+
+        if [ -f /app/.env ]; then
+            set -a
+            source /app/.env
+            set +a
+        fi
+
+        export WHALEFALL_NGINX_SERVER_NAMES=\"\${WHALEFALL_NGINX_SERVER_NAMES:-example.com www.example.com}\"
+        export WHALEFALL_NGINX_SSL_CERTIFICATE=\"\${WHALEFALL_NGINX_SSL_CERTIFICATE:-/etc/nginx/ssl/cert.pem}\"
+        export WHALEFALL_NGINX_SSL_CERTIFICATE_KEY=\"\${WHALEFALL_NGINX_SSL_CERTIFICATE_KEY:-/etc/nginx/ssl/key.pem}\"
+
+        envsubst \"\$variables\" < \"\$template\" > \"\$rendered\"
         ln -sf /etc/nginx/sites-available/whalefall /etc/nginx/sites-enabled/whalefall
 
         if nginx -t; then
-            echo '已同步 Nginx 站点配置，并通过 nginx -t'
+            echo '已渲染并同步 Nginx 站点配置，并通过 nginx -t'
             exit 0
         fi
 
@@ -705,6 +752,14 @@ verify_update() {
         log_warning "端口5001健康检查失败 (状态码: $http_status)，但继续执行"
     fi
 
+    local console_status
+    console_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost/console 2>/dev/null || echo "000")
+    if [ "$console_status" = "200" ]; then
+        log_success "React /console 入口检查通过 (状态码: $console_status)"
+    else
+        log_warning "React /console 入口检查失败 (状态码: $console_status)，但继续执行"
+    fi
+
     # 测试数据库和Redis连接（通过健康检查已验证）
     log_info "数据库和Redis连接已通过健康检查验证"
 
@@ -738,6 +793,7 @@ show_update_result() {
     echo "  - 停机时间: 约30-60秒"
     echo "  - 数据保留: 完全保留"
     echo "  - 缓存刷新: Nginx缓存已刷新"
+    echo "  - React前端: 已同步 frontend 文件；如存在 frontend/dist，则已同步 /console 产物"
     if [ "$FORCE_SYNC_NGINX_SITE_CONFIG" = "1" ]; then
         echo "  - Nginx站点配置: 已按仓库模板强制同步"
     else
@@ -747,6 +803,7 @@ show_update_result() {
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
     echo "  - 健康检查: http://localhost/api/v1/health/basic"
+    echo "  - React控制台: http://localhost/console"
     echo "  - 直接访问: http://localhost:5001"
     echo ""
     echo -e "${BLUE}🔧 管理命令：${NC}"
@@ -770,6 +827,7 @@ show_update_result() {
     echo -e "${YELLOW}⚠️  注意事项：${NC}"
     echo "  - 本次更新为代码热更新模式，数据完全保留"
     echo "  - 仅更新Flask应用代码，不重建容器"
+    echo "  - React前端热更新只拷贝文件，不构建；如改了前端，需要先准备好 frontend/dist"
     echo "  - 数据库和Redis服务保持不变"
     echo "  - Nginx和Flask在同一容器，缓存已自动刷新"
     echo "  - 默认不会覆盖容器内现有 Nginx 站点配置"
