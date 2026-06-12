@@ -16,6 +16,11 @@ import {
 import type { ReactNode } from "react";
 
 import {
+  syncAccounts,
+  syncDatabases,
+  testInstanceConnection
+} from "@/api/actions";
+import {
   fetchAccountLedgers,
   fetchDatabaseLedgers,
   fetchInstances,
@@ -384,7 +389,15 @@ const instanceColumns: ColumnDef<InstanceListItem>[] = [
           <Eye aria-hidden size={14} />
           <span>详情</span>
         </Button>
-        <Button aria-label={`测试连接 ${row.original.id}`} size="sm" variant="outline">
+        <Button
+          aria-label={`测试连接 ${row.original.id}`}
+          onClick={() => {
+            void testInstanceConnection(row.original.id);
+          }}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
           <PlugZap aria-hidden size={14} />
           <span>测试</span>
         </Button>
@@ -615,7 +628,12 @@ export function DatabaseLedgersPage() {
             <span>数据库统计</span>
           </a>
         </Button>
-        <Button disabled>
+        <Button
+          onClick={() => {
+            void syncDatabases().then(() => listQuery.refetch());
+          }}
+          type="button"
+        >
           <RefreshCw aria-hidden size={16} />
           <span>同步所有数据库</span>
         </Button>
@@ -666,7 +684,12 @@ export function AccountLedgersPage() {
             <span>账户统计</span>
           </a>
         </Button>
-        <Button disabled>
+        <Button
+          onClick={() => {
+            void syncAccounts().then(() => listQuery.refetch());
+          }}
+          type="button"
+        >
           <RotateCcw aria-hidden size={16} />
           <span>同步所有账户</span>
         </Button>

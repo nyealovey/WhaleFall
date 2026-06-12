@@ -1,9 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AccountLedgersPage, DatabaseLedgersPage, InstancesPage } from "./ListPages";
+
+const actionMocks = vi.hoisted(() => ({
+  syncAccounts: vi.fn(async () => ({ run_id: "accounts-run" })),
+  syncDatabases: vi.fn(async () => ({ run_id: "databases-run" })),
+  testInstanceConnection: vi.fn(async () => ({ ok: true }))
+}));
+
+vi.mock("@/api/actions", () => actionMocks);
 
 vi.mock("@/api/lists", () => ({
   fetchInstances: vi.fn(async () => ({
@@ -175,5 +183,30 @@ describe("ListPages", () => {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
     expect(screen.getByRole("button", { name: "查看权限 3" })).toBeInTheDocument();
+  });
+
+  it("runs direct list actions through v1 APIs", async () => {
+    renderWithQueryClient(<InstancesPage />);
+    await expectTextPresent("mysql-prod");
+    fireEvent.click(screen.getByRole("button", { name: "测试连接 1" }));
+    await waitFor(() => {
+      expect(actionMocks.testInstanceConnection).toHaveBeenCalledWith(1);
+    });
+
+    cleanup();
+    renderWithQueryClient(<DatabaseLedgersPage />);
+    await expectTextPresent("app_db");
+    fireEvent.click(screen.getByRole("button", { name: "同步所有数据库" }));
+    await waitFor(() => {
+      expect(actionMocks.syncDatabases).toHaveBeenCalled();
+    });
+
+    cleanup();
+    renderWithQueryClient(<AccountLedgersPage />);
+    await expectTextPresent("readonly");
+    fireEvent.click(screen.getByRole("button", { name: "同步所有账户" }));
+    await waitFor(() => {
+      expect(actionMocks.syncAccounts).toHaveBeenCalled();
+    });
   });
 });

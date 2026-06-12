@@ -26,6 +26,28 @@ import type { ReactNode } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
+  autoClassifyAccounts,
+  cancelSyncSession,
+  cleanupPartitions,
+  createPartition,
+  deleteAccountClassification,
+  deleteAccountClassificationRule,
+  deleteAdDomainConfig,
+  deleteVeeamSource,
+  pauseSchedulerJob,
+  reloadSchedulerJobs,
+  resumeSchedulerJob,
+  runSchedulerJob,
+  saveAlertSettings,
+  saveRiskRules,
+  sendAlertTestEmail,
+  sendFeishuTest,
+  syncAdDomains,
+  syncJumpServer,
+  syncVeeam,
+  unbindJumpServer
+} from "@/api/actions";
+import {
   fetchAccountClassificationsSnapshot,
   fetchClassificationStatisticsSnapshot,
   fetchClustersSnapshot,
@@ -612,7 +634,15 @@ const syncSessionColumns: ColumnDef<SyncSessionItem>[] = [
             <ExternalLink aria-hidden />
           </Button>
           {row.original.status === "running" ? (
-            <Button aria-label={`取消任务 ${runId}`} size="icon" type="button" variant="ghost">
+            <Button
+              aria-label={`取消任务 ${runId}`}
+              onClick={() => {
+                void cancelSyncSession(runId);
+              }}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
               <Pause aria-hidden />
             </Button>
           ) : null}
@@ -658,15 +688,39 @@ function SchedulerJobCard({ job }: { job: SchedulerJobItem }) {
         </div>
         <div className="flex flex-wrap items-center gap-1">
           {isRunningState(job.state) ? (
-            <Button aria-label={`暂停任务 ${name}`} size="icon" type="button" variant="outline">
+            <Button
+              aria-label={`暂停任务 ${name}`}
+              onClick={() => {
+                void pauseSchedulerJob(job.id);
+              }}
+              size="icon"
+              type="button"
+              variant="outline"
+            >
               <Pause aria-hidden />
             </Button>
           ) : (
-            <Button aria-label={`恢复任务 ${name}`} size="icon" type="button" variant="outline">
+            <Button
+              aria-label={`恢复任务 ${name}`}
+              onClick={() => {
+                void resumeSchedulerJob(job.id);
+              }}
+              size="icon"
+              type="button"
+              variant="outline"
+            >
               <Play aria-hidden />
             </Button>
           )}
-          <Button aria-label={`立即执行 ${name}`} size="icon" type="button" variant="outline">
+          <Button
+            aria-label={`立即执行 ${name}`}
+            onClick={() => {
+              void runSchedulerJob(job.id);
+            }}
+            size="icon"
+            type="button"
+            variant="outline"
+          >
             <Zap aria-hidden />
           </Button>
           <Button aria-label={`编辑任务 ${name}`} size="icon" type="button" variant="outline">
@@ -913,7 +967,13 @@ function ruleGroupTitle(dbType: string): string {
   return `${(dbType || "unknown").toUpperCase()} 规则`;
 }
 
-function ClassificationList({ items }: { items: Array<{ id: number; code: string; display_name: string; risk_level?: number; is_system?: boolean; rules_count?: number }> }) {
+function ClassificationList({
+  items,
+  onDelete
+}: {
+  items: Array<{ id: number; code: string; display_name: string; risk_level?: number; is_system?: boolean; rules_count?: number }>;
+  onDelete: (classificationId: number) => void;
+}) {
   if (items.length === 0) {
     return <p className="rounded-md border p-4 text-sm text-muted-foreground">暂无分类，点击“新建分类”开始配置</p>;
   }
@@ -938,7 +998,7 @@ function ClassificationList({ items }: { items: Array<{ id: number; code: string
                 <Pencil aria-hidden />
               </Button>
               {!item.is_system ? (
-                <Button aria-label={`删除分类 ${item.display_name}`} size="icon" type="button" variant="ghost">
+                <Button aria-label={`删除分类 ${item.display_name}`} onClick={() => onDelete(item.id)} size="icon" type="button" variant="ghost">
                   <Trash2 aria-hidden />
                 </Button>
               ) : null}
@@ -950,7 +1010,13 @@ function ClassificationList({ items }: { items: Array<{ id: number; code: string
   );
 }
 
-function RuleGroups({ rulesByDbType }: { rulesByDbType: Record<string, AccountClassificationRuleItem[]> }) {
+function RuleGroups({
+  rulesByDbType,
+  onDeleteRule
+}: {
+  rulesByDbType: Record<string, AccountClassificationRuleItem[]>;
+  onDeleteRule: (ruleId: number) => void;
+}) {
   const entries = Object.entries(rulesByDbType).filter(([, rules]) => rules.length > 0);
   if (entries.length === 0) {
     return <p className="rounded-md border p-4 text-sm text-muted-foreground">暂无规则，点击“新建规则”开始配置</p>;
@@ -981,7 +1047,7 @@ function RuleGroups({ rulesByDbType }: { rulesByDbType: Record<string, AccountCl
                   <Button aria-label={`编辑规则 ${rule.rule_name}`} size="icon" type="button" variant="ghost">
                     <Pencil aria-hidden />
                   </Button>
-                  <Button aria-label={`删除规则 ${rule.rule_name}`} size="icon" type="button" variant="ghost">
+                  <Button aria-label={`删除规则 ${rule.rule_name}`} onClick={() => onDeleteRule(rule.id)} size="icon" type="button" variant="ghost">
                     <Trash2 aria-hidden />
                   </Button>
                 </div>
@@ -1002,9 +1068,15 @@ export function AccountClassificationsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Account taxonomy" title="账户分类" description="只读展示分类、风险等级与规则分布，规则编辑、自动分类仍保留在旧版。" legacyHref="/accounts/classifications/" />
+      <PageHeader eyebrow="Account taxonomy" title="账户分类" description="展示分类、风险等级与规则分布，新增和编辑仍保留在旧版。" legacyHref="/accounts/classifications/" />
       <CommandBar>
-        <Button disabled variant="outline">
+        <Button
+          onClick={() => {
+            void autoClassifyAccounts().then(() => query.refetch());
+          }}
+          type="button"
+          variant="outline"
+        >
           <Zap aria-hidden size={16} />
           <span>自动分类</span>
         </Button>
@@ -1025,7 +1097,12 @@ export function AccountClassificationsPage() {
                   </Button>
                 }
               >
-                <ClassificationList items={snapshot.classifications} />
+                <ClassificationList
+                  items={snapshot.classifications}
+                  onDelete={(classificationId) => {
+                    void deleteAccountClassification(classificationId).then(() => query.refetch());
+                  }}
+                />
               </ListPanel>
               <ListPanel
                 title="规则管理"
@@ -1038,7 +1115,12 @@ export function AccountClassificationsPage() {
                   </Button>
                 }
               >
-                <RuleGroups rulesByDbType={snapshot.rulesByDbType} />
+                <RuleGroups
+                  onDeleteRule={(ruleId) => {
+                    void deleteAccountClassificationRule(ruleId).then(() => query.refetch());
+                  }}
+                  rulesByDbType={snapshot.rulesByDbType}
+                />
               </ListPanel>
             </section>
           );
@@ -1311,7 +1393,14 @@ export function SchedulerPage() {
               description="按旧版运行状态分组展示任务名称、运行时间、任务 ID、触发器参数和操作。"
               count={snapshot.jobs.length}
               actions={
-                <Button size="sm" type="button" variant="outline">
+                <Button
+                  onClick={() => {
+                    void reloadSchedulerJobs().then(() => query.refetch());
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
                   <RotateCcw aria-hidden />
                   重新初始化任务
                 </Button>
@@ -1480,6 +1569,38 @@ function SettingsSubsection({ title, children }: { title: string; children: Reac
   );
 }
 
+function textList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => asText(item, "")).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/[,;\n]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function settingsRecipients(alerts: SettingsSnapshot["alerts"]): string[] {
+  const settings = alerts.settings ?? {};
+  return textList(settings.recipients);
+}
+
+function riskRulePayload(rules: SettingsSnapshot["riskRules"]) {
+  return rules
+    .map((rule) => ({
+      rule_key: asText(rule.rule_key, ""),
+      enabled: rule.enabled === true,
+      severity: asText(rule.severity, "medium")
+    }))
+    .filter((rule) => rule.rule_key);
+}
+
+function numericId(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export function SettingsPage() {
   const query = useQuery({ queryKey: ["read-only", "settings"], queryFn: () => fetchSettingsSnapshot() });
 
@@ -1535,9 +1656,34 @@ export function SettingsPage() {
                         <ToggleRow label="共享收件人列表" checked={alertSettings.shared_recipients_enabled} />
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button size="sm" type="button">发送测试邮件</Button>
-                        <Button size="sm" type="button" variant="outline">发送飞书测试</Button>
-                        <Button size="sm" type="button">保存配置</Button>
+                        <Button
+                          onClick={() => {
+                            void sendAlertTestEmail(settingsRecipients(snapshot.alerts));
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          发送测试邮件
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            void sendFeishuTest(asText(alertSettings.feishu_webhook_url, ""));
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          发送飞书测试
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            void saveAlertSettings(alertSettings).then(() => query.refetch());
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          保存配置
+                        </Button>
                       </div>
                     </SettingsSubsection>
                     <SettingsSubsection title="规则设置">
@@ -1555,7 +1701,15 @@ export function SettingsPage() {
                   <SettingsCard title="风险规则" description="仅影响风险中心展示。" status={snapshot.riskRules.some((rule) => rule.enabled === true)}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm text-muted-foreground">仅影响风险中心展示</span>
-                      <Button size="sm" type="button">保存规则</Button>
+                      <Button
+                        onClick={() => {
+                          void saveRiskRules(riskRulePayload(snapshot.riskRules)).then(() => query.refetch());
+                        }}
+                        size="sm"
+                        type="button"
+                      >
+                        保存规则
+                      </Button>
                     </div>
                     {snapshot.riskRules.length > 0 ? (
                       snapshot.riskRules.map((rule) => (
@@ -1578,9 +1732,26 @@ export function SettingsPage() {
                       </div>
                       <span className="font-mono text-sm">{endpointHost(jumpserverBinding.base_url)}</span>
                       <div className="flex flex-wrap gap-2">
-                        <Button size="sm" type="button">保存绑定</Button>
-                        <Button size="sm" type="button" variant="outline">解绑数据源</Button>
-                        <Button size="sm" type="button">同步 JumpServer 资源</Button>
+                        <Button disabled size="sm" type="button">保存绑定</Button>
+                        <Button
+                          onClick={() => {
+                            void unbindJumpServer().then(() => query.refetch());
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          解绑数据源
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            void syncJumpServer().then(() => query.refetch());
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          同步 JumpServer 资源
+                        </Button>
                       </div>
                     </SettingsSubsection>
                     <SettingsSubsection title="API 凭据">
@@ -1606,10 +1777,30 @@ export function SettingsPage() {
                         <ReadonlyField label="域名列表" value={firstVeeamSource.domains} />
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button size="sm" type="button">保存数据源</Button>
-                        <Button size="sm" type="button" variant="outline">删除数据源</Button>
+                        <Button disabled size="sm" type="button">保存数据源</Button>
+                        <Button
+                          onClick={() => {
+                            const sourceId = numericId(firstVeeamSource.id);
+                            if (sourceId !== null) {
+                              void deleteVeeamSource(sourceId).then(() => query.refetch());
+                            }
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          删除数据源
+                        </Button>
                         <Badge variant="outline">新增模式</Badge>
-                        <Button size="sm" type="button">同步 Veeam 备份</Button>
+                        <Button
+                          onClick={() => {
+                            void syncVeeam().then(() => query.refetch());
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          同步 Veeam 备份
+                        </Button>
                       </div>
                     </SettingsSubsection>
                     <SettingsSubsection title="数据源列表">
@@ -1645,9 +1836,29 @@ export function SettingsPage() {
                         <ToggleRow label="启用同步" checked={firstAdDomain.is_enabled} />
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button size="sm" type="button">保存 AD 域</Button>
-                        <Button size="sm" type="button" variant="outline">删除配置</Button>
-                        <Button size="sm" type="button">AD 域账户同步</Button>
+                        <Button disabled size="sm" type="button">保存 AD 域</Button>
+                        <Button
+                          onClick={() => {
+                            const configId = numericId(firstAdDomain.id);
+                            if (configId !== null) {
+                              void deleteAdDomainConfig(configId).then(() => query.refetch());
+                            }
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          删除配置
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            void syncAdDomains().then(() => query.refetch());
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          AD 域账户同步
+                        </Button>
                       </div>
                     </SettingsSubsection>
                     <SettingsSubsection title="AD 域列表">
@@ -1822,11 +2033,22 @@ export function PartitionsPage() {
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader eyebrow="Storage partitions" title="分区管理" description="只读展示分区健康状态、核心指标和分区列表，创建和清理动作仍保留在旧版。" legacyHref="/partition/" />
       <CommandBar>
-        <Button type="button">
+        <Button
+          onClick={() => {
+            void createPartition(undefined).then(() => query.refetch());
+          }}
+          type="button"
+        >
           <Plus aria-hidden />
           创建分区
         </Button>
-        <Button type="button" variant="outline">
+        <Button
+          onClick={() => {
+            void cleanupPartitions(12).then(() => query.refetch());
+          }}
+          type="button"
+          variant="outline"
+        >
           <Trash2 aria-hidden />
           清理旧分区
         </Button>

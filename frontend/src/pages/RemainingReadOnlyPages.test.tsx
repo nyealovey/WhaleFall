@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   AccountClassificationsPage,
@@ -16,13 +16,41 @@ import {
   UsersPage
 } from "./RemainingReadOnlyPages";
 
+const actionMocks = vi.hoisted(() => ({
+  autoClassifyAccounts: vi.fn(async () => ({ ok: true })),
+  cancelSyncSession: vi.fn(async () => ({ ok: true })),
+  cleanupPartitions: vi.fn(async () => ({ ok: true })),
+  createPartition: vi.fn(async () => ({ ok: true })),
+  deleteAccountClassification: vi.fn(async () => ({ ok: true })),
+  deleteAccountClassificationRule: vi.fn(async () => ({ ok: true })),
+  pauseSchedulerJob: vi.fn(async () => ({ ok: true })),
+  reloadSchedulerJobs: vi.fn(async () => ({ ok: true })),
+  resumeSchedulerJob: vi.fn(async () => ({ ok: true })),
+  runSchedulerJob: vi.fn(async () => ({ ok: true })),
+  saveAlertSettings: vi.fn(async () => ({ ok: true })),
+  saveRiskRules: vi.fn(async () => ({ ok: true })),
+  sendAlertTestEmail: vi.fn(async () => ({ ok: true })),
+  sendFeishuTest: vi.fn(async () => ({ ok: true })),
+  syncAdDomains: vi.fn(async () => ({ ok: true })),
+  syncJumpServer: vi.fn(async () => ({ ok: true })),
+  syncVeeam: vi.fn(async () => ({ ok: true })),
+  unbindJumpServer: vi.fn(async () => ({ ok: true })),
+  deleteVeeamSource: vi.fn(async () => ({ ok: true })),
+  deleteAdDomainConfig: vi.fn(async () => ({ ok: true }))
+}));
+
+vi.mock("@/api/actions", () => actionMocks);
+
 vi.mock("@/api/readOnly", () => ({
   fetchClustersSnapshot: vi.fn(async () => ({
     sqlServer: { items: [{ id: 1, name: "sql-ag", domain_name: "corp.local", is_enabled: true, instance_count: 2, availability_group_count: 1, last_ag_sync_status: "completed" }], total: 1, page: 1, pages: 1, limit: 20 },
     mySql: { items: [{ id: 2, name: "mysql-repl", is_enabled: true, instance_count: 3, replication_status: "healthy" }], total: 1, page: 1, pages: 1, limit: 20 }
   })),
   fetchAccountClassificationsSnapshot: vi.fn(async () => ({
-    classifications: [{ id: 1, code: "dba", display_name: "DBA", risk_level: 2, rules_count: 1, is_system: true }],
+    classifications: [
+      { id: 1, code: "dba", display_name: "DBA", risk_level: 2, rules_count: 1, is_system: true },
+      { id: 2, code: "app", display_name: "App", risk_level: 4, rules_count: 0, is_system: false }
+    ],
     rulesByDbType: { mysql: [{ id: 9, rule_name: "root rule", classification_name: "DBA", db_type: "mysql", is_active: true, matched_accounts_count: 8 }] }
   })),
   fetchClassificationStatisticsSnapshot: vi.fn(async () => ({
@@ -89,6 +117,8 @@ vi.mock("@/api/readOnly", () => ({
       settings: {
         global_enabled: true,
         feishu_enabled: true,
+        feishu_webhook_url: "https://feishu.example",
+        recipients: ["ops@example.com"],
         database_capacity_enabled: true,
         account_sync_failure_enabled: true,
         database_sync_failure_enabled: false,
@@ -99,7 +129,7 @@ vi.mock("@/api/readOnly", () => ({
     },
     riskRules: [{ rule_key: "backup_issue", enabled: true, severity: "high" }],
     jumpserver: { provider_ready: true, binding: { base_url: "https://jump.example", org_id: "org-1", verify_ssl: true }, api_credentials: [] },
-    veeam: { provider_ready: false, sources: [{ name: "veeam-main", server_host: "10.0.0.9", server_port: 9419, api_version: "v1", is_active: true }], veeam_credentials: [] },
+    veeam: { provider_ready: false, sources: [{ id: 9, name: "veeam-main", server_host: "10.0.0.9", server_port: 9419, api_version: "v1", is_active: true }], veeam_credentials: [] },
     adDomains: { configs: [{ id: 1, name: "corp", netbios_name: "CORP", ldap_port: 636, domain_controllers: ["dc01"], base_dn: "DC=corp,DC=local", is_enabled: true }] }
   })),
   fetchCredentialsSnapshot: vi.fn(async () => ({
@@ -135,6 +165,10 @@ async function expectTextPresent(text: string) {
 }
 
 describe("RemainingReadOnlyPages", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   const cases: Array<[string, ReactElement, string[]]> = [
     ["群集管理", <ClustersPage />, ["sql-ag", "mysql-repl"]],
     ["账户分类", <AccountClassificationsPage />, ["DBA", "root rule"]],
@@ -296,6 +330,22 @@ describe("RemainingReadOnlyPages", () => {
     }
   });
 
+  it("runs direct account classification actions through v1 APIs", async () => {
+    renderWithQueryClient(<AccountClassificationsPage />);
+
+    await screen.findByRole("heading", { name: "账户分类" });
+    await screen.findByText("App");
+    fireEvent.click(screen.getByRole("button", { name: "自动分类" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除分类 App" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除规则 root rule" }));
+
+    await waitFor(() => {
+      expect(actionMocks.autoClassifyAccounts).toHaveBeenCalled();
+      expect(actionMocks.deleteAccountClassification).toHaveBeenCalledWith(2);
+      expect(actionMocks.deleteAccountClassificationRule).toHaveBeenCalledWith(9);
+    });
+  });
+
   it("renders system settings with legacy module navigation, forms, and actions", async () => {
     renderWithQueryClient(<SettingsPage />);
 
@@ -397,5 +447,79 @@ describe("RemainingReadOnlyPages", () => {
     ]) {
       await expectTextPresent(text);
     }
+  });
+
+  it("runs scheduler, session, settings, and partition actions through v1 APIs", async () => {
+    renderWithQueryClient(<SchedulerPage />);
+    await screen.findByRole("heading", { name: "定时任务" });
+    await screen.findByRole("button", { name: "重新初始化任务" });
+    fireEvent.click(screen.getByRole("button", { name: "重新初始化任务" }));
+    fireEvent.click(screen.getByRole("button", { name: "暂停任务 同步任务" }));
+    fireEvent.click(screen.getByRole("button", { name: "恢复任务 归档任务" }));
+    fireEvent.click(screen.getByRole("button", { name: "立即执行 同步任务" }));
+    await waitFor(() => {
+      expect(actionMocks.reloadSchedulerJobs).toHaveBeenCalled();
+      expect(actionMocks.pauseSchedulerJob).toHaveBeenCalledWith("job-1");
+      expect(actionMocks.resumeSchedulerJob).toHaveBeenCalledWith("job-2");
+      expect(actionMocks.runSchedulerJob).toHaveBeenCalledWith("job-1");
+    });
+
+    cleanup();
+    renderWithQueryClient(<SyncSessionsPage />);
+    await screen.findByRole("heading", { name: "会话中心" });
+    await screen.findByRole("button", { name: "取消任务 s-1" });
+    fireEvent.click(screen.getByRole("button", { name: "取消任务 s-1" }));
+    await waitFor(() => {
+      expect(actionMocks.cancelSyncSession).toHaveBeenCalledWith("s-1");
+    });
+
+    cleanup();
+    renderWithQueryClient(<SettingsPage />);
+    await screen.findByRole("heading", { name: "系统设置" });
+    await screen.findByRole("button", { name: "发送测试邮件" });
+    fireEvent.click(screen.getByRole("button", { name: "发送测试邮件" }));
+    fireEvent.click(screen.getByRole("button", { name: "发送飞书测试" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存配置" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存规则" }));
+    fireEvent.click(screen.getByRole("button", { name: "同步 JumpServer 资源" }));
+    fireEvent.click(screen.getByRole("button", { name: "解绑数据源" }));
+    fireEvent.click(screen.getByRole("button", { name: "同步 Veeam 备份" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除数据源" }));
+    fireEvent.click(screen.getByRole("button", { name: "AD 域账户同步" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除配置" }));
+    await waitFor(() => {
+      expect(actionMocks.sendAlertTestEmail).toHaveBeenCalledWith(["ops@example.com"]);
+      expect(actionMocks.sendFeishuTest).toHaveBeenCalledWith("https://feishu.example");
+      expect(actionMocks.saveAlertSettings).toHaveBeenCalledWith({
+        account_sync_failure_enabled: true,
+        backup_issue_enabled: true,
+        cluster_status_enabled: true,
+        database_capacity_enabled: true,
+        database_sync_failure_enabled: false,
+        feishu_enabled: true,
+        feishu_webhook_url: "https://feishu.example",
+        global_enabled: true,
+        privileged_account_enabled: true,
+        recipients: ["ops@example.com"]
+      });
+      expect(actionMocks.saveRiskRules).toHaveBeenCalledWith([{ rule_key: "backup_issue", enabled: true, severity: "high" }]);
+      expect(actionMocks.syncJumpServer).toHaveBeenCalled();
+      expect(actionMocks.unbindJumpServer).toHaveBeenCalled();
+      expect(actionMocks.syncVeeam).toHaveBeenCalled();
+      expect(actionMocks.deleteVeeamSource).toHaveBeenCalledWith(9);
+      expect(actionMocks.syncAdDomains).toHaveBeenCalled();
+      expect(actionMocks.deleteAdDomainConfig).toHaveBeenCalledWith(1);
+    });
+
+    cleanup();
+    renderWithQueryClient(<PartitionsPage />);
+    await screen.findByRole("heading", { name: "分区管理" });
+    await screen.findByRole("button", { name: "创建分区" });
+    fireEvent.click(screen.getByRole("button", { name: "创建分区" }));
+    fireEvent.click(screen.getByRole("button", { name: "清理旧分区" }));
+    await waitFor(() => {
+      expect(actionMocks.createPartition).toHaveBeenCalledWith(undefined);
+      expect(actionMocks.cleanupPartitions).toHaveBeenCalledWith(12);
+    });
   });
 });

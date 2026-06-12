@@ -3,6 +3,7 @@ import { AlertCircle, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Calcu
 import type { ReactNode } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
+import { triggerCapacityAggregation } from "@/api/actions";
 import {
   fetchCapacityDatabaseSnapshot,
   fetchCapacityInstanceSnapshot,
@@ -92,14 +93,14 @@ function PageHeader({
   );
 }
 
-function CommandBar() {
+function CommandBar({ onAggregate, onRefresh }: { onAggregate: () => void; onRefresh: () => void }) {
   return (
     <section className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
-      <Button disabled variant="outline">
+      <Button onClick={onRefresh} type="button" variant="outline">
         <RefreshCw aria-hidden size={16} />
         <span>刷新数据</span>
       </Button>
-      <Button disabled>
+      <Button onClick={onAggregate} type="button">
         <Calculator aria-hidden size={16} />
         <span>统计当前周期</span>
       </Button>
@@ -446,7 +447,14 @@ export function CapacityInstancesPage() {
         description="按实例维度查看容量统计、容量变化和容量变化百分比趋势。"
         legacyHref="/capacity/instances"
       />
-      <CommandBar />
+      <CommandBar
+        onAggregate={() => {
+          void triggerCapacityAggregation("instance").then(() => capacityQuery.refetch());
+        }}
+        onRefresh={() => {
+          void capacityQuery.refetch();
+        }}
+      />
       <QueryPage snapshot={capacityQuery.data} isLoading={capacityQuery.isLoading} isError={capacityQuery.isError} onRetry={() => void capacityQuery.refetch()}>
         {(snapshot: CapacityInstanceSnapshot) => (
           <>
@@ -489,7 +497,14 @@ export function CapacityDatabasesPage() {
         description="按数据库维度查看容量统计、容量变化和容量变化百分比趋势。"
         legacyHref="/capacity/databases"
       />
-      <CommandBar />
+      <CommandBar
+        onAggregate={() => {
+          void triggerCapacityAggregation("database").then(() => capacityQuery.refetch());
+        }}
+        onRefresh={() => {
+          void capacityQuery.refetch();
+        }}
+      />
       <QueryPage snapshot={capacityQuery.data} isLoading={capacityQuery.isLoading} isError={capacityQuery.isError} onRetry={() => void capacityQuery.refetch()}>
         {(snapshot: CapacityDatabaseSnapshot) => (
           <>

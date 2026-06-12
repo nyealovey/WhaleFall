@@ -1,9 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CapacityDatabasesPage, CapacityInstancesPage } from "./CapacityPages";
+
+const actionMocks = vi.hoisted(() => ({
+  triggerCapacityAggregation: vi.fn(async () => ({ run_id: "capacity-run" }))
+}));
+
+vi.mock("@/api/actions", () => actionMocks);
 
 vi.mock("@/api/capacity", () => ({
   fetchCapacityInstanceSnapshot: vi.fn(async () => ({
@@ -143,5 +149,26 @@ describe("CapacityPages", () => {
     for (const text of ["容量统计趋势图", "容量变化趋势图", "容量变化趋势图 (百分比)", "折线图", "柱状图", "TOP5", "TOP10", "TOP20", "7", "14", "30"]) {
       expect(screen.getAllByText(text).length).toBeGreaterThan(0);
     }
+  });
+
+  it("triggers current-period aggregation from capacity pages", async () => {
+    renderWithQueryClient(<CapacityInstancesPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "统计当前周期" }));
+    await waitFor(() => {
+      expect(actionMocks.triggerCapacityAggregation).toHaveBeenCalledWith("instance");
+    });
+
+    cleanup();
+    renderWithQueryClient(<CapacityDatabasesPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText("app_db").length).toBeGreaterThan(0);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "统计当前周期" }));
+    await waitFor(() => {
+      expect(actionMocks.triggerCapacityAggregation).toHaveBeenCalledWith("database");
+    });
   });
 });
