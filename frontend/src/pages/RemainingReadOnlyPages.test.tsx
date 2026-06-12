@@ -1,0 +1,401 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { describe, expect, it, vi } from "vitest";
+
+import {
+  AccountClassificationsPage,
+  ClassificationStatisticsPage,
+  ClustersPage,
+  CredentialsPage,
+  PartitionsPage,
+  SchedulerPage,
+  SettingsPage,
+  SyncSessionsPage,
+  TagsPage,
+  UsersPage
+} from "./RemainingReadOnlyPages";
+
+vi.mock("@/api/readOnly", () => ({
+  fetchClustersSnapshot: vi.fn(async () => ({
+    sqlServer: { items: [{ id: 1, name: "sql-ag", domain_name: "corp.local", is_enabled: true, instance_count: 2, availability_group_count: 1, last_ag_sync_status: "completed" }], total: 1, page: 1, pages: 1, limit: 20 },
+    mySql: { items: [{ id: 2, name: "mysql-repl", is_enabled: true, instance_count: 3, replication_status: "healthy" }], total: 1, page: 1, pages: 1, limit: 20 }
+  })),
+  fetchAccountClassificationsSnapshot: vi.fn(async () => ({
+    classifications: [{ id: 1, code: "dba", display_name: "DBA", risk_level: 2, rules_count: 1, is_system: true }],
+    rulesByDbType: { mysql: [{ id: 9, rule_name: "root rule", classification_name: "DBA", db_type: "mysql", is_active: true, matched_accounts_count: 8 }] }
+  })),
+  fetchClassificationStatisticsSnapshot: vi.fn(async () => ({
+    stats: { dba: { total_accounts: 8, matched_accounts_count: 8 } },
+    trends: {
+      buckets: [{ period_start: "2026-06-05", period_end: "2026-06-05" }],
+      series: [{ classification_id: 1, classification_name: "DBA", points: [{ period_start: "2026-06-05", value: 8 }] }]
+    }
+  })),
+  fetchSchedulerSnapshot: vi.fn(async () => ({
+    jobs: [
+      {
+        id: "job-1",
+        task_id: "job-1",
+        name: "同步任务",
+        task_name: "同步任务",
+        state: "STATE_RUNNING",
+        trigger_type: "cron",
+        trigger_args: { minute: "*/5", description: "每 5 分钟" },
+        next_run_time: "2026-06-11 12:00",
+        last_run_time: "2026-06-11 11:55",
+        is_builtin: true
+      },
+      {
+        id: "job-2",
+        task_id: "job-2",
+        name: "归档任务",
+        task_name: "归档任务",
+        state: "STATE_PAUSED",
+        trigger_type: "cron",
+        trigger_args: { hour: "2", description: "每日归档" },
+        next_run_time: null,
+        last_run_time: null,
+        is_builtin: true
+      }
+    ]
+  })),
+  fetchSyncSessionsSnapshot: vi.fn(async () => ({
+    items: [
+      {
+        id: 1,
+        session_id: "s-1",
+        sync_type: "manual",
+        sync_category: "accounts",
+        status: "running",
+        total_instances: 2,
+        successful_instances: 1,
+        failed_instances: 0,
+        started_at: "2026-06-11T12:00:00+08:00"
+      }
+    ],
+    total: 1,
+    page: 1,
+    pages: 1
+  })),
+  fetchUsersSnapshot: vi.fn(async () => ({
+    list: { items: [{ id: 1, username: "admin", role: "admin", is_active: true, created_at_display: "2026-06-11" }], total: 1, page: 1, pages: 1, limit: 10 },
+    stats: { total: 1, active: 1, inactive: 0, admin: 1, user: 0 }
+  })),
+  fetchSettingsSnapshot: vi.fn(async () => ({
+    alerts: {
+      smtp_ready: true,
+      from_address: "ops@example.com",
+      settings: {
+        global_enabled: true,
+        feishu_enabled: true,
+        database_capacity_enabled: true,
+        account_sync_failure_enabled: true,
+        database_sync_failure_enabled: false,
+        cluster_status_enabled: true,
+        privileged_account_enabled: true,
+        backup_issue_enabled: true
+      }
+    },
+    riskRules: [{ rule_key: "backup_issue", enabled: true, severity: "high" }],
+    jumpserver: { provider_ready: true, binding: { base_url: "https://jump.example", org_id: "org-1", verify_ssl: true }, api_credentials: [] },
+    veeam: { provider_ready: false, sources: [{ name: "veeam-main", server_host: "10.0.0.9", server_port: 9419, api_version: "v1", is_active: true }], veeam_credentials: [] },
+    adDomains: { configs: [{ id: 1, name: "corp", netbios_name: "CORP", ldap_port: 636, domain_controllers: ["dc01"], base_dn: "DC=corp,DC=local", is_enabled: true }] }
+  })),
+  fetchCredentialsSnapshot: vi.fn(async () => ({
+    items: [{ id: 1, name: "prod-db", credential_type: "database", db_type: "mysql", username: "root", is_active: true, instance_count: 2 }],
+    total: 1,
+    page: 1,
+    pages: 1,
+    limit: 20
+  })),
+  fetchTagsSnapshot: vi.fn(async () => ({
+    list: { items: [{ id: 1, name: "prod", display_name: "生产", category: "env", is_active: true, instance_count: 3 }], total: 1, page: 1, pages: 1, limit: 20, stats: { total: 1, active: 1, inactive: 0, category_count: 1 } },
+    categories: ["env"]
+  })),
+  fetchPartitionsSnapshot: vi.fn(async () => ({
+    status: { data: { status: "healthy", total_partitions: 1, total_size: "1 MB", total_records: 1, missing_partitions: [] }, timestamp: "2026-06-11T00:00:00+08:00" },
+    list: { items: [{ name: "p202606", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 1, status: "healthy" }], total: 1, page: 1, pages: 1, limit: 20 },
+    coreMetrics: { labels: ["06-11"], datasets: [{ label: "分区", data: [1] }], dataPointCount: 1, timeRange: "7d", yAxisLabel: "count", chartTitle: "核心指标", periodType: "daily" }
+  }))
+}));
+
+function renderWithQueryClient(element: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>);
+}
+
+async function expectTextPresent(text: string) {
+  await waitFor(() => {
+    expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+  });
+}
+
+describe("RemainingReadOnlyPages", () => {
+  const cases: Array<[string, ReactElement, string[]]> = [
+    ["群集管理", <ClustersPage />, ["sql-ag", "mysql-repl"]],
+    ["账户分类", <AccountClassificationsPage />, ["DBA", "root rule"]],
+    ["分类统计", <ClassificationStatisticsPage />, ["DBA", "分类趋势面积图"]],
+    ["定时任务", <SchedulerPage />, ["同步任务", "运行中"]],
+    ["会话中心", <SyncSessionsPage />, ["s-1", "running"]],
+    ["用户管理", <UsersPage />, ["admin", "用户总数"]],
+    ["系统设置", <SettingsPage />, ["邮件告警", "jump.example", "veeam-main", "corp"]],
+    ["凭据管理", <CredentialsPage />, ["prod-db", "root"]],
+    ["标签管理", <TagsPage />, ["生产", "env"]],
+    ["分区管理", <PartitionsPage />, ["p202606", "healthy"]]
+  ];
+
+  it.each(cases)("renders %s from read-only APIs", async (heading, element, expectedTexts) => {
+    renderWithQueryClient(element);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+    });
+
+    for (const text of expectedTexts) {
+      await expectTextPresent(text);
+    }
+    expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
+  });
+
+  it("renders credential management with legacy filters, fields, and actions", async () => {
+    renderWithQueryClient(<CredentialsPage />);
+
+    await screen.findByRole("heading", { name: "凭据管理" });
+
+    for (const text of ["搜索", "凭据类型", "数据库类型", "状态", "凭据", "类型", "绑定实例", "创建时间", "操作"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "新建凭据" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑凭据 prod-db" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除凭据 prod-db" })).toBeInTheDocument();
+  });
+
+  it("renders tag management with legacy stats, filters, fields, and actions", async () => {
+    renderWithQueryClient(<TagsPage />);
+
+    await screen.findByRole("heading", { name: "标签管理" });
+
+    for (const text of ["全部标签", "启用率", "停用率", "标签分类", "搜索", "状态", "标签", "分类", "关联", "操作"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "新建标签" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "批量分配" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑标签 生产" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除标签 生产" })).toBeInTheDocument();
+  });
+
+  it("renders user management with legacy filters, fields, and actions", async () => {
+    renderWithQueryClient(<UsersPage />);
+
+    await screen.findByRole("heading", { name: "用户管理" });
+
+    for (const text of ["搜索", "角色", "状态", "ID", "用户", "创建时间", "操作", "#1", "管理员", "启用"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "新建用户" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑用户 admin" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除用户 admin" })).toBeInTheDocument();
+  });
+
+  it("renders scheduler cards with legacy groups, fields, and actions", async () => {
+    renderWithQueryClient(<SchedulerPage />);
+
+    await screen.findByRole("heading", { name: "定时任务" });
+
+    for (const text of ["重新初始化任务", "运行中的任务", "已暂停的任务", "同步任务", "归档任务", "下次运行", "上次运行", "任务 ID", "触发器参数"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "暂停任务 同步任务" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "恢复任务 归档任务" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "立即执行 同步任务" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑任务 同步任务" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除任务 同步任务" })).toBeInTheDocument();
+  });
+
+  it("renders sync sessions with legacy filters, fields, progress, and actions", async () => {
+    renderWithQueryClient(<SyncSessionsPage />);
+
+    await screen.findByRole("heading", { name: "会话中心" });
+
+    for (const text of ["来源", "分类", "状态", "运行ID", "进度", "任务", "开始时间", "耗时", "操作", "50%", "manual", "accounts"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "查看详情 s-1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消任务 s-1" })).toBeInTheDocument();
+  });
+
+  it("renders clusters with legacy filters, fields, db type panels, and actions", async () => {
+    renderWithQueryClient(<ClustersPage />);
+
+    await screen.findByRole("heading", { name: "群集管理" });
+
+    for (const text of ["添加群集", "搜索", "状态", "SQL Server", "MySQL"]) {
+      await expectTextPresent(text);
+    }
+    for (const header of ["群集", "域名", "状态", "绑定实例", "AG", "最近 AG 同步", "数据库同步状态", "拓扑", "主从状态", "操作"]) {
+      expect(screen.getAllByRole("columnheader", { name: header }).length).toBeGreaterThan(0);
+    }
+
+    expect(screen.getByRole("button", { name: "管理群集 sql-ag" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AG账户 sql-ag" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看AG状态 sql-ag" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "管理群集 mysql-repl" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "主从状态 mysql-repl" })).toBeInTheDocument();
+  });
+
+  it("renders account classifications with legacy panels, rule groups, and actions", async () => {
+    renderWithQueryClient(<AccountClassificationsPage />);
+
+    await screen.findByRole("heading", { name: "账户分类" });
+
+    for (const text of ["自动分类", "账户分类", "规则管理", "新建分类", "新建规则", "#dba", "系统", "2级", "MYSQL 规则", "root rule", "8"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "编辑分类 DBA" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看规则 root rule" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑规则 root rule" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除规则 root rule" })).toBeInTheDocument();
+  });
+
+  it("renders classification statistics with legacy filters, rule list, and chart panels", async () => {
+    renderWithQueryClient(<ClassificationStatisticsPage />);
+
+    await screen.findByRole("heading", { name: "分类统计" });
+
+    for (const text of [
+      "刷新",
+      "账户分类",
+      "统计周期",
+      "日统计",
+      "周统计",
+      "月统计",
+      "季统计",
+      "数据库类型",
+      "实例/AG",
+      "规则列表",
+      "最新周期",
+      "搜索规则名/备注",
+      "启用",
+      "选择分类后加载规则列表与规则趋势",
+      "分类趋势（去重账号数）",
+      "覆盖 1/1 天",
+      "规则贡献（当前周期）",
+      "说明：规则之间允许重叠，“各规则之和”不等于分类去重总数。"
+    ]) {
+      await expectTextPresent(text);
+    }
+  });
+
+  it("renders system settings with legacy module navigation, forms, and actions", async () => {
+    renderWithQueryClient(<SettingsPage />);
+
+    await screen.findByRole("heading", { name: "系统设置" });
+
+    for (const text of [
+      "设置模块",
+      "告警设置",
+      "风险规则",
+      "JumpServer",
+      "Veeam",
+      "AD 设置",
+      "发送设置",
+      "投递通道",
+      "启用邮件告警",
+      "发送到飞书",
+      "飞书机器人 URL",
+      "收件人",
+      "共享收件人列表",
+      "发送测试邮件",
+      "发送飞书测试",
+      "保存配置",
+      "规则设置",
+      "容量异常增长",
+      "账户同步异常",
+      "数据库同步异常",
+      "群集状态",
+      "高权限账户",
+      "备份告警",
+      "保存规则",
+      "仅影响风险中心展示",
+      "JumpServer 数据源设置",
+      "绑定配置",
+      "API 凭据",
+      "JumpServer URL",
+      "组织 ID",
+      "SSL 证书验证",
+      "保存绑定",
+      "解绑数据源",
+      "同步 JumpServer 资源",
+      "运行状态",
+      "新增数据源",
+      "数据源名称",
+      "Veeam 凭据",
+      "Veeam IP",
+      "端口",
+      "API 版本",
+      "域名列表",
+      "保存数据源",
+      "删除数据源",
+      "新增模式",
+      "同步 Veeam 备份",
+      "数据源列表",
+      "新增 AD 域",
+      "域名",
+      "NetBIOS 名称",
+      "LDAP 端口",
+      "域控地址",
+      "Base DN",
+      "LDAP 凭据",
+      "使用 SSL",
+      "证书验证",
+      "启用同步",
+      "保存 AD 域",
+      "删除配置",
+      "AD 域账户同步",
+      "AD 域列表"
+    ]) {
+      await expectTextPresent(text);
+    }
+  });
+
+  it("renders partitions with legacy commands, metric cards, period controls, chart, and list", async () => {
+    renderWithQueryClient(<PartitionsPage />);
+
+    await screen.findByRole("heading", { name: "分区管理" });
+
+    for (const text of [
+      "创建分区",
+      "清理旧分区",
+      "分区总数",
+      "总大小",
+      "总记录数",
+      "健康状态",
+      "数据库连接",
+      "核心指标趋势",
+      "最近7天的核心指标统计",
+      "日",
+      "周",
+      "月",
+      "季",
+      "分区列表",
+      "分区",
+      "表",
+      "类型",
+      "大小",
+      "记录",
+      "状态"
+    ]) {
+      await expectTextPresent(text);
+    }
+  });
+});

@@ -57,6 +57,49 @@ describe("ApiClient", () => {
     expect(init.body).toBe("{}");
   });
 
+  it("supports PUT requests with JSON body for edit dialogs", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        error: false,
+        message: "updated",
+        data: { id: 7 }
+      })
+    );
+    const client = new ApiClient({ fetchImpl: fetchMock });
+    client.setCsrfToken("csrf-token");
+
+    await expect(client.put("/api/v1/users/7", { role: "admin" })).resolves.toEqual({ id: 7 });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init).toMatchObject({ method: "PUT", credentials: "include" });
+    expect(init.headers).toMatchObject({
+      "Content-Type": "application/json",
+      "X-CSRFToken": "csrf-token"
+    });
+    expect(init.body).toBe(JSON.stringify({ role: "admin" }));
+  });
+
+  it("supports DELETE requests without forcing an empty JSON body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        error: false,
+        message: "deleted",
+        data: { ok: true }
+      })
+    );
+    const client = new ApiClient({ fetchImpl: fetchMock });
+    client.setCsrfToken("csrf-token");
+
+    await expect(client.delete("/api/v1/tags/3")).resolves.toEqual({ ok: true });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init).toMatchObject({ method: "DELETE", credentials: "include" });
+    expect(init.headers).toMatchObject({ "X-CSRFToken": "csrf-token" });
+    expect(init.body).toBeUndefined();
+  });
+
   it("throws ApiError with stable error envelope fields", async () => {
     const errorEnvelope = {
       success: false,

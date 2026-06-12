@@ -79,6 +79,12 @@ function renderWithQueryClient(element: ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>);
 }
 
+async function expectTextPresent(text: string) {
+  await waitFor(() => {
+    expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+  });
+}
+
 describe("ListPages", () => {
   it("renders instances from the API", async () => {
     renderWithQueryClient(<InstancesPage />);
@@ -89,8 +95,26 @@ describe("ListPages", () => {
 
     expect(screen.getByRole("heading", { name: "实例管理" })).toBeInTheDocument();
     expect(screen.getByText("10.0.0.8:3306")).toBeInTheDocument();
-    expect(screen.getByText("生产")).toBeInTheDocument();
+    expect(screen.getAllByText("生产").length).toBeGreaterThan(0);
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
+  });
+
+  it("renders instances with legacy filters, fields, and actions", async () => {
+    renderWithQueryClient(<InstancesPage />);
+
+    await expectTextPresent("mysql-prod");
+
+    for (const label of ["搜索", "类型", "状态", "审计", "托管", "备份", "标签"]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    for (const header of ["名称", "类型", "主机/IP", "状态", "审计", "已托管", "备份", "活跃", "版本 / 同步", "标签", "操作"]) {
+      expect(screen.getByRole("columnheader", { name: header })).toBeInTheDocument();
+    }
+    for (const action of ["实例统计", "添加实例", "移入回收站", "批量测试连接", "批量导入", "显示已删除", "导出CSV"]) {
+      expect(screen.getAllByText(action).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "测试连接 1" })).toBeInTheDocument();
   });
 
   it("renders database ledgers from the API", async () => {
@@ -100,10 +124,27 @@ describe("ListPages", () => {
       expect(screen.getByText("app_db")).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("heading", { name: "数据库台账" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "数据库台账" })).toBeInTheDocument();
     expect(screen.getByText("2.00 GB")).toBeInTheDocument();
-    expect(screen.getAllByText("已更新").length).toBeGreaterThan(0);
+    expect(screen.getByRole("columnheader", { name: "数据库大小" })).toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
+  });
+
+  it("renders database ledgers with legacy filters, fields, and actions", async () => {
+    renderWithQueryClient(<DatabaseLedgersPage />);
+
+    await expectTextPresent("app_db");
+
+    for (const label of ["搜索", "类型", "标签"]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    for (const header of ["数据库/实例", "类型", "数据库大小", "标签", "操作"]) {
+      expect(screen.getByRole("columnheader", { name: header })).toBeInTheDocument();
+    }
+    for (const action of ["数据库统计", "同步所有数据库", "导出CSV"]) {
+      expect(screen.getAllByText(action).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByRole("button", { name: "查看容量趋势 2" })).toBeInTheDocument();
   });
 
   it("renders account ledgers from the API", async () => {
@@ -113,9 +154,26 @@ describe("ListPages", () => {
       expect(screen.getByText("readonly")).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("heading", { name: "账户台账" })).toBeInTheDocument();
-    expect(screen.getByText("只读账户")).toBeInTheDocument();
-    expect(screen.getAllByText("mysql-prod").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { level: 1, name: "账户台账" })).toBeInTheDocument();
+    expect(screen.getAllByText("只读账户").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/mysql-prod/).length).toBeGreaterThan(0);
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
+  });
+
+  it("renders account ledgers with legacy filters, fields, and actions", async () => {
+    renderWithQueryClient(<AccountLedgersPage />);
+
+    await expectTextPresent("readonly");
+
+    for (const label of ["搜索", "分类", "AD状态", "标签"]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    for (const header of ["账户/实例", "是否可用", "是否删除", "是否超管", "AD状态", "分类", "类型", "标签", "操作"]) {
+      expect(screen.getByRole("columnheader", { name: header })).toBeInTheDocument();
+    }
+    for (const action of ["账户统计", "同步所有账户", "导出CSV"]) {
+      expect(screen.getAllByText(action).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByRole("button", { name: "查看权限 3" })).toBeInTheDocument();
   });
 });

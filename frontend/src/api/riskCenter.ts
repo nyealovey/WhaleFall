@@ -40,6 +40,7 @@ export type RiskCenterCard = {
   backup?: Record<string, unknown>;
   audit?: Record<string, unknown>;
   managed?: Record<string, unknown>;
+  cluster?: Record<string, unknown>;
   capacity?: Record<string, unknown>;
   access?: Record<string, unknown>;
   tasks?: Record<string, unknown>;

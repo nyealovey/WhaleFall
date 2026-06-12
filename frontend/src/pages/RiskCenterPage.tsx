@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Database, ShieldAlert } from "lucide-react";
+import { AlertCircle, Database, HardDrive, Layers3, ListChecks, RefreshCw, ShieldAlert, ShieldCheck, type LucideIcon } from "lucide-react";
 
 import { fetchRiskCenterSnapshot, type RiskCenterCard, type RiskSeverity } from "@/api/riskCenter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/utils/cn";
 
@@ -37,6 +38,89 @@ function severityBadgeVariant(severity: RiskSeverity): "default" | "secondary" |
   return "outline";
 }
 
+function riskValue(value: unknown, fallback = "-"): string {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return fallback;
+}
+
+function riskSignalVariant(metric: Record<string, unknown> | undefined): "default" | "secondary" | "destructive" | "outline" {
+  const tone = riskValue(metric?.tone, "").toLowerCase();
+  if (["danger", "error", "high"].includes(tone)) {
+    return "destructive";
+  }
+  if (["success", "ok", "healthy"].includes(tone)) {
+    return "secondary";
+  }
+  if (["warning", "medium"].includes(tone)) {
+    return "default";
+  }
+  return "outline";
+}
+
+function RiskSignal({ icon: Icon, label, metric }: { icon: LucideIcon; label: string; metric: Record<string, unknown> | undefined }) {
+  return (
+    <div className="grid gap-2 rounded-md border bg-secondary/40 p-3">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <Icon aria-hidden size={14} />
+          <span>{label}</span>
+        </span>
+        <Badge variant={riskSignalVariant(metric)}>{riskValue(metric?.label, "未配置")}</Badge>
+      </div>
+      {metric?.detail ? <p className="text-xs text-muted-foreground">{riskValue(metric.detail)}</p> : null}
+    </div>
+  );
+}
+
+function RiskFilterPanel() {
+  const selectClassName =
+    "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2";
+
+  return (
+    <Card>
+      <CardContent className="grid gap-3">
+        <div className="grid grid-cols-[minmax(16rem,1.2fr)_repeat(4,minmax(8rem,0.7fr))_auto] items-end gap-3 max-2xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+          <label className="grid gap-1.5 text-sm font-medium">
+            <span>搜索</span>
+            <span className="text-xs font-normal text-muted-foreground">实例名 / 主机 / 类型</span>
+            <Input placeholder="实例名 / 主机 / 类型" readOnly type="search" />
+          </label>
+          {["严重度", "数据库类型", "状态", "标签"].map((label) => (
+            <label className="grid gap-1.5 text-sm font-medium" key={label}>
+              <span>{label}</span>
+              <select aria-label={label} className={selectClassName} defaultValue="">
+                <option value="">全部</option>
+              </select>
+            </label>
+          ))}
+          <div className="flex items-center gap-2">
+            <Button type="button">筛选</Button>
+            <Button type="button" variant="outline">
+              清空
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function groupRiskCards(cards: RiskCenterCard[]): Array<[string, RiskCenterCard[]]> {
+  const groups = new Map<string, RiskCenterCard[]>();
+  for (const card of cards) {
+    const groupName = card.group || card.db_type?.toUpperCase() || "未分组";
+    const groupCards = groups.get(groupName) ?? [];
+    groupCards.push(card);
+    groups.set(groupName, groupCards);
+  }
+  return [...groups.entries()];
+}
+
 function RiskCard({ card }: { card: RiskCenterCard }) {
   const primaryRisk = card.risk_items?.[0];
   return (
@@ -63,6 +147,16 @@ function RiskCard({ card }: { card: RiskCenterCard }) {
       ) : (
         <p className="rounded-md bg-secondary/60 p-3 text-sm text-muted-foreground">暂无风险详情</p>
       )}
+      <section className="grid gap-2" aria-label={`${card.name} 实例核心风险指标`}>
+        <h3 className="text-sm font-medium">实例核心风险指标</h3>
+        <div className="grid grid-cols-5 gap-2 max-xl:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1">
+          <RiskSignal icon={HardDrive} label="备份" metric={card.backup} />
+          <RiskSignal icon={ShieldCheck} label="审计" metric={card.audit} />
+          <RiskSignal icon={Database} label="托管" metric={card.managed} />
+          <RiskSignal icon={Layers3} label="群集" metric={card.cluster} />
+          <RiskSignal icon={ListChecks} label="任务" metric={card.tasks} />
+        </div>
+      </section>
     </article>
   );
 }
@@ -87,9 +181,15 @@ export function RiskCenterPage() {
             汇总实例备份、审计、托管、容量和任务信号，优先展示高风险实例。
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <a href="/risk-center/">在旧版打开</a>
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button onClick={() => void riskQuery.refetch()} type="button">
+            <RefreshCw aria-hidden size={16} />
+            刷新
+          </Button>
+          <Button variant="outline" asChild>
+            <a href="/risk-center/">在旧版打开</a>
+          </Button>
+        </div>
       </section>
 
       {riskQuery.isLoading ? (
@@ -122,7 +222,7 @@ export function RiskCenterPage() {
           <section className="grid grid-cols-5 gap-2 max-xl:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1" aria-label="风险汇总">
             <Card className="bg-foreground text-background">
               <CardContent>
-                <div className="text-sm opacity-70">实例总数</div>
+                <div className="text-sm opacity-70">总实例</div>
                 <div className="mt-2 font-mono text-3xl font-semibold">{formatNumber(snapshot.summary.total_instances)}</div>
               </CardContent>
             </Card>
@@ -136,6 +236,8 @@ export function RiskCenterPage() {
             ))}
           </section>
 
+          <RiskFilterPanel />
+
           <section className="grid grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)] gap-2 max-xl:grid-cols-1">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -147,14 +249,21 @@ export function RiskCenterPage() {
                 </div>
                 <ShieldAlert aria-hidden size={18} />
               </CardHeader>
-              <CardContent
-                className={cn(
-                  "grid gap-2",
-                  snapshot.cards.items.length > 1 ? "grid-cols-2 max-lg:grid-cols-1" : "grid-cols-1"
-                )}
-              >
+              <CardContent className="grid gap-4">
                 {snapshot.cards.items.length > 0 ? (
-                  snapshot.cards.items.map((card) => <RiskCard card={card} key={card.instance_id} />)
+                  groupRiskCards(snapshot.cards.items).map(([group, cards]) => (
+                    <section className="grid gap-2" key={group}>
+                      <div className="flex items-center justify-between rounded-md bg-secondary/50 px-3 py-2">
+                        <h3 className="text-sm font-semibold">{group} ({formatNumber(cards.length)})</h3>
+                        <Badge variant="outline">{severityLabel(cards[0]?.overall_severity ?? "ok")}</Badge>
+                      </div>
+                      <div className={cn("grid gap-2", cards.length > 1 ? "grid-cols-2 max-lg:grid-cols-1" : "grid-cols-1")}>
+                        {cards.map((card) => (
+                          <RiskCard card={card} key={card.instance_id} />
+                        ))}
+                      </div>
+                    </section>
+                  ))
                 ) : (
                   <p className="rounded-md border bg-secondary/40 p-4 text-sm text-muted-foreground">暂无风险实例</p>
                 )}

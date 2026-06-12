@@ -93,7 +93,7 @@ describe("CapacityPages", () => {
     renderWithQueryClient(<CapacityInstancesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("mysql-capacity")).toBeInTheDocument();
+      expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0);
     });
 
     expect(screen.getByRole("heading", { name: "实例容量" })).toBeInTheDocument();
@@ -102,16 +102,46 @@ describe("CapacityPages", () => {
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 
+  it("renders instance capacity with legacy controls, metrics, and chart panels", async () => {
+    renderWithQueryClient(<CapacityInstancesPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0);
+    });
+
+    for (const text of ["刷新数据", "统计当前周期", "数据库类型", "实例", "周期", "在线实例数", "总容量", "平均容量", "最大容量"]) {
+      expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+    }
+    for (const text of ["容量统计趋势图", "容量变化趋势图", "容量变化趋势图 (百分比)", "折线图", "柱状图", "TOP5", "TOP10", "TOP20", "7", "14", "30"]) {
+      expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+    }
+  });
+
   it("renders database capacity data from the API", async () => {
     renderWithQueryClient(<CapacityDatabasesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("app_db")).toBeInTheDocument();
+      expect(screen.getAllByText("app_db").length).toBeGreaterThan(0);
     });
 
     expect(screen.getByRole("heading", { name: "数据库容量" })).toBeInTheDocument();
     expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0);
     expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
+  });
+
+  it("renders database capacity with legacy controls, metrics, and chart panels", async () => {
+    renderWithQueryClient(<CapacityDatabasesPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("app_db").length).toBeGreaterThan(0);
+    });
+
+    for (const text of ["刷新数据", "统计当前周期", "数据库类型", "实例", "数据库", "周期", "总数据库数", "总容量", "平均容量", "最大容量"]) {
+      expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+    }
+    for (const text of ["容量统计趋势图", "容量变化趋势图", "容量变化趋势图 (百分比)", "折线图", "柱状图", "TOP5", "TOP10", "TOP20", "7", "14", "30"]) {
+      expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+    }
   });
 });

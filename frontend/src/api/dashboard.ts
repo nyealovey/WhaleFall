@@ -76,25 +76,43 @@ export type DashboardCharts = {
   sync_trend?: Array<{ date: string; count: number }>;
 };
 
+export type DashboardRiskSummary = {
+  total_instances?: number;
+  severity_counts?: Record<string, number>;
+  top_risks?: Array<{
+    rule_key?: string;
+    instance_name?: string;
+    db_type?: string;
+    group?: string;
+    severity?: string;
+    label?: string;
+    detail?: string;
+    target_url?: string | null;
+  }>;
+};
+
 export type DashboardSnapshot = {
   overview: DashboardOverview;
   status: DashboardStatus;
   charts: DashboardCharts;
   activities: unknown[];
+  riskSummary?: DashboardRiskSummary;
 };
 
 export async function fetchDashboardSnapshot(client: ApiReader = apiClient): Promise<DashboardSnapshot> {
-  const [overview, status, charts, activities] = await Promise.all([
+  const [overview, status, charts, activities, riskSummary] = await Promise.all([
     client.get<DashboardOverview>("/api/v1/dashboard/overview"),
     client.get<DashboardStatus>("/api/v1/dashboard/status"),
     client.get<DashboardCharts>("/api/v1/dashboard/charts?type=all"),
-    client.get<unknown[]>("/api/v1/dashboard/activities")
+    client.get<unknown[]>("/api/v1/dashboard/activities"),
+    client.get<DashboardRiskSummary>("/api/v1/risk-center/summary")
   ]);
 
   return {
     overview,
     status,
     charts,
-    activities
+    activities,
+    riskSummary
   };
 }

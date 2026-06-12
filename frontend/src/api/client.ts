@@ -59,6 +59,14 @@ export class ApiClient {
     return this.request<TData>(path, { method: "POST", body });
   }
 
+  put<TData>(path: string, body: unknown): Promise<TData> {
+    return this.request<TData>(path, { method: "PUT", body });
+  }
+
+  delete<TData>(path: string, body?: unknown): Promise<TData> {
+    return this.request<TData>(path, { method: "DELETE", body });
+  }
+
   async request<TData>(path: string, options: RequestOptions = {}): Promise<TData> {
     const method = (options.method ?? "GET").toUpperCase();
     const headers: Record<string, string> = {

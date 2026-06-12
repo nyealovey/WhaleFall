@@ -28,6 +28,7 @@ vi.mock("@/api/dashboard", () => ({
       uptime: "3 days"
     },
     charts: {
+      log_trend: [{ date: "2026-06-11", error_count: 2, warning_count: 5 }],
       log_levels: [{ level: "ERROR", count: 3 }],
       sync_trend: [{ date: "2026-06-11", count: 4 }]
     },
@@ -66,5 +67,37 @@ describe("DashboardPage", () => {
     expect(screen.getByRole("img", { name: "同步趋势面积图" })).toBeInTheDocument();
     expect(screen.getAllByRole("progressbar")).toHaveLength(3);
     expect(screen.queryByText("迁移状态")).not.toBeInTheDocument();
+  });
+
+  it("keeps dashboard aligned with the legacy cockpit content", async () => {
+    renderWithQueryClient();
+
+    await screen.findByRole("heading", { name: "仪表盘" });
+
+    for (const text of [
+      "刷新数据",
+      "数据库实例",
+      "在线",
+      "物理",
+      "AG",
+      "停用",
+      "删除",
+      "总容量",
+      "风险告警",
+      "错误和告警日志趋势（最近7天）",
+      "错误日志",
+      "告警日志",
+      "系统状态",
+      "CPU 使用率",
+      "内存使用率",
+      "磁盘使用率",
+      "数据库:",
+      "Redis:",
+      "系统运行时间"
+    ]) {
+      await waitFor(() => {
+        expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+      });
+    }
   });
 });

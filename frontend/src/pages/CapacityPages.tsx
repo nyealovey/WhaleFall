@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Database, ExternalLink, HardDrive, Server } from "lucide-react";
+import { AlertCircle, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Calculator, Database, ExternalLink, HardDrive, RefreshCw, Server } from "lucide-react";
 import type { ReactNode } from "react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
   fetchCapacityDatabaseSnapshot,
@@ -14,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -90,6 +92,62 @@ function PageHeader({
   );
 }
 
+function CommandBar() {
+  return (
+    <section className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+      <Button disabled variant="outline">
+        <RefreshCw aria-hidden size={16} />
+        <span>刷新数据</span>
+      </Button>
+      <Button disabled>
+        <Calculator aria-hidden size={16} />
+        <span>统计当前周期</span>
+      </Button>
+    </section>
+  );
+}
+
+const selectClassName =
+  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
+function CapacityFilterBar({ includeDatabase }: { includeDatabase?: boolean }) {
+  return (
+    <section className="grid grid-cols-4 gap-3 rounded-lg border bg-card p-3 max-xl:grid-cols-2 max-sm:grid-cols-1" aria-label="容量筛选">
+      <label className="grid gap-1.5 text-sm font-medium text-foreground">
+        <span>数据库类型</span>
+        <select aria-label="数据库类型" className={selectClassName} defaultValue="all">
+          <option value="all">全部类型</option>
+          <option value="mysql">MySQL</option>
+          <option value="sqlserver">SQL Server</option>
+          <option value="oracle">Oracle</option>
+        </select>
+      </label>
+      <label className="grid gap-1.5 text-sm font-medium text-foreground">
+        <span>实例</span>
+        <select aria-label="实例" className={selectClassName} defaultValue="all">
+          <option value="all">全部实例</option>
+        </select>
+      </label>
+      {includeDatabase ? (
+        <label className="grid gap-1.5 text-sm font-medium text-foreground">
+          <span>数据库</span>
+          <select aria-label="数据库" className={selectClassName} defaultValue="all">
+            <option value="all">全部数据库</option>
+          </select>
+        </label>
+      ) : null}
+      <label className="grid gap-1.5 text-sm font-medium text-foreground">
+        <span>周期</span>
+        <select aria-label="周期" className={selectClassName} defaultValue="daily">
+          <option value="daily">日</option>
+          <option value="weekly">周</option>
+          <option value="monthly">月</option>
+        </select>
+      </label>
+    </section>
+  );
+}
+
 function MetricGrid({ metrics }: { metrics: Metric[] }) {
   return (
     <section className="grid grid-cols-4 gap-2 max-xl:grid-cols-2 max-sm:grid-cols-1" aria-label="容量指标">
@@ -110,6 +168,73 @@ function MetricGrid({ metrics }: { metrics: Metric[] }) {
           </Card>
         );
       })}
+    </section>
+  );
+}
+
+type CapacityChartPoint = {
+  label: string;
+  trend: number;
+  change: number;
+  percent: number;
+};
+
+const capacityChartConfig = {
+  trend: { label: "容量", color: "var(--chart-1)" },
+  change: { label: "变化量", color: "var(--chart-2)" },
+  percent: { label: "变化率", color: "var(--chart-3)" }
+} satisfies ChartConfig;
+
+function CapacityChartControls() {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {["折线图", "柱状图", "TOP5", "TOP10", "TOP20", "7", "14", "30"].map((label) => (
+        <Button disabled key={label} size="sm" variant="outline">
+          {label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function CapacityChartPanel({ title, data, dataKey }: { title: string; data: CapacityChartPoint[]; dataKey: keyof Pick<CapacityChartPoint, "trend" | "change" | "percent"> }) {
+  return (
+    <Card>
+      <CardContent className="grid gap-3">
+        <div className="flex items-start justify-between gap-3 max-lg:grid">
+          <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
+          <CapacityChartControls />
+        </div>
+        {data.length > 0 ? (
+          <ChartContainer config={capacityChartConfig} className="h-[240px] w-full">
+            <AreaChart accessibilityLayer data={data} margin={{ left: -12, right: 12, top: 12, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`capacity-${dataKey}-fill`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.34} />
+                  <stop offset="95%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.04} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+              <YAxis tickLine={false} axisLine={false} tickMargin={8} width={44} />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Area dataKey={dataKey} name={capacityChartConfig[dataKey].label} type="monotone" stroke={`var(--color-${dataKey})`} strokeWidth={2} fill={`url(#capacity-${dataKey}-fill)`} />
+            </AreaChart>
+          </ChartContainer>
+        ) : (
+          <p className="text-sm text-muted-foreground">暂无趋势数据</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CapacityCharts({ data }: { data: CapacityChartPoint[] }) {
+  return (
+    <section className="grid gap-2">
+      <CapacityChartPanel title="容量统计趋势图" data={data} dataKey="trend" />
+      <CapacityChartPanel title="容量变化趋势图" data={data} dataKey="change" />
+      <CapacityChartPanel title="容量变化趋势图 (百分比)" data={data} dataKey="percent" />
     </section>
   );
 }
@@ -191,6 +316,42 @@ function QueryPage<TSnapshot>({
       {snapshot ? children(snapshot) : null}
     </>
   );
+}
+
+function formatRatio(value: number): string {
+  return `${value.toFixed(1)}x`;
+}
+
+function instanceLargestShare(summary: CapacityInstanceSnapshot["summary"]): string {
+  if (summary.total_size_mb <= 0) {
+    return "0%";
+  }
+  return formatPercent((summary.max_size_mb / summary.total_size_mb) * 100);
+}
+
+function databaseLargestShare(summary: CapacityDatabaseSnapshot["summary"]): string {
+  if (summary.total_size_mb <= 0) {
+    return "0%";
+  }
+  return formatPercent((summary.max_size_mb / summary.total_size_mb) * 100);
+}
+
+function instanceChartData(items: CapacityInstanceItem[]): CapacityChartPoint[] {
+  return items.map((item) => ({
+    label: item.instance.name,
+    trend: item.total_size_mb,
+    change: item.total_size_change_mb ?? 0,
+    percent: item.total_size_change_percent ?? item.growth_rate ?? 0
+  }));
+}
+
+function databaseChartData(items: CapacityDatabaseItem[]): CapacityChartPoint[] {
+  return items.map((item) => ({
+    label: item.database_name,
+    trend: item.avg_size_mb,
+    change: item.size_change_mb ?? 0,
+    percent: item.size_change_percent ?? item.growth_rate ?? 0
+  }));
 }
 
 function InstanceCapacityTable({ items }: { items: CapacityInstanceItem[] }) {
@@ -282,20 +443,28 @@ export function CapacityInstancesPage() {
       <PageHeader
         eyebrow="Instance capacity"
         title="实例容量"
-        description="按最近 30 天日粒度读取实例容量聚合，展示容量变化和数据库数量。"
+        description="按实例维度查看容量统计、容量变化和容量变化百分比趋势。"
         legacyHref="/capacity/instances"
       />
+      <CommandBar />
       <QueryPage snapshot={capacityQuery.data} isLoading={capacityQuery.isLoading} isError={capacityQuery.isError} onRetry={() => void capacityQuery.refetch()}>
         {(snapshot: CapacityInstanceSnapshot) => (
           <>
             <MetricGrid
               metrics={[
-                { label: "实例总数", value: snapshot.summary.total_instances, icon: Server },
-                { label: "总容量", value: formatSizeMb(snapshot.summary.total_size_mb), detail: `平均 ${formatSizeMb(snapshot.summary.avg_size_mb)}`, icon: HardDrive },
-                { label: "最大实例", value: formatSizeMb(snapshot.summary.max_size_mb), icon: BarChart3 },
-                { label: "当前页", value: `${snapshot.list.page}/${snapshot.list.pages}`, icon: Database }
+                { label: "在线实例数", value: snapshot.summary.total_instances, detail: `${snapshot.summary.period_type} · ${snapshot.summary.source}`, icon: Server },
+                { label: "总容量", value: formatSizeMb(snapshot.summary.total_size_mb), detail: `最大占比 ${instanceLargestShare(snapshot.summary)}`, icon: HardDrive },
+                {
+                  label: "平均容量",
+                  value: formatSizeMb(snapshot.summary.avg_size_mb),
+                  detail: `最大/均值 ${formatRatio(snapshot.summary.avg_size_mb > 0 ? snapshot.summary.max_size_mb / snapshot.summary.avg_size_mb : 0)}`,
+                  icon: BarChart3
+                },
+                { label: "最大容量", value: formatSizeMb(snapshot.summary.max_size_mb), icon: Database }
               ]}
             />
+            <CapacityFilterBar />
+            <CapacityCharts data={instanceChartData(snapshot.list.items)} />
             <ListFrame title="实例容量列表" description={`日粒度 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
               <InstanceCapacityTable items={snapshot.list.items} />
             </ListFrame>
@@ -317,20 +486,33 @@ export function CapacityDatabasesPage() {
       <PageHeader
         eyebrow="Database capacity"
         title="数据库容量"
-        description="按最近 30 天日粒度读取数据库容量聚合，展示容量排行和增长趋势。"
+        description="按数据库维度查看容量统计、容量变化和容量变化百分比趋势。"
         legacyHref="/capacity/databases"
       />
+      <CommandBar />
       <QueryPage snapshot={capacityQuery.data} isLoading={capacityQuery.isLoading} isError={capacityQuery.isError} onRetry={() => void capacityQuery.refetch()}>
         {(snapshot: CapacityDatabaseSnapshot) => (
           <>
             <MetricGrid
               metrics={[
-                { label: "数据库总数", value: snapshot.summary.total_databases, icon: Database },
-                { label: "实例覆盖", value: snapshot.summary.total_instances, icon: Server },
-                { label: "总容量", value: formatSizeMb(snapshot.summary.total_size_mb), detail: `平均 ${formatSizeMb(snapshot.summary.avg_size_mb)}`, icon: HardDrive },
-                { label: "增长率", value: formatPercent(snapshot.summary.growth_rate), icon: BarChart3 }
+                {
+                  label: "总数据库数",
+                  value: snapshot.summary.total_databases,
+                  detail: `实例数 ${formatNumber(snapshot.summary.total_instances)} · 库/实例 ${formatRatio(snapshot.summary.total_instances > 0 ? snapshot.summary.total_databases / snapshot.summary.total_instances : 0)}`,
+                  icon: Database
+                },
+                { label: "总容量", value: formatSizeMb(snapshot.summary.total_size_mb), detail: `增长率 ${formatPercent(snapshot.summary.growth_rate)}`, icon: HardDrive },
+                {
+                  label: "平均容量",
+                  value: formatSizeMb(snapshot.summary.avg_size_mb),
+                  detail: `最大/均值 ${formatRatio(snapshot.summary.avg_size_mb > 0 ? snapshot.summary.max_size_mb / snapshot.summary.avg_size_mb : 0)}`,
+                  icon: BarChart3
+                },
+                { label: "最大容量", value: formatSizeMb(snapshot.summary.max_size_mb), detail: `最大占比 ${databaseLargestShare(snapshot.summary)}`, icon: Server }
               ]}
             />
+            <CapacityFilterBar includeDatabase />
+            <CapacityCharts data={databaseChartData(snapshot.list.items)} />
             <ListFrame title="数据库容量列表" description={`日粒度 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
               <DatabaseCapacityTable items={snapshot.list.items} />
             </ListFrame>

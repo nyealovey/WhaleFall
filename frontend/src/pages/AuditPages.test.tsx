@@ -79,6 +79,12 @@ function renderWithQueryClient(element: ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>);
 }
 
+async function expectTextPresent(text: string) {
+  await waitFor(() => {
+    expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+  });
+}
+
 describe("AuditPages", () => {
   it("renders history logs from the API", async () => {
     renderWithQueryClient(<HistoryLogsPage />);
@@ -102,7 +108,31 @@ describe("AuditPages", () => {
 
     expect(screen.getByRole("heading", { name: "变更历史" })).toBeInTheDocument();
     expect(screen.getByText("新增账户,赋予 5 项权限")).toBeInTheDocument();
-    expect(screen.getAllByText("success").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("ORACLE").length).toBeGreaterThan(0);
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
+  });
+
+  it("renders history logs with legacy filters, fields, and actions", async () => {
+    renderWithQueryClient(<HistoryLogsPage />);
+
+    await screen.findByRole("heading", { name: "日志中心" });
+
+    for (const text of ["搜索", "级别", "模块", "时间范围", "时间", "消息", "操作"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
+  });
+
+  it("renders account change logs with legacy filters, fields, and actions", async () => {
+    renderWithQueryClient(<AccountChangeLogsPage />);
+
+    await screen.findByRole("heading", { name: "变更历史" });
+
+    for (const text of ["搜索", "实例", "数据库类型", "变更类型", "时间范围", "时间", "账号", "类型", "摘要", "操作"]) {
+      await expectTextPresent(text);
+    }
+
+    expect(screen.getByRole("button", { name: "查看详情 2" })).toBeInTheDocument();
   });
 });

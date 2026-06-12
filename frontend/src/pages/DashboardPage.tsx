@@ -1,8 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertCircle, Cpu, Database, HardDrive, Server, Users } from "lucide-react";
+import { Activity, AlertCircle, Cpu, Database, HardDrive, RefreshCw, Server, ShieldAlert, Users } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
-import { fetchDashboardSnapshot, type DashboardCharts, type DashboardOverview, type DashboardStatus } from "@/api/dashboard";
+import {
+  fetchDashboardSnapshot,
+  type DashboardCharts,
+  type DashboardOverview,
+  type DashboardRiskSummary,
+  type DashboardStatus
+} from "@/api/dashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,31 +35,64 @@ function serviceTone(status: string): "default" | "secondary" | "destructive" | 
   return status === "healthy" || status === "connected" ? "secondary" : "destructive";
 }
 
+function serviceLabel(status: string): string {
+  return status === "healthy" || status === "connected" ? "正常" : "异常";
+}
+
+function StatChips({ items }: { items: Array<{ label: string; value: number | undefined; variant?: "default" | "secondary" | "destructive" | "outline" }> }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item) => (
+        <Badge className="gap-1 font-normal" key={item.label} variant={item.variant ?? "outline"}>
+          <span className="font-mono">{formatNumber(item.value)}</span>
+          <span>{item.label}</span>
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 function MetricCards({ overview }: { overview: DashboardOverview }) {
   const metrics = [
     {
       label: "数据库实例",
       value: formatNumber(overview.instances.total),
-      detail: `活跃 ${formatNumber(overview.instances.active)} · 物理 ${formatNumber(overview.instances.physical)}`,
-      icon: Server
+      icon: Server,
+      chips: [
+        { label: "在线", value: overview.instances.active, variant: "secondary" as const },
+        { label: "物理", value: overview.instances.physical },
+        { label: "AG", value: overview.instances.ag_virtual },
+        { label: "停用", value: overview.instances.inactive },
+        { label: "删除", value: overview.instances.deleted, variant: "destructive" as const }
+      ]
     },
     {
       label: "账户总数",
       value: formatNumber(overview.accounts.total),
-      detail: `正常 ${formatNumber(overview.accounts.normal)} · 锁定 ${formatNumber(overview.accounts.locked)}`,
-      icon: Users
+      icon: Users,
+      chips: [
+        { label: "正常", value: overview.accounts.normal, variant: "secondary" as const },
+        { label: "锁定", value: overview.accounts.locked },
+        { label: "删除", value: overview.accounts.deleted, variant: "destructive" as const },
+        { label: "实例", value: overview.accounts.instance?.total },
+        { label: "AG", value: overview.accounts.sqlserver_ag?.total }
+      ]
+    },
+    {
+      label: "总容量",
+      value: formatCapacity(overview.capacity.total_gb),
+      icon: HardDrive,
+      chips: [{ label: "利用率", value: overview.capacity.usage_percent }]
     },
     {
       label: "数据库总数",
       value: formatNumber(overview.databases.total),
-      detail: `正常 ${formatNumber(overview.databases.active)} · 受限 ${formatNumber(overview.databases.inactive)}`,
-      icon: Database
-    },
-    {
-      label: "实例容量",
-      value: formatCapacity(overview.capacity.total_gb),
-      detail: `当前利用率 ${formatNumber(overview.capacity.usage_percent)}%`,
-      icon: HardDrive
+      icon: Database,
+      chips: [
+        { label: "正常", value: overview.databases.active, variant: "secondary" as const },
+        { label: "受限", value: overview.databases.inactive },
+        { label: "删除", value: overview.databases.deleted, variant: "destructive" as const }
+      ]
     }
   ];
 
@@ -69,7 +108,7 @@ function MetricCards({ overview }: { overview: DashboardOverview }) {
                 <span>{metric.label}</span>
               </div>
               <strong className="font-mono text-[length:var(--metric-hero-value)] leading-none">{metric.value}</strong>
-              <span className="text-xs text-muted-foreground">{metric.detail}</span>
+              <StatChips items={metric.chips} />
             </CardContent>
           </Card>
         );
@@ -96,38 +135,47 @@ function SystemStatus({ status }: { status: DashboardStatus }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>运行状态</CardTitle>
+          <CardTitle>系统状态</CardTitle>
           <CardDescription>系统资源与依赖服务</CardDescription>
         </div>
         <Cpu aria-hidden size={18} />
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-3">
-          <UsageBar label="CPU" value={status.system.cpu} />
-          <UsageBar label="Memory" value={status.system.memory.percent} />
-          <UsageBar label="Disk" value={status.system.disk.percent} />
+          <UsageBar label="CPU 使用率" value={status.system.cpu} />
+          <UsageBar label="内存使用率" value={status.system.memory.percent} />
+          <UsageBar label="磁盘使用率" value={status.system.disk.percent} />
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-md border bg-secondary/40 p-3">
-            <span className="text-muted-foreground">Database</span>
+            <strong className="text-muted-foreground">数据库:</strong>
             <div className="mt-2">
-              <Badge variant={serviceTone(status.services.database)}>{status.services.database}</Badge>
+              <Badge variant={serviceTone(status.services.database)}>{serviceLabel(status.services.database)}</Badge>
             </div>
           </div>
           <div className="rounded-md border bg-secondary/40 p-3">
-            <span className="text-muted-foreground">Redis</span>
+            <strong className="text-muted-foreground">Redis:</strong>
             <div className="mt-2">
-              <Badge variant={serviceTone(status.services.redis)}>{status.services.redis}</Badge>
+              <Badge variant={serviceTone(status.services.redis)}>{serviceLabel(status.services.redis)}</Badge>
             </div>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">Uptime: {status.uptime}</p>
+        <p className="flex flex-wrap gap-1 text-xs text-muted-foreground">
+          <span>系统运行时间</span>
+          <span>{status.uptime}</span>
+        </p>
       </CardContent>
     </Card>
   );
 }
 
 function ChartLists({ charts }: { charts: DashboardCharts }) {
+  const logTrendData = (charts.log_trend ?? []).map((item) => ({
+    date: item.date,
+    label: item.date.slice(5),
+    error_count: item.error_count,
+    warning_count: item.warning_count
+  }));
   const logLevelData = (charts.log_levels ?? []).map((item) => ({
     level: item.level,
     count: item.count
@@ -149,14 +197,72 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
       color: "var(--chart-1)"
     }
   } satisfies ChartConfig;
+  const logTrendChartConfig = {
+    error_count: {
+      label: "错误日志",
+      color: "var(--chart-3)"
+    },
+    warning_count: {
+      label: "告警日志",
+      color: "var(--chart-4)"
+    }
+  } satisfies ChartConfig;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>运行信号</CardTitle>
-        <CardDescription>日志等级与同步趋势</CardDescription>
+        <CardTitle>错误和告警日志趋势（最近7天）</CardTitle>
+        <CardDescription>日期维度展示错误日志与告警日志数量，保留运行信号辅助视图。</CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-5 max-lg:grid-cols-1">
+        <div className="col-span-2 grid gap-2 max-lg:col-span-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-medium">日志趋势</h2>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="destructive">错误日志</Badge>
+              <Badge variant="outline">告警日志</Badge>
+            </div>
+          </div>
+          {logTrendData.length > 0 ? (
+            <div aria-label="错误和告警日志趋势图" className="min-h-[220px]" role="img">
+              <ul className="sr-only" aria-label="错误和告警日志趋势数据">
+                {logTrendData.map((item) => (
+                  <li key={item.date}>
+                    {item.date}: 错误日志 {formatNumber(item.error_count)}, 告警日志 {formatNumber(item.warning_count)}
+                  </li>
+                ))}
+              </ul>
+              <ChartContainer config={logTrendChartConfig} className="h-[220px] w-full">
+                <LineChart accessibilityLayer data={logTrendData} margin={{ left: -12, right: 10, top: 12, bottom: 0 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line
+                    dataKey="error_count"
+                    name="错误日志"
+                    type="monotone"
+                    stroke="var(--color-error_count)"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Line
+                    dataKey="warning_count"
+                    name="告警日志"
+                    type="monotone"
+                    stroke="var(--color-warning_count)"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">暂无错误和告警日志趋势</p>
+          )}
+        </div>
         <div className="grid gap-2">
           <h2 className="text-sm font-medium">日志等级</h2>
           {logLevelData.length > 0 ? (
@@ -259,6 +365,42 @@ function ClassificationPanel({ overview }: { overview: DashboardOverview }) {
   );
 }
 
+function RiskAlertBoard({ summary }: { summary: DashboardRiskSummary | undefined }) {
+  const topRisks = summary?.top_risks ?? [];
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>风险告警</CardTitle>
+          <CardDescription>当前风险事件 · {formatNumber(topRisks.length)} 项</CardDescription>
+        </div>
+        <ShieldAlert aria-hidden size={18} />
+      </CardHeader>
+      <CardContent className="grid gap-2">
+        {topRisks.length > 0 ? (
+          topRisks.slice(0, 5).map((risk, index) => (
+            <a
+              className="grid gap-1 rounded-md border bg-secondary/40 p-3 text-sm transition-colors hover:bg-secondary"
+              href={risk.target_url ?? "#"}
+              key={`${risk.instance_name ?? "risk"}-${risk.rule_key ?? index}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <strong>{[risk.instance_name, risk.label].filter(Boolean).join(" · ") || "风险事件"}</strong>
+                <Badge variant={risk.severity === "high" ? "destructive" : "outline"}>{risk.group ?? risk.db_type?.toUpperCase() ?? "风险"}</Badge>
+              </div>
+              {risk.detail ? <span className="text-muted-foreground">{risk.detail}</span> : null}
+            </a>
+          ))
+        ) : (
+          <div className="rounded-md border bg-secondary/40 p-4 text-sm text-muted-foreground">
+            <strong className="text-foreground">当前没有启用的风险命中</strong>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function DashboardPage() {
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", "snapshot"],
@@ -277,9 +419,15 @@ export function DashboardPage() {
             读取 `/api/v1/dashboard/**` 汇总系统资源、账号分类、运行状态和同步信号。
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <a href="/dashboard/">在旧版打开</a>
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button onClick={() => void dashboardQuery.refetch()} type="button">
+            <RefreshCw aria-hidden size={16} />
+            刷新数据
+          </Button>
+          <Button variant="outline" asChild>
+            <a href="/dashboard/">在旧版打开</a>
+          </Button>
+        </div>
       </section>
 
       {dashboardQuery.isLoading ? (
@@ -311,6 +459,7 @@ export function DashboardPage() {
       {snapshot ? (
         <>
           <MetricCards overview={snapshot.overview} />
+          <RiskAlertBoard summary={snapshot.riskSummary} />
           <section className="grid grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)] gap-2 max-lg:grid-cols-1">
             <ChartLists charts={snapshot.charts} />
             <SystemStatus status={snapshot.status} />

@@ -12,6 +12,18 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { AccountLedgersPage, DatabaseLedgersPage, InstancesPage } from "./pages/ListPages";
 import { LoginPage } from "./pages/LoginPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import {
+  AccountClassificationsPage,
+  ClassificationStatisticsPage,
+  ClustersPage,
+  CredentialsPage,
+  PartitionsPage,
+  SchedulerPage,
+  SettingsPage,
+  SyncSessionsPage,
+  TagsPage,
+  UsersPage
+} from "./pages/RemainingReadOnlyPages";
 import { RiskCenterPage } from "./pages/RiskCenterPage";
 import { AccountStatisticsPage, DatabaseStatisticsPage, InstanceStatisticsPage } from "./pages/StatisticsPages";
 
@@ -36,7 +48,17 @@ const migratedConsolePaths = [
   "/account-statistics",
   "/database-statistics",
   "/logs",
-  "/account-change-logs"
+  "/account-change-logs",
+  "/clusters",
+  "/account-classifications",
+  "/classification-statistics",
+  "/scheduler",
+  "/sync-sessions",
+  "/users",
+  "/settings",
+  "/credentials",
+  "/tags",
+  "/partitions"
 ];
 
 function resolveErrorMessage(error: unknown): string {
@@ -99,6 +121,16 @@ function ConsoleRoutes() {
           <Route element={<DatabaseStatisticsPage />} path="/database-statistics" />
           <Route element={<HistoryLogsPage />} path="/logs" />
           <Route element={<AccountChangeLogsPage />} path="/account-change-logs" />
+          <Route element={<ClustersPage />} path="/clusters" />
+          <Route element={<AccountClassificationsPage />} path="/account-classifications" />
+          <Route element={<ClassificationStatisticsPage />} path="/classification-statistics" />
+          <Route element={<SchedulerPage />} path="/scheduler" />
+          <Route element={<SyncSessionsPage />} path="/sync-sessions" />
+          <Route element={<UsersPage />} path="/users" />
+          <Route element={<SettingsPage />} path="/settings" />
+          <Route element={<CredentialsPage />} path="/credentials" />
+          <Route element={<TagsPage />} path="/tags" />
+          <Route element={<PartitionsPage />} path="/partitions" />
           {visibleItems
             .filter((item) => !migratedConsolePaths.includes(item.consolePath))
             .map((item) => (

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, FileText, ShieldAlert, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -10,12 +11,12 @@ import {
   type HistoryLogItem,
   type HistoryLogsSnapshot
 } from "@/api/audit";
+import { DataTable } from "@/components/shared/DataTable";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type Metric = {
   label: string;
@@ -30,6 +31,17 @@ function formatNumber(value: number | undefined | null): string {
 
 function formatPercent(value: number | undefined | null): string {
   return `${(value ?? 0).toFixed(1)}%`;
+}
+
+function uniqueTextOptions<TItem>(items: TItem[], getValue: (item: TItem) => string | null | undefined) {
+  const values = new Set<string>();
+  for (const item of items) {
+    const value = getValue(item);
+    if (value) {
+      values.add(value);
+    }
+  }
+  return [...values].sort((first, second) => first.localeCompare(second, "zh-CN")).map((value) => ({ label: value, value }));
 }
 
 function statusVariant(value: string | undefined): "default" | "secondary" | "destructive" | "outline" {
@@ -145,16 +157,6 @@ function ListFrame({ title, description, total, children }: { title: string; des
   );
 }
 
-function EmptyRows({ colSpan }: { colSpan: number }) {
-  return (
-    <TableRow>
-      <TableCell className="px-3 py-8 text-center text-sm text-muted-foreground" colSpan={colSpan}>
-        暂无数据
-      </TableCell>
-    </TableRow>
-  );
-}
-
 function QueryPage<TSnapshot>({
   snapshot,
   isLoading,
@@ -177,83 +179,110 @@ function QueryPage<TSnapshot>({
   );
 }
 
-function HistoryLogsTable({ items }: { items: HistoryLogItem[] }) {
+const selectClassName =
+  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
+function TimeRangeFilter() {
   return (
-    <Table className="min-w-[62rem]">
-      <TableHeader className="text-xs">
-        <TableRow>
-          {["时间", "等级", "模块", "消息", "上下文"].map((label) => (
-            <TableHead key={label}>
-              {label}
-            </TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.length === 0 ? <EmptyRows colSpan={5} /> : null}
-        {items.map((item) => (
-          <TableRow className="align-top" key={item.id}>
-            <TableCell className="font-mono text-xs">{item.timestamp_display || item.timestamp}</TableCell>
-            <TableCell>
-              <Badge variant={statusVariant(item.level)}>{item.level}</Badge>
-            </TableCell>
-            <TableCell>{item.module}</TableCell>
-            <TableCell>
-              <div className="max-w-xl truncate font-medium">{item.message}</div>
-              {item.traceback ? <div className="mt-1 text-xs text-destructive">traceback available</div> : null}
-            </TableCell>
-            <TableCell className="font-mono text-xs text-muted-foreground">
-              {item.context ? Object.keys(item.context).slice(0, 3).join(", ") : "-"}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <label className="grid gap-1.5 text-sm font-medium text-foreground">
+      <span>时间范围</span>
+      <select aria-label="时间范围" className={selectClassName} defaultValue="1d">
+        <option value="1h">最近 1 小时</option>
+        <option value="1d">最近 24 小时</option>
+        <option value="1w">最近 7 天</option>
+        <option value="1m">最近 30 天</option>
+        <option value="all">全部</option>
+      </select>
+    </label>
   );
 }
 
-function AccountChangeLogsTable({ items }: { items: AccountChangeLogItem[] }) {
-  return (
-    <Table className="min-w-[64rem]">
-      <TableHeader className="text-xs">
-        <TableRow>
-          {["时间", "账户", "实例", "类型", "状态", "摘要", "差异"].map((label) => (
-            <TableHead key={label}>
-              {label}
-            </TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.length === 0 ? <EmptyRows colSpan={7} /> : null}
-        {items.map((item) => (
-          <TableRow className="align-top" key={item.id}>
-            <TableCell className="font-mono text-xs">{item.change_time}</TableCell>
-            <TableCell>
-              <div className="font-medium">{item.username}</div>
-              <div className="mt-1 text-xs text-muted-foreground">{item.db_type}</div>
-            </TableCell>
-            <TableCell>
-              <div>{item.instance_name || "-"}</div>
-              <div className="mt-1 font-mono text-xs text-muted-foreground">{item.instance_host || "-"}</div>
-            </TableCell>
-            <TableCell>{item.change_type}</TableCell>
-            <TableCell>
-              <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
-            </TableCell>
-            <TableCell>
-              <div className="max-w-xl truncate">{item.message || "-"}</div>
-              {item.session_id ? <div className="mt-1 font-mono text-xs text-muted-foreground">{item.session_id}</div> : null}
-            </TableCell>
-            <TableCell className="font-mono text-xs">
-              P {formatNumber(item.privilege_diff_count)} · O {formatNumber(item.other_diff_count)}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
+const historyLogColumns: ColumnDef<HistoryLogItem>[] = [
+  {
+    accessorKey: "timestamp_display",
+    header: "时间",
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.timestamp_display || row.original.timestamp}</span>
+  },
+  {
+    accessorKey: "level",
+    header: "级别",
+    cell: ({ row }) => <Badge variant={statusVariant(row.original.level)}>{row.original.level}</Badge>
+  },
+  {
+    accessorKey: "module",
+    header: "模块",
+    cell: ({ row }) => <Badge variant="outline">{row.original.module}</Badge>
+  },
+  {
+    accessorKey: "message",
+    header: "消息",
+    cell: ({ row }) => (
+      <div className="max-w-xl truncate font-medium" title={row.original.message}>
+        {row.original.message}
+      </div>
+    )
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: ({ row }) => (
+      <Button aria-label={`查看详情 ${row.original.id}`} size="sm" type="button" variant="outline">
+        查看详情
+      </Button>
+    )
+  }
+];
+
+const accountChangeLogColumns: ColumnDef<AccountChangeLogItem>[] = [
+  {
+    accessorKey: "change_time",
+    header: "时间",
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.change_time}</span>
+  },
+  {
+    accessorKey: "db_type",
+    header: "数据库类型",
+    cell: ({ row }) => <Badge variant="outline">{row.original.db_type.toUpperCase()}</Badge>
+  },
+  {
+    accessorKey: "instance_name",
+    header: "实例",
+    cell: ({ row }) => (
+      <div className="grid gap-1">
+        <span className="font-medium">{row.original.instance_name || "-"}</span>
+        <span className="font-mono text-xs text-muted-foreground">{row.original.instance_host || "-"}</span>
+      </div>
+    )
+  },
+  {
+    accessorKey: "username",
+    header: "账号",
+    cell: ({ row }) => <span className="font-medium">{row.original.username}</span>
+  },
+  {
+    accessorKey: "change_type",
+    header: "类型",
+    cell: ({ row }) => <Badge variant="secondary">{row.original.change_type}</Badge>
+  },
+  {
+    accessorKey: "message",
+    header: "摘要",
+    cell: ({ row }) => (
+      <div className="max-w-xl truncate" title={row.original.message ?? ""}>
+        {row.original.message || "-"}
+      </div>
+    )
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: ({ row }) => (
+      <Button aria-label={`查看详情 ${row.original.id}`} size="sm" type="button" variant="outline">
+        查看详情
+      </Button>
+    )
+  }
+];
 
 export function HistoryLogsPage() {
   const logsQuery = useQuery({
@@ -281,7 +310,16 @@ export function HistoryLogsPage() {
               ]}
             />
             <ListFrame title="日志列表" description={`最近 24 小时 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
-              <HistoryLogsTable items={snapshot.list.items} />
+              <DataTable
+                columns={historyLogColumns}
+                data={snapshot.list.items}
+                filters={[
+                  { columnId: "level", label: "级别", options: uniqueTextOptions(snapshot.list.items, (item) => item.level) },
+                  { columnId: "module", label: "模块", options: uniqueTextOptions(snapshot.list.items, (item) => item.module) }
+                ]}
+                searchPlaceholder="输入搜索关键词"
+                toolbarExtras={<TimeRangeFilter />}
+              />
             </ListFrame>
           </>
         )}
@@ -316,7 +354,17 @@ export function AccountChangeLogsPage() {
               ]}
             />
             <ListFrame title="账户变更列表" description={`最近 24 小时 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
-              <AccountChangeLogsTable items={snapshot.list.items} />
+              <DataTable
+                columns={accountChangeLogColumns}
+                data={snapshot.list.items}
+                filters={[
+                  { columnId: "instance_name", label: "实例", options: uniqueTextOptions(snapshot.list.items, (item) => item.instance_name) },
+                  { columnId: "db_type", label: "数据库类型", options: uniqueTextOptions(snapshot.list.items, (item) => item.db_type) },
+                  { columnId: "change_type", label: "变更类型", options: uniqueTextOptions(snapshot.list.items, (item) => item.change_type) }
+                ]}
+                searchPlaceholder="搜索账号 / 实例"
+                toolbarExtras={<TimeRangeFilter />}
+              />
             </ListFrame>
           </>
         )}
