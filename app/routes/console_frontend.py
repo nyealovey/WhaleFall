@@ -54,6 +54,25 @@ def console_assets(filename: str) -> RouteReturn:
     )
 
 
+@console_frontend_bp.get("/console/static/<path:filename>")
+def console_static(filename: str) -> RouteReturn:
+    """Serve copied React public assets."""
+
+    def _execute() -> RouteReturn:
+        static_dir = _console_dist_dir() / "static"
+        response = send_from_directory(str(static_dir), filename)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+    return safe_route_call(
+        _execute,
+        module="console_frontend",
+        action="console_static",
+        public_error="加载控制台公共静态资源失败",
+        context={"filename": filename},
+    )
+
+
 @console_frontend_bp.get("/console")
 @console_frontend_bp.get("/console/")
 @console_frontend_bp.get("/console/<path:_spa_path>")

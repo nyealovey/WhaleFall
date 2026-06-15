@@ -80,6 +80,29 @@ describe("ApiClient", () => {
     expect(init.body).toBe(JSON.stringify({ role: "admin" }));
   });
 
+  it("supports PATCH requests with JSON body for partial edit dialogs", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        error: false,
+        message: "patched",
+        data: { id: 8 }
+      })
+    );
+    const client = new ApiClient({ fetchImpl: fetchMock });
+    client.setCsrfToken("csrf-token");
+
+    await expect(client.patch("/api/v1/sqlserver-clusters/8", { is_enabled: false })).resolves.toEqual({ id: 8 });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init).toMatchObject({ method: "PATCH", credentials: "include" });
+    expect(init.headers).toMatchObject({
+      "Content-Type": "application/json",
+      "X-CSRFToken": "csrf-token"
+    });
+    expect(init.body).toBe(JSON.stringify({ is_enabled: false }));
+  });
+
   it("supports DELETE requests without forcing an empty JSON body", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({

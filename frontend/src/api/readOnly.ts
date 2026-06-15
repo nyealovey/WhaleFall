@@ -24,6 +24,24 @@ export type ClusterItem = {
   replication_status?: string | null;
 };
 
+export type ClusterDetailRecord = Record<string, unknown> & {
+  id?: number;
+  name?: string | null;
+  host?: string | null;
+  role?: string | null;
+};
+
+export type SqlServerClusterDetail = {
+  cluster: ClusterItem & Record<string, unknown>;
+  instances: ClusterDetailRecord[];
+  availability_groups: ClusterDetailRecord[];
+};
+
+export type MySqlClusterDetail = {
+  cluster: ClusterItem & Record<string, unknown>;
+  instances: ClusterDetailRecord[];
+};
+
 export type ClustersSnapshot = {
   sqlServer: PaginatedReadOnlyList<ClusterItem>;
   mySql: PaginatedReadOnlyList<ClusterItem>;
@@ -49,8 +67,21 @@ export type AccountClassificationRuleItem = {
   db_type: string;
   operator?: string;
   rule_expression?: unknown;
+  rule_group_id?: string | null;
+  rule_version?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  superseded_at?: string | null;
   is_active?: boolean;
   matched_accounts_count?: number;
+};
+
+export type AccountClassificationRuleDetail = {
+  rule: AccountClassificationRuleItem;
+};
+
+export type AccountClassificationPermissions = {
+  permissions: Record<string, unknown>;
 };
 
 export type AccountClassificationsSnapshot = {
@@ -297,6 +328,14 @@ export async function fetchClustersSnapshot(client: ApiReader = apiClient): Prom
   return { sqlServer, mySql };
 }
 
+export function fetchSqlServerClusterDetail(clusterId: number, client: ApiReader = apiClient): Promise<SqlServerClusterDetail> {
+  return client.get<SqlServerClusterDetail>(`/api/v1/sqlserver-clusters/${clusterId}`);
+}
+
+export function fetchMySqlClusterDetail(clusterId: number, client: ApiReader = apiClient): Promise<MySqlClusterDetail> {
+  return client.get<MySqlClusterDetail>(`/api/v1/mysql-clusters/${clusterId}`);
+}
+
 export async function fetchAccountClassificationsSnapshot(
   client: ApiReader = apiClient
 ): Promise<AccountClassificationsSnapshot> {
@@ -309,6 +348,20 @@ export async function fetchAccountClassificationsSnapshot(
     classifications: classificationsResponse.classifications,
     rulesByDbType: rulesResponse.rules_by_db_type
   };
+}
+
+export function fetchAccountClassificationRuleDetail(
+  ruleId: number,
+  client: ApiReader = apiClient
+): Promise<AccountClassificationRuleDetail> {
+  return client.get<AccountClassificationRuleDetail>(`/api/v1/accounts/classifications/rules/${ruleId}`);
+}
+
+export function fetchAccountClassificationPermissions(
+  dbType: string,
+  client: ApiReader = apiClient
+): Promise<AccountClassificationPermissions> {
+  return client.get<AccountClassificationPermissions>(`/api/v1/accounts/classifications/permissions/${encodeURIComponent(dbType)}`);
 }
 
 export async function fetchClassificationStatisticsSnapshot(

@@ -1,6 +1,6 @@
 import { apiClient, type ApiClient } from "./client";
 
-type ApiActionClient = Pick<ApiClient, "delete" | "post" | "put">;
+type ApiActionClient = Pick<ApiClient, "delete" | "patch" | "post" | "put">;
 
 export type RiskRulePayload = {
   rule_key: string;
@@ -85,6 +85,19 @@ export type AdDomainConfigPayload = {
   description?: string | null;
 };
 
+export type SqlServerClusterPayload = {
+  name: string;
+  domain_name: string;
+  description?: string | null;
+  is_enabled: boolean;
+};
+
+export type MySqlClusterPayload = {
+  name: string;
+  description?: string | null;
+  is_enabled: boolean;
+};
+
 export function triggerCapacityAggregation(scope: "instance" | "database" | "all", client: ApiActionClient = apiClient) {
   return client.post("/api/v1/capacity/aggregations/current", { scope });
 }
@@ -123,6 +136,12 @@ export function updateAccountClassificationRule(
   client: ApiActionClient = apiClient
 ) {
   return client.put(`/api/v1/accounts/classifications/rules/${ruleId}`, payload);
+}
+
+export function validateAccountClassificationRuleExpression(ruleExpression: unknown, client: ApiActionClient = apiClient) {
+  return client.post("/api/v1/accounts/classifications/rules/actions/validate-expression", {
+    rule_expression: ruleExpression
+  });
 }
 
 export function createUser(payload: UserWritePayload & { password: string }, client: ApiActionClient = apiClient) {
@@ -179,6 +198,44 @@ export function syncDatabases(client: ApiActionClient = apiClient) {
 
 export function syncAccounts(client: ApiActionClient = apiClient) {
   return client.post("/api/v1/instances/actions/sync-accounts", {});
+}
+
+export function createSqlServerCluster(payload: SqlServerClusterPayload, client: ApiActionClient = apiClient) {
+  return client.post("/api/v1/sqlserver-clusters", payload);
+}
+
+export function updateSqlServerCluster(clusterId: number, payload: SqlServerClusterPayload, client: ApiActionClient = apiClient) {
+  return client.patch(`/api/v1/sqlserver-clusters/${clusterId}`, payload);
+}
+
+export function syncSqlServerAvailabilityGroups(
+  clusterId: number,
+  connectionDatabase = "master",
+  client: ApiActionClient = apiClient
+) {
+  return client.post(`/api/v1/sqlserver-clusters/${clusterId}/availability-groups/actions/sync`, {
+    connection_database: connectionDatabase
+  });
+}
+
+export function syncSqlServerClusterStatus(clusterId: number, client: ApiActionClient = apiClient) {
+  return client.post(`/api/v1/sqlserver-clusters/${clusterId}/actions/sync-status`, {});
+}
+
+export function syncSqlServerAgAccounts(clusterId: number, client: ApiActionClient = apiClient) {
+  return client.post(`/api/v1/sqlserver-clusters/${clusterId}/availability-groups/actions/sync-accounts`, {});
+}
+
+export function createMySqlCluster(payload: MySqlClusterPayload, client: ApiActionClient = apiClient) {
+  return client.post("/api/v1/mysql-clusters", payload);
+}
+
+export function updateMySqlCluster(clusterId: number, payload: MySqlClusterPayload, client: ApiActionClient = apiClient) {
+  return client.patch(`/api/v1/mysql-clusters/${clusterId}`, payload);
+}
+
+export function syncMySqlClusterTopology(clusterId: number, client: ApiActionClient = apiClient) {
+  return client.post(`/api/v1/mysql-clusters/${clusterId}/actions/sync-topology`, {});
 }
 
 export function testInstanceConnection(instanceId: number, client: ApiActionClient = apiClient) {

@@ -2,8 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   fetchAccountClassificationsSnapshot,
+  fetchAccountClassificationPermissions,
+  fetchAccountClassificationRuleDetail,
   fetchClassificationStatisticsSnapshot,
   fetchClustersSnapshot,
+  fetchMySqlClusterDetail,
+  fetchSqlServerClusterDetail,
   fetchCredentialsSnapshot,
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
@@ -33,6 +37,30 @@ describe("read-only migration api", () => {
     expect(snapshot.mySql.items[0]?.name).toBe("mysql-repl");
   });
 
+  it("loads SQL Server and MySQL cluster details", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({
+          cluster: { id: 1, name: "sql-ag" },
+          instances: [{ id: 11, name: "sql-node-1" }],
+          availability_groups: [{ id: 21, name: "ag-sales" }]
+        })
+        .mockResolvedValueOnce({
+          cluster: { id: 2, name: "mysql-repl" },
+          instances: [{ id: 12, name: "mysql-primary" }]
+        })
+    };
+
+    const sqlServer = await fetchSqlServerClusterDetail(1, client);
+    const mySql = await fetchMySqlClusterDetail(2, client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/mysql-clusters/2");
+    expect(sqlServer.availability_groups[0]?.name).toBe("ag-sales");
+    expect(mySql.instances[0]?.name).toBe("mysql-primary");
+  });
+
   it("loads classifications and rules", async () => {
     const client = {
       get: vi
@@ -47,6 +75,30 @@ describe("read-only migration api", () => {
     expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/classifications/rules");
     expect(snapshot.classifications[0]?.display_name).toBe("DBA");
     expect(snapshot.rulesByDbType.mysql?.[0]?.rule_name).toBe("root");
+  });
+
+  it("loads account classification rule detail and permission metadata", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({
+          rule: {
+            id: 9,
+            rule_name: "root rule",
+            db_type: "mysql",
+            rule_expression: { fn: "username_like", args: ["root"] }
+          }
+        })
+        .mockResolvedValueOnce({ permissions: { mysql: ["SELECT", "SUPER"] } })
+    };
+
+    const detail = await fetchAccountClassificationRuleDetail(9, client);
+    const permissions = await fetchAccountClassificationPermissions("mysql", client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/classifications/rules/9");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/classifications/permissions/mysql");
+    expect(detail.rule.rule_name).toBe("root rule");
+    expect(permissions.permissions).toEqual({ mysql: ["SELECT", "SUPER"] });
   });
 
   it("loads classification statistics and trend series", async () => {

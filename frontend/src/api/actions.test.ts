@@ -5,7 +5,9 @@ import {
   cleanupPartitions,
   createAccountClassification,
   createAccountClassificationRule,
+  createMySqlCluster,
   createPartition,
+  createSqlServerCluster,
   createCredential,
   createTag,
   createUser,
@@ -31,6 +33,10 @@ import {
   syncAdDomains,
   syncDatabases,
   syncJumpServer,
+  syncMySqlClusterTopology,
+  syncSqlServerAgAccounts,
+  syncSqlServerAvailabilityGroups,
+  syncSqlServerClusterStatus,
   syncVeeam,
   batchTestInstanceConnections,
   testInstanceConnection,
@@ -38,6 +44,8 @@ import {
   autoClassifyAccounts,
   updateAccountClassification,
   updateAccountClassificationRule,
+  updateMySqlCluster,
+  updateSqlServerCluster,
   updateCredential,
   updateSchedulerJob,
   updateTag,
@@ -52,6 +60,7 @@ import {
   testAdDomainConfig,
   removeTagsFromInstances,
   removeAllTagsFromInstances,
+  validateAccountClassificationRuleExpression,
   updateAdDomainConfig,
   updateVeeamSource,
   unbindJumpServer
@@ -61,6 +70,7 @@ describe("console action api", () => {
   it("posts direct operational actions to their v1 endpoints", async () => {
     const client = {
       post: vi.fn().mockResolvedValue({ ok: true }),
+      patch: vi.fn().mockResolvedValue({ ok: true }),
       put: vi.fn().mockResolvedValue({ ok: true }),
       delete: vi.fn().mockResolvedValue({ ok: true })
     };
@@ -69,6 +79,14 @@ describe("console action api", () => {
     await autoClassifyAccounts(client);
     await syncDatabases(client);
     await syncAccounts(client);
+    await createSqlServerCluster({ name: "sql-ag", domain_name: "corp.local", description: "primary", is_enabled: true }, client);
+    await updateSqlServerCluster(1, { name: "sql-ag-updated", domain_name: "corp.local", description: null, is_enabled: false }, client);
+    await syncSqlServerAvailabilityGroups(1, "master", client);
+    await syncSqlServerClusterStatus(1, client);
+    await syncSqlServerAgAccounts(1, client);
+    await createMySqlCluster({ name: "mysql-repl", description: "replica", is_enabled: true }, client);
+    await updateMySqlCluster(2, { name: "mysql-repl-updated", description: null, is_enabled: false }, client);
+    await syncMySqlClusterTopology(2, client);
     await testInstanceConnection(7, client);
     await batchTestInstanceConnections([7, 8], client);
     await deleteInstance(7, client);
@@ -186,6 +204,7 @@ describe("console action api", () => {
       client
     );
     await deleteAccountClassificationRule(6, client);
+    await validateAccountClassificationRuleExpression({ fn: "username_like", args: ["root"] }, client);
     await updateSchedulerJob("job-1", { trigger_type: "cron", cron_expression: "*/10 * * * *" }, client);
     await createUser({ username: "ops_user", role: "user", password: "Aa123456", is_active: true }, client);
     await updateUser(7, { username: "ops_user", role: "admin", is_active: false }, client);
@@ -225,6 +244,34 @@ describe("console action api", () => {
     expect(client.post).toHaveBeenCalledWith("/api/v1/accounts/classifications/actions/auto-classify", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/databases/ledgers/actions/sync-all", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/sync-accounts", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/sqlserver-clusters", {
+      name: "sql-ag",
+      domain_name: "corp.local",
+      description: "primary",
+      is_enabled: true
+    });
+    expect(client.patch).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1", {
+      name: "sql-ag-updated",
+      domain_name: "corp.local",
+      description: null,
+      is_enabled: false
+    });
+    expect(client.post).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/availability-groups/actions/sync", {
+      connection_database: "master"
+    });
+    expect(client.post).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/actions/sync-status", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/availability-groups/actions/sync-accounts", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/mysql-clusters", {
+      name: "mysql-repl",
+      description: "replica",
+      is_enabled: true
+    });
+    expect(client.patch).toHaveBeenCalledWith("/api/v1/mysql-clusters/2", {
+      name: "mysql-repl-updated",
+      description: null,
+      is_enabled: false
+    });
+    expect(client.post).toHaveBeenCalledWith("/api/v1/mysql-clusters/2/actions/sync-topology", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/test-connection", { instance_id: 7 });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-test-connections", { instance_ids: [7, 8] });
     expect(client.delete).toHaveBeenCalledWith("/api/v1/instances/7");
@@ -335,6 +382,9 @@ describe("console action api", () => {
       is_active: false
     });
     expect(client.delete).toHaveBeenCalledWith("/api/v1/accounts/classifications/rules/6");
+    expect(client.post).toHaveBeenCalledWith("/api/v1/accounts/classifications/rules/actions/validate-expression", {
+      rule_expression: { fn: "username_like", args: ["root"] }
+    });
     expect(client.put).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1", {
       trigger_type: "cron",
       cron_expression: "*/10 * * * *"

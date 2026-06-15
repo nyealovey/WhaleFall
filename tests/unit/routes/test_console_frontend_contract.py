@@ -5,12 +5,15 @@ import pytest
 
 def _write_console_dist(root: Path) -> None:
     assets_dir = root / "assets"
+    static_css_dir = root / "static" / "css"
     assets_dir.mkdir(parents=True)
+    static_css_dir.mkdir(parents=True)
     (root / "index.html").write_text(
-        '<!doctype html><html><body><div id="root"></div><script type="module" src="/console/assets/app.js"></script></body></html>',
+        '<!doctype html><html><head><link rel="stylesheet" href="/console/static/css/fonts.css"></head><body><div id="root"></div><script type="module" src="/console/assets/app.js"></script></body></html>',
         encoding="utf-8",
     )
     (assets_dir / "app.js").write_text("window.__WHALEFALL_CONSOLE__ = true;", encoding="utf-8")
+    (static_css_dir / "fonts.css").write_text("@font-face { font-family: 'IBM Plex Sans'; }", encoding="utf-8")
 
 
 @pytest.mark.unit
@@ -31,6 +34,10 @@ def test_console_frontend_entry_and_spa_fallback_contract(app, client, tmp_path)
     asset_response = client.get("/console/assets/app.js")
     assert asset_response.status_code == 200
     assert b"__WHALEFALL_CONSOLE__" in asset_response.data
+
+    static_response = client.get("/console/static/css/fonts.css")
+    assert static_response.status_code == 200
+    assert b"IBM Plex Sans" in static_response.data
 
 
 @pytest.mark.unit

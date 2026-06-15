@@ -54,8 +54,8 @@
 | `/console/database-statistics` | `/databases/statistics` | Parity - content | `/api/v1/databases/statistics` | 已按旧版补齐数据库台账/刷新统计命令、数据库总数/正常数据库/覆盖实例/总容量、数据库类型分布、实例数据库分布、同步状态分布和最新容量排行 |
 | `/console/logs` | `/history/logs/` | Parity - content | `/api/v1/logs?page=1&limit=20`, `/api/v1/logs/statistics?hours=24`, `/api/v1/logs/{id}` | 已按旧版补齐时间、级别、模块、消息、操作列；搜索、级别、模块、时间范围筛选由 DataTable 工具栏承载；日志详情已迁移到 shadcn Dialog |
 | `/console/account-change-logs` | `/history/account-change-logs/` | Parity - content | `/api/v1/account-change-logs?page=1&limit=20`, `/api/v1/account-change-logs/statistics?hours=24`, `/api/v1/account-change-logs/{id}` | 已按旧版补齐时间、数据库类型、实例、账号、类型、摘要、操作列；搜索、实例、数据库类型、变更类型、时间范围筛选由 DataTable 工具栏承载；账户变更详情已迁移到 shadcn Dialog |
-| `/console/clusters` | `/cluster/` | Parity - content | `/api/v1/sqlserver-clusters?page=1&limit=20`, `/api/v1/mysql-clusters?page=1&limit=20` | 已按旧版补齐 SQL Server 群集列：群集、域名、状态、绑定实例、AG、最近 AG 同步、数据库同步状态、操作；MySQL 群集列：群集、拓扑、状态、绑定实例、主从状态、操作；搜索和状态筛选由 DataTable 工具栏承载；添加、管理、AG 账户、AG 状态、主从状态 API 待迁移 |
-| `/console/account-classifications` | `/accounts/classifications/` | Parity - actions | `/api/v1/accounts/classifications`, `/api/v1/accounts/classifications/rules`, `/api/v1/accounts/classifications/actions/auto-classify`, `/api/v1/accounts/classifications/{id}`, `/api/v1/accounts/classifications/rules/{id}` | 已按旧版补齐自动分类入口、账户分类面板、规则管理面板、风险等级、系统标记、规则分组、命中数和查看/编辑/删除入口；自动分类、分类新建/编辑/删除、规则新建/编辑/删除已接入 React；表达式校验、规则详情和权限范围详情待迁移 |
+| `/console/clusters` | `/cluster/` | Parity - actions | `GET /api/v1/sqlserver-clusters?page=1&limit=20`, `GET /api/v1/sqlserver-clusters/{id}`, `POST /api/v1/sqlserver-clusters`, `PATCH /api/v1/sqlserver-clusters/{id}`, `POST /api/v1/sqlserver-clusters/{id}/availability-groups/actions/sync`, `POST /api/v1/sqlserver-clusters/{id}/actions/sync-status`, `POST /api/v1/sqlserver-clusters/{id}/availability-groups/actions/sync-accounts`, `GET /api/v1/mysql-clusters?page=1&limit=20`, `GET /api/v1/mysql-clusters/{id}`, `POST /api/v1/mysql-clusters`, `PATCH /api/v1/mysql-clusters/{id}`, `POST /api/v1/mysql-clusters/{id}/actions/sync-topology` | 已按旧版补齐 SQL Server 群集列：群集、域名、状态、绑定实例、AG、最近 AG 同步、数据库同步状态、操作；MySQL 群集列：群集、拓扑、状态、绑定实例、主从状态、操作；搜索和状态筛选由 DataTable 工具栏承载；SQL Server/MySQL 群集新建编辑、SQL Server 详情/AG 信息同步/群集状态同步/AG 账户同步、MySQL 主从详情/拓扑同步已迁移到 shadcn Dialog；实例绑定和 AG 配置表单待迁移 |
+| `/console/account-classifications` | `/accounts/classifications/` | Parity - actions | `/api/v1/accounts/classifications`, `/api/v1/accounts/classifications/rules`, `/api/v1/accounts/classifications/actions/auto-classify`, `/api/v1/accounts/classifications/{id}`, `/api/v1/accounts/classifications/rules/{id}`, `/api/v1/accounts/classifications/rules/actions/validate-expression`, `/api/v1/accounts/classifications/permissions/{db_type}` | 已按旧版补齐自动分类入口、账户分类面板、规则管理面板、风险等级、系统标记、规则分组、命中数和查看/编辑/删除入口；自动分类、分类新建/编辑/删除、规则新建/编辑/删除、表达式校验、规则详情和权限范围详情已接入 React；批量分类/应用规则和删除/自动分类结果反馈待迁移 |
 | `/console/classification-statistics` | `/accounts/statistics/classifications` | Parity - content | `/api/v1/accounts/statistics/classifications`, `/api/v1/accounts/statistics/classifications/trends?period_type=daily&periods=7` | 已按旧版补齐刷新、账户分类/统计周期/数据库类型/实例范围筛选外观、规则列表空态、分类趋势（去重账号数）、规则贡献（当前周期）和说明文案；筛选联动、规则钻取 API 待迁移 |
 | `/console/scheduler` | `/scheduler/` | Parity - actions | `/api/v1/scheduler/jobs`, `/api/v1/scheduler/jobs/{id}`, `/api/v1/scheduler/jobs/actions/reload`, `/api/v1/scheduler/jobs/{id}/actions/pause`, `/api/v1/scheduler/jobs/{id}/actions/resume`, `/api/v1/scheduler/jobs/{id}/actions/run` | 已按旧版补齐运行中/已暂停任务分组、任务名称、状态、下次运行、上次运行、任务 ID、触发器参数和重新初始化/暂停/恢复/立即执行/编辑/删除入口；重新初始化、暂停、恢复、立即执行和 cron 编辑已接入 React；删除任务缺 v1 API，暂不迁移 |
 | `/console/sync-sessions` | `/history/sessions/` | Parity - actions | `/api/v1/sync-sessions?page=1&limit=20`, `/api/v1/sync-sessions/{id}`, `/api/v1/sync-sessions/{id}/error-logs`, `/api/v1/sync-sessions/{id}/actions/cancel` | 已按旧版补齐运行ID、状态、进度、任务、来源、分类、开始时间、耗时、操作列；来源、分类、状态筛选由 DataTable 工具栏承载；会话详情、实例记录、错误日志已迁移到 shadcn Dialog；运行中会话取消已接入 shadcn AlertDialog 确认 |
@@ -76,7 +76,7 @@
 | `/console/dashboard` | - | 活动流、风险卡、图表钻取待迁移 | - | - | 刷新结果可见反馈待补 |
 | `/console/risk-center` | 风险处置/规则相关动作表单待迁移 | 风险卡详情、实例风险详情待迁移 | 批量处置待确认旧版能力后迁移 | - | 高风险处置确认、异步结果反馈待补 |
 | `/console/instances` | 新增、编辑、连接参数表单待迁移；恢复已迁移 | 审计、备份、容量、AG 账户详情待迁移；实例基础详情已迁移 | 批量删除待迁移；当前可见列表批量测试已迁移 | 导入模板、导入上传、导出待迁移 | 删除、恢复确认已迁移；批量动作结果反馈待补 |
-| `/console/clusters` | 添加/编辑 SQL Server 群集、MySQL 群集表单待迁移 | AG 账户、AG 状态、主从状态、拓扑详情待迁移 | - | - | 同步、删除/解绑类确认与结果反馈待补 |
+| `/console/clusters` | 添加/编辑 SQL Server 群集、MySQL 群集表单已迁移；实例绑定和 SQL Server AG 配置表单待迁移 | SQL Server 群集详情、AG 状态、MySQL 主从状态/拓扑详情已迁移；AG 账户详情页待确认旧版能力后迁移 | - | - | SQL Server AG 信息/群集状态/AG 账户同步、MySQL 拓扑同步已迁移；删除/解绑类确认与结果反馈待补 |
 | `/console/database-ledgers` | - | 表容量详情已迁移；容量趋势点位钻取待迁移 | - | 导出待迁移 | 同步和表容量刷新结果反馈待补 |
 | `/console/account-ledgers` | - | 权限详情、变更历史详情已迁移 | - | 导出待迁移 | 同步结果反馈待补 |
 | `/console/capacity/instances` | 日期、周期、实例筛选联动待迁移 | 图表点位、实例容量详情钻取待迁移 | - | 导出待确认旧版能力后迁移 | 统计当前周期结果反馈待补 |
@@ -86,7 +86,7 @@
 | `/console/database-statistics` | - | 类型、实例分布、容量排行钻取待迁移 | - | 导出待确认旧版能力后迁移 | 刷新统计结果反馈待补 |
 | `/console/logs` | - | 日志详情弹窗已迁移 | - | 导出待确认旧版能力后迁移 | - |
 | `/console/account-change-logs` | - | 变更详情弹窗已迁移 | - | 导出待确认旧版能力后迁移 | - |
-| `/console/account-classifications` | 分类/规则新建编辑已迁移；表达式校验表单待迁移 | 规则详情、权限范围详情待迁移 | 批量分类/批量应用规则待确认旧版能力后迁移 | - | 删除分类、删除规则、自动分类确认与结果反馈待补 |
+| `/console/account-classifications` | 分类/规则新建编辑、表达式校验表单已迁移 | 规则详情、权限范围详情已迁移 | 批量分类/批量应用规则待确认旧版能力后迁移 | - | 删除分类、删除规则、自动分类确认与结果反馈待补 |
 | `/console/classification-statistics` | 分类、周期、数据库类型、实例范围筛选联动待迁移 | 规则列表、规则趋势、规则贡献钻取待迁移 | - | 导出待确认旧版能力后迁移 | 刷新结果反馈待补 |
 | `/console/scheduler` | 编辑任务 cron 表单已迁移 | 任务详情、最近运行记录待迁移 | - | - | 暂停/恢复/立即执行已迁移但结果反馈待补；删除任务缺 v1 API |
 | `/console/sync-sessions` | - | 会话详情、实例记录、错误日志已迁移；时间线可视化待增强 | - | - | 取消会话确认已迁移；结果反馈待补 |
@@ -112,19 +112,19 @@
 | `/console/logs`, `/console/account-change-logs` | 导出 API 未找到 | 详情先完成 |
 | `/console/tags` | 标签导入/导出 API 未找到；关联资源详情 API 待确认 | 批量分配/移除先完成 |
 | `/console/instances` | 文件上传式批量导入 API 未找到；当前仅找到模板和 JSON batch-create | 导入上传暂不做 |
-| `/console/clusters` | 删除/解绑群集 API 未找到；其余新增/编辑/绑定/同步 API 仍需单独表单批次 | 本批不做高风险群集表单 |
+| `/console/clusters` | 删除/解绑群集 API 未找到；实例解绑 API 未确认；批量导入导出 API 未找到 | 新建/编辑/详情/同步先完成，实例绑定和 SQL Server AG 配置继续作为复杂表单批次 |
 | `/console/settings` | JumpServer/Veeam 测试连接 API 未找到；AD 测试连接已存在并已接入 | 保留同步和保存动作 |
 
 ## 后续迁移批次
 
 1. 先补共享交互底座：shadcn `Dialog`、`AlertDialog`、`Toast/Sonner`、表单校验和异步 action 反馈。
-2. 再补详情类页面：日志详情、账户变更详情、同步会话时间线、实例详情、权限详情。
-3. 再补 CRUD 表单：实例、群集复杂表单、系统设置新增模式；用户/凭据/标签/分类/规则/调度 cron 已完成基础新增编辑删除或保存，后续补详情和特殊动作。
+2. 再补详情类页面：日志详情、账户变更详情、同步会话时间线、实例详情、账户权限详情、分类规则详情、群集详情已完成；后续补容量和统计钻取详情。
+3. 再补 CRUD 表单：实例、群集实例绑定/AG 配置、系统设置新增模式；用户/凭据/标签/分类/规则/调度 cron/群集基础信息已完成基础新增编辑删除或保存，后续补特殊动作。
 4. 最后补批量与导入导出：实例导入/导出、台账导出、实例批量删除；标签批量分配/移除已完成。
 
 ## 本次动作迁移与风险
 
-- 已迁移动作：实例连接测试、当前可见列表批量测试、实例详情、删除到回收站、恢复、数据库同步、数据库表容量详情/刷新、账户同步、账户权限详情/变更历史、容量当前周期统计、账户自动分类、分类新建/编辑/删除、规则新建/编辑/删除、调度器重新初始化/暂停/恢复/立即执行/cron 编辑、会话取消确认、用户新建/编辑/删除、凭据新建/编辑/删除、标签新建/编辑/删除/批量分配/批量移除/批量移除全部、告警测试/保存、风险规则保存、JumpServer 保存/同步/解绑、Veeam 保存/启停/同步/删除、AD 保存/启停/测试/同步/删除、分区按日期创建/按保留月份清理。
+- 已迁移动作：实例连接测试、当前可见列表批量测试、实例详情、删除到回收站、恢复、数据库同步、数据库表容量详情/刷新、账户同步、账户权限详情/变更历史、容量当前周期统计、账户自动分类、分类新建/编辑/删除、规则新建/编辑/删除、规则表达式校验、规则详情/权限范围详情、SQL Server/MySQL 群集新建编辑、SQL Server 群集详情/AG 信息同步/群集状态同步/AG 账户同步、MySQL 主从详情/拓扑同步、调度器重新初始化/暂停/恢复/立即执行/cron 编辑、会话取消确认、用户新建/编辑/删除、凭据新建/编辑/删除、标签新建/编辑/删除/批量分配/批量移除/批量移除全部、告警测试/保存、风险规则保存、JumpServer 保存/同步/解绑、Veeam 保存/启停/同步/删除、AD 保存/启停/测试/同步/删除、分区按日期创建/按保留月份清理。
 - 权限校验：所有写操作仍走同源 `/api/v1/**`，后端权限与 CSRF 契约不在 React 层放宽；前端只负责触发与刷新。
 - 回滚路径：每页保留“在旧版打开”，如新前端动作异常，可直接回到旧版页面执行同一操作；旧站点模板和静态资源未改动。
 - 待补风险控制：用户/凭据/标签/实例/会话取消等删除或中止类动作已补 shadcn AlertDialog；其余高风险动作还需补确认弹窗和用户可见的异步结果反馈。
@@ -155,10 +155,10 @@ git diff --check                     # passed
 2026-06-15 当前批次验证通过:
 
 ```bash
-npm --prefix frontend run test       # 22 files, 101 tests passed
+npm --prefix frontend run test       # 23 files, 108 tests passed
 npm --prefix frontend run typecheck  # passed
 npm --prefix frontend run lint       # passed
-npm --prefix frontend run build      # passed; /static/css/fonts.css remains runtime-resolved; Vite chunk-size warning remains
+npm --prefix frontend run build      # passed; Vite chunk-size warning remains
 git diff --check                     # passed
 ```
 
@@ -180,3 +180,5 @@ git diff --check                     # passed
 - 2026-06-15: 补 shadcn `Dialog`/`AlertDialog`，迁移日志详情、账户变更详情、同步会话详情/实例记录/错误日志，以及运行中会话取消确认；同步更新详情与高风险确认缺口矩阵。
 - 2026-06-15: 继续 action parity：补 shadcn `Textarea`，迁移用户、凭据、标签的新建/编辑表单和删除确认；接入 `/api/v1/users`、`/api/v1/credentials`、`/api/v1/tags` 写操作并更新表单、详情、批量、导入导出缺口矩阵。
 - 2026-06-15: 继续已有 v1 能力迁移：实例详情/删除/恢复/批量测试、数据库表容量详情/刷新、账户权限/变更历史、分类/规则新建编辑、调度 cron 编辑、标签批量分配/移除、系统设置 JumpServer/Veeam/AD 保存与启停测试、分区日期和保留月份参数均接入 React；新增“缺少 v1 API 路口”清单。
+- 2026-06-15: 继续账户分类 action/detail parity：接入规则表达式校验、规则详情和权限范围详情，查看规则迁移到 shadcn Dialog，规则表单支持校验后回写规范化表达式。
+- 2026-06-15: 继续群集管理 action/detail parity：接入 ApiClient PATCH，迁移 SQL Server/MySQL 群集新建编辑、SQL Server 群集详情与 AG/状态/账户同步、MySQL 主从详情与拓扑同步；实例绑定和 AG 配置保留为复杂表单缺口。

@@ -56,6 +56,8 @@ import {
   createAdDomainConfig,
   createPartition,
   createCredential,
+  createMySqlCluster,
+  createSqlServerCluster,
   createTag,
   createUser,
   createVeeamSource,
@@ -82,6 +84,10 @@ import {
   setAdDomainConfigEnabled,
   syncAdDomains,
   syncJumpServer,
+  syncMySqlClusterTopology,
+  syncSqlServerAgAccounts,
+  syncSqlServerAvailabilityGroups,
+  syncSqlServerClusterStatus,
   syncVeeam,
   testAdDomainConfig,
   unbindJumpServer,
@@ -89,28 +95,37 @@ import {
   updateAccountClassificationRule,
   updateAdDomainConfig,
   updateCredential,
+  updateMySqlCluster,
   updateSchedulerJob,
+  updateSqlServerCluster,
   updateTag,
   updateUser,
+  validateAccountClassificationRuleExpression,
   updateVeeamSource,
   type AccountClassificationRuleWritePayload,
   type AccountClassificationWritePayload,
   type AdDomainConfigPayload,
   type CredentialWritePayload,
   type JumpServerSourcePayload,
+  type MySqlClusterPayload,
   type SchedulerJobWritePayload,
+  type SqlServerClusterPayload,
   type TagWritePayload,
   type UserWritePayload,
   type VeeamSourcePayload
 } from "@/api/actions";
 import {
   fetchAccountClassificationsSnapshot,
+  fetchAccountClassificationPermissions,
+  fetchAccountClassificationRuleDetail,
   fetchClassificationStatisticsSnapshot,
   fetchClustersSnapshot,
   fetchCredentialsSnapshot,
+  fetchMySqlClusterDetail,
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
   fetchSettingsSnapshot,
+  fetchSqlServerClusterDetail,
   fetchSyncSessionDetail,
   fetchSyncSessionErrorLogs,
   fetchSyncSessionsSnapshot,
@@ -120,11 +135,14 @@ import {
   type AccountClassificationItem,
   type AccountClassificationRuleItem,
   type ClassificationStatisticsSnapshot,
+  type ClusterDetailRecord,
   type ClusterItem,
   type CredentialItem,
+  type MySqlClusterDetail,
   type PartitionItem,
   type SchedulerJobItem,
   type SettingsSnapshot,
+  type SqlServerClusterDetail,
   type SyncInstanceRecordItem,
   type SyncSessionDetail,
   type SyncSessionErrorLogs,
@@ -191,6 +209,15 @@ function JsonBlock({ value }: { value: unknown }) {
     <pre className="max-h-48 overflow-auto rounded-md border bg-secondary/30 p-3 font-mono text-xs whitespace-pre-wrap">
       {JSON.stringify(value, null, 2)}
     </pre>
+  );
+}
+
+function DetailBlock({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="rounded-md border bg-secondary/20 p-3">
+      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
+      <div className="text-sm">{children}</div>
+    </div>
   );
 }
 
@@ -903,7 +930,17 @@ function RuleFormDialog({
   const [operator, setOperator] = useState(item?.operator ?? "any");
   const [ruleExpression, setRuleExpression] = useState(formatRuleExpression(item?.rule_expression));
   const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const title = item ? `编辑规则 ${item.rule_name}` : "新建规则";
+
+  function handleValidateExpression() {
+    const parsedExpression = parseRuleExpression(ruleExpression);
+    void validateAccountClassificationRuleExpression(parsedExpression).then((result) => {
+      const validated = (result as { rule_expression?: unknown }).rule_expression ?? parsedExpression;
+      setRuleExpression(formatRuleExpression(validated));
+      setValidationMessage("规则表达式校验通过");
+    });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -962,6 +999,13 @@ function RuleFormDialog({
           <FormField label="规则表达式">
             <Textarea className="min-h-32 font-mono text-xs" onChange={(event) => setRuleExpression(event.target.value)} value={ruleExpression} />
           </FormField>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button type="button" variant="outline" onClick={handleValidateExpression}>
+              <ListChecks aria-hidden size={16} />
+              <span>校验表达式</span>
+            </Button>
+            {validationMessage ? <span className="text-sm text-muted-foreground">{validationMessage}</span> : null}
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
@@ -1587,137 +1631,491 @@ function mysqlTopologySummary(item: ClusterItem): string {
   return asText(item.replication_status, "replication");
 }
 
-const sqlServerClusterColumns: ColumnDef<ClusterItem>[] = [
-  {
-    accessorFn: (item) => `${item.name} ${clusterDescription(item, "SQL Server 群集")}`,
-    id: "name",
-    header: "群集",
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.name}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{clusterDescription(row.original, "SQL Server 群集")}</div>
-      </div>
-    )
-  },
-  {
-    accessorKey: "domain_name",
-    header: "域名",
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.domain_name ?? "-"}</span>
-  },
-  {
-    accessorFn: clusterEnabledLabel,
-    id: "is_enabled",
-    header: "状态",
-    cell: ({ row }) => <StatusBadge value={row.original.is_enabled !== false} />
-  },
-  {
-    accessorKey: "instance_count",
-    header: "绑定实例",
-    cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.instance_count)}</span>
-  },
-  {
-    accessorFn: sqlServerAgSummary,
-    id: "availability_group_count",
-    header: "AG",
-    cell: ({ row }) => <span className="font-mono text-xs">{sqlServerAgSummary(row.original)}</span>
-  },
-  {
-    accessorFn: (item) => asText(item.last_ag_sync_status, "未同步"),
-    id: "last_ag_sync_status",
-    header: "最近 AG 同步",
-    cell: ({ row }) => <StatusBadge value={row.original.last_ag_sync_status ?? "未同步"} />
-  },
-  {
-    accessorFn: sqlServerDatabaseSyncSummary,
-    id: "ag_database_sync_abnormal_count",
-    header: "数据库同步状态",
-    cell: ({ row }) => <Badge variant="outline">{sqlServerDatabaseSyncSummary(row.original)}</Badge>
-  },
-  {
-    id: "actions",
-    header: "操作",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <Button aria-label={`管理群集 ${row.original.name}`} size="icon" type="button" variant="ghost">
-          <Pencil aria-hidden />
-        </Button>
-        <Button aria-label={`AG账户 ${row.original.name}`} size="icon" type="button" variant="ghost">
-          <UserCog aria-hidden />
-        </Button>
-        <Button aria-label={`查看AG状态 ${row.original.name}`} size="icon" type="button" variant="ghost">
-          <ChartColumn aria-hidden />
-        </Button>
-      </div>
-    )
-  }
-];
+type ClusterMode = "sqlserver" | "mysql";
 
-const mysqlClusterColumns: ColumnDef<ClusterItem>[] = [
-  {
-    accessorFn: (item) => `${item.name} ${clusterDescription(item, "MySQL replication 群集")}`,
-    id: "name",
-    header: "群集",
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.name}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{clusterDescription(row.original, "MySQL replication 群集")}</div>
-      </div>
-    )
-  },
-  {
-    accessorFn: (item) => asText((item as Record<string, unknown>).topology_type, "replication"),
-    id: "topology_type",
-    header: "拓扑"
-  },
-  {
-    accessorFn: clusterEnabledLabel,
-    id: "is_enabled",
-    header: "状态",
-    cell: ({ row }) => <StatusBadge value={row.original.is_enabled !== false} />
-  },
-  {
-    accessorKey: "instance_count",
-    header: "绑定实例",
-    cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.instance_count)}</span>
-  },
-  {
-    accessorFn: mysqlTopologySummary,
-    id: "abnormal_replica_count",
-    header: "主从状态",
-    cell: ({ row }) => <Badge variant="outline">{mysqlTopologySummary(row.original)}</Badge>
-  },
-  {
-    id: "actions",
-    header: "操作",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <Button aria-label={`管理群集 ${row.original.name}`} size="icon" type="button" variant="ghost">
-          <Pencil aria-hidden />
-        </Button>
-        <Button aria-label={`主从状态 ${row.original.name}`} size="icon" type="button" variant="ghost">
-          <RotateCcw aria-hidden />
-        </Button>
-      </div>
-    )
+function clusterModeLabel(mode: ClusterMode): string {
+  return mode === "sqlserver" ? "SQL Server" : "MySQL";
+}
+
+function clusterRecordField(record: ClusterDetailRecord, keys: string[], fallback = "-"): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (!isEmptyDetailValue(value)) {
+      return asText(value);
+    }
   }
-];
+  return fallback;
+}
+
+function ClusterFormDialog({
+  item,
+  mode,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: ClusterItem | null;
+  mode: ClusterMode;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [name, setName] = useState(item?.name ?? "");
+  const [domainName, setDomainName] = useState(item?.domain_name ?? "");
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [isEnabled, setIsEnabled] = useState(item?.is_enabled ?? true);
+  const label = clusterModeLabel(mode);
+  const title = item ? `编辑 ${label} 群集 ${item.name}` : `新建 ${label} 群集`;
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (mode === "sqlserver") {
+      const payload: SqlServerClusterPayload = {
+        name: name.trim(),
+        domain_name: domainName.trim(),
+        description: description.trim() || null,
+        is_enabled: isEnabled
+      };
+      const request = item ? updateSqlServerCluster(item.id, payload) : createSqlServerCluster(payload);
+      void request.then(onSaved);
+      return;
+    }
+
+    const payload: MySqlClusterPayload = {
+      name: name.trim(),
+      description: description.trim() || null,
+      is_enabled: isEnabled
+    };
+    const request = item ? updateMySqlCluster(item.id, payload) : createMySqlCluster(payload);
+    void request.then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护群集基础信息。实例绑定和 AG 成员配置保留为后续独立表单迁移。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="群集名称">
+              <Input onChange={(event) => setName(event.target.value)} required value={name} />
+            </FormField>
+            {mode === "sqlserver" ? (
+              <FormField label="群集域名">
+                <Input onChange={(event) => setDomainName(event.target.value)} required value={domainName} />
+              </FormField>
+            ) : null}
+            <ActiveField checked={isEnabled} onCheckedChange={setIsEnabled} />
+          </div>
+          <FormField label="描述">
+            <Textarea onChange={(event) => setDescription(event.target.value)} value={description} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存群集</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ClusterInstancesTable({ records }: { records: ClusterDetailRecord[] }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>实例</TableHead>
+          <TableHead>主机</TableHead>
+          <TableHead>角色/状态</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {records.length > 0 ? (
+          records.map((record, index) => (
+            <TableRow key={`${clusterRecordField(record, ["id", "name"], String(index))}-${index}`}>
+              <TableCell className="font-medium">{clusterRecordField(record, ["name", "instance_name", "display_name"])}</TableCell>
+              <TableCell className="font-mono text-xs">{clusterRecordField(record, ["host", "ip_address", "endpoint", "server_host"])}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{clusterRecordField(record, ["role", "status", "sync_status"])}</Badge>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <EmptyRows colSpan={3} />
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
+function SqlServerAvailabilityGroupsTable({ records }: { records: ClusterDetailRecord[] }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>AG</TableHead>
+          <TableHead>监听器</TableHead>
+          <TableHead>状态</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {records.length > 0 ? (
+          records.map((record, index) => (
+            <TableRow key={`${clusterRecordField(record, ["id", "name"], String(index))}-${index}`}>
+              <TableCell className="font-medium">{clusterRecordField(record, ["name", "availability_group_name"])}</TableCell>
+              <TableCell className="font-mono text-xs">
+                {clusterRecordField(record, ["listener_name", "listener_host", "listener_dns_name"])}
+              </TableCell>
+              <TableCell>
+                <StatusBadge value={clusterRecordField(record, ["sync_status", "health_status", "is_enabled"])} />
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <EmptyRows colSpan={3} />
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
+function SqlServerClusterDetailContent({ detail }: { detail: SqlServerClusterDetail }) {
+  return (
+    <div className="grid gap-4">
+      <section className="grid grid-cols-3 gap-2 max-sm:grid-cols-1">
+        <DetailBlock label="群集">{detail.cluster.name}</DetailBlock>
+        <DetailBlock label="域名">{detail.cluster.domain_name ?? "-"}</DetailBlock>
+        <DetailBlock label="状态">
+          <StatusBadge value={detail.cluster.is_enabled !== false} />
+        </DetailBlock>
+      </section>
+      <ListPanel title="绑定实例" description="旧版群集详情中的实例成员。" count={detail.instances.length}>
+        <ClusterInstancesTable records={detail.instances} />
+      </ListPanel>
+      <ListPanel title="可用性组" description="SQL Server AG 监听器与同步状态。" count={detail.availability_groups.length}>
+        <SqlServerAvailabilityGroupsTable records={detail.availability_groups} />
+      </ListPanel>
+    </div>
+  );
+}
+
+function MySqlClusterDetailContent({ detail }: { detail: MySqlClusterDetail }) {
+  return (
+    <div className="grid gap-4">
+      <section className="grid grid-cols-3 gap-2 max-sm:grid-cols-1">
+        <DetailBlock label="群集">{detail.cluster.name}</DetailBlock>
+        <DetailBlock label="描述">{clusterDescription(detail.cluster, "MySQL replication 群集")}</DetailBlock>
+        <DetailBlock label="状态">
+          <StatusBadge value={detail.cluster.is_enabled !== false} />
+        </DetailBlock>
+      </section>
+      <ListPanel title="主从实例" description="旧版主从状态页中的实例拓扑。" count={detail.instances.length}>
+        <ClusterInstancesTable records={detail.instances} />
+      </ListPanel>
+    </div>
+  );
+}
+
+function SqlServerClusterDetailDialog({
+  item,
+  onOpenChange,
+  open
+}: {
+  item: ClusterItem;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const query = useQuery({
+    queryKey: ["read-only", "clusters", "sqlserver", item.id],
+    queryFn: () => fetchSqlServerClusterDetail(item.id),
+    enabled: open
+  });
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),64rem)]">
+        <DialogHeader>
+          <DialogTitle>SQL Server 群集详情 {item.name}</DialogTitle>
+          <DialogDescription>查看绑定实例、可用性组，并执行 AG 信息、群集状态和 AG 账户同步。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? <Skeleton className="h-48 w-full" /> : null}
+        {query.isError ? <ErrorState label="SQL Server 群集详情" onRetry={() => void query.refetch()} /> : null}
+        {query.data ? <SqlServerClusterDetailContent detail={query.data} /> : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            关闭详情
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void syncSqlServerAvailabilityGroups(item.id, "master").then(() => void query.refetch());
+            }}
+          >
+            同步AG信息
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void syncSqlServerClusterStatus(item.id).then(() => void query.refetch());
+            }}
+          >
+            同步群集状态
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              void syncSqlServerAgAccounts(item.id).then(() => void query.refetch());
+            }}
+          >
+            同步AG账户
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MySqlClusterDetailDialog({
+  item,
+  onOpenChange,
+  open
+}: {
+  item: ClusterItem;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const query = useQuery({
+    queryKey: ["read-only", "clusters", "mysql", item.id],
+    queryFn: () => fetchMySqlClusterDetail(item.id),
+    enabled: open
+  });
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),58rem)]">
+        <DialogHeader>
+          <DialogTitle>MySQL 群集详情 {item.name}</DialogTitle>
+          <DialogDescription>查看主从拓扑实例，并执行主从拓扑同步。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? <Skeleton className="h-40 w-full" /> : null}
+        {query.isError ? <ErrorState label="MySQL 群集详情" onRetry={() => void query.refetch()} /> : null}
+        {query.data ? <MySqlClusterDetailContent detail={query.data} /> : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            关闭详情
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              void syncMySqlClusterTopology(item.id).then(() => void query.refetch());
+            }}
+          >
+            同步主从拓扑
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function createSqlServerClusterColumns({
+  onDetail,
+  onEdit,
+  onSyncAccounts
+}: {
+  onDetail: (item: ClusterItem) => void;
+  onEdit: (item: ClusterItem) => void;
+  onSyncAccounts: (item: ClusterItem) => void;
+}): ColumnDef<ClusterItem>[] {
+  return [
+    {
+      accessorFn: (item) => `${item.name} ${clusterDescription(item, "SQL Server 群集")}`,
+      id: "name",
+      header: "群集",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{clusterDescription(row.original, "SQL Server 群集")}</div>
+        </div>
+      )
+    },
+    {
+      accessorKey: "domain_name",
+      header: "域名",
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.domain_name ?? "-"}</span>
+    },
+    {
+      accessorFn: clusterEnabledLabel,
+      id: "is_enabled",
+      header: "状态",
+      cell: ({ row }) => <StatusBadge value={row.original.is_enabled !== false} />
+    },
+    {
+      accessorKey: "instance_count",
+      header: "绑定实例",
+      cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.instance_count)}</span>
+    },
+    {
+      accessorFn: sqlServerAgSummary,
+      id: "availability_group_count",
+      header: "AG",
+      cell: ({ row }) => <span className="font-mono text-xs">{sqlServerAgSummary(row.original)}</span>
+    },
+    {
+      accessorFn: (item) => asText(item.last_ag_sync_status, "未同步"),
+      id: "last_ag_sync_status",
+      header: "最近 AG 同步",
+      cell: ({ row }) => <StatusBadge value={row.original.last_ag_sync_status ?? "未同步"} />
+    },
+    {
+      accessorFn: sqlServerDatabaseSyncSummary,
+      id: "ag_database_sync_abnormal_count",
+      header: "数据库同步状态",
+      cell: ({ row }) => <Badge variant="outline">{sqlServerDatabaseSyncSummary(row.original)}</Badge>
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Button aria-label={`管理群集 ${row.original.name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
+            <Pencil aria-hidden />
+          </Button>
+          <Button
+            aria-label={`AG账户 ${row.original.name}`}
+            onClick={() => onSyncAccounts(row.original)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <UserCog aria-hidden />
+          </Button>
+          <Button aria-label={`查看AG状态 ${row.original.name}`} onClick={() => onDetail(row.original)} size="icon" type="button" variant="ghost">
+            <ChartColumn aria-hidden />
+          </Button>
+        </div>
+      )
+    }
+  ];
+}
+
+function createMySqlClusterColumns({
+  onDetail,
+  onEdit
+}: {
+  onDetail: (item: ClusterItem) => void;
+  onEdit: (item: ClusterItem) => void;
+}): ColumnDef<ClusterItem>[] {
+  return [
+    {
+      accessorFn: (item) => `${item.name} ${clusterDescription(item, "MySQL replication 群集")}`,
+      id: "name",
+      header: "群集",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{clusterDescription(row.original, "MySQL replication 群集")}</div>
+        </div>
+      )
+    },
+    {
+      accessorFn: (item) => asText((item as Record<string, unknown>).topology_type, "replication"),
+      id: "topology_type",
+      header: "拓扑"
+    },
+    {
+      accessorFn: clusterEnabledLabel,
+      id: "is_enabled",
+      header: "状态",
+      cell: ({ row }) => <StatusBadge value={row.original.is_enabled !== false} />
+    },
+    {
+      accessorKey: "instance_count",
+      header: "绑定实例",
+      cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.instance_count)}</span>
+    },
+    {
+      accessorFn: mysqlTopologySummary,
+      id: "abnormal_replica_count",
+      header: "主从状态",
+      cell: ({ row }) => <Badge variant="outline">{mysqlTopologySummary(row.original)}</Badge>
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Button aria-label={`管理群集 ${row.original.name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
+            <Pencil aria-hidden />
+          </Button>
+          <Button aria-label={`主从状态 ${row.original.name}`} onClick={() => onDetail(row.original)} size="icon" type="button" variant="ghost">
+            <RotateCcw aria-hidden />
+          </Button>
+        </div>
+      )
+    }
+  ];
+}
 
 export function ClustersPage() {
   const query = useQuery({ queryKey: ["read-only", "clusters"], queryFn: () => fetchClustersSnapshot() });
+  const [creatingCluster, setCreatingCluster] = useState<ClusterMode | null>(null);
+  const [editingCluster, setEditingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
+  const [viewingCluster, setViewingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
+  const sqlServerClusterColumns = useMemo(
+    () =>
+      createSqlServerClusterColumns({
+        onDetail: (item) => setViewingCluster({ mode: "sqlserver", item }),
+        onEdit: (item) => setEditingCluster({ mode: "sqlserver", item }),
+        onSyncAccounts: (item) => {
+          void syncSqlServerAgAccounts(item.id).then(() => void query.refetch());
+        }
+      }),
+    [query]
+  );
+  const mysqlClusterColumns = useMemo(
+    () =>
+      createMySqlClusterColumns({
+        onDetail: (item) => setViewingCluster({ mode: "mysql", item }),
+        onEdit: (item) => setEditingCluster({ mode: "mysql", item })
+      }),
+    []
+  );
+
+  function handleClusterSaved() {
+    setCreatingCluster(null);
+    setEditingCluster(null);
+    void query.refetch();
+  }
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Cluster topology" title="群集管理" description="只读展示 SQL Server AG 与 MySQL 群集首屏拓扑，新增、绑定、同步仍保留在旧版。" legacyHref="/cluster/" />
+      <PageHeader
+        eyebrow="Cluster topology"
+        title="群集管理"
+        description="展示 SQL Server AG 与 MySQL 群集拓扑，并支持群集基础信息维护、详情查看和同步操作。"
+        legacyHref="/cluster/"
+      />
       <CommandBar>
-        <Button disabled>
+        <span className="text-sm font-medium text-muted-foreground">添加群集</span>
+        <Button aria-label="添加 SQL Server 群集" onClick={() => setCreatingCluster("sqlserver")} type="button">
           <Plus aria-hidden size={16} />
-          <span>添加群集</span>
+          <span>添加</span>
+          <span>SQL Server</span>
+          <span>群集</span>
         </Button>
-        <Button disabled variant="outline">
-          SQL Server
-        </Button>
-        <Button disabled variant="outline">
-          MySQL
+        <Button aria-label="添加 MySQL 群集" onClick={() => setCreatingCluster("mysql")} type="button" variant="outline">
+          <Plus aria-hidden size={16} />
+          <span>添加</span>
+          <span>MySQL</span>
+          <span>群集</span>
         </Button>
       </CommandBar>
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="群集" onRetry={() => void query.refetch()}>
@@ -1742,6 +2140,54 @@ export function ClustersPage() {
           </section>
         )}
       </QueryFrame>
+      {creatingCluster ? (
+        <ClusterFormDialog
+          item={null}
+          mode={creatingCluster}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingCluster(null);
+            }
+          }}
+          onSaved={handleClusterSaved}
+          open
+        />
+      ) : null}
+      {editingCluster ? (
+        <ClusterFormDialog
+          item={editingCluster.item}
+          mode={editingCluster.mode}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingCluster(null);
+            }
+          }}
+          onSaved={handleClusterSaved}
+          open
+        />
+      ) : null}
+      {viewingCluster?.mode === "sqlserver" ? (
+        <SqlServerClusterDetailDialog
+          item={viewingCluster.item}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingCluster(null);
+            }
+          }}
+          open
+        />
+      ) : null}
+      {viewingCluster?.mode === "mysql" ? (
+        <MySqlClusterDetailDialog
+          item={viewingCluster.item}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingCluster(null);
+            }
+          }}
+          open
+        />
+      ) : null}
     </main>
   );
 }
@@ -1767,6 +2213,105 @@ function riskLevelLabel(value: number | undefined): string {
 
 function ruleGroupTitle(dbType: string): string {
   return `${(dbType || "unknown").toUpperCase()} 规则`;
+}
+
+function flattenPermissionValues(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => flattenPermissionValues(entry));
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap((entry) => flattenPermissionValues(entry));
+  }
+  if (typeof value === "string" && value.trim()) {
+    return [value];
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return [String(value)];
+  }
+  return [];
+}
+
+function ruleExpressionFunction(value: unknown): string | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const fn = (value as Record<string, unknown>).fn;
+  return typeof fn === "string" && fn.trim() ? fn : null;
+}
+
+function RuleDetailDialog({
+  item,
+  onOpenChange,
+  open
+}: {
+  item: AccountClassificationRuleItem;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const detailQuery = useQuery({
+    queryKey: ["read-only", "account-classification-rule", item.id],
+    queryFn: () => fetchAccountClassificationRuleDetail(item.id),
+    enabled: open
+  });
+  const permissionsQuery = useQuery({
+    queryKey: ["read-only", "account-classification-permissions", item.db_type],
+    queryFn: () => fetchAccountClassificationPermissions(item.db_type),
+    enabled: open
+  });
+  const rule = detailQuery.data?.rule ?? item;
+  const permissionValues = [...new Set(flattenPermissionValues(permissionsQuery.data?.permissions))];
+  const expressionFunction = ruleExpressionFunction(rule.rule_expression);
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),46rem)]">
+        <DialogHeader>
+          <DialogTitle>规则详情 {item.rule_name}</DialogTitle>
+          <DialogDescription>展示规则版本、表达式和当前数据库类型的权限元数据。</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-wrap gap-1">
+          <Badge variant="secondary">规则详情</Badge>
+          <Badge variant="outline">{rule.db_type}</Badge>
+          <Badge variant={rule.is_active ? "secondary" : "outline"}>{rule.is_active ? "启用" : "停用"}</Badge>
+          {rule.rule_version ? <Badge variant="outline">版本 {rule.rule_version}</Badge> : null}
+          {expressionFunction ? <Badge variant="outline">{expressionFunction}</Badge> : null}
+        </div>
+        {detailQuery.isLoading ? <Skeleton className="h-20 w-full" /> : null}
+        <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+          <DetailBlock label="规则名称">{rule.rule_name}</DetailBlock>
+          <DetailBlock label="账户分类">{asText(rule.classification_name, "未分类")}</DetailBlock>
+          <DetailBlock label="数据库类型">{rule.db_type}</DetailBlock>
+          <DetailBlock label="规则组">{asText(rule.rule_group_id)}</DetailBlock>
+          <DetailBlock label="创建时间">{asText(rule.created_at)}</DetailBlock>
+          <DetailBlock label="更新时间">{asText(rule.updated_at)}</DetailBlock>
+        </div>
+        <section className="grid gap-2">
+          <h3 className="text-sm font-semibold">规则表达式</h3>
+          <JsonBlock value={rule.rule_expression} />
+        </section>
+        <section className="grid gap-2">
+          <h3 className="text-sm font-semibold">权限选项</h3>
+          {permissionsQuery.isLoading ? <Skeleton className="h-10 w-full" /> : null}
+          {permissionValues.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {permissionValues.map((value) => (
+                <Badge key={value} variant="outline">
+                  {value}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">暂无权限元数据</span>
+          )}
+        </section>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            关闭详情
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function ClassificationList({
@@ -1817,11 +2362,13 @@ function ClassificationList({
 function RuleGroups({
   rulesByDbType,
   onDeleteRule,
-  onEditRule
+  onEditRule,
+  onViewRule
 }: {
   rulesByDbType: Record<string, AccountClassificationRuleItem[]>;
   onDeleteRule: (ruleId: number) => void;
   onEditRule: (rule: AccountClassificationRuleItem) => void;
+  onViewRule: (rule: AccountClassificationRuleItem) => void;
 }) {
   const entries = Object.entries(rulesByDbType).filter(([, rules]) => rules.length > 0);
   if (entries.length === 0) {
@@ -1847,7 +2394,7 @@ function RuleGroups({
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button aria-label={`查看规则 ${rule.rule_name}`} size="icon" type="button" variant="ghost">
+                  <Button aria-label={`查看规则 ${rule.rule_name}`} onClick={() => onViewRule(rule)} size="icon" type="button" variant="ghost">
                     <ExternalLink aria-hidden />
                   </Button>
                   <Button aria-label={`编辑规则 ${rule.rule_name}`} onClick={() => onEditRule(rule)} size="icon" type="button" variant="ghost">
@@ -1875,6 +2422,7 @@ export function AccountClassificationsPage() {
   const [editingClassification, setEditingClassification] = useState<AccountClassificationItem | null>(null);
   const [creatingRule, setCreatingRule] = useState(false);
   const [editingRule, setEditingRule] = useState<AccountClassificationRuleItem | null>(null);
+  const [viewingRule, setViewingRule] = useState<AccountClassificationRuleItem | null>(null);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -1931,6 +2479,7 @@ export function AccountClassificationsPage() {
                     void deleteAccountClassificationRule(ruleId).then(() => query.refetch());
                   }}
                   onEditRule={setEditingRule}
+                  onViewRule={setViewingRule}
                   rulesByDbType={snapshot.rulesByDbType}
                 />
               </ListPanel>
@@ -2000,6 +2549,17 @@ export function AccountClassificationsPage() {
                 void query.refetch();
               }}
               open={editingRule !== null}
+            />
+          ) : null}
+          {viewingRule ? (
+            <RuleDetailDialog
+              item={viewingRule}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setViewingRule(null);
+                }
+              }}
+              open={viewingRule !== null}
             />
           ) : null}
         </>

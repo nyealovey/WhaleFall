@@ -63,6 +63,10 @@ export class ApiClient {
     return this.request<TData>(path, { method: "PUT", body });
   }
 
+  patch<TData>(path: string, body: unknown): Promise<TData> {
+    return this.request<TData>(path, { method: "PATCH", body });
+  }
+
   delete<TData>(path: string, body?: unknown): Promise<TData> {
     return this.request<TData>(path, { method: "DELETE", body });
   }

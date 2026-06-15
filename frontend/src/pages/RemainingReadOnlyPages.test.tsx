@@ -24,7 +24,9 @@ const actionMocks = vi.hoisted(() => ({
   createAccountClassification: vi.fn(async () => ({ ok: true })),
   createAccountClassificationRule: vi.fn(async () => ({ ok: true })),
   cleanupPartitions: vi.fn(async () => ({ ok: true })),
+  createMySqlCluster: vi.fn(async () => ({ ok: true })),
   createPartition: vi.fn(async () => ({ ok: true })),
+  createSqlServerCluster: vi.fn(async () => ({ ok: true })),
   createCredential: vi.fn(async () => ({ ok: true })),
   createTag: vi.fn(async () => ({ ok: true })),
   createUser: vi.fn(async () => ({ ok: true })),
@@ -51,6 +53,7 @@ const actionMocks = vi.hoisted(() => ({
   testAdDomainConfig: vi.fn(async () => ({ ok: true })),
   updateAccountClassification: vi.fn(async () => ({ ok: true })),
   updateAccountClassificationRule: vi.fn(async () => ({ ok: true })),
+  validateAccountClassificationRuleExpression: vi.fn(async () => ({ rule_expression: { fn: "username_like", args: ["readonly"] } })),
   updateAdDomainConfig: vi.fn(async () => ({ ok: true })),
   updateCredential: vi.fn(async () => ({ ok: true })),
   updateSchedulerJob: vi.fn(async () => ({ ok: true })),
@@ -59,10 +62,16 @@ const actionMocks = vi.hoisted(() => ({
   updateVeeamSource: vi.fn(async () => ({ ok: true })),
   syncAdDomains: vi.fn(async () => ({ ok: true })),
   syncJumpServer: vi.fn(async () => ({ ok: true })),
+  syncMySqlClusterTopology: vi.fn(async () => ({ ok: true })),
+  syncSqlServerAgAccounts: vi.fn(async () => ({ ok: true })),
+  syncSqlServerAvailabilityGroups: vi.fn(async () => ({ ok: true })),
+  syncSqlServerClusterStatus: vi.fn(async () => ({ ok: true })),
   syncVeeam: vi.fn(async () => ({ ok: true })),
   unbindJumpServer: vi.fn(async () => ({ ok: true })),
   deleteVeeamSource: vi.fn(async () => ({ ok: true })),
-  deleteAdDomainConfig: vi.fn(async () => ({ ok: true }))
+  deleteAdDomainConfig: vi.fn(async () => ({ ok: true })),
+  updateMySqlCluster: vi.fn(async () => ({ ok: true })),
+  updateSqlServerCluster: vi.fn(async () => ({ ok: true }))
 }));
 
 vi.mock("@/api/actions", () => actionMocks);
@@ -72,12 +81,39 @@ vi.mock("@/api/readOnly", () => ({
     sqlServer: { items: [{ id: 1, name: "sql-ag", domain_name: "corp.local", is_enabled: true, instance_count: 2, availability_group_count: 1, last_ag_sync_status: "completed" }], total: 1, page: 1, pages: 1, limit: 20 },
     mySql: { items: [{ id: 2, name: "mysql-repl", is_enabled: true, instance_count: 3, replication_status: "healthy" }], total: 1, page: 1, pages: 1, limit: 20 }
   })),
+  fetchSqlServerClusterDetail: vi.fn(async () => ({
+    cluster: { id: 1, name: "sql-ag", domain_name: "corp.local", description: "SQL Server 群集", is_enabled: true },
+    instances: [{ id: 11, name: "sql-node-1", host: "10.0.0.11" }],
+    availability_groups: [{ id: 21, name: "ag-sales", listener_name: "ag-listener", listener_host: "ag.example", is_enabled: true }]
+  })),
+  fetchMySqlClusterDetail: vi.fn(async () => ({
+    cluster: { id: 2, name: "mysql-repl", description: "MySQL replication 群集", is_enabled: true },
+    instances: [{ id: 12, name: "mysql-primary", host: "10.0.0.21", role: "primary" }]
+  })),
   fetchAccountClassificationsSnapshot: vi.fn(async () => ({
     classifications: [
       { id: 1, code: "dba", display_name: "DBA", risk_level: 2, rules_count: 1, is_system: true },
       { id: 2, code: "app", display_name: "App", risk_level: 4, rules_count: 0, is_system: false }
     ],
     rulesByDbType: { mysql: [{ id: 9, rule_name: "root rule", classification_name: "DBA", db_type: "mysql", is_active: true, matched_accounts_count: 8 }] }
+  })),
+  fetchAccountClassificationRuleDetail: vi.fn(async () => ({
+    rule: {
+      id: 9,
+      rule_name: "root rule",
+      classification_id: 1,
+      classification_name: "DBA",
+      db_type: "mysql",
+      rule_group_id: "rg-1",
+      rule_version: 2,
+      is_active: true,
+      rule_expression: { fn: "username_like", args: ["root"] },
+      created_at: "2026-06-01T00:00:00+08:00",
+      updated_at: "2026-06-02T00:00:00+08:00"
+    }
+  })),
+  fetchAccountClassificationPermissions: vi.fn(async () => ({
+    permissions: { mysql: ["SELECT", "SUPER"] }
   })),
   fetchClassificationStatisticsSnapshot: vi.fn(async () => ({
     stats: { dba: { total_accounts: 8, matched_accounts_count: 8 } },
@@ -514,6 +550,99 @@ describe("RemainingReadOnlyPages", () => {
     expect(screen.getByRole("button", { name: "主从状态 mysql-repl" })).toBeInTheDocument();
   });
 
+  it("runs cluster create and update forms through v1 APIs", async () => {
+    renderWithQueryClient(<ClustersPage />);
+
+    await screen.findByRole("heading", { name: "群集管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "添加 SQL Server 群集" }));
+    const sqlCreateDialog = await screen.findByRole("dialog", { name: "新建 SQL Server 群集" });
+    fireEvent.change(within(sqlCreateDialog).getByLabelText("群集名称"), { target: { value: "sql-new" } });
+    fireEvent.change(within(sqlCreateDialog).getByLabelText("群集域名"), { target: { value: "corp.local" } });
+    fireEvent.change(within(sqlCreateDialog).getByLabelText("描述"), { target: { value: "primary ag" } });
+    fireEvent.click(within(sqlCreateDialog).getByRole("button", { name: "保存群集" }));
+
+    await waitFor(() => {
+      expect(actionMocks.createSqlServerCluster).toHaveBeenCalledWith({
+        name: "sql-new",
+        domain_name: "corp.local",
+        description: "primary ag",
+        is_enabled: true
+      });
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "添加 MySQL 群集" }));
+    const mysqlCreateDialog = await screen.findByRole("dialog", { name: "新建 MySQL 群集" });
+    fireEvent.change(within(mysqlCreateDialog).getByLabelText("群集名称"), { target: { value: "mysql-new" } });
+    fireEvent.change(within(mysqlCreateDialog).getByLabelText("描述"), { target: { value: "replica group" } });
+    fireEvent.click(within(mysqlCreateDialog).getByRole("button", { name: "保存群集" }));
+
+    await waitFor(() => {
+      expect(actionMocks.createMySqlCluster).toHaveBeenCalledWith({
+        name: "mysql-new",
+        description: "replica group",
+        is_enabled: true
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "管理群集 sql-ag" }));
+    const sqlEditDialog = await screen.findByRole("dialog", { name: "编辑 SQL Server 群集 sql-ag" });
+    fireEvent.change(within(sqlEditDialog).getByLabelText("群集名称"), { target: { value: "sql-ag-updated" } });
+    fireEvent.click(within(sqlEditDialog).getByRole("button", { name: "保存群集" }));
+
+    await waitFor(() => {
+      expect(actionMocks.updateSqlServerCluster).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ name: "sql-ag-updated", domain_name: "corp.local", is_enabled: true })
+      );
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "管理群集 mysql-repl" }));
+    const mysqlEditDialog = await screen.findByRole("dialog", { name: "编辑 MySQL 群集 mysql-repl" });
+    fireEvent.change(within(mysqlEditDialog).getByLabelText("群集名称"), { target: { value: "mysql-repl-updated" } });
+    fireEvent.click(within(mysqlEditDialog).getByRole("button", { name: "保存群集" }));
+
+    await waitFor(() => {
+      expect(actionMocks.updateMySqlCluster).toHaveBeenCalledWith(
+        2,
+        expect.objectContaining({ name: "mysql-repl-updated", is_enabled: true })
+      );
+    });
+  });
+
+  it("opens cluster details and runs cluster sync actions through v1 APIs", async () => {
+    renderWithQueryClient(<ClustersPage />);
+
+    await screen.findByRole("heading", { name: "群集管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "查看AG状态 sql-ag" }));
+    const sqlDetailDialog = await screen.findByRole("dialog", { name: "SQL Server 群集详情 sql-ag" });
+    expect(await within(sqlDetailDialog).findByText("sql-node-1")).toBeInTheDocument();
+    expect(await within(sqlDetailDialog).findByText("ag-sales")).toBeInTheDocument();
+    fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "同步AG信息" }));
+    fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "同步群集状态" }));
+    fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "同步AG账户" }));
+
+    await waitFor(() => {
+      expect(actionMocks.syncSqlServerAvailabilityGroups).toHaveBeenCalledWith(1, "master");
+      expect(actionMocks.syncSqlServerClusterStatus).toHaveBeenCalledWith(1);
+      expect(actionMocks.syncSqlServerAgAccounts).toHaveBeenCalledWith(1);
+    });
+    fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "关闭详情" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "AG账户 sql-ag" }));
+    await waitFor(() => {
+      expect(actionMocks.syncSqlServerAgAccounts).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "主从状态 mysql-repl" }));
+    const mysqlDetailDialog = await screen.findByRole("dialog", { name: "MySQL 群集详情 mysql-repl" });
+    expect(await within(mysqlDetailDialog).findByText("mysql-primary")).toBeInTheDocument();
+    fireEvent.click(within(mysqlDetailDialog).getByRole("button", { name: "同步主从拓扑" }));
+
+    await waitFor(() => {
+      expect(actionMocks.syncMySqlClusterTopology).toHaveBeenCalledWith(2);
+    });
+  });
+
   it("renders account classifications with legacy panels, rule groups, and actions", async () => {
     renderWithQueryClient(<AccountClassificationsPage />);
 
@@ -619,6 +748,13 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.change(within(createRuleDialog).getByLabelText("规则表达式"), {
       target: { value: "{\"fn\":\"username_like\",\"args\":[\"readonly\"]}" }
     });
+    fireEvent.click(within(createRuleDialog).getByRole("button", { name: "校验表达式" }));
+    await waitFor(() => {
+      expect(actionMocks.validateAccountClassificationRuleExpression).toHaveBeenCalledWith({
+        fn: "username_like",
+        args: ["readonly"]
+      });
+    });
     fireEvent.click(within(createRuleDialog).getByRole("button", { name: "保存规则" }));
 
     await waitFor(() => {
@@ -643,6 +779,20 @@ describe("RemainingReadOnlyPages", () => {
         expect.objectContaining({ rule_name: "root rule v2", classification_id: 1, db_type: "mysql" })
       );
     });
+  });
+
+  it("opens account classification rule detail with parsed expression and permission metadata", async () => {
+    renderWithQueryClient(<AccountClassificationsPage />);
+
+    await screen.findByRole("heading", { name: "账户分类" });
+    fireEvent.click(await screen.findByRole("button", { name: "查看规则 root rule" }));
+
+    const detailDialog = await screen.findByRole("dialog", { name: "规则详情 root rule" });
+    for (const text of ["规则详情", "root rule", "DBA", "版本 2", "username_like", "权限选项", "SELECT", "SUPER"]) {
+      expect(await within(detailDialog).findByText(text)).toBeInTheDocument();
+    }
+    expect(within(detailDialog).getAllByText("mysql").length).toBeGreaterThan(0);
+    fireEvent.click(within(detailDialog).getByRole("button", { name: "关闭详情" }));
   });
 
   it("renders system settings with legacy module navigation, forms, and actions", async () => {
