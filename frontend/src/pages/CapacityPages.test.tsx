@@ -48,6 +48,60 @@ vi.mock("@/api/capacity", () => ({
       limit: 20,
       has_prev: false,
       has_next: false
+    },
+    charts: {
+      trend: {
+        items: [
+          {
+            id: 11,
+            instance_id: 10,
+            period_start: "2026-06-09",
+            total_size_mb: 1024,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          },
+          {
+            id: 12,
+            instance_id: 10,
+            period_start: "2026-06-10",
+            total_size_mb: 2048,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          }
+        ],
+        total: 2,
+        page: 1,
+        pages: 1,
+        limit: 200
+      },
+      change: {
+        items: [
+          {
+            id: 13,
+            instance_id: 10,
+            period_start: "2026-06-10",
+            total_size_change_mb: 128,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          }
+        ],
+        total: 1,
+        page: 1,
+        pages: 1,
+        limit: 200
+      },
+      percent: {
+        items: [
+          {
+            id: 14,
+            instance_id: 10,
+            period_start: "2026-06-10",
+            total_size_change_percent: 6.7,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          }
+        ],
+        total: 1,
+        page: 1,
+        pages: 1,
+        limit: 200
+      }
     }
   })),
   fetchCapacityDatabaseSnapshot: vi.fn(async () => ({
@@ -82,6 +136,60 @@ vi.mock("@/api/capacity", () => ({
       page: 1,
       pages: 1,
       limit: 20
+    },
+    charts: {
+      trend: {
+        items: [
+          {
+            id: 21,
+            database_name: "app_db",
+            period_start: "2026-06-09",
+            avg_size_mb: 1024,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          },
+          {
+            id: 22,
+            database_name: "app_db",
+            period_start: "2026-06-10",
+            avg_size_mb: 2048,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          }
+        ],
+        total: 2,
+        page: 1,
+        pages: 1,
+        limit: 200
+      },
+      change: {
+        items: [
+          {
+            id: 23,
+            database_name: "app_db",
+            period_start: "2026-06-10",
+            size_change_mb: 64,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          }
+        ],
+        total: 1,
+        page: 1,
+        pages: 1,
+        limit: 200
+      },
+      percent: {
+        items: [
+          {
+            id: 24,
+            database_name: "app_db",
+            period_start: "2026-06-10",
+            size_change_percent: 3.2,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          }
+        ],
+        total: 1,
+        page: 1,
+        pages: 1,
+        limit: 200
+      }
     }
   }))
 }));
@@ -121,6 +229,9 @@ describe("CapacityPages", () => {
     for (const text of ["容量统计趋势图", "容量变化趋势图", "容量变化趋势图 (百分比)", "折线图", "柱状图", "TOP5", "TOP10", "TOP20", "7", "14", "30"]) {
       expect(screen.getAllByText(text).length).toBeGreaterThan(0);
     }
+    expect(screen.getAllByRole("button", { name: "折线图" })[0]).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "柱状图" })[0]).toBeEnabled();
+    expect(screen.getAllByText("2026-06-10").length).toBeGreaterThan(0);
   });
 
   it("renders database capacity data from the API", async () => {
@@ -149,6 +260,9 @@ describe("CapacityPages", () => {
     for (const text of ["容量统计趋势图", "容量变化趋势图", "容量变化趋势图 (百分比)", "折线图", "柱状图", "TOP5", "TOP10", "TOP20", "7", "14", "30"]) {
       expect(screen.getAllByText(text).length).toBeGreaterThan(0);
     }
+    expect(screen.getAllByRole("button", { name: "折线图" })[0]).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "柱状图" })[0]).toBeEnabled();
+    expect(screen.getAllByText("2026-06-10").length).toBeGreaterThan(0);
   });
 
   it("triggers current-period aggregation from capacity pages", async () => {

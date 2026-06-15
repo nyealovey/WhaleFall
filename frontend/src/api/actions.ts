@@ -1,6 +1,7 @@
 import { apiClient, type ApiClient } from "./client";
 
 type ApiActionClient = Pick<ApiClient, "delete" | "patch" | "post" | "put">;
+const DEFAULT_LIST_LIMIT = 200;
 
 export type RiskRulePayload = {
   rule_key: string;
@@ -275,7 +276,7 @@ export function restoreInstance(instanceId: number, client: ApiActionClient = ap
 }
 
 export function refreshDatabaseTableSizes(databaseId: number, client: ApiActionClient = apiClient) {
-  return client.post(`/api/v1/databases/${databaseId}/tables/sizes/actions/refresh?page=1&limit=20`, {});
+  return client.post(`/api/v1/databases/${databaseId}/tables/sizes/actions/refresh?page=1&limit=${DEFAULT_LIST_LIMIT}`, {});
 }
 
 export function reloadSchedulerJobs(client: ApiActionClient = apiClient) {

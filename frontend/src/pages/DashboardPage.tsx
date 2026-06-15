@@ -233,10 +233,10 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
                 ))}
               </ul>
               <ChartContainer config={logTrendChartConfig} className="h-[220px] w-full">
-                <LineChart accessibilityLayer data={logTrendData} margin={{ left: -12, right: 10, top: 12, bottom: 0 }}>
+                <LineChart accessibilityLayer data={logTrendData} margin={{ left: 8, right: 10, top: 12, bottom: 0 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     dataKey="error_count"
@@ -275,10 +275,10 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
                 ))}
               </ul>
               <ChartContainer config={logLevelChartConfig} className="h-[190px] w-full">
-                <LineChart accessibilityLayer data={logLevelData} margin={{ left: -12, right: 10, top: 12, bottom: 0 }}>
+                <LineChart accessibilityLayer data={logLevelData} margin={{ left: 8, right: 10, top: 12, bottom: 0 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="level" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                   <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   <Line
                     dataKey="count"
@@ -308,7 +308,7 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
                 ))}
               </ul>
               <ChartContainer config={syncTrendChartConfig} className="h-[190px] w-full">
-                <AreaChart accessibilityLayer data={syncTrendData} margin={{ left: -12, right: 10, top: 12, bottom: 0 }}>
+                <AreaChart accessibilityLayer data={syncTrendData} margin={{ left: 8, right: 10, top: 12, bottom: 0 }}>
                   <defs>
                     <linearGradient id="syncTrendFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--color-count)" stopOpacity={0.34} />
@@ -317,7 +317,7 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
                   </defs>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Area
                     dataKey="count"

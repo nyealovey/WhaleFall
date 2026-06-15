@@ -18,7 +18,7 @@ describe("audit api", () => {
 
     const snapshot = await fetchHistoryLogsSnapshot(client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/logs?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/logs?page=1&limit=200");
     expect(client.get).toHaveBeenCalledWith("/api/v1/logs/statistics?hours=24");
     expect(snapshot.list.items[0]?.message).toBe("hello");
     expect(snapshot.statistics.total_logs).toBe(1);
@@ -34,7 +34,7 @@ describe("audit api", () => {
 
     const snapshot = await fetchAccountChangeLogsSnapshot(client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/account-change-logs?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/account-change-logs?page=1&limit=200");
     expect(client.get).toHaveBeenCalledWith("/api/v1/account-change-logs/statistics?hours=24");
     expect(snapshot.list.items[0]?.username).toBe("readonly");
     expect(snapshot.statistics.total_changes).toBe(1);

@@ -9,7 +9,7 @@ import { filterNavigationForRole, flattenNavigationItems, navigationGroups } fro
 import { AccountChangeLogsPage, HistoryLogsPage } from "./pages/AuditPages";
 import { CapacityDatabasesPage, CapacityInstancesPage } from "./pages/CapacityPages";
 import { DashboardPage } from "./pages/DashboardPage";
-import { AccountLedgersPage, DatabaseLedgersPage, InstancesPage } from "./pages/ListPages";
+import { AccountLedgersPage, DatabaseLedgersPage, InstanceDetailPage, InstancesPage } from "./pages/ListPages";
 import { LoginPage } from "./pages/LoginPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import {
@@ -112,6 +112,7 @@ function ConsoleRoutes() {
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<RiskCenterPage />} path="/risk-center" />
           <Route element={<InstancesPage />} path="/instances" />
+          <Route element={<InstanceDetailPage />} path="/instances/:instanceId" />
           <Route element={<DatabaseLedgersPage />} path="/database-ledgers" />
           <Route element={<AccountLedgersPage />} path="/account-ledgers" />
           <Route element={<CapacityInstancesPage />} path="/capacity/instances" />

@@ -15,6 +15,7 @@ import {
   Trash2
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useParams } from "react-router-dom";
 
 import {
   batchTestInstanceConnections,
@@ -789,6 +790,12 @@ function createInstanceColumns({
           <Eye aria-hidden size={14} />
           <span>详情</span>
         </Button>
+        <Button asChild size="sm" variant="outline">
+          <a aria-label={`打开实例详情页 ${row.original.id}`} href={`/console/instances/${row.original.id}`}>
+            <ExternalLink aria-hidden size={14} />
+            <span>详情页</span>
+          </a>
+        </Button>
         <Button aria-label={`编辑实例 ${row.original.id}`} onClick={() => onEdit(row.original)} size="sm" type="button" variant="outline">
           <Pencil aria-hidden size={14} />
           <span>编辑</span>
@@ -972,9 +979,69 @@ function createAccountLedgerColumns({
   ];
 }
 
+function resolveInstanceRouteId(instanceId?: number): number {
+  if (typeof instanceId === "number" && Number.isFinite(instanceId)) {
+    return instanceId;
+  }
+  return 0;
+}
+
+export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
+  const params = useParams();
+  const routeId = resolveInstanceRouteId(instanceId ?? Number(params.instanceId));
+  const detailQuery = useQuery({
+    enabled: routeId > 0,
+    queryKey: ["lists", "instances", "detail-page", routeId],
+    queryFn: () => fetchInstanceDetail(routeId)
+  });
+  const instance = detailQuery.data?.instance;
+
+  return (
+    <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
+      <PageHeader
+        eyebrow="Instance detail"
+        title={instance ? `实例详情 ${instance.name}` : "实例详情"}
+        description="查看实例基础连接信息、状态和同步信号。"
+        legacyHref={routeId > 0 ? `/instances/${routeId}` : "/instances/"}
+      />
+      <CommandBar>
+        <Button variant="outline" asChild>
+          <a href="/console/instances">
+            <ExternalLink aria-hidden size={16} />
+            <span>返回实例列表</span>
+          </a>
+        </Button>
+      </CommandBar>
+      {detailQuery.isLoading ? <LoadingGrid /> : null}
+      {detailQuery.isError ? <ErrorState onRetry={() => void detailQuery.refetch()} /> : null}
+      {instance ? (
+        <Card>
+          <CardContent className="grid gap-4">
+            <div>
+              <h2 className="font-display text-xl leading-none font-semibold tracking-normal">{instance.name}</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {instance.host}:{instance.port}
+              </p>
+            </div>
+            <dl className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+              <DetailField label="实例名称">{instance.name}</DetailField>
+              <DetailField label="数据库类型">{dbTypeLabel(instance.db_type)}</DetailField>
+              <DetailField label="主机/IP">{instance.host}:{instance.port}</DetailField>
+              <DetailField label="状态">{instanceStatusLabel(instance)}</DetailField>
+              <DetailField label="描述">{asText(instance.description)}</DetailField>
+              <DetailField label="最后同步">{formatShortTimestamp(instance.last_sync_time)}</DetailField>
+            </dl>
+            <JsonBlock value={instance} />
+          </CardContent>
+        </Card>
+      ) : null}
+    </main>
+  );
+}
+
 export function InstancesPage() {
   const listQuery = useQuery({
-    queryKey: ["lists", "instances", 1, 20],
+    queryKey: ["lists", "instances", 1, 200],
     queryFn: () => fetchInstances()
   });
   const [selectedInstance, setSelectedInstance] = useState<InstanceListItem | null>(null);
@@ -1138,7 +1205,7 @@ export function InstancesPage() {
 
 export function DatabaseLedgersPage() {
   const listQuery = useQuery({
-    queryKey: ["lists", "database-ledgers", 1, 20],
+    queryKey: ["lists", "database-ledgers", 1, 200],
     queryFn: () => fetchDatabaseLedgers()
   });
   const [selectedDatabase, setSelectedDatabase] = useState<DatabaseLedgerItem | null>(null);
@@ -1215,7 +1282,7 @@ export function DatabaseLedgersPage() {
 
 export function AccountLedgersPage() {
   const listQuery = useQuery({
-    queryKey: ["lists", "account-ledgers", 1, 20],
+    queryKey: ["lists", "account-ledgers", 1, 200],
     queryFn: () => fetchAccountLedgers()
   });
   const [permissionsAccount, setPermissionsAccount] = useState<AccountLedgerItem | null>(null);

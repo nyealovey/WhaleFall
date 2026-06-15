@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { AccountLedgersPage, DatabaseLedgersPage, InstancesPage } from "./ListPages";
+import { AccountLedgersPage, DatabaseLedgersPage, InstanceDetailPage, InstancesPage } from "./ListPages";
 
 const actionMocks = vi.hoisted(() => ({
   batchTestInstanceConnections: vi.fn(async () => ({ ok: true })),
@@ -177,6 +177,7 @@ describe("ListPages", () => {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
     expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "打开实例详情页 1" })).toHaveAttribute("href", "/console/instances/1");
     expect(screen.getByRole("button", { name: "编辑实例 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "测试连接 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除实例 1" })).toBeInTheDocument();
@@ -259,6 +260,15 @@ describe("ListPages", () => {
     await waitFor(() => {
       expect(actionMocks.restoreInstance).toHaveBeenCalledWith(4);
     });
+  });
+
+  it("renders the direct instance detail page", async () => {
+    renderWithQueryClient(<InstanceDetailPage instanceId={1} />);
+
+    expect(await screen.findByRole("heading", { name: "实例详情 mysql-prod" })).toBeInTheDocument();
+    expect(screen.getByText("生产实例")).toBeInTheDocument();
+    expect(screen.getAllByText("10.0.0.8:3306").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "返回实例列表" })).toHaveAttribute("href", "/console/instances");
   });
 
   it("renders database ledgers from the API", async () => {

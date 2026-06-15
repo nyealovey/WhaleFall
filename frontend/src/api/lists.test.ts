@@ -18,7 +18,7 @@ describe("list api", () => {
 
     const result = await fetchInstances(client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/instances?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/instances?page=1&limit=200");
     expect(result.items[0]?.name).toBe("mysql-prod");
   });
 
@@ -29,7 +29,7 @@ describe("list api", () => {
 
     const result = await fetchDatabaseLedgers(client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/databases/ledgers?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/databases/ledgers?page=1&limit=200");
     expect(result.items[0]?.database_name).toBe("app_db");
   });
 
@@ -40,7 +40,7 @@ describe("list api", () => {
 
     const result = await fetchAccountLedgers(client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers?page=1&limit=200");
     expect(result.items[0]?.username).toBe("readonly");
   });
 
@@ -62,7 +62,7 @@ describe("list api", () => {
     expect(client.get).toHaveBeenCalledWith("/api/v1/instances/7");
     expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers/8/permissions");
     expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers/8/change-history");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/databases/9/tables/sizes?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/databases/9/tables/sizes?page=1&limit=200");
     expect(tableSizes.tables[0]?.table_name).toBe("orders");
   });
 });

@@ -1,6 +1,7 @@
 import { apiClient, type ApiClient } from "./client";
 
 type ApiReader = Pick<ApiClient, "get">;
+const DEFAULT_LIST_LIMIT = 200;
 
 export type PaginatedAuditList<TItem> = {
   items: TItem[];
@@ -83,7 +84,7 @@ export type AccountChangeLogDetail = {
 function listPath(path: string): string {
   const params = new URLSearchParams({
     page: "1",
-    limit: "20"
+    limit: String(DEFAULT_LIST_LIMIT)
   });
   return `${path}?${params.toString()}`;
 }

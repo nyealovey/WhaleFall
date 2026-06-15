@@ -31,8 +31,8 @@ describe("read-only migration api", () => {
 
     const snapshot = await fetchClustersSnapshot(client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters?page=1&limit=20");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/mysql-clusters?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/mysql-clusters?page=1&limit=200");
     expect(snapshot.sqlServer.items[0]?.name).toBe("sql-ag");
     expect(snapshot.mySql.items[0]?.name).toBe("mysql-repl");
   });
@@ -129,7 +129,7 @@ describe("read-only migration api", () => {
     const sessions = await fetchSyncSessionsSnapshot(client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/scheduler/jobs");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions?page=1&limit=200");
     expect(scheduler.jobs[0]?.task_name).toBe("同步任务");
     expect(sessions.items[0]?.session_id).toBe("s-1");
   });
@@ -170,13 +170,13 @@ describe("read-only migration api", () => {
     const tags = await fetchTagsSnapshot(client);
     const partitions = await fetchPartitionsSnapshot(client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/users?page=1&limit=10");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/users?page=1&limit=200");
     expect(client.get).toHaveBeenCalledWith("/api/v1/users/stats");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials?page=1&limit=20");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/tags?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/tags?page=1&limit=200");
     expect(client.get).toHaveBeenCalledWith("/api/v1/tags/categories");
     expect(client.get).toHaveBeenCalledWith("/api/v1/partitions/status");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/partitions?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/partitions?page=1&limit=200");
     expect(client.get).toHaveBeenCalledWith("/api/v1/partitions/core-metrics?period_type=daily&days=7");
     expect(users.stats.total).toBe(1);
     expect(credentials.items[0]?.name).toBe("prod");
@@ -205,7 +205,7 @@ describe("read-only migration api", () => {
       get: vi
         .fn()
         .mockResolvedValueOnce({ smtp_ready: true, settings: { global_enabled: true } })
-        .mockResolvedValueOnce([{ rule_key: "backup_issue", enabled: true }])
+        .mockResolvedValueOnce({ rules: [{ rule_key: "backup_issue", enabled: true }] })
         .mockResolvedValueOnce({ provider_ready: true, api_credentials: [] })
         .mockResolvedValueOnce({ provider_ready: false, veeam_credentials: [], sources: [] })
         .mockResolvedValueOnce({ configs: [{ id: 1, name: "corp" }] })
@@ -219,6 +219,7 @@ describe("read-only migration api", () => {
     expect(client.get).toHaveBeenCalledWith("/api/v1/integrations/veeam/sources");
     expect(client.get).toHaveBeenCalledWith("/api/v1/ad-domain-configs");
     expect(snapshot.alerts.smtp_ready).toBe(true);
+    expect(snapshot.riskRules[0]?.rule_key).toBe("backup_issue");
     expect(snapshot.adDomains.configs[0]?.name).toBe("corp");
   });
 });

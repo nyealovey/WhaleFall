@@ -1,6 +1,7 @@
 import { apiClient, type ApiClient } from "./client";
 
 type ApiReader = Pick<ApiClient, "get">;
+const DEFAULT_LIST_LIMIT = 200;
 
 export type CapacityDateRange = {
   startDate: string;
@@ -99,11 +100,21 @@ type SummaryEnvelope<TSummary> = {
 export type CapacityInstanceSnapshot = {
   list: CapacityList<CapacityInstanceItem>;
   summary: CapacityInstanceSummary;
+  charts: {
+    trend: CapacityList<CapacityInstanceItem>;
+    change: CapacityList<CapacityInstanceItem>;
+    percent: CapacityList<CapacityInstanceItem>;
+  };
 };
 
 export type CapacityDatabaseSnapshot = {
   list: CapacityList<CapacityDatabaseItem>;
   summary: CapacityDatabaseSummary;
+  charts: {
+    trend: CapacityList<CapacityDatabaseItem>;
+    change: CapacityList<CapacityDatabaseItem>;
+    percent: CapacityList<CapacityDatabaseItem>;
+  };
 };
 
 function formatDate(date: Date): string {
@@ -123,13 +134,19 @@ export function getDefaultCapacityRange(): CapacityDateRange {
   };
 }
 
-function listPath(basePath: string, range: CapacityDateRange): string {
+function listPath(basePath: string, range: CapacityDateRange, options?: { chartMode?: "instance" | "database"; getAll?: boolean }): string {
   const params = new URLSearchParams();
   params.set("period_type", "daily");
   params.set("page", "1");
-  params.set("limit", "20");
+  params.set("limit", String(DEFAULT_LIST_LIMIT));
   params.set("start_date", range.startDate);
   params.set("end_date", range.endDate);
+  if (options?.getAll) {
+    params.set("get_all", "true");
+  }
+  if (options?.chartMode) {
+    params.set("chart_mode", options.chartMode);
+  }
   return `${basePath}?${params.toString()}`;
 }
 
@@ -145,14 +162,18 @@ export async function fetchCapacityInstanceSnapshot(
   client: ApiReader = apiClient,
   range: CapacityDateRange = getDefaultCapacityRange()
 ): Promise<CapacityInstanceSnapshot> {
-  const [list, summaryEnvelope] = await Promise.all([
+  const [list, summaryEnvelope, trend, change, percent] = await Promise.all([
     client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range)),
-    client.get<SummaryEnvelope<CapacityInstanceSummary>>(summaryPath("/api/v1/capacity/instances", range))
+    client.get<SummaryEnvelope<CapacityInstanceSummary>>(summaryPath("/api/v1/capacity/instances", range)),
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range, { chartMode: "instance", getAll: true })),
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range, { getAll: true })),
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range, { getAll: true }))
   ]);
 
   return {
     list,
-    summary: summaryEnvelope.summary
+    summary: summaryEnvelope.summary,
+    charts: { trend, change, percent }
   };
 }
 
@@ -160,13 +181,17 @@ export async function fetchCapacityDatabaseSnapshot(
   client: ApiReader = apiClient,
   range: CapacityDateRange = getDefaultCapacityRange()
 ): Promise<CapacityDatabaseSnapshot> {
-  const [list, summaryEnvelope] = await Promise.all([
+  const [list, summaryEnvelope, trend, change, percent] = await Promise.all([
     client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range)),
-    client.get<SummaryEnvelope<CapacityDatabaseSummary>>(summaryPath("/api/v1/capacity/databases", range))
+    client.get<SummaryEnvelope<CapacityDatabaseSummary>>(summaryPath("/api/v1/capacity/databases", range)),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range, { chartMode: "database", getAll: true })),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range, { chartMode: "database", getAll: true })),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range, { chartMode: "database", getAll: true }))
   ]);
 
   return {
     list,
-    summary: summaryEnvelope.summary
+    summary: summaryEnvelope.summary,
+    charts: { trend, change, percent }
   };
 }

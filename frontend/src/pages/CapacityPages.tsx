@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Calculator, Database, ExternalLink, HardDrive, RefreshCw, Server } from "lucide-react";
-import type { ReactNode } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { useState, type ReactNode } from "react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { triggerCapacityAggregation } from "@/api/actions";
 import {
@@ -173,69 +173,262 @@ function MetricGrid({ metrics }: { metrics: Metric[] }) {
   );
 }
 
-type CapacityChartPoint = {
+type CapacityChartValue = Record<string, number | string> & {
   label: string;
-  trend: number;
-  change: number;
-  percent: number;
 };
 
-const capacityChartConfig = {
-  trend: { label: "容量", color: "var(--chart-1)" },
-  change: { label: "变化量", color: "var(--chart-2)" },
-  percent: { label: "变化率", color: "var(--chart-3)" }
-} satisfies ChartConfig;
+type CapacityChartSeries = {
+  key: string;
+  label: string;
+  color: string;
+};
 
-function CapacityChartControls() {
+type CapacityChartType = "line" | "bar";
+type CapacityChartUnit = "size" | "change" | "percent";
+
+const chartPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+
+function chartButtonVariant(active: boolean): "default" | "outline" {
+  return active ? "default" : "outline";
+}
+
+function CapacityChartControls({
+  chartType,
+  onChartTypeChange,
+  onPeriodsChange,
+  onTopNChange,
+  periods,
+  topN
+}: {
+  chartType: CapacityChartType;
+  onChartTypeChange: (value: CapacityChartType) => void;
+  onPeriodsChange: (value: number) => void;
+  onTopNChange: (value: number) => void;
+  periods: number;
+  topN: number;
+}) {
   return (
     <div className="flex flex-wrap gap-2">
-      {["折线图", "柱状图", "TOP5", "TOP10", "TOP20", "7", "14", "30"].map((label) => (
-        <Button disabled key={label} size="sm" variant="outline">
-          {label}
+      <Button onClick={() => onChartTypeChange("line")} size="sm" type="button" variant={chartButtonVariant(chartType === "line")}>
+        折线图
+      </Button>
+      <Button onClick={() => onChartTypeChange("bar")} size="sm" type="button" variant={chartButtonVariant(chartType === "bar")}>
+        柱状图
+      </Button>
+      {[5, 10, 20].map((value) => (
+        <Button onClick={() => onTopNChange(value)} key={value} size="sm" type="button" variant={chartButtonVariant(topN === value)}>
+          TOP{value}
+        </Button>
+      ))}
+      {[7, 14, 30].map((value) => (
+        <Button onClick={() => onPeriodsChange(value)} key={value} size="sm" type="button" variant={chartButtonVariant(periods === value)}>
+          {value}
         </Button>
       ))}
     </div>
   );
 }
 
-function CapacityChartPanel({ title, data, dataKey }: { title: string; data: CapacityChartPoint[]; dataKey: keyof Pick<CapacityChartPoint, "trend" | "change" | "percent"> }) {
+function chartDateLabel(value: string | undefined): string {
+  return value?.slice(0, 10) || "-";
+}
+
+function chartNumber(value: number | null | undefined, unit: CapacityChartUnit): number {
+  const resolved = value ?? 0;
+  if (unit === "size" || unit === "change") {
+    return Number((resolved / 1024).toFixed(2));
+  }
+  return Number(resolved.toFixed(2));
+}
+
+function buildCapacityChartData<TItem>({
+  getDate,
+  getSeriesName,
+  getValue,
+  items,
+  periods,
+  topN,
+  unit
+}: {
+  getDate: (item: TItem) => string | undefined;
+  getSeriesName: (item: TItem) => string;
+  getValue: (item: TItem) => number | null | undefined;
+  items: TItem[];
+  periods: number;
+  topN: number;
+  unit: CapacityChartUnit;
+}): { data: CapacityChartValue[]; series: CapacityChartSeries[] } {
+  const labels = [...new Set(items.map((item) => chartDateLabel(getDate(item))))].sort().slice(-periods);
+  const labelSet = new Set(labels);
+  const scopedItems = items.filter((item) => labelSet.has(chartDateLabel(getDate(item))));
+  const seriesMax = new Map<string, number>();
+
+  for (const item of scopedItems) {
+    const name = getSeriesName(item);
+    const value = Math.abs(getValue(item) ?? 0);
+    seriesMax.set(name, Math.max(seriesMax.get(name) ?? 0, value));
+  }
+
+  const seriesNames = [...seriesMax.entries()]
+    .sort((first, second) => second[1] - first[1])
+    .slice(0, topN)
+    .map(([name]) => name);
+  const series = seriesNames.map((name, index) => ({
+    key: `series_${index}`,
+    label: name,
+    color: chartPalette[index % chartPalette.length] ?? "var(--chart-1)"
+  }));
+  const seriesKeyByName = new Map(series.map((item) => [item.label, item.key]));
+  const dataByDate = new Map<string, CapacityChartValue>(labels.map((label) => [label, { label }]));
+
+  for (const item of scopedItems) {
+    const name = getSeriesName(item);
+    const key = seriesKeyByName.get(name);
+    if (!key) {
+      continue;
+    }
+    const label = chartDateLabel(getDate(item));
+    const row = dataByDate.get(label);
+    if (!row) {
+      continue;
+    }
+    row[key] = chartNumber(getValue(item), unit);
+  }
+
+  return { data: [...dataByDate.values()], series };
+}
+
+function instanceChartBuilder(items: CapacityInstanceItem[], unit: CapacityChartUnit, topN: number, periods: number) {
+  return buildCapacityChartData({
+    getDate: (item) => item.period_start || item.period_end,
+    getSeriesName: (item) => item.instance.name,
+    getValue: (item) => {
+      if (unit === "change") {
+        return item.total_size_change_mb;
+      }
+      if (unit === "percent") {
+        return item.total_size_change_percent ?? item.growth_rate;
+      }
+      return item.total_size_mb;
+    },
+    items,
+    periods,
+    topN,
+    unit
+  });
+}
+
+function databaseChartBuilder(items: CapacityDatabaseItem[], unit: CapacityChartUnit, topN: number, periods: number) {
+  return buildCapacityChartData({
+    getDate: (item) => item.period_start || item.period_end,
+    getSeriesName: (item) => item.database_name,
+    getValue: (item) => {
+      if (unit === "change") {
+        return item.size_change_mb;
+      }
+      if (unit === "percent") {
+        return item.size_change_percent ?? item.growth_rate;
+      }
+      return item.avg_size_mb;
+    },
+    items,
+    periods,
+    topN,
+    unit
+  });
+}
+
+function CapacityChartPanel({
+  buildData,
+  title
+}: {
+  buildData: (topN: number, periods: number) => { data: CapacityChartValue[]; series: CapacityChartSeries[] };
+  title: string;
+}) {
+  const [chartType, setChartType] = useState<CapacityChartType>("line");
+  const [topN, setTopN] = useState(5);
+  const [periods, setPeriods] = useState(7);
+  const { data, series } = buildData(topN, periods);
+  const config = Object.fromEntries(series.map((item) => [item.key, { label: item.label, color: item.color }])) satisfies ChartConfig;
+
   return (
     <Card>
       <CardContent className="grid gap-3">
         <div className="flex items-start justify-between gap-3 max-lg:grid">
           <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
-          <CapacityChartControls />
+          <CapacityChartControls chartType={chartType} onChartTypeChange={setChartType} onPeriodsChange={setPeriods} onTopNChange={setTopN} periods={periods} topN={topN} />
         </div>
-        {data.length > 0 ? (
-          <ChartContainer config={capacityChartConfig} className="h-[240px] w-full">
-            <AreaChart accessibilityLayer data={data} margin={{ left: -12, right: 12, top: 12, bottom: 0 }}>
-              <defs>
-                <linearGradient id={`capacity-${dataKey}-fill`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.34} />
-                  <stop offset="95%" stopColor={`var(--color-${dataKey})`} stopOpacity={0.04} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-              <YAxis tickLine={false} axisLine={false} tickMargin={8} width={44} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Area dataKey={dataKey} name={capacityChartConfig[dataKey].label} type="monotone" stroke={`var(--color-${dataKey})`} strokeWidth={2} fill={`url(#capacity-${dataKey}-fill)`} />
-            </AreaChart>
+        {data.length > 0 && series.length > 0 ? (
+          <ChartContainer config={config} className="h-[280px] w-full">
+            {chartType === "bar" ? (
+              <BarChart accessibilityLayer data={data} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} width={64} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                {series.map((item) => (
+                  <Bar dataKey={item.key} fill={`var(--color-${item.key})`} key={item.key} name={item.label} radius={[3, 3, 0, 0]} />
+                ))}
+              </BarChart>
+            ) : (
+              <LineChart accessibilityLayer data={data} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} width={64} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                {series.map((item) => (
+                  <Line dataKey={item.key} dot={false} key={item.key} name={item.label} stroke={`var(--color-${item.key})`} strokeWidth={2} type="monotone" />
+                ))}
+              </LineChart>
+            )}
           </ChartContainer>
         ) : (
           <p className="text-sm text-muted-foreground">暂无趋势数据</p>
         )}
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground" aria-label={`${title}图例`}>
+          {series.map((item) => (
+            <span className="inline-flex items-center gap-1.5" key={item.key}>
+              <span className="size-2 rounded-[2px]" style={{ backgroundColor: item.color }} />
+              <span>{item.label}</span>
+            </span>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-function CapacityCharts({ data }: { data: CapacityChartPoint[] }) {
+function CapacityCharts({
+  databaseChangeItems,
+  databasePercentItems,
+  databaseTrendItems,
+  instanceChangeItems,
+  instancePercentItems,
+  instanceTrendItems,
+  scope
+}: {
+  databaseChangeItems?: CapacityDatabaseItem[];
+  databasePercentItems?: CapacityDatabaseItem[];
+  databaseTrendItems?: CapacityDatabaseItem[];
+  instanceChangeItems?: CapacityInstanceItem[];
+  instancePercentItems?: CapacityInstanceItem[];
+  instanceTrendItems?: CapacityInstanceItem[];
+  scope: "database" | "instance";
+}) {
+  const build = (unit: CapacityChartUnit) => {
+    const databaseItems = unit === "change" ? databaseChangeItems : unit === "percent" ? databasePercentItems : databaseTrendItems;
+    const instanceItems = unit === "change" ? instanceChangeItems : unit === "percent" ? instancePercentItems : instanceTrendItems;
+    return (topN: number, periods: number) =>
+      scope === "database"
+        ? databaseChartBuilder(databaseItems ?? [], unit, topN, periods)
+        : instanceChartBuilder(instanceItems ?? [], unit, topN, periods);
+  };
+
   return (
     <section className="grid gap-2">
-      <CapacityChartPanel title="容量统计趋势图" data={data} dataKey="trend" />
-      <CapacityChartPanel title="容量变化趋势图" data={data} dataKey="change" />
-      <CapacityChartPanel title="容量变化趋势图 (百分比)" data={data} dataKey="percent" />
+      <CapacityChartPanel title="容量统计趋势图" buildData={build("size")} />
+      <CapacityChartPanel title="容量变化趋势图" buildData={build("change")} />
+      <CapacityChartPanel title="容量变化趋势图 (百分比)" buildData={build("percent")} />
     </section>
   );
 }
@@ -335,24 +528,6 @@ function databaseLargestShare(summary: CapacityDatabaseSnapshot["summary"]): str
     return "0%";
   }
   return formatPercent((summary.max_size_mb / summary.total_size_mb) * 100);
-}
-
-function instanceChartData(items: CapacityInstanceItem[]): CapacityChartPoint[] {
-  return items.map((item) => ({
-    label: item.instance.name,
-    trend: item.total_size_mb,
-    change: item.total_size_change_mb ?? 0,
-    percent: item.total_size_change_percent ?? item.growth_rate ?? 0
-  }));
-}
-
-function databaseChartData(items: CapacityDatabaseItem[]): CapacityChartPoint[] {
-  return items.map((item) => ({
-    label: item.database_name,
-    trend: item.avg_size_mb,
-    change: item.size_change_mb ?? 0,
-    percent: item.size_change_percent ?? item.growth_rate ?? 0
-  }));
 }
 
 function InstanceCapacityTable({ items }: { items: CapacityInstanceItem[] }) {
@@ -472,7 +647,12 @@ export function CapacityInstancesPage() {
               ]}
             />
             <CapacityFilterBar />
-            <CapacityCharts data={instanceChartData(snapshot.list.items)} />
+            <CapacityCharts
+              instanceChangeItems={snapshot.charts.change.items}
+              instancePercentItems={snapshot.charts.percent.items}
+              instanceTrendItems={snapshot.charts.trend.items}
+              scope="instance"
+            />
             <ListFrame title="实例容量列表" description={`日粒度 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
               <InstanceCapacityTable items={snapshot.list.items} />
             </ListFrame>
@@ -527,7 +707,12 @@ export function CapacityDatabasesPage() {
               ]}
             />
             <CapacityFilterBar includeDatabase />
-            <CapacityCharts data={databaseChartData(snapshot.list.items)} />
+            <CapacityCharts
+              databaseChangeItems={snapshot.charts.change.items}
+              databasePercentItems={snapshot.charts.percent.items}
+              databaseTrendItems={snapshot.charts.trend.items}
+              scope="database"
+            />
             <ListFrame title="数据库容量列表" description={`日粒度 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
               <DatabaseCapacityTable items={snapshot.list.items} />
             </ListFrame>

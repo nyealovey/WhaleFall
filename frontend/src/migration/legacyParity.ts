@@ -44,8 +44,8 @@ export const legacyParityPages: LegacyParityPage[] = [
     title: "实例管理",
     sections: [{ title: "实例列表", fields: ["实例", "地址", "数据库类型", "状态", "标签", "连接状态", "操作"] }],
     filters: ["搜索", "数据库类型", "状态", "标签"],
-    actions: ["新建实例", "编辑实例", "测试连接", "同步账户", "同步容量", "删除实例", "导入模板", "批量创建"],
-    apiPaths: ["/api/v1/instances", "/api/v1/instances/options", "/api/v1/instances/actions/batch-create"]
+    actions: ["新建实例", "编辑实例", "测试连接", "同步账户", "同步容量", "删除实例", "导入模板", "批量创建", "导出"],
+    apiPaths: ["/api/v1/instances", "/api/v1/instances/options", "/api/v1/instances/actions/batch-create", "/api/v1/instances/exports"]
   },
   {
     consolePath: "/clusters",
@@ -113,7 +113,7 @@ export const legacyParityPages: LegacyParityPage[] = [
     title: "实例容量",
     sections: [{ title: "容量列表", fields: ["实例", "数据库类型", "容量", "增长", "周期", "采集时间"] }],
     filters: ["周期", "开始日期", "结束日期", "搜索"],
-    actions: ["刷新", "导出"],
+    actions: ["刷新"],
     apiPaths: ["/api/v1/capacity/instances", "/api/v1/capacity/instances/summary"]
   },
   {
@@ -122,7 +122,7 @@ export const legacyParityPages: LegacyParityPage[] = [
     title: "数据库容量",
     sections: [{ title: "容量列表", fields: ["数据库", "实例", "容量", "增长", "周期", "采集时间"] }],
     filters: ["周期", "开始日期", "结束日期", "搜索"],
-    actions: ["刷新", "导出"],
+    actions: ["刷新"],
     apiPaths: ["/api/v1/capacity/databases", "/api/v1/capacity/databases/summary"]
   },
   {

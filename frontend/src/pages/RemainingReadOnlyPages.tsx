@@ -2745,7 +2745,7 @@ export function ClassificationStatisticsPage() {
                       {snapshot.trends.series[0]?.classification_name ? <div className="mb-2 text-sm font-medium">{snapshot.trends.series[0].classification_name}</div> : null}
                       {chartData.length > 0 ? (
                         <ChartContainer config={chartConfig} className="h-[240px] w-full">
-                          <AreaChart accessibilityLayer data={chartData} margin={{ left: -12, right: 12, top: 12, bottom: 0 }}>
+                          <AreaChart accessibilityLayer data={chartData} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
                             <defs>
                               <linearGradient id="classificationTrendFill" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.34} />
@@ -2754,7 +2754,7 @@ export function ClassificationStatisticsPage() {
                             </defs>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                            <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                            <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                             <ChartTooltip content={<ChartTooltipContent />} />
                             <Area dataKey="value" name="匹配账户" type="monotone" stroke="var(--color-value)" strokeWidth={2} fill="url(#classificationTrendFill)" />
                           </AreaChart>
@@ -4136,10 +4136,10 @@ export function PartitionsPage() {
                     </div>
                     {chartData.length > 0 ? (
                       <ChartContainer config={chartConfig} className="h-[220px] w-full">
-                        <AreaChart accessibilityLayer data={chartData} margin={{ left: -12, right: 12, top: 12, bottom: 0 }}>
+                        <AreaChart accessibilityLayer data={chartData} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
                           <CartesianGrid vertical={false} />
                           <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                          <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                          <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Area dataKey="value" name="分区指标" type="monotone" stroke="var(--color-value)" strokeWidth={2} fill="var(--color-value)" fillOpacity={0.16} />
                         </AreaChart>

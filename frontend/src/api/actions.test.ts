@@ -329,7 +329,7 @@ describe("console action api", () => {
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-test-connections", { instance_ids: [7, 8] });
     expect(client.delete).toHaveBeenCalledWith("/api/v1/instances/7");
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/7/actions/restore", {});
-    expect(client.post).toHaveBeenCalledWith("/api/v1/databases/9/tables/sizes/actions/refresh?page=1&limit=20", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/databases/9/tables/sizes/actions/refresh?page=1&limit=200", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/actions/reload", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1/actions/pause", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1/actions/resume", {});

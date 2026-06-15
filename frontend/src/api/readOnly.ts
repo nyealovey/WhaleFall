@@ -1,6 +1,7 @@
 import { apiClient, type ApiClient } from "./client";
 
 type ApiReader = Pick<ApiClient, "get">;
+const DEFAULT_LIST_LIMIT = 200;
 
 export type PaginatedReadOnlyList<TItem> = {
   items: TItem[];
@@ -315,7 +316,7 @@ export type PartitionsSnapshot = {
   };
 };
 
-function pagePath(path: string, limit = 20): string {
+function pagePath(path: string, limit = DEFAULT_LIST_LIMIT): string {
   return `${path}?page=1&limit=${limit}`;
 }
 
@@ -404,23 +405,36 @@ export async function fetchSyncSessionErrorLogs(
 
 export async function fetchUsersSnapshot(client: ApiReader = apiClient): Promise<UsersSnapshot> {
   const [list, stats] = await Promise.all([
-    client.get<PaginatedReadOnlyList<UserItem>>(pagePath("/api/v1/users", 10)),
+    client.get<PaginatedReadOnlyList<UserItem>>(pagePath("/api/v1/users")),
     client.get<UsersStats>("/api/v1/users/stats")
   ]);
 
   return { list, stats };
 }
 
+function normalizeRiskRules(payload: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(payload)) {
+    return payload.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object");
+  }
+  if (payload !== null && typeof payload === "object") {
+    const rules = (payload as { rules?: unknown }).rules;
+    if (Array.isArray(rules)) {
+      return rules.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object");
+    }
+  }
+  return [];
+}
+
 export async function fetchSettingsSnapshot(client: ApiReader = apiClient): Promise<SettingsSnapshot> {
   const [alerts, riskRules, jumpserver, veeam, adDomains] = await Promise.all([
     client.get<SettingsSnapshot["alerts"]>("/api/v1/alerts/email-settings"),
-    client.get<SettingsSnapshot["riskRules"]>("/api/v1/risk-center/rules"),
+    client.get<unknown>("/api/v1/risk-center/rules"),
     client.get<SettingsSnapshot["jumpserver"]>("/api/v1/integrations/jumpserver/source"),
     client.get<SettingsSnapshot["veeam"]>("/api/v1/integrations/veeam/sources"),
     client.get<SettingsSnapshot["adDomains"]>("/api/v1/ad-domain-configs")
   ]);
 
-  return { alerts, riskRules, jumpserver, veeam, adDomains };
+  return { alerts, riskRules: normalizeRiskRules(riskRules), jumpserver, veeam, adDomains };
 }
 
 export async function fetchCredentialsSnapshot(

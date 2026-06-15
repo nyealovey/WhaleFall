@@ -495,7 +495,7 @@ export function HistoryLogsPage() {
   const [selectedHistoryLogId, setSelectedHistoryLogId] = useState<number | null>(null);
   const columns = useMemo(() => createHistoryLogColumns(setSelectedHistoryLogId), [setSelectedHistoryLogId]);
   const logsQuery = useQuery({
-    queryKey: ["audit", "history-logs", 1, 20, 24],
+    queryKey: ["audit", "history-logs", 1, 200, 24],
     queryFn: () => fetchHistoryLogsSnapshot()
   });
 
@@ -550,7 +550,7 @@ export function AccountChangeLogsPage() {
   const [selectedAccountChangeLogId, setSelectedAccountChangeLogId] = useState<number | null>(null);
   const columns = useMemo(() => createAccountChangeLogColumns(setSelectedAccountChangeLogId), [setSelectedAccountChangeLogId]);
   const logsQuery = useQuery({
-    queryKey: ["audit", "account-change-logs", 1, 20, 24],
+    queryKey: ["audit", "account-change-logs", 1, 200, 24],
     queryFn: () => fetchAccountChangeLogsSnapshot()
   });
 

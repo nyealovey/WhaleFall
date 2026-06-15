@@ -431,7 +431,7 @@ function ChartPanel({
         {data.length > 0 ? (
           <ChartContainer config={chartConfig} className="h-[260px] w-full">
             {type === "area" ? (
-              <AreaChart accessibilityLayer data={data} margin={{ left: -12, right: 12, top: 12, bottom: 0 }}>
+              <AreaChart accessibilityLayer data={data} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
                 <defs>
                   <linearGradient id={`${title}-fill`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.32} />
@@ -440,15 +440,15 @@ function ChartPanel({
                 </defs>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Area dataKey="value" name="数量" type="monotone" stroke="var(--color-value)" strokeWidth={2} fill={`url(#${title}-fill)`} />
               </AreaChart>
             ) : (
-              <BarChart accessibilityLayer data={data} margin={{ left: -12, right: 12, top: 12, bottom: 0 }}>
+              <BarChart accessibilityLayer data={data} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} width={36} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="value" name="数量" radius={[4, 4, 0, 0]} fill="var(--color-count)" />
               </BarChart>
