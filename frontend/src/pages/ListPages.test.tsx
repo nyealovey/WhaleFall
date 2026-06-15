@@ -7,12 +7,14 @@ import { AccountLedgersPage, DatabaseLedgersPage, InstancesPage } from "./ListPa
 
 const actionMocks = vi.hoisted(() => ({
   batchTestInstanceConnections: vi.fn(async () => ({ ok: true })),
+  createInstance: vi.fn(async () => ({ ok: true })),
   deleteInstance: vi.fn(async () => ({ ok: true })),
   refreshDatabaseTableSizes: vi.fn(async () => ({ ok: true })),
   restoreInstance: vi.fn(async () => ({ ok: true })),
   syncAccounts: vi.fn(async () => ({ run_id: "accounts-run" })),
   syncDatabases: vi.fn(async () => ({ run_id: "databases-run" })),
-  testInstanceConnection: vi.fn(async () => ({ ok: true }))
+  testInstanceConnection: vi.fn(async () => ({ ok: true })),
+  updateInstance: vi.fn(async () => ({ ok: true }))
 }));
 
 vi.mock("@/api/actions", () => actionMocks);
@@ -175,9 +177,61 @@ describe("ListPages", () => {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
     expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑实例 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "测试连接 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除实例 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "恢复实例 4" })).toBeInTheDocument();
+  });
+
+  it("runs instance create and update forms through v1 APIs", async () => {
+    renderWithQueryClient(<InstancesPage />);
+
+    await expectTextPresent("mysql-prod");
+    fireEvent.click(screen.getByRole("button", { name: "添加实例" }));
+    const createDialog = await screen.findByRole("dialog", { name: "新建实例" });
+    fireEvent.change(within(createDialog).getByLabelText("实例名称"), { target: { value: "mysql-new" } });
+    fireEvent.change(within(createDialog).getByLabelText("数据库类型"), { target: { value: "mysql" } });
+    fireEvent.change(within(createDialog).getByLabelText("主机/IP"), { target: { value: "10.0.0.10" } });
+    fireEvent.change(within(createDialog).getByLabelText("端口"), { target: { value: "3306" } });
+    fireEvent.change(within(createDialog).getByLabelText("默认数据库"), { target: { value: "app_db" } });
+    fireEvent.change(within(createDialog).getByLabelText("凭据ID"), { target: { value: "8" } });
+    fireEvent.change(within(createDialog).getByLabelText("标签代码"), { target: { value: "prod, core" } });
+    fireEvent.change(within(createDialog).getByLabelText("描述"), { target: { value: "new instance" } });
+    fireEvent.click(within(createDialog).getByRole("button", { name: "保存实例" }));
+
+    await waitFor(() => {
+      expect(actionMocks.createInstance).toHaveBeenCalledWith({
+        name: "mysql-new",
+        db_type: "mysql",
+        host: "10.0.0.10",
+        port: 3306,
+        database_name: "app_db",
+        credential_id: 8,
+        description: "new instance",
+        tag_names: ["prod", "core"],
+        is_active: true
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "编辑实例 1" }));
+    const editDialog = await screen.findByRole("dialog", { name: "编辑实例 mysql-prod" });
+    fireEvent.change(within(editDialog).getByLabelText("实例名称"), { target: { value: "mysql-prod-updated" } });
+    fireEvent.change(within(editDialog).getByLabelText("标签代码"), { target: { value: "prod" } });
+    fireEvent.click(within(editDialog).getByRole("button", { name: "保存实例" }));
+
+    await waitFor(() => {
+      expect(actionMocks.updateInstance).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          name: "mysql-prod-updated",
+          db_type: "mysql",
+          host: "10.0.0.8",
+          port: 3306,
+          tag_names: ["prod"],
+          is_active: true
+        })
+      );
+    });
   });
 
   it("opens instance detail and runs existing instance actions", async () => {

@@ -5,6 +5,7 @@ import {
   cleanupPartitions,
   createAccountClassification,
   createAccountClassificationRule,
+  createInstance,
   createMySqlCluster,
   createPartition,
   createSqlServerCluster,
@@ -44,6 +45,7 @@ import {
   autoClassifyAccounts,
   updateAccountClassification,
   updateAccountClassificationRule,
+  updateInstance,
   updateMySqlCluster,
   updateSqlServerCluster,
   updateCredential,
@@ -87,6 +89,35 @@ describe("console action api", () => {
     await createMySqlCluster({ name: "mysql-repl", description: "replica", is_enabled: true }, client);
     await updateMySqlCluster(2, { name: "mysql-repl-updated", description: null, is_enabled: false }, client);
     await syncMySqlClusterTopology(2, client);
+    await createInstance(
+      {
+        name: "mysql-new",
+        db_type: "mysql",
+        host: "10.0.0.10",
+        port: 3306,
+        database_name: "app_db",
+        credential_id: 8,
+        description: "new instance",
+        tag_names: ["prod", "core"],
+        is_active: true
+      },
+      client
+    );
+    await updateInstance(
+      7,
+      {
+        name: "mysql-prod-updated",
+        db_type: "mysql",
+        host: "10.0.0.8",
+        port: 3306,
+        database_name: null,
+        credential_id: null,
+        description: null,
+        tag_names: ["prod"],
+        is_active: false
+      },
+      client
+    );
     await testInstanceConnection(7, client);
     await batchTestInstanceConnections([7, 8], client);
     await deleteInstance(7, client);
@@ -272,6 +303,28 @@ describe("console action api", () => {
       is_enabled: false
     });
     expect(client.post).toHaveBeenCalledWith("/api/v1/mysql-clusters/2/actions/sync-topology", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/instances", {
+      name: "mysql-new",
+      db_type: "mysql",
+      host: "10.0.0.10",
+      port: 3306,
+      database_name: "app_db",
+      credential_id: 8,
+      description: "new instance",
+      tag_names: ["prod", "core"],
+      is_active: true
+    });
+    expect(client.put).toHaveBeenCalledWith("/api/v1/instances/7", {
+      name: "mysql-prod-updated",
+      db_type: "mysql",
+      host: "10.0.0.8",
+      port: 3306,
+      database_name: null,
+      credential_id: null,
+      description: null,
+      tag_names: ["prod"],
+      is_active: false
+    });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/test-connection", { instance_id: 7 });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-test-connections", { instance_ids: [7, 8] });
     expect(client.delete).toHaveBeenCalledWith("/api/v1/instances/7");

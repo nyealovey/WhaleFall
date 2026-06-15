@@ -7,22 +7,26 @@ import {
   ExternalLink,
   Eye,
   FileUp,
+  Pencil,
   PlugZap,
   Plus,
   RefreshCw,
   RotateCcw,
   Trash2
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import {
   batchTestInstanceConnections,
+  createInstance,
   deleteInstance,
   refreshDatabaseTableSizes,
   restoreInstance,
   syncAccounts,
   syncDatabases,
-  testInstanceConnection
+  testInstanceConnection,
+  updateInstance,
+  type InstanceWritePayload
 } from "@/api/actions";
 import {
   fetchAccountChangeHistory,
@@ -58,8 +62,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 
 type TagItem = {
   name: string;
@@ -304,6 +310,137 @@ function DetailField({ label, children }: { label: string; children: ReactNode }
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="min-w-0 text-sm break-words">{children}</dd>
     </div>
+  );
+}
+
+const formSelectClassName =
+  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
+function FormField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="grid gap-1.5 text-sm font-medium">
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function parseOptionalNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseTagNames(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function InstanceFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: InstanceListItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [name, setName] = useState(item?.name ?? "");
+  const [dbType, setDbType] = useState(item?.db_type ?? "mysql");
+  const [host, setHost] = useState(item?.host ?? "");
+  const [port, setPort] = useState(String(item?.port ?? 3306));
+  const [databaseName, setDatabaseName] = useState("");
+  const [credentialId, setCredentialId] = useState("");
+  const [tagNames, setTagNames] = useState(item?.tags.map((tag) => tag.name).join(", ") ?? "");
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑实例 ${item.name}` : "新建实例";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: InstanceWritePayload = {
+      name: name.trim(),
+      db_type: dbType,
+      host: host.trim(),
+      port: Number(port),
+      database_name: databaseName.trim() || null,
+      credential_id: parseOptionalNumber(credentialId),
+      description: description.trim() || null,
+      tag_names: parseTagNames(tagNames),
+      is_active: isActive
+    };
+    const request = item ? updateInstance(item.id, payload) : createInstance(payload);
+    void request.then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护实例基础连接信息。连接测试仍可在列表操作中执行。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="实例名称">
+              <Input onChange={(event) => setName(event.target.value)} required value={name} />
+            </FormField>
+            <FormField label="数据库类型">
+              <select className={formSelectClassName} onChange={(event) => setDbType(event.target.value)} required value={dbType}>
+                <option value="mysql">mysql</option>
+                <option value="postgresql">postgresql</option>
+                <option value="sqlserver">sqlserver</option>
+                <option value="oracle">oracle</option>
+              </select>
+            </FormField>
+            <FormField label="主机/IP">
+              <Input onChange={(event) => setHost(event.target.value)} required value={host} />
+            </FormField>
+            <FormField label="端口">
+              <Input min={1} onChange={(event) => setPort(event.target.value)} required type="number" value={port} />
+            </FormField>
+            <FormField label="默认数据库">
+              <Input onChange={(event) => setDatabaseName(event.target.value)} value={databaseName} />
+            </FormField>
+            <FormField label="凭据ID">
+              <Input min={1} onChange={(event) => setCredentialId(event.target.value)} type="number" value={credentialId} />
+            </FormField>
+            <FormField label="标签代码">
+              <Input onChange={(event) => setTagNames(event.target.value)} placeholder="prod, core" value={tagNames} />
+            </FormField>
+            <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2 text-sm font-medium">
+              <span>状态</span>
+              <span className="flex items-center gap-2">
+                <input
+                  aria-label="启用"
+                  checked={isActive}
+                  className="size-4 accent-primary"
+                  onChange={(event) => setIsActive(event.target.checked)}
+                  type="checkbox"
+                />
+                <span className="text-muted-foreground">启用</span>
+              </span>
+            </label>
+          </div>
+          <FormField label="描述">
+            <Textarea onChange={(event) => setDescription(event.target.value)} value={description} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存实例</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -555,10 +692,12 @@ function AccountChangeHistoryDialog({ item, onOpenChange }: { item: AccountLedge
 
 function createInstanceColumns({
   onDelete,
+  onEdit,
   onRestore,
   onView
 }: {
   onDelete: (item: InstanceListItem) => void;
+  onEdit: (item: InstanceListItem) => void;
   onRestore: (item: InstanceListItem) => void;
   onView: (item: InstanceListItem) => void;
 }): ColumnDef<InstanceListItem>[] {
@@ -649,6 +788,10 @@ function createInstanceColumns({
         <Button aria-label={`查看详情 ${row.original.id}`} onClick={() => onView(row.original)} size="sm" type="button" variant="outline">
           <Eye aria-hidden size={14} />
           <span>详情</span>
+        </Button>
+        <Button aria-label={`编辑实例 ${row.original.id}`} onClick={() => onEdit(row.original)} size="sm" type="button" variant="outline">
+          <Pencil aria-hidden size={14} />
+          <span>编辑</span>
         </Button>
         <Button
           aria-label={`测试连接 ${row.original.id}`}
@@ -835,11 +978,19 @@ export function InstancesPage() {
     queryFn: () => fetchInstances()
   });
   const [selectedInstance, setSelectedInstance] = useState<InstanceListItem | null>(null);
+  const [creatingInstance, setCreatingInstance] = useState(false);
+  const [editingInstance, setEditingInstance] = useState<InstanceListItem | null>(null);
   const [deletingInstance, setDeletingInstance] = useState<InstanceListItem | null>(null);
+  function handleInstanceSaved() {
+    setCreatingInstance(false);
+    setEditingInstance(null);
+    void listQuery.refetch();
+  }
   const columns = useMemo(
     () =>
       createInstanceColumns({
         onDelete: setDeletingInstance,
+        onEdit: setEditingInstance,
         onRestore: (item) => {
           void restoreInstance(item.id).then(() => listQuery.refetch());
         },
@@ -864,7 +1015,7 @@ export function InstancesPage() {
             <span>实例统计</span>
           </a>
         </Button>
-        <Button disabled>
+        <Button onClick={() => setCreatingInstance(true)} type="button">
           <Plus aria-hidden size={16} />
           <span>添加实例</span>
         </Button>
@@ -925,6 +1076,30 @@ export function InstancesPage() {
               setSelectedInstance(null);
             }
           }}
+        />
+      ) : null}
+      {creatingInstance ? (
+        <InstanceFormDialog
+          item={null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingInstance(false);
+            }
+          }}
+          onSaved={handleInstanceSaved}
+          open
+        />
+      ) : null}
+      {editingInstance ? (
+        <InstanceFormDialog
+          item={editingInstance}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingInstance(null);
+            }
+          }}
+          onSaved={handleInstanceSaved}
+          open
         />
       ) : null}
       <AlertDialog

@@ -98,6 +98,18 @@ export type MySqlClusterPayload = {
   is_enabled: boolean;
 };
 
+export type InstanceWritePayload = {
+  name: string;
+  db_type: string;
+  host: string;
+  port: number;
+  database_name?: string | null;
+  credential_id?: number | null;
+  description?: string | null;
+  tag_names?: string[];
+  is_active: boolean;
+};
+
 export function triggerCapacityAggregation(scope: "instance" | "database" | "all", client: ApiActionClient = apiClient) {
   return client.post("/api/v1/capacity/aggregations/current", { scope });
 }
@@ -236,6 +248,14 @@ export function updateMySqlCluster(clusterId: number, payload: MySqlClusterPaylo
 
 export function syncMySqlClusterTopology(clusterId: number, client: ApiActionClient = apiClient) {
   return client.post(`/api/v1/mysql-clusters/${clusterId}/actions/sync-topology`, {});
+}
+
+export function createInstance(payload: InstanceWritePayload, client: ApiActionClient = apiClient) {
+  return client.post("/api/v1/instances", payload);
+}
+
+export function updateInstance(instanceId: number, payload: InstanceWritePayload, client: ApiActionClient = apiClient) {
+  return client.put(`/api/v1/instances/${instanceId}`, payload);
 }
 
 export function testInstanceConnection(instanceId: number, client: ApiActionClient = apiClient) {
