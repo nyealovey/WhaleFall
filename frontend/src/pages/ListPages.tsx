@@ -13,28 +13,53 @@ import {
   RotateCcw,
   Trash2
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import {
+  batchTestInstanceConnections,
+  deleteInstance,
+  refreshDatabaseTableSizes,
+  restoreInstance,
   syncAccounts,
   syncDatabases,
   testInstanceConnection
 } from "@/api/actions";
 import {
+  fetchAccountChangeHistory,
   fetchAccountLedgers,
+  fetchAccountPermissions,
   fetchDatabaseLedgers,
+  fetchDatabaseTableSizes,
+  fetchInstanceDetail,
   fetchInstances,
+  type AccountChangeHistoryResponse,
   type AccountLedgerItem,
+  type AccountPermissionsResponse,
   type DatabaseLedgerItem,
+  type DatabaseTableSizesResponse,
+  type DatabaseTableSizeItem,
+  type InstanceDetailResponse,
   type InstanceListItem,
   type PaginatedList
 } from "@/api/lists";
 import { DataTable } from "@/components/shared/DataTable";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type TagItem = {
   name: string;
@@ -252,6 +277,36 @@ function BadgeText({ value, variantValue }: { value: string; variantValue?: stri
   return <Badge variant={statusVariant(variantValue ?? value)}>{value}</Badge>;
 }
 
+function asText(value: unknown, fallback = "-"): string {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return fallback;
+}
+
+function JsonBlock({ value }: { value: unknown }) {
+  if (value === null || value === undefined || value === "") {
+    return <span className="text-muted-foreground">-</span>;
+  }
+  return (
+    <pre className="max-h-56 overflow-auto rounded-md border bg-secondary/30 p-3 font-mono text-xs whitespace-pre-wrap">
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  );
+}
+
+function DetailField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-1 rounded-md border bg-secondary/30 p-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-sm break-words">{children}</dd>
+    </div>
+  );
+}
+
 function ListFrame({
   title,
   description,
@@ -301,7 +356,213 @@ function QueryPage<TItem>({
   );
 }
 
-const instanceColumns: ColumnDef<InstanceListItem>[] = [
+function InstanceDetailDialog({ item, onOpenChange }: { item: InstanceListItem; onOpenChange: (open: boolean) => void }) {
+  const query = useQuery({
+    queryKey: ["lists", "instances", "detail", item.id],
+    queryFn: () => fetchInstanceDetail(item.id)
+  });
+  const instance: InstanceDetailResponse["instance"] = query.data?.instance ?? item;
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>实例详情 {instance.name}</DialogTitle>
+          <DialogDescription>来自 `/api/v1/instances/{instance.id}` 的实例详情。</DialogDescription>
+        </DialogHeader>
+        <dl className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+          <DetailField label="实例名称">{instance.name}</DetailField>
+          <DetailField label="数据库类型">{dbTypeLabel(instance.db_type)}</DetailField>
+          <DetailField label="主机/IP">{instance.host}:{instance.port}</DetailField>
+          <DetailField label="状态">{instanceStatusLabel(instance)}</DetailField>
+          <DetailField label="描述">{asText(instance.description)}</DetailField>
+          <DetailField label="最后同步">{formatShortTimestamp(instance.last_sync_time)}</DetailField>
+        </dl>
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+            关闭详情
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DatabaseTableSizesDialog({
+  item,
+  onOpenChange,
+  onRefresh
+}: {
+  item: DatabaseLedgerItem;
+  onOpenChange: (open: boolean) => void;
+  onRefresh: () => void;
+}) {
+  const query = useQuery({
+    queryKey: ["lists", "database-ledgers", item.id, "table-sizes"],
+    queryFn: () => fetchDatabaseTableSizes(item.id)
+  });
+  const data: DatabaseTableSizesResponse | undefined = query.data;
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open>
+      <DialogContent className="w-[min(calc(100vw-2rem),56rem)]">
+        <DialogHeader>
+          <DialogTitle>数据库表容量 {item.database_name}</DialogTitle>
+          <DialogDescription>
+            {item.instance.name} · {formatShortTimestamp(data?.collected_at ?? item.capacity.collected_at)}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-hidden rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Schema</TableHead>
+                <TableHead>表名</TableHead>
+                <TableHead>总大小</TableHead>
+                <TableHead>数据</TableHead>
+                <TableHead>索引</TableHead>
+                <TableHead>行数</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data?.tables.length === 0 ? (
+                <TableRow>
+                  <TableCell className="py-8 text-center text-sm text-muted-foreground" colSpan={6}>
+                    暂无表容量数据
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {(data?.tables ?? []).map((table: DatabaseTableSizeItem) => (
+                <TableRow key={`${table.schema_name ?? "-"}-${table.table_name}`}>
+                  <TableCell>{table.schema_name ?? "-"}</TableCell>
+                  <TableCell className="font-medium">{table.table_name}</TableCell>
+                  <TableCell className="font-mono text-xs">{asText(table.size_mb)}</TableCell>
+                  <TableCell className="font-mono text-xs">{asText(table.data_size_mb)}</TableCell>
+                  <TableCell className="font-mono text-xs">{asText(table.index_size_mb)}</TableCell>
+                  <TableCell className="font-mono text-xs">{asText(table.row_count)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <DialogFooter>
+          <Button onClick={onRefresh} type="button">
+            刷新表容量 {item.database_name}
+          </Button>
+          <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+            关闭详情
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AccountPermissionsDialog({ item, onOpenChange }: { item: AccountLedgerItem; onOpenChange: (open: boolean) => void }) {
+  const query = useQuery({
+    queryKey: ["lists", "account-ledgers", item.id, "permissions"],
+    queryFn: () => fetchAccountPermissions(item.id)
+  });
+  const data: AccountPermissionsResponse | undefined = query.data;
+  const snapshot = data?.permissions.snapshot as { roles?: unknown } | undefined;
+  const roles = Array.isArray(snapshot?.roles) ? snapshot.roles.map((role) => asText(role)).filter((role) => role !== "-") : [];
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>权限详情 {data?.account.username ?? item.username}</DialogTitle>
+          <DialogDescription>
+            {item.instance_name} · {dbTypeLabel(data?.permissions.db_type ?? item.db_type)}
+          </DialogDescription>
+        </DialogHeader>
+        <dl className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+          <DetailField label="账户">{data?.account.username ?? item.username}</DetailField>
+          <DetailField label="是否超管">{data?.permissions.is_superuser ? "是" : "否"}</DetailField>
+          <DetailField label="最后同步">{formatShortTimestamp(data?.permissions.last_sync_time)}</DetailField>
+          <DetailField label="角色">
+            {roles.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {roles.map((role) => (
+                  <Badge key={role} variant="outline">
+                    {role}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </DetailField>
+        </dl>
+        <JsonBlock value={data?.permissions.snapshot} />
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+            关闭详情
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AccountChangeHistoryDialog({ item, onOpenChange }: { item: AccountLedgerItem; onOpenChange: (open: boolean) => void }) {
+  const query = useQuery({
+    queryKey: ["lists", "account-ledgers", item.id, "change-history"],
+    queryFn: () => fetchAccountChangeHistory(item.id)
+  });
+  const data: AccountChangeHistoryResponse | undefined = query.data;
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open>
+      <DialogContent className="w-[min(calc(100vw-2rem),56rem)]">
+        <DialogHeader>
+          <DialogTitle>变更历史 {data?.account.username ?? item.username}</DialogTitle>
+          <DialogDescription>账户权限与状态变更记录。</DialogDescription>
+        </DialogHeader>
+        <div className="overflow-hidden rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>时间</TableHead>
+                <TableHead>类型</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>摘要</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(data?.history ?? []).map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-mono text-xs">{formatShortTimestamp(record.change_time)}</TableCell>
+                  <TableCell>{asText(record.change_type)}</TableCell>
+                  <TableCell>
+                    <BadgeText value={asText(record.status)} />
+                  </TableCell>
+                  <TableCell>{asText(record.message)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+            关闭详情
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function createInstanceColumns({
+  onDelete,
+  onRestore,
+  onView
+}: {
+  onDelete: (item: InstanceListItem) => void;
+  onRestore: (item: InstanceListItem) => void;
+  onView: (item: InstanceListItem) => void;
+}): ColumnDef<InstanceListItem>[] {
+  return [
   {
     accessorKey: "name",
     header: "名称",
@@ -384,8 +645,8 @@ const instanceColumns: ColumnDef<InstanceListItem>[] = [
     id: "actions",
     header: "操作",
     cell: ({ row }) => (
-      <div className="flex gap-2">
-        <Button aria-label={`查看详情 ${row.original.id}`} size="sm" variant="outline">
+      <div className="flex flex-wrap gap-2">
+        <Button aria-label={`查看详情 ${row.original.id}`} onClick={() => onView(row.original)} size="sm" type="button" variant="outline">
           <Eye aria-hidden size={14} />
           <span>详情</span>
         </Button>
@@ -401,12 +662,29 @@ const instanceColumns: ColumnDef<InstanceListItem>[] = [
           <PlugZap aria-hidden size={14} />
           <span>测试</span>
         </Button>
+        {row.original.deleted_at ? (
+          <Button aria-label={`恢复实例 ${row.original.id}`} onClick={() => onRestore(row.original)} size="sm" type="button" variant="outline">
+            <RotateCcw aria-hidden size={14} />
+            <span>恢复</span>
+          </Button>
+        ) : (
+          <Button aria-label={`删除实例 ${row.original.id}`} onClick={() => onDelete(row.original)} size="sm" type="button" variant="outline">
+            <Trash2 aria-hidden size={14} />
+            <span>删除</span>
+          </Button>
+        )}
       </div>
     )
   }
-];
+  ];
+}
 
-const databaseLedgerColumns: ColumnDef<DatabaseLedgerItem>[] = [
+function createDatabaseLedgerColumns({
+  onViewTables
+}: {
+  onViewTables: (item: DatabaseLedgerItem) => void;
+}): ColumnDef<DatabaseLedgerItem>[] {
+  return [
   {
     accessorFn: (item) => `${item.database_name} ${item.instance.name} ${item.instance.host}`,
     id: "database_name",
@@ -447,15 +725,23 @@ const databaseLedgerColumns: ColumnDef<DatabaseLedgerItem>[] = [
     id: "actions",
     header: "操作",
     cell: ({ row }) => (
-      <Button aria-label={`查看容量趋势 ${row.original.id}`} size="sm" variant="outline">
+      <Button aria-label={`查看容量趋势 ${row.original.id}`} onClick={() => onViewTables(row.original)} size="sm" type="button" variant="outline">
         <ExternalLink aria-hidden size={14} />
         <span>趋势</span>
       </Button>
     )
   }
-];
+  ];
+}
 
-const accountLedgerColumns: ColumnDef<AccountLedgerItem>[] = [
+function createAccountLedgerColumns({
+  onViewHistory,
+  onViewPermissions
+}: {
+  onViewHistory: (item: AccountLedgerItem) => void;
+  onViewPermissions: (item: AccountLedgerItem) => void;
+}): ColumnDef<AccountLedgerItem>[] {
+  return [
   {
     accessorFn: (item) => `${item.username} ${item.instance_name} ${item.instance_host}`,
     id: "username",
@@ -528,19 +814,40 @@ const accountLedgerColumns: ColumnDef<AccountLedgerItem>[] = [
     id: "actions",
     header: "操作",
     cell: ({ row }) => (
-      <Button aria-label={`查看权限 ${row.original.id}`} size="sm" variant="outline">
-        <Eye aria-hidden size={14} />
-        <span>权限</span>
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button aria-label={`查看权限 ${row.original.id}`} onClick={() => onViewPermissions(row.original)} size="sm" type="button" variant="outline">
+          <Eye aria-hidden size={14} />
+          <span>权限</span>
+        </Button>
+        <Button aria-label={`查看变更历史 ${row.original.id}`} onClick={() => onViewHistory(row.original)} size="sm" type="button" variant="outline">
+          <ExternalLink aria-hidden size={14} />
+          <span>变更</span>
+        </Button>
+      </div>
     )
   }
-];
+  ];
+}
 
 export function InstancesPage() {
   const listQuery = useQuery({
     queryKey: ["lists", "instances", 1, 20],
     queryFn: () => fetchInstances()
   });
+  const [selectedInstance, setSelectedInstance] = useState<InstanceListItem | null>(null);
+  const [deletingInstance, setDeletingInstance] = useState<InstanceListItem | null>(null);
+  const columns = useMemo(
+    () =>
+      createInstanceColumns({
+        onDelete: setDeletingInstance,
+        onRestore: (item) => {
+          void restoreInstance(item.id).then(() => listQuery.refetch());
+        },
+        onView: setSelectedInstance
+      }),
+    [listQuery]
+  );
+  const visibleInstanceIds = listQuery.data?.items.map((item) => item.id) ?? [];
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -565,7 +872,14 @@ export function InstancesPage() {
           <Trash2 aria-hidden size={16} />
           <span>移入回收站</span>
         </Button>
-        <Button disabled variant="outline">
+        <Button
+          disabled={visibleInstanceIds.length === 0}
+          onClick={() => {
+            void batchTestInstanceConnections(visibleInstanceIds).then(() => listQuery.refetch());
+          }}
+          type="button"
+          variant="outline"
+        >
           <PlugZap aria-hidden size={16} />
           <span>批量测试连接</span>
         </Button>
@@ -588,7 +902,7 @@ export function InstancesPage() {
         {(result) => (
           <ListFrame title="实例列表" description={`每页 ${formatNumber(result.limit)} 条`} total={result.total}>
             <DataTable
-              columns={instanceColumns}
+              columns={columns}
               data={result.items}
               filters={[
                 { columnId: "db_type", label: "类型", options: uniqueTextOptions(result.items, (item) => dbTypeLabel(item.db_type)) },
@@ -603,6 +917,46 @@ export function InstancesPage() {
           </ListFrame>
         )}
       </QueryPage>
+      {selectedInstance ? (
+        <InstanceDetailDialog
+          item={selectedInstance}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedInstance(null);
+            }
+          }}
+        />
+      ) : null}
+      <AlertDialog
+        open={deletingInstance !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingInstance(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认移入回收站 {deletingInstance?.name ?? ""}</AlertDialogTitle>
+            <AlertDialogDescription>实例会被软删除并从默认列表中隐藏，可在包含已删除记录后恢复。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>返回</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!deletingInstance) {
+                  return;
+                }
+                const instanceId = deletingInstance.id;
+                setDeletingInstance(null);
+                void deleteInstance(instanceId).then(() => listQuery.refetch());
+              }}
+            >
+              确认移入回收站
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
@@ -612,6 +966,14 @@ export function DatabaseLedgersPage() {
     queryKey: ["lists", "database-ledgers", 1, 20],
     queryFn: () => fetchDatabaseLedgers()
   });
+  const [selectedDatabase, setSelectedDatabase] = useState<DatabaseLedgerItem | null>(null);
+  const columns = useMemo(
+    () =>
+      createDatabaseLedgerColumns({
+        onViewTables: setSelectedDatabase
+      }),
+    []
+  );
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -648,7 +1010,7 @@ export function DatabaseLedgersPage() {
         {(result) => (
           <ListFrame title="数据库台账" description={`每页 ${formatNumber(result.limit)} 条`} total={result.total}>
             <DataTable
-              columns={databaseLedgerColumns}
+              columns={columns}
               data={result.items}
               filters={[
                 { columnId: "db_type", label: "类型", options: uniqueTextOptions(result.items, (item) => dbTypeLabel(item.db_type)) },
@@ -659,6 +1021,19 @@ export function DatabaseLedgersPage() {
           </ListFrame>
         )}
       </QueryPage>
+      {selectedDatabase ? (
+        <DatabaseTableSizesDialog
+          item={selectedDatabase}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedDatabase(null);
+            }
+          }}
+          onRefresh={() => {
+            void refreshDatabaseTableSizes(selectedDatabase.id).then(() => listQuery.refetch());
+          }}
+        />
+      ) : null}
     </main>
   );
 }
@@ -668,6 +1043,16 @@ export function AccountLedgersPage() {
     queryKey: ["lists", "account-ledgers", 1, 20],
     queryFn: () => fetchAccountLedgers()
   });
+  const [permissionsAccount, setPermissionsAccount] = useState<AccountLedgerItem | null>(null);
+  const [historyAccount, setHistoryAccount] = useState<AccountLedgerItem | null>(null);
+  const columns = useMemo(
+    () =>
+      createAccountLedgerColumns({
+        onViewHistory: setHistoryAccount,
+        onViewPermissions: setPermissionsAccount
+      }),
+    []
+  );
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -704,7 +1089,7 @@ export function AccountLedgersPage() {
         {(result) => (
           <ListFrame title="账户台账" description={`每页 ${formatNumber(result.limit)} 条`} total={result.total}>
             <DataTable
-              columns={accountLedgerColumns}
+              columns={columns}
               data={result.items}
               filters={[
                 { columnId: "classifications", label: "分类", options: uniqueTextOptions(result.items, classificationText) },
@@ -716,6 +1101,26 @@ export function AccountLedgersPage() {
           </ListFrame>
         )}
       </QueryPage>
+      {permissionsAccount ? (
+        <AccountPermissionsDialog
+          item={permissionsAccount}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPermissionsAccount(null);
+            }
+          }}
+        />
+      ) : null}
+      {historyAccount ? (
+        <AccountChangeHistoryDialog
+          item={historyAccount}
+          onOpenChange={(open) => {
+            if (!open) {
+              setHistoryAccount(null);
+            }
+          }}
+        />
+      ) : null}
     </main>
   );
 }

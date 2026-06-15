@@ -22,30 +22,86 @@ import {
   UserCog,
   Zap
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  assignTagsToInstances,
   autoClassifyAccounts,
   cancelSyncSession,
   cleanupPartitions,
+  createAccountClassification,
+  createAccountClassificationRule,
+  createAdDomainConfig,
   createPartition,
+  createCredential,
+  createTag,
+  createUser,
+  createVeeamSource,
   deleteAccountClassification,
   deleteAccountClassificationRule,
   deleteAdDomainConfig,
+  deleteCredential,
+  deleteTag,
+  deleteUser,
   deleteVeeamSource,
+  disableVeeamSource,
+  enableVeeamSource,
   pauseSchedulerJob,
   reloadSchedulerJobs,
+  removeAllTagsFromInstances,
+  removeTagsFromInstances,
   resumeSchedulerJob,
   runSchedulerJob,
   saveAlertSettings,
+  saveJumpServerSource,
   saveRiskRules,
   sendAlertTestEmail,
   sendFeishuTest,
+  setAdDomainConfigEnabled,
   syncAdDomains,
   syncJumpServer,
   syncVeeam,
-  unbindJumpServer
+  testAdDomainConfig,
+  unbindJumpServer,
+  updateAccountClassification,
+  updateAccountClassificationRule,
+  updateAdDomainConfig,
+  updateCredential,
+  updateSchedulerJob,
+  updateTag,
+  updateUser,
+  updateVeeamSource,
+  type AccountClassificationRuleWritePayload,
+  type AccountClassificationWritePayload,
+  type AdDomainConfigPayload,
+  type CredentialWritePayload,
+  type JumpServerSourcePayload,
+  type SchedulerJobWritePayload,
+  type TagWritePayload,
+  type UserWritePayload,
+  type VeeamSourcePayload
 } from "@/api/actions";
 import {
   fetchAccountClassificationsSnapshot,
@@ -55,9 +111,13 @@ import {
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
   fetchSettingsSnapshot,
+  fetchSyncSessionDetail,
+  fetchSyncSessionErrorLogs,
   fetchSyncSessionsSnapshot,
+  fetchTagBulkOptions,
   fetchTagsSnapshot,
   fetchUsersSnapshot,
+  type AccountClassificationItem,
   type AccountClassificationRuleItem,
   type ClassificationStatisticsSnapshot,
   type ClusterItem,
@@ -65,20 +125,17 @@ import {
   type PartitionItem,
   type SchedulerJobItem,
   type SettingsSnapshot,
+  type SyncInstanceRecordItem,
+  type SyncSessionDetail,
+  type SyncSessionErrorLogs,
   type SyncSessionItem,
+  type TagBulkOptions,
   type TagItem,
+  type TagOptionItem,
+  type TaggableInstanceItem,
   type UserItem
 } from "@/api/readOnly";
 import { DataTable } from "@/components/shared/DataTable";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type Metric = {
   label: string;
@@ -110,6 +167,31 @@ function asText(value: unknown, fallback = "-"): string {
     return String(value);
   }
   return fallback;
+}
+
+function isEmptyDetailValue(value: unknown): boolean {
+  if (value === null || value === undefined || value === "") {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  if (typeof value === "object") {
+    return Object.keys(value).length === 0;
+  }
+  return false;
+}
+
+function JsonBlock({ value }: { value: unknown }) {
+  if (isEmptyDetailValue(value)) {
+    return <span className="text-muted-foreground">-</span>;
+  }
+
+  return (
+    <pre className="max-h-48 overflow-auto rounded-md border bg-secondary/30 p-3 font-mono text-xs whitespace-pre-wrap">
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  );
 }
 
 function uniqueTextOptions<TItem>(items: TItem[], getValue: (item: TItem) => string | null | undefined) {
@@ -411,7 +493,702 @@ function StatusBadge({ value }: { value: string | boolean | undefined | null }) 
   return <Badge variant={statusVariant(value)}>{statusLabel(value)}</Badge>;
 }
 
-const credentialColumns: ColumnDef<CredentialItem>[] = [
+const formSelectClassName =
+  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
+function FormField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="grid gap-1.5 text-sm font-medium">
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function ActiveField({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2 text-sm font-medium">
+      <span>状态</span>
+      <span className="flex items-center gap-2">
+        <input
+          aria-label="启用"
+          checked={checked}
+          className="size-4 accent-primary"
+          onChange={(event) => onCheckedChange(event.target.checked)}
+          type="checkbox"
+        />
+        <span className="text-muted-foreground">启用</span>
+      </span>
+    </label>
+  );
+}
+
+function DeleteConfirmDialog({
+  confirmLabel,
+  description,
+  onConfirm,
+  onOpenChange,
+  open,
+  title
+}: {
+  confirmLabel: string;
+  description: string;
+  onConfirm: () => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  title: string;
+}) {
+  return (
+    <AlertDialog onOpenChange={onOpenChange} open={open}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>返回</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>{confirmLabel}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function UserFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: UserItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [username, setUsername] = useState(item?.username ?? "");
+  const [role, setRole] = useState(item?.role ?? "user");
+  const [password, setPassword] = useState("");
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑用户 ${item.username}` : "新建用户";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: UserWritePayload = {
+      username: username.trim(),
+      role,
+      is_active: isActive
+    };
+    if (item) {
+      if (password.trim()) {
+        payload.password = password;
+      }
+      void updateUser(item.id, payload).then(onSaved);
+      return;
+    }
+    void createUser({ ...payload, password }).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护登录账号、角色和启用状态。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="用户名">
+              <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
+            </FormField>
+            <FormField label="角色">
+              <select className={formSelectClassName} onChange={(event) => setRole(event.target.value)} value={role}>
+                <option value="admin">管理员</option>
+                <option value="user">普通用户</option>
+                <option value="viewer">查看者</option>
+              </select>
+            </FormField>
+            <FormField label={item ? "新密码" : "初始密码"}>
+              <Input onChange={(event) => setPassword(event.target.value)} required={!item} type="password" value={password} />
+            </FormField>
+            <ActiveField checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存用户</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CredentialFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: CredentialItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [name, setName] = useState(item?.name ?? "");
+  const [credentialType, setCredentialType] = useState(item?.credential_type ?? "database");
+  const [dbType, setDbType] = useState(item?.db_type ?? "mysql");
+  const [username, setUsername] = useState(item?.username ?? "");
+  const [password, setPassword] = useState("");
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑凭据 ${item.name}` : "新建凭据";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: CredentialWritePayload = {
+      name: name.trim(),
+      credential_type: credentialType,
+      db_type: dbType || null,
+      username: username.trim(),
+      description: description.trim() || null,
+      is_active: isActive
+    };
+    if (item) {
+      if (password.trim()) {
+        payload.password = password;
+      }
+      void updateCredential(item.id, payload).then(onSaved);
+      return;
+    }
+    void createCredential({ ...payload, password }).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护数据库、平台等连接凭据。密码为空时编辑不会覆盖旧密码。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="凭据名称">
+              <Input onChange={(event) => setName(event.target.value)} required value={name} />
+            </FormField>
+            <FormField label="凭据类型">
+              <select className={formSelectClassName} onChange={(event) => setCredentialType(event.target.value)} value={credentialType}>
+                <option value="database">database</option>
+                <option value="ssh">ssh</option>
+                <option value="api">api</option>
+                <option value="ldap">ldap</option>
+              </select>
+            </FormField>
+            <FormField label="数据库类型">
+              <select className={formSelectClassName} onChange={(event) => setDbType(event.target.value)} value={dbType}>
+                <option value="mysql">mysql</option>
+                <option value="postgresql">postgresql</option>
+                <option value="sqlserver">sqlserver</option>
+                <option value="oracle">oracle</option>
+                <option value="">无</option>
+              </select>
+            </FormField>
+            <FormField label="用户名">
+              <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
+            </FormField>
+            <FormField label="密码">
+              <Input onChange={(event) => setPassword(event.target.value)} required={!item} type="password" value={password} />
+            </FormField>
+            <ActiveField checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <FormField label="描述">
+            <Textarea onChange={(event) => setDescription(event.target.value)} value={description} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存凭据</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TagFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: TagItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [name, setName] = useState(item?.name ?? "");
+  const [displayName, setDisplayName] = useState(item?.display_name ?? "");
+  const [category, setCategory] = useState(item?.category ?? "");
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑标签 ${item.display_name}` : "新建标签";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: TagWritePayload = {
+      name: name.trim(),
+      display_name: displayName.trim(),
+      category: category.trim(),
+      is_active: isActive
+    };
+    if (item) {
+      void updateTag(item.id, payload).then(onSaved);
+      return;
+    }
+    void createTag(payload).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护标签编码、展示名称、分类和启用状态。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="标签编码">
+              <Input onChange={(event) => setName(event.target.value)} required value={name} />
+            </FormField>
+            <FormField label="展示名称">
+              <Input onChange={(event) => setDisplayName(event.target.value)} required value={displayName} />
+            </FormField>
+            <FormField label="分类">
+              <Input onChange={(event) => setCategory(event.target.value)} required value={category} />
+            </FormField>
+            <ActiveField checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存标签</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function numberFromInput(value: string, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function ClassificationFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: AccountClassificationItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [code, setCode] = useState(item?.code ?? "");
+  const [displayName, setDisplayName] = useState(item?.display_name ?? "");
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [riskLevel, setRiskLevel] = useState(String(item?.risk_level ?? 4));
+  const [iconName, setIconName] = useState(item?.icon_name ?? "");
+  const [priority, setPriority] = useState(String(item?.priority ?? 0));
+  const title = item ? `编辑分类 ${item.display_name}` : "新建分类";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: AccountClassificationWritePayload = {
+      code: code.trim() || undefined,
+      display_name: displayName.trim(),
+      description: description.trim() || null,
+      risk_level: numberFromInput(riskLevel, 4),
+      icon_name: iconName.trim() || null,
+      priority: numberFromInput(priority, 0)
+    };
+    if (item) {
+      void updateAccountClassification(item.id, payload).then(onSaved);
+      return;
+    }
+    void createAccountClassification(payload).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护分类编码、展示名称、风险等级和优先级。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="分类编码">
+              <Input onChange={(event) => setCode(event.target.value)} required={!item} value={code} />
+            </FormField>
+            <FormField label="展示名称">
+              <Input onChange={(event) => setDisplayName(event.target.value)} required value={displayName} />
+            </FormField>
+            <FormField label="风险等级">
+              <Input max={6} min={1} onChange={(event) => setRiskLevel(event.target.value)} type="number" value={riskLevel} />
+            </FormField>
+            <FormField label="优先级">
+              <Input max={100} min={0} onChange={(event) => setPriority(event.target.value)} type="number" value={priority} />
+            </FormField>
+            <FormField label="图标">
+              <Input onChange={(event) => setIconName(event.target.value)} value={iconName} />
+            </FormField>
+          </div>
+          <FormField label="描述">
+            <Textarea onChange={(event) => setDescription(event.target.value)} value={description} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存分类</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function formatRuleExpression(value: unknown): string {
+  if (isEmptyDetailValue(value)) {
+    return "{}";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value, null, 2);
+}
+
+function parseRuleExpression(value: string): unknown {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return {};
+  }
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return trimmed;
+  }
+}
+
+function RuleFormDialog({
+  classifications,
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  classifications: AccountClassificationItem[];
+  item: AccountClassificationRuleItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const defaultClassificationId = item?.classification_id ?? classifications[0]?.id ?? 0;
+  const [ruleName, setRuleName] = useState(item?.rule_name ?? "");
+  const [classificationId, setClassificationId] = useState(String(defaultClassificationId));
+  const [dbType, setDbType] = useState(item?.db_type ?? "mysql");
+  const [operator, setOperator] = useState(item?.operator ?? "any");
+  const [ruleExpression, setRuleExpression] = useState(formatRuleExpression(item?.rule_expression));
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑规则 ${item.rule_name}` : "新建规则";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: AccountClassificationRuleWritePayload = {
+      rule_name: ruleName.trim(),
+      classification_id: numberFromInput(classificationId, defaultClassificationId),
+      db_type: dbType,
+      operator,
+      rule_expression: parseRuleExpression(ruleExpression),
+      is_active: isActive
+    };
+    if (item) {
+      void updateAccountClassificationRule(item.id, payload).then(onSaved);
+      return;
+    }
+    void createAccountClassificationRule(payload).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),44rem)]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护分类规则的数据库类型、匹配逻辑和 DSL 表达式。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="规则名称">
+              <Input onChange={(event) => setRuleName(event.target.value)} required value={ruleName} />
+            </FormField>
+            <FormField label="账户分类">
+              <select className={formSelectClassName} onChange={(event) => setClassificationId(event.target.value)} value={classificationId}>
+                {classifications.map((classification) => (
+                  <option key={classification.id} value={classification.id}>
+                    {classification.display_name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="数据库类型">
+              <select className={formSelectClassName} onChange={(event) => setDbType(event.target.value)} value={dbType}>
+                <option value="mysql">mysql</option>
+                <option value="postgresql">postgresql</option>
+                <option value="sqlserver">sqlserver</option>
+                <option value="oracle">oracle</option>
+              </select>
+            </FormField>
+            <FormField label="匹配逻辑">
+              <select className={formSelectClassName} onChange={(event) => setOperator(event.target.value)} value={operator}>
+                <option value="any">any</option>
+                <option value="all">all</option>
+              </select>
+            </FormField>
+            <ActiveField checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <FormField label="规则表达式">
+            <Textarea className="min-h-32 font-mono text-xs" onChange={(event) => setRuleExpression(event.target.value)} value={ruleExpression} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存规则</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function cronExpressionFromJob(job: SchedulerJobItem): string {
+  const args = job.trigger_args;
+  if (typeof args === "string") {
+    return args;
+  }
+  if (!args || typeof args !== "object") {
+    return "* * * * *";
+  }
+  const record = args as Record<string, unknown>;
+  if (typeof record.cron_expression === "string") {
+    return record.cron_expression;
+  }
+  const minute = asText(record.minute, "*");
+  const hour = asText(record.hour, "*");
+  const day = asText(record.day, "*");
+  const month = asText(record.month, "*");
+  const dayOfWeek = asText(record.day_of_week, "*");
+  return `${minute} ${hour} ${day} ${month} ${dayOfWeek}`;
+}
+
+function SchedulerJobFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: SchedulerJobItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [cronExpression, setCronExpression] = useState(item ? cronExpressionFromJob(item) : "* * * * *");
+  const title = item ? `编辑任务 ${item.task_name ?? item.name ?? item.id}` : "编辑任务";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!item) {
+      return;
+    }
+    const payload: SchedulerJobWritePayload = {
+      trigger_type: "cron",
+      cron_expression: cronExpression.trim()
+    };
+    void updateSchedulerJob(item.id, payload).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>更新内置任务 cron 触发器。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <FormField label="Cron 表达式">
+            <Input className="font-mono" onChange={(event) => setCronExpression(event.target.value)} required value={cronExpression} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存任务</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function taggableInstanceLabel(item: TaggableInstanceItem): string {
+  return asText(item.name ?? item.instance_name ?? item.id);
+}
+
+function tagOptionLabel(item: TagOptionItem): string {
+  return asText(item.display_name ?? item.name ?? item.id);
+}
+
+function toggleNumberSelection(values: number[], value: number, checked: boolean): number[] {
+  if (checked) {
+    return values.includes(value) ? values : [...values, value];
+  }
+  return values.filter((item) => item !== value);
+}
+
+function TagBulkDialog({
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [operation, setOperation] = useState<"assign" | "remove" | "remove_all">("assign");
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<number[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const query = useQuery<TagBulkOptions>({
+    enabled: open,
+    queryKey: ["read-only", "tags", "bulk-options"],
+    queryFn: () => fetchTagBulkOptions()
+  });
+  const actionLabel =
+    operation === "assign" ? "执行批量分配" : operation === "remove" ? "执行批量移除" : "执行批量移除全部";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const action =
+      operation === "assign"
+        ? assignTagsToInstances(selectedInstanceIds, selectedTagIds)
+        : operation === "remove"
+          ? removeTagsFromInstances(selectedInstanceIds, selectedTagIds)
+          : removeAllTagsFromInstances(selectedInstanceIds);
+    void action.then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),56rem)]">
+        <DialogHeader>
+          <DialogTitle>批量分配标签</DialogTitle>
+          <DialogDescription>选择实例和标签后执行批量分配或移除。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? (
+          <div className="grid gap-3">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : null}
+        {query.isError ? (
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>标签批量选项加载失败</AlertDescription>
+          </Alert>
+        ) : null}
+        {query.data ? (
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <FormField label="操作">
+              <select className={formSelectClassName} onChange={(event) => setOperation(event.target.value as "assign" | "remove" | "remove_all")} value={operation}>
+                <option value="assign">批量分配</option>
+                <option value="remove">批量移除指定标签</option>
+                <option value="remove_all">批量移除全部标签</option>
+              </select>
+            </FormField>
+            <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
+              <section className="grid gap-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">实例</h3>
+                  <Badge variant="secondary">{formatNumber(query.data.instances.length)}</Badge>
+                </div>
+                <div className="grid max-h-64 gap-2 overflow-auto">
+                  {query.data.instances.map((instance) => (
+                    <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/20 px-3 py-2 text-sm" key={instance.id}>
+                      <span>
+                        <span className="sr-only">实例 </span>
+                        {taggableInstanceLabel(instance)}
+                      </span>
+                      <input
+                        aria-label={`实例 ${taggableInstanceLabel(instance)}`}
+                        checked={selectedInstanceIds.includes(instance.id)}
+                        className="size-4 accent-primary"
+                        onChange={(event) => setSelectedInstanceIds((current) => toggleNumberSelection(current, instance.id, event.target.checked))}
+                        type="checkbox"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </section>
+              <section className="grid gap-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">标签</h3>
+                  <Badge variant="secondary">{formatNumber(query.data.tags.length)}</Badge>
+                </div>
+                <div className="grid max-h-64 gap-2 overflow-auto">
+                  {query.data.tags.map((tag) => (
+                    <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/20 px-3 py-2 text-sm" key={tag.id}>
+                      <span>
+                        <span className="sr-only">标签 </span>
+                        {tagOptionLabel(tag)}
+                      </span>
+                      <input
+                        aria-label={`标签 ${tagOptionLabel(tag)}`}
+                        checked={selectedTagIds.includes(tag.id)}
+                        className="size-4 accent-primary"
+                        disabled={operation === "remove_all"}
+                        onChange={(event) => setSelectedTagIds((current) => toggleNumberSelection(current, tag.id, event.target.checked))}
+                        type="checkbox"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </section>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                取消
+              </Button>
+              <Button type="submit" disabled={selectedInstanceIds.length === 0 || (operation !== "remove_all" && selectedTagIds.length === 0)}>
+                {actionLabel}
+              </Button>
+            </DialogFooter>
+          </form>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function createCredentialColumns({
+  onDelete,
+  onEdit
+}: {
+  onDelete: (item: CredentialItem) => void;
+  onEdit: (item: CredentialItem) => void;
+}): ColumnDef<CredentialItem>[] {
+  return [
   {
     accessorKey: "name",
     header: "凭据",
@@ -456,18 +1233,26 @@ const credentialColumns: ColumnDef<CredentialItem>[] = [
     header: "操作",
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
-        <Button aria-label={`编辑凭据 ${row.original.name}`} size="icon" type="button" variant="ghost">
+        <Button aria-label={`编辑凭据 ${row.original.name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
           <Pencil aria-hidden />
         </Button>
-        <Button aria-label={`删除凭据 ${row.original.name}`} size="icon" type="button" variant="ghost">
+        <Button aria-label={`删除凭据 ${row.original.name}`} onClick={() => onDelete(row.original)} size="icon" type="button" variant="ghost">
           <Trash2 aria-hidden />
         </Button>
       </div>
     )
   }
-];
+  ];
+}
 
-const tagColumns: ColumnDef<TagItem>[] = [
+function createTagColumns({
+  onDelete,
+  onEdit
+}: {
+  onDelete: (item: TagItem) => void;
+  onEdit: (item: TagItem) => void;
+}): ColumnDef<TagItem>[] {
+  return [
   {
     accessorKey: "display_name",
     header: "标签",
@@ -501,18 +1286,26 @@ const tagColumns: ColumnDef<TagItem>[] = [
     header: "操作",
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
-        <Button aria-label={`编辑标签 ${row.original.display_name}`} size="icon" type="button" variant="ghost">
+        <Button aria-label={`编辑标签 ${row.original.display_name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
           <Pencil aria-hidden />
         </Button>
-        <Button aria-label={`删除标签 ${row.original.display_name}`} size="icon" type="button" variant="ghost">
+        <Button aria-label={`删除标签 ${row.original.display_name}`} onClick={() => onDelete(row.original)} size="icon" type="button" variant="ghost">
           <Trash2 aria-hidden />
         </Button>
       </div>
     )
   }
-];
+  ];
+}
 
-const userColumns: ColumnDef<UserItem>[] = [
+function createUserColumns({
+  onDelete,
+  onEdit
+}: {
+  onDelete: (item: UserItem) => void;
+  onEdit: (item: UserItem) => void;
+}): ColumnDef<UserItem>[] {
+  return [
   {
     accessorKey: "id",
     header: "ID",
@@ -549,110 +1342,111 @@ const userColumns: ColumnDef<UserItem>[] = [
     header: "操作",
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
-        <Button aria-label={`编辑用户 ${row.original.username}`} size="icon" type="button" variant="ghost">
+        <Button aria-label={`编辑用户 ${row.original.username}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
           <Pencil aria-hidden />
         </Button>
-        <Button aria-label={`删除用户 ${row.original.username}`} size="icon" type="button" variant="ghost">
+        <Button aria-label={`删除用户 ${row.original.username}`} onClick={() => onDelete(row.original)} size="icon" type="button" variant="ghost">
           <Trash2 aria-hidden />
         </Button>
       </div>
     )
   }
-];
+  ];
+}
 
-const syncSessionColumns: ColumnDef<SyncSessionItem>[] = [
-  {
-    id: "run_id",
-    header: "运行ID",
-    accessorFn: (item) => syncRunId(item),
-    cell: ({ row }) => <span className="font-mono text-xs">{syncRunId(row.original)}</span>
-  },
-  {
-    accessorKey: "status",
-    header: "状态",
-    cell: ({ row }) => <StatusBadge value={row.original.status} />
-  },
-  {
-    id: "progress",
-    header: "进度",
-    cell: ({ row }) => {
-      const progress = syncProgress(row.original);
-      return (
-        <div className="grid min-w-40 gap-2">
-          <Progress aria-label={`${syncRunId(row.original)} 进度`} value={progress.percent} />
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span>{progress.percent}%</span>
-            <span>
-              {formatNumber(progress.completed)}/{formatNumber(progress.total)} · failed {formatNumber(progress.failed)}
-            </span>
+function createSyncSessionColumns({
+  onCancel,
+  onViewDetail
+}: {
+  onCancel: (sessionId: string) => void;
+  onViewDetail: (sessionId: string) => void;
+}): ColumnDef<SyncSessionItem>[] {
+  return [
+    {
+      id: "run_id",
+      header: "运行ID",
+      accessorFn: (item) => syncRunId(item),
+      cell: ({ row }) => <span className="font-mono text-xs">{syncRunId(row.original)}</span>
+    },
+    {
+      accessorKey: "status",
+      header: "状态",
+      cell: ({ row }) => <StatusBadge value={row.original.status} />
+    },
+    {
+      id: "progress",
+      header: "进度",
+      cell: ({ row }) => {
+        const progress = syncProgress(row.original);
+        return (
+          <div className="grid min-w-40 gap-2">
+            <Progress aria-label={`${syncRunId(row.original)} 进度`} value={progress.percent} />
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{progress.percent}%</span>
+              <span>
+                {formatNumber(progress.completed)}/{formatNumber(progress.total)} · failed {formatNumber(progress.failed)}
+              </span>
+            </div>
           </div>
+        );
+      }
+    },
+    {
+      id: "task",
+      header: "任务",
+      accessorFn: (item) => syncTaskName(item),
+      cell: ({ row }) => (
+        <div className="grid gap-1">
+          <span className="font-medium">{syncTaskName(row.original)}</span>
+          <span className="font-mono text-xs text-muted-foreground">{row.original.task_key ?? row.original.sync_type}</span>
         </div>
-      );
-    }
-  },
-  {
-    id: "task",
-    header: "任务",
-    accessorFn: (item) => syncTaskName(item),
-    cell: ({ row }) => (
-      <div className="grid gap-1">
-        <span className="font-medium">{syncTaskName(row.original)}</span>
-        <span className="font-mono text-xs text-muted-foreground">{row.original.task_key ?? row.original.sync_type}</span>
-      </div>
-    )
-  },
-  {
-    id: "trigger_source",
-    header: "来源",
-    accessorFn: (item) => syncSource(item),
-    cell: ({ row }) => <Badge variant="outline">{syncSource(row.original)}</Badge>
-  },
-  {
-    id: "task_category",
-    header: "分类",
-    accessorFn: (item) => syncCategory(item),
-    cell: ({ row }) => <Badge variant="secondary">{syncCategory(row.original)}</Badge>
-  },
-  {
-    accessorKey: "started_at",
-    header: "开始时间",
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.started_at ?? "-"}</span>
-  },
-  {
-    id: "duration",
-    header: "耗时",
-    cell: ({ row }) => <span className="text-xs text-muted-foreground">{syncDuration(row.original)}</span>
-  },
-  {
-    id: "actions",
-    header: "操作",
-    cell: ({ row }) => {
-      const runId = syncRunId(row.original);
-      return (
-        <div className="flex items-center gap-1">
-          <Button aria-label={`查看详情 ${runId}`} size="icon" type="button" variant="ghost">
-            <ExternalLink aria-hidden />
-          </Button>
-          {row.original.status === "running" ? (
-            <Button
-              aria-label={`取消任务 ${runId}`}
-              onClick={() => {
-                void cancelSyncSession(runId);
-              }}
-              size="icon"
-              type="button"
-              variant="ghost"
-            >
-              <Pause aria-hidden />
+      )
+    },
+    {
+      id: "trigger_source",
+      header: "来源",
+      accessorFn: (item) => syncSource(item),
+      cell: ({ row }) => <Badge variant="outline">{syncSource(row.original)}</Badge>
+    },
+    {
+      id: "task_category",
+      header: "分类",
+      accessorFn: (item) => syncCategory(item),
+      cell: ({ row }) => <Badge variant="secondary">{syncCategory(row.original)}</Badge>
+    },
+    {
+      accessorKey: "started_at",
+      header: "开始时间",
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.started_at ?? "-"}</span>
+    },
+    {
+      id: "duration",
+      header: "耗时",
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{syncDuration(row.original)}</span>
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => {
+        const runId = syncRunId(row.original);
+        return (
+          <div className="flex items-center gap-1">
+            <Button aria-label={`查看详情 ${runId}`} onClick={() => onViewDetail(runId)} size="icon" type="button" variant="ghost">
+              <ExternalLink aria-hidden />
             </Button>
-          ) : null}
-        </div>
-      );
+            {row.original.status === "running" ? (
+              <Button aria-label={`取消任务 ${runId}`} onClick={() => onCancel(runId)} size="icon" type="button" variant="ghost">
+                <Pause aria-hidden />
+              </Button>
+            ) : null}
+          </div>
+        );
+      }
     }
-  }
-];
+  ];
+}
 
-function SchedulerJobCard({ job }: { job: SchedulerJobItem }) {
+function SchedulerJobCard({ job, onEdit }: { job: SchedulerJobItem; onEdit: (job: SchedulerJobItem) => void }) {
   const name = job.task_name ?? job.name ?? job.id;
   const triggerEntries = triggerArgsEntries(job.trigger_args);
 
@@ -723,7 +1517,7 @@ function SchedulerJobCard({ job }: { job: SchedulerJobItem }) {
           >
             <Zap aria-hidden />
           </Button>
-          <Button aria-label={`编辑任务 ${name}`} size="icon" type="button" variant="outline">
+          <Button aria-label={`编辑任务 ${name}`} onClick={() => onEdit(job)} size="icon" type="button" variant="outline">
             <Pencil aria-hidden />
           </Button>
           <Button aria-label={`删除任务 ${name}`} size="icon" type="button" variant="outline">
@@ -735,7 +1529,15 @@ function SchedulerJobCard({ job }: { job: SchedulerJobItem }) {
   );
 }
 
-function SchedulerJobSection({ title, jobs }: { title: string; jobs: SchedulerJobItem[] }) {
+function SchedulerJobSection({
+  jobs,
+  onEdit,
+  title
+}: {
+  jobs: SchedulerJobItem[];
+  onEdit: (job: SchedulerJobItem) => void;
+  title: string;
+}) {
   return (
     <section className="grid gap-3">
       <div className="flex items-center gap-2">
@@ -745,7 +1547,7 @@ function SchedulerJobSection({ title, jobs }: { title: string; jobs: SchedulerJo
       {jobs.length > 0 ? (
         <div className="grid grid-cols-3 gap-2 max-2xl:grid-cols-2 max-lg:grid-cols-1">
           {jobs.map((job) => (
-            <SchedulerJobCard job={job} key={job.id} />
+            <SchedulerJobCard job={job} key={job.id} onEdit={onEdit} />
           ))}
         </div>
       ) : (
@@ -969,10 +1771,12 @@ function ruleGroupTitle(dbType: string): string {
 
 function ClassificationList({
   items,
-  onDelete
+  onDelete,
+  onEdit
 }: {
-  items: Array<{ id: number; code: string; display_name: string; risk_level?: number; is_system?: boolean; rules_count?: number }>;
+  items: AccountClassificationItem[];
   onDelete: (classificationId: number) => void;
+  onEdit: (item: AccountClassificationItem) => void;
 }) {
   if (items.length === 0) {
     return <p className="rounded-md border p-4 text-sm text-muted-foreground">暂无分类，点击“新建分类”开始配置</p>;
@@ -994,7 +1798,7 @@ function ClassificationList({
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <Button aria-label={`编辑分类 ${item.display_name}`} size="icon" type="button" variant="ghost">
+              <Button aria-label={`编辑分类 ${item.display_name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
                 <Pencil aria-hidden />
               </Button>
               {!item.is_system ? (
@@ -1012,10 +1816,12 @@ function ClassificationList({
 
 function RuleGroups({
   rulesByDbType,
-  onDeleteRule
+  onDeleteRule,
+  onEditRule
 }: {
   rulesByDbType: Record<string, AccountClassificationRuleItem[]>;
   onDeleteRule: (ruleId: number) => void;
+  onEditRule: (rule: AccountClassificationRuleItem) => void;
 }) {
   const entries = Object.entries(rulesByDbType).filter(([, rules]) => rules.length > 0);
   if (entries.length === 0) {
@@ -1044,7 +1850,7 @@ function RuleGroups({
                   <Button aria-label={`查看规则 ${rule.rule_name}`} size="icon" type="button" variant="ghost">
                     <ExternalLink aria-hidden />
                   </Button>
-                  <Button aria-label={`编辑规则 ${rule.rule_name}`} size="icon" type="button" variant="ghost">
+                  <Button aria-label={`编辑规则 ${rule.rule_name}`} onClick={() => onEditRule(rule)} size="icon" type="button" variant="ghost">
                     <Pencil aria-hidden />
                   </Button>
                   <Button aria-label={`删除规则 ${rule.rule_name}`} onClick={() => onDeleteRule(rule.id)} size="icon" type="button" variant="ghost">
@@ -1065,6 +1871,10 @@ export function AccountClassificationsPage() {
     queryKey: ["read-only", "account-classifications"],
     queryFn: () => fetchAccountClassificationsSnapshot()
   });
+  const [creatingClassification, setCreatingClassification] = useState(false);
+  const [editingClassification, setEditingClassification] = useState<AccountClassificationItem | null>(null);
+  const [creatingRule, setCreatingRule] = useState(false);
+  const [editingRule, setEditingRule] = useState<AccountClassificationRuleItem | null>(null);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -1091,7 +1901,7 @@ export function AccountClassificationsPage() {
                 description="分类展示名、系统标记、风险等级和规则数量。"
                 count={snapshot.classifications.length}
                 actions={
-                  <Button disabled size="sm">
+                  <Button onClick={() => setCreatingClassification(true)} size="sm" type="button">
                     <Plus aria-hidden size={16} />
                     <span>新建分类</span>
                   </Button>
@@ -1099,6 +1909,7 @@ export function AccountClassificationsPage() {
               >
                 <ClassificationList
                   items={snapshot.classifications}
+                  onEdit={setEditingClassification}
                   onDelete={(classificationId) => {
                     void deleteAccountClassification(classificationId).then(() => query.refetch());
                   }}
@@ -1109,7 +1920,7 @@ export function AccountClassificationsPage() {
                 description="按数据库类型汇总后的分类规则。"
                 count={rules.length}
                 actions={
-                  <Button disabled size="sm">
+                  <Button onClick={() => setCreatingRule(true)} size="sm" type="button">
                     <Plus aria-hidden size={16} />
                     <span>新建规则</span>
                   </Button>
@@ -1119,6 +1930,7 @@ export function AccountClassificationsPage() {
                   onDeleteRule={(ruleId) => {
                     void deleteAccountClassificationRule(ruleId).then(() => query.refetch());
                   }}
+                  onEditRule={setEditingRule}
                   rulesByDbType={snapshot.rulesByDbType}
                 />
               </ListPanel>
@@ -1126,6 +1938,72 @@ export function AccountClassificationsPage() {
           );
         }}
       </QueryFrame>
+      {query.data ? (
+        <>
+          {creatingClassification ? (
+            <ClassificationFormDialog
+              item={null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setCreatingClassification(false);
+                }
+              }}
+              onSaved={() => {
+                setCreatingClassification(false);
+                void query.refetch();
+              }}
+              open={creatingClassification}
+            />
+          ) : null}
+          {editingClassification ? (
+            <ClassificationFormDialog
+              item={editingClassification}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setEditingClassification(null);
+                }
+              }}
+              onSaved={() => {
+                setEditingClassification(null);
+                void query.refetch();
+              }}
+              open={editingClassification !== null}
+            />
+          ) : null}
+          {creatingRule ? (
+            <RuleFormDialog
+              classifications={query.data.classifications}
+              item={null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setCreatingRule(false);
+                }
+              }}
+              onSaved={() => {
+                setCreatingRule(false);
+                void query.refetch();
+              }}
+              open={creatingRule}
+            />
+          ) : null}
+          {editingRule ? (
+            <RuleFormDialog
+              classifications={query.data.classifications}
+              item={editingRule}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setEditingRule(null);
+                }
+              }}
+              onSaved={() => {
+                setEditingRule(null);
+                void query.refetch();
+              }}
+              open={editingRule !== null}
+            />
+          ) : null}
+        </>
+      ) : null}
     </main>
   );
 }
@@ -1372,6 +2250,7 @@ export function ClassificationStatisticsPage() {
 
 export function SchedulerPage() {
   const query = useQuery({ queryKey: ["read-only", "scheduler"], queryFn: () => fetchSchedulerSnapshot() });
+  const [editingJob, setEditingJob] = useState<SchedulerJobItem | null>(null);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -1407,23 +2286,224 @@ export function SchedulerPage() {
               }
             >
               <div className="grid gap-6">
-                <SchedulerJobSection title="运行中的任务" jobs={snapshot.jobs.filter((job) => isRunningState(job.state))} />
-                <SchedulerJobSection title="已暂停的任务" jobs={snapshot.jobs.filter((job) => !isRunningState(job.state))} />
+                <SchedulerJobSection title="运行中的任务" jobs={snapshot.jobs.filter((job) => isRunningState(job.state))} onEdit={setEditingJob} />
+                <SchedulerJobSection title="已暂停的任务" jobs={snapshot.jobs.filter((job) => !isRunningState(job.state))} onEdit={setEditingJob} />
               </div>
             </ListPanel>
           </>
         )}
       </QueryFrame>
+      {editingJob ? (
+        <SchedulerJobFormDialog
+          item={editingJob}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingJob(null);
+            }
+          }}
+          onSaved={() => {
+            setEditingJob(null);
+            void query.refetch();
+          }}
+          open={editingJob !== null}
+        />
+      ) : null}
     </main>
   );
 }
 
+function SyncDetailField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-1 rounded-md border bg-secondary/30 p-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-sm break-words">{children}</dd>
+    </div>
+  );
+}
+
+function SyncSessionRecordTable({
+  emptyLabel,
+  records,
+  title
+}: {
+  emptyLabel: string;
+  records: SyncInstanceRecordItem[];
+  title: string;
+}) {
+  return (
+    <section className="grid gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <Badge variant="secondary">{formatNumber(records.length)} 条</Badge>
+      </div>
+      <div className="overflow-hidden rounded-md border">
+        <Table>
+          <TableHeader className="text-xs">
+            <TableRow>
+              <TableHead>实例</TableHead>
+              <TableHead>分类</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead>同步项</TableHead>
+              <TableHead>变更</TableHead>
+              <TableHead>错误</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {records.length === 0 ? (
+              <TableRow>
+                <TableCell className="px-3 py-8 text-center text-sm text-muted-foreground" colSpan={6}>
+                  {emptyLabel}
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {records.map((record) => (
+              <TableRow key={record.id}>
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="font-medium">{record.instance_name ?? "-"}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{record.instance_id ? `#${record.instance_id}` : record.session_id}</span>
+                  </div>
+                </TableCell>
+                <TableCell>{record.sync_category ?? "-"}</TableCell>
+                <TableCell>
+                  <StatusBadge value={record.status} />
+                </TableCell>
+                <TableCell className="font-mono text-xs">{formatNumber(record.items_synced)}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  +{formatNumber(record.items_created)} / ~{formatNumber(record.items_updated)} / -{formatNumber(record.items_deleted)}
+                </TableCell>
+                <TableCell className="max-w-[18rem] break-words text-sm text-muted-foreground">{record.error_message || "-"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </section>
+  );
+}
+
+function SyncSessionDetailDialog({
+  onOpenChange,
+  open,
+  sessionId
+}: {
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  sessionId: string | null;
+}) {
+  const detailQuery = useQuery<SyncSessionDetail>({
+    enabled: open && sessionId !== null,
+    queryKey: ["read-only", "sync-session-detail", sessionId],
+    queryFn: () => {
+      if (sessionId === null) {
+        throw new Error("Missing sync session id");
+      }
+      return fetchSyncSessionDetail(sessionId);
+    }
+  });
+  const errorsQuery = useQuery<SyncSessionErrorLogs>({
+    enabled: open && sessionId !== null,
+    queryKey: ["read-only", "sync-session-error-logs", sessionId],
+    queryFn: () => {
+      if (sessionId === null) {
+        throw new Error("Missing sync session id");
+      }
+      return fetchSyncSessionErrorLogs(sessionId);
+    }
+  });
+  const session = detailQuery.data?.session;
+  const progress = session ? syncProgress(session) : null;
+  const progressPercent = session?.progress_percentage ?? progress?.percent ?? 0;
+  const errorRecords = errorsQuery.data?.error_records ?? [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[min(calc(100vw-2rem),64rem)]">
+        <DialogHeader>
+          <DialogTitle>会话详情 {sessionId ?? ""}</DialogTitle>
+          <DialogDescription>同步会话摘要、实例执行记录和错误日志。</DialogDescription>
+        </DialogHeader>
+        {detailQuery.isLoading || errorsQuery.isLoading ? (
+          <div className="grid gap-3">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : null}
+        {detailQuery.isError || errorsQuery.isError ? (
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>会话详情加载失败</AlertDescription>
+          </Alert>
+        ) : null}
+        {session ? (
+          <div className="grid gap-4">
+            <dl className="grid grid-cols-4 gap-2 max-xl:grid-cols-2 max-sm:grid-cols-1">
+              <SyncDetailField label="运行 ID">
+                <span className="font-mono text-xs">{syncRunId(session)}</span>
+              </SyncDetailField>
+              <SyncDetailField label="状态">
+                <StatusBadge value={session.status} />
+              </SyncDetailField>
+              <SyncDetailField label="任务">
+                <div className="grid gap-1">
+                  <span>{syncTaskName(session)}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{session.task_key ?? session.sync_type}</span>
+                </div>
+              </SyncDetailField>
+              <SyncDetailField label="来源/分类">
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline">{syncSource(session)}</Badge>
+                  <Badge variant="secondary">{syncCategory(session)}</Badge>
+                </div>
+              </SyncDetailField>
+              <SyncDetailField label="开始时间">
+                <span className="font-mono text-xs">{session.started_at ?? "-"}</span>
+              </SyncDetailField>
+              <SyncDetailField label="完成时间">
+                <span className="font-mono text-xs">{session.completed_at ?? "-"}</span>
+              </SyncDetailField>
+              <SyncDetailField label="耗时">
+                <span>{syncDuration(session)}</span>
+              </SyncDetailField>
+              <SyncDetailField label="错误日志">
+                <span className="font-mono">{formatNumber(errorsQuery.data?.error_count)}</span>
+              </SyncDetailField>
+            </dl>
+            <div className="grid gap-2 rounded-md border bg-secondary/20 p-3">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="font-medium">执行进度</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {formatNumber(progress?.completed)}/{formatNumber(progress?.total)} · failed {formatNumber(progress?.failed)}
+                </span>
+              </div>
+              <Progress value={progressPercent} />
+            </div>
+            <SyncSessionRecordTable emptyLabel="暂无实例执行记录" records={session.instance_records} title="实例执行记录" />
+            <SyncSessionRecordTable emptyLabel="暂无错误日志" records={errorRecords} title="错误日志" />
+            <section className="grid gap-2">
+              <h3 className="text-sm font-semibold">同步详情</h3>
+              <JsonBlock value={session.instance_records.map((record) => ({ instance_name: record.instance_name, sync_details: record.sync_details }))} />
+            </section>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function SyncSessionsPage() {
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [cancelSessionId, setCancelSessionId] = useState<string | null>(null);
+  const columns = useMemo(
+    () => createSyncSessionColumns({ onCancel: setCancelSessionId, onViewDetail: setSelectedSessionId }),
+    [setCancelSessionId, setSelectedSessionId]
+  );
   const query = useQuery({ queryKey: ["read-only", "sync-sessions"], queryFn: () => fetchSyncSessionsSnapshot() });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Automation sessions" title="会话中心" description="只读展示同步会话首屏，取消和详情时间线仍保留在旧版。" legacyHref="/history/sessions/" />
+      <PageHeader eyebrow="Automation sessions" title="会话中心" description="展示同步会话、实例执行详情、错误日志，并支持取消运行中会话。" legacyHref="/history/sessions/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="会话中心" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <>
@@ -1438,7 +2518,7 @@ export function SyncSessionsPage() {
             />
             <ListPanel title="同步会话" description="最近同步会话首屏列表。" count={snapshot.total}>
               <DataTable
-                columns={syncSessionColumns}
+                columns={columns}
                 data={snapshot.items}
                 filters={[
                   { columnId: "trigger_source", label: "来源", options: uniqueTextOptions(snapshot.items, (item) => syncSource(item)) },
@@ -1451,16 +2531,66 @@ export function SyncSessionsPage() {
           </>
         )}
       </QueryFrame>
+      <SyncSessionDetailDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedSessionId(null);
+          }
+        }}
+        open={selectedSessionId !== null}
+        sessionId={selectedSessionId}
+      />
+      <AlertDialog
+        open={cancelSessionId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCancelSessionId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认取消会话 {cancelSessionId ?? ""}</AlertDialogTitle>
+            <AlertDialogDescription>取消后，仍在执行的同步任务会被中止。已完成的实例记录不会回滚。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>返回</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!cancelSessionId) {
+                  return;
+                }
+                const targetSessionId = cancelSessionId;
+                setCancelSessionId(null);
+                void cancelSyncSession(targetSessionId).then(() => query.refetch());
+              }}
+            >
+              确认取消会话
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
 
 export function UsersPage() {
   const query = useQuery({ queryKey: ["read-only", "users"], queryFn: () => fetchUsersSnapshot() });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
+  const columns = useMemo(
+    () =>
+      createUserColumns({
+        onDelete: setDeletingUser,
+        onEdit: setEditingUser
+      }),
+    []
+  );
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Access control" title="用户管理" description="只读展示用户、角色与启用状态，新增、编辑、删除仍保留在旧版。" legacyHref="/users/" />
+      <PageHeader eyebrow="Access control" title="用户管理" description="展示用户、角色与启用状态，并支持新增、编辑、删除。" legacyHref="/users/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="用户管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <>
@@ -1478,14 +2608,14 @@ export function UsersPage() {
               description={`每页 ${formatNumber(snapshot.list.limit)} 条`}
               count={snapshot.list.total}
               actions={
-                <Button size="sm" type="button">
+                <Button onClick={() => setCreatingUser(true)} size="sm" type="button">
                   <Plus aria-hidden />
                   新建用户
                 </Button>
               }
             >
               <DataTable
-                columns={userColumns}
+                columns={columns}
                 data={snapshot.list.items}
                 filters={[
                   {
@@ -1512,6 +2642,55 @@ export function UsersPage() {
           </>
         )}
       </QueryFrame>
+      {creatingUser ? (
+        <UserFormDialog
+          item={null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingUser(false);
+            }
+          }}
+          onSaved={() => {
+            setCreatingUser(false);
+            void query.refetch();
+          }}
+          open={creatingUser}
+        />
+      ) : null}
+      {editingUser ? (
+        <UserFormDialog
+          item={editingUser}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingUser(null);
+            }
+          }}
+          onSaved={() => {
+            setEditingUser(null);
+            void query.refetch();
+          }}
+          open={editingUser !== null}
+        />
+      ) : null}
+      <DeleteConfirmDialog
+        confirmLabel="确认删除用户"
+        description="删除用户后，该账号将不能继续登录。"
+        onConfirm={() => {
+          if (!deletingUser) {
+            return;
+          }
+          const userId = deletingUser.id;
+          setDeletingUser(null);
+          void deleteUser(userId).then(() => query.refetch());
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingUser(null);
+          }
+        }}
+        open={deletingUser !== null}
+        title={`确认删除用户 ${deletingUser?.username ?? ""}`}
+      />
     </main>
   );
 }
@@ -1601,6 +2780,89 @@ function numericId(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function numericValue(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return fallback;
+}
+
+function booleanValue(value: unknown, fallback = false): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function firstRecordId(items: unknown[]): number {
+  for (const item of items) {
+    if (item && typeof item === "object") {
+      const id = numericId((item as Record<string, unknown>).id);
+      if (id !== null) {
+        return id;
+      }
+    }
+  }
+  return 0;
+}
+
+function jumpServerSourcePayload(binding: Record<string, unknown>, credentials: unknown[]): JumpServerSourcePayload | null {
+  const credentialId = numericValue(binding.credential_id, firstRecordId(credentials));
+  const baseUrl = asText(binding.base_url, "");
+  if (credentialId <= 0 || !baseUrl) {
+    return null;
+  }
+  return {
+    credential_id: credentialId,
+    base_url: baseUrl,
+    org_id: asText(binding.org_id, "") || null,
+    verify_ssl: booleanValue(binding.verify_ssl, true)
+  };
+}
+
+function veeamSourcePayload(source: Record<string, unknown>, credentials: unknown[]): VeeamSourcePayload | null {
+  const credentialId = numericValue(source.credential_id, firstRecordId(credentials));
+  const serverHost = asText(source.server_host, "");
+  if (credentialId <= 0 || !serverHost) {
+    return null;
+  }
+  return {
+    name: asText(source.name, "") || null,
+    credential_id: credentialId,
+    server_host: serverHost,
+    server_port: numericValue(source.server_port, 9419),
+    api_version: asText(source.api_version, "v1"),
+    verify_ssl: booleanValue(source.verify_ssl, true),
+    match_domains: textList(source.match_domains ?? source.domains)
+  };
+}
+
+function adDomainPayload(config: Record<string, unknown>): AdDomainConfigPayload | null {
+  const credentialId = numericValue(config.credential_id, 0);
+  const name = asText(config.name, "");
+  const netbiosName = asText(config.netbios_name, "");
+  const baseDn = asText(config.base_dn, "");
+  const controllers = textList(config.domain_controllers);
+  if (credentialId <= 0 || !name || !netbiosName || !baseDn || controllers.length === 0) {
+    return null;
+  }
+  return {
+    name,
+    netbios_name: netbiosName,
+    domain_controllers: controllers,
+    ldap_port: numericValue(config.ldap_port, 636),
+    use_ssl: booleanValue(config.use_ssl, numericValue(config.ldap_port, 636) === 636),
+    verify_ssl: booleanValue(config.verify_ssl, true),
+    base_dn: baseDn,
+    credential_id: credentialId,
+    is_enabled: booleanValue(config.is_enabled, true),
+    description: asText(config.description, "") || null
+  };
+}
+
 export function SettingsPage() {
   const query = useQuery({ queryKey: ["read-only", "settings"], queryFn: () => fetchSettingsSnapshot() });
 
@@ -1617,6 +2879,11 @@ export function SettingsPage() {
           const firstVeeamSource = (veeamSources[0] as Record<string, unknown> | undefined) ?? {};
           const firstAdDomain = snapshot.adDomains.configs[0] ?? {};
           const adControllers = Array.isArray(firstAdDomain.domain_controllers) ? firstAdDomain.domain_controllers.join(", ") : firstAdDomain.domain_controllers;
+          const jumpServerPayload = jumpServerSourcePayload(jumpserverBinding, jumpserverCredentials);
+          const firstVeeamSourceId = numericId(firstVeeamSource.id);
+          const firstVeeamPayload = veeamSourcePayload(firstVeeamSource, veeamCredentials);
+          const firstAdDomainId = numericId(firstAdDomain.id);
+          const firstAdDomainPayload = adDomainPayload(firstAdDomain);
           return (
             <>
               <MetricGrid
@@ -1732,7 +2999,18 @@ export function SettingsPage() {
                       </div>
                       <span className="font-mono text-sm">{endpointHost(jumpserverBinding.base_url)}</span>
                       <div className="flex flex-wrap gap-2">
-                        <Button disabled size="sm" type="button">保存绑定</Button>
+                        <Button
+                          disabled={jumpServerPayload === null}
+                          onClick={() => {
+                            if (jumpServerPayload !== null) {
+                              void saveJumpServerSource(jumpServerPayload).then(() => query.refetch());
+                            }
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          保存绑定
+                        </Button>
                         <Button
                           onClick={() => {
                             void unbindJumpServer().then(() => query.refetch());
@@ -1777,12 +3055,40 @@ export function SettingsPage() {
                         <ReadonlyField label="域名列表" value={firstVeeamSource.domains} />
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button disabled size="sm" type="button">保存数据源</Button>
+                        <Button
+                          disabled={firstVeeamPayload === null}
+                          onClick={() => {
+                            if (firstVeeamPayload === null) {
+                              return;
+                            }
+                            if (firstVeeamSourceId !== null) {
+                              void updateVeeamSource(firstVeeamSourceId, firstVeeamPayload).then(() => query.refetch());
+                              return;
+                            }
+                            void createVeeamSource(firstVeeamPayload).then(() => query.refetch());
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          保存数据源
+                        </Button>
+                        {firstVeeamSourceId !== null ? (
+                          <Button
+                            onClick={() => {
+                              const action = firstVeeamSource.is_active === false ? enableVeeamSource : disableVeeamSource;
+                              void action(firstVeeamSourceId).then(() => query.refetch());
+                            }}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            {firstVeeamSource.is_active === false ? "启用数据源" : "停用数据源"}
+                          </Button>
+                        ) : null}
                         <Button
                           onClick={() => {
-                            const sourceId = numericId(firstVeeamSource.id);
-                            if (sourceId !== null) {
-                              void deleteVeeamSource(sourceId).then(() => query.refetch());
+                            if (firstVeeamSourceId !== null) {
+                              void deleteVeeamSource(firstVeeamSourceId).then(() => query.refetch());
                             }
                           }}
                           size="sm"
@@ -1836,12 +3142,51 @@ export function SettingsPage() {
                         <ToggleRow label="启用同步" checked={firstAdDomain.is_enabled} />
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button disabled size="sm" type="button">保存 AD 域</Button>
+                        <Button
+                          disabled={firstAdDomainPayload === null}
+                          onClick={() => {
+                            if (firstAdDomainPayload === null) {
+                              return;
+                            }
+                            if (firstAdDomainId !== null) {
+                              void updateAdDomainConfig(firstAdDomainId, firstAdDomainPayload).then(() => query.refetch());
+                              return;
+                            }
+                            void createAdDomainConfig(firstAdDomainPayload).then(() => query.refetch());
+                          }}
+                          size="sm"
+                          type="button"
+                        >
+                          保存 AD 域
+                        </Button>
+                        {firstAdDomainId !== null ? (
+                          <>
+                            <Button
+                              onClick={() => {
+                                void setAdDomainConfigEnabled(firstAdDomainId, firstAdDomain.is_enabled !== true).then(() => query.refetch());
+                              }}
+                              size="sm"
+                              type="button"
+                              variant="outline"
+                            >
+                              {firstAdDomain.is_enabled === true ? "停用 AD 域" : "启用 AD 域"}
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                void testAdDomainConfig(firstAdDomainId);
+                              }}
+                              size="sm"
+                              type="button"
+                              variant="outline"
+                            >
+                              测试 AD 连接
+                            </Button>
+                          </>
+                        ) : null}
                         <Button
                           onClick={() => {
-                            const configId = numericId(firstAdDomain.id);
-                            if (configId !== null) {
-                              void deleteAdDomainConfig(configId).then(() => query.refetch());
+                            if (firstAdDomainId !== null) {
+                              void deleteAdDomainConfig(firstAdDomainId).then(() => query.refetch());
                             }
                           }}
                           size="sm"
@@ -1886,10 +3231,21 @@ export function SettingsPage() {
 
 export function CredentialsPage() {
   const query = useQuery({ queryKey: ["read-only", "credentials"], queryFn: () => fetchCredentialsSnapshot() });
+  const [creatingCredential, setCreatingCredential] = useState(false);
+  const [editingCredential, setEditingCredential] = useState<CredentialItem | null>(null);
+  const [deletingCredential, setDeletingCredential] = useState<CredentialItem | null>(null);
+  const columns = useMemo(
+    () =>
+      createCredentialColumns({
+        onDelete: setDeletingCredential,
+        onEdit: setEditingCredential
+      }),
+    []
+  );
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Credential vault" title="凭据管理" description="只读展示凭据类型、数据库类型和引用数量，新增、编辑、测试连接仍保留在旧版。" legacyHref="/credentials/" />
+      <PageHeader eyebrow="Credential vault" title="凭据管理" description="展示凭据类型、数据库类型和引用数量，并支持新增、编辑、删除。" legacyHref="/credentials/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="凭据管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <>
@@ -1907,14 +3263,14 @@ export function CredentialsPage() {
               description={`每页 ${formatNumber(snapshot.limit)} 条`}
               count={snapshot.total}
               actions={
-                <Button size="sm" type="button">
+                <Button onClick={() => setCreatingCredential(true)} size="sm" type="button">
                   <Plus aria-hidden />
                   新建凭据
                 </Button>
               }
             >
               <DataTable
-                columns={credentialColumns}
+                columns={columns}
                 data={snapshot.items}
                 filters={[
                   { columnId: "credential_type", label: "凭据类型", options: uniqueTextOptions(snapshot.items, (item) => item.credential_type) },
@@ -1934,16 +3290,77 @@ export function CredentialsPage() {
           </>
         )}
       </QueryFrame>
+      {creatingCredential ? (
+        <CredentialFormDialog
+          item={null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingCredential(false);
+            }
+          }}
+          onSaved={() => {
+            setCreatingCredential(false);
+            void query.refetch();
+          }}
+          open={creatingCredential}
+        />
+      ) : null}
+      {editingCredential ? (
+        <CredentialFormDialog
+          item={editingCredential}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingCredential(null);
+            }
+          }}
+          onSaved={() => {
+            setEditingCredential(null);
+            void query.refetch();
+          }}
+          open={editingCredential !== null}
+        />
+      ) : null}
+      <DeleteConfirmDialog
+        confirmLabel="确认删除凭据"
+        description="删除凭据会影响后续使用该凭据的实例配置，请先确认引用关系。"
+        onConfirm={() => {
+          if (!deletingCredential) {
+            return;
+          }
+          const credentialId = deletingCredential.id;
+          setDeletingCredential(null);
+          void deleteCredential(credentialId).then(() => query.refetch());
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingCredential(null);
+          }
+        }}
+        open={deletingCredential !== null}
+        title={`确认删除凭据 ${deletingCredential?.name ?? ""}`}
+      />
     </main>
   );
 }
 
 export function TagsPage() {
   const query = useQuery({ queryKey: ["read-only", "tags"], queryFn: () => fetchTagsSnapshot() });
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [editingTag, setEditingTag] = useState<TagItem | null>(null);
+  const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const columns = useMemo(
+    () =>
+      createTagColumns({
+        onDelete: setDeletingTag,
+        onEdit: setEditingTag
+      }),
+    []
+  );
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Resource tags" title="标签管理" description="只读展示标签、分类和实例引用数量，新增、删除、批量绑定仍保留在旧版。" legacyHref="/tags/" />
+      <PageHeader eyebrow="Resource tags" title="标签管理" description="展示标签、分类和实例引用数量，并支持新增、编辑、删除。" legacyHref="/tags/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="标签管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <>
@@ -1962,18 +3379,18 @@ export function TagsPage() {
               count={snapshot.list.total}
               actions={
                 <>
-                  <Button size="sm" type="button">
+                  <Button onClick={() => setCreatingTag(true)} size="sm" type="button">
                     <Plus aria-hidden />
                     新建标签
                   </Button>
-                  <Button size="sm" type="button" variant="outline">
+                  <Button onClick={() => setBulkDialogOpen(true)} size="sm" type="button" variant="outline">
                     批量分配
                   </Button>
                 </>
               }
             >
               <DataTable
-                columns={tagColumns}
+                columns={columns}
                 data={snapshot.list.items}
                 filters={[
                   { columnId: "category", label: "分类", options: uniqueTextOptions(snapshot.list.items, (item) => item.category) },
@@ -1992,6 +3409,65 @@ export function TagsPage() {
           </>
         )}
       </QueryFrame>
+      {creatingTag ? (
+        <TagFormDialog
+          item={null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingTag(false);
+            }
+          }}
+          onSaved={() => {
+            setCreatingTag(false);
+            void query.refetch();
+          }}
+          open={creatingTag}
+        />
+      ) : null}
+      {editingTag ? (
+        <TagFormDialog
+          item={editingTag}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingTag(null);
+            }
+          }}
+          onSaved={() => {
+            setEditingTag(null);
+            void query.refetch();
+          }}
+          open={editingTag !== null}
+        />
+      ) : null}
+      {bulkDialogOpen ? (
+        <TagBulkDialog
+          onOpenChange={setBulkDialogOpen}
+          onSaved={() => {
+            setBulkDialogOpen(false);
+            void query.refetch();
+          }}
+          open={bulkDialogOpen}
+        />
+      ) : null}
+      <DeleteConfirmDialog
+        confirmLabel="确认删除标签"
+        description="删除标签会解除与实例等资源的关联。"
+        onConfirm={() => {
+          if (!deletingTag) {
+            return;
+          }
+          const tagId = deletingTag.id;
+          setDeletingTag(null);
+          void deleteTag(tagId).then(() => query.refetch());
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingTag(null);
+          }
+        }}
+        open={deletingTag !== null}
+        title={`确认删除标签 ${deletingTag?.display_name ?? ""}`}
+      />
     </main>
   );
 }
@@ -2028,14 +3504,22 @@ function PartitionsTable({ items }: { items: PartitionItem[] }) {
 export function PartitionsPage() {
   const query = useQuery({ queryKey: ["read-only", "partitions"], queryFn: () => fetchPartitionsSnapshot() });
   const chartConfig = { value: { label: "分区指标", color: "var(--chart-2)" } } satisfies ChartConfig;
+  const [partitionDate, setPartitionDate] = useState("");
+  const [retentionMonths, setRetentionMonths] = useState("12");
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader eyebrow="Storage partitions" title="分区管理" description="只读展示分区健康状态、核心指标和分区列表，创建和清理动作仍保留在旧版。" legacyHref="/partition/" />
       <CommandBar>
+        <FormField label="分区日期">
+          <Input className="w-44" onChange={(event) => setPartitionDate(event.target.value)} type="date" value={partitionDate} />
+        </FormField>
+        <FormField label="保留月份">
+          <Input className="w-28" min={1} onChange={(event) => setRetentionMonths(event.target.value)} type="number" value={retentionMonths} />
+        </FormField>
         <Button
           onClick={() => {
-            void createPartition(undefined).then(() => query.refetch());
+            void createPartition(partitionDate || undefined).then(() => query.refetch());
           }}
           type="button"
         >
@@ -2044,7 +3528,7 @@ export function PartitionsPage() {
         </Button>
         <Button
           onClick={() => {
-            void cleanupPartitions(12).then(() => query.refetch());
+            void cleanupPartitions(numberFromInput(retentionMonths, 12)).then(() => query.refetch());
           }}
           type="button"
           variant="outline"

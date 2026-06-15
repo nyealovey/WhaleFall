@@ -38,6 +38,10 @@ export type HistoryLogsSnapshot = {
   statistics: HistoryLogStatistics;
 };
 
+export type HistoryLogDetail = {
+  log: HistoryLogItem;
+};
+
 export type AccountChangeLogItem = {
   id: number;
   account_id?: number | null;
@@ -67,6 +71,15 @@ export type AccountChangeLogsSnapshot = {
   statistics: AccountChangeLogStatistics;
 };
 
+export type AccountChangeLogDetailItem = AccountChangeLogItem & {
+  privilege_diff?: unknown;
+  other_diff?: unknown;
+};
+
+export type AccountChangeLogDetail = {
+  log: AccountChangeLogDetailItem;
+};
+
 function listPath(path: string): string {
   const params = new URLSearchParams({
     page: "1",
@@ -94,6 +107,10 @@ export async function fetchHistoryLogsSnapshot(client: ApiReader = apiClient): P
   };
 }
 
+export async function fetchHistoryLogDetail(logId: number, client: ApiReader = apiClient): Promise<HistoryLogDetail> {
+  return client.get<HistoryLogDetail>(`/api/v1/logs/${encodeURIComponent(String(logId))}`);
+}
+
 export async function fetchAccountChangeLogsSnapshot(
   client: ApiReader = apiClient
 ): Promise<AccountChangeLogsSnapshot> {
@@ -106,4 +123,11 @@ export async function fetchAccountChangeLogsSnapshot(
     list,
     statistics
   };
+}
+
+export async function fetchAccountChangeLogDetail(
+  logId: number,
+  client: ApiReader = apiClient
+): Promise<AccountChangeLogDetail> {
+  return client.get<AccountChangeLogDetail>(`/api/v1/account-change-logs/${encodeURIComponent(String(logId))}`);
 }

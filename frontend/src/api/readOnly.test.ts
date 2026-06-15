@@ -7,8 +7,11 @@ import {
   fetchCredentialsSnapshot,
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
+  fetchSyncSessionDetail,
+  fetchSyncSessionErrorLogs,
   fetchSettingsSnapshot,
   fetchSyncSessionsSnapshot,
+  fetchTagBulkOptions,
   fetchTagsSnapshot,
   fetchUsersSnapshot
 } from "./readOnly";
@@ -79,6 +82,23 @@ describe("read-only migration api", () => {
     expect(sessions.items[0]?.session_id).toBe("s-1");
   });
 
+  it("loads sync session detail and error logs", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ session: { session_id: "s-1", instance_records: [{ instance_name: "mysql-1" }] } })
+        .mockResolvedValueOnce({ session: { session_id: "s-1" }, error_records: [{ error_message: "failed" }], error_count: 1 })
+    };
+
+    const detail = await fetchSyncSessionDetail("s-1", client);
+    const errors = await fetchSyncSessionErrorLogs("s-1", client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions/s-1");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions/s-1/error-logs");
+    expect(detail.session.instance_records[0]?.instance_name).toBe("mysql-1");
+    expect(errors.error_count).toBe(1);
+  });
+
   it("loads system administration snapshots", async () => {
     const client = {
       get: vi
@@ -110,6 +130,22 @@ describe("read-only migration api", () => {
     expect(credentials.items[0]?.name).toBe("prod");
     expect(tags.categories[0]).toBe("env");
     expect(partitions.list.items[0]?.name).toBe("p202606");
+  });
+
+  it("loads tag bulk assignment options", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ instances: [{ id: 1, name: "mysql-prod", db_type: "mysql" }] })
+        .mockResolvedValueOnce({ tags: [{ id: 9, display_name: "生产", category: "env" }], category_names: ["env"] })
+    };
+
+    const options = await fetchTagBulkOptions(client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/tags/bulk/instances");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/tags/bulk/tags");
+    expect(options.instances[0]?.name).toBe("mysql-prod");
+    expect(options.tags[0]?.display_name).toBe("生产");
   });
 
   it("loads settings overview from read-only configuration endpoints", async () => {

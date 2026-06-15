@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fetchAccountChangeLogsSnapshot, fetchHistoryLogsSnapshot } from "./audit";
+import {
+  fetchAccountChangeLogDetail,
+  fetchAccountChangeLogsSnapshot,
+  fetchHistoryLogDetail,
+  fetchHistoryLogsSnapshot
+} from "./audit";
 
 describe("audit api", () => {
   it("loads history logs and statistics", async () => {
@@ -33,5 +38,28 @@ describe("audit api", () => {
     expect(client.get).toHaveBeenCalledWith("/api/v1/account-change-logs/statistics?hours=24");
     expect(snapshot.list.items[0]?.username).toBe("readonly");
     expect(snapshot.statistics.total_changes).toBe(1);
+  });
+
+  it("loads history log detail", async () => {
+    const client = {
+      get: vi.fn().mockResolvedValue({ log: { id: 7, message: "detail message", context: { run_id: "run-7" } } })
+    };
+
+    const detail = await fetchHistoryLogDetail(7, client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/logs/7");
+    expect(detail.log.message).toBe("detail message");
+  });
+
+  it("loads account change log detail", async () => {
+    const client = {
+      get: vi.fn().mockResolvedValue({ log: { id: 8, username: "app", privilege_diff: [{ name: "SELECT" }] } })
+    };
+
+    const detail = await fetchAccountChangeLogDetail(8, client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/account-change-logs/8");
+    expect(detail.log.username).toBe("app");
+    expect(detail.log.privilege_diff).toEqual([{ name: "SELECT" }]);
   });
 });

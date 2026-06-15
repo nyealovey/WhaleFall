@@ -1,13 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, FileText, ShieldAlert, XCircle } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import {
+  fetchAccountChangeLogDetail,
   fetchAccountChangeLogsSnapshot,
+  fetchHistoryLogDetail,
   fetchHistoryLogsSnapshot,
+  type AccountChangeLogDetail,
   type AccountChangeLogItem,
   type AccountChangeLogsSnapshot,
+  type HistoryLogDetail,
   type HistoryLogItem,
   type HistoryLogsSnapshot
 } from "@/api/audit";
@@ -16,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Metric = {
@@ -197,94 +202,298 @@ function TimeRangeFilter() {
   );
 }
 
-const historyLogColumns: ColumnDef<HistoryLogItem>[] = [
-  {
-    accessorKey: "timestamp_display",
-    header: "时间",
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.timestamp_display || row.original.timestamp}</span>
-  },
-  {
-    accessorKey: "level",
-    header: "级别",
-    cell: ({ row }) => <Badge variant={statusVariant(row.original.level)}>{row.original.level}</Badge>
-  },
-  {
-    accessorKey: "module",
-    header: "模块",
-    cell: ({ row }) => <Badge variant="outline">{row.original.module}</Badge>
-  },
-  {
-    accessorKey: "message",
-    header: "消息",
-    cell: ({ row }) => (
-      <div className="max-w-xl truncate font-medium" title={row.original.message}>
-        {row.original.message}
-      </div>
-    )
-  },
-  {
-    id: "actions",
-    header: "操作",
-    cell: ({ row }) => (
-      <Button aria-label={`查看详情 ${row.original.id}`} size="sm" type="button" variant="outline">
-        查看详情
-      </Button>
-    )
+function isEmptyDetailValue(value: unknown): boolean {
+  if (value === null || value === undefined || value === "") {
+    return true;
   }
-];
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  if (typeof value === "object") {
+    return Object.keys(value).length === 0;
+  }
+  return false;
+}
 
-const accountChangeLogColumns: ColumnDef<AccountChangeLogItem>[] = [
-  {
-    accessorKey: "change_time",
-    header: "时间",
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.change_time}</span>
-  },
-  {
-    accessorKey: "db_type",
-    header: "数据库类型",
-    cell: ({ row }) => <Badge variant="outline">{row.original.db_type.toUpperCase()}</Badge>
-  },
-  {
-    accessorKey: "instance_name",
-    header: "实例",
-    cell: ({ row }) => (
-      <div className="grid gap-1">
-        <span className="font-medium">{row.original.instance_name || "-"}</span>
-        <span className="font-mono text-xs text-muted-foreground">{row.original.instance_host || "-"}</span>
-      </div>
-    )
-  },
-  {
-    accessorKey: "username",
-    header: "账号",
-    cell: ({ row }) => <span className="font-medium">{row.original.username}</span>
-  },
-  {
-    accessorKey: "change_type",
-    header: "类型",
-    cell: ({ row }) => <Badge variant="secondary">{row.original.change_type}</Badge>
-  },
-  {
-    accessorKey: "message",
-    header: "摘要",
-    cell: ({ row }) => (
-      <div className="max-w-xl truncate" title={row.original.message ?? ""}>
-        {row.original.message || "-"}
-      </div>
-    )
-  },
-  {
-    id: "actions",
-    header: "操作",
-    cell: ({ row }) => (
-      <Button aria-label={`查看详情 ${row.original.id}`} size="sm" type="button" variant="outline">
-        查看详情
-      </Button>
-    )
+function JsonBlock({ value }: { value: unknown }) {
+  if (isEmptyDetailValue(value)) {
+    return <span className="text-muted-foreground">-</span>;
   }
-];
+
+  return (
+    <pre className="max-h-64 overflow-auto rounded-md border bg-secondary/30 p-3 font-mono text-xs whitespace-pre-wrap">
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  );
+}
+
+function DetailField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-1 rounded-md border bg-secondary/30 p-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-sm break-words">{children}</dd>
+    </div>
+  );
+}
+
+function DetailText({ value }: { value: unknown }) {
+  if (isEmptyDetailValue(value)) {
+    return <span className="text-muted-foreground">-</span>;
+  }
+  return <span>{String(value)}</span>;
+}
+
+function DetailLoading() {
+  return (
+    <div className="grid gap-3">
+      <Skeleton className="h-6 w-40" />
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
+}
+
+function HistoryLogDetailDialog({
+  logId,
+  onOpenChange,
+  open
+}: {
+  logId: number | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const detailQuery = useQuery<HistoryLogDetail>({
+    enabled: open && logId !== null,
+    queryKey: ["audit", "history-log-detail", logId],
+    queryFn: () => {
+      if (logId === null) {
+        throw new Error("Missing log id");
+      }
+      return fetchHistoryLogDetail(logId);
+    }
+  });
+  const log = detailQuery.data?.log;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>日志详情 #{logId ?? ""}</DialogTitle>
+          <DialogDescription>系统日志原始消息、堆栈和上下文。</DialogDescription>
+        </DialogHeader>
+        {detailQuery.isLoading ? <DetailLoading /> : null}
+        {detailQuery.isError ? (
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>日志详情加载失败</AlertDescription>
+          </Alert>
+        ) : null}
+        {log ? (
+          <div className="grid gap-4">
+            <dl className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+              <DetailField label="时间">
+                <DetailText value={log.timestamp_display || log.timestamp} />
+              </DetailField>
+              <DetailField label="级别">
+                <Badge variant={statusVariant(log.level)}>{log.level}</Badge>
+              </DetailField>
+              <DetailField label="模块">
+                <Badge variant="outline">{log.module}</Badge>
+              </DetailField>
+              <DetailField label="日志 ID">
+                <span className="font-mono">#{log.id}</span>
+              </DetailField>
+            </dl>
+            <DetailField label="消息">
+              <DetailText value={log.message} />
+            </DetailField>
+            <DetailField label="堆栈">
+              {log.traceback ? (
+                <pre className="max-h-64 overflow-auto rounded-md border bg-background p-3 font-mono text-xs whitespace-pre-wrap">{log.traceback}</pre>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </DetailField>
+            <DetailField label="上下文">
+              <JsonBlock value={log.context} />
+            </DetailField>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AccountChangeLogDetailDialog({
+  logId,
+  onOpenChange,
+  open
+}: {
+  logId: number | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const detailQuery = useQuery<AccountChangeLogDetail>({
+    enabled: open && logId !== null,
+    queryKey: ["audit", "account-change-log-detail", logId],
+    queryFn: () => {
+      if (logId === null) {
+        throw new Error("Missing account change log id");
+      }
+      return fetchAccountChangeLogDetail(logId);
+    }
+  });
+  const log = detailQuery.data?.log;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>变更详情 #{logId ?? ""}</DialogTitle>
+          <DialogDescription>账户变更摘要、实例信息和差异明细。</DialogDescription>
+        </DialogHeader>
+        {detailQuery.isLoading ? <DetailLoading /> : null}
+        {detailQuery.isError ? (
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>变更详情加载失败</AlertDescription>
+          </Alert>
+        ) : null}
+        {log ? (
+          <div className="grid gap-4">
+            <dl className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+              <DetailField label="账号">
+                <DetailText value={log.username} />
+              </DetailField>
+              <DetailField label="实例">
+                <div className="grid gap-1">
+                  <DetailText value={log.instance_name} />
+                  <span className="font-mono text-xs text-muted-foreground">{log.instance_host || "-"}</span>
+                </div>
+              </DetailField>
+              <DetailField label="数据库类型">
+                <Badge variant="outline">{log.db_type ? log.db_type.toUpperCase() : "-"}</Badge>
+              </DetailField>
+              <DetailField label="变更类型">
+                <Badge variant="secondary">{log.change_type}</Badge>
+              </DetailField>
+              <DetailField label="状态">
+                <Badge variant={statusVariant(log.status)}>{log.status}</Badge>
+              </DetailField>
+              <DetailField label="会话 ID">
+                <span className="font-mono text-xs">{log.session_id || "-"}</span>
+              </DetailField>
+            </dl>
+            <DetailField label="摘要">
+              <DetailText value={log.message} />
+            </DetailField>
+            <DetailField label="权限差异">
+              <JsonBlock value={log.privilege_diff} />
+            </DetailField>
+            <DetailField label="其他差异">
+              <JsonBlock value={log.other_diff} />
+            </DetailField>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function createHistoryLogColumns(onViewDetail: (logId: number) => void): ColumnDef<HistoryLogItem>[] {
+  return [
+    {
+      accessorKey: "timestamp_display",
+      header: "时间",
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.timestamp_display || row.original.timestamp}</span>
+    },
+    {
+      accessorKey: "level",
+      header: "级别",
+      cell: ({ row }) => <Badge variant={statusVariant(row.original.level)}>{row.original.level}</Badge>
+    },
+    {
+      accessorKey: "module",
+      header: "模块",
+      cell: ({ row }) => <Badge variant="outline">{row.original.module}</Badge>
+    },
+    {
+      accessorKey: "message",
+      header: "消息",
+      cell: ({ row }) => (
+        <div className="max-w-xl truncate font-medium" title={row.original.message}>
+          {row.original.message}
+        </div>
+      )
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => (
+        <Button aria-label={`查看详情 ${row.original.id}`} onClick={() => onViewDetail(row.original.id)} size="sm" type="button" variant="outline">
+          查看详情
+        </Button>
+      )
+    }
+  ];
+}
+
+function createAccountChangeLogColumns(onViewDetail: (logId: number) => void): ColumnDef<AccountChangeLogItem>[] {
+  return [
+    {
+      accessorKey: "change_time",
+      header: "时间",
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.change_time}</span>
+    },
+    {
+      accessorKey: "db_type",
+      header: "数据库类型",
+      cell: ({ row }) => <Badge variant="outline">{row.original.db_type.toUpperCase()}</Badge>
+    },
+    {
+      accessorKey: "instance_name",
+      header: "实例",
+      cell: ({ row }) => (
+        <div className="grid gap-1">
+          <span className="font-medium">{row.original.instance_name || "-"}</span>
+          <span className="font-mono text-xs text-muted-foreground">{row.original.instance_host || "-"}</span>
+        </div>
+      )
+    },
+    {
+      accessorKey: "username",
+      header: "账号",
+      cell: ({ row }) => <span className="font-medium">{row.original.username}</span>
+    },
+    {
+      accessorKey: "change_type",
+      header: "类型",
+      cell: ({ row }) => <Badge variant="secondary">{row.original.change_type}</Badge>
+    },
+    {
+      accessorKey: "message",
+      header: "摘要",
+      cell: ({ row }) => (
+        <div className="max-w-xl truncate" title={row.original.message ?? ""}>
+          {row.original.message || "-"}
+        </div>
+      )
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => (
+        <Button aria-label={`查看详情 ${row.original.id}`} onClick={() => onViewDetail(row.original.id)} size="sm" type="button" variant="outline">
+          查看详情
+        </Button>
+      )
+    }
+  ];
+}
 
 export function HistoryLogsPage() {
+  const [selectedHistoryLogId, setSelectedHistoryLogId] = useState<number | null>(null);
+  const columns = useMemo(() => createHistoryLogColumns(setSelectedHistoryLogId), [setSelectedHistoryLogId]);
   const logsQuery = useQuery({
     queryKey: ["audit", "history-logs", 1, 20, 24],
     queryFn: () => fetchHistoryLogsSnapshot()
@@ -295,7 +504,7 @@ export function HistoryLogsPage() {
       <PageHeader
         eyebrow="System audit"
         title="日志中心"
-        description="查看最近 24 小时系统日志统计和首屏日志列表；详情检索仍保留在旧版。"
+        description="查看最近 24 小时系统日志统计、首屏日志列表和日志详情。"
         legacyHref="/history/logs/"
       />
       <QueryPage snapshot={logsQuery.data} isLoading={logsQuery.isLoading} isError={logsQuery.isError} onRetry={() => void logsQuery.refetch()}>
@@ -311,7 +520,7 @@ export function HistoryLogsPage() {
             />
             <ListFrame title="日志列表" description={`最近 24 小时 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
               <DataTable
-                columns={historyLogColumns}
+                columns={columns}
                 data={snapshot.list.items}
                 filters={[
                   { columnId: "level", label: "级别", options: uniqueTextOptions(snapshot.list.items, (item) => item.level) },
@@ -324,11 +533,22 @@ export function HistoryLogsPage() {
           </>
         )}
       </QueryPage>
+      <HistoryLogDetailDialog
+        logId={selectedHistoryLogId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedHistoryLogId(null);
+          }
+        }}
+        open={selectedHistoryLogId !== null}
+      />
     </main>
   );
 }
 
 export function AccountChangeLogsPage() {
+  const [selectedAccountChangeLogId, setSelectedAccountChangeLogId] = useState<number | null>(null);
+  const columns = useMemo(() => createAccountChangeLogColumns(setSelectedAccountChangeLogId), [setSelectedAccountChangeLogId]);
   const logsQuery = useQuery({
     queryKey: ["audit", "account-change-logs", 1, 20, 24],
     queryFn: () => fetchAccountChangeLogsSnapshot()
@@ -339,7 +559,7 @@ export function AccountChangeLogsPage() {
       <PageHeader
         eyebrow="Account audit"
         title="变更历史"
-        description="查看最近 24 小时账户变更统计和首屏变更日志；详情仍保留在旧版。"
+        description="查看最近 24 小时账户变更统计、首屏变更日志和变更详情。"
         legacyHref="/history/account-change-logs/"
       />
       <QueryPage snapshot={logsQuery.data} isLoading={logsQuery.isLoading} isError={logsQuery.isError} onRetry={() => void logsQuery.refetch()}>
@@ -355,7 +575,7 @@ export function AccountChangeLogsPage() {
             />
             <ListFrame title="账户变更列表" description={`最近 24 小时 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
               <DataTable
-                columns={accountChangeLogColumns}
+                columns={columns}
                 data={snapshot.list.items}
                 filters={[
                   { columnId: "instance_name", label: "实例", options: uniqueTextOptions(snapshot.list.items, (item) => item.instance_name) },
@@ -369,6 +589,15 @@ export function AccountChangeLogsPage() {
           </>
         )}
       </QueryPage>
+      <AccountChangeLogDetailDialog
+        logId={selectedAccountChangeLogId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedAccountChangeLogId(null);
+          }
+        }}
+        open={selectedAccountChangeLogId !== null}
+      />
     </main>
   );
 }

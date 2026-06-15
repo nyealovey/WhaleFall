@@ -1,11 +1,24 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AccountChangeLogsPage, HistoryLogsPage } from "./AuditPages";
 
 vi.mock("@/api/audit", () => ({
+  fetchAccountChangeLogDetail: vi.fn(async () => ({
+    log: {
+      id: 2,
+      username: "CBRAIN",
+      change_type: "add",
+      change_time: "2026-06-11 10:00:00",
+      status: "success",
+      message: "新增账户,赋予 5 项权限",
+      privilege_diff: [{ privilege: "CREATE SESSION", action: "added" }],
+      other_diff: [{ field: "status", after: "OPEN" }],
+      session_id: "session_123"
+    }
+  })),
   fetchHistoryLogsSnapshot: vi.fn(async () => ({
     statistics: {
       total_logs: 12,
@@ -35,6 +48,18 @@ vi.mock("@/api/audit", () => ({
       page: 1,
       pages: 1,
       limit: 20
+    }
+  })),
+  fetchHistoryLogDetail: vi.fn(async () => ({
+    log: {
+      id: 1,
+      timestamp: "2026-06-11T10:00:00+08:00",
+      timestamp_display: "2026-06-11 10:00:00",
+      level: "ERROR",
+      module: "scheduler",
+      message: "sync failed",
+      traceback: "Traceback",
+      context: { run_id: "run-1" }
     }
   })),
   fetchAccountChangeLogsSnapshot: vi.fn(async () => ({
@@ -124,6 +149,18 @@ describe("AuditPages", () => {
     expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
   });
 
+  it("opens history log detail in a React dialog", async () => {
+    renderWithQueryClient(<HistoryLogsPage />);
+
+    await screen.findByRole("button", { name: "查看详情 1" });
+    fireEvent.click(screen.getByRole("button", { name: "查看详情 1" }));
+
+    expect(await screen.findByRole("dialog", { name: "日志详情 #1" })).toBeInTheDocument();
+    expect(screen.getAllByText("sync failed").length).toBeGreaterThan(0);
+    expect(await screen.findByText("Traceback")).toBeInTheDocument();
+    expect(await screen.findByText(/run-1/)).toBeInTheDocument();
+  });
+
   it("renders account change logs with legacy filters, fields, and actions", async () => {
     renderWithQueryClient(<AccountChangeLogsPage />);
 
@@ -134,5 +171,17 @@ describe("AuditPages", () => {
     }
 
     expect(screen.getByRole("button", { name: "查看详情 2" })).toBeInTheDocument();
+  });
+
+  it("opens account change log detail in a React dialog", async () => {
+    renderWithQueryClient(<AccountChangeLogsPage />);
+
+    await screen.findByRole("button", { name: "查看详情 2" });
+    fireEvent.click(screen.getByRole("button", { name: "查看详情 2" }));
+
+    expect(await screen.findByRole("dialog", { name: "变更详情 #2" })).toBeInTheDocument();
+    expect(screen.getAllByText("CBRAIN").length).toBeGreaterThan(0);
+    expect(await screen.findByText(/CREATE SESSION/)).toBeInTheDocument();
+    expect(await screen.findByText(/status/)).toBeInTheDocument();
   });
 });

@@ -47,6 +47,8 @@ export type AccountClassificationRuleItem = {
   classification_id?: number;
   classification_name?: string | null;
   db_type: string;
+  operator?: string;
+  rule_expression?: unknown;
   is_active?: boolean;
   matched_accounts_count?: number;
 };
@@ -119,6 +121,39 @@ export type SyncSessionItem = {
   progress_failed?: number;
 };
 
+export type SyncInstanceRecordItem = {
+  id: number;
+  session_id: string;
+  instance_id?: number;
+  instance_name?: string | null;
+  sync_category?: string;
+  status?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  items_synced?: number;
+  items_created?: number;
+  items_updated?: number;
+  items_deleted?: number;
+  error_message?: string | null;
+  sync_details?: unknown;
+  created_at?: string | null;
+};
+
+export type SyncSessionDetailItem = SyncSessionItem & {
+  progress_percentage?: number;
+  instance_records: SyncInstanceRecordItem[];
+};
+
+export type SyncSessionDetail = {
+  session: SyncSessionDetailItem;
+};
+
+export type SyncSessionErrorLogs = {
+  session: SyncSessionItem;
+  error_records: SyncInstanceRecordItem[];
+  error_count: number;
+};
+
 export type UserItem = {
   id: number;
   username: string;
@@ -189,6 +224,30 @@ export type TagsSnapshot = {
     };
   };
   categories: string[];
+};
+
+export type TaggableInstanceItem = {
+  id: number;
+  name?: string | null;
+  instance_name?: string | null;
+  db_type?: string | null;
+  host?: string | null;
+  ip_address?: string | null;
+  tags?: unknown;
+};
+
+export type TagOptionItem = {
+  id: number;
+  name?: string | null;
+  display_name?: string | null;
+  category?: string | null;
+  is_active?: boolean;
+};
+
+export type TagBulkOptions = {
+  instances: TaggableInstanceItem[];
+  tags: TagOptionItem[];
+  categoryNames: string[];
 };
 
 export type PartitionItem = {
@@ -276,6 +335,20 @@ export async function fetchSyncSessionsSnapshot(
   return client.get<PaginatedReadOnlyList<SyncSessionItem>>(pagePath("/api/v1/sync-sessions"));
 }
 
+export async function fetchSyncSessionDetail(
+  sessionId: string,
+  client: ApiReader = apiClient
+): Promise<SyncSessionDetail> {
+  return client.get<SyncSessionDetail>(`/api/v1/sync-sessions/${encodeURIComponent(sessionId)}`);
+}
+
+export async function fetchSyncSessionErrorLogs(
+  sessionId: string,
+  client: ApiReader = apiClient
+): Promise<SyncSessionErrorLogs> {
+  return client.get<SyncSessionErrorLogs>(`/api/v1/sync-sessions/${encodeURIComponent(sessionId)}/error-logs`);
+}
+
 export async function fetchUsersSnapshot(client: ApiReader = apiClient): Promise<UsersSnapshot> {
   const [list, stats] = await Promise.all([
     client.get<PaginatedReadOnlyList<UserItem>>(pagePath("/api/v1/users", 10)),
@@ -312,6 +385,19 @@ export async function fetchTagsSnapshot(client: ApiReader = apiClient): Promise<
   return {
     list,
     categories: categoriesResponse.categories
+  };
+}
+
+export async function fetchTagBulkOptions(client: ApiReader = apiClient): Promise<TagBulkOptions> {
+  const [instancesResponse, tagsResponse] = await Promise.all([
+    client.get<{ instances: TaggableInstanceItem[] }>("/api/v1/tags/bulk/instances"),
+    client.get<{ tags: TagOptionItem[]; category_names?: string[] }>("/api/v1/tags/bulk/tags")
+  ]);
+
+  return {
+    instances: instancesResponse.instances,
+    tags: tagsResponse.tags,
+    categoryNames: tagsResponse.category_names ?? []
   };
 }
 

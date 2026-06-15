@@ -1,11 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AccountLedgersPage, DatabaseLedgersPage, InstancesPage } from "./ListPages";
 
 const actionMocks = vi.hoisted(() => ({
+  batchTestInstanceConnections: vi.fn(async () => ({ ok: true })),
+  deleteInstance: vi.fn(async () => ({ ok: true })),
+  refreshDatabaseTableSizes: vi.fn(async () => ({ ok: true })),
+  restoreInstance: vi.fn(async () => ({ ok: true })),
   syncAccounts: vi.fn(async () => ({ run_id: "accounts-run" })),
   syncDatabases: vi.fn(async () => ({ run_id: "databases-run" })),
   testInstanceConnection: vi.fn(async () => ({ ok: true }))
@@ -31,9 +35,25 @@ vi.mock("@/api/lists", () => ({
         active_db_count: 12,
         active_account_count: 20,
         tags: [{ name: "prod", display_name: "生产" }]
+      },
+      {
+        id: 4,
+        name: "mysql-old",
+        db_type: "mysql",
+        host: "10.0.0.9",
+        port: 3306,
+        is_active: false,
+        deleted_at: "2026-06-10T00:00:00+00:00",
+        status: "deleted",
+        audit_status: "configured_disabled",
+        backup_status: "not_backed_up",
+        is_jumpserver_managed: false,
+        active_db_count: 0,
+        active_account_count: 0,
+        tags: []
       }
     ],
-    total: 1,
+    total: 2,
     page: 1,
     pages: 1,
     limit: 20
@@ -76,6 +96,39 @@ vi.mock("@/api/lists", () => ({
     page: 1,
     pages: 1,
     limit: 20
+  })),
+  fetchInstanceDetail: vi.fn(async () => ({
+    instance: {
+      id: 1,
+      name: "mysql-prod",
+      db_type: "mysql",
+      host: "10.0.0.8",
+      port: 3306,
+      description: "生产实例",
+      is_active: true
+    }
+  })),
+  fetchAccountPermissions: vi.fn(async () => ({
+    account: { id: 3, username: "readonly", db_type: "mysql", instance_name: "mysql-prod" },
+    permissions: {
+      db_type: "mysql",
+      username: "readonly",
+      is_superuser: false,
+      last_sync_time: "2026-06-11T01:00:00+00:00",
+      snapshot: { roles: ["reader"], grants: ["SELECT"] }
+    }
+  })),
+  fetchAccountChangeHistory: vi.fn(async () => ({
+    account: { id: 3, username: "readonly", db_type: "mysql" },
+    history: [{ id: 88, change_type: "grant", status: "success", message: "GRANT SELECT", change_time: "2026-06-11T01:00:00+00:00" }]
+  })),
+  fetchDatabaseTableSizes: vi.fn(async () => ({
+    total: 1,
+    page: 1,
+    pages: 1,
+    limit: 20,
+    collected_at: "2026-06-11T01:00:00+00:00",
+    tables: [{ schema_name: "public", table_name: "orders", size_mb: 12, data_size_mb: 9, index_size_mb: 3, row_count: 100 }]
   }))
 }));
 
@@ -123,6 +176,35 @@ describe("ListPages", () => {
     }
     expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "测试连接 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除实例 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "恢复实例 4" })).toBeInTheDocument();
+  });
+
+  it("opens instance detail and runs existing instance actions", async () => {
+    renderWithQueryClient(<InstancesPage />);
+
+    await expectTextPresent("mysql-prod");
+    fireEvent.click(screen.getByRole("button", { name: "查看详情 1" }));
+    const detailDialog = await screen.findByRole("dialog", { name: "实例详情 mysql-prod" });
+    expect(await within(detailDialog).findByText("生产实例")).toBeInTheDocument();
+    fireEvent.click(within(detailDialog).getByRole("button", { name: "关闭详情" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "批量测试连接" }));
+    await waitFor(() => {
+      expect(actionMocks.batchTestInstanceConnections).toHaveBeenCalledWith([1, 4]);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "删除实例 1" }));
+    expect(await screen.findByRole("alertdialog", { name: "确认移入回收站 mysql-prod" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确认移入回收站" }));
+    await waitFor(() => {
+      expect(actionMocks.deleteInstance).toHaveBeenCalledWith(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "恢复实例 4" }));
+    await waitFor(() => {
+      expect(actionMocks.restoreInstance).toHaveBeenCalledWith(4);
+    });
   });
 
   it("renders database ledgers from the API", async () => {
@@ -155,6 +237,20 @@ describe("ListPages", () => {
     expect(screen.getByRole("button", { name: "查看容量趋势 2" })).toBeInTheDocument();
   });
 
+  it("opens database table sizes and refreshes them through v1 APIs", async () => {
+    renderWithQueryClient(<DatabaseLedgersPage />);
+
+    await expectTextPresent("app_db");
+    fireEvent.click(screen.getByRole("button", { name: "查看容量趋势 2" }));
+    const dialog = await screen.findByRole("dialog", { name: "数据库表容量 app_db" });
+    expect(await within(dialog).findByText("orders")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "刷新表容量 app_db" }));
+
+    await waitFor(() => {
+      expect(actionMocks.refreshDatabaseTableSizes).toHaveBeenCalledWith(2);
+    });
+  });
+
   it("renders account ledgers from the API", async () => {
     renderWithQueryClient(<AccountLedgersPage />);
 
@@ -183,6 +279,20 @@ describe("ListPages", () => {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
     expect(screen.getByRole("button", { name: "查看权限 3" })).toBeInTheDocument();
+  });
+
+  it("opens account permissions and change history through v1 APIs", async () => {
+    renderWithQueryClient(<AccountLedgersPage />);
+
+    await expectTextPresent("readonly");
+    fireEvent.click(screen.getByRole("button", { name: "查看权限 3" }));
+    const permissionsDialog = await screen.findByRole("dialog", { name: "权限详情 readonly" });
+    expect(await within(permissionsDialog).findByText("reader")).toBeInTheDocument();
+    fireEvent.click(within(permissionsDialog).getByRole("button", { name: "关闭详情" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "查看变更历史 3" }));
+    const historyDialog = await screen.findByRole("dialog", { name: "变更历史 readonly" });
+    expect(await within(historyDialog).findByText("GRANT SELECT")).toBeInTheDocument();
   });
 
   it("runs direct list actions through v1 APIs", async () => {
