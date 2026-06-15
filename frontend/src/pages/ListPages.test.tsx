@@ -7,8 +7,10 @@ import { AccountLedgersPage, DatabaseLedgersPage, InstanceDetailPage, InstancesP
 
 const actionMocks = vi.hoisted(() => ({
   batchTestInstanceConnections: vi.fn(async () => ({ ok: true })),
+  batchDeleteInstances: vi.fn(async () => ({ deleted_count: 1 })),
   createInstance: vi.fn(async () => ({ ok: true })),
   deleteInstance: vi.fn(async () => ({ ok: true })),
+  importInstancesFromCsv: vi.fn(async () => ({ created_count: 1 })),
   refreshDatabaseTableSizes: vi.fn(async () => ({ ok: true })),
   restoreInstance: vi.fn(async () => ({ ok: true })),
   syncAccounts: vi.fn(async () => ({ run_id: "accounts-run" })),
@@ -259,6 +261,29 @@ describe("ListPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "恢复实例 4" }));
     await waitFor(() => {
       expect(actionMocks.restoreInstance).toHaveBeenCalledWith(4);
+    });
+  });
+
+  it("runs instance batch delete and CSV import through v1 APIs", async () => {
+    renderWithQueryClient(<InstancesPage />);
+
+    await expectTextPresent("mysql-prod");
+    fireEvent.click(screen.getByRole("button", { name: "移入回收站" }));
+    expect(await screen.findByRole("alertdialog", { name: "确认批量移入回收站" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确认批量移入回收站" }));
+
+    await waitFor(() => {
+      expect(actionMocks.batchDeleteInstances).toHaveBeenCalledWith([1], "soft");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "批量导入" }));
+    const importDialog = await screen.findByRole("dialog", { name: "批量导入实例" });
+    const file = new File(["name,host"], "instances.csv", { type: "text/csv" });
+    fireEvent.change(within(importDialog).getByLabelText("CSV 文件"), { target: { files: [file] } });
+    fireEvent.click(within(importDialog).getByRole("button", { name: "上传并创建" }));
+
+    await waitFor(() => {
+      expect(actionMocks.importInstancesFromCsv).toHaveBeenCalledWith(file);
     });
   });
 

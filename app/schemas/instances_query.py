@@ -19,7 +19,7 @@ from app.utils.payload_converters import as_bool
 _ALLOWED_SORT_ORDERS = {"asc", "desc"}
 _DEFAULT_PAGE = 1
 _DEFAULT_LIMIT = 20
-_MAX_LIMIT = 100
+_MAX_LIMIT = 200
 
 
 def _parse_sort_field(value: Any, *, default: str) -> str:

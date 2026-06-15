@@ -139,10 +139,10 @@ export type AccountChangeHistoryResponse = {
   }>;
 };
 
-function firstPagePath(path: string): string {
+function firstPagePath(path: string, limit = DEFAULT_LIST_LIMIT): string {
   const params = new URLSearchParams({
     page: "1",
-    limit: String(DEFAULT_LIST_LIMIT)
+    limit: String(limit)
   });
   return `${path}?${params.toString()}`;
 }

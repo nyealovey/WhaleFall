@@ -40,7 +40,9 @@ import {
   syncSqlServerClusterStatus,
   syncVeeam,
   batchTestInstanceConnections,
+  batchDeleteInstances,
   testInstanceConnection,
+  importInstancesFromCsv,
   triggerCapacityAggregation,
   autoClassifyAccounts,
   updateAccountClassification,
@@ -120,6 +122,7 @@ describe("console action api", () => {
     );
     await testInstanceConnection(7, client);
     await batchTestInstanceConnections([7, 8], client);
+    await batchDeleteInstances([7, 8], "soft", client);
     await deleteInstance(7, client);
     await restoreInstance(7, client);
     await refreshDatabaseTableSizes(9, client);
@@ -327,6 +330,7 @@ describe("console action api", () => {
     });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/test-connection", { instance_id: 7 });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-test-connections", { instance_ids: [7, 8] });
+    expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-delete", { instance_ids: [7, 8], deletion_mode: "soft" });
     expect(client.delete).toHaveBeenCalledWith("/api/v1/instances/7");
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/7/actions/restore", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/databases/9/tables/sizes/actions/refresh?page=1&limit=200", {});
@@ -487,5 +491,23 @@ describe("console action api", () => {
     expect(client.post).toHaveBeenCalledWith("/api/v1/tags/bulk/actions/assign", { instance_ids: [1, 2], tag_ids: [9] });
     expect(client.post).toHaveBeenCalledWith("/api/v1/tags/bulk/actions/remove", { instance_ids: [1], tag_ids: [9] });
     expect(client.post).toHaveBeenCalledWith("/api/v1/tags/bulk/actions/remove-all", { instance_ids: [2] });
+  });
+
+  it("uploads instance CSV imports as multipart form data", async () => {
+    const client = {
+      post: vi.fn().mockResolvedValue({ created_count: 1 }),
+      patch: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn()
+    };
+    const file = new File(["name,host"], "instances.csv", { type: "text/csv" });
+
+    await importInstancesFromCsv(file, client);
+
+    expect(client.post).toHaveBeenCalledTimes(1);
+    const [path, body] = client.post.mock.calls[0];
+    expect(path).toBe("/api/v1/instances/actions/batch-create");
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get("file")).toBe(file);
   });
 });

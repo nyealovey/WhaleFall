@@ -267,6 +267,16 @@ export function batchTestInstanceConnections(instanceIds: number[], client: ApiA
   return client.post("/api/v1/instances/actions/batch-test-connections", { instance_ids: instanceIds });
 }
 
+export function batchDeleteInstances(instanceIds: number[], deletionMode: "hard" | "soft" = "soft", client: ApiActionClient = apiClient) {
+  return client.post("/api/v1/instances/actions/batch-delete", { instance_ids: instanceIds, deletion_mode: deletionMode });
+}
+
+export function importInstancesFromCsv(file: File, client: ApiActionClient = apiClient) {
+  const formData = new FormData();
+  formData.set("file", file);
+  return client.post("/api/v1/instances/actions/batch-create", formData);
+}
+
 export function deleteInstance(instanceId: number, client: ApiActionClient = apiClient) {
   return client.delete(`/api/v1/instances/${instanceId}`);
 }

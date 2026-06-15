@@ -84,8 +84,12 @@ export class ApiClient {
     };
 
     if (options.body !== undefined) {
-      headers["Content-Type"] = "application/json";
-      init.body = JSON.stringify(options.body);
+      if (typeof FormData !== "undefined" && options.body instanceof FormData) {
+        init.body = options.body;
+      } else {
+        headers["Content-Type"] = "application/json";
+        init.body = JSON.stringify(options.body);
+      }
     }
 
     if (method !== "GET" && method !== "HEAD" && this.csrfToken) {

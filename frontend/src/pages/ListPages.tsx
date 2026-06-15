@@ -18,9 +18,11 @@ import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 
 import {
+  batchDeleteInstances,
   batchTestInstanceConnections,
   createInstance,
   deleteInstance,
+  importInstancesFromCsv,
   refreshDatabaseTableSizes,
   restoreInstance,
   syncAccounts,
@@ -491,6 +493,67 @@ function QueryPage<TItem>({
       {isError ? <ErrorState onRetry={onRetry} /> : null}
       {result ? children(result) : null}
     </>
+  );
+}
+
+function InstanceImportDialog({
+  onImported,
+  onOpenChange,
+  open
+}: {
+  onImported: () => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!file) {
+      return;
+    }
+    void importInstancesFromCsv(file).then(() => {
+      setFile(null);
+      onImported();
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>批量导入实例</DialogTitle>
+            <DialogDescription>上传 CSV 文件批量创建实例。模板字段以 v1 导入模板为准。</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Button asChild variant="outline">
+              <a href="/api/v1/instances/imports/template">
+                <Download aria-hidden size={16} />
+                <span>下载导入模板</span>
+              </a>
+            </Button>
+            <label className="grid gap-1.5 text-sm font-medium text-foreground">
+              <span>CSV 文件</span>
+              <Input
+                accept=".csv,text/csv"
+                aria-label="CSV 文件"
+                onChange={(event) => {
+                  setFile(event.target.files?.[0] ?? null);
+                }}
+                type="file"
+              />
+            </label>
+            {file ? <p className="text-sm text-muted-foreground">已选择 {file.name}</p> : null}
+          </div>
+          <DialogFooter>
+            <Button disabled={!file} type="submit">
+              上传并创建
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1048,6 +1111,8 @@ export function InstancesPage() {
   const [creatingInstance, setCreatingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<InstanceListItem | null>(null);
   const [deletingInstance, setDeletingInstance] = useState<InstanceListItem | null>(null);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   function handleInstanceSaved() {
     setCreatingInstance(false);
     setEditingInstance(null);
@@ -1066,6 +1131,7 @@ export function InstancesPage() {
     [listQuery]
   );
   const visibleInstanceIds = listQuery.data?.items.map((item) => item.id) ?? [];
+  const deletableInstanceIds = listQuery.data?.items.filter((item) => !item.deleted_at).map((item) => item.id) ?? [];
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -1086,7 +1152,14 @@ export function InstancesPage() {
           <Plus aria-hidden size={16} />
           <span>添加实例</span>
         </Button>
-        <Button disabled variant="outline">
+        <Button
+          disabled={deletableInstanceIds.length === 0}
+          onClick={() => {
+            setBatchDeleteOpen(true);
+          }}
+          type="button"
+          variant="outline"
+        >
           <Trash2 aria-hidden size={16} />
           <span>移入回收站</span>
         </Button>
@@ -1101,7 +1174,13 @@ export function InstancesPage() {
           <PlugZap aria-hidden size={16} />
           <span>批量测试连接</span>
         </Button>
-        <Button disabled variant="outline">
+        <Button
+          onClick={() => {
+            setImportOpen(true);
+          }}
+          type="button"
+          variant="outline"
+        >
           <FileUp aria-hidden size={16} />
           <span>批量导入</span>
         </Button>
@@ -1169,6 +1248,35 @@ export function InstancesPage() {
           open
         />
       ) : null}
+      <InstanceImportDialog
+        onImported={() => {
+          setImportOpen(false);
+          void listQuery.refetch();
+        }}
+        onOpenChange={setImportOpen}
+        open={importOpen}
+      />
+      <AlertDialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认批量移入回收站</AlertDialogTitle>
+            <AlertDialogDescription>
+              将当前列表中 {formatNumber(deletableInstanceIds.length)} 个未删除实例移入回收站。此操作不会物理删除实例，可在包含已删除记录后恢复。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>返回</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setBatchDeleteOpen(false);
+                void batchDeleteInstances(deletableInstanceIds, "soft").then(() => listQuery.refetch());
+              }}
+            >
+              确认批量移入回收站
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog
         open={deletingInstance !== null}
         onOpenChange={(open) => {

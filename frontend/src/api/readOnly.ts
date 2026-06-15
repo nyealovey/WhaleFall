@@ -2,6 +2,7 @@ import { apiClient, type ApiClient } from "./client";
 
 type ApiReader = Pick<ApiClient, "get">;
 const DEFAULT_LIST_LIMIT = 200;
+const SYNC_SESSIONS_LIST_LIMIT = 100;
 
 export type PaginatedReadOnlyList<TItem> = {
   items: TItem[];
@@ -386,7 +387,7 @@ export async function fetchSchedulerSnapshot(client: ApiReader = apiClient): Pro
 export async function fetchSyncSessionsSnapshot(
   client: ApiReader = apiClient
 ): Promise<PaginatedReadOnlyList<SyncSessionItem>> {
-  return client.get<PaginatedReadOnlyList<SyncSessionItem>>(pagePath("/api/v1/sync-sessions"));
+  return client.get<PaginatedReadOnlyList<SyncSessionItem>>(pagePath("/api/v1/sync-sessions", SYNC_SESSIONS_LIST_LIMIT));
 }
 
 export async function fetchSyncSessionDetail(

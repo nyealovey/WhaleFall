@@ -25,12 +25,12 @@ def test_instance_list_filters_query_defaults() -> None:
 
 
 @pytest.mark.unit
-def test_instance_list_filters_query_normalizes_and_clamps() -> None:
+def test_instance_list_filters_query_accepts_max_limit_and_normalizes_filters() -> None:
     query = validate_or_raise(
         InstanceListFiltersQuery,
         {
             "page": 1,
-            "limit": 100,
+            "limit": 200,
             "sort": " NAME ",
             "order": "ASC",
             "search": "  foo  ",
@@ -46,7 +46,7 @@ def test_instance_list_filters_query_normalizes_and_clamps() -> None:
     filters = query.to_filters()
 
     assert filters.page == 1
-    assert filters.limit == 100
+    assert filters.limit == 200
     assert filters.sort_field == "name"
     assert filters.sort_order == "asc"
     assert filters.search == "foo"
@@ -63,6 +63,12 @@ def test_instance_list_filters_query_normalizes_and_clamps() -> None:
 def test_instance_list_filters_query_fallbacks_invalid_sort_order_to_default() -> None:
     with pytest.raises(ValidationError):
         validate_or_raise(InstanceListFiltersQuery, {"order": "weird"})
+
+
+@pytest.mark.unit
+def test_instance_list_filters_query_rejects_limit_above_max() -> None:
+    with pytest.raises(ValidationError):
+        validate_or_raise(InstanceListFiltersQuery, {"limit": 201})
 
 
 @pytest.mark.unit

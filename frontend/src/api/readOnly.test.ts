@@ -129,7 +129,7 @@ describe("read-only migration api", () => {
     const sessions = await fetchSyncSessionsSnapshot(client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/scheduler/jobs");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions?page=1&limit=100");
     expect(scheduler.jobs[0]?.task_name).toBe("同步任务");
     expect(sessions.items[0]?.session_id).toBe("s-1");
   });

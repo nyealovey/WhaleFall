@@ -57,6 +57,29 @@ describe("ApiClient", () => {
     expect(init.body).toBe("{}");
   });
 
+  it("sends FormData bodies without forcing a JSON content type", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        error: false,
+        message: "uploaded",
+        data: { created_count: 1 }
+      })
+    );
+    const client = new ApiClient({ fetchImpl: fetchMock });
+    client.setCsrfToken("csrf-token");
+    const formData = new FormData();
+    formData.set("file", new File(["name,host"], "instances.csv", { type: "text/csv" }));
+
+    await expect(client.post("/api/v1/instances/actions/batch-create", formData)).resolves.toEqual({ created_count: 1 });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init).toMatchObject({ method: "POST", credentials: "include" });
+    expect(init.headers).toMatchObject({ "X-CSRFToken": "csrf-token" });
+    expect(init.headers).not.toHaveProperty("Content-Type");
+    expect(init.body).toBe(formData);
+  });
+
   it("supports PUT requests with JSON body for edit dialogs", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
