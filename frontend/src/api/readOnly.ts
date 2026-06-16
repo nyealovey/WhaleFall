@@ -111,6 +111,63 @@ export type ClassificationStatisticsSnapshot = {
     buckets: Array<Record<string, unknown>>;
     series: ClassificationTrendSeries[];
   };
+  selectedClassificationTrend?: ClassificationTrendPoint[];
+  selectedRuleTrend?: ClassificationTrendPoint[];
+  rulesOverview?: ClassificationRulesOverview;
+  ruleContributions?: ClassificationRuleContributions;
+};
+
+export type ClassificationStatisticsFilters = {
+  accountScope?: string;
+  classificationId?: number | string;
+  dbType?: string;
+  periodType?: string;
+  periods?: number;
+  ruleId?: number | string;
+  ruleStatus?: string;
+};
+
+export type ClassificationRuleOverviewItem = {
+  rule_id: number;
+  rule_name: string;
+  db_type?: string | null;
+  rule_version?: number | null;
+  is_active?: boolean;
+  latest_value_avg?: number;
+  latest_value_sum?: number;
+  latest_coverage_days?: number;
+  latest_expected_days?: number;
+  window_value_sum?: number;
+};
+
+export type ClassificationRulesOverview = {
+  window_start?: string;
+  window_end?: string;
+  latest_period_start?: string;
+  latest_period_end?: string;
+  latest_coverage_days?: number;
+  latest_expected_days?: number;
+  rules: ClassificationRuleOverviewItem[];
+};
+
+export type ClassificationRuleContributionItem = {
+  rule_id: number;
+  rule_name: string;
+  db_type?: string | null;
+  rule_version?: number | null;
+  is_active?: boolean | null;
+  value_avg?: number;
+  value_sum?: number;
+  coverage_days?: number;
+  expected_days?: number;
+};
+
+export type ClassificationRuleContributions = {
+  period_start?: string;
+  period_end?: string;
+  coverage_days?: number;
+  expected_days?: number;
+  contributions: ClassificationRuleContributionItem[];
 };
 
 export type SchedulerJobItem = {
@@ -131,6 +188,15 @@ export type SchedulerJobItem = {
 
 export type SchedulerSnapshot = {
   jobs: SchedulerJobItem[];
+};
+
+export type SchedulerJobDetail = SchedulerJobItem & {
+  trigger?: string;
+  args?: unknown;
+  kwargs?: unknown;
+  misfire_grace_time?: number | null;
+  max_instances?: number | null;
+  coalesce?: boolean | null;
 };
 
 export type SyncSessionItem = {
@@ -211,6 +277,10 @@ export type UsersSnapshot = {
   stats: UsersStats;
 };
 
+export type UserDetail = {
+  user: UserItem & Record<string, unknown>;
+};
+
 export type SettingsSnapshot = {
   alerts: {
     smtp_ready?: boolean;
@@ -238,6 +308,10 @@ export type CredentialItem = {
   created_at_display?: string | null;
 };
 
+export type CredentialDetail = {
+  credential: CredentialItem & Record<string, unknown>;
+};
+
 export type TagItem = {
   id: number;
   name: string;
@@ -245,6 +319,10 @@ export type TagItem = {
   category: string;
   is_active?: boolean;
   instance_count?: number;
+};
+
+export type TagDetail = {
+  tag: TagItem & Record<string, unknown>;
 };
 
 export type TagsSnapshot = {
@@ -317,8 +395,25 @@ export type PartitionsSnapshot = {
   };
 };
 
+export type PartitionMetricsFilters = {
+  days?: number;
+  periodType?: string;
+};
+
 function pagePath(path: string, limit = DEFAULT_LIST_LIMIT): string {
   return `${path}?page=1&limit=${limit}`;
+}
+
+function queryPath(path: string, entries: Array<[string, string | number | undefined | null]>): string {
+  const params = new URLSearchParams();
+  entries.forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+    params.set(key, String(value));
+  });
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 export async function fetchClustersSnapshot(client: ApiReader = apiClient): Promise<ClustersSnapshot> {
@@ -367,21 +462,85 @@ export function fetchAccountClassificationPermissions(
 }
 
 export async function fetchClassificationStatisticsSnapshot(
+  filters: ClassificationStatisticsFilters = {},
   client: ApiReader = apiClient
 ): Promise<ClassificationStatisticsSnapshot> {
-  const [stats, trends] = await Promise.all([
-    client.get<Record<string, Record<string, unknown>>>("/api/v1/accounts/statistics/classifications"),
-    client.get<ClassificationStatisticsSnapshot["trends"]>(
-      "/api/v1/accounts/statistics/classifications/trends?period_type=daily&periods=7"
-    )
-  ]);
+  const periodType = filters.periodType || "daily";
+  const periods = filters.periods ?? 7;
+  const classificationId = filters.classificationId || undefined;
+  const ruleId = filters.ruleId || undefined;
+  const commonTrendEntries: Array<[string, string | number | undefined | null]> = [
+    ["period_type", periodType],
+    ["periods", periods],
+    ["db_type", filters.dbType],
+    ["account_scope", filters.accountScope]
+  ];
 
-  return { stats, trends };
+  const statsRequest = client.get<Record<string, Record<string, unknown>>>("/api/v1/accounts/statistics/classifications");
+  const trendsRequest = client.get<ClassificationStatisticsSnapshot["trends"]>(
+    queryPath("/api/v1/accounts/statistics/classifications/trends", commonTrendEntries)
+  );
+  const selectedClassificationTrendRequest = classificationId
+    ? client.get<{ trend: ClassificationTrendPoint[] }>(
+        queryPath("/api/v1/accounts/statistics/classifications/trend", [
+          ["classification_id", classificationId],
+          ...commonTrendEntries
+        ])
+      )
+    : Promise.resolve(undefined);
+  const rulesOverviewRequest = classificationId
+    ? client.get<ClassificationRulesOverview>(
+        queryPath("/api/v1/accounts/statistics/rules/overview", [
+          ["classification_id", classificationId],
+          ...commonTrendEntries,
+          ["status", filters.ruleStatus || "active"]
+        ])
+      )
+    : Promise.resolve(undefined);
+  const ruleContributionsRequest = classificationId
+    ? client.get<ClassificationRuleContributions>(
+        queryPath("/api/v1/accounts/statistics/rules/contributions", [
+          ["classification_id", classificationId],
+          ["period_type", periodType],
+          ["db_type", filters.dbType],
+          ["account_scope", filters.accountScope],
+          ["limit", 10]
+        ])
+      )
+    : Promise.resolve(undefined);
+  const selectedRuleTrendRequest = ruleId
+    ? client.get<{ trend: ClassificationTrendPoint[] }>(
+        queryPath("/api/v1/accounts/statistics/rules/trend", [["rule_id", ruleId], ...commonTrendEntries])
+      )
+    : Promise.resolve(undefined);
+
+  const [stats, trends, selectedClassificationTrend, rulesOverview, ruleContributions, selectedRuleTrend] =
+    await Promise.all([
+      statsRequest,
+      trendsRequest,
+      selectedClassificationTrendRequest,
+      rulesOverviewRequest,
+      ruleContributionsRequest,
+      selectedRuleTrendRequest
+    ]);
+
+  return {
+    stats,
+    trends,
+    selectedClassificationTrend: selectedClassificationTrend?.trend,
+    rulesOverview,
+    ruleContributions,
+    selectedRuleTrend: selectedRuleTrend?.trend
+  };
 }
 
 export async function fetchSchedulerSnapshot(client: ApiReader = apiClient): Promise<SchedulerSnapshot> {
   const jobs = await client.get<SchedulerJobItem[]>("/api/v1/scheduler/jobs");
   return { jobs };
+}
+
+export function fetchSchedulerJobDetail(jobId: string, client: ApiReader = apiClient): Promise<SchedulerJobDetail> {
+  return client.get<SchedulerJobDetail>(`/api/v1/scheduler/jobs/${encodeURIComponent(jobId)}`);
 }
 
 export async function fetchSyncSessionsSnapshot(
@@ -411,6 +570,10 @@ export async function fetchUsersSnapshot(client: ApiReader = apiClient): Promise
   ]);
 
   return { list, stats };
+}
+
+export function fetchUserDetail(userId: number, client: ApiReader = apiClient): Promise<UserDetail> {
+  return client.get<UserDetail>(`/api/v1/users/${userId}`);
 }
 
 function normalizeRiskRules(payload: unknown): Array<Record<string, unknown>> {
@@ -444,6 +607,10 @@ export async function fetchCredentialsSnapshot(
   return client.get<PaginatedReadOnlyList<CredentialItem>>(pagePath("/api/v1/credentials"));
 }
 
+export function fetchCredentialDetail(credentialId: number, client: ApiReader = apiClient): Promise<CredentialDetail> {
+  return client.get<CredentialDetail>(`/api/v1/credentials/${credentialId}`);
+}
+
 export async function fetchTagsSnapshot(client: ApiReader = apiClient): Promise<TagsSnapshot> {
   const [list, categoriesResponse] = await Promise.all([
     client.get<TagsSnapshot["list"]>(pagePath("/api/v1/tags")),
@@ -454,6 +621,10 @@ export async function fetchTagsSnapshot(client: ApiReader = apiClient): Promise<
     list,
     categories: categoriesResponse.categories
   };
+}
+
+export function fetchTagDetail(tagId: number, client: ApiReader = apiClient): Promise<TagDetail> {
+  return client.get<TagDetail>(`/api/v1/tags/${tagId}`);
 }
 
 export async function fetchTagBulkOptions(client: ApiReader = apiClient): Promise<TagBulkOptions> {
@@ -469,11 +640,18 @@ export async function fetchTagBulkOptions(client: ApiReader = apiClient): Promis
   };
 }
 
-export async function fetchPartitionsSnapshot(client: ApiReader = apiClient): Promise<PartitionsSnapshot> {
+export async function fetchPartitionsSnapshot(
+  filters: PartitionMetricsFilters = {},
+  client: ApiReader = apiClient
+): Promise<PartitionsSnapshot> {
+  const periodType = filters.periodType || "daily";
+  const days = filters.days ?? 7;
   const [status, list, coreMetrics] = await Promise.all([
     client.get<PartitionsSnapshot["status"]>("/api/v1/partitions/status"),
     client.get<PaginatedReadOnlyList<PartitionItem>>(pagePath("/api/v1/partitions")),
-    client.get<PartitionsSnapshot["coreMetrics"]>("/api/v1/partitions/core-metrics?period_type=daily&days=7")
+    client.get<PartitionsSnapshot["coreMetrics"]>(
+      `/api/v1/partitions/core-metrics?period_type=${encodeURIComponent(periodType)}&days=${days}`
+    )
   ]);
 
   return { status, list, coreMetrics };

@@ -8,6 +8,14 @@ export type CapacityDateRange = {
   endDate: string;
 };
 
+export type CapacityFilters = {
+  databaseName?: string;
+  dbTypes?: string[];
+  instanceIds?: number[];
+  periodType?: string;
+  range?: CapacityDateRange;
+};
+
 export type CapacityList<TItem> = {
   items: TItem[];
   total: number;
@@ -134,13 +142,29 @@ export function getDefaultCapacityRange(): CapacityDateRange {
   };
 }
 
-function listPath(basePath: string, range: CapacityDateRange, options?: { chartMode?: "instance" | "database"; getAll?: boolean }): string {
+function appendCapacityFilters(params: URLSearchParams, filters: CapacityFilters): void {
+  filters.instanceIds?.forEach((instanceId) => {
+    params.append("instance_id", String(instanceId));
+  });
+  filters.dbTypes?.forEach((dbType) => {
+    if (dbType) {
+      params.append("db_type", dbType);
+    }
+  });
+  if (filters.databaseName) {
+    params.set("database_name", filters.databaseName);
+  }
+}
+
+function listPath(basePath: string, filters: CapacityFilters, options?: { chartMode?: "instance" | "database"; getAll?: boolean }): string {
+  const range = filters.range ?? getDefaultCapacityRange();
   const params = new URLSearchParams();
-  params.set("period_type", "daily");
+  params.set("period_type", filters.periodType || "daily");
   params.set("page", "1");
   params.set("limit", String(DEFAULT_LIST_LIMIT));
   params.set("start_date", range.startDate);
   params.set("end_date", range.endDate);
+  appendCapacityFilters(params, filters);
   if (options?.getAll) {
     params.set("get_all", "true");
   }
@@ -150,24 +174,26 @@ function listPath(basePath: string, range: CapacityDateRange, options?: { chartM
   return `${basePath}?${params.toString()}`;
 }
 
-function summaryPath(basePath: string, range: CapacityDateRange): string {
+function summaryPath(basePath: string, filters: CapacityFilters): string {
+  const range = filters.range ?? getDefaultCapacityRange();
   const params = new URLSearchParams();
-  params.set("period_type", "daily");
+  params.set("period_type", filters.periodType || "daily");
   params.set("start_date", range.startDate);
   params.set("end_date", range.endDate);
+  appendCapacityFilters(params, filters);
   return `${basePath}/summary?${params.toString()}`;
 }
 
 export async function fetchCapacityInstanceSnapshot(
-  client: ApiReader = apiClient,
-  range: CapacityDateRange = getDefaultCapacityRange()
+  filters: CapacityFilters = {},
+  client: ApiReader = apiClient
 ): Promise<CapacityInstanceSnapshot> {
   const [list, summaryEnvelope, trend, change, percent] = await Promise.all([
-    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range)),
-    client.get<SummaryEnvelope<CapacityInstanceSummary>>(summaryPath("/api/v1/capacity/instances", range)),
-    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range, { chartMode: "instance", getAll: true })),
-    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range, { getAll: true })),
-    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", range, { getAll: true }))
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters)),
+    client.get<SummaryEnvelope<CapacityInstanceSummary>>(summaryPath("/api/v1/capacity/instances", filters)),
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters, { chartMode: "instance", getAll: true })),
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters, { getAll: true })),
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters, { getAll: true }))
   ]);
 
   return {
@@ -178,15 +204,15 @@ export async function fetchCapacityInstanceSnapshot(
 }
 
 export async function fetchCapacityDatabaseSnapshot(
-  client: ApiReader = apiClient,
-  range: CapacityDateRange = getDefaultCapacityRange()
+  filters: CapacityFilters = {},
+  client: ApiReader = apiClient
 ): Promise<CapacityDatabaseSnapshot> {
   const [list, summaryEnvelope, trend, change, percent] = await Promise.all([
-    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range)),
-    client.get<SummaryEnvelope<CapacityDatabaseSummary>>(summaryPath("/api/v1/capacity/databases", range)),
-    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range, { chartMode: "database", getAll: true })),
-    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range, { chartMode: "database", getAll: true })),
-    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", range, { chartMode: "database", getAll: true }))
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters)),
+    client.get<SummaryEnvelope<CapacityDatabaseSummary>>(summaryPath("/api/v1/capacity/databases", filters)),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { chartMode: "database", getAll: true })),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { chartMode: "database", getAll: true })),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { chartMode: "database", getAll: true }))
   ]);
 
   return {

@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
+import { fetchRiskCenterSnapshot } from "@/api/riskCenter";
 
 import { RiskCenterPage } from "./RiskCenterPage";
 
@@ -96,5 +98,33 @@ describe("RiskCenterPage", () => {
         expect(screen.getAllByText(text).length).toBeGreaterThan(0);
       });
     }
+  });
+
+  it("applies legacy risk filters to the cards request", async () => {
+    renderWithQueryClient();
+
+    await screen.findByRole("heading", { name: "风险中心" });
+    vi.mocked(fetchRiskCenterSnapshot).mockClear();
+
+    fireEvent.change(screen.getByPlaceholderText("实例名 / 主机 / 类型"), { target: { value: "db-critical" } });
+    fireEvent.click(screen.getByRole("combobox", { name: "严重度" }));
+    fireEvent.click(await screen.findByRole("option", { name: "高风险" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "数据库类型" }));
+    fireEvent.click(await screen.findByRole("option", { name: "MySQL" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "状态" }));
+    fireEvent.click(await screen.findByRole("option", { name: "异常" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "标签" }));
+    fireEvent.click(await screen.findByRole("option", { name: "生产" }));
+    fireEvent.click(screen.getByRole("button", { name: "筛选" }));
+
+    await waitFor(() => {
+      expect(fetchRiskCenterSnapshot).toHaveBeenCalledWith({
+        dbType: "mysql",
+        search: "db-critical",
+        severity: "high",
+        status: "warning",
+        tag: "prod"
+      });
+    });
   });
 });

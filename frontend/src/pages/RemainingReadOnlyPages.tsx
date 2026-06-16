@@ -7,6 +7,7 @@ import {
   ChartColumn,
   Clock,
   Database,
+  Eye,
   ExternalLink,
   KeyRound,
   Layers3,
@@ -23,7 +24,7 @@ import {
   Zap
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { CheckboxLine, SelectControl, SwitchField } from "@/components/shared/FormControls";
 import { runAction } from "@/utils/action-feedback";
@@ -123,9 +124,11 @@ import {
   fetchAccountClassificationRuleDetail,
   fetchClassificationStatisticsSnapshot,
   fetchClustersSnapshot,
+  fetchCredentialDetail,
   fetchCredentialsSnapshot,
   fetchMySqlClusterDetail,
   fetchPartitionsSnapshot,
+  fetchSchedulerJobDetail,
   fetchSchedulerSnapshot,
   fetchSettingsSnapshot,
   fetchSqlServerClusterDetail,
@@ -133,16 +136,23 @@ import {
   fetchSyncSessionErrorLogs,
   fetchSyncSessionsSnapshot,
   fetchTagBulkOptions,
+  fetchTagDetail,
   fetchTagsSnapshot,
+  fetchUserDetail,
   fetchUsersSnapshot,
   type AccountClassificationItem,
   type AccountClassificationRuleItem,
+  type ClassificationRuleContributionItem,
+  type ClassificationRuleOverviewItem,
+  type ClassificationStatisticsFilters,
   type ClassificationStatisticsSnapshot,
   type ClusterDetailRecord,
   type ClusterItem,
   type CredentialItem,
   type MySqlClusterDetail,
+  type PartitionMetricsFilters,
   type PartitionItem,
+  type SchedulerJobDetail,
   type SchedulerJobItem,
   type SettingsSnapshot,
   type SqlServerClusterDetail,
@@ -303,6 +313,10 @@ function schedulerStatusLabel(state: string | undefined | null): string {
     default:
       return asText(state, "未知");
   }
+}
+
+function schedulerJobName(job: SchedulerJobItem): string {
+  return job.task_name ?? job.name ?? job.id;
 }
 
 function triggerArgsEntries(value: unknown): string[] {
@@ -564,6 +578,179 @@ function DeleteConfirmDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function SchedulerJobDetailDialog({
+  item,
+  onOpenChange,
+  open
+}: {
+  item: SchedulerJobItem | null;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const query = useQuery({
+    enabled: open && Boolean(item),
+    queryKey: ["read-only", "scheduler-job-detail", item?.id],
+    queryFn: () => fetchSchedulerJobDetail(item?.id ?? "")
+  });
+  const detail = (query.data ?? item) as SchedulerJobDetail | null;
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),52rem)]">
+        <DialogHeader>
+          <DialogTitle>任务详情 {item ? schedulerJobName(item) : ""}</DialogTitle>
+          <DialogDescription>展示调度任务的触发器、执行函数和运行参数。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? (
+          <div className="grid gap-2">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        ) : null}
+        {query.isError ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>任务详情加载失败</AlertDescription></Alert> : null}
+        {detail ? (
+          <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
+            <DetailBlock label="任务 ID"><span className="font-mono">{detail.task_id ?? detail.id}</span></DetailBlock>
+            <DetailBlock label="状态"><StatusBadge value={detail.state} /></DetailBlock>
+            <DetailBlock label="执行函数"><span className="font-mono">{asText(detail.func)}</span></DetailBlock>
+            <DetailBlock label="触发器"><span className="font-mono">{asText(detail.trigger ?? detail.trigger_type)}</span></DetailBlock>
+            <DetailBlock label="下次运行"><span className="font-mono">{asText(detail.next_run_time, "未计划")}</span></DetailBlock>
+            <DetailBlock label="上次运行"><span className="font-mono">{asText(detail.last_run_time, "从未运行")}</span></DetailBlock>
+            <DetailBlock label="最大实例数"><span className="font-mono">{asText(detail.max_instances)}</span></DetailBlock>
+            <DetailBlock label="错过执行宽限"><span className="font-mono">{asText(detail.misfire_grace_time)}</span></DetailBlock>
+            <DetailBlock label="触发参数"><JsonBlock value={detail.trigger_args} /></DetailBlock>
+            <DetailBlock label="位置参数"><JsonBlock value={detail.args} /></DetailBlock>
+            <DetailBlock label="关键字参数"><JsonBlock value={detail.kwargs} /></DetailBlock>
+            <DetailBlock label="合并执行"><StatusBadge value={detail.coalesce ?? null} /></DetailBlock>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UserDetailDialog({
+  item,
+  onOpenChange,
+  open
+}: {
+  item: UserItem | null;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const query = useQuery({
+    enabled: open && Boolean(item),
+    queryKey: ["read-only", "user-detail", item?.id],
+    queryFn: () => fetchUserDetail(item?.id ?? 0)
+  });
+  const detail = query.data?.user ?? item;
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),42rem)]">
+        <DialogHeader>
+          <DialogTitle>用户详情 {item?.username ?? ""}</DialogTitle>
+          <DialogDescription>展示用户身份、角色、状态和登录时间。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? <Skeleton className="h-24" /> : null}
+        {query.isError ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>用户详情加载失败</AlertDescription></Alert> : null}
+        {detail ? (
+          <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+            <DetailBlock label="用户 ID"><span className="font-mono">#{detail.id}</span></DetailBlock>
+            <DetailBlock label="用户名">{detail.username}</DetailBlock>
+            <DetailBlock label="邮箱">{asText(detail.email)}</DetailBlock>
+            <DetailBlock label="角色"><Badge variant={detail.role === "admin" ? "default" : "outline"}>{roleLabel(detail.role)}</Badge></DetailBlock>
+            <DetailBlock label="状态"><StatusBadge value={detail.is_active} /></DetailBlock>
+            <DetailBlock label="创建时间"><span className="font-mono">{asText(detail.created_at_display ?? detail.created_at)}</span></DetailBlock>
+            <DetailBlock label="最近登录"><span className="font-mono">{asText(detail.last_login)}</span></DetailBlock>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CredentialDetailDialog({
+  item,
+  onOpenChange,
+  open
+}: {
+  item: CredentialItem | null;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const query = useQuery({
+    enabled: open && Boolean(item),
+    queryKey: ["read-only", "credential-detail", item?.id],
+    queryFn: () => fetchCredentialDetail(item?.id ?? 0)
+  });
+  const detail = query.data?.credential ?? item;
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),46rem)]">
+        <DialogHeader>
+          <DialogTitle>凭据详情 {item?.name ?? ""}</DialogTitle>
+          <DialogDescription>展示凭据类型、账号、适用数据库和引用数量。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? <Skeleton className="h-24" /> : null}
+        {query.isError ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>凭据详情加载失败</AlertDescription></Alert> : null}
+        {detail ? (
+          <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+            <DetailBlock label="凭据名称">{detail.name}</DetailBlock>
+            <DetailBlock label="类型">{asText(detail.credential_type)}</DetailBlock>
+            <DetailBlock label="数据库类型">{asText(detail.db_type)}</DetailBlock>
+            <DetailBlock label="账号"><span className="font-mono">{asText(detail.username)}</span></DetailBlock>
+            <DetailBlock label="状态"><StatusBadge value={detail.is_active} /></DetailBlock>
+            <DetailBlock label="绑定实例"><span className="font-mono">{formatNumber(detail.instance_count)}</span></DetailBlock>
+            <DetailBlock label="创建时间"><span className="font-mono">{asText(detail.created_at_display)}</span></DetailBlock>
+            <DetailBlock label="说明">{asText(detail.description)}</DetailBlock>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TagDetailDialog({
+  item,
+  onOpenChange,
+  open
+}: {
+  item: TagItem | null;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const query = useQuery({
+    enabled: open && Boolean(item),
+    queryKey: ["read-only", "tag-detail", item?.id],
+    queryFn: () => fetchTagDetail(item?.id ?? 0)
+  });
+  const detail = query.data?.tag ?? item;
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),42rem)]">
+        <DialogHeader>
+          <DialogTitle>标签详情 {item?.display_name ?? ""}</DialogTitle>
+          <DialogDescription>展示标签编码、分类、状态和关联数量。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? <Skeleton className="h-24" /> : null}
+        {query.isError ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>标签详情加载失败</AlertDescription></Alert> : null}
+        {detail ? (
+          <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+            <DetailBlock label="标签名称">{detail.display_name}</DetailBlock>
+            <DetailBlock label="编码"><span className="font-mono">#{detail.name}</span></DetailBlock>
+            <DetailBlock label="分类">{detail.category}</DetailBlock>
+            <DetailBlock label="状态"><StatusBadge value={detail.is_active} /></DetailBlock>
+            <DetailBlock label="关联实例"><span className="font-mono">{formatNumber(detail.instance_count)}</span></DetailBlock>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1238,10 +1425,12 @@ function TagBulkDialog({
 
 function createCredentialColumns({
   onDelete,
-  onEdit
+  onEdit,
+  onView
 }: {
   onDelete: (item: CredentialItem) => void;
   onEdit: (item: CredentialItem) => void;
+  onView: (item: CredentialItem) => void;
 }): ColumnDef<CredentialItem>[] {
   return [
   {
@@ -1288,6 +1477,9 @@ function createCredentialColumns({
     header: "操作",
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
+        <Button aria-label={`查看凭据 ${row.original.name}`} onClick={() => onView(row.original)} size="icon" type="button" variant="ghost">
+          <Eye aria-hidden />
+        </Button>
         <Button aria-label={`编辑凭据 ${row.original.name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
           <Pencil aria-hidden />
         </Button>
@@ -1302,10 +1494,12 @@ function createCredentialColumns({
 
 function createTagColumns({
   onDelete,
-  onEdit
+  onEdit,
+  onView
 }: {
   onDelete: (item: TagItem) => void;
   onEdit: (item: TagItem) => void;
+  onView: (item: TagItem) => void;
 }): ColumnDef<TagItem>[] {
   return [
   {
@@ -1341,6 +1535,9 @@ function createTagColumns({
     header: "操作",
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
+        <Button aria-label={`查看标签 ${row.original.display_name}`} onClick={() => onView(row.original)} size="icon" type="button" variant="ghost">
+          <Eye aria-hidden />
+        </Button>
         <Button aria-label={`编辑标签 ${row.original.display_name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
           <Pencil aria-hidden />
         </Button>
@@ -1355,10 +1552,12 @@ function createTagColumns({
 
 function createUserColumns({
   onDelete,
-  onEdit
+  onEdit,
+  onView
 }: {
   onDelete: (item: UserItem) => void;
   onEdit: (item: UserItem) => void;
+  onView: (item: UserItem) => void;
 }): ColumnDef<UserItem>[] {
   return [
   {
@@ -1397,6 +1596,9 @@ function createUserColumns({
     header: "操作",
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
+        <Button aria-label={`查看用户 ${row.original.username}`} onClick={() => onView(row.original)} size="icon" type="button" variant="ghost">
+          <Eye aria-hidden />
+        </Button>
         <Button aria-label={`编辑用户 ${row.original.username}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
           <Pencil aria-hidden />
         </Button>
@@ -1501,8 +1703,16 @@ function createSyncSessionColumns({
   ];
 }
 
-function SchedulerJobCard({ job, onEdit }: { job: SchedulerJobItem; onEdit: (job: SchedulerJobItem) => void }) {
-  const name = job.task_name ?? job.name ?? job.id;
+function SchedulerJobCard({
+  job,
+  onEdit,
+  onView
+}: {
+  job: SchedulerJobItem;
+  onEdit: (job: SchedulerJobItem) => void;
+  onView: (job: SchedulerJobItem) => void;
+}) {
+  const name = schedulerJobName(job);
   const triggerEntries = triggerArgsEntries(job.trigger_args);
 
   return (
@@ -1572,6 +1782,9 @@ function SchedulerJobCard({ job, onEdit }: { job: SchedulerJobItem; onEdit: (job
           >
             <Zap aria-hidden />
           </Button>
+          <Button aria-label={`查看任务 ${name}`} onClick={() => onView(job)} size="icon" type="button" variant="outline">
+            <Eye aria-hidden />
+          </Button>
           <Button aria-label={`编辑任务 ${name}`} onClick={() => onEdit(job)} size="icon" type="button" variant="outline">
             <Pencil aria-hidden />
           </Button>
@@ -1587,10 +1800,12 @@ function SchedulerJobCard({ job, onEdit }: { job: SchedulerJobItem; onEdit: (job
 function SchedulerJobSection({
   jobs,
   onEdit,
+  onView,
   title
 }: {
   jobs: SchedulerJobItem[];
   onEdit: (job: SchedulerJobItem) => void;
+  onView: (job: SchedulerJobItem) => void;
   title: string;
 }) {
   return (
@@ -1602,7 +1817,7 @@ function SchedulerJobSection({
       {jobs.length > 0 ? (
         <div className="grid grid-cols-3 gap-2 max-2xl:grid-cols-2 max-lg:grid-cols-1">
           {jobs.map((job) => (
-            <SchedulerJobCard job={job} key={job.id} onEdit={onEdit} />
+            <SchedulerJobCard job={job} key={job.id} onEdit={onEdit} onView={onView} />
           ))}
         </div>
       ) : (
@@ -2593,15 +2808,54 @@ export function AccountClassificationsPage() {
   );
 }
 
-function buildClassificationChartData(snapshot: ClassificationStatisticsSnapshot): Array<Record<string, string | number>> {
-  const firstSeries = snapshot.trends.series[0];
-  if (!firstSeries) {
-    return [];
-  }
-  return firstSeries.points.map((point, index) => ({
+type ClassificationFiltersState = {
+  accountScope: string;
+  classificationId: string;
+  dbType: string;
+  periodType: string;
+  periods: string;
+  ruleId: string;
+  ruleStatus: string;
+};
+
+const DEFAULT_CLASSIFICATION_FILTERS: ClassificationFiltersState = {
+  accountScope: "",
+  classificationId: "",
+  dbType: "",
+  periodType: "daily",
+  periods: "7",
+  ruleId: "",
+  ruleStatus: "active"
+};
+
+function buildTrendChartData(points: ClassificationStatisticsSnapshot["trends"]["series"][number]["points"]): Array<Record<string, string | number>> {
+  return points.map((point, index) => ({
     label: point.period_start ?? point.period_end ?? String(index + 1),
     value: asNumber(point.value ?? point.value_avg ?? point.value_sum)
   }));
+}
+
+function selectedTrendPoints(
+  snapshot: ClassificationStatisticsSnapshot,
+  filters: ClassificationFiltersState
+): ClassificationStatisticsSnapshot["trends"]["series"][number]["points"] {
+  if (filters.ruleId && snapshot.selectedRuleTrend) {
+    return snapshot.selectedRuleTrend;
+  }
+  if (filters.classificationId && snapshot.selectedClassificationTrend) {
+    return snapshot.selectedClassificationTrend;
+  }
+  return snapshot.trends.series[0]?.points ?? [];
+}
+
+function selectedTrendName(snapshot: ClassificationStatisticsSnapshot, filters: ClassificationFiltersState): string | null {
+  if (filters.ruleId) {
+    return snapshot.rulesOverview?.rules.find((rule) => String(rule.rule_id) === filters.ruleId)?.rule_name ?? `规则 #${filters.ruleId}`;
+  }
+  if (filters.classificationId) {
+    return snapshot.trends.series.find((series) => String(series.classification_id) === filters.classificationId)?.classification_name ?? `分类 #${filters.classificationId}`;
+  }
+  return snapshot.trends.series[0]?.classification_name ?? null;
 }
 
 function topClassificationStats(stats: ClassificationStatisticsSnapshot["stats"]) {
@@ -2615,52 +2869,91 @@ function topClassificationStats(stats: ClassificationStatisticsSnapshot["stats"]
 }
 
 function buildClassificationOptions(snapshot: ClassificationStatisticsSnapshot): Array<{ value: string; label: string }> {
-  const options = new Map<string, string>();
-  snapshot.trends.series.forEach((series) => {
-    options.set(String(series.classification_id), series.classification_name);
-  });
-  Object.keys(snapshot.stats).forEach((label) => {
-    if (![...options.values()].includes(label)) {
-      options.set(label, label);
-    }
-  });
-  return [...options.entries()].map(([value, label]) => ({ value, label }));
+  return snapshot.trends.series.map((series) => ({
+    value: String(series.classification_id),
+    label: series.classification_name
+  }));
 }
 
-function trendCoverageLabel(snapshot: ClassificationStatisticsSnapshot): string {
-  const total = snapshot.trends.buckets.length || snapshot.trends.series[0]?.points.length || 0;
-  const covered = snapshot.trends.series[0]?.points.length ?? 0;
+function trendCoverageLabel(snapshot: ClassificationStatisticsSnapshot, points: ClassificationStatisticsSnapshot["trends"]["series"][number]["points"]): string {
+  const total = snapshot.trends.buckets.length || points.length;
+  const covered = points.length;
   return `覆盖 ${formatNumber(covered)}/${formatNumber(total)} 天`;
 }
 
-function ClassificationFilterPanel({ snapshot }: { snapshot: ClassificationStatisticsSnapshot }) {
+function toClassificationApiFilters(filters: ClassificationFiltersState): ClassificationStatisticsFilters {
+  return {
+    accountScope: filters.accountScope || undefined,
+    classificationId: filters.classificationId || undefined,
+    dbType: filters.dbType || undefined,
+    periodType: filters.periodType || undefined,
+    periods: Number(filters.periods || 7),
+    ruleId: filters.ruleId || undefined,
+    ruleStatus: filters.ruleStatus || undefined
+  };
+}
+
+function buildRuleContributionChartData(items: ClassificationRuleContributionItem[]): Array<Record<string, string | number>> {
+  return items.map((item) => ({
+    label: item.rule_name,
+    value: asNumber(item.value_sum ?? item.value_avg)
+  }));
+}
+
+function ClassificationFilterPanel({
+  draft,
+  onApply,
+  onDraftChange,
+  onReset,
+  snapshot
+}: {
+  draft: ClassificationFiltersState;
+  onApply: () => void;
+  onDraftChange: (draft: ClassificationFiltersState) => void;
+  onReset: () => void;
+  snapshot: ClassificationStatisticsSnapshot;
+}) {
   const classificationOptions = buildClassificationOptions(snapshot);
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onApply();
+  }
+
   return (
     <Card>
       <CardContent className="grid gap-3">
-        <div className="grid grid-cols-[minmax(12rem,1.3fr)_minmax(8rem,0.7fr)_minmax(8rem,0.7fr)_minmax(12rem,1.3fr)_auto] items-end gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+        <form
+          className="grid grid-cols-[minmax(12rem,1.3fr)_minmax(8rem,0.7fr)_minmax(8rem,0.7fr)_minmax(8rem,0.7fr)_auto] items-end gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1"
+          onSubmit={handleSubmit}
+        >
           <label className="grid gap-1.5 text-sm font-medium">
             <span>账户分类</span>
-            <SelectControl label="账户分类" defaultValue="" options={[{ label: "全部分类", value: "" }, ...classificationOptions]} />
+            <SelectControl
+              label="账户分类"
+              onValueChange={(classificationId) => onDraftChange({ ...draft, classificationId, ruleId: "" })}
+              options={[{ label: "全部分类", value: "" }, ...classificationOptions]}
+              value={draft.classificationId}
+            />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>统计周期</span>
             <SelectControl
               label="统计周期"
-              defaultValue="daily"
+              onValueChange={(periodType) => onDraftChange({ ...draft, periodType, ruleId: "" })}
               options={[
                 { label: "日统计", value: "daily" },
                 { label: "周统计", value: "weekly" },
                 { label: "月统计", value: "monthly" },
                 { label: "季统计", value: "quarterly" }
               ]}
+              value={draft.periodType}
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>数据库类型</span>
             <SelectControl
               label="数据库类型"
-              defaultValue=""
+              onValueChange={(dbType) => onDraftChange({ ...draft, dbType, ruleId: "" })}
               options={[
                 { label: "全部类型", value: "" },
                 { label: "MySQL", value: "mysql" },
@@ -2668,27 +2961,55 @@ function ClassificationFilterPanel({ snapshot }: { snapshot: ClassificationStati
                 { label: "SQL Server", value: "sqlserver" },
                 { label: "Oracle", value: "oracle" }
               ]}
+              value={draft.dbType}
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>实例/AG</span>
-            <SelectControl label="实例/AG" defaultValue="" disabled options={[{ label: "所有实例/AG", value: "" }]} />
+            <SelectControl
+              disabled
+              label="实例/AG"
+              options={[{ label: "所有实例/AG", value: "" }]}
+              value={draft.accountScope}
+            />
           </label>
           <div className="flex gap-2">
-            <Button variant="outline" disabled>
+            <Button variant="outline" type="submit">
               应用
             </Button>
-            <Button variant="ghost" disabled>
+            <Button onClick={onReset} type="button" variant="ghost">
               重置
             </Button>
           </div>
-        </div>
+        </form>
       </CardContent>
     </Card>
   );
 }
 
-function ClassificationRulesListPanel() {
+function ClassificationRulesListPanel({
+  filters,
+  onRuleSelect,
+  onRuleStatusChange,
+  onSearchChange,
+  rules,
+  search
+}: {
+  filters: ClassificationFiltersState;
+  onRuleSelect: (ruleId: string) => void;
+  onRuleStatusChange: (status: string) => void;
+  onSearchChange: (search: string) => void;
+  rules: ClassificationRuleOverviewItem[];
+  search: string;
+}) {
+  const visibleRules = rules.filter((rule) => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) {
+      return true;
+    }
+    return [rule.rule_name, rule.db_type, String(rule.rule_id)].some((value) => String(value ?? "").toLowerCase().includes(keyword));
+  });
+
   return (
     <ListPanel
       title="规则列表"
@@ -2699,35 +3020,78 @@ function ClassificationRulesListPanel() {
         <div className="grid grid-cols-[minmax(0,1fr)_9rem] gap-2 max-sm:grid-cols-1">
           <label className="grid gap-1.5 text-sm font-medium">
             <span>搜索规则名/备注</span>
-            <input className="border-input bg-background h-9 rounded-md border px-3 py-1 text-sm" type="search" readOnly />
+            <Input onChange={(event) => onSearchChange(event.target.value)} type="search" value={search} />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>状态</span>
             <SelectControl
               label="状态"
-              defaultValue="active"
+              onValueChange={onRuleStatusChange}
               options={[
                 { label: "启用", value: "active" },
                 { label: "已归档", value: "archived" },
                 { label: "全部", value: "all" }
               ]}
+              value={filters.ruleStatus}
             />
           </label>
         </div>
-        <div className="grid min-h-36 place-items-center rounded-md border border-dashed bg-secondary/30 p-4 text-center text-sm text-muted-foreground">
-          选择分类后加载规则列表与规则趋势
-        </div>
+        {filters.classificationId ? (
+          <Table>
+            <TableHeader className="text-xs">
+              <TableRow>
+                <TableHead>规则</TableHead>
+                <TableHead>数据库</TableHead>
+                <TableHead>当前周期命中</TableHead>
+                <TableHead>覆盖</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibleRules.length === 0 ? <EmptyRows colSpan={6} /> : null}
+              {visibleRules.map((rule) => (
+                <TableRow data-state={filters.ruleId === String(rule.rule_id) ? "selected" : undefined} key={rule.rule_id}>
+                  <TableCell className="font-medium">{rule.rule_name}</TableCell>
+                  <TableCell>{rule.db_type ?? "-"}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {formatNumber(asNumber(rule.latest_value_sum ?? rule.latest_value_avg))}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {formatNumber(rule.latest_coverage_days)}/{formatNumber(rule.latest_expected_days)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge value={rule.is_active} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={() => onRuleSelect(String(rule.rule_id))}>
+                      查看趋势
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="grid min-h-36 place-items-center rounded-md border border-dashed bg-secondary/30 p-4 text-center text-sm text-muted-foreground">
+            选择分类后加载规则列表与规则趋势
+          </div>
+        )}
       </div>
     </ListPanel>
   );
 }
 
 export function ClassificationStatisticsPage() {
+  const [filters, setFilters] = useState<ClassificationFiltersState>(DEFAULT_CLASSIFICATION_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<ClassificationFiltersState>(DEFAULT_CLASSIFICATION_FILTERS);
+  const [ruleSearch, setRuleSearch] = useState("");
   const query = useQuery({
-    queryKey: ["read-only", "classification-statistics"],
-    queryFn: () => fetchClassificationStatisticsSnapshot()
+    queryKey: ["read-only", "classification-statistics", filters],
+    queryFn: () => fetchClassificationStatisticsSnapshot(toClassificationApiFilters(filters))
   });
   const chartConfig = { value: { label: "匹配账户", color: "var(--chart-1)" } } satisfies ChartConfig;
+  const contributionChartConfig = { value: { label: "规则贡献", color: "var(--chart-2)" } } satisfies ChartConfig;
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -2740,12 +3104,30 @@ export function ClassificationStatisticsPage() {
       </CommandBar>
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="分类统计" onRetry={() => void query.refetch()}>
         {(snapshot) => {
-          const chartData = buildClassificationChartData(snapshot);
+          const trendPoints = selectedTrendPoints(snapshot, filters);
+          const chartData = buildTrendChartData(trendPoints);
           const topStats = topClassificationStats(snapshot.stats);
-          const coverageLabel = trendCoverageLabel(snapshot);
+          const coverageLabel = trendCoverageLabel(snapshot, trendPoints);
+          const trendName = selectedTrendName(snapshot, filters);
+          const rules = snapshot.rulesOverview?.rules ?? [];
+          const contributionItems = snapshot.ruleContributions?.contributions ?? [];
+          const contributionData = buildRuleContributionChartData(contributionItems);
           return (
             <>
-              <ClassificationFilterPanel snapshot={snapshot} />
+              <ClassificationFilterPanel
+                draft={draftFilters}
+                onApply={() => {
+                  setFilters({ ...draftFilters, ruleId: "" });
+                  setRuleSearch("");
+                }}
+                onDraftChange={setDraftFilters}
+                onReset={() => {
+                  setDraftFilters(DEFAULT_CLASSIFICATION_FILTERS);
+                  setFilters(DEFAULT_CLASSIFICATION_FILTERS);
+                  setRuleSearch("");
+                }}
+                snapshot={snapshot}
+              />
               <MetricGrid
                 label="分类统计指标"
                 metrics={[
@@ -2756,18 +3138,31 @@ export function ClassificationStatisticsPage() {
                 ]}
               />
               <section className="grid grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] gap-2 max-xl:grid-cols-1">
-                <ClassificationRulesListPanel />
+                <ClassificationRulesListPanel
+                  filters={filters}
+                  onRuleSelect={(ruleId) => {
+                    setFilters({ ...filters, ruleId });
+                    setDraftFilters({ ...draftFilters, ruleId });
+                  }}
+                  onRuleStatusChange={(ruleStatus) => {
+                    setFilters({ ...filters, ruleId: "", ruleStatus });
+                    setDraftFilters({ ...draftFilters, ruleId: "", ruleStatus });
+                  }}
+                  onSearchChange={setRuleSearch}
+                  rules={rules}
+                  search={ruleSearch}
+                />
                 <div className="grid gap-2">
                   <Card>
                     <CardHeader className="flex flex-row items-start justify-between gap-3">
                       <div>
-                        <CardTitle>分类趋势（去重账号数）</CardTitle>
-                        <CardDescription>分类趋势面积图</CardDescription>
+                        <CardTitle>{filters.ruleId ? "规则趋势（命中账号数）" : "分类趋势（去重账号数）"}</CardTitle>
+                        <CardDescription>{filters.ruleId ? "规则趋势面积图" : "分类趋势面积图"}</CardDescription>
                       </div>
                       <Badge variant="outline">{coverageLabel}</Badge>
                     </CardHeader>
                     <CardContent>
-                      {snapshot.trends.series[0]?.classification_name ? <div className="mb-2 text-sm font-medium">{snapshot.trends.series[0].classification_name}</div> : null}
+                      {trendName ? <div className="mb-2 text-sm font-medium">{trendName}</div> : null}
                       {chartData.length > 0 ? (
                         <ChartContainer config={chartConfig} className="h-[240px] w-full">
                           <AreaChart accessibilityLayer data={chartData} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
@@ -2793,14 +3188,38 @@ export function ClassificationStatisticsPage() {
                     <CardHeader className="flex flex-row items-start justify-between gap-3">
                       <div>
                         <CardTitle>规则贡献（当前周期）</CardTitle>
-                        <CardDescription>规则之间允许重叠，当前只读首屏默认展示选择分类后的贡献图。</CardDescription>
+                        <CardDescription>选择分类后展示当前周期 Top 规则贡献。</CardDescription>
                       </div>
-                      <Badge variant="outline">{coverageLabel}</Badge>
+                      <Badge variant="outline">
+                        覆盖 {formatNumber(snapshot.ruleContributions?.coverage_days)}/{formatNumber(snapshot.ruleContributions?.expected_days)}
+                      </Badge>
                     </CardHeader>
                     <CardContent className="grid gap-3">
-                      <div className="grid min-h-36 place-items-center rounded-md border border-dashed bg-secondary/30 p-4 text-center text-sm text-muted-foreground">
-                        选择分类后展示规则贡献
-                      </div>
+                      {contributionData.length > 0 ? (
+                        <ChartContainer config={contributionChartConfig} className="h-[220px] w-full">
+                          <BarChart accessibilityLayer data={contributionData} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                            <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
+                            <ChartTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="value" name="规则贡献" fill="var(--color-value)" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ChartContainer>
+                      ) : (
+                        <div className="grid min-h-36 place-items-center rounded-md border border-dashed bg-secondary/30 p-4 text-center text-sm text-muted-foreground">
+                          选择分类后展示规则贡献
+                        </div>
+                      )}
+                      {contributionItems.length > 0 ? (
+                        <div className="grid gap-2">
+                          {contributionItems.slice(0, 5).map((item) => (
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2 text-sm" key={item.rule_id}>
+                              <span className="truncate">{item.rule_name}</span>
+                              <span className="font-mono">贡献 {formatNumber(asNumber(item.value_sum ?? item.value_avg))}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                       <p className="text-sm text-muted-foreground">说明：规则之间允许重叠，“各规则之和”不等于分类去重总数。</p>
                     </CardContent>
                   </Card>
@@ -2836,6 +3255,7 @@ export function ClassificationStatisticsPage() {
 export function SchedulerPage() {
   const query = useQuery({ queryKey: ["read-only", "scheduler"], queryFn: () => fetchSchedulerSnapshot() });
   const [editingJob, setEditingJob] = useState<SchedulerJobItem | null>(null);
+  const [viewingJob, setViewingJob] = useState<SchedulerJobItem | null>(null);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -2871,13 +3291,22 @@ export function SchedulerPage() {
               }
             >
               <div className="grid gap-6">
-                <SchedulerJobSection title="运行中的任务" jobs={snapshot.jobs.filter((job) => isRunningState(job.state))} onEdit={setEditingJob} />
-                <SchedulerJobSection title="已暂停的任务" jobs={snapshot.jobs.filter((job) => !isRunningState(job.state))} onEdit={setEditingJob} />
+                <SchedulerJobSection title="运行中的任务" jobs={snapshot.jobs.filter((job) => isRunningState(job.state))} onEdit={setEditingJob} onView={setViewingJob} />
+                <SchedulerJobSection title="已暂停的任务" jobs={snapshot.jobs.filter((job) => !isRunningState(job.state))} onEdit={setEditingJob} onView={setViewingJob} />
               </div>
             </ListPanel>
           </>
         )}
       </QueryFrame>
+      <SchedulerJobDetailDialog
+        item={viewingJob}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingJob(null);
+          }
+        }}
+        open={viewingJob !== null}
+      />
       {editingJob ? (
         <SchedulerJobFormDialog
           item={editingJob}
@@ -3164,11 +3593,13 @@ export function UsersPage() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
+  const [viewingUser, setViewingUser] = useState<UserItem | null>(null);
   const columns = useMemo(
     () =>
       createUserColumns({
         onDelete: setDeletingUser,
-        onEdit: setEditingUser
+        onEdit: setEditingUser,
+        onView: setViewingUser
       }),
     []
   );
@@ -3227,6 +3658,15 @@ export function UsersPage() {
           </>
         )}
       </QueryFrame>
+      <UserDetailDialog
+        item={viewingUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingUser(null);
+          }
+        }}
+        open={viewingUser !== null}
+      />
       {creatingUser ? (
         <UserFormDialog
           item={null}
@@ -3819,11 +4259,13 @@ export function CredentialsPage() {
   const [creatingCredential, setCreatingCredential] = useState(false);
   const [editingCredential, setEditingCredential] = useState<CredentialItem | null>(null);
   const [deletingCredential, setDeletingCredential] = useState<CredentialItem | null>(null);
+  const [viewingCredential, setViewingCredential] = useState<CredentialItem | null>(null);
   const columns = useMemo(
     () =>
       createCredentialColumns({
         onDelete: setDeletingCredential,
-        onEdit: setEditingCredential
+        onEdit: setEditingCredential,
+        onView: setViewingCredential
       }),
     []
   );
@@ -3875,6 +4317,15 @@ export function CredentialsPage() {
           </>
         )}
       </QueryFrame>
+      <CredentialDetailDialog
+        item={viewingCredential}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingCredential(null);
+          }
+        }}
+        open={viewingCredential !== null}
+      />
       {creatingCredential ? (
         <CredentialFormDialog
           item={null}
@@ -3933,12 +4384,14 @@ export function TagsPage() {
   const [creatingTag, setCreatingTag] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
+  const [viewingTag, setViewingTag] = useState<TagItem | null>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const columns = useMemo(
     () =>
       createTagColumns({
         onDelete: setDeletingTag,
-        onEdit: setEditingTag
+        onEdit: setEditingTag,
+        onView: setViewingTag
       }),
     []
   );
@@ -3994,6 +4447,15 @@ export function TagsPage() {
           </>
         )}
       </QueryFrame>
+      <TagDetailDialog
+        item={viewingTag}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingTag(null);
+          }
+        }}
+        open={viewingTag !== null}
+      />
       {creatingTag ? (
         <TagFormDialog
           item={null}
@@ -4086,8 +4548,16 @@ function PartitionsTable({ items }: { items: PartitionItem[] }) {
   );
 }
 
+const PARTITION_PERIOD_OPTIONS: Array<PartitionMetricsFilters & { label: string }> = [
+  { label: "日", periodType: "daily", days: 7 },
+  { label: "周", periodType: "weekly", days: 28 },
+  { label: "月", periodType: "monthly", days: 90 },
+  { label: "季", periodType: "quarterly", days: 365 }
+];
+
 export function PartitionsPage() {
-  const query = useQuery({ queryKey: ["read-only", "partitions"], queryFn: () => fetchPartitionsSnapshot() });
+  const [metricFilters, setMetricFilters] = useState<PartitionMetricsFilters>(PARTITION_PERIOD_OPTIONS[0]);
+  const query = useQuery({ queryKey: ["read-only", "partitions", metricFilters], queryFn: () => fetchPartitionsSnapshot(metricFilters) });
   const chartConfig = { value: { label: "分区指标", color: "var(--chart-2)" } } satisfies ChartConfig;
   const [partitionDate, setPartitionDate] = useState("");
   const [retentionMonths, setRetentionMonths] = useState("12");
@@ -4153,9 +4623,15 @@ export function PartitionsPage() {
                       <span>{snapshot.status.timestamp ?? "-"}</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      {["日", "周", "月", "季"].map((period, index) => (
-                        <Button key={period} size="sm" type="button" variant={index === 0 ? "default" : "outline"}>
-                          {period}
+                      {PARTITION_PERIOD_OPTIONS.map((option) => (
+                        <Button
+                          key={option.periodType}
+                          onClick={() => setMetricFilters({ days: option.days, periodType: option.periodType })}
+                          size="sm"
+                          type="button"
+                          variant={metricFilters.periodType === option.periodType ? "default" : "outline"}
+                        >
+                          {option.label}
                         </Button>
                       ))}
                     </div>

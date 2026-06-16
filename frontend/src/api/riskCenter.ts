@@ -60,10 +60,47 @@ export type RiskCenterSnapshot = {
   cards: RiskCenterCardsResponse;
 };
 
-export async function fetchRiskCenterSnapshot(client: ApiReader = apiClient): Promise<RiskCenterSnapshot> {
+export type RiskCenterFilters = {
+  dbType?: string;
+  limit?: number;
+  page?: number;
+  search?: string;
+  severity?: string;
+  status?: string;
+  tag?: string;
+};
+
+function riskCardsPath(filters: RiskCenterFilters): string {
+  const params = new URLSearchParams();
+  params.set("limit", String(filters.limit ?? 12));
+  if (filters.page) {
+    params.set("page", String(filters.page));
+  }
+  if (filters.severity) {
+    params.set("severity", filters.severity);
+  }
+  if (filters.dbType) {
+    params.set("db_type", filters.dbType);
+  }
+  if (filters.status) {
+    params.set("status", filters.status);
+  }
+  if (filters.tag) {
+    params.set("tag", filters.tag);
+  }
+  if (filters.search) {
+    params.set("search", filters.search);
+  }
+  return `/api/v1/risk-center/cards?${params.toString()}`;
+}
+
+export async function fetchRiskCenterSnapshot(
+  filters: RiskCenterFilters = {},
+  client: ApiReader = apiClient
+): Promise<RiskCenterSnapshot> {
   const [summary, cards] = await Promise.all([
     client.get<RiskCenterSummary>("/api/v1/risk-center/summary"),
-    client.get<RiskCenterCardsResponse>("/api/v1/risk-center/cards?limit=12")
+    client.get<RiskCenterCardsResponse>(riskCardsPath(filters))
   ]);
 
   return {

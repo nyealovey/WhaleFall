@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Database, HardDrive, Layers3, ListChecks, RefreshCw, ShieldAlert, ShieldCheck, type LucideIcon } from "lucide-react";
+import { useState, type FormEvent } from "react";
 
-import { fetchRiskCenterSnapshot, type RiskCenterCard, type RiskSeverity } from "@/api/riskCenter";
+import { fetchRiskCenterSnapshot, type RiskCenterCard, type RiskCenterFilters, type RiskSeverity } from "@/api/riskCenter";
 import { SelectControl } from "@/components/shared/FormControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,58 @@ const SEVERITY_LABELS: Record<string, string> = {
   low: "低风险",
   ok: "健康"
 };
+
+const RISK_SEVERITY_OPTIONS = [
+  { label: "全部", value: "" },
+  { label: "高风险", value: "high" },
+  { label: "中风险", value: "medium" },
+  { label: "低风险", value: "low" },
+  { label: "健康", value: "ok" }
+];
+
+const RISK_DB_TYPE_OPTIONS = [
+  { label: "全部", value: "" },
+  { label: "MySQL", value: "mysql" },
+  { label: "PostgreSQL", value: "postgresql" },
+  { label: "SQL Server", value: "sqlserver" },
+  { label: "Oracle", value: "oracle" }
+];
+
+const RISK_STATUS_OPTIONS = [
+  { label: "全部", value: "" },
+  { label: "异常", value: "warning" },
+  { label: "严重", value: "danger" },
+  { label: "健康", value: "ok" },
+  { label: "未配置", value: "missing" }
+];
+
+const RISK_TAG_OPTIONS = [
+  { label: "全部", value: "" },
+  { label: "生产", value: "prod" },
+  { label: "测试", value: "test" },
+  { label: "核心", value: "core" }
+];
+
+function cleanRiskFilters(filters: RiskCenterFilters): RiskCenterFilters {
+  const cleaned: RiskCenterFilters = {};
+  const search = filters.search?.trim();
+  if (search) {
+    cleaned.search = search;
+  }
+  if (filters.severity) {
+    cleaned.severity = filters.severity;
+  }
+  if (filters.dbType) {
+    cleaned.dbType = filters.dbType;
+  }
+  if (filters.status) {
+    cleaned.status = filters.status;
+  }
+  if (filters.tag) {
+    cleaned.tag = filters.tag;
+  }
+  return cleaned;
+}
 
 function formatNumber(value: number | undefined): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
@@ -78,29 +131,82 @@ function RiskSignal({ icon: Icon, label, metric }: { icon: LucideIcon; label: st
   );
 }
 
-function RiskFilterPanel() {
+function RiskFilterPanel({
+  draft,
+  onApply,
+  onDraftChange,
+  onReset
+}: {
+  draft: RiskCenterFilters;
+  onApply: () => void;
+  onDraftChange: (draft: RiskCenterFilters) => void;
+  onReset: () => void;
+}) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onApply();
+  }
+
   return (
     <Card>
       <CardContent className="grid gap-3">
-        <div className="grid grid-cols-[minmax(16rem,1.2fr)_repeat(4,minmax(8rem,0.7fr))_auto] items-end gap-3 max-2xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+        <form
+          className="grid grid-cols-[minmax(16rem,1.2fr)_repeat(4,minmax(8rem,0.7fr))_auto] items-end gap-3 max-2xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1"
+          onSubmit={handleSubmit}
+        >
           <label className="grid gap-1.5 text-sm font-medium">
             <span>搜索</span>
             <span className="text-xs font-normal text-muted-foreground">实例名 / 主机 / 类型</span>
-            <Input placeholder="实例名 / 主机 / 类型" readOnly type="search" />
+            <Input
+              onChange={(event) => onDraftChange({ ...draft, search: event.target.value })}
+              placeholder="实例名 / 主机 / 类型"
+              type="search"
+              value={draft.search ?? ""}
+            />
           </label>
-          {["严重度", "数据库类型", "状态", "标签"].map((label) => (
-            <label className="grid gap-1.5 text-sm font-medium" key={label}>
-              <span>{label}</span>
-              <SelectControl label={label} defaultValue="" options={[{ label: "全部", value: "" }]} />
-            </label>
-          ))}
+          <label className="grid gap-1.5 text-sm font-medium">
+            <span>严重度</span>
+            <SelectControl
+              label="严重度"
+              onValueChange={(severity) => onDraftChange({ ...draft, severity })}
+              options={RISK_SEVERITY_OPTIONS}
+              value={draft.severity ?? ""}
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">
+            <span>数据库类型</span>
+            <SelectControl
+              label="数据库类型"
+              onValueChange={(dbType) => onDraftChange({ ...draft, dbType })}
+              options={RISK_DB_TYPE_OPTIONS}
+              value={draft.dbType ?? ""}
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">
+            <span>状态</span>
+            <SelectControl
+              label="状态"
+              onValueChange={(status) => onDraftChange({ ...draft, status })}
+              options={RISK_STATUS_OPTIONS}
+              value={draft.status ?? ""}
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">
+            <span>标签</span>
+            <SelectControl
+              label="标签"
+              onValueChange={(tag) => onDraftChange({ ...draft, tag })}
+              options={RISK_TAG_OPTIONS}
+              value={draft.tag ?? ""}
+            />
+          </label>
           <div className="flex items-center gap-2">
-            <Button type="button">筛选</Button>
-            <Button type="button" variant="outline">
+            <Button type="submit">筛选</Button>
+            <Button onClick={onReset} type="button" variant="outline">
               清空
             </Button>
           </div>
-        </div>
+        </form>
       </CardContent>
     </Card>
   );
@@ -158,9 +264,11 @@ function RiskCard({ card }: { card: RiskCenterCard }) {
 }
 
 export function RiskCenterPage() {
+  const [filters, setFilters] = useState<RiskCenterFilters>({});
+  const [draftFilters, setDraftFilters] = useState<RiskCenterFilters>({});
   const riskQuery = useQuery({
-    queryKey: ["risk-center", "snapshot"],
-    queryFn: () => fetchRiskCenterSnapshot()
+    queryKey: ["risk-center", "snapshot", filters],
+    queryFn: () => fetchRiskCenterSnapshot(filters)
   });
 
   const snapshot = riskQuery.data;
@@ -213,6 +321,16 @@ export function RiskCenterPage() {
         </Alert>
       ) : null}
 
+      <RiskFilterPanel
+        draft={draftFilters}
+        onApply={() => setFilters(cleanRiskFilters(draftFilters))}
+        onDraftChange={setDraftFilters}
+        onReset={() => {
+          setDraftFilters({});
+          setFilters({});
+        }}
+      />
+
       {snapshot ? (
         <>
           <section className="grid grid-cols-5 gap-2 max-xl:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1" aria-label="风险汇总">
@@ -231,8 +349,6 @@ export function RiskCenterPage() {
               </Card>
             ))}
           </section>
-
-          <RiskFilterPanel />
 
           <section className="grid grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)] gap-2 max-xl:grid-cols-1">
             <Card>

@@ -4,6 +4,15 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  fetchClassificationStatisticsSnapshot,
+  fetchCredentialDetail,
+  fetchPartitionsSnapshot,
+  fetchSchedulerJobDetail,
+  fetchTagDetail,
+  fetchUserDetail
+} from "@/api/readOnly";
+
+import {
   AccountClassificationsPage,
   ClassificationStatisticsPage,
   ClustersPage,
@@ -115,12 +124,40 @@ vi.mock("@/api/readOnly", () => ({
   fetchAccountClassificationPermissions: vi.fn(async () => ({
     permissions: { mysql: ["SELECT", "SUPER"] }
   })),
-  fetchClassificationStatisticsSnapshot: vi.fn(async () => ({
+  fetchClassificationStatisticsSnapshot: vi.fn(
+    async (filters?: { classificationId?: string | number; ruleId?: string | number; ruleStatus?: string }) => ({
     stats: { dba: { total_accounts: 8, matched_accounts_count: 8 } },
     trends: {
       buckets: [{ period_start: "2026-06-05", period_end: "2026-06-05" }],
       series: [{ classification_id: 1, classification_name: "DBA", points: [{ period_start: "2026-06-05", value: 8 }] }]
-    }
+    },
+    selectedClassificationTrend: filters?.classificationId ? [{ period_start: "2026-06-05", value: 8 }] : undefined,
+    selectedRuleTrend: filters?.ruleId ? [{ period_start: "2026-06-05", value: 8 }] : undefined,
+    rulesOverview: filters?.classificationId
+      ? {
+          latest_coverage_days: 1,
+          latest_expected_days: 1,
+          rules: [
+            {
+              rule_id: 9,
+              rule_name: "root rule",
+              db_type: "mysql",
+              is_active: filters.ruleStatus !== "archived",
+              latest_value_sum: 8,
+              latest_coverage_days: 1,
+              latest_expected_days: 1,
+              window_value_sum: 8
+            }
+          ]
+        }
+      : undefined,
+    ruleContributions: filters?.classificationId
+      ? {
+          coverage_days: 1,
+          expected_days: 1,
+          contributions: [{ rule_id: 9, rule_name: "root rule", db_type: "mysql", is_active: true, value_sum: 8 }]
+        }
+      : undefined
   })),
   fetchSchedulerSnapshot: vi.fn(async () => ({
     jobs: [
@@ -149,6 +186,17 @@ vi.mock("@/api/readOnly", () => ({
         is_builtin: true
       }
     ]
+  })),
+  fetchSchedulerJobDetail: vi.fn(async () => ({
+    id: "job-1",
+    name: "同步任务",
+    trigger: "cron[minute='*/5']",
+    func: "tasks.sync",
+    args: ["accounts"],
+    kwargs: { scope: "all" },
+    misfire_grace_time: 60,
+    max_instances: 1,
+    coalesce: true
   })),
   fetchSyncSessionsSnapshot: vi.fn(async () => ({
     items: [
@@ -219,6 +267,9 @@ vi.mock("@/api/readOnly", () => ({
     list: { items: [{ id: 1, username: "admin", role: "admin", is_active: true, created_at_display: "2026-06-11" }], total: 1, page: 1, pages: 1, limit: 10 },
     stats: { total: 1, active: 1, inactive: 0, admin: 1, user: 0 }
   })),
+  fetchUserDetail: vi.fn(async () => ({
+    user: { id: 1, username: "admin", role: "admin", is_active: true, created_at_display: "2026-06-11", last_login: "2026-06-12T10:00:00+08:00" }
+  })),
   fetchSettingsSnapshot: vi.fn(async () => ({
     alerts: {
       smtp_ready: true,
@@ -248,9 +299,25 @@ vi.mock("@/api/readOnly", () => ({
     pages: 1,
     limit: 20
   })),
+  fetchCredentialDetail: vi.fn(async () => ({
+    credential: {
+      id: 1,
+      name: "prod-db",
+      credential_type: "database",
+      db_type: "mysql",
+      username: "root",
+      is_active: true,
+      instance_count: 2,
+      description: "production credential",
+      created_at_display: "2026-06-11"
+    }
+  })),
   fetchTagsSnapshot: vi.fn(async () => ({
     list: { items: [{ id: 1, name: "prod", display_name: "生产", category: "env", is_active: true, instance_count: 3 }], total: 1, page: 1, pages: 1, limit: 20, stats: { total: 1, active: 1, inactive: 0, category_count: 1 } },
     categories: ["env"]
+  })),
+  fetchTagDetail: vi.fn(async () => ({
+    tag: { id: 1, name: "prod", display_name: "生产", category: "env", is_active: true, instance_count: 3, created_at: "2026-06-11T00:00:00+08:00" }
   })),
   fetchTagBulkOptions: vi.fn(async () => ({
     instances: [{ id: 1, name: "mysql-prod", db_type: "mysql", host: "10.0.0.1" }],
@@ -710,6 +777,30 @@ describe("RemainingReadOnlyPages", () => {
     }
   });
 
+  it("loads classification rule list, contributions, and rule trend after selecting a classification", async () => {
+    renderWithQueryClient(<ClassificationStatisticsPage />);
+
+    await screen.findByRole("heading", { name: "分类统计" });
+    fireEvent.click(await screen.findByRole("combobox", { name: "账户分类" }));
+    fireEvent.click(await screen.findByRole("option", { name: "DBA" }));
+    fireEvent.click(screen.getByRole("button", { name: "应用" }));
+
+    await waitFor(() => {
+      expect(fetchClassificationStatisticsSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({ classificationId: "1", periodType: "daily", periods: 7 })
+      );
+    });
+    await expectTextPresent("root rule");
+    await expectTextPresent("贡献 8");
+
+    fireEvent.click(screen.getByRole("button", { name: "查看趋势" }));
+
+    await waitFor(() => {
+      expect(fetchClassificationStatisticsSnapshot).toHaveBeenLastCalledWith(expect.objectContaining({ ruleId: "9" }));
+    });
+    await expectTextPresent("规则趋势（命中账号数）");
+  });
+
   it("runs direct account classification actions through v1 APIs", async () => {
     renderWithQueryClient(<AccountClassificationsPage />);
 
@@ -1051,6 +1142,39 @@ describe("RemainingReadOnlyPages", () => {
     });
   });
 
+  it("opens detail dialogs for scheduler jobs, users, credentials, and tags", async () => {
+    renderWithQueryClient(<SchedulerPage />);
+    await screen.findByRole("heading", { name: "定时任务" });
+    fireEvent.click(await screen.findByRole("button", { name: "查看任务 同步任务" }));
+    const jobDialog = await screen.findByRole("dialog", { name: "任务详情 同步任务" });
+    expect(await within(jobDialog).findByText("tasks.sync")).toBeInTheDocument();
+    expect(fetchSchedulerJobDetail).toHaveBeenCalledWith("job-1");
+
+    cleanup();
+    renderWithQueryClient(<UsersPage />);
+    await screen.findByRole("heading", { name: "用户管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "查看用户 admin" }));
+    const userDialog = await screen.findByRole("dialog", { name: "用户详情 admin" });
+    expect(await within(userDialog).findByText("2026-06-12T10:00:00+08:00")).toBeInTheDocument();
+    expect(fetchUserDetail).toHaveBeenCalledWith(1);
+
+    cleanup();
+    renderWithQueryClient(<CredentialsPage />);
+    await screen.findByRole("heading", { name: "凭据管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "查看凭据 prod-db" }));
+    const credentialDialog = await screen.findByRole("dialog", { name: "凭据详情 prod-db" });
+    expect(await within(credentialDialog).findByText("production credential")).toBeInTheDocument();
+    expect(fetchCredentialDetail).toHaveBeenCalledWith(1);
+
+    cleanup();
+    renderWithQueryClient(<TagsPage />);
+    await screen.findByRole("heading", { name: "标签管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "查看标签 生产" }));
+    const tagDialog = await screen.findByRole("dialog", { name: "标签详情 生产" });
+    expect(await within(tagDialog).findByText("#prod")).toBeInTheDocument();
+    expect(fetchTagDetail).toHaveBeenCalledWith(1);
+  });
+
   it("runs tag bulk assignment and removal through v1 APIs", async () => {
     renderWithQueryClient(<TagsPage />);
 
@@ -1073,6 +1197,20 @@ describe("RemainingReadOnlyPages", () => {
 
     await waitFor(() => {
       expect(actionMocks.removeAllTagsFromInstances).toHaveBeenCalledWith([1]);
+    });
+  });
+
+  it("switches partition core metrics period through v1 API parameters", async () => {
+    renderWithQueryClient(<PartitionsPage />);
+
+    await screen.findByRole("heading", { name: "分区管理" });
+    await waitFor(() => expect(screen.getByText("p202606")).toBeInTheDocument());
+    vi.mocked(fetchPartitionsSnapshot).mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "周" }));
+
+    await waitFor(() => {
+      expect(fetchPartitionsSnapshot).toHaveBeenLastCalledWith({ days: 28, periodType: "weekly" });
     });
   });
 });

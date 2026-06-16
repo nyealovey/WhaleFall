@@ -14,10 +14,15 @@ describe("capacity api", () => {
         .mockResolvedValueOnce({ items: [{ id: 4, instance_id: 10, period_start: "2026-06-11" }], total: 1, page: 1, pages: 1, limit: 200 })
     };
 
-    const snapshot = await fetchCapacityInstanceSnapshot(client, {
-      startDate: "2026-05-12",
-      endDate: "2026-06-11"
-    });
+    const snapshot = await fetchCapacityInstanceSnapshot(
+      {
+        range: {
+          startDate: "2026-05-12",
+          endDate: "2026-06-11"
+        }
+      },
+      client
+    );
 
     expect(client.get).toHaveBeenCalledWith(
       "/api/v1/capacity/instances?period_type=daily&page=1&limit=200&start_date=2026-05-12&end_date=2026-06-11"
@@ -46,10 +51,15 @@ describe("capacity api", () => {
         .mockResolvedValueOnce({ items: [{ id: 7, database_name: "app_db", period_start: "2026-06-11" }], total: 1, page: 1, pages: 1, limit: 200 })
     };
 
-    const snapshot = await fetchCapacityDatabaseSnapshot(client, {
-      startDate: "2026-05-12",
-      endDate: "2026-06-11"
-    });
+    const snapshot = await fetchCapacityDatabaseSnapshot(
+      {
+        range: {
+          startDate: "2026-05-12",
+          endDate: "2026-06-11"
+        }
+      },
+      client
+    );
 
     expect(client.get).toHaveBeenCalledWith(
       "/api/v1/capacity/databases?period_type=daily&page=1&limit=200&start_date=2026-05-12&end_date=2026-06-11"
@@ -65,5 +75,40 @@ describe("capacity api", () => {
     expect(snapshot.charts.trend.items[0]?.id).toBe(5);
     expect(snapshot.charts.change.items[0]?.id).toBe(6);
     expect(snapshot.charts.percent.items[0]?.id).toBe(7);
+  });
+
+  it("passes capacity filters to instance and database endpoints", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValue({ items: [], total: 0, page: 1, pages: 1, limit: 200, summary: {} })
+    };
+
+    await fetchCapacityInstanceSnapshot(
+      {
+        dbTypes: ["mysql"],
+        instanceIds: [10],
+        periodType: "weekly",
+        range: { startDate: "2026-06-01", endDate: "2026-06-16" }
+      },
+      client
+    );
+    await fetchCapacityDatabaseSnapshot(
+      {
+        databaseName: "app_db",
+        dbTypes: ["mysql"],
+        instanceIds: [10],
+        periodType: "monthly",
+        range: { startDate: "2026-06-01", endDate: "2026-06-16" }
+      },
+      client
+    );
+
+    expect(client.get).toHaveBeenCalledWith(
+      "/api/v1/capacity/instances?period_type=weekly&page=1&limit=200&start_date=2026-06-01&end_date=2026-06-16&instance_id=10&db_type=mysql"
+    );
+    expect(client.get).toHaveBeenCalledWith(
+      "/api/v1/capacity/databases?period_type=monthly&page=1&limit=200&start_date=2026-06-01&end_date=2026-06-16&instance_id=10&db_type=mysql&database_name=app_db"
+    );
   });
 });

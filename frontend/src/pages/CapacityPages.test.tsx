@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { fetchCapacityDatabaseSnapshot, fetchCapacityInstanceSnapshot } from "@/api/capacity";
+
 import { CapacityDatabasesPage, CapacityInstancesPage } from "./CapacityPages";
 
 const actionMocks = vi.hoisted(() => ({
@@ -12,6 +14,7 @@ const actionMocks = vi.hoisted(() => ({
 vi.mock("@/api/actions", () => actionMocks);
 
 vi.mock("@/api/capacity", () => ({
+  getDefaultCapacityRange: vi.fn(() => ({ startDate: "2026-05-17", endDate: "2026-06-16" })),
   fetchCapacityInstanceSnapshot: vi.fn(async () => ({
     summary: {
       total_instances: 2,
@@ -202,6 +205,11 @@ function renderWithQueryClient(element: ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>);
 }
 
+async function chooseSelectOption(label: string, optionName: string) {
+  fireEvent.click(screen.getByRole("combobox", { name: label }));
+  fireEvent.click(await screen.findByRole("option", { name: optionName }));
+}
+
 describe("CapacityPages", () => {
   it("renders instance capacity data from the API", async () => {
     renderWithQueryClient(<CapacityInstancesPage />);
@@ -283,6 +291,51 @@ describe("CapacityPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "统计当前周期" }));
     await waitFor(() => {
       expect(actionMocks.triggerCapacityAggregation).toHaveBeenCalledWith("database");
+    });
+  });
+
+  it("applies instance and database capacity filters to API requests", async () => {
+    renderWithQueryClient(<CapacityInstancesPage />);
+    await screen.findByRole("heading", { name: "实例容量" });
+    await waitFor(() => expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0));
+    vi.mocked(fetchCapacityInstanceSnapshot).mockClear();
+
+    await chooseSelectOption("数据库类型", "MySQL");
+    await chooseSelectOption("实例", "mysql-capacity");
+    await chooseSelectOption("周期", "周");
+    fireEvent.click(screen.getByRole("button", { name: "应用筛选" }));
+
+    await waitFor(() => {
+      expect(fetchCapacityInstanceSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          dbTypes: ["mysql"],
+          instanceIds: [10],
+          periodType: "weekly"
+        })
+      );
+    });
+
+    cleanup();
+    renderWithQueryClient(<CapacityDatabasesPage />);
+    await screen.findByRole("heading", { name: "数据库容量" });
+    await waitFor(() => expect(screen.getAllByText("app_db").length).toBeGreaterThan(0));
+    vi.mocked(fetchCapacityDatabaseSnapshot).mockClear();
+
+    await chooseSelectOption("数据库类型", "MySQL");
+    await chooseSelectOption("实例", "mysql-capacity");
+    await chooseSelectOption("数据库", "app_db");
+    await chooseSelectOption("周期", "月");
+    fireEvent.click(screen.getByRole("button", { name: "应用筛选" }));
+
+    await waitFor(() => {
+      expect(fetchCapacityDatabaseSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          databaseName: "app_db",
+          dbTypes: ["mysql"],
+          instanceIds: [10],
+          periodType: "monthly"
+        })
+      );
     });
   });
 });

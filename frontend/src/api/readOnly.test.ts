@@ -9,14 +9,18 @@ import {
   fetchMySqlClusterDetail,
   fetchSqlServerClusterDetail,
   fetchCredentialsSnapshot,
+  fetchCredentialDetail,
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
+  fetchSchedulerJobDetail,
   fetchSyncSessionDetail,
   fetchSyncSessionErrorLogs,
   fetchSettingsSnapshot,
   fetchSyncSessionsSnapshot,
+  fetchTagDetail,
   fetchTagBulkOptions,
   fetchTagsSnapshot,
+  fetchUserDetail,
   fetchUsersSnapshot
 } from "./readOnly";
 
@@ -109,12 +113,59 @@ describe("read-only migration api", () => {
         .mockResolvedValueOnce({ series: [{ classification_name: "DBA", points: [] }], buckets: [] })
     };
 
-    const snapshot = await fetchClassificationStatisticsSnapshot(client);
+    const snapshot = await fetchClassificationStatisticsSnapshot({}, client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/statistics/classifications");
     expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/statistics/classifications/trends?period_type=daily&periods=7");
     expect(snapshot.stats.dba).toEqual({ total_accounts: 8 });
     expect(snapshot.trends.series[0]?.classification_name).toBe("DBA");
+  });
+
+  it("loads classification rule overview, contributions, and selected trends", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ dba: { total_accounts: 8 } })
+        .mockResolvedValueOnce({ series: [{ classification_name: "DBA", points: [] }], buckets: [] })
+        .mockResolvedValueOnce({ trend: [{ period_start: "2026-06-11", value: 8 }] })
+        .mockResolvedValueOnce({ rules: [{ rule_id: 9, rule_name: "root rule", latest_value_sum: 8 }] })
+        .mockResolvedValueOnce({ contributions: [{ rule_id: 9, rule_name: "root rule", value_sum: 8 }] })
+        .mockResolvedValueOnce({ trend: [{ period_start: "2026-06-11", value: 8 }] })
+    };
+
+    const snapshot = await fetchClassificationStatisticsSnapshot(
+      {
+        accountScope: "instance:11",
+        classificationId: 1,
+        dbType: "mysql",
+        periodType: "weekly",
+        periods: 14,
+        ruleId: 9,
+        ruleStatus: "archived"
+      },
+      client
+    );
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/statistics/classifications");
+    expect(client.get).toHaveBeenCalledWith(
+      "/api/v1/accounts/statistics/classifications/trends?period_type=weekly&periods=14&db_type=mysql&account_scope=instance%3A11"
+    );
+    expect(client.get).toHaveBeenCalledWith(
+      "/api/v1/accounts/statistics/classifications/trend?classification_id=1&period_type=weekly&periods=14&db_type=mysql&account_scope=instance%3A11"
+    );
+    expect(client.get).toHaveBeenCalledWith(
+      "/api/v1/accounts/statistics/rules/overview?classification_id=1&period_type=weekly&periods=14&db_type=mysql&account_scope=instance%3A11&status=archived"
+    );
+    expect(client.get).toHaveBeenCalledWith(
+      "/api/v1/accounts/statistics/rules/contributions?classification_id=1&period_type=weekly&db_type=mysql&account_scope=instance%3A11&limit=10"
+    );
+    expect(client.get).toHaveBeenCalledWith(
+      "/api/v1/accounts/statistics/rules/trend?rule_id=9&period_type=weekly&periods=14&db_type=mysql&account_scope=instance%3A11"
+    );
+    expect(snapshot.selectedClassificationTrend?.[0]?.value).toBe(8);
+    expect(snapshot.rulesOverview?.rules[0]?.rule_name).toBe("root rule");
+    expect(snapshot.ruleContributions?.contributions[0]?.value_sum).toBe(8);
+    expect(snapshot.selectedRuleTrend?.[0]?.value).toBe(8);
   });
 
   it("loads automation lists", async () => {
@@ -132,6 +183,31 @@ describe("read-only migration api", () => {
     expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions?page=1&limit=100");
     expect(scheduler.jobs[0]?.task_name).toBe("同步任务");
     expect(sessions.items[0]?.session_id).toBe("s-1");
+  });
+
+  it("loads scheduler job, user, credential, and tag details", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ id: "job-1", trigger: "cron[minute='*/5']", func: "tasks.sync", max_instances: 1 })
+        .mockResolvedValueOnce({ user: { id: 1, username: "admin", last_login: "2026-06-11" } })
+        .mockResolvedValueOnce({ credential: { id: 2, name: "prod", username: "root" } })
+        .mockResolvedValueOnce({ tag: { id: 3, display_name: "生产", category: "env" } })
+    };
+
+    const job = await fetchSchedulerJobDetail("job-1", client);
+    const user = await fetchUserDetail(1, client);
+    const credential = await fetchCredentialDetail(2, client);
+    const tag = await fetchTagDetail(3, client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/users/1");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials/2");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/tags/3");
+    expect(job.trigger).toContain("cron");
+    expect(user.user.username).toBe("admin");
+    expect(credential.credential.name).toBe("prod");
+    expect(tag.tag.display_name).toBe("生产");
   });
 
   it("loads sync session detail and error logs", async () => {
@@ -168,7 +244,7 @@ describe("read-only migration api", () => {
     const users = await fetchUsersSnapshot(client);
     const credentials = await fetchCredentialsSnapshot(client);
     const tags = await fetchTagsSnapshot(client);
-    const partitions = await fetchPartitionsSnapshot(client);
+    const partitions = await fetchPartitionsSnapshot({}, client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/users?page=1&limit=200");
     expect(client.get).toHaveBeenCalledWith("/api/v1/users/stats");
@@ -182,6 +258,20 @@ describe("read-only migration api", () => {
     expect(credentials.items[0]?.name).toBe("prod");
     expect(tags.categories[0]).toBe("env");
     expect(partitions.list.items[0]?.name).toBe("p202606");
+  });
+
+  it("loads partitions with selected core metric period", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ data: { status: "healthy" }, timestamp: "2026-06-11T00:00:00+08:00" })
+        .mockResolvedValueOnce({ items: [], total: 0, page: 1, pages: 1, limit: 200 })
+        .mockResolvedValueOnce({ labels: [], datasets: [], dataPointCount: 0, timeRange: "28d", yAxisLabel: "count", chartTitle: "core", periodType: "weekly" })
+    };
+
+    await fetchPartitionsSnapshot({ days: 28, periodType: "weekly" }, client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/partitions/core-metrics?period_type=weekly&days=28");
   });
 
   it("loads tag bulk assignment options", async () => {

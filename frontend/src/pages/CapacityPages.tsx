@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Calculator, Database, ExternalLink, HardDrive, RefreshCw, Server } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { triggerCapacityAggregation } from "@/api/actions";
 import {
   fetchCapacityDatabaseSnapshot,
   fetchCapacityInstanceSnapshot,
+  getDefaultCapacityRange,
   type CapacityDatabaseItem,
   type CapacityDatabaseSnapshot,
+  type CapacityFilters,
   type CapacityInstanceItem,
   type CapacityInstanceSnapshot
 } from "@/api/capacity";
@@ -18,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { runAction } from "@/utils/action-feedback";
@@ -110,45 +113,124 @@ function CommandBar({ onAggregate, onRefresh }: { onAggregate: () => void; onRef
   );
 }
 
-function CapacityFilterBar({ includeDatabase }: { includeDatabase?: boolean }) {
+type CapacityFilterState = {
+  databaseName: string;
+  dbType: string;
+  endDate: string;
+  instanceId: string;
+  periodType: string;
+  startDate: string;
+};
+
+function defaultCapacityFilterState(): CapacityFilterState {
+  const range = getDefaultCapacityRange();
+  return {
+    databaseName: "",
+    dbType: "",
+    endDate: range.endDate,
+    instanceId: "",
+    periodType: "daily",
+    startDate: range.startDate
+  };
+}
+
+function toCapacityFilters(filters: CapacityFilterState): CapacityFilters {
+  return {
+    databaseName: filters.databaseName || undefined,
+    dbTypes: filters.dbType ? [filters.dbType] : undefined,
+    instanceIds: filters.instanceId ? [Number(filters.instanceId)] : undefined,
+    periodType: filters.periodType,
+    range: { startDate: filters.startDate, endDate: filters.endDate }
+  };
+}
+
+function CapacityFilterBar({
+  databaseOptions = [],
+  dbTypeOptions,
+  draft,
+  includeDatabase,
+  instanceOptions,
+  onApply,
+  onDraftChange,
+  onReset
+}: {
+  databaseOptions?: Array<{ label: string; value: string }>;
+  dbTypeOptions: Array<{ label: string; value: string }>;
+  draft: CapacityFilterState;
+  includeDatabase?: boolean;
+  instanceOptions: Array<{ label: string; value: string }>;
+  onApply: () => void;
+  onDraftChange: (draft: CapacityFilterState) => void;
+  onReset: () => void;
+}) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onApply();
+  }
+
   return (
-    <section className="grid grid-cols-4 gap-3 rounded-lg border bg-card p-3 max-xl:grid-cols-2 max-sm:grid-cols-1" aria-label="容量筛选">
+    <form
+      aria-label="容量筛选"
+      className="grid grid-cols-5 gap-3 rounded-lg border bg-card p-3 max-2xl:grid-cols-4 max-xl:grid-cols-2 max-sm:grid-cols-1"
+      onSubmit={handleSubmit}
+    >
+      <label className="grid gap-1.5 text-sm font-medium text-foreground">
+        <span>开始日期</span>
+        <Input onChange={(event) => onDraftChange({ ...draft, startDate: event.target.value })} type="date" value={draft.startDate} />
+      </label>
+      <label className="grid gap-1.5 text-sm font-medium text-foreground">
+        <span>结束日期</span>
+        <Input onChange={(event) => onDraftChange({ ...draft, endDate: event.target.value })} type="date" value={draft.endDate} />
+      </label>
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>数据库类型</span>
         <SelectControl
           label="数据库类型"
-          defaultValue="all"
-          options={[
-            { label: "全部类型", value: "all" },
-            { label: "MySQL", value: "mysql" },
-            { label: "SQL Server", value: "sqlserver" },
-            { label: "Oracle", value: "oracle" }
-          ]}
+          onValueChange={(dbType) => onDraftChange({ ...draft, dbType })}
+          options={[{ label: "全部类型", value: "" }, ...dbTypeOptions]}
+          value={draft.dbType}
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>实例</span>
-        <SelectControl label="实例" defaultValue="all" options={[{ label: "全部实例", value: "all" }]} />
+        <SelectControl
+          label="实例"
+          onValueChange={(instanceId) => onDraftChange({ ...draft, instanceId })}
+          options={[{ label: "全部实例", value: "" }, ...instanceOptions]}
+          value={draft.instanceId}
+        />
       </label>
       {includeDatabase ? (
         <label className="grid gap-1.5 text-sm font-medium text-foreground">
           <span>数据库</span>
-          <SelectControl label="数据库" defaultValue="all" options={[{ label: "全部数据库", value: "all" }]} />
+          <SelectControl
+            label="数据库"
+            onValueChange={(databaseName) => onDraftChange({ ...draft, databaseName })}
+            options={[{ label: "全部数据库", value: "" }, ...databaseOptions]}
+            value={draft.databaseName}
+          />
         </label>
       ) : null}
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>周期</span>
         <SelectControl
           label="周期"
-          defaultValue="daily"
+          onValueChange={(periodType) => onDraftChange({ ...draft, periodType })}
           options={[
             { label: "日", value: "daily" },
             { label: "周", value: "weekly" },
             { label: "月", value: "monthly" }
           ]}
+          value={draft.periodType}
         />
       </label>
-    </section>
+      <div className="flex items-end gap-2">
+        <Button type="submit">应用筛选</Button>
+        <Button onClick={onReset} type="button" variant="outline">
+          重置
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -533,6 +615,29 @@ function databaseLargestShare(summary: CapacityDatabaseSnapshot["summary"]): str
   return formatPercent((summary.max_size_mb / summary.total_size_mb) * 100);
 }
 
+function capacityDbTypeOptions(items: Array<CapacityInstanceItem | CapacityDatabaseItem>): Array<{ label: string; value: string }> {
+  return [...new Set(items.map((item) => item.instance.db_type).filter(Boolean))]
+    .sort()
+    .map((value) => ({
+      label: value === "mysql" ? "MySQL" : value === "sqlserver" ? "SQL Server" : value,
+      value
+    }));
+}
+
+function capacityInstanceOptions(items: Array<CapacityInstanceItem | CapacityDatabaseItem>): Array<{ label: string; value: string }> {
+  const options = new Map<string, string>();
+  items.forEach((item) => {
+    options.set(String(item.instance.id), item.instance.name);
+  });
+  return [...options.entries()].map(([value, label]) => ({ label, value }));
+}
+
+function capacityDatabaseOptions(items: CapacityDatabaseItem[]): Array<{ label: string; value: string }> {
+  return [...new Set(items.map((item) => item.database_name).filter(Boolean))]
+    .sort()
+    .map((value) => ({ label: value, value }));
+}
+
 function InstanceCapacityTable({ items }: { items: CapacityInstanceItem[] }) {
   return (
     <Table className="min-w-[58rem]">
@@ -612,9 +717,11 @@ function DatabaseCapacityTable({ items }: { items: CapacityDatabaseItem[] }) {
 }
 
 export function CapacityInstancesPage() {
+  const [filters, setFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
+  const [draftFilters, setDraftFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
   const capacityQuery = useQuery({
-    queryKey: ["capacity", "instances", "daily", "last-30-days"],
-    queryFn: () => fetchCapacityInstanceSnapshot()
+    queryKey: ["capacity", "instances", filters],
+    queryFn: () => fetchCapacityInstanceSnapshot(toCapacityFilters(filters))
   });
 
   return (
@@ -649,7 +756,18 @@ export function CapacityInstancesPage() {
                 { label: "最大容量", value: formatSizeMb(snapshot.summary.max_size_mb), icon: Database }
               ]}
             />
-            <CapacityFilterBar />
+            <CapacityFilterBar
+              dbTypeOptions={capacityDbTypeOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              draft={draftFilters}
+              instanceOptions={capacityInstanceOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              onApply={() => setFilters(draftFilters)}
+              onDraftChange={setDraftFilters}
+              onReset={() => {
+                const nextFilters = defaultCapacityFilterState();
+                setDraftFilters(nextFilters);
+                setFilters(nextFilters);
+              }}
+            />
             <CapacityCharts
               instanceChangeItems={snapshot.charts.change.items}
               instancePercentItems={snapshot.charts.percent.items}
@@ -667,9 +785,11 @@ export function CapacityInstancesPage() {
 }
 
 export function CapacityDatabasesPage() {
+  const [filters, setFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
+  const [draftFilters, setDraftFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
   const capacityQuery = useQuery({
-    queryKey: ["capacity", "databases", "daily", "last-30-days"],
-    queryFn: () => fetchCapacityDatabaseSnapshot()
+    queryKey: ["capacity", "databases", filters],
+    queryFn: () => fetchCapacityDatabaseSnapshot(toCapacityFilters(filters))
   });
 
   return (
@@ -709,7 +829,20 @@ export function CapacityDatabasesPage() {
                 { label: "最大容量", value: formatSizeMb(snapshot.summary.max_size_mb), detail: `最大占比 ${databaseLargestShare(snapshot.summary)}`, icon: Server }
               ]}
             />
-            <CapacityFilterBar includeDatabase />
+            <CapacityFilterBar
+              databaseOptions={capacityDatabaseOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              dbTypeOptions={capacityDbTypeOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              draft={draftFilters}
+              includeDatabase
+              instanceOptions={capacityInstanceOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              onApply={() => setFilters(draftFilters)}
+              onDraftChange={setDraftFilters}
+              onReset={() => {
+                const nextFilters = defaultCapacityFilterState();
+                setDraftFilters(nextFilters);
+                setFilters(nextFilters);
+              }}
+            />
             <CapacityCharts
               databaseChangeItems={snapshot.charts.change.items}
               databasePercentItems={snapshot.charts.percent.items}
