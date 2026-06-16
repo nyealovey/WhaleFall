@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Database, HardDrive, Layers3, ListChecks, RefreshCw, ShieldAlert, ShieldCheck, type LucideIcon } from "lucide-react";
 
 import { fetchRiskCenterSnapshot, type RiskCenterCard, type RiskSeverity } from "@/api/riskCenter";
+import { SelectControl } from "@/components/shared/FormControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,9 +79,6 @@ function RiskSignal({ icon: Icon, label, metric }: { icon: LucideIcon; label: st
 }
 
 function RiskFilterPanel() {
-  const selectClassName =
-    "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2";
-
   return (
     <Card>
       <CardContent className="grid gap-3">
@@ -93,9 +91,7 @@ function RiskFilterPanel() {
           {["严重度", "数据库类型", "状态", "标签"].map((label) => (
             <label className="grid gap-1.5 text-sm font-medium" key={label}>
               <span>{label}</span>
-              <select aria-label={label} className={selectClassName} defaultValue="">
-                <option value="">全部</option>
-              </select>
+              <SelectControl label={label} defaultValue="" options={[{ label: "全部", value: "" }]} />
             </label>
           ))}
           <div className="flex items-center gap-2">

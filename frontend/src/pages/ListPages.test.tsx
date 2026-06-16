@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import { AccountLedgersPage, DatabaseLedgersPage, InstanceDetailPage, InstancesPage } from "./ListPages";
 
 const actionMocks = vi.hoisted(() => ({
@@ -15,6 +17,10 @@ const actionMocks = vi.hoisted(() => ({
   restoreInstance: vi.fn(async () => ({ ok: true })),
   syncAccounts: vi.fn(async () => ({ run_id: "accounts-run" })),
   syncDatabases: vi.fn(async () => ({ run_id: "databases-run" })),
+  syncInstanceAccounts: vi.fn(async () => ({ session_id: "accounts-run" })),
+  syncInstanceAuditInfo: vi.fn(async () => ({ session_id: "audit-run" })),
+  syncInstanceBackup: vi.fn(async () => ({ run_id: "backup-run" })),
+  syncInstanceCapacity: vi.fn(async () => ({ result: { refreshed: 1 } })),
   testInstanceConnection: vi.fn(async () => ({ ok: true })),
   updateInstance: vi.fn(async () => ({ ok: true }))
 }));
@@ -105,12 +111,148 @@ vi.mock("@/api/lists", () => ({
     instance: {
       id: 1,
       name: "mysql-prod",
-      db_type: "mysql",
+      db_type: "sqlserver",
       host: "10.0.0.8",
       port: 3306,
       description: "生产实例",
-      is_active: true
+      is_active: true,
+      audit_status: "enabled",
+      backup_status: "backed_up",
+      main_version: "8.0",
+      last_sync_time: "2026-06-11T01:00:00+00:00",
+      tags: [{ name: "prod", display_name: "生产" }]
     }
+  })),
+  fetchInstanceConnectionStatus: vi.fn(async () => ({
+    instance_id: 1,
+    instance_name: "mysql-prod",
+    db_type: "mysql",
+    host: "10.0.0.8",
+    port: 3306,
+    status: "ok",
+    is_active: true,
+    last_connected: "2026-06-11T01:30:00+00:00"
+  })),
+  fetchInstanceAuditInfo: vi.fn(async () => ({
+    instance_id: 1,
+    instance_name: "mysql-prod",
+    db_type: "mysql",
+    supported: true,
+    available: true,
+    last_sync_time: "2026-06-11T01:20:00+00:00",
+    facts: {
+      audit_count: 2,
+      enabled_audit_count: 1,
+      specification_count: 3,
+      covered_database_count: 4
+    },
+    snapshot: {
+      server_audits: [{ name: "AuditProd", is_state_enabled: true }],
+      audit_specifications: [{ name: "SpecServer", is_state_enabled: true }],
+      database_audit_specifications: [{ name: "SpecDb", database_name: "app_db", is_state_enabled: false }]
+    }
+  })),
+  fetchInstanceBackupInfo: vi.fn(async () => ({
+    instance_id: 1,
+    instance_name: "mysql-prod",
+    backup_status: "backed_up",
+    backup_last_time: "2026-06-11T01:10:00+00:00",
+    matched_machine_name: "mysql-prod",
+    backup_chain_size_bytes: 2147483648,
+    restore_point_count: 2,
+    restore_points: [
+      { id: "rp-1", name: "Restore 1", type: "full", backup_size_bytes: 1073741824, creation_time: "2026-06-11T01:00:00+00:00" }
+    ]
+  })),
+  fetchInstanceAccounts: vi.fn(async () => ({
+    items: [
+      {
+        id: 3,
+        username: "readonly",
+        instance_name: "mysql-prod",
+        instance_host: "10.0.0.8",
+        db_type: "sqlserver",
+        is_locked: false,
+        is_superuser: false,
+        is_active: true,
+        is_deleted: false,
+        last_change_time: "2026-06-11T01:00:00+00:00",
+        availability_reasons: [],
+        tags: [{ name: "prod", display_name: "生产" }],
+        classifications: [{ display_name: "只读账户" }],
+        type_specific: { plugin: "mysql_native_password", account_kind: "user" }
+      },
+      {
+        id: 4,
+        username: "sa",
+        instance_name: "mysql-prod",
+        instance_host: "10.0.0.8",
+        db_type: "sqlserver",
+        is_locked: true,
+        is_superuser: true,
+        is_active: true,
+        is_deleted: false,
+        last_change_time: "2026-06-11T02:00:00+00:00",
+        availability_reasons: ["策略锁定"],
+        tags: [],
+        classifications: [],
+        type_specific: {}
+      }
+    ],
+    total: 2,
+    page: 1,
+    pages: 1,
+    limit: 200
+  })),
+  fetchInstanceAgAccounts: vi.fn(async () => ({
+    cluster: { id: 8, name: "sqlserver-ag-prod" },
+    items: [
+      {
+        id: 5,
+        username: "ag_reader",
+        db_type: "sqlserver",
+        availability_group_name: "AG_PROD",
+        listener_name: "AG_LISTENER",
+        listener_host: "ag-listener.whalefall.local",
+        is_locked: false,
+        is_superuser: false,
+        is_active: true,
+        is_deleted: false,
+        last_change_time: "2026-06-11T03:00:00+00:00",
+        availability_reasons: []
+      }
+    ],
+    total: 1,
+    summary: { total: 1, active: 1, deleted: 0, superuser: 0 }
+  })),
+  fetchInstanceDatabaseSizes: vi.fn(async () => ({
+    total: 2,
+    page: 1,
+    pages: 1,
+    limit: 100,
+    active_count: 1,
+    filtered_count: 1,
+    total_size_mb: 2048,
+    databases: [
+      {
+        id: 2,
+        database_name: "app_db",
+        size_mb: 2048,
+        data_size_mb: 1536,
+        log_size_mb: 512,
+        collected_at: "2026-06-11T01:00:00+00:00",
+        is_active: true
+      },
+      {
+        id: 3,
+        database_name: "legacy_db",
+        size_mb: 0,
+        collected_at: null,
+        is_active: false,
+        last_seen_date: "2026-06-10",
+        deleted_at: "2026-06-11T02:00:00+00:00"
+      }
+    ]
   })),
   fetchAccountPermissions: vi.fn(async () => ({
     account: { id: 3, username: "readonly", db_type: "mysql", instance_name: "mysql-prod" },
@@ -141,7 +283,11 @@ function renderWithQueryClient(element: ReactElement) {
     defaultOptions: { queries: { retry: false } }
   });
 
-  return render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{element}</TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 async function expectTextPresent(text: string) {
@@ -192,8 +338,11 @@ describe("ListPages", () => {
     await expectTextPresent("mysql-prod");
     fireEvent.click(screen.getByRole("button", { name: "添加实例" }));
     const createDialog = await screen.findByRole("dialog", { name: "新建实例" });
+    expect(createDialog.querySelector('select:not([aria-hidden="true"])')).toBeNull();
+    expect(createDialog.querySelector('input[type="checkbox"]:not([aria-hidden="true"])')).toBeNull();
+    expect(within(createDialog).getByRole("combobox", { name: "数据库类型" })).toBeInTheDocument();
+    expect(within(createDialog).getByRole("switch", { name: "启用" })).toBeInTheDocument();
     fireEvent.change(within(createDialog).getByLabelText("实例名称"), { target: { value: "mysql-new" } });
-    fireEvent.change(within(createDialog).getByLabelText("数据库类型"), { target: { value: "mysql" } });
     fireEvent.change(within(createDialog).getByLabelText("主机/IP"), { target: { value: "10.0.0.10" } });
     fireEvent.change(within(createDialog).getByLabelText("端口"), { target: { value: "3306" } });
     fireEvent.change(within(createDialog).getByLabelText("默认数据库"), { target: { value: "app_db" } });
@@ -293,7 +442,44 @@ describe("ListPages", () => {
     expect(await screen.findByRole("heading", { name: "实例详情 mysql-prod" })).toBeInTheDocument();
     expect(screen.getByText("生产实例")).toBeInTheDocument();
     expect(screen.getAllByText("10.0.0.8:3306").length).toBeGreaterThan(0);
+    expect(await screen.findByText("连接状态")).toBeInTheDocument();
+    expect(screen.getByText("审计目标数")).toBeInTheDocument();
+    expect(screen.getByText("备份链完整大小")).toBeInTheDocument();
+    expect(screen.getByText("AuditProd")).toBeInTheDocument();
+    expect(screen.getByText("Restore 1")).toBeInTheDocument();
+    expect(screen.getByText("账户信息")).toBeInTheDocument();
+    expect(screen.getByText("账户信息（AG）")).toBeInTheDocument();
+    expect(screen.getByText("容量信息")).toBeInTheDocument();
+    expect(screen.getByText("readonly")).toBeInTheDocument();
+    expect(screen.getByText("sa")).toBeInTheDocument();
+
+    const agAccountsTab = screen.getByRole("tab", { name: "账户信息（AG）" });
+    fireEvent.pointerDown(agAccountsTab);
+    fireEvent.click(agAccountsTab);
+    expect(await screen.findByText("AG_PROD")).toBeInTheDocument();
+    expect(screen.getByText(/AG_LISTENER/)).toBeInTheDocument();
+
+    const capacityTab = screen.getByRole("tab", { name: "容量信息" });
+    fireEvent.pointerDown(capacityTab);
+    fireEvent.click(capacityTab);
+    expect(screen.getAllByText("app_db").length).toBeGreaterThan(0);
+    expect(screen.getByText("legacy_db")).toBeInTheDocument();
+    expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "返回实例列表" })).toHaveAttribute("href", "/console/instances");
+
+    fireEvent.click(screen.getByRole("button", { name: "测试连接" }));
+    fireEvent.click(screen.getByRole("button", { name: "同步账户" }));
+    fireEvent.click(screen.getByRole("button", { name: "同步容量" }));
+    fireEvent.click(screen.getByRole("button", { name: "同步审计" }));
+    fireEvent.click(screen.getByRole("button", { name: "同步备份" }));
+
+    await waitFor(() => {
+      expect(actionMocks.testInstanceConnection).toHaveBeenCalledWith(1);
+      expect(actionMocks.syncInstanceAccounts).toHaveBeenCalledWith(1);
+      expect(actionMocks.syncInstanceCapacity).toHaveBeenCalledWith(1);
+      expect(actionMocks.syncInstanceAuditInfo).toHaveBeenCalledWith(1);
+      expect(actionMocks.syncInstanceBackup).toHaveBeenCalledWith(1);
+    });
   });
 
   it("renders database ledgers from the API", async () => {

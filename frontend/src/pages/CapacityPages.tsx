@@ -12,6 +12,7 @@ import {
   type CapacityInstanceItem,
   type CapacityInstanceSnapshot
 } from "@/api/capacity";
+import { SelectControl } from "@/components/shared/FormControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { runAction } from "@/utils/action-feedback";
 
 type Metric = {
   label: string;
@@ -108,42 +110,43 @@ function CommandBar({ onAggregate, onRefresh }: { onAggregate: () => void; onRef
   );
 }
 
-const selectClassName =
-  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
 function CapacityFilterBar({ includeDatabase }: { includeDatabase?: boolean }) {
   return (
     <section className="grid grid-cols-4 gap-3 rounded-lg border bg-card p-3 max-xl:grid-cols-2 max-sm:grid-cols-1" aria-label="容量筛选">
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>数据库类型</span>
-        <select aria-label="数据库类型" className={selectClassName} defaultValue="all">
-          <option value="all">全部类型</option>
-          <option value="mysql">MySQL</option>
-          <option value="sqlserver">SQL Server</option>
-          <option value="oracle">Oracle</option>
-        </select>
+        <SelectControl
+          label="数据库类型"
+          defaultValue="all"
+          options={[
+            { label: "全部类型", value: "all" },
+            { label: "MySQL", value: "mysql" },
+            { label: "SQL Server", value: "sqlserver" },
+            { label: "Oracle", value: "oracle" }
+          ]}
+        />
       </label>
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>实例</span>
-        <select aria-label="实例" className={selectClassName} defaultValue="all">
-          <option value="all">全部实例</option>
-        </select>
+        <SelectControl label="实例" defaultValue="all" options={[{ label: "全部实例", value: "all" }]} />
       </label>
       {includeDatabase ? (
         <label className="grid gap-1.5 text-sm font-medium text-foreground">
           <span>数据库</span>
-          <select aria-label="数据库" className={selectClassName} defaultValue="all">
-            <option value="all">全部数据库</option>
-          </select>
+          <SelectControl label="数据库" defaultValue="all" options={[{ label: "全部数据库", value: "all" }]} />
         </label>
       ) : null}
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>周期</span>
-        <select aria-label="周期" className={selectClassName} defaultValue="daily">
-          <option value="daily">日</option>
-          <option value="weekly">周</option>
-          <option value="monthly">月</option>
-        </select>
+        <SelectControl
+          label="周期"
+          defaultValue="daily"
+          options={[
+            { label: "日", value: "daily" },
+            { label: "周", value: "weekly" },
+            { label: "月", value: "monthly" }
+          ]}
+        />
       </label>
     </section>
   );
@@ -624,7 +627,7 @@ export function CapacityInstancesPage() {
       />
       <CommandBar
         onAggregate={() => {
-          void triggerCapacityAggregation("instance").then(() => capacityQuery.refetch());
+          void runAction(triggerCapacityAggregation("instance"), { success: "实例容量统计已触发" }).then(() => capacityQuery.refetch());
         }}
         onRefresh={() => {
           void capacityQuery.refetch();
@@ -679,7 +682,7 @@ export function CapacityDatabasesPage() {
       />
       <CommandBar
         onAggregate={() => {
-          void triggerCapacityAggregation("database").then(() => capacityQuery.refetch());
+          void runAction(triggerCapacityAggregation("database"), { success: "数据库容量统计已触发" }).then(() => capacityQuery.refetch());
         }}
         onRefresh={() => {
           void capacityQuery.refetch();

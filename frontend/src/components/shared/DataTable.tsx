@@ -11,6 +11,7 @@ import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type DataTableFilter = {
@@ -31,8 +32,7 @@ type DataTableProps<TData, TValue> = {
   toolbarExtras?: ReactNode;
 };
 
-const selectClassName =
-  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+const allFilterValue = "__all__";
 
 export function DataTable<TData, TValue>({
   columns,
@@ -92,21 +92,24 @@ export function DataTable<TData, TValue>({
               {filters.map((filter) => (
                 <label className="grid gap-1.5 text-sm font-medium text-foreground" key={filter.columnId}>
                   <span>{filter.label}</span>
-                  <select
-                    aria-label={filter.label}
-                    className={selectClassName}
-                    onChange={(event) => {
-                      table.getColumn(filter.columnId)?.setFilterValue(event.target.value || undefined);
+                  <Select
+                    onValueChange={(value) => {
+                      table.getColumn(filter.columnId)?.setFilterValue(value === allFilterValue ? undefined : value);
                     }}
-                    value={(table.getColumn(filter.columnId)?.getFilterValue() as string | undefined) ?? ""}
+                    value={(table.getColumn(filter.columnId)?.getFilterValue() as string | undefined) ?? allFilterValue}
                   >
-                    <option value="">全部</option>
-                    {filter.options.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label={filter.label}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={allFilterValue}>全部</SelectItem>
+                      {filter.options.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </label>
               ))}
               {toolbarExtras}

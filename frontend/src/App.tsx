@@ -4,6 +4,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { ApiError } from "./api/client";
 import { useLogin, useLogout, useSession } from "./auth/useSession";
+import { Toaster } from "./components/ui/sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { AppShell } from "./layout/AppShell";
 import { filterNavigationForRole, flattenNavigationItems, navigationGroups } from "./navigation";
 import { AccountChangeLogsPage, HistoryLogsPage } from "./pages/AuditPages";
@@ -157,7 +159,10 @@ function ConsoleRoutes() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ConsoleRoutes />
+      <TooltipProvider>
+        <ConsoleRoutes />
+        <Toaster />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

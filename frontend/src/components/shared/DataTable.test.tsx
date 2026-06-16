@@ -22,6 +22,11 @@ const columns: ColumnDef<Payment>[] = [
   }
 ];
 
+async function chooseOption(label: string, option: string) {
+  fireEvent.pointerDown(screen.getByRole("combobox", { name: label }), { button: 0, ctrlKey: false, pointerType: "mouse" });
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
 describe("DataTable", () => {
   it("renders column headers, rows, and pagination controls", () => {
     render(<DataTable columns={columns} data={[{ id: "p-1", status: "success", amount: 316 }]} />);
@@ -41,7 +46,7 @@ describe("DataTable", () => {
   });
 
   it("filters rows through the table toolbar", async () => {
-    render(
+    const { container } = render(
       <DataTable
         columns={columns}
         data={[
@@ -62,13 +67,16 @@ describe("DataTable", () => {
       />
     );
 
+    expect(container.querySelector('select:not([aria-hidden="true"])')).toBeNull();
+    expect(screen.getByRole("combobox", { name: "状态" })).toBeInTheDocument();
+
     fireEvent.change(screen.getByRole("searchbox", { name: "搜索" }), { target: { value: "failed" } });
 
     expect(screen.queryByText("success")).not.toBeInTheDocument();
     expect(screen.getByText("failed")).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("searchbox", { name: "搜索" }), { target: { value: "" } });
-    fireEvent.change(screen.getByLabelText("状态"), { target: { value: "success" } });
+    await chooseOption("状态", "成功");
 
     expect(screen.getByText("success")).toBeInTheDocument();
     expect(screen.queryByText("failed")).not.toBeInTheDocument();

@@ -278,13 +278,25 @@ async function expectTextPresent(text: string) {
   });
 }
 
+async function switchTab(name: string | RegExp) {
+  const tab = screen.getByRole("tab", { name });
+  fireEvent.mouseDown(tab, { button: 0, ctrlKey: false });
+  fireEvent.click(tab);
+  await waitFor(() => expect(tab).toHaveAttribute("aria-selected", "true"));
+}
+
+async function chooseSelectOption(scope: ReturnType<typeof within>, label: string, optionName: string) {
+  fireEvent.click(scope.getByRole("combobox", { name: label }));
+  fireEvent.click(await screen.findByRole("option", { name: optionName }));
+}
+
 describe("RemainingReadOnlyPages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   const cases: Array<[string, ReactElement, string[]]> = [
-    ["群集管理", <ClustersPage />, ["sql-ag", "mysql-repl"]],
+    ["群集管理", <ClustersPage />, ["sql-ag"]],
     ["账户分类", <AccountClassificationsPage />, ["DBA", "root rule"]],
     ["分类统计", <ClassificationStatisticsPage />, ["DBA", "分类趋势面积图"]],
     ["定时任务", <SchedulerPage />, ["同步任务", "运行中"]],
@@ -330,8 +342,6 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(await screen.findByRole("button", { name: "新建凭据" }));
     const createDialog = await screen.findByRole("dialog", { name: "新建凭据" });
     fireEvent.change(within(createDialog).getByLabelText("凭据名称"), { target: { value: "ops-db" } });
-    fireEvent.change(within(createDialog).getByLabelText("凭据类型"), { target: { value: "database" } });
-    fireEvent.change(within(createDialog).getByLabelText("数据库类型"), { target: { value: "mysql" } });
     fireEvent.change(within(createDialog).getByLabelText("用户名"), { target: { value: "app_user" } });
     fireEvent.change(within(createDialog).getByLabelText("密码"), { target: { value: "Strong123" } });
     fireEvent.change(within(createDialog).getByLabelText("描述"), { target: { value: "ops" } });
@@ -455,7 +465,6 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(await screen.findByRole("button", { name: "新建用户" }));
     const createDialog = await screen.findByRole("dialog", { name: "新建用户" });
     fireEvent.change(within(createDialog).getByLabelText("用户名"), { target: { value: "ops_user" } });
-    fireEvent.change(within(createDialog).getByLabelText("角色"), { target: { value: "user" } });
     fireEvent.change(within(createDialog).getByLabelText("初始密码"), { target: { value: "Aa123456" } });
     fireEvent.click(within(createDialog).getByRole("button", { name: "保存用户" }));
 
@@ -470,7 +479,7 @@ describe("RemainingReadOnlyPages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "编辑用户 admin" }));
     const editDialog = await screen.findByRole("dialog", { name: "编辑用户 admin" });
-    fireEvent.change(within(editDialog).getByLabelText("角色"), { target: { value: "user" } });
+    await chooseSelectOption(within(editDialog), "角色", "普通用户");
     fireEvent.click(within(editDialog).getByRole("button", { name: "保存用户" }));
 
     await waitFor(() => {
@@ -539,13 +548,21 @@ describe("RemainingReadOnlyPages", () => {
     for (const text of ["添加群集", "搜索", "状态", "SQL Server", "MySQL"]) {
       await expectTextPresent(text);
     }
-    for (const header of ["群集", "域名", "状态", "绑定实例", "AG", "最近 AG 同步", "数据库同步状态", "拓扑", "主从状态", "操作"]) {
+    for (const header of ["群集", "域名", "状态", "绑定实例", "AG", "最近 AG 同步", "数据库同步状态", "操作"]) {
       expect(screen.getAllByRole("columnheader", { name: header }).length).toBeGreaterThan(0);
     }
 
     expect(screen.getByRole("button", { name: "管理群集 sql-ag" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "AG账户 sql-ag" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看AG状态 sql-ag" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "管理群集 mysql-repl" })).not.toBeInTheDocument();
+
+    await switchTab(/MySQL/);
+
+    for (const header of ["群集", "拓扑", "状态", "绑定实例", "主从状态", "操作"]) {
+      expect(screen.getAllByRole("columnheader", { name: header }).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByRole("button", { name: "管理群集 sql-ag" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "管理群集 mysql-repl" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "主从状态 mysql-repl" })).toBeInTheDocument();
   });
@@ -596,6 +613,8 @@ describe("RemainingReadOnlyPages", () => {
       );
     });
 
+    await switchTab(/MySQL/);
+
     fireEvent.click(screen.getByRole("button", { name: "管理群集 mysql-repl" }));
     const mysqlEditDialog = await screen.findByRole("dialog", { name: "编辑 MySQL 群集 mysql-repl" });
     fireEvent.change(within(mysqlEditDialog).getByLabelText("群集名称"), { target: { value: "mysql-repl-updated" } });
@@ -633,6 +652,8 @@ describe("RemainingReadOnlyPages", () => {
       expect(actionMocks.syncSqlServerAgAccounts).toHaveBeenCalledTimes(2);
     });
 
+    await switchTab(/MySQL/);
+
     fireEvent.click(screen.getByRole("button", { name: "主从状态 mysql-repl" }));
     const mysqlDetailDialog = await screen.findByRole("dialog", { name: "MySQL 群集详情 mysql-repl" });
     expect(await within(mysqlDetailDialog).findByText("mysql-primary")).toBeInTheDocument();
@@ -668,9 +689,6 @@ describe("RemainingReadOnlyPages", () => {
       "账户分类",
       "统计周期",
       "日统计",
-      "周统计",
-      "月统计",
-      "季统计",
       "数据库类型",
       "实例/AG",
       "规则列表",
@@ -684,6 +702,11 @@ describe("RemainingReadOnlyPages", () => {
       "说明：规则之间允许重叠，“各规则之和”不等于分类去重总数。"
     ]) {
       await expectTextPresent(text);
+    }
+
+    fireEvent.click(screen.getByRole("combobox", { name: "统计周期" }));
+    for (const option of ["周统计", "月统计", "季统计"]) {
+      expect(await screen.findByRole("option", { name: option })).toBeInTheDocument();
     }
   });
 
@@ -742,9 +765,6 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "新建规则" }));
     const createRuleDialog = await screen.findByRole("dialog", { name: "新建规则" });
     fireEvent.change(within(createRuleDialog).getByLabelText("规则名称"), { target: { value: "readonly rule" } });
-    fireEvent.change(within(createRuleDialog).getByLabelText("账户分类"), { target: { value: "1" } });
-    fireEvent.change(within(createRuleDialog).getByLabelText("数据库类型"), { target: { value: "mysql" } });
-    fireEvent.change(within(createRuleDialog).getByLabelText("匹配逻辑"), { target: { value: "any" } });
     fireEvent.change(within(createRuleDialog).getByLabelText("规则表达式"), {
       target: { value: "{\"fn\":\"username_like\",\"args\":[\"readonly\"]}" }
     });
@@ -1047,7 +1067,7 @@ describe("RemainingReadOnlyPages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "批量分配" }));
     const removeDialog = await screen.findByRole("dialog", { name: "批量分配标签" });
-    fireEvent.change(within(removeDialog).getByLabelText("操作"), { target: { value: "remove_all" } });
+    await chooseSelectOption(within(removeDialog), "操作", "批量移除全部标签");
     fireEvent.click(await within(removeDialog).findByLabelText("实例 mysql-prod"));
     fireEvent.click(within(removeDialog).getByRole("button", { name: "执行批量移除全部" }));
 

@@ -16,6 +16,7 @@ import {
   type HistoryLogsSnapshot
 } from "@/api/audit";
 import { DataTable } from "@/components/shared/DataTable";
+import { SelectControl, TruncatedTooltip } from "@/components/shared/FormControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -184,20 +185,21 @@ function QueryPage<TSnapshot>({
   );
 }
 
-const selectClassName =
-  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
 function TimeRangeFilter() {
   return (
     <label className="grid gap-1.5 text-sm font-medium text-foreground">
       <span>时间范围</span>
-      <select aria-label="时间范围" className={selectClassName} defaultValue="1d">
-        <option value="1h">最近 1 小时</option>
-        <option value="1d">最近 24 小时</option>
-        <option value="1w">最近 7 天</option>
-        <option value="1m">最近 30 天</option>
-        <option value="all">全部</option>
-      </select>
+      <SelectControl
+        label="时间范围"
+        defaultValue="1d"
+        options={[
+          { label: "最近 1 小时", value: "1h" },
+          { label: "最近 24 小时", value: "1d" },
+          { label: "最近 7 天", value: "1w" },
+          { label: "最近 30 天", value: "1m" },
+          { label: "全部", value: "all" }
+        ]}
+      />
     </label>
   );
 }
@@ -421,9 +423,9 @@ function createHistoryLogColumns(onViewDetail: (logId: number) => void): ColumnD
       accessorKey: "message",
       header: "消息",
       cell: ({ row }) => (
-        <div className="max-w-xl truncate font-medium" title={row.original.message}>
+        <TruncatedTooltip className="max-w-xl font-medium" content={row.original.message}>
           {row.original.message}
-        </div>
+        </TruncatedTooltip>
       )
     },
     {
@@ -474,9 +476,9 @@ function createAccountChangeLogColumns(onViewDetail: (logId: number) => void): C
       accessorKey: "message",
       header: "摘要",
       cell: ({ row }) => (
-        <div className="max-w-xl truncate" title={row.original.message ?? ""}>
+        <TruncatedTooltip className="max-w-xl" content={row.original.message ?? ""}>
           {row.original.message || "-"}
-        </div>
+        </TruncatedTooltip>
       )
     },
     {

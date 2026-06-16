@@ -3,16 +3,21 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   AlertCircle,
   BarChart3,
+  Database,
   Download,
   ExternalLink,
   Eye,
   FileUp,
+  HardDrive,
+  Layers,
   Pencil,
   PlugZap,
   Plus,
   RefreshCw,
   RotateCcw,
-  Trash2
+  ShieldCheck,
+  Trash2,
+  Users
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
@@ -27,6 +32,10 @@ import {
   restoreInstance,
   syncAccounts,
   syncDatabases,
+  syncInstanceAccounts,
+  syncInstanceAuditInfo,
+  syncInstanceBackup,
+  syncInstanceCapacity,
   testInstanceConnection,
   updateInstance,
   type InstanceWritePayload
@@ -37,6 +46,12 @@ import {
   fetchAccountPermissions,
   fetchDatabaseLedgers,
   fetchDatabaseTableSizes,
+  fetchInstanceAccounts,
+  fetchInstanceAgAccounts,
+  fetchInstanceAuditInfo,
+  fetchInstanceBackupInfo,
+  fetchInstanceConnectionStatus,
+  fetchInstanceDatabaseSizes,
   fetchInstanceDetail,
   fetchInstances,
   type AccountChangeHistoryResponse,
@@ -45,11 +60,20 @@ import {
   type DatabaseLedgerItem,
   type DatabaseTableSizesResponse,
   type DatabaseTableSizeItem,
+  type InstanceAgAccountItem,
+  type InstanceAgAccountsResponse,
+  type InstanceAuditInfo,
+  type InstanceBackupInfo,
+  type InstanceBackupRestorePoint,
+  type InstanceConnectionStatus,
+  type InstanceDatabaseSizeItem,
+  type InstanceDatabaseSizesResponse,
   type InstanceDetailResponse,
   type InstanceListItem,
   type PaginatedList
 } from "@/api/lists";
 import { DataTable } from "@/components/shared/DataTable";
+import { SelectControl, SwitchField } from "@/components/shared/FormControls";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,12 +87,16 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { runAction } from "@/utils/action-feedback";
 
 type TagItem = {
   name: string;
@@ -163,7 +191,11 @@ function managedStatusLabel(item: InstanceListItem): string {
 }
 
 function backupStatusLabel(item: InstanceListItem): string {
-  switch (item.backup_status) {
+  return backupStatusValueLabel(item.backup_status);
+}
+
+function backupStatusValueLabel(status: string | null | undefined): string {
+  switch (status) {
     case "backed_up":
       return "已备份";
     case "backup_stale":
@@ -173,11 +205,15 @@ function backupStatusLabel(item: InstanceListItem): string {
   }
 }
 
-function availabilityLabel(item: AccountLedgerItem): string {
-  if (!item.is_locked) {
+function accountAvailabilityText(isLocked: boolean, reasons: string[] = []): string {
+  if (!isLocked) {
     return "正常";
   }
-  return item.availability_reasons.length > 0 ? `已锁定：${item.availability_reasons.join("；")}` : "已锁定";
+  return reasons.length > 0 ? `已锁定：${reasons.join("；")}` : "已锁定";
+}
+
+function availabilityLabel(item: AccountLedgerItem): string {
+  return accountAvailabilityText(item.is_locked, item.availability_reasons);
 }
 
 function deletedLabel(value: boolean): string {
@@ -296,6 +332,41 @@ function asText(value: unknown, fallback = "-"): string {
   return fallback;
 }
 
+function asNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatBytes(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  let size = Number(value);
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+}
+
+function formatMegabytes(value: unknown, fallback = "无数据"): string {
+  const mb = Number(value);
+  if (!Number.isFinite(mb) || mb <= 0) {
+    return fallback;
+  }
+  return formatBytes(mb * 1024 * 1024);
+}
+
+function recordsFromUnknown(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object") : [];
+}
+
+function snapshotRecords(snapshot: Record<string, unknown> | undefined, key: string): Array<Record<string, unknown>> {
+  return recordsFromUnknown(snapshot?.[key]);
+}
+
 function JsonBlock({ value }: { value: unknown }) {
   if (value === null || value === undefined || value === "") {
     return <span className="text-muted-foreground">-</span>;
@@ -315,9 +386,6 @@ function DetailField({ label, children }: { label: string; children: ReactNode }
     </div>
   );
 }
-
-const formSelectClassName =
-  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 function FormField({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -380,7 +448,7 @@ function InstanceFormDialog({
       is_active: isActive
     };
     const request = item ? updateInstance(item.id, payload) : createInstance(payload);
-    void request.then(onSaved);
+    void runAction(request, { success: item ? "实例已更新" : "实例已创建" }).then(onSaved);
   }
 
   return (
@@ -396,12 +464,17 @@ function InstanceFormDialog({
               <Input onChange={(event) => setName(event.target.value)} required value={name} />
             </FormField>
             <FormField label="数据库类型">
-              <select className={formSelectClassName} onChange={(event) => setDbType(event.target.value)} required value={dbType}>
-                <option value="mysql">mysql</option>
-                <option value="postgresql">postgresql</option>
-                <option value="sqlserver">sqlserver</option>
-                <option value="oracle">oracle</option>
-              </select>
+              <SelectControl
+                label="数据库类型"
+                onValueChange={setDbType}
+                options={[
+                  { label: "mysql", value: "mysql" },
+                  { label: "postgresql", value: "postgresql" },
+                  { label: "sqlserver", value: "sqlserver" },
+                  { label: "oracle", value: "oracle" }
+                ]}
+                value={dbType}
+              />
             </FormField>
             <FormField label="主机/IP">
               <Input onChange={(event) => setHost(event.target.value)} required value={host} />
@@ -418,19 +491,7 @@ function InstanceFormDialog({
             <FormField label="标签代码">
               <Input onChange={(event) => setTagNames(event.target.value)} placeholder="prod, core" value={tagNames} />
             </FormField>
-            <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2 text-sm font-medium">
-              <span>状态</span>
-              <span className="flex items-center gap-2">
-                <input
-                  aria-label="启用"
-                  checked={isActive}
-                  className="size-4 accent-primary"
-                  onChange={(event) => setIsActive(event.target.checked)}
-                  type="checkbox"
-                />
-                <span className="text-muted-foreground">启用</span>
-              </span>
-            </label>
+            <SwitchField checked={isActive} label="状态" onCheckedChange={setIsActive} />
           </div>
           <FormField label="描述">
             <Textarea onChange={(event) => setDescription(event.target.value)} value={description} />
@@ -512,7 +573,7 @@ function InstanceImportDialog({
     if (!file) {
       return;
     }
-    void importInstancesFromCsv(file).then(() => {
+    void runAction(importInstancesFromCsv(file), { success: "实例导入已提交" }).then(() => {
       setFile(null);
       onImported();
     });
@@ -754,6 +815,602 @@ function AccountChangeHistoryDialog({ item, onOpenChange }: { item: AccountLedge
   );
 }
 
+function InstanceConnectionStatusCard({
+  data,
+  isLoading,
+  isError,
+  onRetry
+}: {
+  data?: InstanceConnectionStatus;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>连接状态</CardTitle>
+        <CardDescription>来自实例连接状态接口的最近连接信号。</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {isLoading ? <Skeleton className="h-24 w-full" /> : null}
+        {isError ? <ErrorState onRetry={onRetry} /> : null}
+        {data ? (
+          <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+            <DetailField label="当前状态">
+              <BadgeText value={asText(data.status)} />
+            </DetailField>
+            <DetailField label="启用状态">{data.is_active ? "启用" : "停用"}</DetailField>
+            <DetailField label="主机/IP">
+              {data.host}:{data.port}
+            </DetailField>
+            <DetailField label="最近连接">{formatShortTimestamp(data.last_connected)}</DetailField>
+          </dl>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function InstanceAuditInfoCard({
+  data,
+  isLoading,
+  isError,
+  onRetry
+}: {
+  data?: InstanceAuditInfo;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+}) {
+  const facts = data?.facts ?? {};
+  const serverAudits = snapshotRecords(data?.snapshot, "server_audits");
+  const serverSpecs = snapshotRecords(data?.snapshot, "audit_specifications");
+  const databaseSpecs = snapshotRecords(data?.snapshot, "database_audit_specifications");
+  const specs = [...serverSpecs, ...databaseSpecs];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>审计信息</CardTitle>
+        <CardDescription>审计目标、审计规范和覆盖数据库概览。</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {isLoading ? <Skeleton className="h-28 w-full" /> : null}
+        {isError ? <ErrorState onRetry={onRetry} /> : null}
+        {data && !data.supported ? (
+          <Alert>
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>{data.message ?? "当前实例暂不支持审计采集。"}</AlertDescription>
+          </Alert>
+        ) : null}
+        {data && data.supported && !data.available ? (
+          <Alert>
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>{data.message ?? "尚未采集审计信息。"}</AlertDescription>
+          </Alert>
+        ) : null}
+        {data ? (
+          <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+            <DetailField label="审计目标数">{formatNumber(asNumber(facts.audit_count))}</DetailField>
+            <DetailField label="已启用审计">{formatNumber(asNumber(facts.enabled_audit_count))}</DetailField>
+            <DetailField label="规范总数">{formatNumber(asNumber(facts.specification_count))}</DetailField>
+            <DetailField label="覆盖数据库数">{formatNumber(asNumber(facts.covered_database_count))}</DetailField>
+          </dl>
+        ) : null}
+        {serverAudits.length > 0 ? (
+          <div className="grid gap-2">
+            <h3 className="text-sm font-semibold">审计目标</h3>
+            <div className="overflow-hidden rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>目标</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {serverAudits.map((item, index) => (
+                    <TableRow key={`${asText(item.name)}-${index}`}>
+                      <TableCell className="font-medium">{asText(item.name)}</TableCell>
+                      <TableCell>
+                        <BadgeText value={item.is_state_enabled ? "启用" : "停用"} />
+                      </TableCell>
+                      <TableCell>{asText(item.audit_file_path ?? item.queue_delay ?? item.type_desc)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : null}
+        {specs.length > 0 ? (
+          <div className="grid gap-2">
+            <h3 className="text-sm font-semibold">审计规范</h3>
+            <div className="overflow-hidden rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>数据库</TableHead>
+                    <TableHead>状态</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {specs.map((item, index) => (
+                    <TableRow key={`${asText(item.name)}-${index}`}>
+                      <TableCell className="font-medium">{asText(item.name)}</TableCell>
+                      <TableCell>{asText(item.database_name)}</TableCell>
+                      <TableCell>
+                        <BadgeText value={item.is_state_enabled ? "启用" : "停用"} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function InstanceBackupInfoCard({
+  data,
+  isLoading,
+  isError,
+  onRetry
+}: {
+  data?: InstanceBackupInfo;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+}) {
+  const restorePoints: InstanceBackupRestorePoint[] = data?.restore_points ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>备份信息</CardTitle>
+        <CardDescription>Veeam 匹配结果、最近备份时间和恢复点明细。</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {isLoading ? <Skeleton className="h-28 w-full" /> : null}
+        {isError ? <ErrorState onRetry={onRetry} /> : null}
+        {data && restorePoints.length === 0 ? (
+          <Alert>
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>{data.message ?? "尚未采集到匹配该实例的备份记录。"}</AlertDescription>
+          </Alert>
+        ) : null}
+        {data ? (
+          <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+            <DetailField label="备份状态">
+              <BadgeText value={backupStatusValueLabel(data.backup_status)} variantValue={data.backup_status} />
+            </DetailField>
+            <DetailField label="最近备份时间">{formatShortTimestamp(data.backup_last_time)}</DetailField>
+            <DetailField label="备份链完整大小">{formatBytes(data.backup_chain_size_bytes)}</DetailField>
+            <DetailField label="恢复点数量">{formatNumber(data.restore_point_count ?? restorePoints.length)}</DetailField>
+          </dl>
+        ) : null}
+        {data ? (
+          <dl className="grid grid-cols-3 gap-3 max-lg:grid-cols-1">
+            <DetailField label="匹配机器">{asText(data.matched_machine_name)}</DetailField>
+            <DetailField label="备份任务">{asText(data.job_name)}</DetailField>
+            <DetailField label="最近同步">{formatShortTimestamp(data.last_sync_time)}</DetailField>
+          </dl>
+        ) : null}
+        {restorePoints.length > 0 ? (
+          <div className="grid gap-2">
+            <h3 className="text-sm font-semibold">恢复点明细</h3>
+            <div className="overflow-hidden rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>恢复点</TableHead>
+                    <TableHead>备份方式</TableHead>
+                    <TableHead>备份大小</TableHead>
+                    <TableHead>创建时间</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {restorePoints.map((item, index) => (
+                    <TableRow key={`${item.id ?? item.name ?? "restore-point"}-${index}`}>
+                      <TableCell className="font-medium">{asText(item.name ?? item.id)}</TableCell>
+                      <TableCell>{asText(item.type)}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatBytes(item.backup_size_bytes ?? item.data_size_bytes)}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatShortTimestamp(item.creation_time)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+type DetailSummaryItem = {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+};
+
+function DetailSummaryGrid({ items }: { items: DetailSummaryItem[] }) {
+  return (
+    <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+      {items.map((item) => (
+        <DetailField key={item.label} label={item.label}>
+          <div className="grid gap-1">
+            <span className="font-medium">{item.value}</span>
+            {item.hint ? <span className="text-xs text-muted-foreground">{item.hint}</span> : null}
+          </div>
+        </DetailField>
+      ))}
+    </dl>
+  );
+}
+
+function typeSpecificText(item: AccountLedgerItem, key: string): string {
+  return asText(item.type_specific?.[key]);
+}
+
+function buildAgListenerLabel(item: InstanceAgAccountItem): string {
+  const parts = [item.listener_name, item.listener_host].map((value) => asText(value, "")).filter(Boolean);
+  return parts.length > 0 ? parts.join(" / ") : "-";
+}
+
+function summarizeAccountItems(items: Array<{ is_active?: boolean; is_deleted?: boolean; is_superuser?: boolean }>, total?: number) {
+  return {
+    total: total ?? items.length,
+    active: items.filter((item) => item.is_deleted !== true && item.is_active !== false).length,
+    deleted: items.filter((item) => item.is_deleted === true || item.is_active === false).length,
+    superuser: items.filter((item) => item.is_superuser).length
+  };
+}
+
+function summarizeAgAccounts(data?: InstanceAgAccountsResponse) {
+  const fallback = summarizeAccountItems(data?.items ?? [], data?.total);
+  return {
+    total: data?.summary?.total ?? fallback.total,
+    active: data?.summary?.active ?? fallback.active,
+    deleted: data?.summary?.deleted ?? fallback.deleted,
+    superuser: data?.summary?.superuser ?? fallback.superuser
+  };
+}
+
+function createInstanceAccountsColumns(): ColumnDef<AccountLedgerItem>[] {
+  return [
+    {
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => <Badge variant="outline">{row.original.id}</Badge>
+    },
+    {
+      accessorFn: (item) => `${item.username} ${typeSpecificText(item, "host")}`,
+      id: "username",
+      header: "账户",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.username}</div>
+          {typeSpecificText(row.original, "host") !== "-" ? (
+            <div className="mt-1 text-xs text-muted-foreground">@{typeSpecificText(row.original, "host")}</div>
+          ) : null}
+        </div>
+      )
+    },
+    {
+      accessorFn: (item) => typeSpecificText(item, "plugin"),
+      id: "plugin",
+      header: "插件",
+      cell: ({ row }) => <span className="font-mono text-xs">{typeSpecificText(row.original, "plugin")}</span>
+    },
+    {
+      accessorFn: (item) => typeSpecificText(item, "account_kind"),
+      id: "account_kind",
+      header: "类型",
+      cell: ({ row }) => <Badge variant="outline">{typeSpecificText(row.original, "account_kind")}</Badge>
+    },
+    {
+      accessorFn: availabilityLabel,
+      id: "is_locked",
+      header: "是否可用",
+      cell: ({ row }) => <BadgeText value={availabilityLabel(row.original)} variantValue={row.original.is_locked ? "locked" : "正常"} />
+    },
+    {
+      accessorFn: (item) => deletedLabel(item.is_deleted),
+      id: "is_deleted",
+      header: "是否删除",
+      cell: ({ row }) => <BadgeText value={deletedLabel(row.original.is_deleted)} variantValue={row.original.is_deleted ? "deleted" : undefined} />
+    },
+    {
+      accessorFn: (item) => superuserLabel(item.is_superuser),
+      id: "is_superuser",
+      header: "是否超管",
+      cell: ({ row }) => <Badge variant={row.original.is_superuser ? "outline" : "secondary"}>{superuserLabel(row.original.is_superuser)}</Badge>
+    },
+    {
+      accessorFn: (item) => formatShortTimestamp(item.last_change_time),
+      id: "last_change_time",
+      header: "最后变更",
+      cell: ({ row }) => <span className="font-mono text-xs">{formatShortTimestamp(row.original.last_change_time)}</span>
+    }
+  ];
+}
+
+function createInstanceAgAccountsColumns(): ColumnDef<InstanceAgAccountItem>[] {
+  return [
+    {
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => <Badge variant="outline">{row.original.id}</Badge>
+    },
+    {
+      accessorFn: (item) => asText(item.availability_group_name),
+      id: "availability_group_name",
+      header: "AG",
+      cell: ({ row }) => <span className="font-medium">{asText(row.original.availability_group_name)}</span>
+    },
+    {
+      accessorFn: buildAgListenerLabel,
+      id: "listener",
+      header: "监听器",
+      cell: ({ row }) => <span className="font-mono text-xs">{buildAgListenerLabel(row.original)}</span>
+    },
+    {
+      accessorKey: "username",
+      header: "账户",
+      cell: ({ row }) => <span className="font-medium">{row.original.username}</span>
+    },
+    {
+      accessorFn: (item) => accountAvailabilityText(item.is_locked, item.availability_reasons),
+      id: "is_locked",
+      header: "是否可用",
+      cell: ({ row }) => (
+        <BadgeText
+          value={accountAvailabilityText(row.original.is_locked, row.original.availability_reasons)}
+          variantValue={row.original.is_locked ? "locked" : "正常"}
+        />
+      )
+    },
+    {
+      accessorFn: (item) => deletedLabel(item.is_deleted),
+      id: "is_deleted",
+      header: "是否删除",
+      cell: ({ row }) => <BadgeText value={deletedLabel(row.original.is_deleted)} variantValue={row.original.is_deleted ? "deleted" : undefined} />
+    },
+    {
+      accessorFn: (item) => superuserLabel(item.is_superuser),
+      id: "is_superuser",
+      header: "是否超管",
+      cell: ({ row }) => <Badge variant={row.original.is_superuser ? "outline" : "secondary"}>{superuserLabel(row.original.is_superuser)}</Badge>
+    },
+    {
+      accessorFn: (item) => formatShortTimestamp(item.last_change_time ?? item.last_sync_time),
+      id: "last_change_time",
+      header: "最后变更",
+      cell: ({ row }) => <span className="font-mono text-xs">{formatShortTimestamp(row.original.last_change_time ?? row.original.last_sync_time)}</span>
+    }
+  ];
+}
+
+function createInstanceDatabaseSizeColumns(): ColumnDef<InstanceDatabaseSizeItem>[] {
+  return [
+    {
+      accessorFn: (item) => item.database_name,
+      id: "database_name",
+      header: "数据库名称",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Database aria-hidden className={row.original.is_active ? "text-primary" : "text-muted-foreground"} size={16} />
+          <span className={row.original.is_active ? "font-medium" : "font-medium text-muted-foreground"}>{row.original.database_name}</span>
+        </div>
+      )
+    },
+    {
+      accessorFn: (item) => formatMegabytes(item.size_mb),
+      id: "size_mb",
+      header: "总大小",
+      cell: ({ row }) => <span className="font-mono text-xs">{formatMegabytes(row.original.size_mb)}</span>
+    },
+    {
+      accessorFn: (item) => `${formatMegabytes(item.data_size_mb, "-")} / ${formatMegabytes(item.log_size_mb, "-")}`,
+      id: "data_log_size",
+      header: "数据 / 日志",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">
+          {formatMegabytes(row.original.data_size_mb, "-")} / {formatMegabytes(row.original.log_size_mb, "-")}
+        </span>
+      )
+    },
+    {
+      accessorFn: (item) => (item.is_active ? "在线" : "已删除"),
+      id: "is_active",
+      header: "状态",
+      cell: ({ row }) => <BadgeText value={row.original.is_active ? "在线" : "已删除"} variantValue={row.original.is_active ? "正常" : "deleted"} />
+    },
+    {
+      accessorFn: (item) => formatShortTimestamp(item.collected_at),
+      id: "collected_at",
+      header: "采集时间",
+      cell: ({ row }) => <span className="font-mono text-xs">{formatShortTimestamp(row.original.collected_at)}</span>
+    },
+    {
+      accessorFn: (item) => `${asText(item.last_seen_date)} ${asText(item.deleted_at)}`,
+      id: "inactive_meta",
+      header: "最近出现 / 隐藏时间",
+      cell: ({ row }) => (
+        <div className="grid gap-1 text-xs text-muted-foreground">
+          <span>最后出现：{asText(row.original.last_seen_date)}</span>
+          <span>隐藏时间：{formatShortTimestamp(row.original.deleted_at)}</span>
+        </div>
+      )
+    }
+  ];
+}
+
+function DataTabState({ isError, isLoading, onRetry }: { isError: boolean; isLoading: boolean; onRetry: () => void }) {
+  if (isLoading) {
+    return <Skeleton className="h-28 w-full" />;
+  }
+  if (isError) {
+    return <ErrorState onRetry={onRetry} />;
+  }
+  return null;
+}
+
+function InstanceDataTabsCard({
+  accountsData,
+  accountsError,
+  accountsLoading,
+  agAccountsData,
+  agAccountsError,
+  agAccountsLoading,
+  databaseSizesData,
+  databaseSizesError,
+  databaseSizesLoading,
+  onRetryAccounts,
+  onRetryAgAccounts,
+  onRetryDatabaseSizes,
+  showAgAccounts
+}: {
+  accountsData?: PaginatedList<AccountLedgerItem>;
+  accountsError: boolean;
+  accountsLoading: boolean;
+  agAccountsData?: InstanceAgAccountsResponse;
+  agAccountsError: boolean;
+  agAccountsLoading: boolean;
+  databaseSizesData?: InstanceDatabaseSizesResponse;
+  databaseSizesError: boolean;
+  databaseSizesLoading: boolean;
+  onRetryAccounts: () => void;
+  onRetryAgAccounts: () => void;
+  onRetryDatabaseSizes: () => void;
+  showAgAccounts: boolean;
+}) {
+  const accountColumns = useMemo(() => createInstanceAccountsColumns(), []);
+  const agAccountColumns = useMemo(() => createInstanceAgAccountsColumns(), []);
+  const databaseSizeColumns = useMemo(() => createInstanceDatabaseSizeColumns(), []);
+  const accountSummary = summarizeAccountItems(accountsData?.items ?? [], accountsData?.total);
+  const agSummary = summarizeAgAccounts(agAccountsData);
+  const databases = databaseSizesData?.databases ?? [];
+  const databaseTotal = databaseSizesData?.total ?? databases.length;
+  const databaseActive = databaseSizesData?.active_count ?? databases.filter((item) => item.is_active).length;
+  const databaseDeleted = databaseSizesData?.filtered_count ?? databases.filter((item) => !item.is_active).length;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>数据库信息</CardTitle>
+        <CardDescription>对应旧版详情页的账户信息、AG 账户和容量信息。</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="accounts">
+          <TabsList className={showAgAccounts ? "grid h-auto w-full grid-cols-3" : "grid h-auto w-full grid-cols-2"}>
+            <TabsTrigger value="accounts">
+              <Users aria-hidden size={16} />
+              <span>账户信息</span>
+            </TabsTrigger>
+            {showAgAccounts ? (
+              <TabsTrigger value="ag-accounts">
+                <Layers aria-hidden size={16} />
+                <span>账户信息（AG）</span>
+              </TabsTrigger>
+            ) : null}
+            <TabsTrigger value="capacity">
+              <Database aria-hidden size={16} />
+              <span>容量信息</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent className="grid gap-4" forceMount value="accounts">
+            <DataTabState isLoading={accountsLoading} isError={accountsError} onRetry={onRetryAccounts} />
+            {accountsData ? (
+              <>
+                <DetailSummaryGrid
+                  items={[
+                    { label: "账户总数", value: formatNumber(accountSummary.total), hint: "当前实例账户" },
+                    { label: "活跃账户", value: formatNumber(accountSummary.active), hint: "未删除账户" },
+                    { label: "已删除账户", value: formatNumber(accountSummary.deleted), hint: "已回收账户" },
+                    { label: "超管账户", value: formatNumber(accountSummary.superuser), hint: "高权限账户" }
+                  ]}
+                />
+                <DataTable
+                  columns={accountColumns}
+                  data={accountsData.items}
+                  emptyText="暂无账户信息"
+                  filters={[
+                    { columnId: "is_locked", label: "是否可用", options: [{ label: "正常", value: "正常" }, { label: "已锁定", value: "已锁定" }] },
+                    { columnId: "is_deleted", label: "是否删除", options: [{ label: "未删除", value: "未删除" }, { label: "已删除", value: "已删除" }] },
+                    { columnId: "is_superuser", label: "是否超管", options: [{ label: "超管用户", value: "超管用户" }, { label: "普通用户", value: "普通用户" }] }
+                  ]}
+                  searchPlaceholder="搜索账户、插件、类型"
+                />
+              </>
+            ) : null}
+          </TabsContent>
+
+          {showAgAccounts ? (
+            <TabsContent className="grid gap-4" forceMount value="ag-accounts">
+              <DataTabState isLoading={agAccountsLoading} isError={agAccountsError} onRetry={onRetryAgAccounts} />
+              {agAccountsData ? (
+                <>
+                  <DetailSummaryGrid
+                    items={[
+                      { label: "AG账户总数", value: formatNumber(agSummary.total), hint: agAccountsData.cluster?.name ? `群集：${agAccountsData.cluster.name}` : "未绑定群集" },
+                      { label: "活跃AG账户", value: formatNumber(agSummary.active), hint: "未删除账户" },
+                      { label: "已删除AG账户", value: formatNumber(agSummary.deleted), hint: "已回收账户" },
+                      { label: "AG超管账户", value: formatNumber(agSummary.superuser), hint: "高权限账户" }
+                    ]}
+                  />
+                  <DataTable
+                    columns={agAccountColumns}
+                    data={agAccountsData.items}
+                    emptyText="暂无 AG 账户信息"
+                    filters={[
+                      { columnId: "is_locked", label: "是否可用", options: [{ label: "正常", value: "正常" }, { label: "已锁定", value: "已锁定" }] },
+                      { columnId: "is_deleted", label: "是否删除", options: [{ label: "未删除", value: "未删除" }, { label: "已删除", value: "已删除" }] },
+                      { columnId: "is_superuser", label: "是否超管", options: [{ label: "超管用户", value: "超管用户" }, { label: "普通用户", value: "普通用户" }] }
+                    ]}
+                    searchPlaceholder="搜索 AG、监听器、账户"
+                  />
+                </>
+              ) : null}
+            </TabsContent>
+          ) : null}
+
+          <TabsContent className="grid gap-4" forceMount value="capacity">
+            <DataTabState isLoading={databaseSizesLoading} isError={databaseSizesError} onRetry={onRetryDatabaseSizes} />
+            {databaseSizesData ? (
+              <>
+                <DetailSummaryGrid
+                  items={[
+                    { label: "当前数据库", value: formatNumber(databaseTotal), hint: "当前结果" },
+                    { label: "在线数据库", value: formatNumber(databaseActive), hint: "在线" },
+                    { label: "已删除数据库", value: formatNumber(databaseDeleted), hint: "已删除" },
+                    { label: "总容量", value: formatMegabytes(databaseSizesData.total_size_mb, "0 GB"), hint: "活跃数据库容量" }
+                  ]}
+                />
+                <DataTable
+                  columns={databaseSizeColumns}
+                  data={databases}
+                  emptyText="暂无数据库容量信息"
+                  filters={[{ columnId: "is_active", label: "状态", options: [{ label: "在线", value: "在线" }, { label: "已删除", value: "已删除" }] }]}
+                  searchPlaceholder="搜索数据库名称、状态"
+                />
+              </>
+            ) : null}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}
+
 function createInstanceColumns({
   onDelete,
   onEdit,
@@ -866,7 +1523,7 @@ function createInstanceColumns({
         <Button
           aria-label={`测试连接 ${row.original.id}`}
           onClick={() => {
-            void testInstanceConnection(row.original.id);
+            void runAction(testInstanceConnection(row.original.id), { success: "连接测试已完成" });
           }}
           size="sm"
           type="button"
@@ -1057,7 +1714,38 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
     queryKey: ["lists", "instances", "detail-page", routeId],
     queryFn: () => fetchInstanceDetail(routeId)
   });
+  const connectionQuery = useQuery({
+    enabled: routeId > 0,
+    queryKey: ["lists", "instances", "connection-status", routeId],
+    queryFn: () => fetchInstanceConnectionStatus(routeId)
+  });
+  const auditQuery = useQuery({
+    enabled: routeId > 0,
+    queryKey: ["lists", "instances", "audit-info", routeId],
+    queryFn: () => fetchInstanceAuditInfo(routeId)
+  });
+  const backupQuery = useQuery({
+    enabled: routeId > 0,
+    queryKey: ["lists", "instances", "backup-info", routeId],
+    queryFn: () => fetchInstanceBackupInfo(routeId)
+  });
   const instance = detailQuery.data?.instance;
+  const isSqlServer = String(instance?.db_type ?? "").toLowerCase() === "sqlserver";
+  const accountsQuery = useQuery({
+    enabled: routeId > 0,
+    queryKey: ["lists", "instances", routeId, "accounts"],
+    queryFn: () => fetchInstanceAccounts(routeId)
+  });
+  const agAccountsQuery = useQuery({
+    enabled: routeId > 0,
+    queryKey: ["lists", "instances", routeId, "ag-accounts"],
+    queryFn: () => fetchInstanceAgAccounts(routeId)
+  });
+  const databaseSizesQuery = useQuery({
+    enabled: routeId > 0,
+    queryKey: ["lists", "instances", routeId, "database-sizes"],
+    queryFn: () => fetchInstanceDatabaseSizes(routeId)
+  });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -1073,6 +1761,82 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
             <ExternalLink aria-hidden size={16} />
             <span>返回实例列表</span>
           </a>
+        </Button>
+        <Button
+          disabled={!instance}
+          onClick={() => {
+            void runAction(testInstanceConnection(routeId), { success: "连接测试已完成" }).then(() => void connectionQuery.refetch());
+          }}
+          type="button"
+          variant="outline"
+        >
+          <PlugZap aria-hidden size={16} />
+          <span>测试连接</span>
+        </Button>
+        <Button
+          disabled={!instance}
+          onClick={() => {
+            void runAction(syncInstanceAccounts(routeId), { success: "账户同步已触发" }).then(() => {
+              void detailQuery.refetch();
+              void accountsQuery.refetch();
+              void agAccountsQuery.refetch();
+            });
+          }}
+          type="button"
+          variant="outline"
+        >
+          <RefreshCw aria-hidden size={16} />
+          <span>同步账户</span>
+        </Button>
+        <Button
+          disabled={!instance}
+          onClick={() => {
+            void runAction(syncInstanceCapacity(routeId), { success: "容量同步已触发" }).then(() => {
+              void detailQuery.refetch();
+              void databaseSizesQuery.refetch();
+            });
+          }}
+          type="button"
+          variant="outline"
+        >
+          <BarChart3 aria-hidden size={16} />
+          <span>同步容量</span>
+        </Button>
+        {isSqlServer ? (
+          <Button
+            disabled={!instance}
+            onClick={() => {
+              void runAction(syncInstanceAuditInfo(routeId), { success: "审计同步已触发" }).then(() => void auditQuery.refetch());
+            }}
+            type="button"
+            variant="outline"
+          >
+            <ShieldCheck aria-hidden size={16} />
+            <span>同步审计</span>
+          </Button>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button disabled type="button" variant="outline">
+                  <ShieldCheck aria-hidden size={16} />
+                  <span>同步审计</span>
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>当前仅支持 SQL Server 审计信息采集</TooltipContent>
+          </Tooltip>
+        )}
+        <Button
+          disabled={!instance}
+          onClick={() => {
+            void runAction(syncInstanceBackup(routeId), { success: "备份同步已触发" }).then(() => void backupQuery.refetch());
+          }}
+          type="button"
+          variant="outline"
+        >
+          <HardDrive aria-hidden size={16} />
+          <span>同步备份</span>
         </Button>
       </CommandBar>
       {detailQuery.isLoading ? <LoadingGrid /> : null}
@@ -1098,6 +1862,39 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
           </CardContent>
         </Card>
       ) : null}
+      <InstanceConnectionStatusCard
+        data={connectionQuery.data}
+        isLoading={connectionQuery.isLoading}
+        isError={connectionQuery.isError}
+        onRetry={() => void connectionQuery.refetch()}
+      />
+      <InstanceAuditInfoCard
+        data={auditQuery.data}
+        isLoading={auditQuery.isLoading}
+        isError={auditQuery.isError}
+        onRetry={() => void auditQuery.refetch()}
+      />
+      <InstanceBackupInfoCard
+        data={backupQuery.data}
+        isLoading={backupQuery.isLoading}
+        isError={backupQuery.isError}
+        onRetry={() => void backupQuery.refetch()}
+      />
+      <InstanceDataTabsCard
+        accountsData={accountsQuery.data}
+        accountsError={accountsQuery.isError}
+        accountsLoading={accountsQuery.isLoading}
+        agAccountsData={agAccountsQuery.data}
+        agAccountsError={agAccountsQuery.isError}
+        agAccountsLoading={agAccountsQuery.isLoading}
+        databaseSizesData={databaseSizesQuery.data}
+        databaseSizesError={databaseSizesQuery.isError}
+        databaseSizesLoading={databaseSizesQuery.isLoading}
+        onRetryAccounts={() => void accountsQuery.refetch()}
+        onRetryAgAccounts={() => void agAccountsQuery.refetch()}
+        onRetryDatabaseSizes={() => void databaseSizesQuery.refetch()}
+        showAgAccounts={isSqlServer}
+      />
     </main>
   );
 }
@@ -1124,7 +1921,7 @@ export function InstancesPage() {
         onDelete: setDeletingInstance,
         onEdit: setEditingInstance,
         onRestore: (item) => {
-          void restoreInstance(item.id).then(() => listQuery.refetch());
+          void runAction(restoreInstance(item.id), { success: "实例已恢复" }).then(() => listQuery.refetch());
         },
         onView: setSelectedInstance
       }),
@@ -1166,7 +1963,7 @@ export function InstancesPage() {
         <Button
           disabled={visibleInstanceIds.length === 0}
           onClick={() => {
-            void batchTestInstanceConnections(visibleInstanceIds).then(() => listQuery.refetch());
+            void runAction(batchTestInstanceConnections(visibleInstanceIds), { success: "批量连接测试已完成" }).then(() => listQuery.refetch());
           }}
           type="button"
           variant="outline"
@@ -1184,10 +1981,10 @@ export function InstancesPage() {
           <FileUp aria-hidden size={16} />
           <span>批量导入</span>
         </Button>
-        <label className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground">
-          <input aria-label="显示已删除" className="accent-primary" type="checkbox" />
+        <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground">
+          <Checkbox aria-label="显示已删除" />
           <span>显示已删除</span>
-        </label>
+        </div>
         <Button variant="outline" asChild>
           <a href="/api/v1/instances/exports">
             <Download aria-hidden size={16} />
@@ -1269,7 +2066,7 @@ export function InstancesPage() {
             <AlertDialogAction
               onClick={() => {
                 setBatchDeleteOpen(false);
-                void batchDeleteInstances(deletableInstanceIds, "soft").then(() => listQuery.refetch());
+                void runAction(batchDeleteInstances(deletableInstanceIds, "soft"), { success: "实例已移入回收站" }).then(() => listQuery.refetch());
               }}
             >
               确认批量移入回收站
@@ -1299,7 +2096,7 @@ export function InstancesPage() {
                 }
                 const instanceId = deletingInstance.id;
                 setDeletingInstance(null);
-                void deleteInstance(instanceId).then(() => listQuery.refetch());
+                void runAction(deleteInstance(instanceId), { success: "实例已移入回收站" }).then(() => listQuery.refetch());
               }}
             >
               确认移入回收站
@@ -1342,7 +2139,7 @@ export function DatabaseLedgersPage() {
         </Button>
         <Button
           onClick={() => {
-            void syncDatabases().then(() => listQuery.refetch());
+            void runAction(syncDatabases(), { success: "数据库同步已触发" }).then(() => listQuery.refetch());
           }}
           type="button"
         >
@@ -1380,7 +2177,7 @@ export function DatabaseLedgersPage() {
             }
           }}
           onRefresh={() => {
-            void refreshDatabaseTableSizes(selectedDatabase.id).then(() => listQuery.refetch());
+            void runAction(refreshDatabaseTableSizes(selectedDatabase.id), { success: "表容量已刷新" }).then(() => listQuery.refetch());
           }}
         />
       ) : null}
@@ -1421,7 +2218,7 @@ export function AccountLedgersPage() {
         </Button>
         <Button
           onClick={() => {
-            void syncAccounts().then(() => listQuery.refetch());
+            void runAction(syncAccounts(), { success: "账户同步已触发" }).then(() => listQuery.refetch());
           }}
           type="button"
         >

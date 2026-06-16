@@ -25,6 +25,8 @@ import {
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
+import { CheckboxLine, SelectControl, SwitchField } from "@/components/shared/FormControls";
+import { runAction } from "@/utils/action-feedback";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +46,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -520,9 +523,6 @@ function StatusBadge({ value }: { value: string | boolean | undefined | null }) 
   return <Badge variant={statusVariant(value)}>{statusLabel(value)}</Badge>;
 }
 
-const formSelectClassName =
-  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
 function FormField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid gap-1.5 text-sm font-medium">
@@ -533,21 +533,7 @@ function FormField({ label, children }: { label: string; children: ReactNode }) 
 }
 
 function ActiveField({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (checked: boolean) => void }) {
-  return (
-    <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2 text-sm font-medium">
-      <span>状态</span>
-      <span className="flex items-center gap-2">
-        <input
-          aria-label="启用"
-          checked={checked}
-          className="size-4 accent-primary"
-          onChange={(event) => onCheckedChange(event.target.checked)}
-          type="checkbox"
-        />
-        <span className="text-muted-foreground">启用</span>
-      </span>
-    </label>
-  );
+  return <SwitchField checked={checked} label="状态" onCheckedChange={onCheckedChange} />;
 }
 
 function DeleteConfirmDialog({
@@ -609,10 +595,10 @@ function UserFormDialog({
       if (password.trim()) {
         payload.password = password;
       }
-      void updateUser(item.id, payload).then(onSaved);
+      void runAction(updateUser(item.id, payload), { success: "用户已更新" }).then(onSaved);
       return;
     }
-    void createUser({ ...payload, password }).then(onSaved);
+    void runAction(createUser({ ...payload, password }), { success: "用户已创建" }).then(onSaved);
   }
 
   return (
@@ -628,11 +614,16 @@ function UserFormDialog({
               <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
             </FormField>
             <FormField label="角色">
-              <select className={formSelectClassName} onChange={(event) => setRole(event.target.value)} value={role}>
-                <option value="admin">管理员</option>
-                <option value="user">普通用户</option>
-                <option value="viewer">查看者</option>
-              </select>
+              <SelectControl
+                label="角色"
+                onValueChange={setRole}
+                options={[
+                  { label: "管理员", value: "admin" },
+                  { label: "普通用户", value: "user" },
+                  { label: "查看者", value: "viewer" }
+                ]}
+                value={role}
+              />
             </FormField>
             <FormField label={item ? "新密码" : "初始密码"}>
               <Input onChange={(event) => setPassword(event.target.value)} required={!item} type="password" value={password} />
@@ -685,10 +676,10 @@ function CredentialFormDialog({
       if (password.trim()) {
         payload.password = password;
       }
-      void updateCredential(item.id, payload).then(onSaved);
+      void runAction(updateCredential(item.id, payload), { success: "凭据已更新" }).then(onSaved);
       return;
     }
-    void createCredential({ ...payload, password }).then(onSaved);
+    void runAction(createCredential({ ...payload, password }), { success: "凭据已创建" }).then(onSaved);
   }
 
   return (
@@ -704,21 +695,31 @@ function CredentialFormDialog({
               <Input onChange={(event) => setName(event.target.value)} required value={name} />
             </FormField>
             <FormField label="凭据类型">
-              <select className={formSelectClassName} onChange={(event) => setCredentialType(event.target.value)} value={credentialType}>
-                <option value="database">database</option>
-                <option value="ssh">ssh</option>
-                <option value="api">api</option>
-                <option value="ldap">ldap</option>
-              </select>
+              <SelectControl
+                label="凭据类型"
+                onValueChange={setCredentialType}
+                options={[
+                  { label: "database", value: "database" },
+                  { label: "ssh", value: "ssh" },
+                  { label: "api", value: "api" },
+                  { label: "ldap", value: "ldap" }
+                ]}
+                value={credentialType}
+              />
             </FormField>
             <FormField label="数据库类型">
-              <select className={formSelectClassName} onChange={(event) => setDbType(event.target.value)} value={dbType}>
-                <option value="mysql">mysql</option>
-                <option value="postgresql">postgresql</option>
-                <option value="sqlserver">sqlserver</option>
-                <option value="oracle">oracle</option>
-                <option value="">无</option>
-              </select>
+              <SelectControl
+                label="数据库类型"
+                onValueChange={setDbType}
+                options={[
+                  { label: "mysql", value: "mysql" },
+                  { label: "postgresql", value: "postgresql" },
+                  { label: "sqlserver", value: "sqlserver" },
+                  { label: "oracle", value: "oracle" },
+                  { label: "无", value: "" }
+                ]}
+                value={dbType}
+              />
             </FormField>
             <FormField label="用户名">
               <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
@@ -769,10 +770,10 @@ function TagFormDialog({
       is_active: isActive
     };
     if (item) {
-      void updateTag(item.id, payload).then(onSaved);
+      void runAction(updateTag(item.id, payload), { success: "标签已更新" }).then(onSaved);
       return;
     }
-    void createTag(payload).then(onSaved);
+    void runAction(createTag(payload), { success: "标签已创建" }).then(onSaved);
   }
 
   return (
@@ -842,10 +843,10 @@ function ClassificationFormDialog({
       priority: numberFromInput(priority, 0)
     };
     if (item) {
-      void updateAccountClassification(item.id, payload).then(onSaved);
+      void runAction(updateAccountClassification(item.id, payload), { success: "账户分类已更新" }).then(onSaved);
       return;
     }
-    void createAccountClassification(payload).then(onSaved);
+    void runAction(createAccountClassification(payload), { success: "账户分类已创建" }).then(onSaved);
   }
 
   return (
@@ -935,7 +936,7 @@ function RuleFormDialog({
 
   function handleValidateExpression() {
     const parsedExpression = parseRuleExpression(ruleExpression);
-    void validateAccountClassificationRuleExpression(parsedExpression).then((result) => {
+    void runAction(validateAccountClassificationRuleExpression(parsedExpression), { success: "规则表达式校验通过" }).then((result) => {
       const validated = (result as { rule_expression?: unknown }).rule_expression ?? parsedExpression;
       setRuleExpression(formatRuleExpression(validated));
       setValidationMessage("规则表达式校验通过");
@@ -953,10 +954,10 @@ function RuleFormDialog({
       is_active: isActive
     };
     if (item) {
-      void updateAccountClassificationRule(item.id, payload).then(onSaved);
+      void runAction(updateAccountClassificationRule(item.id, payload), { success: "分类规则已更新" }).then(onSaved);
       return;
     }
-    void createAccountClassificationRule(payload).then(onSaved);
+    void runAction(createAccountClassificationRule(payload), { success: "分类规则已创建" }).then(onSaved);
   }
 
   return (
@@ -972,27 +973,36 @@ function RuleFormDialog({
               <Input onChange={(event) => setRuleName(event.target.value)} required value={ruleName} />
             </FormField>
             <FormField label="账户分类">
-              <select className={formSelectClassName} onChange={(event) => setClassificationId(event.target.value)} value={classificationId}>
-                {classifications.map((classification) => (
-                  <option key={classification.id} value={classification.id}>
-                    {classification.display_name}
-                  </option>
-                ))}
-              </select>
+              <SelectControl
+                label="账户分类"
+                onValueChange={setClassificationId}
+                options={classifications.map((classification) => ({ label: classification.display_name, value: String(classification.id) }))}
+                value={classificationId}
+              />
             </FormField>
             <FormField label="数据库类型">
-              <select className={formSelectClassName} onChange={(event) => setDbType(event.target.value)} value={dbType}>
-                <option value="mysql">mysql</option>
-                <option value="postgresql">postgresql</option>
-                <option value="sqlserver">sqlserver</option>
-                <option value="oracle">oracle</option>
-              </select>
+              <SelectControl
+                label="数据库类型"
+                onValueChange={setDbType}
+                options={[
+                  { label: "mysql", value: "mysql" },
+                  { label: "postgresql", value: "postgresql" },
+                  { label: "sqlserver", value: "sqlserver" },
+                  { label: "oracle", value: "oracle" }
+                ]}
+                value={dbType}
+              />
             </FormField>
             <FormField label="匹配逻辑">
-              <select className={formSelectClassName} onChange={(event) => setOperator(event.target.value)} value={operator}>
-                <option value="any">any</option>
-                <option value="all">all</option>
-              </select>
+              <SelectControl
+                label="匹配逻辑"
+                onValueChange={setOperator}
+                options={[
+                  { label: "any", value: "any" },
+                  { label: "all", value: "all" }
+                ]}
+                value={operator}
+              />
             </FormField>
             <ActiveField checked={isActive} onCheckedChange={setIsActive} />
           </div>
@@ -1061,7 +1071,7 @@ function SchedulerJobFormDialog({
       trigger_type: "cron",
       cron_expression: cronExpression.trim()
     };
-    void updateSchedulerJob(item.id, payload).then(onSaved);
+    void runAction(updateSchedulerJob(item.id, payload), { success: "调度任务已更新" }).then(onSaved);
   }
 
   return (
@@ -1130,7 +1140,7 @@ function TagBulkDialog({
         : operation === "remove"
           ? removeTagsFromInstances(selectedInstanceIds, selectedTagIds)
           : removeAllTagsFromInstances(selectedInstanceIds);
-    void action.then(onSaved);
+    void runAction(action, { success: actionLabel }).then(onSaved);
   }
 
   return (
@@ -1155,11 +1165,16 @@ function TagBulkDialog({
         {query.data ? (
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <FormField label="操作">
-              <select className={formSelectClassName} onChange={(event) => setOperation(event.target.value as "assign" | "remove" | "remove_all")} value={operation}>
-                <option value="assign">批量分配</option>
-                <option value="remove">批量移除指定标签</option>
-                <option value="remove_all">批量移除全部标签</option>
-              </select>
+              <SelectControl
+                label="操作"
+                onValueChange={(value) => setOperation(value as "assign" | "remove" | "remove_all")}
+                options={[
+                  { label: "批量分配", value: "assign" },
+                  { label: "批量移除指定标签", value: "remove" },
+                  { label: "批量移除全部标签", value: "remove_all" }
+                ]}
+                value={operation}
+              />
             </FormField>
             <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
               <section className="grid gap-2 rounded-md border p-3">
@@ -1169,19 +1184,17 @@ function TagBulkDialog({
                 </div>
                 <div className="grid max-h-64 gap-2 overflow-auto">
                   {query.data.instances.map((instance) => (
-                    <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/20 px-3 py-2 text-sm" key={instance.id}>
+                    <CheckboxLine
+                      checked={selectedInstanceIds.includes(instance.id)}
+                      key={instance.id}
+                      label={`实例 ${taggableInstanceLabel(instance)}`}
+                      onCheckedChange={(checked) => setSelectedInstanceIds((current) => toggleNumberSelection(current, instance.id, checked))}
+                    >
                       <span>
                         <span className="sr-only">实例 </span>
                         {taggableInstanceLabel(instance)}
                       </span>
-                      <input
-                        aria-label={`实例 ${taggableInstanceLabel(instance)}`}
-                        checked={selectedInstanceIds.includes(instance.id)}
-                        className="size-4 accent-primary"
-                        onChange={(event) => setSelectedInstanceIds((current) => toggleNumberSelection(current, instance.id, event.target.checked))}
-                        type="checkbox"
-                      />
-                    </label>
+                    </CheckboxLine>
                   ))}
                 </div>
               </section>
@@ -1192,20 +1205,18 @@ function TagBulkDialog({
                 </div>
                 <div className="grid max-h-64 gap-2 overflow-auto">
                   {query.data.tags.map((tag) => (
-                    <label className="flex items-center justify-between gap-3 rounded-md border bg-secondary/20 px-3 py-2 text-sm" key={tag.id}>
+                    <CheckboxLine
+                      checked={selectedTagIds.includes(tag.id)}
+                      disabled={operation === "remove_all"}
+                      key={tag.id}
+                      label={`标签 ${tagOptionLabel(tag)}`}
+                      onCheckedChange={(checked) => setSelectedTagIds((current) => toggleNumberSelection(current, tag.id, checked))}
+                    >
                       <span>
                         <span className="sr-only">标签 </span>
                         {tagOptionLabel(tag)}
                       </span>
-                      <input
-                        aria-label={`标签 ${tagOptionLabel(tag)}`}
-                        checked={selectedTagIds.includes(tag.id)}
-                        className="size-4 accent-primary"
-                        disabled={operation === "remove_all"}
-                        onChange={(event) => setSelectedTagIds((current) => toggleNumberSelection(current, tag.id, event.target.checked))}
-                        type="checkbox"
-                      />
-                    </label>
+                    </CheckboxLine>
                   ))}
                 </div>
               </section>
@@ -1529,7 +1540,7 @@ function SchedulerJobCard({ job, onEdit }: { job: SchedulerJobItem; onEdit: (job
             <Button
               aria-label={`暂停任务 ${name}`}
               onClick={() => {
-                void pauseSchedulerJob(job.id);
+                void runAction(pauseSchedulerJob(job.id), { success: "任务已暂停" });
               }}
               size="icon"
               type="button"
@@ -1541,7 +1552,7 @@ function SchedulerJobCard({ job, onEdit }: { job: SchedulerJobItem; onEdit: (job
             <Button
               aria-label={`恢复任务 ${name}`}
               onClick={() => {
-                void resumeSchedulerJob(job.id);
+                void runAction(resumeSchedulerJob(job.id), { success: "任务已恢复" });
               }}
               size="icon"
               type="button"
@@ -1553,7 +1564,7 @@ function SchedulerJobCard({ job, onEdit }: { job: SchedulerJobItem; onEdit: (job
           <Button
             aria-label={`立即执行 ${name}`}
             onClick={() => {
-              void runSchedulerJob(job.id);
+              void runAction(runSchedulerJob(job.id), { success: "任务已触发" });
             }}
             size="icon"
             type="button"
@@ -1677,7 +1688,7 @@ function ClusterFormDialog({
         is_enabled: isEnabled
       };
       const request = item ? updateSqlServerCluster(item.id, payload) : createSqlServerCluster(payload);
-      void request.then(onSaved);
+      void runAction(request, { success: "SQL Server 群集已保存" }).then(onSaved);
       return;
     }
 
@@ -1687,7 +1698,7 @@ function ClusterFormDialog({
       is_enabled: isEnabled
     };
     const request = item ? updateMySqlCluster(item.id, payload) : createMySqlCluster(payload);
-    void request.then(onSaved);
+    void runAction(request, { success: "MySQL 群集已保存" }).then(onSaved);
   }
 
   return (
@@ -1854,7 +1865,7 @@ function SqlServerClusterDetailDialog({
             type="button"
             variant="outline"
             onClick={() => {
-              void syncSqlServerAvailabilityGroups(item.id, "master").then(() => void query.refetch());
+              void runAction(syncSqlServerAvailabilityGroups(item.id, "master"), { success: "AG 信息同步已触发" }).then(() => void query.refetch());
             }}
           >
             同步AG信息
@@ -1863,7 +1874,7 @@ function SqlServerClusterDetailDialog({
             type="button"
             variant="outline"
             onClick={() => {
-              void syncSqlServerClusterStatus(item.id).then(() => void query.refetch());
+              void runAction(syncSqlServerClusterStatus(item.id), { success: "群集状态同步已触发" }).then(() => void query.refetch());
             }}
           >
             同步群集状态
@@ -1871,7 +1882,7 @@ function SqlServerClusterDetailDialog({
           <Button
             type="button"
             onClick={() => {
-              void syncSqlServerAgAccounts(item.id).then(() => void query.refetch());
+              void runAction(syncSqlServerAgAccounts(item.id), { success: "AG 账户同步已触发" }).then(() => void query.refetch());
             }}
           >
             同步AG账户
@@ -1914,7 +1925,7 @@ function MySqlClusterDetailDialog({
           <Button
             type="button"
             onClick={() => {
-              void syncMySqlClusterTopology(item.id).then(() => void query.refetch());
+              void runAction(syncMySqlClusterTopology(item.id), { success: "MySQL 拓扑同步已触发" }).then(() => void query.refetch());
             }}
           >
             同步主从拓扑
@@ -2075,7 +2086,7 @@ export function ClustersPage() {
         onDetail: (item) => setViewingCluster({ mode: "sqlserver", item }),
         onEdit: (item) => setEditingCluster({ mode: "sqlserver", item }),
         onSyncAccounts: (item) => {
-          void syncSqlServerAgAccounts(item.id).then(() => void query.refetch());
+          void runAction(syncSqlServerAgAccounts(item.id), { success: "AG 账户同步已触发" }).then(() => void query.refetch());
         }
       }),
     [query]
@@ -2120,24 +2131,38 @@ export function ClustersPage() {
       </CommandBar>
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="群集" onRetry={() => void query.refetch()}>
         {(snapshot) => (
-          <section className="grid grid-cols-2 gap-2 max-xl:grid-cols-1">
-            <ListPanel title="SQL Server 群集" description="AG 关系、实例数量、AG 同步和数据库同步状态。" count={snapshot.sqlServer.total}>
-              <DataTable
-                columns={sqlServerClusterColumns}
-                data={snapshot.sqlServer.items}
-                filters={[{ columnId: "is_enabled", label: "状态", options: uniqueTextOptions(snapshot.sqlServer.items, clusterEnabledLabel) }]}
-                searchPlaceholder="搜索群集名称或描述"
-              />
-            </ListPanel>
-            <ListPanel title="MySQL 群集" description="主从拓扑、绑定实例和复制状态。" count={snapshot.mySql.total}>
-              <DataTable
-                columns={mysqlClusterColumns}
-                data={snapshot.mySql.items}
-                filters={[{ columnId: "is_enabled", label: "状态", options: uniqueTextOptions(snapshot.mySql.items, clusterEnabledLabel) }]}
-                searchPlaceholder="搜索群集名称或描述"
-              />
-            </ListPanel>
-          </section>
+          <Tabs className="grid gap-3" defaultValue="sqlserver">
+            <TabsList className="grid h-auto w-full grid-cols-2 p-1">
+              <TabsTrigger className="gap-2" value="sqlserver">
+                <Layers3 aria-hidden size={16} />
+                <span>SQL Server</span>
+              </TabsTrigger>
+              <TabsTrigger className="gap-2" value="mysql">
+                <Database aria-hidden size={16} />
+                <span>MySQL</span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent className="mt-0 grid gap-3" value="sqlserver">
+              <ListPanel title="SQL Server 群集" description="AG 关系、实例数量、AG 同步和数据库同步状态。" count={snapshot.sqlServer.total}>
+                <DataTable
+                  columns={sqlServerClusterColumns}
+                  data={snapshot.sqlServer.items}
+                  filters={[{ columnId: "is_enabled", label: "状态", options: uniqueTextOptions(snapshot.sqlServer.items, clusterEnabledLabel) }]}
+                  searchPlaceholder="搜索群集名称或描述"
+                />
+              </ListPanel>
+            </TabsContent>
+            <TabsContent className="mt-0 grid gap-3" value="mysql">
+              <ListPanel title="MySQL 群集" description="主从拓扑、绑定实例和复制状态。" count={snapshot.mySql.total}>
+                <DataTable
+                  columns={mysqlClusterColumns}
+                  data={snapshot.mySql.items}
+                  filters={[{ columnId: "is_enabled", label: "状态", options: uniqueTextOptions(snapshot.mySql.items, clusterEnabledLabel) }]}
+                  searchPlaceholder="搜索群集名称或描述"
+                />
+              </ListPanel>
+            </TabsContent>
+          </Tabs>
         )}
       </QueryFrame>
       {creatingCluster ? (
@@ -2430,7 +2455,7 @@ export function AccountClassificationsPage() {
       <CommandBar>
         <Button
           onClick={() => {
-            void autoClassifyAccounts().then(() => query.refetch());
+            void runAction(autoClassifyAccounts(), { success: "自动分类已触发" }).then(() => query.refetch());
           }}
           type="button"
           variant="outline"
@@ -2459,7 +2484,7 @@ export function AccountClassificationsPage() {
                   items={snapshot.classifications}
                   onEdit={setEditingClassification}
                   onDelete={(classificationId) => {
-                    void deleteAccountClassification(classificationId).then(() => query.refetch());
+                    void runAction(deleteAccountClassification(classificationId), { success: "账户分类已删除" }).then(() => query.refetch());
                   }}
                 />
               </ListPanel>
@@ -2476,7 +2501,7 @@ export function AccountClassificationsPage() {
               >
                 <RuleGroups
                   onDeleteRule={(ruleId) => {
-                    void deleteAccountClassificationRule(ruleId).then(() => query.refetch());
+                    void runAction(deleteAccountClassificationRule(ruleId), { success: "分类规则已删除" }).then(() => query.refetch());
                   }}
                   onEditRule={setEditingRule}
                   onViewRule={setViewingRule}
@@ -2589,9 +2614,6 @@ function topClassificationStats(stats: ClassificationStatisticsSnapshot["stats"]
     .slice(0, 8);
 }
 
-const compactSelectClassName =
-  "border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
 function buildClassificationOptions(snapshot: ClassificationStatisticsSnapshot): Array<{ value: string; label: string }> {
   const options = new Map<string, string>();
   snapshot.trends.series.forEach((series) => {
@@ -2619,39 +2641,38 @@ function ClassificationFilterPanel({ snapshot }: { snapshot: ClassificationStati
         <div className="grid grid-cols-[minmax(12rem,1.3fr)_minmax(8rem,0.7fr)_minmax(8rem,0.7fr)_minmax(12rem,1.3fr)_auto] items-end gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
           <label className="grid gap-1.5 text-sm font-medium">
             <span>账户分类</span>
-            <select className={compactSelectClassName} defaultValue="">
-              <option value="">全部分类</option>
-              {classificationOptions.map((option) => (
-                <option value={option.value} key={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <SelectControl label="账户分类" defaultValue="" options={[{ label: "全部分类", value: "" }, ...classificationOptions]} />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>统计周期</span>
-            <select className={compactSelectClassName} defaultValue="daily">
-              <option value="daily">日统计</option>
-              <option value="weekly">周统计</option>
-              <option value="monthly">月统计</option>
-              <option value="quarterly">季统计</option>
-            </select>
+            <SelectControl
+              label="统计周期"
+              defaultValue="daily"
+              options={[
+                { label: "日统计", value: "daily" },
+                { label: "周统计", value: "weekly" },
+                { label: "月统计", value: "monthly" },
+                { label: "季统计", value: "quarterly" }
+              ]}
+            />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>数据库类型</span>
-            <select className={compactSelectClassName} defaultValue="">
-              <option value="">全部类型</option>
-              <option value="mysql">MySQL</option>
-              <option value="postgresql">PostgreSQL</option>
-              <option value="sqlserver">SQL Server</option>
-              <option value="oracle">Oracle</option>
-            </select>
+            <SelectControl
+              label="数据库类型"
+              defaultValue=""
+              options={[
+                { label: "全部类型", value: "" },
+                { label: "MySQL", value: "mysql" },
+                { label: "PostgreSQL", value: "postgresql" },
+                { label: "SQL Server", value: "sqlserver" },
+                { label: "Oracle", value: "oracle" }
+              ]}
+            />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>实例/AG</span>
-            <select className={compactSelectClassName} defaultValue="" disabled>
-              <option value="">所有实例/AG</option>
-            </select>
+            <SelectControl label="实例/AG" defaultValue="" disabled options={[{ label: "所有实例/AG", value: "" }]} />
           </label>
           <div className="flex gap-2">
             <Button variant="outline" disabled>
@@ -2682,11 +2703,15 @@ function ClassificationRulesListPanel() {
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span>状态</span>
-            <select className={compactSelectClassName} defaultValue="active">
-              <option value="active">启用</option>
-              <option value="archived">已归档</option>
-              <option value="all">全部</option>
-            </select>
+            <SelectControl
+              label="状态"
+              defaultValue="active"
+              options={[
+                { label: "启用", value: "active" },
+                { label: "已归档", value: "archived" },
+                { label: "全部", value: "all" }
+              ]}
+            />
           </label>
         </div>
         <div className="grid min-h-36 place-items-center rounded-md border border-dashed bg-secondary/30 p-4 text-center text-sm text-muted-foreground">
@@ -2834,7 +2859,7 @@ export function SchedulerPage() {
               actions={
                 <Button
                   onClick={() => {
-                    void reloadSchedulerJobs().then(() => query.refetch());
+                    void runAction(reloadSchedulerJobs(), { success: "调度器已重新初始化" }).then(() => query.refetch());
                   }}
                   size="sm"
                   type="button"
@@ -3122,7 +3147,7 @@ export function SyncSessionsPage() {
                 }
                 const targetSessionId = cancelSessionId;
                 setCancelSessionId(null);
-                void cancelSyncSession(targetSessionId).then(() => query.refetch());
+                void runAction(cancelSyncSession(targetSessionId), { success: "会话已取消" }).then(() => query.refetch());
               }}
             >
               确认取消会话
@@ -3241,7 +3266,7 @@ export function UsersPage() {
           }
           const userId = deletingUser.id;
           setDeletingUser(null);
-          void deleteUser(userId).then(() => query.refetch());
+          void runAction(deleteUser(userId), { success: "用户已删除" }).then(() => query.refetch());
         }}
         onOpenChange={(open) => {
           if (!open) {
@@ -3485,7 +3510,7 @@ export function SettingsPage() {
                       <div className="flex flex-wrap gap-2">
                         <Button
                           onClick={() => {
-                            void sendAlertTestEmail(settingsRecipients(snapshot.alerts));
+                            void runAction(sendAlertTestEmail(settingsRecipients(snapshot.alerts)), { success: "测试邮件已发送" });
                           }}
                           size="sm"
                           type="button"
@@ -3494,7 +3519,7 @@ export function SettingsPage() {
                         </Button>
                         <Button
                           onClick={() => {
-                            void sendFeishuTest(asText(alertSettings.feishu_webhook_url, ""));
+                            void runAction(sendFeishuTest(asText(alertSettings.feishu_webhook_url, "")), { success: "飞书测试已发送" });
                           }}
                           size="sm"
                           type="button"
@@ -3504,7 +3529,7 @@ export function SettingsPage() {
                         </Button>
                         <Button
                           onClick={() => {
-                            void saveAlertSettings(alertSettings).then(() => query.refetch());
+                            void runAction(saveAlertSettings(alertSettings), { success: "告警设置已保存" }).then(() => query.refetch());
                           }}
                           size="sm"
                           type="button"
@@ -3530,7 +3555,7 @@ export function SettingsPage() {
                       <span className="text-sm text-muted-foreground">仅影响风险中心展示</span>
                       <Button
                         onClick={() => {
-                          void saveRiskRules(riskRulePayload(snapshot.riskRules)).then(() => query.refetch());
+                          void runAction(saveRiskRules(riskRulePayload(snapshot.riskRules)), { success: "风险规则已保存" }).then(() => query.refetch());
                         }}
                         size="sm"
                         type="button"
@@ -3563,7 +3588,7 @@ export function SettingsPage() {
                           disabled={jumpServerPayload === null}
                           onClick={() => {
                             if (jumpServerPayload !== null) {
-                              void saveJumpServerSource(jumpServerPayload).then(() => query.refetch());
+                              void runAction(saveJumpServerSource(jumpServerPayload), { success: "JumpServer 数据源已保存" }).then(() => query.refetch());
                             }
                           }}
                           size="sm"
@@ -3573,7 +3598,7 @@ export function SettingsPage() {
                         </Button>
                         <Button
                           onClick={() => {
-                            void unbindJumpServer().then(() => query.refetch());
+                            void runAction(unbindJumpServer(), { success: "JumpServer 已解绑" }).then(() => query.refetch());
                           }}
                           size="sm"
                           type="button"
@@ -3583,7 +3608,7 @@ export function SettingsPage() {
                         </Button>
                         <Button
                           onClick={() => {
-                            void syncJumpServer().then(() => query.refetch());
+                            void runAction(syncJumpServer(), { success: "JumpServer 同步已触发" }).then(() => query.refetch());
                           }}
                           size="sm"
                           type="button"
@@ -3622,10 +3647,10 @@ export function SettingsPage() {
                               return;
                             }
                             if (firstVeeamSourceId !== null) {
-                              void updateVeeamSource(firstVeeamSourceId, firstVeeamPayload).then(() => query.refetch());
+                              void runAction(updateVeeamSource(firstVeeamSourceId, firstVeeamPayload), { success: "Veeam 数据源已更新" }).then(() => query.refetch());
                               return;
                             }
-                            void createVeeamSource(firstVeeamPayload).then(() => query.refetch());
+                            void runAction(createVeeamSource(firstVeeamPayload), { success: "Veeam 数据源已创建" }).then(() => query.refetch());
                           }}
                           size="sm"
                           type="button"
@@ -3636,7 +3661,7 @@ export function SettingsPage() {
                           <Button
                             onClick={() => {
                               const action = firstVeeamSource.is_active === false ? enableVeeamSource : disableVeeamSource;
-                              void action(firstVeeamSourceId).then(() => query.refetch());
+                              void runAction(action(firstVeeamSourceId), { success: firstVeeamSource.is_active === false ? "Veeam 数据源已启用" : "Veeam 数据源已停用" }).then(() => query.refetch());
                             }}
                             size="sm"
                             type="button"
@@ -3648,7 +3673,7 @@ export function SettingsPage() {
                         <Button
                           onClick={() => {
                             if (firstVeeamSourceId !== null) {
-                              void deleteVeeamSource(firstVeeamSourceId).then(() => query.refetch());
+                              void runAction(deleteVeeamSource(firstVeeamSourceId), { success: "Veeam 数据源已删除" }).then(() => query.refetch());
                             }
                           }}
                           size="sm"
@@ -3660,7 +3685,7 @@ export function SettingsPage() {
                         <Badge variant="outline">新增模式</Badge>
                         <Button
                           onClick={() => {
-                            void syncVeeam().then(() => query.refetch());
+                            void runAction(syncVeeam(), { success: "Veeam 同步已触发" }).then(() => query.refetch());
                           }}
                           size="sm"
                           type="button"
@@ -3709,10 +3734,10 @@ export function SettingsPage() {
                               return;
                             }
                             if (firstAdDomainId !== null) {
-                              void updateAdDomainConfig(firstAdDomainId, firstAdDomainPayload).then(() => query.refetch());
+                              void runAction(updateAdDomainConfig(firstAdDomainId, firstAdDomainPayload), { success: "AD 域已更新" }).then(() => query.refetch());
                               return;
                             }
-                            void createAdDomainConfig(firstAdDomainPayload).then(() => query.refetch());
+                            void runAction(createAdDomainConfig(firstAdDomainPayload), { success: "AD 域已创建" }).then(() => query.refetch());
                           }}
                           size="sm"
                           type="button"
@@ -3723,7 +3748,7 @@ export function SettingsPage() {
                           <>
                             <Button
                               onClick={() => {
-                                void setAdDomainConfigEnabled(firstAdDomainId, firstAdDomain.is_enabled !== true).then(() => query.refetch());
+                                void runAction(setAdDomainConfigEnabled(firstAdDomainId, firstAdDomain.is_enabled !== true), { success: firstAdDomain.is_enabled === true ? "AD 域已停用" : "AD 域已启用" }).then(() => query.refetch());
                               }}
                               size="sm"
                               type="button"
@@ -3733,7 +3758,7 @@ export function SettingsPage() {
                             </Button>
                             <Button
                               onClick={() => {
-                                void testAdDomainConfig(firstAdDomainId);
+                                void runAction(testAdDomainConfig(firstAdDomainId), { success: "AD 连接测试已完成" });
                               }}
                               size="sm"
                               type="button"
@@ -3746,7 +3771,7 @@ export function SettingsPage() {
                         <Button
                           onClick={() => {
                             if (firstAdDomainId !== null) {
-                              void deleteAdDomainConfig(firstAdDomainId).then(() => query.refetch());
+                              void runAction(deleteAdDomainConfig(firstAdDomainId), { success: "AD 域配置已删除" }).then(() => query.refetch());
                             }
                           }}
                           size="sm"
@@ -3757,7 +3782,7 @@ export function SettingsPage() {
                         </Button>
                         <Button
                           onClick={() => {
-                            void syncAdDomains().then(() => query.refetch());
+                            void runAction(syncAdDomains(), { success: "AD 域账户同步已触发" }).then(() => query.refetch());
                           }}
                           size="sm"
                           type="button"
@@ -3889,7 +3914,7 @@ export function CredentialsPage() {
           }
           const credentialId = deletingCredential.id;
           setDeletingCredential(null);
-          void deleteCredential(credentialId).then(() => query.refetch());
+          void runAction(deleteCredential(credentialId), { success: "凭据已删除" }).then(() => query.refetch());
         }}
         onOpenChange={(open) => {
           if (!open) {
@@ -4018,7 +4043,7 @@ export function TagsPage() {
           }
           const tagId = deletingTag.id;
           setDeletingTag(null);
-          void deleteTag(tagId).then(() => query.refetch());
+          void runAction(deleteTag(tagId), { success: "标签已删除" }).then(() => query.refetch());
         }}
         onOpenChange={(open) => {
           if (!open) {
@@ -4079,7 +4104,7 @@ export function PartitionsPage() {
         </FormField>
         <Button
           onClick={() => {
-            void createPartition(partitionDate || undefined).then(() => query.refetch());
+            void runAction(createPartition(partitionDate || undefined), { success: "分区创建已触发" }).then(() => query.refetch());
           }}
           type="button"
         >
@@ -4088,7 +4113,7 @@ export function PartitionsPage() {
         </Button>
         <Button
           onClick={() => {
-            void cleanupPartitions(numberFromInput(retentionMonths, 12)).then(() => query.refetch());
+            void runAction(cleanupPartitions(numberFromInput(retentionMonths, 12)), { success: "旧分区清理已触发" }).then(() => query.refetch());
           }}
           type="button"
           variant="outline"

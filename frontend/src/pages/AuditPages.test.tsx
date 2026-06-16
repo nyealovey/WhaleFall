@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import { AccountChangeLogsPage, HistoryLogsPage } from "./AuditPages";
 
 vi.mock("@/api/audit", () => ({
@@ -101,7 +103,11 @@ function renderWithQueryClient(element: ReactElement) {
     defaultOptions: { queries: { retry: false } }
   });
 
-  return render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{element}</TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 async function expectTextPresent(text: string) {
@@ -118,6 +124,7 @@ describe("AuditPages", () => {
       expect(screen.getByText("sync failed")).toBeInTheDocument();
     });
 
+    expect(screen.getByText("sync failed")).not.toHaveAttribute("title");
     expect(screen.getByRole("heading", { name: "日志中心" })).toBeInTheDocument();
     expect(screen.getAllByText("scheduler").length).toBeGreaterThan(0);
     expect(screen.getAllByText("ERROR").length).toBeGreaterThan(0);
@@ -132,7 +139,7 @@ describe("AuditPages", () => {
     });
 
     expect(screen.getByRole("heading", { name: "变更历史" })).toBeInTheDocument();
-    expect(screen.getByText("新增账户,赋予 5 项权限")).toBeInTheDocument();
+    expect(screen.getByText("新增账户,赋予 5 项权限")).not.toHaveAttribute("title");
     expect(screen.getAllByText("ORACLE").length).toBeGreaterThan(0);
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });

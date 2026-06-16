@@ -213,6 +213,10 @@ export function syncAccounts(client: ApiActionClient = apiClient) {
   return client.post("/api/v1/instances/actions/sync-accounts", {});
 }
 
+export function syncInstanceAccounts(instanceId: number, client: ApiActionClient = apiClient) {
+  return client.post(`/api/v1/instances/${instanceId}/actions/sync-accounts`, {});
+}
+
 export function createSqlServerCluster(payload: SqlServerClusterPayload, client: ApiActionClient = apiClient) {
   return client.post("/api/v1/sqlserver-clusters", payload);
 }
@@ -283,6 +287,18 @@ export function deleteInstance(instanceId: number, client: ApiActionClient = api
 
 export function restoreInstance(instanceId: number, client: ApiActionClient = apiClient) {
   return client.post(`/api/v1/instances/${instanceId}/actions/restore`, {});
+}
+
+export function syncInstanceCapacity(instanceId: number, client: ApiActionClient = apiClient) {
+  return client.post(`/api/v1/instances/${instanceId}/actions/sync-capacity`, {});
+}
+
+export function syncInstanceAuditInfo(instanceId: number, client: ApiActionClient = apiClient) {
+  return client.post(`/api/v1/instances/${instanceId}/actions/sync-audit-info`, {});
+}
+
+export function syncInstanceBackup(instanceId: number, client: ApiActionClient = apiClient) {
+  return client.post(`/api/v1/integrations/veeam/actions/sync-instance/${instanceId}`, {});
 }
 
 export function refreshDatabaseTableSizes(databaseId: number, client: ApiActionClient = apiClient) {

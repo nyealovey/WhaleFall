@@ -43,6 +43,10 @@ import {
   batchDeleteInstances,
   testInstanceConnection,
   importInstancesFromCsv,
+  syncInstanceAuditInfo,
+  syncInstanceBackup,
+  syncInstanceAccounts,
+  syncInstanceCapacity,
   triggerCapacityAggregation,
   autoClassifyAccounts,
   updateAccountClassification,
@@ -123,6 +127,10 @@ describe("console action api", () => {
     await testInstanceConnection(7, client);
     await batchTestInstanceConnections([7, 8], client);
     await batchDeleteInstances([7, 8], "soft", client);
+    await syncInstanceAccounts(7, client);
+    await syncInstanceCapacity(7, client);
+    await syncInstanceAuditInfo(7, client);
+    await syncInstanceBackup(7, client);
     await deleteInstance(7, client);
     await restoreInstance(7, client);
     await refreshDatabaseTableSizes(9, client);
@@ -331,6 +339,10 @@ describe("console action api", () => {
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/test-connection", { instance_id: 7 });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-test-connections", { instance_ids: [7, 8] });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-delete", { instance_ids: [7, 8], deletion_mode: "soft" });
+    expect(client.post).toHaveBeenCalledWith("/api/v1/instances/7/actions/sync-accounts", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/instances/7/actions/sync-capacity", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/instances/7/actions/sync-audit-info", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/integrations/veeam/actions/sync-instance/7", {});
     expect(client.delete).toHaveBeenCalledWith("/api/v1/instances/7");
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/7/actions/restore", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/databases/9/tables/sizes/actions/refresh?page=1&limit=200", {});
