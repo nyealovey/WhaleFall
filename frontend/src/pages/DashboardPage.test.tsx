@@ -62,15 +62,19 @@ describe("DashboardPage", () => {
     });
 
     expect(screen.getByRole("heading", { name: "仪表盘" })).toBeInTheDocument();
+    expect(screen.queryByText("React console")).not.toBeInTheDocument();
     expect(screen.getByText("账户总数")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
     expect(screen.getByText("数据库总数")).toBeInTheDocument();
     expect(screen.getByText("25")).toBeInTheDocument();
-    expect(screen.getByText("DBA")).toBeInTheDocument();
-    expect(screen.getByText("ERROR")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "日志等级折线图" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "同步趋势面积图" })).toBeInTheDocument();
     expect(screen.getAllByRole("progressbar")).toHaveLength(3);
+    expect(screen.queryByText("账户分类")).not.toBeInTheDocument();
+    expect(screen.queryByText("DBA")).not.toBeInTheDocument();
+    expect(screen.queryByText("日志等级")).not.toBeInTheDocument();
+    expect(screen.queryByText("ERROR")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "日志等级折线图" })).not.toBeInTheDocument();
+    expect(screen.queryByText("同步趋势")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "同步趋势面积图" })).not.toBeInTheDocument();
     expect(screen.queryByText("迁移状态")).not.toBeInTheDocument();
     expect(screen.queryByText("活动流")).not.toBeInTheDocument();
   });

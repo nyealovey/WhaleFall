@@ -402,9 +402,7 @@ function syncDuration(item: SyncSessionItem): string {
 }
 
 function PageHeader({
-  eyebrow,
   title,
-  description,
   legacyHref
 }: {
   eyebrow: string;
@@ -415,9 +413,7 @@ function PageHeader({
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
-        <span className="font-mono text-xs tracking-[0.06em] text-muted-foreground uppercase">{eyebrow}</span>
-        <h1 className="font-display mt-1 text-2xl leading-none tracking-normal">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+        <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
       <Button variant="outline" asChild>
         <a href={legacyHref}>
@@ -2009,7 +2005,7 @@ function ClusterFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>维护群集基础信息；实例绑定和 AG 配置在群集列表下方的维护区域完成。</DialogDescription>
+          <DialogDescription>维护群集基础信息；实例绑定和 AG 配置通过群集列表操作进入。</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -2115,6 +2111,7 @@ function ClusterInstanceBindingPanel({
       mode === "sqlserver" ? replaceSqlServerClusterInstances(item.id, selectedIds) : replaceMySqlClusterInstances(item.id, selectedIds);
     void runAction(request, { success: `${label} 实例绑定已保存` }).then(() => {
       onSaved();
+      onClose();
       void detailQuery.refetch();
     });
   }
@@ -2122,61 +2119,62 @@ function ClusterInstanceBindingPanel({
   const isLoading = detailQuery.isLoading || optionsQuery.isLoading;
   const isError = detailQuery.isError || optionsQuery.isError;
   const options = optionsQuery.data ?? [];
+  const title = `编辑 ${label} 实例绑定 ${item.name}`;
 
   return (
-    <Card aria-label={`编辑 ${label} 实例绑定 ${item.name}`} className="scroll-mt-4" role="region">
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
-          <div>
-            <CardTitle>编辑 {label} 实例绑定 {item.name}</CardTitle>
-            <CardDescription>按旧版群集成员维护口径，保存后用 v1 替换当前绑定实例列表。</CardDescription>
-          </div>
-          <Button onClick={onClose} size="sm" type="button" variant="outline">
-            收起
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? <Skeleton className="h-32 w-full" /> : null}
-          {isError ? <ErrorState label={`${label} 实例绑定`} onRetry={() => {
-            void detailQuery.refetch();
-            void optionsQuery.refetch();
-          }} /> : null}
-          {!isLoading && !isError ? (
-            <form className="grid gap-4" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
-                {options.length > 0 ? (
-                  options.map((option) => {
-                    const optionId = clusterRecordId(option);
-                    if (optionId === null) {
-                      return null;
-                    }
-                    return (
-                      <CheckboxLine
-                        checked={selectedIds.includes(optionId)}
-                        key={optionId}
-                        label={`绑定 ${option.name}`}
-                        onCheckedChange={(checked) => toggleInstance(optionId, checked)}
-                      >
-                        <span className="grid gap-0.5">
-                          <span className="font-medium">{option.name}</span>
-                          <span className="font-mono text-xs text-muted-foreground">{option.host ?? "-"}</span>
-                        </span>
-                      </CheckboxLine>
-                    );
-                  })
-                ) : (
-                  <div className="rounded-md border px-3 py-8 text-center text-sm text-muted-foreground">暂无可绑定实例</div>
-                )}
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <Button onClick={onClose} type="button" variant="outline">
-                  取消
-                </Button>
-                <Button type="submit">保存绑定</Button>
-              </div>
-            </form>
-          ) : null}
-        </CardContent>
-    </Card>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护群集成员绑定，保存后替换当前绑定实例列表。</DialogDescription>
+        </DialogHeader>
+        {isLoading ? <Skeleton className="h-32 w-full" /> : null}
+        {isError ? (
+          <ErrorState
+            label={`${label} 实例绑定`}
+            onRetry={() => {
+              void detailQuery.refetch();
+              void optionsQuery.refetch();
+            }}
+          />
+        ) : null}
+        {!isLoading && !isError ? (
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
+              {options.length > 0 ? (
+                options.map((option) => {
+                  const optionId = clusterRecordId(option);
+                  if (optionId === null) {
+                    return null;
+                  }
+                  return (
+                    <CheckboxLine
+                      checked={selectedIds.includes(optionId)}
+                      key={optionId}
+                      label={`绑定 ${option.name}`}
+                      onCheckedChange={(checked) => toggleInstance(optionId, checked)}
+                    >
+                      <span className="grid gap-0.5">
+                        <span className="font-medium">{option.name}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{option.host ?? "-"}</span>
+                      </span>
+                    </CheckboxLine>
+                  );
+                })
+              ) : (
+                <div className="rounded-md border px-3 py-8 text-center text-sm text-muted-foreground">暂无可绑定实例</div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button onClick={onClose} type="button" variant="outline">
+                取消
+              </Button>
+              <Button type="submit">保存绑定</Button>
+            </DialogFooter>
+          </form>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -2463,50 +2461,47 @@ function SqlServerAgConfigurationPanel({
   }
 
   return (
-    <Card aria-label={`SQL Server AG 配置 ${item.name}`} className="scroll-mt-4" role="region">
-      <CardHeader className="flex flex-row items-start justify-between gap-3">
-        <div>
-          <CardTitle>SQL Server AG 配置 {item.name}</CardTitle>
-          <CardDescription>维护可用性组监听器、连接数据库和账户采集配置；看板在同一区域内展开。</CardDescription>
-        </div>
-        <div className="flex items-center gap-2">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>SQL Server AG 配置 {item.name}</DialogTitle>
+          <DialogDescription>维护可用性组监听器、连接数据库和账户采集配置。</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <div className="flex justify-end">
           <Button onClick={() => setFormTarget("new")} size="sm" type="button">
             <Plus aria-hidden />
             新建AG配置
           </Button>
-          <Button onClick={onClose} size="sm" type="button" variant="outline">
-            收起
-          </Button>
+          </div>
+          {query.isLoading ? <Skeleton className="h-32 w-full" /> : null}
+          {query.isError ? <ErrorState label="SQL Server AG 配置" onRetry={() => void query.refetch()} /> : null}
+          {query.data ? (
+            <>
+              <ListPanel title="可用性组配置" description="旧版 SQL Server 群集中的 AG 配置列表。" count={query.data.availability_groups.length}>
+                <SqlServerAvailabilityGroupsTable
+                  onDashboard={(record) => setDashboardTarget(record)}
+                  onEdit={(record) => setFormTarget(record)}
+                  records={query.data.availability_groups}
+                />
+              </ListPanel>
+              {formTarget ? (
+                <SqlServerAgInlineForm
+                  clusterId={item.id}
+                  key={formTarget === "new" ? "new" : `edit-${clusterRecordId(formTarget) ?? sqlServerAgName(formTarget)}`}
+                  onCancel={() => setFormTarget(null)}
+                  onSaved={handleSaved}
+                  target={formTarget}
+                />
+              ) : null}
+              {dashboardTarget ? (
+                <SqlServerAgDashboardInline clusterId={item.id} item={dashboardTarget} onClose={() => setDashboardTarget(null)} />
+              ) : null}
+            </>
+          ) : null}
         </div>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {query.isLoading ? <Skeleton className="h-32 w-full" /> : null}
-        {query.isError ? <ErrorState label="SQL Server AG 配置" onRetry={() => void query.refetch()} /> : null}
-        {query.data ? (
-          <>
-            <ListPanel title="可用性组配置" description="旧版 SQL Server 群集中的 AG 配置列表。" count={query.data.availability_groups.length}>
-              <SqlServerAvailabilityGroupsTable
-                onDashboard={(record) => setDashboardTarget(record)}
-                onEdit={(record) => setFormTarget(record)}
-                records={query.data.availability_groups}
-              />
-            </ListPanel>
-            {formTarget ? (
-              <SqlServerAgInlineForm
-                clusterId={item.id}
-                key={formTarget === "new" ? "new" : `edit-${clusterRecordId(formTarget) ?? sqlServerAgName(formTarget)}`}
-                onCancel={() => setFormTarget(null)}
-                onSaved={handleSaved}
-                target={formTarget}
-              />
-            ) : null}
-            {dashboardTarget ? (
-              <SqlServerAgDashboardInline clusterId={item.id} item={dashboardTarget} onClose={() => setDashboardTarget(null)} />
-            ) : null}
-          </>
-        ) : null}
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -4703,6 +4698,16 @@ function ToggleRow({ label, checked }: { label: string; checked: unknown }) {
   );
 }
 
+type SettingsModule = "alerts" | "risk" | "jumpserver" | "veeam" | "ad";
+
+const settingsModules: Array<{ label: string; value: SettingsModule }> = [
+  { label: "告警设置", value: "alerts" },
+  { label: "风险规则", value: "risk" },
+  { label: "JumpServer", value: "jumpserver" },
+  { label: "Veeam", value: "veeam" },
+  { label: "AD 设置", value: "ad" }
+];
+
 function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapshot: SettingsSnapshot }) {
   const alertSettings = snapshot.alerts.settings ?? {};
   const veeamSources = recordList(snapshot.veeam.sources);
@@ -4723,6 +4728,7 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
   const jumpServerPayload = jumpServerPayloadFromForm(jumpServerForm);
   const veeamPayload = veeamPayloadFromForm(veeamForm);
   const adPayload = adDomainPayloadFromForm(adDomainForm);
+  const [activeModule, setActiveModule] = useState<SettingsModule>("alerts");
 
   function editVeeamSource(source: Record<string, unknown>) {
     setSelectedVeeamSourceId(numericId(source.id));
@@ -4746,30 +4752,27 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
 
   return (
     <>
-      <MetricGrid
-        label="系统设置指标"
-        metrics={[
-          { label: "启用配置", value: settingsEnabledCount(snapshot), icon: Settings },
-          { label: "风险规则", value: riskRules.length, icon: AlertCircle },
-          { label: "AD 域", value: adDomainConfigs.length, icon: UserCog },
-          { label: "Veeam 源", value: veeamSources.length, icon: Database }
-        ]}
-      />
       <section className="grid grid-cols-[16rem_minmax(0,1fr)] gap-2 max-xl:grid-cols-1">
         <Card className="self-start">
           <CardHeader>
             <CardTitle>设置模块</CardTitle>
-            <CardDescription>旧版模块导航</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2">
-            {["告警设置", "风险规则", "JumpServer", "Veeam", "AD 设置"].map((label) => (
-              <Button className="justify-start" key={label} type="button" variant="ghost">
-                {label}
+            {settingsModules.map((module) => (
+              <Button
+                className="justify-start"
+                key={module.value}
+                onClick={() => setActiveModule(module.value)}
+                type="button"
+                variant={activeModule === module.value ? "secondary" : "ghost"}
+              >
+                {module.label}
               </Button>
             ))}
           </CardContent>
         </Card>
         <div className="grid gap-2">
+          {activeModule === "alerts" ? (
           <SettingsCard title="邮件告警" description="SMTP、飞书投递和告警规则。" status={snapshot.alerts.smtp_ready}>
             <SettingsSubsection title="发送设置">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
@@ -4818,7 +4821,9 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               </div>
             </SettingsSubsection>
           </SettingsCard>
+          ) : null}
 
+          {activeModule === "risk" ? (
           <SettingsCard title="风险规则" description="仅影响风险中心展示。" status={riskRules.some((rule) => rule.enabled)}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm text-muted-foreground">仅影响风险中心展示</span>
@@ -4851,7 +4856,9 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               <p className="text-muted-foreground">暂无风险规则</p>
             )}
           </SettingsCard>
+          ) : null}
 
+          {activeModule === "jumpserver" ? (
           <SettingsCard title="JumpServer 数据源设置" description="绑定资产数据源、API 凭据和运行状态。" status={Boolean(snapshot.jumpserver.provider_ready)}>
             <SettingsSubsection title="绑定配置">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
@@ -4901,7 +4908,9 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               <span className="font-mono text-sm">{endpointHost(jumpServerForm.baseUrl)}</span>
             </SettingsSubsection>
           </SettingsCard>
+          ) : null}
 
+          {activeModule === "veeam" ? (
           <SettingsCard title="Veeam 数据源设置" description="备份平台数据源配置。" status={Boolean(snapshot.veeam.provider_ready)}>
             <SettingsSubsection title="新增数据源">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
@@ -5005,7 +5014,9 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               )}
             </SettingsSubsection>
           </SettingsCard>
+          ) : null}
 
+          {activeModule === "ad" ? (
           <SettingsCard title="AD 设置" description="AD 域账户同步配置。" status={adDomainConfigs.some((item) => item.is_enabled === true)}>
             <SettingsSubsection title="新增 AD 域">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
@@ -5114,6 +5125,7 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               )}
             </SettingsSubsection>
           </SettingsCard>
+          ) : null}
         </div>
       </section>
     </>

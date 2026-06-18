@@ -426,7 +426,7 @@ describe("RemainingReadOnlyPages", () => {
     ["定时任务", <SchedulerPage />, ["同步任务", "运行中"]],
     ["会话中心", <SyncSessionsPage />, ["s-1", "running"]],
     ["用户管理", <UsersPage />, ["admin", "用户总数"]],
-    ["系统设置", <SettingsPage />, ["邮件告警", "jump.example", "veeam-main", "corp"]],
+    ["系统设置", <SettingsPage />, ["设置模块", "告警设置", "邮件告警"]],
     ["凭据管理", <CredentialsPage />, ["prod-db", "root"]],
     ["标签管理", <TagsPage />, ["生产", "env"]],
     ["分区管理", <PartitionsPage />, ["p202606", "healthy"]]
@@ -706,6 +706,7 @@ describe("RemainingReadOnlyPages", () => {
     renderWithQueryClient(<ClustersPage />);
 
     await screen.findByRole("heading", { name: "群集管理" });
+    expect(screen.queryByText("Cluster topology")).not.toBeInTheDocument();
 
     for (const text of ["添加群集", "搜索", "状态", "SQL Server", "MySQL"]) {
       await expectTextPresent(text);
@@ -837,27 +838,29 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "关闭详情" }));
 
     fireEvent.click(screen.getByRole("button", { name: "绑定实例 sql-ag" }));
-    const bindingPanel = await screen.findByRole("region", { name: "编辑 SQL Server 实例绑定 sql-ag" });
-    expect(await within(bindingPanel).findByText("sql-node-2")).toBeInTheDocument();
-    fireEvent.click(within(bindingPanel).getByRole("checkbox", { name: /sql-node-2/ }));
-    fireEvent.click(within(bindingPanel).getByRole("button", { name: "保存绑定" }));
+    const bindingDialog = await screen.findByRole("dialog", { name: "编辑 SQL Server 实例绑定 sql-ag" });
+    expect(screen.queryByRole("region", { name: "编辑 SQL Server 实例绑定 sql-ag" })).not.toBeInTheDocument();
+    expect(await within(bindingDialog).findByText("sql-node-2")).toBeInTheDocument();
+    fireEvent.click(within(bindingDialog).getByRole("checkbox", { name: /sql-node-2/ }));
+    fireEvent.click(within(bindingDialog).getByRole("button", { name: "保存绑定" }));
 
     await waitFor(() => {
       expect(actionMocks.replaceSqlServerClusterInstances).toHaveBeenCalledWith(1, [11, 13]);
     });
 
     fireEvent.click(screen.getByRole("button", { name: "AG配置 sql-ag" }));
-    const agPanel = await screen.findByRole("region", { name: "SQL Server AG 配置 sql-ag" });
-    expect(await within(agPanel).findByText("ag-sales")).toBeInTheDocument();
+    const agDialog = await screen.findByRole("dialog", { name: "SQL Server AG 配置 sql-ag" });
+    expect(screen.queryByRole("region", { name: "SQL Server AG 配置 sql-ag" })).not.toBeInTheDocument();
+    expect(await within(agDialog).findByText("ag-sales")).toBeInTheDocument();
 
-    fireEvent.click(within(agPanel).getByRole("button", { name: "新建AG配置" }));
-    fireEvent.change(within(agPanel).getByLabelText("AG 名称"), { target: { value: "ag-new" } });
-    fireEvent.change(within(agPanel).getByLabelText("监听器名称"), { target: { value: "ag-new-listener" } });
-    fireEvent.change(within(agPanel).getByLabelText("监听器地址"), { target: { value: "ag-new.example" } });
-    fireEvent.change(within(agPanel).getByLabelText("监听器端口"), { target: { value: "1433" } });
-    fireEvent.change(within(agPanel).getByLabelText("连接数据库"), { target: { value: "master" } });
-    fireEvent.change(within(agPanel).getByLabelText("账户凭据ID"), { target: { value: "9" } });
-    fireEvent.click(within(agPanel).getByRole("button", { name: "保存AG配置" }));
+    fireEvent.click(within(agDialog).getByRole("button", { name: "新建AG配置" }));
+    fireEvent.change(within(agDialog).getByLabelText("AG 名称"), { target: { value: "ag-new" } });
+    fireEvent.change(within(agDialog).getByLabelText("监听器名称"), { target: { value: "ag-new-listener" } });
+    fireEvent.change(within(agDialog).getByLabelText("监听器地址"), { target: { value: "ag-new.example" } });
+    fireEvent.change(within(agDialog).getByLabelText("监听器端口"), { target: { value: "1433" } });
+    fireEvent.change(within(agDialog).getByLabelText("连接数据库"), { target: { value: "master" } });
+    fireEvent.change(within(agDialog).getByLabelText("账户凭据ID"), { target: { value: "9" } });
+    fireEvent.click(within(agDialog).getByRole("button", { name: "保存AG配置" }));
 
     await waitFor(() => {
       expect(actionMocks.createSqlServerAvailabilityGroup).toHaveBeenCalledWith(
@@ -875,10 +878,10 @@ describe("RemainingReadOnlyPages", () => {
       );
     });
 
-    fireEvent.click(within(agPanel).getByRole("button", { name: "编辑AG ag-sales" }));
-    expect(within(agPanel).getByRole("heading", { name: "编辑 SQL Server AG 配置 ag-sales" })).toBeInTheDocument();
-    fireEvent.change(within(agPanel).getByLabelText("监听器地址"), { target: { value: "ag-edit.example" } });
-    fireEvent.click(within(agPanel).getByRole("button", { name: "保存AG配置" }));
+    fireEvent.click(within(agDialog).getByRole("button", { name: "编辑AG ag-sales" }));
+    expect(within(agDialog).getByRole("heading", { name: "编辑 SQL Server AG 配置 ag-sales" })).toBeInTheDocument();
+    fireEvent.change(within(agDialog).getByLabelText("监听器地址"), { target: { value: "ag-edit.example" } });
+    fireEvent.click(within(agDialog).getByRole("button", { name: "保存AG配置" }));
 
     await waitFor(() => {
       expect(actionMocks.updateSqlServerAvailabilityGroup).toHaveBeenCalledWith(
@@ -888,10 +891,10 @@ describe("RemainingReadOnlyPages", () => {
       );
     });
 
-    fireEvent.click(within(agPanel).getByRole("button", { name: "查看AG看板 ag-sales" }));
-    expect(await within(agPanel).findByRole("heading", { name: "SQL Server AG 看板 ag-sales" })).toBeInTheDocument();
-    expect(await within(agPanel).findByText("sql-node-1")).toBeInTheDocument();
-    expect(await within(agPanel).findByText("sales")).toBeInTheDocument();
+    fireEvent.click(within(agDialog).getByRole("button", { name: "查看AG看板 ag-sales" }));
+    expect(await within(agDialog).findByRole("heading", { name: "SQL Server AG 看板 ag-sales" })).toBeInTheDocument();
+    expect(await within(agDialog).findByText("sql-node-1")).toBeInTheDocument();
+    expect(await within(agDialog).findByText("sales")).toBeInTheDocument();
   });
 
   it("renders account classifications with legacy panels, rule groups, and actions", async () => {
@@ -1114,6 +1117,7 @@ describe("RemainingReadOnlyPages", () => {
     renderWithQueryClient(<SettingsPage />);
 
     await screen.findByRole("heading", { name: "系统设置" });
+    expect(screen.queryByText("System integrations")).not.toBeInTheDocument();
 
     for (const text of [
       "设置模块",
@@ -1138,9 +1142,22 @@ describe("RemainingReadOnlyPages", () => {
       "数据库同步异常",
       "群集状态",
       "高权限账户",
-      "备份告警",
-      "保存规则",
-      "仅影响风险中心展示",
+      "备份告警"
+    ]) {
+      await expectTextPresent(text);
+    }
+    expect(screen.queryByText("系统设置指标")).not.toBeInTheDocument();
+    expect(screen.queryByText("JumpServer 数据源设置")).not.toBeInTheDocument();
+    expect(screen.queryByText("Veeam 数据源设置")).not.toBeInTheDocument();
+    expect(screen.queryByText("AD 域列表")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "风险规则" }));
+    await expectTextPresent("保存规则");
+    await expectTextPresent("仅影响风险中心展示");
+    expect(screen.queryByText("发送设置")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "JumpServer" }));
+    for (const text of [
       "JumpServer 数据源设置",
       "绑定配置",
       "API 凭据",
@@ -1150,7 +1167,14 @@ describe("RemainingReadOnlyPages", () => {
       "保存绑定",
       "解绑数据源",
       "同步 JumpServer 资源",
-      "运行状态",
+      "运行状态"
+    ]) {
+      await expectTextPresent(text);
+    }
+    expect(screen.queryByText("邮件告警")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Veeam" }));
+    for (const text of [
       "新增数据源",
       "数据源名称",
       "Veeam 凭据",
@@ -1162,7 +1186,14 @@ describe("RemainingReadOnlyPages", () => {
       "删除数据源",
       "新增模式",
       "同步 Veeam 备份",
-      "数据源列表",
+      "数据源列表"
+    ]) {
+      await expectTextPresent(text);
+    }
+    expect(screen.queryByText("JumpServer 数据源设置")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "AD 设置" }));
+    for (const text of [
       "新增 AD 域",
       "域名",
       "NetBIOS 名称",
@@ -1252,14 +1283,22 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "发送测试邮件" }));
     fireEvent.click(screen.getByRole("button", { name: "发送飞书测试" }));
     fireEvent.click(screen.getByRole("button", { name: "保存配置" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "风险规则" }));
     fireEvent.click(screen.getByRole("button", { name: "保存规则" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "JumpServer" }));
     fireEvent.click(screen.getByRole("button", { name: "保存绑定" }));
     fireEvent.click(screen.getByRole("button", { name: "同步 JumpServer 资源" }));
     fireEvent.click(screen.getByRole("button", { name: "解绑数据源" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Veeam" }));
     fireEvent.click(screen.getByRole("button", { name: "保存数据源" }));
     fireEvent.click(screen.getByRole("button", { name: "停用数据源" }));
     fireEvent.click(screen.getByRole("button", { name: "同步 Veeam 备份" }));
     fireEvent.click(screen.getByRole("button", { name: "删除数据源" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "AD 设置" }));
     fireEvent.click(screen.getByRole("button", { name: "保存 AD 域" }));
     fireEvent.click(screen.getByRole("button", { name: "停用 AD 域" }));
     fireEvent.click(screen.getByRole("button", { name: "测试 AD 连接" }));
