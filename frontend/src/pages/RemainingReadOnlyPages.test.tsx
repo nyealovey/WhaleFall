@@ -49,6 +49,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteAccountClassification: vi.fn(async () => ({ ok: true })),
   deleteAccountClassificationRule: vi.fn(async () => ({ ok: true })),
   deleteCredential: vi.fn(async () => ({ ok: true })),
+  deleteSchedulerJob: vi.fn(async () => ({ ok: true })),
   deleteTag: vi.fn(async () => ({ ok: true })),
   deleteUser: vi.fn(async () => ({ ok: true })),
   pauseSchedulerJob: vi.fn(async () => ({ ok: true })),
@@ -1007,7 +1008,11 @@ describe("RemainingReadOnlyPages", () => {
     await screen.findByText("App");
     fireEvent.click(screen.getByRole("button", { name: "自动分类" }));
     fireEvent.click(screen.getByRole("button", { name: "删除分类 App" }));
+    expect(await screen.findByRole("alertdialog", { name: "确认删除分类 App" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确认删除分类" }));
     fireEvent.click(screen.getByRole("button", { name: "删除规则 root rule" }));
+    expect(await screen.findByRole("alertdialog", { name: "确认删除规则 root rule" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确认删除规则" }));
 
     await waitFor(() => {
       expect(actionMocks.autoClassifyAccounts).toHaveBeenCalled();
@@ -1218,11 +1223,15 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "暂停任务 同步任务" }));
     fireEvent.click(screen.getByRole("button", { name: "恢复任务 归档任务" }));
     fireEvent.click(screen.getByRole("button", { name: "立即执行 同步任务" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除任务 同步任务" }));
+    expect(await screen.findByRole("alertdialog", { name: "确认删除任务 同步任务" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确认删除任务" }));
     await waitFor(() => {
       expect(actionMocks.reloadSchedulerJobs).toHaveBeenCalled();
       expect(actionMocks.pauseSchedulerJob).toHaveBeenCalledWith("job-1");
       expect(actionMocks.resumeSchedulerJob).toHaveBeenCalledWith("job-2");
       expect(actionMocks.runSchedulerJob).toHaveBeenCalledWith("job-1");
+      expect(actionMocks.deleteSchedulerJob).toHaveBeenCalledWith("job-1");
     });
 
     cleanup();

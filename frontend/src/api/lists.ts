@@ -38,6 +38,14 @@ export type InstanceListItem = {
   tags: TagItem[];
 };
 
+export type CredentialOptionItem = {
+  id: number;
+  name: string;
+  credential_type?: string | null;
+  db_type?: string | null;
+  is_active?: boolean | null;
+};
+
 export type InstanceDetailResponse = {
   instance: InstanceListItem & Record<string, unknown>;
 };
@@ -270,6 +278,11 @@ function firstPagePath(path: string, limit = DEFAULT_LIST_LIMIT): string {
 
 export async function fetchInstances(client: ApiReader = apiClient): Promise<PaginatedList<InstanceListItem>> {
   return client.get<PaginatedList<InstanceListItem>>(firstPagePath("/api/v1/instances"));
+}
+
+export async function fetchCredentialOptions(client: ApiReader = apiClient): Promise<CredentialOptionItem[]> {
+  const response = await client.get<PaginatedList<CredentialOptionItem>>(firstPagePath("/api/v1/credentials"));
+  return response.items;
 }
 
 export async function fetchDatabaseLedgers(client: ApiReader = apiClient): Promise<PaginatedList<DatabaseLedgerItem>> {

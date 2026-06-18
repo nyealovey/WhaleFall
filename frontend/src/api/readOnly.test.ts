@@ -358,6 +358,7 @@ describe("read-only migration api", () => {
         .mockResolvedValueOnce({ provider_ready: true, api_credentials: [] })
         .mockResolvedValueOnce({ provider_ready: false, veeam_credentials: [], sources: [] })
         .mockResolvedValueOnce({ configs: [{ id: 1, name: "corp" }] })
+        .mockResolvedValueOnce({ items: [{ id: 5, name: "ldap-main" }], total: 1, page: 1, pages: 1, limit: 200 })
     };
 
     const snapshot = await fetchSettingsSnapshot(client);
@@ -367,8 +368,10 @@ describe("read-only migration api", () => {
     expect(client.get).toHaveBeenCalledWith("/api/v1/integrations/jumpserver/source");
     expect(client.get).toHaveBeenCalledWith("/api/v1/integrations/veeam/sources");
     expect(client.get).toHaveBeenCalledWith("/api/v1/ad-domain-configs");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials?page=1&limit=200&credential_type=ldap&status=active");
     expect(snapshot.alerts.smtp_ready).toBe(true);
     expect(snapshot.riskRules[0]?.rule_key).toBe("backup_issue");
     expect(snapshot.adDomains.configs[0]?.name).toBe("corp");
+    expect(snapshot.adDomains.credentials?.[0]?.name).toBe("ldap-main");
   });
 });

@@ -26,6 +26,7 @@ ErrorEnvelope = get_error_envelope_model(ns)
 SchedulerJobsListSuccessEnvelope = make_success_envelope_model(ns, "SchedulerJobsListSuccessEnvelope")
 SchedulerJobDetailSuccessEnvelope = make_success_envelope_model(ns, "SchedulerJobDetailSuccessEnvelope")
 SchedulerJobUpdateSuccessEnvelope = make_success_envelope_model(ns, "SchedulerJobUpdateSuccessEnvelope")
+SchedulerJobDeleteSuccessEnvelope = make_success_envelope_model(ns, "SchedulerJobDeleteSuccessEnvelope")
 
 SchedulerJobUpdatePayload = ns.model(
     "SchedulerJobUpdatePayload",
@@ -152,6 +153,34 @@ class SchedulerJobDetailResource(BaseResource):
             action="update_scheduler_job",
             public_error="任务更新失败",
             context={"job_id": job_id},
+        )
+
+    @ns.response(200, "OK", SchedulerJobDeleteSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(409, "Conflict", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("admin")
+    @require_csrf
+    def delete(self, job_id: str):
+        """删除调度任务."""
+
+        def _execute():
+            scheduler = _ensure_scheduler_running()
+            if scheduler.get_job(job_id) is None:
+                raise NotFoundError("任务不存在")
+            scheduler.remove_job(job_id)
+            log_info("删除任务成功", module="scheduler", job_id=job_id)
+            return self.success(message="任务已删除")
+
+        return self.safe_call(
+            _execute,
+            module="scheduler",
+            action="delete_scheduler_job",
+            public_error="任务删除失败",
+            context={"job_id": job_id},
+            expected_exceptions=(NotFoundError, ConflictError),
         )
 
 

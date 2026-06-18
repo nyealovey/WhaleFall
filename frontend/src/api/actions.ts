@@ -366,6 +366,10 @@ export function updateSchedulerJob(jobId: string, payload: SchedulerJobWritePayl
   return client.put(`/api/v1/scheduler/jobs/${encodeURIComponent(jobId)}`, payload);
 }
 
+export function deleteSchedulerJob(jobId: string, client: ApiActionClient = apiClient) {
+  return client.delete(`/api/v1/scheduler/jobs/${encodeURIComponent(jobId)}`);
+}
+
 export function cancelSyncSession(sessionId: string, client: ApiActionClient = apiClient) {
   return client.post(`/api/v1/sync-sessions/${encodeURIComponent(sessionId)}/actions/cancel`, {});
 }

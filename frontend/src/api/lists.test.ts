@@ -5,6 +5,7 @@ import {
   fetchAccountLedgers,
   fetchAccountPermissions,
   fetchDatabaseLedgers,
+  fetchCredentialOptions,
   fetchInstanceAgAccounts,
   fetchDatabaseTableSizes,
   fetchInstanceDatabaseSizes,
@@ -37,6 +38,17 @@ describe("list api", () => {
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/databases/ledgers?page=1&limit=200");
     expect(result.items[0]?.database_name).toBe("app_db");
+  });
+
+  it("loads credential options for instance forms", async () => {
+    const client = {
+      get: vi.fn().mockResolvedValueOnce({ items: [{ id: 8, name: "prod credential" }], total: 1, page: 1, pages: 1, limit: 20 })
+    };
+
+    const result = await fetchCredentialOptions(client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials?page=1&limit=200");
+    expect(result[0]?.name).toBe("prod credential");
   });
 
   it("loads the first page of account ledgers", async () => {

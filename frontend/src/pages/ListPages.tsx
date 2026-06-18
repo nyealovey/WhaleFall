@@ -44,6 +44,7 @@ import {
 import {
   fetchAccountChangeHistory,
   fetchAccountLedgers,
+  fetchCredentialOptions,
   fetchAccountPermissions,
   fetchDatabaseLedgers,
   fetchDatabaseTableSizes,
@@ -58,6 +59,7 @@ import {
   type AccountChangeHistoryResponse,
   type AccountLedgerItem,
   type AccountPermissionsResponse,
+  type CredentialOptionItem,
   type DatabaseLedgerItem,
   type DatabaseTableSizesResponse,
   type DatabaseTableSizeItem,
@@ -413,6 +415,18 @@ function parseTagNames(value: string): string[] {
     .filter(Boolean);
 }
 
+function credentialOptionLabel(item: CredentialOptionItem): string {
+  const dbType = item.db_type ? ` · ${item.db_type}` : "";
+  const inactive = item.is_active === false ? " · 停用" : "";
+  return `${item.name}${dbType}${inactive}`;
+}
+
+function matchesInstanceCredential(item: CredentialOptionItem, dbType: string): boolean {
+  return item.credential_type === undefined || item.credential_type === null || item.credential_type === "database"
+    ? !item.db_type || item.db_type === dbType
+    : false;
+}
+
 function InstanceFormDialog({
   item,
   onOpenChange,
@@ -429,11 +443,16 @@ function InstanceFormDialog({
   const [host, setHost] = useState(item?.host ?? "");
   const [port, setPort] = useState(String(item?.port ?? 3306));
   const [databaseName, setDatabaseName] = useState("");
-  const [credentialId, setCredentialId] = useState("");
+  const [credentialId, setCredentialId] = useState(String((item as Record<string, unknown> | null)?.credential_id ?? ""));
   const [tagNames, setTagNames] = useState(item?.tags.map((tag) => tag.name).join(", ") ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const credentialOptionsQuery = useQuery({
+    queryKey: ["list", "instance-form-credentials"],
+    queryFn: () => fetchCredentialOptions()
+  });
   const title = item ? `编辑实例 ${item.name}` : "新建实例";
+  const credentialOptions = (credentialOptionsQuery.data ?? []).filter((credential) => matchesInstanceCredential(credential, dbType));
 
   function buildPayload(): InstanceWritePayload {
     return {
@@ -494,8 +513,21 @@ function InstanceFormDialog({
             <FormField label="默认数据库">
               <Input onChange={(event) => setDatabaseName(event.target.value)} value={databaseName} />
             </FormField>
-            <FormField label="凭据ID">
-              <Input min={1} onChange={(event) => setCredentialId(event.target.value)} type="number" value={credentialId} />
+            <FormField label="凭据">
+              <SelectControl
+                disabled={credentialOptionsQuery.isLoading}
+                label="凭据"
+                onValueChange={setCredentialId}
+                options={[
+                  { label: "请选择凭据", value: "" },
+                  ...credentialOptions.map((credential) => ({
+                    label: credentialOptionLabel(credential),
+                    value: String(credential.id),
+                    disabled: credential.is_active === false
+                  }))
+                ]}
+                value={credentialId}
+              />
             </FormField>
             <FormField label="标签代码">
               <Input onChange={(event) => setTagNames(event.target.value)} placeholder="prod, core" value={tagNames} />

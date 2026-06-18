@@ -18,6 +18,7 @@ import {
   deleteAdDomainConfig,
   deleteCredential,
   deleteInstance,
+  deleteSchedulerJob,
   deleteTag,
   deleteUser,
   deleteVeeamSource,
@@ -188,6 +189,7 @@ describe("console action api", () => {
     await pauseSchedulerJob("job-1", client);
     await resumeSchedulerJob("job-1", client);
     await runSchedulerJob("job-1", client);
+    await deleteSchedulerJob("job-1", client);
     await cancelSyncSession("s-1", client);
     await sendAlertTestEmail(["ops@example.com"], client);
     await sendFeishuTest("https://bot.example", client);
@@ -433,6 +435,7 @@ describe("console action api", () => {
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1/actions/pause", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1/actions/resume", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1/actions/run", {});
+    expect(client.delete).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1");
     expect(client.post).toHaveBeenCalledWith("/api/v1/sync-sessions/s-1/actions/cancel", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/alerts/email-settings/actions/send-test", { recipients: ["ops@example.com"] });
     expect(client.post).toHaveBeenCalledWith("/api/v1/alerts/email-settings/actions/send-feishu-test", { feishu_webhook_url: "https://bot.example" });

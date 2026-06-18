@@ -169,6 +169,12 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
     assert isinstance(data, dict)
     assert "manual_job_id" in data
 
+    delete_response = auth_client.delete("/api/v1/scheduler/jobs/job-1", headers=headers)
+    assert delete_response.status_code == 200
+    payload = delete_response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+
     reload_response = auth_client.post("/api/v1/scheduler/jobs/actions/reload", json={}, headers=headers)
     assert reload_response.status_code == 200
     payload = reload_response.get_json()

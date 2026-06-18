@@ -29,6 +29,10 @@ const actionMocks = vi.hoisted(() => ({
 vi.mock("@/api/actions", () => actionMocks);
 
 vi.mock("@/api/lists", () => ({
+  fetchCredentialOptions: vi.fn(async () => [
+    { id: 8, name: "prod credential", credential_type: "database", db_type: "mysql", is_active: true },
+    { id: 9, name: "disabled credential", credential_type: "database", db_type: "mysql", is_active: false }
+  ]),
   fetchInstances: vi.fn(async () => ({
     items: [
       {
@@ -342,12 +346,14 @@ describe("ListPages", () => {
     expect(createDialog.querySelector('select:not([aria-hidden="true"])')).toBeNull();
     expect(createDialog.querySelector('input[type="checkbox"]:not([aria-hidden="true"])')).toBeNull();
     expect(within(createDialog).getByRole("combobox", { name: "数据库类型" })).toBeInTheDocument();
+    expect(await within(createDialog).findByRole("combobox", { name: "凭据" })).toBeInTheDocument();
     expect(within(createDialog).getByRole("switch", { name: "启用" })).toBeInTheDocument();
     fireEvent.change(within(createDialog).getByLabelText("实例名称"), { target: { value: "mysql-new" } });
     fireEvent.change(within(createDialog).getByLabelText("主机/IP"), { target: { value: "10.0.0.10" } });
     fireEvent.change(within(createDialog).getByLabelText("端口"), { target: { value: "3306" } });
     fireEvent.change(within(createDialog).getByLabelText("默认数据库"), { target: { value: "app_db" } });
-    fireEvent.change(within(createDialog).getByLabelText("凭据ID"), { target: { value: "8" } });
+    fireEvent.click(within(createDialog).getByRole("combobox", { name: "凭据" }));
+    fireEvent.click(await screen.findByRole("option", { name: "prod credential · mysql" }));
     fireEvent.change(within(createDialog).getByLabelText("标签代码"), { target: { value: "prod, core" } });
     fireEvent.change(within(createDialog).getByLabelText("描述"), { target: { value: "new instance" } });
     fireEvent.click(within(createDialog).getByRole("button", { name: "校验连接参数" }));

@@ -316,6 +316,7 @@ export type SettingsSnapshot = {
   veeam: Record<string, unknown>;
   adDomains: {
     configs: Array<Record<string, unknown>>;
+    credentials?: Array<Record<string, unknown>>;
   };
 };
 
@@ -635,15 +636,16 @@ function normalizeRiskRules(payload: unknown): Array<Record<string, unknown>> {
 }
 
 export async function fetchSettingsSnapshot(client: ApiReader = apiClient): Promise<SettingsSnapshot> {
-  const [alerts, riskRules, jumpserver, veeam, adDomains] = await Promise.all([
+  const [alerts, riskRules, jumpserver, veeam, adDomains, adCredentials] = await Promise.all([
     client.get<SettingsSnapshot["alerts"]>("/api/v1/alerts/email-settings"),
     client.get<unknown>("/api/v1/risk-center/rules"),
     client.get<SettingsSnapshot["jumpserver"]>("/api/v1/integrations/jumpserver/source"),
     client.get<SettingsSnapshot["veeam"]>("/api/v1/integrations/veeam/sources"),
-    client.get<SettingsSnapshot["adDomains"]>("/api/v1/ad-domain-configs")
+    client.get<SettingsSnapshot["adDomains"]>("/api/v1/ad-domain-configs"),
+    client.get<PaginatedReadOnlyList<CredentialItem>>("/api/v1/credentials?page=1&limit=200&credential_type=ldap&status=active")
   ]);
 
-  return { alerts, riskRules: normalizeRiskRules(riskRules), jumpserver, veeam, adDomains };
+  return { alerts, riskRules: normalizeRiskRules(riskRules), jumpserver, veeam, adDomains: { ...adDomains, credentials: adCredentials.items } };
 }
 
 export async function fetchCredentialsSnapshot(

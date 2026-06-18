@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertCircle, Cpu, Database, HardDrive, RefreshCw, Server, ShieldAlert, Users } from "lucide-react";
+import { AlertCircle, Cpu, Database, HardDrive, RefreshCw, Server, ShieldAlert, Users } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import {
@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { runAction } from "@/utils/action-feedback";
 
 function formatNumber(value: number | undefined): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
@@ -420,7 +421,7 @@ export function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button onClick={() => void dashboardQuery.refetch()} type="button">
+          <Button onClick={() => void runAction(dashboardQuery.refetch(), { success: "仪表盘已刷新" })} type="button">
             <RefreshCw aria-hidden size={16} />
             刷新数据
           </Button>
@@ -464,20 +465,8 @@ export function DashboardPage() {
             <ChartLists charts={snapshot.charts} />
             <SystemStatus status={snapshot.status} />
           </section>
-          <section className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-2 max-lg:grid-cols-1">
+          <section className="grid gap-2">
             <ClassificationPanel overview={snapshot.overview} />
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>活动流</CardTitle>
-                  <CardDescription>当前 API 已接入，暂无活动数据时保持空态。</CardDescription>
-                </div>
-                <Activity aria-hidden size={18} />
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {snapshot.activities.length > 0 ? `${formatNumber(snapshot.activities.length)} 条活动` : "暂无近期活动"}
-              </CardContent>
-            </Card>
           </section>
         </>
       ) : null}

@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { DashboardPage } from "./DashboardPage";
+import { runAction } from "@/utils/action-feedback";
 
 vi.mock("@/api/dashboard", () => ({
   fetchDashboardSnapshot: vi.fn(async () => ({
@@ -36,6 +37,10 @@ vi.mock("@/api/dashboard", () => ({
   }))
 }));
 
+vi.mock("@/utils/action-feedback", () => ({
+  runAction: vi.fn((request: Promise<unknown>) => request)
+}));
+
 function renderWithQueryClient() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } }
@@ -67,6 +72,7 @@ describe("DashboardPage", () => {
     expect(screen.getByRole("img", { name: "同步趋势面积图" })).toBeInTheDocument();
     expect(screen.getAllByRole("progressbar")).toHaveLength(3);
     expect(screen.queryByText("迁移状态")).not.toBeInTheDocument();
+    expect(screen.queryByText("活动流")).not.toBeInTheDocument();
   });
 
   it("keeps dashboard aligned with the legacy cockpit content", async () => {
@@ -99,5 +105,14 @@ describe("DashboardPage", () => {
         expect(screen.getAllByText(text).length).toBeGreaterThan(0);
       });
     }
+  });
+
+  it("refreshes through unified action feedback", async () => {
+    renderWithQueryClient();
+
+    await screen.findByRole("heading", { name: "仪表盘" });
+    fireEvent.click(screen.getByRole("button", { name: "刷新数据" }));
+
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "仪表盘已刷新" });
   });
 });
