@@ -50,6 +50,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import type { SessionUser } from "@/types/auth";
 import {
   assignTagsToInstances,
   autoClassifyAccounts,
@@ -61,6 +62,7 @@ import {
   createPartition,
   createCredential,
   createMySqlCluster,
+  createSqlServerAvailabilityGroup,
   createSqlServerCluster,
   createTag,
   createUser,
@@ -78,6 +80,8 @@ import {
   reloadSchedulerJobs,
   removeAllTagsFromInstances,
   removeTagsFromInstances,
+  replaceMySqlClusterInstances,
+  replaceSqlServerClusterInstances,
   resumeSchedulerJob,
   runSchedulerJob,
   saveAlertSettings,
@@ -101,6 +105,7 @@ import {
   updateCredential,
   updateMySqlCluster,
   updateSchedulerJob,
+  updateSqlServerAvailabilityGroup,
   updateSqlServerCluster,
   updateTag,
   updateUser,
@@ -113,6 +118,7 @@ import {
   type JumpServerSourcePayload,
   type MySqlClusterPayload,
   type SchedulerJobWritePayload,
+  type SqlServerAvailabilityGroupPayload,
   type SqlServerClusterPayload,
   type TagWritePayload,
   type UserWritePayload,
@@ -122,7 +128,9 @@ import {
   fetchAccountClassificationsSnapshot,
   fetchAccountClassificationPermissions,
   fetchAccountClassificationRuleDetail,
+  fetchAccountScopeOptions,
   fetchClassificationStatisticsSnapshot,
+  fetchClusterInstanceOptions,
   fetchClustersSnapshot,
   fetchCredentialDetail,
   fetchCredentialsSnapshot,
@@ -131,6 +139,7 @@ import {
   fetchSchedulerJobDetail,
   fetchSchedulerSnapshot,
   fetchSettingsSnapshot,
+  fetchSqlServerAvailabilityGroupDashboard,
   fetchSqlServerClusterDetail,
   fetchSyncSessionDetail,
   fetchSyncSessionErrorLogs,
@@ -142,11 +151,13 @@ import {
   fetchUsersSnapshot,
   type AccountClassificationItem,
   type AccountClassificationRuleItem,
+  type AccountScopeOption,
   type ClassificationRuleContributionItem,
   type ClassificationRuleOverviewItem,
   type ClassificationStatisticsFilters,
   type ClassificationStatisticsSnapshot,
   type ClusterDetailRecord,
+  type ClusterInstanceOption,
   type ClusterItem,
   type CredentialItem,
   type MySqlClusterDetail,
@@ -155,6 +166,7 @@ import {
   type SchedulerJobDetail,
   type SchedulerJobItem,
   type SettingsSnapshot,
+  type SqlServerAvailabilityGroupDashboard,
   type SqlServerClusterDetail,
   type SyncInstanceRecordItem,
   type SyncSessionDetail,
@@ -174,6 +186,12 @@ type Metric = {
   detail?: string;
   icon: typeof Layers3;
 };
+
+type AccessUser = Pick<SessionUser, "id" | "role">;
+
+function canManageCatalog(currentUser?: AccessUser | null): boolean {
+  return currentUser?.role === undefined || currentUser.role === "admin";
+}
 
 function formatNumber(value: number | undefined | null): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
@@ -1424,10 +1442,12 @@ function TagBulkDialog({
 }
 
 function createCredentialColumns({
+  canManage,
   onDelete,
   onEdit,
   onView
 }: {
+  canManage: boolean;
   onDelete: (item: CredentialItem) => void;
   onEdit: (item: CredentialItem) => void;
   onView: (item: CredentialItem) => void;
@@ -1475,28 +1495,39 @@ function createCredentialColumns({
   {
     id: "actions",
     header: "操作",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <Button aria-label={`查看凭据 ${row.original.name}`} onClick={() => onView(row.original)} size="icon" type="button" variant="ghost">
-          <Eye aria-hidden />
-        </Button>
-        <Button aria-label={`编辑凭据 ${row.original.name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
-          <Pencil aria-hidden />
-        </Button>
-        <Button aria-label={`删除凭据 ${row.original.name}`} onClick={() => onDelete(row.original)} size="icon" type="button" variant="ghost">
-          <Trash2 aria-hidden />
-        </Button>
-      </div>
-    )
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="flex items-center gap-1">
+          <Button aria-label={`查看凭据 ${item.name}`} onClick={() => onView(item)} size="icon" type="button" variant="ghost">
+            <Eye aria-hidden />
+          </Button>
+          {canManage ? (
+            <>
+              <Button aria-label={`编辑凭据 ${item.name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
+                <Pencil aria-hidden />
+              </Button>
+              <Button aria-label={`删除凭据 ${item.name}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
+                <Trash2 aria-hidden />
+              </Button>
+            </>
+          ) : (
+            <Badge variant="outline">只读</Badge>
+          )}
+        </div>
+      );
+    }
   }
   ];
 }
 
 function createTagColumns({
+  canManage,
   onDelete,
   onEdit,
   onView
 }: {
+  canManage: boolean;
   onDelete: (item: TagItem) => void;
   onEdit: (item: TagItem) => void;
   onView: (item: TagItem) => void;
@@ -1533,28 +1564,41 @@ function createTagColumns({
   {
     id: "actions",
     header: "操作",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <Button aria-label={`查看标签 ${row.original.display_name}`} onClick={() => onView(row.original)} size="icon" type="button" variant="ghost">
-          <Eye aria-hidden />
-        </Button>
-        <Button aria-label={`编辑标签 ${row.original.display_name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
-          <Pencil aria-hidden />
-        </Button>
-        <Button aria-label={`删除标签 ${row.original.display_name}`} onClick={() => onDelete(row.original)} size="icon" type="button" variant="ghost">
-          <Trash2 aria-hidden />
-        </Button>
-      </div>
-    )
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="flex items-center gap-1">
+          <Button aria-label={`查看标签 ${item.display_name}`} onClick={() => onView(item)} size="icon" type="button" variant="ghost">
+            <Eye aria-hidden />
+          </Button>
+          {canManage ? (
+            <>
+              <Button aria-label={`编辑标签 ${item.display_name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
+                <Pencil aria-hidden />
+              </Button>
+              <Button aria-label={`删除标签 ${item.display_name}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
+                <Trash2 aria-hidden />
+              </Button>
+            </>
+          ) : (
+            <Badge variant="outline">只读</Badge>
+          )}
+        </div>
+      );
+    }
   }
   ];
 }
 
 function createUserColumns({
+  canManage,
+  currentUserId,
   onDelete,
   onEdit,
   onView
 }: {
+  canManage: boolean;
+  currentUserId?: number | null;
   onDelete: (item: UserItem) => void;
   onEdit: (item: UserItem) => void;
   onView: (item: UserItem) => void;
@@ -1594,19 +1638,35 @@ function createUserColumns({
   {
     id: "actions",
     header: "操作",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <Button aria-label={`查看用户 ${row.original.username}`} onClick={() => onView(row.original)} size="icon" type="button" variant="ghost">
-          <Eye aria-hidden />
-        </Button>
-        <Button aria-label={`编辑用户 ${row.original.username}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
-          <Pencil aria-hidden />
-        </Button>
-        <Button aria-label={`删除用户 ${row.original.username}`} onClick={() => onDelete(row.original)} size="icon" type="button" variant="ghost">
-          <Trash2 aria-hidden />
-        </Button>
-      </div>
-    )
+    cell: ({ row }) => {
+      const item = row.original;
+      const isCurrentUser = currentUserId !== undefined && currentUserId !== null && item.id === currentUserId;
+      return (
+        <div className="flex items-center gap-1">
+          <Button aria-label={`查看用户 ${item.username}`} onClick={() => onView(item)} size="icon" type="button" variant="ghost">
+            <Eye aria-hidden />
+          </Button>
+          {canManage ? (
+            <>
+              <Button aria-label={`编辑用户 ${item.username}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
+                <Pencil aria-hidden />
+              </Button>
+              {isCurrentUser ? (
+                <Button aria-label="不能删除当前登录用户" disabled size="icon" type="button" variant="ghost">
+                  <Trash2 aria-hidden />
+                </Button>
+              ) : (
+                <Button aria-label={`删除用户 ${item.username}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
+                  <Trash2 aria-hidden />
+                </Button>
+              )}
+            </>
+          ) : (
+            <Badge variant="outline">只读</Badge>
+          )}
+        </div>
+      );
+    }
   }
   ];
 }
@@ -1873,6 +1933,28 @@ function clusterRecordField(record: ClusterDetailRecord, keys: string[], fallbac
   return fallback;
 }
 
+function clusterRecordId(record: ClusterDetailRecord | ClusterInstanceOption | ClusterItem): number | null {
+  const value = record.id;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  return null;
+}
+
+function optionalNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function nullableText(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 function ClusterFormDialog({
   item,
   mode,
@@ -1921,7 +2003,7 @@ function ClusterFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>维护群集基础信息。实例绑定和 AG 成员配置保留为后续独立表单迁移。</DialogDescription>
+          <DialogDescription>维护群集基础信息；实例绑定和 AG 配置在群集列表下方的维护区域完成。</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -1979,7 +2061,133 @@ function ClusterInstancesTable({ records }: { records: ClusterDetailRecord[] }) 
   );
 }
 
-function SqlServerAvailabilityGroupsTable({ records }: { records: ClusterDetailRecord[] }) {
+function ClusterInstanceBindingPanel({
+  item,
+  mode,
+  onClose,
+  onSaved
+}: {
+  item: ClusterItem;
+  mode: ClusterMode;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const label = clusterModeLabel(mode);
+  const detailQuery = useQuery({
+    enabled: true,
+    queryKey: ["read-only", "clusters", mode, item.id, "binding"],
+    queryFn: () => (mode === "sqlserver" ? fetchSqlServerClusterDetail(item.id) : fetchMySqlClusterDetail(item.id))
+  });
+  const optionsQuery = useQuery({
+    enabled: true,
+    queryKey: ["read-only", "clusters", mode, "instance-options"],
+    queryFn: () => fetchClusterInstanceOptions(mode)
+  });
+  const boundIds = useMemo(
+    () =>
+      (detailQuery.data?.instances ?? [])
+        .map((record) => clusterRecordId(record))
+        .filter((id): id is number => id !== null),
+    [detailQuery.data]
+  );
+  const [selectedIdsOverride, setSelectedIdsOverride] = useState<number[] | null>(null);
+  const selectedIds = selectedIdsOverride ?? boundIds;
+
+  function toggleInstance(instanceId: number, checked: boolean) {
+    setSelectedIdsOverride((current) => {
+      const baseIds = current ?? boundIds;
+      if (checked) {
+        return Array.from(new Set([...baseIds, instanceId])).sort((left, right) => left - right);
+      }
+      return baseIds.filter((id) => id !== instanceId);
+    });
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const request =
+      mode === "sqlserver" ? replaceSqlServerClusterInstances(item.id, selectedIds) : replaceMySqlClusterInstances(item.id, selectedIds);
+    void runAction(request, { success: `${label} 实例绑定已保存` }).then(() => {
+      onSaved();
+      void detailQuery.refetch();
+    });
+  }
+
+  const isLoading = detailQuery.isLoading || optionsQuery.isLoading;
+  const isError = detailQuery.isError || optionsQuery.isError;
+  const options = optionsQuery.data ?? [];
+
+  return (
+    <Card aria-label={`编辑 ${label} 实例绑定 ${item.name}`} className="scroll-mt-4" role="region">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle>编辑 {label} 实例绑定 {item.name}</CardTitle>
+            <CardDescription>按旧版群集成员维护口径，保存后用 v1 替换当前绑定实例列表。</CardDescription>
+          </div>
+          <Button onClick={onClose} size="sm" type="button" variant="outline">
+            收起
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? <Skeleton className="h-32 w-full" /> : null}
+          {isError ? <ErrorState label={`${label} 实例绑定`} onRetry={() => {
+            void detailQuery.refetch();
+            void optionsQuery.refetch();
+          }} /> : null}
+          {!isLoading && !isError ? (
+            <form className="grid gap-4" onSubmit={handleSubmit}>
+              <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
+                {options.length > 0 ? (
+                  options.map((option) => {
+                    const optionId = clusterRecordId(option);
+                    if (optionId === null) {
+                      return null;
+                    }
+                    return (
+                      <CheckboxLine
+                        checked={selectedIds.includes(optionId)}
+                        key={optionId}
+                        label={`绑定 ${option.name}`}
+                        onCheckedChange={(checked) => toggleInstance(optionId, checked)}
+                      >
+                        <span className="grid gap-0.5">
+                          <span className="font-medium">{option.name}</span>
+                          <span className="font-mono text-xs text-muted-foreground">{option.host ?? "-"}</span>
+                        </span>
+                      </CheckboxLine>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-md border px-3 py-8 text-center text-sm text-muted-foreground">暂无可绑定实例</div>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button onClick={onClose} type="button" variant="outline">
+                  取消
+                </Button>
+                <Button type="submit">保存绑定</Button>
+              </div>
+            </form>
+          ) : null}
+        </CardContent>
+    </Card>
+  );
+}
+
+function sqlServerAgName(record: ClusterDetailRecord): string {
+  return clusterRecordField(record, ["name", "availability_group_name"], "AG");
+}
+
+function SqlServerAvailabilityGroupsTable({
+  onDashboard,
+  onEdit,
+  records
+}: {
+  onDashboard?: (record: ClusterDetailRecord) => void;
+  onEdit?: (record: ClusterDetailRecord) => void;
+  records: ClusterDetailRecord[];
+}) {
+  const hasActions = Boolean(onDashboard || onEdit);
   return (
     <Table>
       <TableHeader>
@@ -1987,26 +2195,312 @@ function SqlServerAvailabilityGroupsTable({ records }: { records: ClusterDetailR
           <TableHead>AG</TableHead>
           <TableHead>监听器</TableHead>
           <TableHead>状态</TableHead>
+          {hasActions ? <TableHead>操作</TableHead> : null}
         </TableRow>
       </TableHeader>
       <TableBody>
         {records.length > 0 ? (
           records.map((record, index) => (
             <TableRow key={`${clusterRecordField(record, ["id", "name"], String(index))}-${index}`}>
-              <TableCell className="font-medium">{clusterRecordField(record, ["name", "availability_group_name"])}</TableCell>
+              <TableCell className="font-medium">{sqlServerAgName(record)}</TableCell>
               <TableCell className="font-mono text-xs">
                 {clusterRecordField(record, ["listener_name", "listener_host", "listener_dns_name"])}
               </TableCell>
               <TableCell>
                 <StatusBadge value={clusterRecordField(record, ["sync_status", "health_status", "is_enabled"])} />
               </TableCell>
+              {hasActions ? (
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    {onEdit ? (
+                      <Button aria-label={`编辑AG ${sqlServerAgName(record)}`} onClick={() => onEdit(record)} size="icon" type="button" variant="ghost">
+                        <Pencil aria-hidden />
+                      </Button>
+                    ) : null}
+                    {onDashboard ? (
+                      <Button
+                        aria-label={`查看AG看板 ${sqlServerAgName(record)}`}
+                        onClick={() => onDashboard(record)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <ChartColumn aria-hidden />
+                      </Button>
+                    ) : null}
+                  </div>
+                </TableCell>
+              ) : null}
             </TableRow>
           ))
         ) : (
-          <EmptyRows colSpan={3} />
+          <EmptyRows colSpan={hasActions ? 4 : 3} />
         )}
       </TableBody>
     </Table>
+  );
+}
+
+function ClusterDetailRecordsTable({
+  columns,
+  records
+}: {
+  columns: Array<{ keys: string[]; label: string }>;
+  records: ClusterDetailRecord[];
+}) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {columns.map((column) => (
+            <TableHead key={column.label}>{column.label}</TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {records.length > 0 ? (
+          records.map((record, index) => (
+            <TableRow key={`${clusterRecordField(record, ["id", "name", "replica_server_name", "database_name"], String(index))}-${index}`}>
+              {columns.map((column) => (
+                <TableCell className="font-mono text-xs" key={column.label}>
+                  {clusterRecordField(record, column.keys)}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))
+        ) : (
+          <EmptyRows colSpan={columns.length} />
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
+function SqlServerAgInlineForm({
+  clusterId,
+  onCancel,
+  onSaved,
+  target
+}: {
+  clusterId: number;
+  onCancel: () => void;
+  onSaved: () => void;
+  target: ClusterDetailRecord | "new";
+}) {
+  const editingRecord = target === "new" ? null : target;
+  const [name, setName] = useState(() => (editingRecord ? clusterRecordField(editingRecord, ["name", "availability_group_name"], "") : ""));
+  const [listenerName, setListenerName] = useState(() => (editingRecord ? clusterRecordField(editingRecord, ["listener_name"], "") : ""));
+  const [listenerHost, setListenerHost] = useState(() =>
+    editingRecord ? clusterRecordField(editingRecord, ["listener_host", "listener_dns_name"], "") : ""
+  );
+  const [listenerPort, setListenerPort] = useState(() => (editingRecord ? String(numericValue(editingRecord.listener_port, 1433)) : "1433"));
+  const [connectionDatabase, setConnectionDatabase] = useState(() =>
+    editingRecord ? clusterRecordField(editingRecord, ["connection_database"], "master") : "master"
+  );
+  const [accountCredentialId, setAccountCredentialId] = useState(() =>
+    editingRecord ? clusterRecordField(editingRecord, ["account_credential_id"], "") : ""
+  );
+  const [containedEnabled, setContainedEnabled] = useState(() => (editingRecord ? booleanValue(editingRecord.contained_enabled, false) : false));
+  const [isEnabled, setIsEnabled] = useState(() => (editingRecord ? booleanValue(editingRecord.is_enabled, true) : true));
+
+  function buildPayload(): SqlServerAvailabilityGroupPayload {
+    return {
+      name: name.trim(),
+      listener_name: nullableText(listenerName),
+      listener_host: nullableText(listenerHost),
+      listener_port: optionalNumber(listenerPort) ?? 1433,
+      connection_database: nullableText(connectionDatabase),
+      account_credential_id: optionalNumber(accountCredentialId),
+      contained_enabled: containedEnabled,
+      is_enabled: isEnabled
+    };
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload = buildPayload();
+    const agId = editingRecord ? clusterRecordId(editingRecord) : null;
+    const request = editingRecord && agId !== null
+      ? updateSqlServerAvailabilityGroup(clusterId, agId, payload)
+      : createSqlServerAvailabilityGroup(clusterId, payload);
+    void runAction(request, { success: "SQL Server AG 配置已保存" }).then(onSaved);
+  }
+
+  const title = editingRecord ? `编辑 SQL Server AG 配置 ${sqlServerAgName(editingRecord)}` : "新建 SQL Server AG 配置";
+
+  return (
+    <section className="grid gap-3 rounded-md border bg-secondary/20 p-3">
+      <h3 className="font-display text-base font-semibold">{title}</h3>
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+          <FormField label="AG 名称">
+            <Input onChange={(event) => setName(event.target.value)} required value={name} />
+          </FormField>
+          <FormField label="监听器名称">
+            <Input onChange={(event) => setListenerName(event.target.value)} value={listenerName} />
+          </FormField>
+          <FormField label="监听器地址">
+            <Input onChange={(event) => setListenerHost(event.target.value)} value={listenerHost} />
+          </FormField>
+          <FormField label="监听器端口">
+            <Input inputMode="numeric" onChange={(event) => setListenerPort(event.target.value)} value={listenerPort} />
+          </FormField>
+          <FormField label="连接数据库">
+            <Input onChange={(event) => setConnectionDatabase(event.target.value)} value={connectionDatabase} />
+          </FormField>
+          <FormField label="账户凭据ID">
+            <Input inputMode="numeric" onChange={(event) => setAccountCredentialId(event.target.value)} value={accountCredentialId} />
+          </FormField>
+        </div>
+        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+          <SwitchField checked={containedEnabled} label="Contained 账户采集" onCheckedChange={setContainedEnabled} />
+          <ActiveField checked={isEnabled} onCheckedChange={setIsEnabled} />
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          <Button onClick={onCancel} type="button" variant="outline">
+            取消
+          </Button>
+          <Button type="submit">保存AG配置</Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function SqlServerAgDashboardInline({
+  clusterId,
+  item,
+  onClose
+}: {
+  clusterId: number;
+  item: ClusterDetailRecord;
+  onClose: () => void;
+}) {
+  const agId = clusterRecordId(item);
+  const query = useQuery({
+    enabled: agId !== null,
+    queryKey: ["read-only", "clusters", "sqlserver-ag-dashboard", clusterId, agId],
+    queryFn: () => fetchSqlServerAvailabilityGroupDashboard(clusterId, agId ?? 0)
+  });
+  const title = `SQL Server AG 看板 ${sqlServerAgName(item)}`;
+
+  return (
+    <section className="grid gap-3 rounded-md border bg-secondary/20 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-display text-base font-semibold">{title}</h3>
+        <Button onClick={onClose} size="sm" type="button" variant="outline">
+          收起看板
+        </Button>
+      </div>
+      {query.isLoading ? <Skeleton className="h-32 w-full" /> : null}
+      {query.isError ? <ErrorState label={title} onRetry={() => void query.refetch()} /> : null}
+      {query.data ? <SqlServerAgDashboardContent dashboard={query.data} /> : null}
+    </section>
+  );
+}
+
+function SqlServerAgDashboardContent({ dashboard }: { dashboard: SqlServerAvailabilityGroupDashboard }) {
+  return (
+    <div className="grid gap-3">
+      <section className="grid grid-cols-3 gap-2 max-lg:grid-cols-1">
+        <DetailBlock label="AG">{clusterRecordField(dashboard.availability_group, ["name", "availability_group_name"])}</DetailBlock>
+        <DetailBlock label="监听器">{clusterRecordField(dashboard.availability_group, ["listener_name", "listener_host"])}</DetailBlock>
+        <DetailBlock label="状态">
+          <StatusBadge value={clusterRecordField(dashboard.availability_group, ["health_status", "sync_status", "is_enabled"])} />
+        </DetailBlock>
+      </section>
+      <ListPanel title="副本状态" description="AG 看板中的副本角色与同步健康。" count={dashboard.replicas.length}>
+        <ClusterDetailRecordsTable
+          columns={[
+            { label: "副本", keys: ["replica_server_name", "server_name", "name"] },
+            { label: "角色", keys: ["role_desc", "role"] },
+            { label: "同步健康", keys: ["synchronization_health_desc", "health_status"] }
+          ]}
+          records={dashboard.replicas}
+        />
+      </ListPanel>
+      <ListPanel title="数据库状态" description="AG 看板中的数据库同步状态。" count={dashboard.databases.length}>
+        <ClusterDetailRecordsTable
+          columns={[
+            { label: "数据库", keys: ["database_name", "name"] },
+            { label: "同步状态", keys: ["synchronization_state_desc", "sync_status"] },
+            { label: "同步健康", keys: ["synchronization_health_desc", "health_status"] }
+          ]}
+          records={dashboard.databases}
+        />
+      </ListPanel>
+    </div>
+  );
+}
+
+function SqlServerAgConfigurationPanel({
+  item,
+  onClose,
+  onSaved
+}: {
+  item: ClusterItem;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const query = useQuery({
+    enabled: true,
+    queryKey: ["read-only", "clusters", "sqlserver", item.id, "ag-config"],
+    queryFn: () => fetchSqlServerClusterDetail(item.id)
+  });
+  const [formTarget, setFormTarget] = useState<ClusterDetailRecord | "new" | null>(null);
+  const [dashboardTarget, setDashboardTarget] = useState<ClusterDetailRecord | null>(null);
+
+  function handleSaved() {
+    setFormTarget(null);
+    onSaved();
+    void query.refetch();
+  }
+
+  return (
+    <Card aria-label={`SQL Server AG 配置 ${item.name}`} className="scroll-mt-4" role="region">
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle>SQL Server AG 配置 {item.name}</CardTitle>
+          <CardDescription>维护可用性组监听器、连接数据库和账户采集配置；看板在同一区域内展开。</CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setFormTarget("new")} size="sm" type="button">
+            <Plus aria-hidden />
+            新建AG配置
+          </Button>
+          <Button onClick={onClose} size="sm" type="button" variant="outline">
+            收起
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {query.isLoading ? <Skeleton className="h-32 w-full" /> : null}
+        {query.isError ? <ErrorState label="SQL Server AG 配置" onRetry={() => void query.refetch()} /> : null}
+        {query.data ? (
+          <>
+            <ListPanel title="可用性组配置" description="旧版 SQL Server 群集中的 AG 配置列表。" count={query.data.availability_groups.length}>
+              <SqlServerAvailabilityGroupsTable
+                onDashboard={(record) => setDashboardTarget(record)}
+                onEdit={(record) => setFormTarget(record)}
+                records={query.data.availability_groups}
+              />
+            </ListPanel>
+            {formTarget ? (
+              <SqlServerAgInlineForm
+                clusterId={item.id}
+                key={formTarget === "new" ? "new" : `edit-${clusterRecordId(formTarget) ?? sqlServerAgName(formTarget)}`}
+                onCancel={() => setFormTarget(null)}
+                onSaved={handleSaved}
+                target={formTarget}
+              />
+            ) : null}
+            {dashboardTarget ? (
+              <SqlServerAgDashboardInline clusterId={item.id} item={dashboardTarget} onClose={() => setDashboardTarget(null)} />
+            ) : null}
+          </>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -2152,10 +2646,14 @@ function MySqlClusterDetailDialog({
 }
 
 function createSqlServerClusterColumns({
+  onAgConfig,
+  onBind,
   onDetail,
   onEdit,
   onSyncAccounts
 }: {
+  onAgConfig: (item: ClusterItem) => void;
+  onBind: (item: ClusterItem) => void;
   onDetail: (item: ClusterItem) => void;
   onEdit: (item: ClusterItem) => void;
   onSyncAccounts: (item: ClusterItem) => void;
@@ -2211,6 +2709,12 @@ function createSqlServerClusterColumns({
       header: "操作",
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
+          <Button aria-label={`绑定实例 ${row.original.name}`} onClick={() => onBind(row.original)} size="icon" type="button" variant="ghost">
+            <Boxes aria-hidden />
+          </Button>
+          <Button aria-label={`AG配置 ${row.original.name}`} onClick={() => onAgConfig(row.original)} size="icon" type="button" variant="ghost">
+            <Settings aria-hidden />
+          </Button>
           <Button aria-label={`管理群集 ${row.original.name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
             <Pencil aria-hidden />
           </Button>
@@ -2233,9 +2737,11 @@ function createSqlServerClusterColumns({
 }
 
 function createMySqlClusterColumns({
+  onBind,
   onDetail,
   onEdit
 }: {
+  onBind: (item: ClusterItem) => void;
   onDetail: (item: ClusterItem) => void;
   onEdit: (item: ClusterItem) => void;
 }): ColumnDef<ClusterItem>[] {
@@ -2278,6 +2784,9 @@ function createMySqlClusterColumns({
       header: "操作",
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
+          <Button aria-label={`绑定实例 ${row.original.name}`} onClick={() => onBind(row.original)} size="icon" type="button" variant="ghost">
+            <Boxes aria-hidden />
+          </Button>
           <Button aria-label={`管理群集 ${row.original.name}`} onClick={() => onEdit(row.original)} size="icon" type="button" variant="ghost">
             <Pencil aria-hidden />
           </Button>
@@ -2295,9 +2804,16 @@ export function ClustersPage() {
   const [creatingCluster, setCreatingCluster] = useState<ClusterMode | null>(null);
   const [editingCluster, setEditingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
   const [viewingCluster, setViewingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
+  const [maintainingCluster, setMaintainingCluster] = useState<{
+    mode: ClusterMode;
+    item: ClusterItem;
+    panel: "instances" | "sqlserver-ag";
+  } | null>(null);
   const sqlServerClusterColumns = useMemo(
     () =>
       createSqlServerClusterColumns({
+        onAgConfig: (item) => setMaintainingCluster({ mode: "sqlserver", item, panel: "sqlserver-ag" }),
+        onBind: (item) => setMaintainingCluster({ mode: "sqlserver", item, panel: "instances" }),
         onDetail: (item) => setViewingCluster({ mode: "sqlserver", item }),
         onEdit: (item) => setEditingCluster({ mode: "sqlserver", item }),
         onSyncAccounts: (item) => {
@@ -2309,6 +2825,7 @@ export function ClustersPage() {
   const mysqlClusterColumns = useMemo(
     () =>
       createMySqlClusterColumns({
+        onBind: (item) => setMaintainingCluster({ mode: "mysql", item, panel: "instances" }),
         onDetail: (item) => setViewingCluster({ mode: "mysql", item }),
         onEdit: (item) => setEditingCluster({ mode: "mysql", item })
       }),
@@ -2318,6 +2835,10 @@ export function ClustersPage() {
   function handleClusterSaved() {
     setCreatingCluster(null);
     setEditingCluster(null);
+    void query.refetch();
+  }
+
+  function refreshClusters() {
     void query.refetch();
   }
 
@@ -2380,6 +2901,21 @@ export function ClustersPage() {
           </Tabs>
         )}
       </QueryFrame>
+      {maintainingCluster?.panel === "instances" ? (
+        <ClusterInstanceBindingPanel
+          item={maintainingCluster.item}
+          mode={maintainingCluster.mode}
+          onClose={() => setMaintainingCluster(null)}
+          onSaved={refreshClusters}
+        />
+      ) : null}
+      {maintainingCluster?.mode === "sqlserver" && maintainingCluster.panel === "sqlserver-ag" ? (
+        <SqlServerAgConfigurationPanel
+          item={maintainingCluster.item}
+          onClose={() => setMaintainingCluster(null)}
+          onSaved={refreshClusters}
+        />
+      ) : null}
       {creatingCluster ? (
         <ClusterFormDialog
           item={null}
@@ -2901,12 +3437,14 @@ function buildRuleContributionChartData(items: ClassificationRuleContributionIte
 }
 
 function ClassificationFilterPanel({
+  accountScopeOptions,
   draft,
   onApply,
   onDraftChange,
   onReset,
   snapshot
 }: {
+  accountScopeOptions: AccountScopeOption[];
   draft: ClassificationFiltersState;
   onApply: () => void;
   onDraftChange: (draft: ClassificationFiltersState) => void;
@@ -2953,7 +3491,7 @@ function ClassificationFilterPanel({
             <span>数据库类型</span>
             <SelectControl
               label="数据库类型"
-              onValueChange={(dbType) => onDraftChange({ ...draft, dbType, ruleId: "" })}
+              onValueChange={(dbType) => onDraftChange({ ...draft, accountScope: "", dbType, ruleId: "" })}
               options={[
                 { label: "全部类型", value: "" },
                 { label: "MySQL", value: "mysql" },
@@ -2967,9 +3505,10 @@ function ClassificationFilterPanel({
           <label className="grid gap-1.5 text-sm font-medium">
             <span>实例/AG</span>
             <SelectControl
-              disabled
+              disabled={!draft.dbType}
               label="实例/AG"
-              options={[{ label: "所有实例/AG", value: "" }]}
+              onValueChange={(accountScope) => onDraftChange({ ...draft, accountScope, ruleId: "" })}
+              options={[{ label: "所有实例/AG", value: "" }, ...accountScopeOptions.map((option) => ({ label: option.label, value: option.value }))]}
               value={draft.accountScope}
             />
           </label>
@@ -3090,6 +3629,11 @@ export function ClassificationStatisticsPage() {
     queryKey: ["read-only", "classification-statistics", filters],
     queryFn: () => fetchClassificationStatisticsSnapshot(toClassificationApiFilters(filters))
   });
+  const accountScopeQuery = useQuery({
+    enabled: Boolean(draftFilters.dbType),
+    queryKey: ["read-only", "classification-account-scopes", draftFilters.dbType],
+    queryFn: () => fetchAccountScopeOptions(draftFilters.dbType)
+  });
   const chartConfig = { value: { label: "匹配账户", color: "var(--chart-1)" } } satisfies ChartConfig;
   const contributionChartConfig = { value: { label: "规则贡献", color: "var(--chart-2)" } } satisfies ChartConfig;
 
@@ -3097,7 +3641,7 @@ export function ClassificationStatisticsPage() {
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader eyebrow="Classification analytics" title="分类统计" description="只读展示账户分类统计、规则列表入口和最近周期趋势，写操作仍保留在旧版。" legacyHref="/accounts/statistics/classifications" />
       <CommandBar>
-        <Button variant="outline" onClick={() => void query.refetch()}>
+        <Button variant="outline" onClick={() => void runAction(query.refetch(), { success: "分类统计已刷新" })}>
           <RotateCcw aria-hidden size={16} />
           <span>刷新</span>
         </Button>
@@ -3115,6 +3659,7 @@ export function ClassificationStatisticsPage() {
           return (
             <>
               <ClassificationFilterPanel
+                accountScopeOptions={accountScopeQuery.data ?? []}
                 draft={draftFilters}
                 onApply={() => {
                   setFilters({ ...draftFilters, ruleId: "" });
@@ -3588,20 +4133,24 @@ export function SyncSessionsPage() {
   );
 }
 
-export function UsersPage() {
+export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
   const query = useQuery({ queryKey: ["read-only", "users"], queryFn: () => fetchUsersSnapshot() });
   const [creatingUser, setCreatingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
   const [viewingUser, setViewingUser] = useState<UserItem | null>(null);
+  const canManage = canManageCatalog(currentUser);
+  const currentUserId = currentUser?.id ?? null;
   const columns = useMemo(
     () =>
       createUserColumns({
+        canManage,
+        currentUserId,
         onDelete: setDeletingUser,
         onEdit: setEditingUser,
         onView: setViewingUser
       }),
-    []
+    [canManage, currentUserId]
   );
 
   return (
@@ -3624,10 +4173,14 @@ export function UsersPage() {
               description={`每页 ${formatNumber(snapshot.list.limit)} 条`}
               count={snapshot.list.total}
               actions={
-                <Button onClick={() => setCreatingUser(true)} size="sm" type="button">
+                canManage ? (
+                  <Button onClick={() => setCreatingUser(true)} size="sm" type="button">
                   <Plus aria-hidden />
                   新建用户
-                </Button>
+                  </Button>
+                ) : (
+                  <Badge variant="outline">只读</Badge>
+                )
               }
             >
               <DataTable
@@ -3667,7 +4220,7 @@ export function UsersPage() {
         }}
         open={viewingUser !== null}
       />
-      {creatingUser ? (
+      {canManage && creatingUser ? (
         <UserFormDialog
           item={null}
           onOpenChange={(open) => {
@@ -3682,7 +4235,7 @@ export function UsersPage() {
           open={creatingUser}
         />
       ) : null}
-      {editingUser ? (
+      {canManage && editingUser ? (
         <UserFormDialog
           item={editingUser}
           onOpenChange={(open) => {
@@ -3713,7 +4266,7 @@ export function UsersPage() {
             setDeletingUser(null);
           }
         }}
-        open={deletingUser !== null}
+        open={canManage && deletingUser !== null}
         title={`确认删除用户 ${deletingUser?.username ?? ""}`}
       />
     </main>
@@ -4254,20 +4807,22 @@ export function SettingsPage() {
   );
 }
 
-export function CredentialsPage() {
+export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
   const query = useQuery({ queryKey: ["read-only", "credentials"], queryFn: () => fetchCredentialsSnapshot() });
   const [creatingCredential, setCreatingCredential] = useState(false);
   const [editingCredential, setEditingCredential] = useState<CredentialItem | null>(null);
   const [deletingCredential, setDeletingCredential] = useState<CredentialItem | null>(null);
   const [viewingCredential, setViewingCredential] = useState<CredentialItem | null>(null);
+  const canManage = canManageCatalog(currentUser);
   const columns = useMemo(
     () =>
       createCredentialColumns({
+        canManage,
         onDelete: setDeletingCredential,
         onEdit: setEditingCredential,
         onView: setViewingCredential
       }),
-    []
+    [canManage]
   );
 
   return (
@@ -4290,10 +4845,14 @@ export function CredentialsPage() {
               description={`每页 ${formatNumber(snapshot.limit)} 条`}
               count={snapshot.total}
               actions={
-                <Button onClick={() => setCreatingCredential(true)} size="sm" type="button">
-                  <Plus aria-hidden />
-                  新建凭据
-                </Button>
+                canManage ? (
+                  <Button onClick={() => setCreatingCredential(true)} size="sm" type="button">
+                    <Plus aria-hidden />
+                    新建凭据
+                  </Button>
+                ) : (
+                  <Badge variant="outline">只读</Badge>
+                )
               }
             >
               <DataTable
@@ -4326,7 +4885,7 @@ export function CredentialsPage() {
         }}
         open={viewingCredential !== null}
       />
-      {creatingCredential ? (
+      {canManage && creatingCredential ? (
         <CredentialFormDialog
           item={null}
           onOpenChange={(open) => {
@@ -4341,7 +4900,7 @@ export function CredentialsPage() {
           open={creatingCredential}
         />
       ) : null}
-      {editingCredential ? (
+      {canManage && editingCredential ? (
         <CredentialFormDialog
           item={editingCredential}
           onOpenChange={(open) => {
@@ -4372,28 +4931,30 @@ export function CredentialsPage() {
             setDeletingCredential(null);
           }
         }}
-        open={deletingCredential !== null}
+        open={canManage && deletingCredential !== null}
         title={`确认删除凭据 ${deletingCredential?.name ?? ""}`}
       />
     </main>
   );
 }
 
-export function TagsPage() {
+export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
   const query = useQuery({ queryKey: ["read-only", "tags"], queryFn: () => fetchTagsSnapshot() });
   const [creatingTag, setCreatingTag] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
   const [viewingTag, setViewingTag] = useState<TagItem | null>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const canManage = canManageCatalog(currentUser);
   const columns = useMemo(
     () =>
       createTagColumns({
+        canManage,
         onDelete: setDeletingTag,
         onEdit: setEditingTag,
         onView: setViewingTag
       }),
-    []
+    [canManage]
   );
 
   return (
@@ -4416,15 +4977,19 @@ export function TagsPage() {
               description={`分类: ${snapshot.categories.join(", ") || "-"}`}
               count={snapshot.list.total}
               actions={
-                <>
-                  <Button onClick={() => setCreatingTag(true)} size="sm" type="button">
-                    <Plus aria-hidden />
-                    新建标签
-                  </Button>
-                  <Button onClick={() => setBulkDialogOpen(true)} size="sm" type="button" variant="outline">
-                    批量分配
-                  </Button>
-                </>
+                canManage ? (
+                  <>
+                    <Button onClick={() => setCreatingTag(true)} size="sm" type="button">
+                      <Plus aria-hidden />
+                      新建标签
+                    </Button>
+                    <Button onClick={() => setBulkDialogOpen(true)} size="sm" type="button" variant="outline">
+                      批量分配
+                    </Button>
+                  </>
+                ) : (
+                  <Badge variant="outline">只读</Badge>
+                )
               }
             >
               <DataTable
@@ -4456,7 +5021,7 @@ export function TagsPage() {
         }}
         open={viewingTag !== null}
       />
-      {creatingTag ? (
+      {canManage && creatingTag ? (
         <TagFormDialog
           item={null}
           onOpenChange={(open) => {
@@ -4471,7 +5036,7 @@ export function TagsPage() {
           open={creatingTag}
         />
       ) : null}
-      {editingTag ? (
+      {canManage && editingTag ? (
         <TagFormDialog
           item={editingTag}
           onOpenChange={(open) => {
@@ -4486,7 +5051,7 @@ export function TagsPage() {
           open={editingTag !== null}
         />
       ) : null}
-      {bulkDialogOpen ? (
+      {canManage && bulkDialogOpen ? (
         <TagBulkDialog
           onOpenChange={setBulkDialogOpen}
           onSaved={() => {
@@ -4512,7 +5077,7 @@ export function TagsPage() {
             setDeletingTag(null);
           }
         }}
-        open={deletingTag !== null}
+        open={canManage && deletingTag !== null}
         title={`确认删除标签 ${deletingTag?.display_name ?? ""}`}
       />
     </main>
@@ -4561,10 +5126,11 @@ export function PartitionsPage() {
   const chartConfig = { value: { label: "分区指标", color: "var(--chart-2)" } } satisfies ChartConfig;
   const [partitionDate, setPartitionDate] = useState("");
   const [retentionMonths, setRetentionMonths] = useState("12");
+  const [cleanupOpen, setCleanupOpen] = useState(false);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Storage partitions" title="分区管理" description="只读展示分区健康状态、核心指标和分区列表，创建和清理动作仍保留在旧版。" legacyHref="/partition/" />
+      <PageHeader eyebrow="Storage partitions" title="分区管理" description="展示分区健康状态、核心指标和分区列表，并支持创建分区与清理旧分区。" legacyHref="/partition/" />
       <CommandBar>
         <FormField label="分区日期">
           <Input className="w-44" onChange={(event) => setPartitionDate(event.target.value)} type="date" value={partitionDate} />
@@ -4583,7 +5149,7 @@ export function PartitionsPage() {
         </Button>
         <Button
           onClick={() => {
-            void runAction(cleanupPartitions(numberFromInput(retentionMonths, 12)), { success: "旧分区清理已触发" }).then(() => query.refetch());
+            setCleanupOpen(true);
           }}
           type="button"
           variant="outline"
@@ -4658,6 +5224,28 @@ export function PartitionsPage() {
           );
         }}
       </QueryFrame>
+      <AlertDialog open={cleanupOpen} onOpenChange={setCleanupOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认清理旧分区</AlertDialogTitle>
+            <AlertDialogDescription>
+              将按当前保留月份清理旧分区。请确认只保留最近 {formatNumber(numberFromInput(retentionMonths, 12))} 个月的数据。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>返回</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const months = numberFromInput(retentionMonths, 12);
+                setCleanupOpen(false);
+                void runAction(cleanupPartitions(months), { success: "旧分区清理已触发" }).then(() => query.refetch());
+              }}
+            >
+              确认清理旧分区
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

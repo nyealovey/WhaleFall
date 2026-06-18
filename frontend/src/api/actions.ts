@@ -99,6 +99,18 @@ export type MySqlClusterPayload = {
   is_enabled: boolean;
 };
 
+export type SqlServerAvailabilityGroupPayload = {
+  name: string;
+  listener_name?: string | null;
+  listener_host?: string | null;
+  listener_port?: number | null;
+  credential_id?: number | null;
+  account_credential_id?: number | null;
+  connection_database?: string | null;
+  contained_enabled: boolean;
+  is_enabled: boolean;
+};
+
 export type InstanceWritePayload = {
   name: string;
   db_type: string;
@@ -225,6 +237,27 @@ export function updateSqlServerCluster(clusterId: number, payload: SqlServerClus
   return client.patch(`/api/v1/sqlserver-clusters/${clusterId}`, payload);
 }
 
+export function replaceSqlServerClusterInstances(clusterId: number, instanceIds: number[], client: ApiActionClient = apiClient) {
+  return client.put(`/api/v1/sqlserver-clusters/${clusterId}/instances`, { instance_ids: instanceIds });
+}
+
+export function createSqlServerAvailabilityGroup(
+  clusterId: number,
+  payload: SqlServerAvailabilityGroupPayload,
+  client: ApiActionClient = apiClient
+) {
+  return client.post(`/api/v1/sqlserver-clusters/${clusterId}/availability-groups`, payload);
+}
+
+export function updateSqlServerAvailabilityGroup(
+  clusterId: number,
+  availabilityGroupId: number,
+  payload: SqlServerAvailabilityGroupPayload,
+  client: ApiActionClient = apiClient
+) {
+  return client.patch(`/api/v1/sqlserver-clusters/${clusterId}/availability-groups/${availabilityGroupId}`, payload);
+}
+
 export function syncSqlServerAvailabilityGroups(
   clusterId: number,
   connectionDatabase = "master",
@@ -251,6 +284,10 @@ export function updateMySqlCluster(clusterId: number, payload: MySqlClusterPaylo
   return client.patch(`/api/v1/mysql-clusters/${clusterId}`, payload);
 }
 
+export function replaceMySqlClusterInstances(clusterId: number, instanceIds: number[], client: ApiActionClient = apiClient) {
+  return client.put(`/api/v1/mysql-clusters/${clusterId}/instances`, { instance_ids: instanceIds });
+}
+
 export function syncMySqlClusterTopology(clusterId: number, client: ApiActionClient = apiClient) {
   return client.post(`/api/v1/mysql-clusters/${clusterId}/actions/sync-topology`, {});
 }
@@ -265,6 +302,10 @@ export function updateInstance(instanceId: number, payload: InstanceWritePayload
 
 export function testInstanceConnection(instanceId: number, client: ApiActionClient = apiClient) {
   return client.post("/api/v1/instances/actions/test-connection", { instance_id: instanceId });
+}
+
+export function validateInstanceConnectionParams(payload: InstanceWritePayload, client: ApiActionClient = apiClient) {
+  return client.post("/api/v1/instances/actions/validate-connection-params", payload);
 }
 
 export function batchTestInstanceConnections(instanceIds: number[], client: ApiActionClient = apiClient) {

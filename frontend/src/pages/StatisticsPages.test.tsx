@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { fetchAccountStatisticsSnapshot, fetchDatabaseStatistics, fetchInstanceStatistics } from "@/api/statistics";
+import { runAction } from "@/utils/action-feedback";
 import { AccountStatisticsPage, DatabaseStatisticsPage, InstanceStatisticsPage } from "./StatisticsPages";
 
 vi.mock("@/api/statistics", () => ({
@@ -96,6 +98,10 @@ vi.mock("@/api/statistics", () => ({
   }))
 }));
 
+vi.mock("@/utils/action-feedback", () => ({
+  runAction: vi.fn((promise: Promise<unknown>) => promise)
+}));
+
 function renderWithQueryClient(element: ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } }
@@ -105,6 +111,10 @@ function renderWithQueryClient(element: ReactElement) {
 }
 
 describe("StatisticsPages", () => {
+  beforeEach(() => {
+    vi.mocked(runAction).mockClear();
+  });
+
   async function expectTextPresent(text: string) {
     await waitFor(() => {
       expect(screen.getAllByText(text).length).toBeGreaterThan(0);
@@ -228,5 +238,32 @@ describe("StatisticsPages", () => {
     ]) {
       await expectTextPresent(text);
     }
+  });
+
+  it("refreshes statistics pages through unified action feedback", async () => {
+    renderWithQueryClient(<InstanceStatisticsPage />);
+    await screen.findByRole("heading", { name: "实例统计" });
+    vi.mocked(fetchInstanceStatistics).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "刷新统计" }));
+    await waitFor(() => expect(fetchInstanceStatistics).toHaveBeenCalledTimes(1));
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "实例统计已刷新" });
+
+    cleanup();
+    vi.mocked(runAction).mockClear();
+    renderWithQueryClient(<AccountStatisticsPage />);
+    await screen.findByRole("heading", { name: "账户统计" });
+    vi.mocked(fetchAccountStatisticsSnapshot).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "刷新统计" }));
+    await waitFor(() => expect(fetchAccountStatisticsSnapshot).toHaveBeenCalledTimes(1));
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "账户统计已刷新" });
+
+    cleanup();
+    vi.mocked(runAction).mockClear();
+    renderWithQueryClient(<DatabaseStatisticsPage />);
+    await screen.findByRole("heading", { name: "数据库统计" });
+    vi.mocked(fetchDatabaseStatistics).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "刷新统计" }));
+    await waitFor(() => expect(fetchDatabaseStatistics).toHaveBeenCalledTimes(1));
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "数据库统计已刷新" });
   });
 });

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { runAction } from "@/utils/action-feedback";
 import { cn } from "@/utils/cn";
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -286,7 +287,7 @@ export function RiskCenterPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button onClick={() => void riskQuery.refetch()} type="button">
+          <Button onClick={() => void runAction(riskQuery.refetch(), { success: "风险中心已刷新" })} type="button">
             <RefreshCw aria-hidden size={16} />
             刷新
           </Button>

@@ -129,10 +129,10 @@ function ConsoleRoutes() {
           <Route element={<ClassificationStatisticsPage />} path="/classification-statistics" />
           <Route element={<SchedulerPage />} path="/scheduler" />
           <Route element={<SyncSessionsPage />} path="/sync-sessions" />
-          <Route element={<UsersPage />} path="/users" />
+          <Route element={<UsersPage currentUser={session.user} />} path="/users" />
           <Route element={<SettingsPage />} path="/settings" />
-          <Route element={<CredentialsPage />} path="/credentials" />
-          <Route element={<TagsPage />} path="/tags" />
+          <Route element={<CredentialsPage currentUser={session.user} />} path="/credentials" />
+          <Route element={<TagsPage currentUser={session.user} />} path="/tags" />
           <Route element={<PartitionsPage />} path="/partitions" />
           {visibleItems
             .filter((item) => !migratedConsolePaths.includes(item.consolePath))

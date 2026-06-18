@@ -22,6 +22,7 @@ const actionMocks = vi.hoisted(() => ({
   syncInstanceBackup: vi.fn(async () => ({ run_id: "backup-run" })),
   syncInstanceCapacity: vi.fn(async () => ({ result: { refreshed: 1 } })),
   testInstanceConnection: vi.fn(async () => ({ ok: true })),
+  validateInstanceConnectionParams: vi.fn(async () => ({ ok: true })),
   updateInstance: vi.fn(async () => ({ ok: true }))
 }));
 
@@ -349,6 +350,22 @@ describe("ListPages", () => {
     fireEvent.change(within(createDialog).getByLabelText("凭据ID"), { target: { value: "8" } });
     fireEvent.change(within(createDialog).getByLabelText("标签代码"), { target: { value: "prod, core" } });
     fireEvent.change(within(createDialog).getByLabelText("描述"), { target: { value: "new instance" } });
+    fireEvent.click(within(createDialog).getByRole("button", { name: "校验连接参数" }));
+
+    await waitFor(() => {
+      expect(actionMocks.validateInstanceConnectionParams).toHaveBeenCalledWith({
+        name: "mysql-new",
+        db_type: "mysql",
+        host: "10.0.0.10",
+        port: 3306,
+        database_name: "app_db",
+        credential_id: 8,
+        description: "new instance",
+        tag_names: ["prod", "core"],
+        is_active: true
+      });
+    });
+
     fireEvent.click(within(createDialog).getByRole("button", { name: "保存实例" }));
 
     await waitFor(() => {

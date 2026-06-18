@@ -38,6 +38,7 @@ import {
   syncInstanceCapacity,
   testInstanceConnection,
   updateInstance,
+  validateInstanceConnectionParams,
   type InstanceWritePayload
 } from "@/api/actions";
 import {
@@ -434,9 +435,8 @@ function InstanceFormDialog({
   const [isActive, setIsActive] = useState(item?.is_active ?? true);
   const title = item ? `编辑实例 ${item.name}` : "新建实例";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const payload: InstanceWritePayload = {
+  function buildPayload(): InstanceWritePayload {
+    return {
       name: name.trim(),
       db_type: dbType,
       host: host.trim(),
@@ -447,8 +447,17 @@ function InstanceFormDialog({
       tag_names: parseTagNames(tagNames),
       is_active: isActive
     };
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload = buildPayload();
     const request = item ? updateInstance(item.id, payload) : createInstance(payload);
     void runAction(request, { success: item ? "实例已更新" : "实例已创建" }).then(onSaved);
+  }
+
+  function handleValidateConnectionParams() {
+    void runAction(validateInstanceConnectionParams(buildPayload()), { success: "连接参数校验已通过" });
   }
 
   return (
@@ -499,6 +508,10 @@ function InstanceFormDialog({
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
+            </Button>
+            <Button type="button" variant="outline" onClick={handleValidateConnectionParams}>
+              <PlugZap aria-hidden size={16} />
+              校验连接参数
             </Button>
             <Button type="submit">保存实例</Button>
           </DialogFooter>

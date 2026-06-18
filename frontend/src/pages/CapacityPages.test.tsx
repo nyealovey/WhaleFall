@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchCapacityDatabaseSnapshot, fetchCapacityInstanceSnapshot } from "@/api/capacity";
+import { runAction } from "@/utils/action-feedback";
 
 import { CapacityDatabasesPage, CapacityInstancesPage } from "./CapacityPages";
 
@@ -12,6 +13,10 @@ const actionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/api/actions", () => actionMocks);
+
+vi.mock("@/utils/action-feedback", () => ({
+  runAction: vi.fn((promise: Promise<unknown>) => promise)
+}));
 
 vi.mock("@/api/capacity", () => ({
   getDefaultCapacityRange: vi.fn(() => ({ startDate: "2026-05-17", endDate: "2026-06-16" })),
@@ -211,6 +216,10 @@ async function chooseSelectOption(label: string, optionName: string) {
 }
 
 describe("CapacityPages", () => {
+  beforeEach(() => {
+    vi.mocked(runAction).mockClear();
+  });
+
   it("renders instance capacity data from the API", async () => {
     renderWithQueryClient(<CapacityInstancesPage />);
 
@@ -292,6 +301,26 @@ describe("CapacityPages", () => {
     await waitFor(() => {
       expect(actionMocks.triggerCapacityAggregation).toHaveBeenCalledWith("database");
     });
+  });
+
+  it("refreshes capacity pages through unified action feedback", async () => {
+    renderWithQueryClient(<CapacityInstancesPage />);
+    await screen.findByRole("heading", { name: "实例容量" });
+    await waitFor(() => expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0));
+    vi.mocked(fetchCapacityInstanceSnapshot).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "刷新数据" }));
+    await waitFor(() => expect(fetchCapacityInstanceSnapshot).toHaveBeenCalledTimes(1));
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "实例容量数据已刷新" });
+
+    cleanup();
+    vi.mocked(runAction).mockClear();
+    renderWithQueryClient(<CapacityDatabasesPage />);
+    await screen.findByRole("heading", { name: "数据库容量" });
+    await waitFor(() => expect(screen.getAllByText("app_db").length).toBeGreaterThan(0));
+    vi.mocked(fetchCapacityDatabaseSnapshot).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "刷新数据" }));
+    await waitFor(() => expect(fetchCapacityDatabaseSnapshot).toHaveBeenCalledTimes(1));
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "数据库容量数据已刷新" });
   });
 
   it("applies instance and database capacity filters to API requests", async () => {

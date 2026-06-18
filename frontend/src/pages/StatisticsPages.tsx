@@ -40,6 +40,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { runAction } from "@/utils/action-feedback";
 
 type Metric = {
   label: string;
@@ -811,7 +812,7 @@ export function InstanceStatisticsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <CommandBar backHref="/instances/" backLabel="返回实例列表" onRefresh={() => void statsQuery.refetch()} />
+      <CommandBar backHref="/instances/" backLabel="返回实例列表" onRefresh={() => void runAction(statsQuery.refetch(), { success: "实例统计已刷新" })} />
       <PageHeader
         eyebrow="Instance statistics"
         title="实例统计"
@@ -833,7 +834,7 @@ export function AccountStatisticsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <CommandBar backHref="/accounts/ledgers" backLabel="账户列表" onRefresh={() => void statsQuery.refetch()} />
+      <CommandBar backHref="/accounts/ledgers" backLabel="账户列表" onRefresh={() => void runAction(statsQuery.refetch(), { success: "账户统计已刷新" })} />
       <PageHeader
         eyebrow="Account statistics"
         title="账户统计"
@@ -855,7 +856,7 @@ export function DatabaseStatisticsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <CommandBar backHref="/databases/ledgers" backLabel="数据库台账" onRefresh={() => void statsQuery.refetch()} />
+      <CommandBar backHref="/databases/ledgers" backLabel="数据库台账" onRefresh={() => void runAction(statsQuery.refetch(), { success: "数据库统计已刷新" })} />
       <PageHeader
         eyebrow="Database statistics"
         title="数据库统计"

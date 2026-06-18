@@ -33,6 +33,23 @@ export type ClusterDetailRecord = Record<string, unknown> & {
   role?: string | null;
 };
 
+export type ClusterInstanceOption = {
+  id: number;
+  name: string;
+  host?: string | null;
+  db_type?: string | null;
+};
+
+export type AccountScopeOption = {
+  value: string;
+  label: string;
+  db_type?: string | null;
+  owner_type?: string | null;
+  owner_id?: number | null;
+  name?: string | null;
+  host?: string | null;
+};
+
 export type SqlServerClusterDetail = {
   cluster: ClusterItem & Record<string, unknown>;
   instances: ClusterDetailRecord[];
@@ -42,6 +59,12 @@ export type SqlServerClusterDetail = {
 export type MySqlClusterDetail = {
   cluster: ClusterItem & Record<string, unknown>;
   instances: ClusterDetailRecord[];
+};
+
+export type SqlServerAvailabilityGroupDashboard = {
+  availability_group: ClusterDetailRecord;
+  replicas: ClusterDetailRecord[];
+  databases: ClusterDetailRecord[];
 };
 
 export type ClustersSnapshot = {
@@ -425,12 +448,27 @@ export async function fetchClustersSnapshot(client: ApiReader = apiClient): Prom
   return { sqlServer, mySql };
 }
 
+export async function fetchClusterInstanceOptions(dbType: "sqlserver" | "mysql", client: ApiReader = apiClient): Promise<ClusterInstanceOption[]> {
+  const response = await client.get<PaginatedReadOnlyList<ClusterInstanceOption>>(`${pagePath("/api/v1/instances")}&db_type=${dbType}`);
+  return response.items;
+}
+
 export function fetchSqlServerClusterDetail(clusterId: number, client: ApiReader = apiClient): Promise<SqlServerClusterDetail> {
   return client.get<SqlServerClusterDetail>(`/api/v1/sqlserver-clusters/${clusterId}`);
 }
 
 export function fetchMySqlClusterDetail(clusterId: number, client: ApiReader = apiClient): Promise<MySqlClusterDetail> {
   return client.get<MySqlClusterDetail>(`/api/v1/mysql-clusters/${clusterId}`);
+}
+
+export function fetchSqlServerAvailabilityGroupDashboard(
+  clusterId: number,
+  availabilityGroupId: number,
+  client: ApiReader = apiClient
+): Promise<SqlServerAvailabilityGroupDashboard> {
+  return client.get<SqlServerAvailabilityGroupDashboard>(
+    `/api/v1/sqlserver-clusters/${clusterId}/availability-groups/${availabilityGroupId}/dashboard`
+  );
 }
 
 export async function fetchAccountClassificationsSnapshot(
@@ -459,6 +497,13 @@ export function fetchAccountClassificationPermissions(
   client: ApiReader = apiClient
 ): Promise<AccountClassificationPermissions> {
   return client.get<AccountClassificationPermissions>(`/api/v1/accounts/classifications/permissions/${encodeURIComponent(dbType)}`);
+}
+
+export async function fetchAccountScopeOptions(dbType: string, client: ApiReader = apiClient): Promise<AccountScopeOption[]> {
+  const response = await client.get<{ account_scopes?: AccountScopeOption[] }>(
+    `/api/v1/instances/account-scope-options?db_type=${encodeURIComponent(dbType)}`
+  );
+  return response.account_scopes ?? [];
 }
 
 export async function fetchClassificationStatisticsSnapshot(

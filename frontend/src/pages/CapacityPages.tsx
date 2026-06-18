@@ -737,7 +737,7 @@ export function CapacityInstancesPage() {
           void runAction(triggerCapacityAggregation("instance"), { success: "实例容量统计已触发" }).then(() => capacityQuery.refetch());
         }}
         onRefresh={() => {
-          void capacityQuery.refetch();
+          void runAction(capacityQuery.refetch(), { success: "实例容量数据已刷新" });
         }}
       />
       <QueryPage snapshot={capacityQuery.data} isLoading={capacityQuery.isLoading} isError={capacityQuery.isError} onRetry={() => void capacityQuery.refetch()}>
@@ -805,7 +805,7 @@ export function CapacityDatabasesPage() {
           void runAction(triggerCapacityAggregation("database"), { success: "数据库容量统计已触发" }).then(() => capacityQuery.refetch());
         }}
         onRefresh={() => {
-          void capacityQuery.refetch();
+          void runAction(capacityQuery.refetch(), { success: "数据库容量数据已刷新" });
         }}
       />
       <QueryPage snapshot={capacityQuery.data} isLoading={capacityQuery.isLoading} isError={capacityQuery.isError} onRetry={() => void capacityQuery.refetch()}>

@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchRiskCenterSnapshot } from "@/api/riskCenter";
+import { runAction } from "@/utils/action-feedback";
 
 import { RiskCenterPage } from "./RiskCenterPage";
 
@@ -43,6 +44,10 @@ vi.mock("@/api/riskCenter", () => ({
   }))
 }));
 
+vi.mock("@/utils/action-feedback", () => ({
+  runAction: vi.fn((promise: Promise<unknown>) => promise)
+}));
+
 function renderWithQueryClient() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } }
@@ -56,6 +61,10 @@ function renderWithQueryClient() {
 }
 
 describe("RiskCenterPage", () => {
+  beforeEach(() => {
+    vi.mocked(runAction).mockClear();
+  });
+
   it("renders risk summary and cards from the API", async () => {
     renderWithQueryClient();
 
@@ -126,5 +135,18 @@ describe("RiskCenterPage", () => {
         tag: "prod"
       });
     });
+  });
+
+  it("refreshes risk data through unified action feedback", async () => {
+    renderWithQueryClient();
+
+    await screen.findByRole("heading", { name: "风险中心" });
+    vi.mocked(fetchRiskCenterSnapshot).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "刷新" }));
+
+    await waitFor(() => {
+      expect(fetchRiskCenterSnapshot).toHaveBeenCalledTimes(1);
+    });
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "风险中心已刷新" });
   });
 });

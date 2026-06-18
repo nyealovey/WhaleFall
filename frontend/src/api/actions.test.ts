@@ -9,6 +9,7 @@ import {
   createMySqlCluster,
   createPartition,
   createSqlServerCluster,
+  createSqlServerAvailabilityGroup,
   createCredential,
   createTag,
   createUser,
@@ -38,10 +39,13 @@ import {
   syncSqlServerAgAccounts,
   syncSqlServerAvailabilityGroups,
   syncSqlServerClusterStatus,
+  replaceMySqlClusterInstances,
+  replaceSqlServerClusterInstances,
   syncVeeam,
   batchTestInstanceConnections,
   batchDeleteInstances,
   testInstanceConnection,
+  validateInstanceConnectionParams,
   importInstancesFromCsv,
   syncInstanceAuditInfo,
   syncInstanceBackup,
@@ -53,6 +57,7 @@ import {
   updateAccountClassificationRule,
   updateInstance,
   updateMySqlCluster,
+  updateSqlServerAvailabilityGroup,
   updateSqlServerCluster,
   updateCredential,
   updateSchedulerJob,
@@ -89,11 +94,42 @@ describe("console action api", () => {
     await syncAccounts(client);
     await createSqlServerCluster({ name: "sql-ag", domain_name: "corp.local", description: "primary", is_enabled: true }, client);
     await updateSqlServerCluster(1, { name: "sql-ag-updated", domain_name: "corp.local", description: null, is_enabled: false }, client);
+    await replaceSqlServerClusterInstances(1, [7, 8], client);
+    await createSqlServerAvailabilityGroup(
+      1,
+      {
+        name: "ag-sales",
+        listener_name: "ag-listener",
+        listener_host: "ag.example.local",
+        listener_port: 1433,
+        connection_database: "master",
+        account_credential_id: 9,
+        contained_enabled: true,
+        is_enabled: true
+      },
+      client
+    );
+    await updateSqlServerAvailabilityGroup(
+      1,
+      21,
+      {
+        name: "ag-sales",
+        listener_name: null,
+        listener_host: null,
+        listener_port: null,
+        connection_database: "master",
+        account_credential_id: null,
+        contained_enabled: false,
+        is_enabled: false
+      },
+      client
+    );
     await syncSqlServerAvailabilityGroups(1, "master", client);
     await syncSqlServerClusterStatus(1, client);
     await syncSqlServerAgAccounts(1, client);
     await createMySqlCluster({ name: "mysql-repl", description: "replica", is_enabled: true }, client);
     await updateMySqlCluster(2, { name: "mysql-repl-updated", description: null, is_enabled: false }, client);
+    await replaceMySqlClusterInstances(2, [10], client);
     await syncMySqlClusterTopology(2, client);
     await createInstance(
       {
@@ -121,6 +157,20 @@ describe("console action api", () => {
         description: null,
         tag_names: ["prod"],
         is_active: false
+      },
+      client
+    );
+    await validateInstanceConnectionParams(
+      {
+        name: "mysql-new",
+        db_type: "mysql",
+        host: "10.0.0.10",
+        port: 3306,
+        database_name: "app_db",
+        credential_id: 8,
+        description: "new instance",
+        tag_names: ["prod", "core"],
+        is_active: true
       },
       client
     );
@@ -298,6 +348,27 @@ describe("console action api", () => {
       description: null,
       is_enabled: false
     });
+    expect(client.put).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/instances", { instance_ids: [7, 8] });
+    expect(client.post).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/availability-groups", {
+      name: "ag-sales",
+      listener_name: "ag-listener",
+      listener_host: "ag.example.local",
+      listener_port: 1433,
+      connection_database: "master",
+      account_credential_id: 9,
+      contained_enabled: true,
+      is_enabled: true
+    });
+    expect(client.patch).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/availability-groups/21", {
+      name: "ag-sales",
+      listener_name: null,
+      listener_host: null,
+      listener_port: null,
+      connection_database: "master",
+      account_credential_id: null,
+      contained_enabled: false,
+      is_enabled: false
+    });
     expect(client.post).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/availability-groups/actions/sync", {
       connection_database: "master"
     });
@@ -313,6 +384,7 @@ describe("console action api", () => {
       description: null,
       is_enabled: false
     });
+    expect(client.put).toHaveBeenCalledWith("/api/v1/mysql-clusters/2/instances", { instance_ids: [10] });
     expect(client.post).toHaveBeenCalledWith("/api/v1/mysql-clusters/2/actions/sync-topology", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances", {
       name: "mysql-new",
@@ -335,6 +407,17 @@ describe("console action api", () => {
       description: null,
       tag_names: ["prod"],
       is_active: false
+    });
+    expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/validate-connection-params", {
+      name: "mysql-new",
+      db_type: "mysql",
+      host: "10.0.0.10",
+      port: 3306,
+      database_name: "app_db",
+      credential_id: 8,
+      description: "new instance",
+      tag_names: ["prod", "core"],
+      is_active: true
     });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/test-connection", { instance_id: 7 });
     expect(client.post).toHaveBeenCalledWith("/api/v1/instances/actions/batch-test-connections", { instance_ids: [7, 8] });

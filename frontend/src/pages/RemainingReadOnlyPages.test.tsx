@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  fetchAccountScopeOptions,
   fetchClassificationStatisticsSnapshot,
   fetchCredentialDetail,
   fetchPartitionsSnapshot,
@@ -11,6 +12,7 @@ import {
   fetchTagDetail,
   fetchUserDetail
 } from "@/api/readOnly";
+import { runAction } from "@/utils/action-feedback";
 
 import {
   AccountClassificationsPage,
@@ -25,6 +27,9 @@ import {
   UsersPage
 } from "./RemainingReadOnlyPages";
 
+const adminUser = { id: 1, username: "admin", role: "admin", is_active: true };
+const viewerUser = { id: 2, username: "viewer", role: "viewer", is_active: true };
+
 const actionMocks = vi.hoisted(() => ({
   assignTagsToInstances: vi.fn(async () => ({ ok: true })),
   autoClassifyAccounts: vi.fn(async () => ({ ok: true })),
@@ -34,6 +39,7 @@ const actionMocks = vi.hoisted(() => ({
   createAccountClassificationRule: vi.fn(async () => ({ ok: true })),
   cleanupPartitions: vi.fn(async () => ({ ok: true })),
   createMySqlCluster: vi.fn(async () => ({ ok: true })),
+  createSqlServerAvailabilityGroup: vi.fn(async () => ({ ok: true })),
   createPartition: vi.fn(async () => ({ ok: true })),
   createSqlServerCluster: vi.fn(async () => ({ ok: true })),
   createCredential: vi.fn(async () => ({ ok: true })),
@@ -64,6 +70,8 @@ const actionMocks = vi.hoisted(() => ({
   updateAccountClassificationRule: vi.fn(async () => ({ ok: true })),
   validateAccountClassificationRuleExpression: vi.fn(async () => ({ rule_expression: { fn: "username_like", args: ["readonly"] } })),
   updateAdDomainConfig: vi.fn(async () => ({ ok: true })),
+  replaceMySqlClusterInstances: vi.fn(async () => ({ ok: true })),
+  replaceSqlServerClusterInstances: vi.fn(async () => ({ ok: true })),
   updateCredential: vi.fn(async () => ({ ok: true })),
   updateSchedulerJob: vi.fn(async () => ({ ok: true })),
   updateTag: vi.fn(async () => ({ ok: true })),
@@ -80,10 +88,15 @@ const actionMocks = vi.hoisted(() => ({
   deleteVeeamSource: vi.fn(async () => ({ ok: true })),
   deleteAdDomainConfig: vi.fn(async () => ({ ok: true })),
   updateMySqlCluster: vi.fn(async () => ({ ok: true })),
+  updateSqlServerAvailabilityGroup: vi.fn(async () => ({ ok: true })),
   updateSqlServerCluster: vi.fn(async () => ({ ok: true }))
 }));
 
 vi.mock("@/api/actions", () => actionMocks);
+
+vi.mock("@/utils/action-feedback", () => ({
+  runAction: vi.fn((promise: Promise<unknown>) => promise)
+}));
 
 vi.mock("@/api/readOnly", () => ({
   fetchClustersSnapshot: vi.fn(async () => ({
@@ -93,7 +106,35 @@ vi.mock("@/api/readOnly", () => ({
   fetchSqlServerClusterDetail: vi.fn(async () => ({
     cluster: { id: 1, name: "sql-ag", domain_name: "corp.local", description: "SQL Server 群集", is_enabled: true },
     instances: [{ id: 11, name: "sql-node-1", host: "10.0.0.11" }],
-    availability_groups: [{ id: 21, name: "ag-sales", listener_name: "ag-listener", listener_host: "ag.example", is_enabled: true }]
+    availability_groups: [
+      {
+        id: 21,
+        name: "ag-sales",
+        listener_name: "ag-listener",
+        listener_host: "ag.example",
+        listener_port: 1433,
+        connection_database: "master",
+        account_credential_id: 9,
+        contained_enabled: true,
+        is_enabled: true
+      }
+    ]
+  })),
+  fetchClusterInstanceOptions: vi.fn(async (dbType: "sqlserver" | "mysql") =>
+    dbType === "sqlserver"
+      ? [
+          { id: 11, name: "sql-node-1", host: "10.0.0.11", db_type: "sqlserver" },
+          { id: 13, name: "sql-node-2", host: "10.0.0.13", db_type: "sqlserver" }
+        ]
+      : [
+          { id: 12, name: "mysql-primary", host: "10.0.0.21", db_type: "mysql" },
+          { id: 14, name: "mysql-replica", host: "10.0.0.24", db_type: "mysql" }
+        ]
+  ),
+  fetchSqlServerAvailabilityGroupDashboard: vi.fn(async () => ({
+    availability_group: { id: 21, name: "ag-sales", listener_name: "ag-listener" },
+    replicas: [{ replica_server_name: "sql-node-1", role_desc: "PRIMARY" }],
+    databases: [{ database_name: "sales", synchronization_state_desc: "SYNCHRONIZED" }]
   })),
   fetchMySqlClusterDetail: vi.fn(async () => ({
     cluster: { id: 2, name: "mysql-repl", description: "MySQL replication 群集", is_enabled: true },
@@ -124,6 +165,21 @@ vi.mock("@/api/readOnly", () => ({
   fetchAccountClassificationPermissions: vi.fn(async () => ({
     permissions: { mysql: ["SELECT", "SUPER"] }
   })),
+  fetchAccountScopeOptions: vi.fn(async (dbType?: string) =>
+    dbType === "mysql"
+      ? [
+          {
+            value: "instance:11",
+            label: "mysql-prod (MYSQL)",
+            db_type: "mysql",
+            owner_type: "instance",
+            owner_id: 11,
+            name: "mysql-prod",
+            host: "10.0.0.11"
+          }
+        ]
+      : []
+  ),
   fetchClassificationStatisticsSnapshot: vi.fn(
     async (filters?: { classificationId?: string | number; ruleId?: string | number; ruleStatus?: string }) => ({
     stats: { dba: { total_accounts: 8, matched_accounts_count: 8 } },
@@ -525,6 +581,44 @@ describe("RemainingReadOnlyPages", () => {
     expect(screen.getByRole("button", { name: "删除用户 admin" })).toBeInTheDocument();
   });
 
+  it("matches legacy read-only management actions for non-admin users", async () => {
+    renderWithQueryClient(<UsersPage currentUser={viewerUser} />);
+
+    await screen.findByRole("heading", { name: "用户管理" });
+    expect(await screen.findByRole("button", { name: "查看用户 admin" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "新建用户" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "编辑用户 admin" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "删除用户 admin" })).not.toBeInTheDocument();
+
+    cleanup();
+    renderWithQueryClient(<CredentialsPage currentUser={viewerUser} />);
+
+    await screen.findByRole("heading", { name: "凭据管理" });
+    expect(await screen.findByRole("button", { name: "查看凭据 prod-db" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "新建凭据" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "编辑凭据 prod-db" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "删除凭据 prod-db" })).not.toBeInTheDocument();
+
+    cleanup();
+    renderWithQueryClient(<TagsPage currentUser={viewerUser} />);
+
+    await screen.findByRole("heading", { name: "标签管理" });
+    expect(await screen.findByRole("button", { name: "查看标签 生产" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "新建标签" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "批量分配" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "编辑标签 生产" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "删除标签 生产" })).not.toBeInTheDocument();
+  });
+
+  it("prevents the current administrator from deleting their own user row", async () => {
+    renderWithQueryClient(<UsersPage currentUser={adminUser} />);
+
+    await screen.findByRole("heading", { name: "用户管理" });
+    expect(await screen.findByRole("button", { name: "编辑用户 admin" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "不能删除当前登录用户" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "删除用户 admin" })).not.toBeInTheDocument();
+  });
+
   it("runs user create, update, and delete through React dialogs", async () => {
     renderWithQueryClient(<UsersPage />);
 
@@ -731,6 +825,74 @@ describe("RemainingReadOnlyPages", () => {
     });
   });
 
+  it("runs cluster binding and SQL Server AG configuration through existing v1 APIs", async () => {
+    renderWithQueryClient(<ClustersPage />);
+
+    await screen.findByRole("heading", { name: "群集管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "查看AG状态 sql-ag" }));
+    const sqlDetailDialog = await screen.findByRole("dialog", { name: "SQL Server 群集详情 sql-ag" });
+    expect(within(sqlDetailDialog).queryByRole("button", { name: "编辑实例绑定" })).not.toBeInTheDocument();
+    expect(within(sqlDetailDialog).queryByRole("button", { name: "新建AG配置" })).not.toBeInTheDocument();
+    fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "关闭详情" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "绑定实例 sql-ag" }));
+    const bindingPanel = await screen.findByRole("region", { name: "编辑 SQL Server 实例绑定 sql-ag" });
+    expect(await within(bindingPanel).findByText("sql-node-2")).toBeInTheDocument();
+    fireEvent.click(within(bindingPanel).getByRole("checkbox", { name: /sql-node-2/ }));
+    fireEvent.click(within(bindingPanel).getByRole("button", { name: "保存绑定" }));
+
+    await waitFor(() => {
+      expect(actionMocks.replaceSqlServerClusterInstances).toHaveBeenCalledWith(1, [11, 13]);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "AG配置 sql-ag" }));
+    const agPanel = await screen.findByRole("region", { name: "SQL Server AG 配置 sql-ag" });
+    expect(await within(agPanel).findByText("ag-sales")).toBeInTheDocument();
+
+    fireEvent.click(within(agPanel).getByRole("button", { name: "新建AG配置" }));
+    fireEvent.change(within(agPanel).getByLabelText("AG 名称"), { target: { value: "ag-new" } });
+    fireEvent.change(within(agPanel).getByLabelText("监听器名称"), { target: { value: "ag-new-listener" } });
+    fireEvent.change(within(agPanel).getByLabelText("监听器地址"), { target: { value: "ag-new.example" } });
+    fireEvent.change(within(agPanel).getByLabelText("监听器端口"), { target: { value: "1433" } });
+    fireEvent.change(within(agPanel).getByLabelText("连接数据库"), { target: { value: "master" } });
+    fireEvent.change(within(agPanel).getByLabelText("账户凭据ID"), { target: { value: "9" } });
+    fireEvent.click(within(agPanel).getByRole("button", { name: "保存AG配置" }));
+
+    await waitFor(() => {
+      expect(actionMocks.createSqlServerAvailabilityGroup).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          name: "ag-new",
+          listener_name: "ag-new-listener",
+          listener_host: "ag-new.example",
+          listener_port: 1433,
+          connection_database: "master",
+          account_credential_id: 9,
+          contained_enabled: false,
+          is_enabled: true
+        })
+      );
+    });
+
+    fireEvent.click(within(agPanel).getByRole("button", { name: "编辑AG ag-sales" }));
+    expect(within(agPanel).getByRole("heading", { name: "编辑 SQL Server AG 配置 ag-sales" })).toBeInTheDocument();
+    fireEvent.change(within(agPanel).getByLabelText("监听器地址"), { target: { value: "ag-edit.example" } });
+    fireEvent.click(within(agPanel).getByRole("button", { name: "保存AG配置" }));
+
+    await waitFor(() => {
+      expect(actionMocks.updateSqlServerAvailabilityGroup).toHaveBeenCalledWith(
+        1,
+        21,
+        expect.objectContaining({ name: "ag-sales", listener_host: "ag-edit.example" })
+      );
+    });
+
+    fireEvent.click(within(agPanel).getByRole("button", { name: "查看AG看板 ag-sales" }));
+    expect(await within(agPanel).findByRole("heading", { name: "SQL Server AG 看板 ag-sales" })).toBeInTheDocument();
+    expect(await within(agPanel).findByText("sql-node-1")).toBeInTheDocument();
+    expect(await within(agPanel).findByText("sales")).toBeInTheDocument();
+  });
+
   it("renders account classifications with legacy panels, rule groups, and actions", async () => {
     renderWithQueryClient(<AccountClassificationsPage />);
 
@@ -799,6 +961,43 @@ describe("RemainingReadOnlyPages", () => {
       expect(fetchClassificationStatisticsSnapshot).toHaveBeenLastCalledWith(expect.objectContaining({ ruleId: "9" }));
     });
     await expectTextPresent("规则趋势（命中账号数）");
+  });
+
+  it("loads classification account scope options after selecting a database type", async () => {
+    renderWithQueryClient(<ClassificationStatisticsPage />);
+
+    await screen.findByRole("heading", { name: "分类统计" });
+    const databaseTypeSelect = await screen.findByRole("combobox", { name: "数据库类型" });
+    vi.mocked(fetchAccountScopeOptions).mockClear();
+    fireEvent.click(databaseTypeSelect);
+    fireEvent.click(await screen.findByRole("option", { name: "MySQL" }));
+
+    await waitFor(() => {
+      expect(fetchAccountScopeOptions).toHaveBeenCalledWith("mysql");
+    });
+
+    fireEvent.click(screen.getByRole("combobox", { name: "实例/AG" }));
+    fireEvent.click(await screen.findByRole("option", { name: "mysql-prod (MYSQL)" }));
+    fireEvent.click(screen.getByRole("button", { name: "应用" }));
+
+    await waitFor(() => {
+      expect(fetchClassificationStatisticsSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({ accountScope: "instance:11", dbType: "mysql" })
+      );
+    });
+  });
+
+  it("refreshes classification statistics through unified action feedback", async () => {
+    renderWithQueryClient(<ClassificationStatisticsPage />);
+
+    await screen.findByRole("heading", { name: "分类统计" });
+    vi.mocked(fetchClassificationStatisticsSnapshot).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "刷新" }));
+
+    await waitFor(() => {
+      expect(fetchClassificationStatisticsSnapshot).toHaveBeenCalledTimes(1);
+    });
+    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "分类统计已刷新" });
   });
 
   it("runs direct account classification actions through v1 APIs", async () => {
@@ -1119,6 +1318,9 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.change(screen.getByLabelText("保留月份"), { target: { value: "18" } });
     fireEvent.click(screen.getByRole("button", { name: "创建分区" }));
     fireEvent.click(screen.getByRole("button", { name: "清理旧分区" }));
+    expect(actionMocks.cleanupPartitions).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alertdialog", { name: "确认清理旧分区" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确认清理旧分区" }));
     await waitFor(() => {
       expect(actionMocks.createPartition).toHaveBeenCalledWith("2026-07-01");
       expect(actionMocks.cleanupPartitions).toHaveBeenCalledWith(18);

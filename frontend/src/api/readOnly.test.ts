@@ -4,9 +4,12 @@ import {
   fetchAccountClassificationsSnapshot,
   fetchAccountClassificationPermissions,
   fetchAccountClassificationRuleDetail,
+  fetchAccountScopeOptions,
   fetchClassificationStatisticsSnapshot,
+  fetchClusterInstanceOptions,
   fetchClustersSnapshot,
   fetchMySqlClusterDetail,
+  fetchSqlServerAvailabilityGroupDashboard,
   fetchSqlServerClusterDetail,
   fetchCredentialsSnapshot,
   fetchCredentialDetail,
@@ -63,6 +66,62 @@ describe("read-only migration api", () => {
     expect(client.get).toHaveBeenCalledWith("/api/v1/mysql-clusters/2");
     expect(sqlServer.availability_groups[0]?.name).toBe("ag-sales");
     expect(mySql.instances[0]?.name).toBe("mysql-primary");
+  });
+
+  it("loads SQL Server availability group dashboard", async () => {
+    const client = {
+      get: vi.fn().mockResolvedValue({
+        availability_group: { id: 21, name: "ag-sales" },
+        replicas: [{ replica_server_name: "sql-node-1" }],
+        databases: [{ database_name: "sales" }]
+      })
+    };
+
+    const dashboard = await fetchSqlServerAvailabilityGroupDashboard(1, 21, client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/availability-groups/21/dashboard");
+    expect(dashboard.availability_group.name).toBe("ag-sales");
+    expect(dashboard.replicas[0]?.replica_server_name).toBe("sql-node-1");
+  });
+
+  it("loads cluster instance options by database type", async () => {
+    const client = {
+      get: vi.fn().mockResolvedValue({
+        items: [{ id: 11, name: "sql-node-1", host: "10.0.0.11", db_type: "sqlserver" }],
+        total: 1,
+        page: 1,
+        pages: 1,
+        limit: 200
+      })
+    };
+
+    const options = await fetchClusterInstanceOptions("sqlserver", client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/instances?page=1&limit=200&db_type=sqlserver");
+    expect(options[0]?.name).toBe("sql-node-1");
+  });
+
+  it("loads account scope options by database type", async () => {
+    const client = {
+      get: vi.fn().mockResolvedValue({
+        account_scopes: [
+          {
+            value: "instance:11",
+            label: "mysql-prod (MYSQL)",
+            db_type: "mysql",
+            owner_type: "instance",
+            owner_id: 11,
+            name: "mysql-prod",
+            host: "10.0.0.11"
+          }
+        ]
+      })
+    };
+
+    const options = await fetchAccountScopeOptions("mysql", client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/instances/account-scope-options?db_type=mysql");
+    expect(options[0]?.value).toBe("instance:11");
   });
 
   it("loads classifications and rules", async () => {
