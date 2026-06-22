@@ -11,6 +11,7 @@ import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -21,6 +22,17 @@ export type DataTableFilter = {
     label: string;
     value: string;
   }>;
+  onValueChange?: (value: string) => void;
+  value?: string;
+};
+
+export type DataTableServerPagination = {
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  page: number;
+  pageSize: number;
+  pages: number;
+  total: number;
 };
 
 type DataTableProps<TData, TValue> = {
@@ -28,7 +40,10 @@ type DataTableProps<TData, TValue> = {
   data: TData[];
   emptyText?: string;
   filters?: DataTableFilter[];
+  onSearchChange?: (value: string) => void;
+  pagination?: false | DataTableServerPagination;
   searchPlaceholder?: string;
+  searchValue?: string;
   toolbarExtras?: ReactNode;
 };
 
@@ -39,11 +54,17 @@ export function DataTable<TData, TValue>({
   data,
   emptyText = "暂无数据",
   filters = [],
+  onSearchChange,
+  pagination,
   searchPlaceholder,
+  searchValue,
   toolbarExtras
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const serverPagination = pagination && typeof pagination === "object" ? pagination : null;
+  const paginationEnabled = pagination !== false;
+  const clientPagination = paginationEnabled && serverPagination === null;
   const hasToolbar = Boolean(searchPlaceholder) || filters.length > 0 || Boolean(toolbarExtras);
 
   // TanStack Table returns function-heavy instances that React Compiler cannot memoize safely.
@@ -52,13 +73,16 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     state: {
-      globalFilter,
-      columnFilters
+      globalFilter: serverPagination ? (searchValue ?? "") : globalFilter,
+      columnFilters,
+      ...(serverPagination
+        ? { pagination: { pageIndex: Math.max(serverPagination.page - 1, 0), pageSize: serverPagination.pageSize } }
+        : {})
     },
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getFilteredRowModel: serverPagination ? undefined : getFilteredRowModel(),
     globalFilterFn: (row, _columnId, filterValue) => {
       const keyword = String(filterValue ?? "").trim().toLowerCase();
       if (!keyword) {
@@ -66,8 +90,22 @@ export function DataTable<TData, TValue>({
       }
       return JSON.stringify(row.original).toLowerCase().includes(keyword);
     },
-    getPaginationRowModel: getPaginationRowModel()
+    getPaginationRowModel: clientPagination ? getPaginationRowModel() : undefined,
+    initialState: clientPagination ? { pagination: { pageIndex: 0, pageSize: 20 } } : undefined,
+    manualFiltering: Boolean(serverPagination),
+    manualPagination: Boolean(serverPagination),
+    pageCount: serverPagination?.pages
   });
+
+  const currentPage = serverPagination?.page ?? table.getState().pagination.pageIndex + 1;
+  const pageSize = serverPagination?.pageSize ?? table.getState().pagination.pageSize;
+  const total = serverPagination?.total ?? table.getFilteredRowModel().rows.length;
+  const pages = serverPagination?.pages ?? Math.max(table.getPageCount(), 1);
+  const firstRow = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastRow = Math.min(currentPage * pageSize, total);
+  const pageNumbers = Array.from({ length: pages }, (_, index) => index + 1).filter(
+    (page) => page === 1 || page === pages || Math.abs(page - currentPage) <= 1
+  );
 
   return (
     <div className="grid gap-3">
@@ -79,11 +117,15 @@ export function DataTable<TData, TValue>({
               <Input
                 aria-label="搜索"
                 onChange={(event) => {
-                  setGlobalFilter(event.target.value);
+                  if (serverPagination) {
+                    onSearchChange?.(event.target.value);
+                  } else {
+                    setGlobalFilter(event.target.value);
+                  }
                 }}
                 placeholder={searchPlaceholder}
                 type="search"
-                value={globalFilter}
+                value={serverPagination ? (searchValue ?? "") : globalFilter}
               />
             </label>
           ) : null}
@@ -94,9 +136,14 @@ export function DataTable<TData, TValue>({
                   <span>{filter.label}</span>
                   <Select
                     onValueChange={(value) => {
-                      table.getColumn(filter.columnId)?.setFilterValue(value === allFilterValue ? undefined : value);
+                      const resolved = value === allFilterValue ? "" : value;
+                      if (serverPagination) {
+                        filter.onValueChange?.(resolved);
+                      } else {
+                        table.getColumn(filter.columnId)?.setFilterValue(resolved || undefined);
+                      }
                     }}
-                    value={(table.getColumn(filter.columnId)?.getFilterValue() as string | undefined) ?? allFilterValue}
+                    value={(serverPagination ? filter.value : (table.getColumn(filter.columnId)?.getFilterValue() as string | undefined)) || allFilterValue}
                   >
                     <SelectTrigger aria-label={filter.label}>
                       <SelectValue />
@@ -151,31 +198,75 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{table.getFilteredRowModel().rows.length} 条记录</p>
-        <div className="flex items-center gap-2">
+      {paginationEnabled ? (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">显示 {firstRow}-{lastRow}，共 {total} 条</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            onValueChange={(value) => {
+              const resolved = Number(value);
+              if (serverPagination) {
+                serverPagination.onPageSizeChange(resolved);
+              } else {
+                table.setPageSize(resolved);
+              }
+            }}
+            value={String(pageSize)}
+          >
+            <SelectTrigger aria-label="每页条数" className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[20, 50, 100].map((size) => <SelectItem key={size} value={String(size)}>{size} 条</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Pagination className="w-auto">
+            <PaginationContent>
+              <PaginationItem>
           <Button
-            disabled={!table.getCanPreviousPage()}
+            disabled={currentPage <= 1}
             onClick={() => {
-              table.previousPage();
+              if (serverPagination) serverPagination.onPageChange(currentPage - 1);
+              else table.previousPage();
             }}
             size="sm"
             variant="outline"
           >
             上一页
           </Button>
+              </PaginationItem>
+              {pageNumbers.map((page, index) => (
+                <PaginationItem key={page}>
+                  {index > 0 && page - pageNumbers[index - 1] > 1 ? <PaginationEllipsis /> : null}
+                  <Button
+                    aria-current={page === currentPage ? "page" : undefined}
+                    aria-label={`第 ${page} 页`}
+                    onClick={() => serverPagination ? serverPagination.onPageChange(page) : table.setPageIndex(page - 1)}
+                    size="icon"
+                    variant={page === currentPage ? "default" : "outline"}
+                  >
+                    {page}
+                  </Button>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
           <Button
-            disabled={!table.getCanNextPage()}
+            disabled={currentPage >= pages}
             onClick={() => {
-              table.nextPage();
+              if (serverPagination) serverPagination.onPageChange(currentPage + 1);
+              else table.nextPage();
             }}
             size="sm"
             variant="outline"
           >
             下一页
           </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

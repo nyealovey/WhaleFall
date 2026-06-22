@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 import type { ColumnDef } from "@tanstack/react-table";
 import { describe, expect, it } from "vitest";
 
@@ -43,6 +44,52 @@ describe("DataTable", () => {
     render(<DataTable columns={columns} data={[]} emptyText="暂无旧版字段数据" />);
 
     expect(screen.getByText("暂无旧版字段数据")).toBeInTheDocument();
+  });
+
+  it("shows twenty rows per page by default", () => {
+    const data = Array.from({ length: 25 }, (_, index) => ({ id: `p-${index + 1}`, status: `status-${index + 1}`, amount: index + 1 }));
+
+    render(<DataTable columns={columns} data={data} />);
+
+    expect(screen.getByText("status-20")).toBeInTheDocument();
+    expect(screen.queryByText("status-21")).not.toBeInTheDocument();
+    expect(screen.getByText("显示 1-20，共 25 条")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "下一页" }));
+
+    expect(screen.getByText("status-21")).toBeInTheDocument();
+    expect(screen.getByText("显示 21-25，共 25 条")).toBeInTheDocument();
+  });
+
+  it("can render a static table without pagination", () => {
+    const data = Array.from({ length: 25 }, (_, index) => ({ id: `p-${index + 1}`, status: `status-${index + 1}`, amount: index + 1 }));
+
+    render(<DataTable columns={columns} data={data} pagination={false} />);
+
+    expect(screen.getByText("status-25")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "下一页" })).not.toBeInTheDocument();
+  });
+
+  it("delegates pagination and filters in server mode", async () => {
+    const onPageChange = vi.fn();
+    const onPageSizeChange = vi.fn();
+    const onStatusChange = vi.fn();
+
+    render(
+      <DataTable
+        columns={columns}
+        data={[{ id: "p-21", status: "failed", amount: 128 }]}
+        filters={[{ columnId: "status", label: "状态", options: [{ label: "失败", value: "failed" }], value: "" , onValueChange: onStatusChange }]}
+        pagination={{ page: 2, pageSize: 20, pages: 3, total: 41, onPageChange, onPageSizeChange }}
+      />
+    );
+
+    expect(screen.getByText("显示 21-40，共 41 条")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "下一页" }));
+    expect(onPageChange).toHaveBeenCalledWith(3);
+
+    await chooseOption("状态", "失败");
+    expect(onStatusChange).toHaveBeenCalledWith("failed");
   });
 
   it("filters rows through the table toolbar", async () => {
