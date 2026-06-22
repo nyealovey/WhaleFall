@@ -5,8 +5,10 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import {
   fetchAccountChangeLogDetail,
+  fetchAccountChangeLogOptions,
   fetchAccountChangeLogsSnapshot,
   fetchHistoryLogDetail,
+  fetchHistoryLogModules,
   fetchHistoryLogsSnapshot,
   type AccountChangeLogDetail,
   type AccountChangeLogItem,
@@ -16,6 +18,7 @@ import {
   type HistoryLogsSnapshot
 } from "@/api/audit";
 import { DataTable } from "@/components/shared/DataTable";
+import { useServerTableState } from "@/components/shared/useServerTableState";
 import { SelectControl, TruncatedTooltip } from "@/components/shared/FormControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -41,17 +44,6 @@ function formatDecimal(value: number | undefined | null): string {
 
 function formatPercent(value: number | undefined | null): string {
   return `${formatDecimal(value)}%`;
-}
-
-function uniqueTextOptions<TItem>(items: TItem[], getValue: (item: TItem) => string | null | undefined) {
-  const values = new Set<string>();
-  for (const item of items) {
-    const value = getValue(item);
-    if (value) {
-      values.add(value);
-    }
-  }
-  return [...values].sort((first, second) => first.localeCompare(second, "zh-CN")).map((value) => ({ label: value, value }));
 }
 
 function statusVariant(value: string | undefined): "default" | "secondary" | "destructive" | "outline" {
@@ -180,20 +172,26 @@ function QueryPage<TSnapshot>({
   );
 }
 
-function TimeRangeFilter() {
+type TimeRangeValue = "1h" | "1d" | "1w" | "1m" | "all";
+
+const timeRangeHours: Record<Exclude<TimeRangeValue, "all">, number> = { "1h": 1, "1d": 24, "1w": 168, "1m": 720 };
+
+function TimeRangeFilter({ includeAll, onChange, value }: { includeAll?: boolean; onChange: (value: TimeRangeValue) => void; value: TimeRangeValue }) {
+  const options = [
+    { label: "最近 1 小时", value: "1h" },
+    { label: "最近 24 小时", value: "1d" },
+    { label: "最近 7 天", value: "1w" },
+    { label: "最近 30 天", value: "1m" }
+  ];
+  if (includeAll) options.unshift({ label: "全部", value: "all" });
   return (
     <label className="grid gap-1.5 text-sm font-medium text-foreground">
       <span>时间范围</span>
       <SelectControl
         label="时间范围"
-        defaultValue="1d"
-        options={[
-          { label: "最近 1 小时", value: "1h" },
-          { label: "最近 24 小时", value: "1d" },
-          { label: "最近 7 天", value: "1w" },
-          { label: "最近 30 天", value: "1m" },
-          { label: "全部", value: "all" }
-        ]}
+        onValueChange={(next) => onChange(next as TimeRangeValue)}
+        options={options}
+        value={value}
       />
     </label>
   );
@@ -490,11 +488,15 @@ function createAccountChangeLogColumns(onViewDetail: (logId: number) => void): C
 
 export function HistoryLogsPage() {
   const [selectedHistoryLogId, setSelectedHistoryLogId] = useState<number | null>(null);
+  const table = useServerTableState({ initialFilters: { level: "", module: "", timeRange: "1d" } });
   const columns = useMemo(() => createHistoryLogColumns(setSelectedHistoryLogId), [setSelectedHistoryLogId]);
+  const hours = timeRangeHours[table.filters.timeRange as Exclude<TimeRangeValue, "all">];
   const logsQuery = useQuery({
-    queryKey: ["audit", "history-logs", 1, 200, 24],
-    queryFn: () => fetchHistoryLogsSnapshot()
+    queryKey: ["audit", "history-logs", table.page, table.pageSize, table.search, table.filters, hours],
+    queryFn: () => fetchHistoryLogsSnapshot({ page: table.page, limit: table.pageSize, search: table.search, level: table.filters.level, module: table.filters.module, hours }),
+    placeholderData: (previous) => previous
   });
+  const modulesQuery = useQuery({ queryKey: ["audit", "history-log-modules"], queryFn: () => fetchHistoryLogModules() });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -533,11 +535,14 @@ export function HistoryLogsPage() {
                 columns={columns}
                 data={snapshot.list.items}
                 filters={[
-                  { columnId: "level", label: "级别", options: uniqueTextOptions(snapshot.list.items, (item) => item.level) },
-                  { columnId: "module", label: "模块", options: uniqueTextOptions(snapshot.list.items, (item) => item.module) }
+                  { columnId: "level", label: "级别", options: ["ERROR", "WARNING", "INFO", "DEBUG", "CRITICAL"].map((value) => ({ label: value, value })), value: table.filters.level, onValueChange: (value) => table.setFilter("level", value) },
+                  { columnId: "module", label: "模块", options: (modulesQuery.data ?? []).map((module) => ({ label: module, value: module })), value: table.filters.module, onValueChange: (value) => table.setFilter("module", value) }
                 ]}
+                onSearchChange={table.setSearchInput}
+                pagination={{ page: table.page, pageSize: table.pageSize, pages: snapshot.list.pages, total: snapshot.list.total, onPageChange: table.setPage, onPageSizeChange: table.setPageSize }}
                 searchPlaceholder="输入搜索关键词"
-                toolbarExtras={<TimeRangeFilter />}
+                searchValue={table.searchInput}
+                toolbarExtras={<TimeRangeFilter onChange={(value) => table.setFilter("timeRange", value)} value={table.filters.timeRange as TimeRangeValue} />}
               />
             </ListFrame>
           </>
@@ -558,11 +563,15 @@ export function HistoryLogsPage() {
 
 export function AccountChangeLogsPage() {
   const [selectedAccountChangeLogId, setSelectedAccountChangeLogId] = useState<number | null>(null);
+  const table = useServerTableState({ initialFilters: { instanceId: "", dbType: "", changeType: "", timeRange: "all" } });
   const columns = useMemo(() => createAccountChangeLogColumns(setSelectedAccountChangeLogId), [setSelectedAccountChangeLogId]);
+  const hours = table.filters.timeRange === "all" ? undefined : timeRangeHours[table.filters.timeRange as Exclude<TimeRangeValue, "all">];
   const logsQuery = useQuery({
-    queryKey: ["audit", "account-change-logs", 1, 200, 24],
-    queryFn: () => fetchAccountChangeLogsSnapshot()
+    queryKey: ["audit", "account-change-logs", table.page, table.pageSize, table.search, table.filters, hours],
+    queryFn: () => fetchAccountChangeLogsSnapshot({ page: table.page, limit: table.pageSize, search: table.search, instanceId: table.filters.instanceId ? Number(table.filters.instanceId) : undefined, dbType: table.filters.dbType, changeType: table.filters.changeType, hours }),
+    placeholderData: (previous) => previous
   });
+  const optionsQuery = useQuery({ queryKey: ["audit", "account-change-options"], queryFn: () => fetchAccountChangeLogOptions() });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -606,12 +615,15 @@ export function AccountChangeLogsPage() {
                 columns={columns}
                 data={snapshot.list.items}
                 filters={[
-                  { columnId: "instance_name", label: "实例", options: uniqueTextOptions(snapshot.list.items, (item) => item.instance_name) },
-                  { columnId: "db_type", label: "数据库类型", options: uniqueTextOptions(snapshot.list.items, (item) => item.db_type) },
-                  { columnId: "change_type", label: "变更类型", options: uniqueTextOptions(snapshot.list.items, (item) => item.change_type) }
+                  { columnId: "instance_name", label: "实例", options: optionsQuery.data ?? [], value: table.filters.instanceId, onValueChange: (value) => table.setFilter("instanceId", value) },
+                  { columnId: "db_type", label: "数据库类型", options: ["mysql", "postgresql", "sqlserver", "oracle"].map((value) => ({ label: value.toUpperCase(), value })), value: table.filters.dbType, onValueChange: (value) => table.setFilter("dbType", value) },
+                  { columnId: "change_type", label: "变更类型", options: [{ label: "新增", value: "add" }, { label: "权限变更", value: "modify_privilege" }, { label: "属性变更", value: "modify_other" }, { label: "删除", value: "delete" }], value: table.filters.changeType, onValueChange: (value) => table.setFilter("changeType", value) }
                 ]}
+                onSearchChange={table.setSearchInput}
+                pagination={{ page: table.page, pageSize: table.pageSize, pages: snapshot.list.pages, total: snapshot.list.total, onPageChange: table.setPage, onPageSizeChange: table.setPageSize }}
                 searchPlaceholder="搜索账号 / 实例"
-                toolbarExtras={<TimeRangeFilter />}
+                searchValue={table.searchInput}
+                toolbarExtras={<TimeRangeFilter includeAll onChange={(value) => table.setFilter("timeRange", value)} value={table.filters.timeRange as TimeRangeValue} />}
               />
             </ListFrame>
           </>

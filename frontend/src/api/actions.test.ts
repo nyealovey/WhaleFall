@@ -436,7 +436,7 @@ describe("console action api", () => {
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1/actions/resume", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1/actions/run", {});
     expect(client.delete).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1");
-    expect(client.post).toHaveBeenCalledWith("/api/v1/sync-sessions/s-1/actions/cancel", {});
+    expect(client.post).toHaveBeenCalledWith("/api/v1/task-runs/s-1/actions/cancel", {});
     expect(client.post).toHaveBeenCalledWith("/api/v1/alerts/email-settings/actions/send-test", { recipients: ["ops@example.com"] });
     expect(client.post).toHaveBeenCalledWith("/api/v1/alerts/email-settings/actions/send-feishu-test", { feishu_webhook_url: "https://bot.example" });
     expect(client.put).toHaveBeenCalledWith("/api/v1/alerts/email-settings", { global_enabled: true });

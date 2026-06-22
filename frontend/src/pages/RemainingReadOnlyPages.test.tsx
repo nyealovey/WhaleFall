@@ -252,66 +252,85 @@ vi.mock("@/api/readOnly", () => ({
     max_instances: 1,
     coalesce: true
   })),
-  fetchSyncSessionsSnapshot: vi.fn(async () => ({
+  fetchTaskRunsSnapshot: vi.fn(async () => ({
     items: [
       {
         id: 1,
-        session_id: "s-1",
-        sync_type: "manual",
-        sync_category: "accounts",
+        run_id: "s-1",
+        task_key: "sync_accounts",
+        task_name: "账户同步",
+        task_category: "account",
+        trigger_source: "manual",
         status: "running",
-        total_instances: 2,
-        successful_instances: 1,
-        failed_instances: 0,
-        started_at: "2026-06-11T12:00:00+08:00"
+        progress_total: 2,
+        progress_completed: 1,
+        progress_failed: 0,
+        started_at: "2026-06-11T12:00:00+08:00",
+        completed_at: null
       }
     ],
     total: 1,
     page: 1,
     pages: 1
   })),
-  fetchSyncSessionDetail: vi.fn(async () => ({
-    session: {
+  fetchTaskRunDetail: vi.fn(async () => ({
+    run: {
       id: 1,
-      session_id: "s-1",
-      sync_type: "manual",
-      sync_category: "accounts",
+      run_id: "s-1",
+      task_key: "sync_accounts",
+      task_name: "账户同步",
+      task_category: "account",
+      trigger_source: "manual",
       status: "running",
       started_at: "2026-06-11T12:00:00+08:00",
       completed_at: null,
-      total_instances: 2,
-      successful_instances: 1,
-      failed_instances: 0,
-      progress_percentage: 50,
-      instance_records: [
-        {
-          id: 11,
-          session_id: "s-1",
-          instance_id: 100,
-          instance_name: "mysql-prod",
-          sync_category: "accounts",
-          status: "running",
-          started_at: "2026-06-11T12:00:00+08:00",
-          completed_at: null,
-          items_synced: 10,
-          items_created: 2,
-          items_updated: 7,
-          items_deleted: 1,
-          error_message: null,
-          sync_details: { phase: "accounts" }
-        }
-      ]
-    }
+      progress_total: 2,
+      progress_completed: 1,
+      progress_failed: 0
+    },
+    items: [
+      {
+        id: 11,
+        run_id: "s-1",
+        item_type: "instance",
+        item_key: "mysql-prod",
+        item_name: "mysql-prod",
+        instance_id: 100,
+        status: "running",
+        started_at: "2026-06-11T12:00:00+08:00",
+        completed_at: null,
+        metrics_json: { items_synced: 10, items_created: 2, items_updated: 7, items_deleted: 1 },
+        error_message: null
+      }
+    ]
   })),
-  fetchSyncSessionErrorLogs: vi.fn(async () => ({
-    session: { session_id: "s-1", status: "running" },
-    error_records: [
+  fetchTaskRunErrorLogs: vi.fn(async () => ({
+    run: {
+      id: 1,
+      run_id: "s-1",
+      task_key: "sync_accounts",
+      task_name: "账户同步",
+      task_category: "account",
+      trigger_source: "manual",
+      status: "running",
+      started_at: "2026-06-11T12:00:00+08:00",
+      completed_at: null,
+      progress_total: 2,
+      progress_completed: 1,
+      progress_failed: 1
+    },
+    items: [
       {
         id: 12,
-        session_id: "s-1",
-        instance_name: "oracle-failed",
-        sync_category: "accounts",
+        run_id: "s-1",
+        item_type: "instance",
+        item_key: "oracle-failed",
+        item_name: "oracle-failed",
+        instance_id: 101,
         status: "failed",
+        started_at: "2026-06-11T12:01:00+08:00",
+        completed_at: "2026-06-11T12:02:00+08:00",
+        metrics_json: {},
         error_message: "connection refused"
       }
     ],
@@ -691,7 +710,7 @@ describe("RemainingReadOnlyPages", () => {
 
     await screen.findByRole("heading", { name: "会话中心" });
 
-    for (const text of ["来源", "分类", "状态", "运行ID", "进度", "任务", "开始时间", "耗时", "操作", "50%", "manual", "accounts"]) {
+    for (const text of ["来源", "分类", "状态", "运行ID", "进度", "任务", "开始时间", "耗时", "操作", "50%", "手动", "账户"]) {
       await expectTextPresent(text);
     }
 

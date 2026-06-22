@@ -2,7 +2,6 @@ import { apiClient, type ApiClient } from "./client";
 
 type ApiReader = Pick<ApiClient, "get">;
 const DEFAULT_LIST_LIMIT = 200;
-const SYNC_SESSIONS_LIST_LIMIT = 100;
 
 export type PaginatedReadOnlyList<TItem> = {
   items: TItem[];
@@ -222,58 +221,55 @@ export type SchedulerJobDetail = SchedulerJobItem & {
   coalesce?: boolean | null;
 };
 
-export type SyncSessionItem = {
+export type TaskRunItem = {
   id: number;
-  session_id: string;
-  run_id?: string;
-  sync_type: string;
-  sync_category: string;
-  task_key?: string;
-  task_name?: string;
-  task_category?: string;
-  trigger_source?: string;
+  run_id: string;
+  task_key: string;
+  task_name: string;
+  task_category: string;
+  trigger_source: string;
   status: string;
   started_at?: string | null;
   completed_at?: string | null;
-  total_instances?: number;
-  successful_instances?: number;
-  failed_instances?: number;
-  progress_total?: number;
-  progress_completed?: number;
-  progress_failed?: number;
+  progress_total: number;
+  progress_completed: number;
+  progress_failed: number;
+  error_message?: string | null;
 };
 
-export type SyncInstanceRecordItem = {
+export type TaskRunChildItem = {
   id: number;
-  session_id: string;
+  run_id: string;
+  item_type: string;
+  item_key: string;
+  item_name?: string | null;
   instance_id?: number;
-  instance_name?: string | null;
-  sync_category?: string;
-  status?: string;
+  status: string;
   started_at?: string | null;
   completed_at?: string | null;
-  items_synced?: number;
-  items_created?: number;
-  items_updated?: number;
-  items_deleted?: number;
   error_message?: string | null;
-  sync_details?: unknown;
-  created_at?: string | null;
+  metrics_json?: Record<string, unknown> | null;
+  details_json?: Record<string, unknown> | null;
 };
 
-export type SyncSessionDetailItem = SyncSessionItem & {
-  progress_percentage?: number;
-  instance_records: SyncInstanceRecordItem[];
+export type TaskRunDetail = {
+  run: TaskRunItem;
+  items: TaskRunChildItem[];
 };
 
-export type SyncSessionDetail = {
-  session: SyncSessionDetailItem;
-};
-
-export type SyncSessionErrorLogs = {
-  session: SyncSessionItem;
-  error_records: SyncInstanceRecordItem[];
+export type TaskRunErrorLogs = {
+  run: TaskRunItem;
+  items: TaskRunChildItem[];
   error_count: number;
+};
+
+export type TaskRunsQuery = {
+  limit?: number;
+  page?: number;
+  status?: string;
+  taskCategory?: string;
+  taskKey?: string;
+  triggerSource?: string;
 };
 
 export type UserItem = {
@@ -480,9 +476,24 @@ export async function fetchAccountClassificationsSnapshot(
     client.get<{ rules_by_db_type: Record<string, AccountClassificationRuleItem[]> }>("/api/v1/accounts/classifications/rules")
   ]);
 
+  const rules = Object.values(rulesResponse.rules_by_db_type).flat();
+  const ruleIds = rules.map((rule) => rule.id);
+  const statisticsResponse = ruleIds.length > 0
+    ? await client.get<{ rule_stats: Array<{ rule_id: number; matched_accounts_count: number }> }>(
+        `/api/v1/accounts/statistics/rules?rule_ids=${ruleIds.join(",")}`
+      )
+    : { rule_stats: [] };
+  const counts = new Map(statisticsResponse.rule_stats.map((item) => [item.rule_id, item.matched_accounts_count]));
+  const rulesByDbType = Object.fromEntries(
+    Object.entries(rulesResponse.rules_by_db_type).map(([dbType, items]) => [
+      dbType,
+      items.map((item) => ({ ...item, matched_accounts_count: counts.get(item.id) ?? 0 }))
+    ])
+  );
+
   return {
     classifications: classificationsResponse.classifications,
-    rulesByDbType: rulesResponse.rules_by_db_type
+    rulesByDbType
   };
 }
 
@@ -589,24 +600,29 @@ export function fetchSchedulerJobDetail(jobId: string, client: ApiReader = apiCl
   return client.get<SchedulerJobDetail>(`/api/v1/scheduler/jobs/${encodeURIComponent(jobId)}`);
 }
 
-export async function fetchSyncSessionsSnapshot(
+export async function fetchTaskRunsSnapshot(
+  query: TaskRunsQuery = {},
   client: ApiReader = apiClient
-): Promise<PaginatedReadOnlyList<SyncSessionItem>> {
-  return client.get<PaginatedReadOnlyList<SyncSessionItem>>(pagePath("/api/v1/sync-sessions", SYNC_SESSIONS_LIST_LIMIT));
+): Promise<PaginatedReadOnlyList<TaskRunItem>> {
+  return client.get<PaginatedReadOnlyList<TaskRunItem>>(queryPath("/api/v1/task-runs", [
+    ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["task_key", query.taskKey],
+    ["task_category", query.taskCategory], ["trigger_source", query.triggerSource], ["status", query.status],
+    ["sort", "started_at"], ["order", "desc"]
+  ]));
 }
 
-export async function fetchSyncSessionDetail(
-  sessionId: string,
+export async function fetchTaskRunDetail(
+  runId: string,
   client: ApiReader = apiClient
-): Promise<SyncSessionDetail> {
-  return client.get<SyncSessionDetail>(`/api/v1/sync-sessions/${encodeURIComponent(sessionId)}`);
+): Promise<TaskRunDetail> {
+  return client.get<TaskRunDetail>(`/api/v1/task-runs/${encodeURIComponent(runId)}`);
 }
 
-export async function fetchSyncSessionErrorLogs(
-  sessionId: string,
+export async function fetchTaskRunErrorLogs(
+  runId: string,
   client: ApiReader = apiClient
-): Promise<SyncSessionErrorLogs> {
-  return client.get<SyncSessionErrorLogs>(`/api/v1/sync-sessions/${encodeURIComponent(sessionId)}/error-logs`);
+): Promise<TaskRunErrorLogs> {
+  return client.get<TaskRunErrorLogs>(`/api/v1/task-runs/${encodeURIComponent(runId)}/error-logs`);
 }
 
 export async function fetchUsersSnapshot(client: ApiReader = apiClient): Promise<UsersSnapshot> {

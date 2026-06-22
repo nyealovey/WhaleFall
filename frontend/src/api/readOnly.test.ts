@@ -16,10 +16,10 @@ import {
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
   fetchSchedulerJobDetail,
-  fetchSyncSessionDetail,
-  fetchSyncSessionErrorLogs,
+  fetchTaskRunDetail,
+  fetchTaskRunErrorLogs,
   fetchSettingsSnapshot,
-  fetchSyncSessionsSnapshot,
+  fetchTaskRunsSnapshot,
   fetchTagDetail,
   fetchTagBulkOptions,
   fetchTagsSnapshot,
@@ -130,14 +130,17 @@ describe("read-only migration api", () => {
         .fn()
         .mockResolvedValueOnce({ classifications: [{ id: 1, display_name: "DBA" }] })
         .mockResolvedValueOnce({ rules_by_db_type: { mysql: [{ id: 9, rule_name: "root" }] } })
+        .mockResolvedValueOnce({ rule_stats: [{ rule_id: 9, matched_accounts_count: 347 }] })
     };
 
     const snapshot = await fetchAccountClassificationsSnapshot(client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/classifications");
     expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/classifications/rules");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/statistics/rules?rule_ids=9");
     expect(snapshot.classifications[0]?.display_name).toBe("DBA");
     expect(snapshot.rulesByDbType.mysql?.[0]?.rule_name).toBe("root");
+    expect(snapshot.rulesByDbType.mysql?.[0]?.matched_accounts_count).toBe(347);
   });
 
   it("loads account classification rule detail and permission metadata", async () => {
@@ -232,16 +235,16 @@ describe("read-only migration api", () => {
       get: vi
         .fn()
         .mockResolvedValueOnce([{ id: "job-1", task_name: "同步任务" }])
-        .mockResolvedValueOnce({ items: [{ session_id: "s-1" }], total: 1, page: 1, pages: 1 })
+        .mockResolvedValueOnce({ items: [{ run_id: "s-1" }], total: 1, page: 1, pages: 1 })
     };
 
     const scheduler = await fetchSchedulerSnapshot(client);
-    const sessions = await fetchSyncSessionsSnapshot(client);
+    const sessions = await fetchTaskRunsSnapshot({ page: 2, limit: 20, status: "failed", taskCategory: "alert" }, client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/scheduler/jobs");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions?page=1&limit=100");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/task-runs?page=2&limit=20&task_category=alert&status=failed&sort=started_at&order=desc");
     expect(scheduler.jobs[0]?.task_name).toBe("同步任务");
-    expect(sessions.items[0]?.session_id).toBe("s-1");
+    expect(sessions.items[0]?.run_id).toBe("s-1");
   });
 
   it("loads scheduler job, user, credential, and tag details", async () => {
@@ -273,16 +276,16 @@ describe("read-only migration api", () => {
     const client = {
       get: vi
         .fn()
-        .mockResolvedValueOnce({ session: { session_id: "s-1", instance_records: [{ instance_name: "mysql-1" }] } })
-        .mockResolvedValueOnce({ session: { session_id: "s-1" }, error_records: [{ error_message: "failed" }], error_count: 1 })
+        .mockResolvedValueOnce({ run: { run_id: "s-1" }, items: [{ item_name: "mysql-1" }] })
+        .mockResolvedValueOnce({ run: { run_id: "s-1" }, items: [{ error_message: "failed" }], error_count: 1 })
     };
 
-    const detail = await fetchSyncSessionDetail("s-1", client);
-    const errors = await fetchSyncSessionErrorLogs("s-1", client);
+    const detail = await fetchTaskRunDetail("s-1", client);
+    const errors = await fetchTaskRunErrorLogs("s-1", client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions/s-1");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/sync-sessions/s-1/error-logs");
-    expect(detail.session.instance_records[0]?.instance_name).toBe("mysql-1");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/task-runs/s-1");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/task-runs/s-1/error-logs");
+    expect(detail.items[0]?.item_name).toBe("mysql-1");
     expect(errors.error_count).toBe(1);
   });
 

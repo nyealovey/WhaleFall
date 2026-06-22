@@ -371,7 +371,7 @@ export function deleteSchedulerJob(jobId: string, client: ApiActionClient = apiC
 }
 
 export function cancelSyncSession(sessionId: string, client: ApiActionClient = apiClient) {
-  return client.post(`/api/v1/sync-sessions/${encodeURIComponent(sessionId)}/actions/cancel`, {});
+  return client.post(`/api/v1/task-runs/${encodeURIComponent(sessionId)}/actions/cancel`, {});
 }
 
 export function sendAlertTestEmail(recipients: string[], client: ApiActionClient = apiClient) {

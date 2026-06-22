@@ -1,7 +1,28 @@
 import { apiClient, type ApiClient } from "./client";
 
 type ApiReader = Pick<ApiClient, "get">;
-const DEFAULT_LIST_LIMIT = 200;
+const DEFAULT_LIST_LIMIT = 20;
+
+export type AuditPaginationQuery = {
+  limit?: number;
+  page?: number;
+  search?: string;
+};
+
+export type HistoryLogsQuery = AuditPaginationQuery & {
+  hours?: number;
+  level?: string;
+  module?: string;
+};
+
+export type AccountChangeLogsQuery = AuditPaginationQuery & {
+  changeType?: string;
+  dbType?: string;
+  hours?: number;
+  instanceId?: number;
+};
+
+export type FilterOption = { label: string; value: string };
 
 export type PaginatedAuditList<TItem> = {
   items: TItem[];
@@ -81,25 +102,37 @@ export type AccountChangeLogDetail = {
   log: AccountChangeLogDetailItem;
 };
 
-function listPath(path: string): string {
-  const params = new URLSearchParams({
-    page: "1",
-    limit: String(DEFAULT_LIST_LIMIT)
+function queryPath(path: string, entries: Array<[string, string | number | undefined]>): string {
+  const params = new URLSearchParams();
+  entries.forEach(([key, value]) => {
+    if (value !== undefined && value !== "") params.set(key, String(value));
   });
-  return `${path}?${params.toString()}`;
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
 }
 
-function statisticsPath(path: string): string {
-  const params = new URLSearchParams({
-    hours: "24"
-  });
-  return `${path}/statistics?${params.toString()}`;
+function historyLogsPath(query: HistoryLogsQuery): string {
+  return queryPath("/api/v1/logs", [
+    ["page", query.page ?? 1], ["limit", query.limit ?? DEFAULT_LIST_LIMIT], ["search", query.search],
+    ["level", query.level], ["module", query.module], ["hours", query.hours]
+  ]);
 }
 
-export async function fetchHistoryLogsSnapshot(client: ApiReader = apiClient): Promise<HistoryLogsSnapshot> {
+function accountChangeLogsPath(query: AccountChangeLogsQuery): string {
+  return queryPath("/api/v1/account-change-logs", [
+    ["page", query.page ?? 1], ["limit", query.limit ?? DEFAULT_LIST_LIMIT], ["search", query.search],
+    ["instance_id", query.instanceId], ["db_type", query.dbType], ["change_type", query.changeType], ["hours", query.hours]
+  ]);
+}
+
+function statisticsPath(path: string, hours?: number): string {
+  return queryPath(`${path}/statistics`, [["hours", hours]]);
+}
+
+export async function fetchHistoryLogsSnapshot(query: HistoryLogsQuery = {}, client: ApiReader = apiClient): Promise<HistoryLogsSnapshot> {
   const [list, statistics] = await Promise.all([
-    client.get<PaginatedAuditList<HistoryLogItem>>(listPath("/api/v1/logs")),
-    client.get<HistoryLogStatistics>(statisticsPath("/api/v1/logs"))
+    client.get<PaginatedAuditList<HistoryLogItem>>(historyLogsPath(query)),
+    client.get<HistoryLogStatistics>(statisticsPath("/api/v1/logs", query.hours ?? 24))
   ]);
 
   return {
@@ -113,17 +146,28 @@ export async function fetchHistoryLogDetail(logId: number, client: ApiReader = a
 }
 
 export async function fetchAccountChangeLogsSnapshot(
+  query: AccountChangeLogsQuery = {},
   client: ApiReader = apiClient
 ): Promise<AccountChangeLogsSnapshot> {
   const [list, statistics] = await Promise.all([
-    client.get<PaginatedAuditList<AccountChangeLogItem>>(listPath("/api/v1/account-change-logs")),
-    client.get<AccountChangeLogStatistics>(statisticsPath("/api/v1/account-change-logs"))
+    client.get<PaginatedAuditList<AccountChangeLogItem>>(accountChangeLogsPath(query)),
+    client.get<AccountChangeLogStatistics>(statisticsPath("/api/v1/account-change-logs", query.hours))
   ]);
 
   return {
     list,
     statistics
   };
+}
+
+export async function fetchHistoryLogModules(client: ApiReader = apiClient): Promise<string[]> {
+  const response = await client.get<{ modules: string[] }>("/api/v1/logs/modules");
+  return response.modules;
+}
+
+export async function fetchAccountChangeLogOptions(client: ApiReader = apiClient): Promise<FilterOption[]> {
+  const response = await client.get<{ instances: FilterOption[] }>("/api/v1/instances/options");
+  return response.instances;
 }
 
 export async function fetchAccountChangeLogDetail(

@@ -140,9 +140,9 @@ import {
   fetchSettingsSnapshot,
   fetchSqlServerAvailabilityGroupDashboard,
   fetchSqlServerClusterDetail,
-  fetchSyncSessionDetail,
-  fetchSyncSessionErrorLogs,
-  fetchSyncSessionsSnapshot,
+  fetchTaskRunDetail,
+  fetchTaskRunErrorLogs,
+  fetchTaskRunsSnapshot,
   fetchTagBulkOptions,
   fetchTagsSnapshot,
   fetchUsersSnapshot,
@@ -165,10 +165,10 @@ import {
   type SettingsSnapshot,
   type SqlServerAvailabilityGroupDashboard,
   type SqlServerClusterDetail,
-  type SyncInstanceRecordItem,
-  type SyncSessionDetail,
-  type SyncSessionErrorLogs,
-  type SyncSessionItem,
+  type TaskRunChildItem,
+  type TaskRunDetail,
+  type TaskRunErrorLogs,
+  type TaskRunItem,
   type TagBulkOptions,
   type TagItem,
   type TagOptionItem,
@@ -176,6 +176,7 @@ import {
   type UserItem
 } from "@/api/readOnly";
 import { DataTable } from "@/components/shared/DataTable";
+import { useServerTableState } from "@/components/shared/useServerTableState";
 
 type Metric = {
   label: string;
@@ -353,31 +354,31 @@ function triggerArgsEntries(value: unknown): string[] {
     .map(([key, entry]) => (key === "description" ? String(entry) : `${key}: ${String(entry)}`));
 }
 
-function syncRunId(item: SyncSessionItem): string {
-  return item.run_id ?? item.session_id;
+function syncRunId(item: TaskRunItem): string {
+  return item.run_id;
 }
 
-function syncTaskName(item: SyncSessionItem): string {
-  return item.task_name ?? item.task_key ?? item.sync_type;
+function syncTaskName(item: TaskRunItem): string {
+  return item.task_name || item.task_key;
 }
 
-function syncSource(item: SyncSessionItem): string {
-  return item.trigger_source ?? item.sync_type;
+function syncSource(item: TaskRunItem): string {
+  return ({ scheduled: "定时", scheduled_task: "定时", manual: "手动", api: "API" } as Record<string, string>)[item.trigger_source] ?? item.trigger_source;
 }
 
-function syncCategory(item: SyncSessionItem): string {
-  return item.task_category ?? item.sync_category;
+function syncCategory(item: TaskRunItem): string {
+  return ({ account: "账户", capacity: "容量", aggregation: "聚合", classification: "分类", cluster: "群集", alert: "告警", other: "其他" } as Record<string, string>)[item.task_category] ?? item.task_category;
 }
 
-function syncProgress(item: SyncSessionItem) {
-  const total = item.progress_total ?? item.total_instances ?? 0;
-  const completed = item.progress_completed ?? item.successful_instances ?? 0;
-  const failed = item.progress_failed ?? item.failed_instances ?? 0;
+function syncProgress(item: TaskRunItem) {
+  const total = item.progress_total ?? 0;
+  const completed = item.progress_completed ?? 0;
+  const failed = item.progress_failed ?? 0;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
   return { total, completed, failed, percent };
 }
 
-function syncDuration(item: SyncSessionItem): string {
+function syncDuration(item: TaskRunItem): string {
   if (item.status === "running") {
     return "进行中";
   }
@@ -1533,7 +1534,7 @@ function createSyncSessionColumns({
 }: {
   onCancel: (sessionId: string) => void;
   onViewDetail: (sessionId: string) => void;
-}): ColumnDef<SyncSessionItem>[] {
+}): ColumnDef<TaskRunItem>[] {
   return [
     {
       id: "run_id",
@@ -1571,7 +1572,7 @@ function createSyncSessionColumns({
       cell: ({ row }) => (
         <div className="grid gap-1">
           <span className="font-medium">{syncTaskName(row.original)}</span>
-          <span className="font-mono text-xs text-muted-foreground">{row.original.task_key ?? row.original.sync_type}</span>
+          <span className="font-mono text-xs text-muted-foreground">{row.original.task_key}</span>
         </div>
       )
     },
@@ -3771,7 +3772,7 @@ function SyncSessionRecordTable({
   title
 }: {
   emptyLabel: string;
-  records: SyncInstanceRecordItem[];
+  records: TaskRunChildItem[];
   title: string;
 }) {
   return (
@@ -3804,17 +3805,17 @@ function SyncSessionRecordTable({
               <TableRow key={record.id}>
                 <TableCell>
                   <div className="grid gap-1">
-                    <span className="font-medium">{record.instance_name ?? "-"}</span>
-                    <span className="font-mono text-xs text-muted-foreground">{record.instance_id ? `#${record.instance_id}` : record.session_id}</span>
+                    <span className="font-medium">{record.item_name ?? record.item_key}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{record.instance_id ? `#${record.instance_id}` : record.item_type}</span>
                   </div>
                 </TableCell>
-                <TableCell>{record.sync_category ?? "-"}</TableCell>
+                <TableCell>{record.item_type ?? "-"}</TableCell>
                 <TableCell>
                   <StatusBadge value={record.status} />
                 </TableCell>
-                <TableCell className="font-mono text-xs">{formatNumber(record.items_synced)}</TableCell>
+                <TableCell className="font-mono text-xs">{formatNumber(Number(record.metrics_json?.items_synced ?? 0))}</TableCell>
                 <TableCell className="font-mono text-xs">
-                  +{formatNumber(record.items_created)} / ~{formatNumber(record.items_updated)} / -{formatNumber(record.items_deleted)}
+                  +{formatNumber(Number(record.metrics_json?.items_created ?? 0))} / ~{formatNumber(Number(record.metrics_json?.items_updated ?? 0))} / -{formatNumber(Number(record.metrics_json?.items_deleted ?? 0))}
                 </TableCell>
                 <TableCell className="max-w-[18rem] break-words text-sm text-muted-foreground">{record.error_message || "-"}</TableCell>
               </TableRow>
@@ -3835,30 +3836,30 @@ function SyncSessionDetailDialog({
   open: boolean;
   sessionId: string | null;
 }) {
-  const detailQuery = useQuery<SyncSessionDetail>({
+  const detailQuery = useQuery<TaskRunDetail>({
     enabled: open && sessionId !== null,
     queryKey: ["read-only", "sync-session-detail", sessionId],
     queryFn: () => {
       if (sessionId === null) {
         throw new Error("Missing sync session id");
       }
-      return fetchSyncSessionDetail(sessionId);
+      return fetchTaskRunDetail(sessionId);
     }
   });
-  const errorsQuery = useQuery<SyncSessionErrorLogs>({
+  const errorsQuery = useQuery<TaskRunErrorLogs>({
     enabled: open && sessionId !== null,
     queryKey: ["read-only", "sync-session-error-logs", sessionId],
     queryFn: () => {
       if (sessionId === null) {
         throw new Error("Missing sync session id");
       }
-      return fetchSyncSessionErrorLogs(sessionId);
+      return fetchTaskRunErrorLogs(sessionId);
     }
   });
-  const session = detailQuery.data?.session;
+  const session = detailQuery.data?.run;
   const progress = session ? syncProgress(session) : null;
-  const progressPercent = session?.progress_percentage ?? progress?.percent ?? 0;
-  const errorRecords = errorsQuery.data?.error_records ?? [];
+  const progressPercent = progress?.percent ?? 0;
+  const errorRecords = errorsQuery.data?.items ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -3892,7 +3893,7 @@ function SyncSessionDetailDialog({
               <SyncDetailField label="任务">
                 <div className="grid gap-1">
                   <span>{syncTaskName(session)}</span>
-                  <span className="font-mono text-xs text-muted-foreground">{session.task_key ?? session.sync_type}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{session.task_key}</span>
                 </div>
               </SyncDetailField>
               <SyncDetailField label="来源/分类">
@@ -3923,7 +3924,7 @@ function SyncSessionDetailDialog({
               </div>
               <Progress value={progressPercent} />
             </div>
-            <SyncSessionRecordTable emptyLabel="暂无实例执行记录" records={session.instance_records} title="实例执行记录" />
+            <SyncSessionRecordTable emptyLabel="暂无实例执行记录" records={detailQuery.data?.items ?? []} title="实例执行记录" />
             <SyncSessionRecordTable emptyLabel="暂无错误日志" records={errorRecords} title="错误日志" />
           </div>
         ) : null}
@@ -3939,7 +3940,12 @@ export function SyncSessionsPage() {
     () => createSyncSessionColumns({ onCancel: setCancelSessionId, onViewDetail: setSelectedSessionId }),
     [setCancelSessionId, setSelectedSessionId]
   );
-  const query = useQuery({ queryKey: ["read-only", "sync-sessions"], queryFn: () => fetchSyncSessionsSnapshot() });
+  const table = useServerTableState({ initialFilters: { triggerSource: "", taskCategory: "", status: "" } });
+  const query = useQuery({
+    queryKey: ["read-only", "task-runs", table.page, table.pageSize, table.search, table.filters],
+    queryFn: () => fetchTaskRunsSnapshot({ page: table.page, limit: table.pageSize, taskKey: table.search, triggerSource: table.filters.triggerSource, taskCategory: table.filters.taskCategory, status: table.filters.status }),
+    placeholderData: (previous) => previous
+  });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -3951,11 +3957,14 @@ export function SyncSessionsPage() {
                 columns={columns}
                 data={snapshot.items}
                 filters={[
-                  { columnId: "trigger_source", label: "来源", options: uniqueTextOptions(snapshot.items, (item) => syncSource(item)) },
-                  { columnId: "task_category", label: "分类", options: uniqueTextOptions(snapshot.items, (item) => syncCategory(item)) },
-                  { columnId: "status", label: "状态", options: uniqueTextOptions(snapshot.items, (item) => item.status) }
+                  { columnId: "trigger_source", label: "来源", options: [{ label: "定时", value: "scheduled" }, { label: "手动", value: "manual" }, { label: "API", value: "api" }], value: table.filters.triggerSource, onValueChange: (value) => table.setFilter("triggerSource", value) },
+                  { columnId: "task_category", label: "分类", options: [{ label: "账户", value: "account" }, { label: "容量", value: "capacity" }, { label: "聚合", value: "aggregation" }, { label: "分类", value: "classification" }, { label: "群集", value: "cluster" }, { label: "告警", value: "alert" }, { label: "其他", value: "other" }], value: table.filters.taskCategory, onValueChange: (value) => table.setFilter("taskCategory", value) },
+                  { columnId: "status", label: "状态", options: [{ label: "运行中", value: "running" }, { label: "已完成", value: "completed" }, { label: "部分完成", value: "partial" }, { label: "失败", value: "failed" }, { label: "已取消", value: "cancelled" }], value: table.filters.status, onValueChange: (value) => table.setFilter("status", value) }
                 ]}
+                onSearchChange={table.setSearchInput}
+                pagination={{ page: table.page, pageSize: table.pageSize, pages: snapshot.pages ?? 1, total: snapshot.total, onPageChange: table.setPage, onPageSizeChange: table.setPageSize }}
                 searchPlaceholder="搜索运行 ID、任务或来源"
+                searchValue={table.searchInput}
               />
           </ListPanel>
         )}
