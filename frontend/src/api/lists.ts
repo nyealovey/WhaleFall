@@ -3,10 +3,45 @@ import { apiClient, type ApiClient } from "./client";
 type ApiReader = Pick<ApiClient, "get">;
 const DEFAULT_LIST_LIMIT = 200;
 
+export type PaginatedQuery = {
+  page?: number;
+  limit?: number;
+  search?: string;
+};
+
+export type InstanceListQuery = PaginatedQuery & {
+  dbType?: string;
+  status?: string;
+  auditStatus?: string;
+  managedStatus?: string;
+  backupStatus?: string;
+  tags?: string[];
+  includeDeleted?: boolean;
+};
+
+export type DatabaseLedgerQuery = PaginatedQuery & {
+  dbType?: string;
+  instanceId?: number;
+  tags?: string[];
+};
+
+export type AccountLedgerQuery = PaginatedQuery & {
+  instanceId?: number;
+  tags?: string[];
+  classification?: string;
+  dbType?: string;
+  adStatus?: string;
+};
+
 type TagItem = {
   name: string;
   display_name: string;
   color?: string;
+};
+
+export type AccountClassificationOption = {
+  code: string;
+  display_name: string;
 };
 
 export type PaginatedList<TItem> = {
@@ -276,8 +311,27 @@ function firstPagePath(path: string, limit = DEFAULT_LIST_LIMIT): string {
   return `${path}?${params.toString()}`;
 }
 
-export async function fetchInstances(client: ApiReader = apiClient): Promise<PaginatedList<InstanceListItem>> {
-  return client.get<PaginatedList<InstanceListItem>>(firstPagePath("/api/v1/instances"));
+function queryPath(path: string, entries: Array<[string, string | number | boolean | string[] | undefined]>): string {
+  const params = new URLSearchParams();
+  entries.forEach(([key, value]) => {
+    if (value === undefined || value === "") {
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => params.append(key, item));
+      return;
+    }
+    params.set(key, String(value));
+  });
+  return `${path}?${params.toString()}`;
+}
+
+export async function fetchInstances(query: InstanceListQuery = {}, client: ApiReader = apiClient): Promise<PaginatedList<InstanceListItem>> {
+  return client.get<PaginatedList<InstanceListItem>>(queryPath("/api/v1/instances", [
+    ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["search", query.search], ["db_type", query.dbType],
+    ["status", query.status], ["audit_status", query.auditStatus], ["managed_status", query.managedStatus],
+    ["backup_status", query.backupStatus], ["tags", query.tags], ["include_deleted", query.includeDeleted || undefined]
+  ]));
 }
 
 export async function fetchCredentialOptions(client: ApiReader = apiClient): Promise<CredentialOptionItem[]> {
@@ -285,12 +339,46 @@ export async function fetchCredentialOptions(client: ApiReader = apiClient): Pro
   return response.items;
 }
 
-export async function fetchDatabaseLedgers(client: ApiReader = apiClient): Promise<PaginatedList<DatabaseLedgerItem>> {
-  return client.get<PaginatedList<DatabaseLedgerItem>>(firstPagePath("/api/v1/databases/ledgers"));
+export async function fetchTagOptions(client: ApiReader = apiClient): Promise<TagItem[]> {
+  const response = await client.get<{ tags: TagItem[] }>("/api/v1/tags/options");
+  return response.tags;
 }
 
-export async function fetchAccountLedgers(client: ApiReader = apiClient): Promise<PaginatedList<AccountLedgerItem>> {
-  return client.get<PaginatedList<AccountLedgerItem>>(firstPagePath("/api/v1/accounts/ledgers"));
+export async function fetchAccountClassificationOptions(client: ApiReader = apiClient): Promise<AccountClassificationOption[]> {
+  const response = await client.get<{ classifications: AccountClassificationOption[] }>("/api/v1/accounts/classifications");
+  return response.classifications;
+}
+
+export async function fetchDatabaseLedgers(query: DatabaseLedgerQuery = {}, client: ApiReader = apiClient): Promise<PaginatedList<DatabaseLedgerItem>> {
+  return client.get<PaginatedList<DatabaseLedgerItem>>(queryPath("/api/v1/databases/ledgers", [
+    ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["search", query.search], ["db_type", query.dbType],
+    ["instance_id", query.instanceId], ["tags", query.tags]
+  ]));
+}
+
+export async function fetchAccountLedgers(query: AccountLedgerQuery = {}, client: ApiReader = apiClient): Promise<PaginatedList<AccountLedgerItem>> {
+  return client.get<PaginatedList<AccountLedgerItem>>(queryPath("/api/v1/accounts/ledgers", [
+    ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["search", query.search], ["instance_id", query.instanceId],
+    ["tags", query.tags], ["classification", query.classification], ["db_type", query.dbType], ["ad_status", query.adStatus],
+    ["sort", "username"], ["order", "asc"]
+  ]));
+}
+
+export function buildInstancesExportPath(query: InstanceListQuery): string {
+  return queryPath("/api/v1/instances/exports", [["search", query.search], ["db_type", query.dbType]]);
+}
+
+export function buildDatabaseLedgersExportPath(query: DatabaseLedgerQuery): string {
+  return queryPath("/api/v1/databases/ledgers/exports", [
+    ["search", query.search], ["db_type", query.dbType], ["instance_id", query.instanceId], ["tags", query.tags]
+  ]);
+}
+
+export function buildAccountLedgersExportPath(query: AccountLedgerQuery): string {
+  return queryPath("/api/v1/accounts/ledgers/exports", [
+    ["search", query.search], ["instance_id", query.instanceId], ["tags", query.tags],
+    ["classification", query.classification], ["db_type", query.dbType], ["ad_status", query.adStatus]
+  ]);
 }
 
 export async function fetchInstanceDetail(instanceId: number, client: ApiReader = apiClient): Promise<InstanceDetailResponse> {

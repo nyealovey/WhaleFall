@@ -42,6 +42,10 @@ import {
   type InstanceWritePayload
 } from "@/api/actions";
 import {
+  buildAccountLedgersExportPath,
+  buildDatabaseLedgersExportPath,
+  buildInstancesExportPath,
+  fetchAccountClassificationOptions,
   fetchAccountChangeHistory,
   fetchAccountLedgers,
   fetchCredentialOptions,
@@ -56,6 +60,7 @@ import {
   fetchInstanceDatabaseSizes,
   fetchInstanceDetail,
   fetchInstances,
+  fetchTagOptions,
   type AccountChangeHistoryResponse,
   type AccountLedgerItem,
   type AccountPermissionsResponse,
@@ -75,6 +80,7 @@ import {
   type PaginatedList
 } from "@/api/lists";
 import { DataTable } from "@/components/shared/DataTable";
+import { useServerTableState } from "@/components/shared/useServerTableState";
 import { SelectControl, SwitchField } from "@/components/shared/FormControls";
 import {
   AlertDialog,
@@ -104,6 +110,37 @@ type TagItem = {
   name: string;
   display_name: string;
 };
+
+const DATABASE_TYPE_FILTER_OPTIONS = [
+  { label: "MySQL", value: "mysql" },
+  { label: "PostgreSQL", value: "postgresql" },
+  { label: "SQL Server", value: "sqlserver" },
+  { label: "Oracle", value: "oracle" }
+];
+const ACTIVE_STATUS_FILTER_OPTIONS = [
+  { label: "启用", value: "active" },
+  { label: "停用", value: "inactive" }
+];
+const INSTANCE_AUDIT_FILTER_OPTIONS = [
+  { label: "已启用", value: "enabled" },
+  { label: "已配置未启用", value: "configured_disabled" },
+  { label: "未配置", value: "not_configured" }
+];
+const INSTANCE_MANAGED_FILTER_OPTIONS = [
+  { label: "已托管", value: "managed" },
+  { label: "未托管", value: "unmanaged" }
+];
+const INSTANCE_BACKUP_FILTER_OPTIONS = [
+  { label: "24h内备份", value: "backed_up" },
+  { label: "备份过期", value: "backup_stale" },
+  { label: "未备份", value: "not_backed_up" }
+];
+const ACCOUNT_AD_STATUS_FILTER_OPTIONS = [
+  { label: "正常", value: "normal" },
+  { label: "已停用", value: "disabled" },
+  { label: "孤账户", value: "orphaned" },
+  { label: "未匹配", value: "unknown" }
+];
 
 function formatNumber(value: number | undefined): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
@@ -144,30 +181,6 @@ function dbTypeLabel(value: string | undefined | null): string {
 
 function tagsText(tags: TagItem[]): string {
   return tags.map((tag) => tag.display_name || tag.name).filter(Boolean).join(" ");
-}
-
-function uniqueTextOptions<TItem>(items: TItem[], getValue: (item: TItem) => string | null | undefined) {
-  const values = new Set<string>();
-  for (const item of items) {
-    const value = getValue(item);
-    if (value) {
-      values.add(value);
-    }
-  }
-  return [...values].sort((first, second) => first.localeCompare(second, "zh-CN")).map((value) => ({ label: value, value }));
-}
-
-function uniqueTagOptions<TItem>(items: TItem[], getTags: (item: TItem) => TagItem[]) {
-  const values = new Map<string, string>();
-  for (const item of items) {
-    for (const tag of getTags(item)) {
-      const value = tag.display_name || tag.name;
-      if (value) {
-        values.set(value, value);
-      }
-    }
-  }
-  return [...values.values()].sort((first, second) => first.localeCompare(second, "zh-CN")).map((value) => ({ label: value, value }));
 }
 
 function instanceStatusLabel(item: InstanceListItem): string {
@@ -1347,13 +1360,28 @@ function InstanceDataTabsCard({
 function createInstanceColumns({
   onDelete,
   onEdit,
-  onRestore
+  onRestore,
+  onSelectedChange,
+  selectedIds
 }: {
   onDelete: (item: InstanceListItem) => void;
   onEdit: (item: InstanceListItem) => void;
   onRestore: (item: InstanceListItem) => void;
+  onSelectedChange: (id: number, selected: boolean) => void;
+  selectedIds: Set<number>;
 }): ColumnDef<InstanceListItem>[] {
   return [
+  {
+    id: "select",
+    header: "选择",
+    cell: ({ row }) => (
+      <Checkbox
+        aria-label={`选择实例 ${row.original.name}`}
+        checked={selectedIds.has(row.original.id)}
+        onCheckedChange={(checked) => onSelectedChange(row.original.id, checked === true)}
+      />
+    )
+  },
   {
     accessorKey: "name",
     header: "名称",
@@ -1826,33 +1854,62 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
 }
 
 export function InstancesPage() {
-  const listQuery = useQuery({
-    queryKey: ["lists", "instances", 1, 200],
-    queryFn: () => fetchInstances()
+  const tableState = useServerTableState({
+    initialFilters: { auditStatus: "", backupStatus: "", dbType: "", includeDeleted: "", managedStatus: "", status: "", tag: "" }
   });
+  const listParams = {
+    page: tableState.page,
+    limit: tableState.pageSize,
+    search: tableState.search,
+    dbType: tableState.filters.dbType,
+    status: tableState.filters.status,
+    auditStatus: tableState.filters.auditStatus,
+    managedStatus: tableState.filters.managedStatus,
+    backupStatus: tableState.filters.backupStatus,
+    tags: tableState.filters.tag ? [tableState.filters.tag] : undefined,
+    includeDeleted: tableState.filters.includeDeleted === "true"
+  };
+  const listQuery = useQuery({
+    queryKey: ["lists", "instances", listParams],
+    queryFn: () => fetchInstances(listParams),
+    placeholderData: (previous) => previous
+  });
+  const tagOptionsQuery = useQuery({ queryKey: ["lists", "tag-options"], queryFn: () => fetchTagOptions(), staleTime: 60_000 });
   const [creatingInstance, setCreatingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<InstanceListItem | null>(null);
   const [deletingInstance, setDeletingInstance] = useState<InstanceListItem | null>(null);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<Set<number>>(() => new Set());
+  function clearInstanceSelection() {
+    setSelectedInstanceIds(new Set());
+  }
+  function setInstanceFilter(key: keyof typeof tableState.filters, value: string) {
+    clearInstanceSelection();
+    tableState.setFilter(key, value);
+  }
   function handleInstanceSaved() {
     setCreatingInstance(false);
     setEditingInstance(null);
     void listQuery.refetch();
   }
-  const columns = useMemo(
-    () =>
-      createInstanceColumns({
+  const columns = createInstanceColumns({
         onDelete: setDeletingInstance,
         onEdit: setEditingInstance,
         onRestore: (item) => {
           void runAction(restoreInstance(item.id), { success: "实例已恢复" }).then(() => listQuery.refetch());
-        }
-      }),
-    [listQuery]
-  );
-  const visibleInstanceIds = listQuery.data?.items.map((item) => item.id) ?? [];
-  const deletableInstanceIds = listQuery.data?.items.filter((item) => !item.deleted_at).map((item) => item.id) ?? [];
+        },
+        onSelectedChange: (id, selected) => setSelectedInstanceIds((current) => {
+          const next = new Set(current);
+          if (selected) next.add(id);
+          else next.delete(id);
+          return next;
+        }),
+        selectedIds: selectedInstanceIds
+      });
+  const selectedItems = listQuery.data?.items.filter((item) => selectedInstanceIds.has(item.id)) ?? [];
+  const selectedIds = selectedItems.map((item) => item.id);
+  const deletableInstanceIds = selectedItems.filter((item) => !item.deleted_at).map((item) => item.id);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -1885,9 +1942,9 @@ export function InstancesPage() {
           <span>移入回收站</span>
         </Button>
         <Button
-          disabled={visibleInstanceIds.length === 0}
+          disabled={selectedIds.length === 0}
           onClick={() => {
-            void runAction(batchTestInstanceConnections(visibleInstanceIds), { success: "批量连接测试已完成" }).then(() => listQuery.refetch());
+            void runAction(batchTestInstanceConnections(selectedIds), { success: "批量连接测试已完成" }).then(() => listQuery.refetch());
           }}
           type="button"
           variant="outline"
@@ -1906,11 +1963,15 @@ export function InstancesPage() {
           <span>批量导入</span>
         </Button>
         <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground">
-          <Checkbox aria-label="显示已删除" />
+          <Checkbox
+            aria-label="显示已删除"
+            checked={tableState.filters.includeDeleted === "true"}
+            onCheckedChange={(checked) => setInstanceFilter("includeDeleted", checked === true ? "true" : "")}
+          />
           <span>显示已删除</span>
         </div>
         <Button variant="outline" asChild>
-          <a href="/api/v1/instances/exports">
+          <a href={buildInstancesExportPath(listParams)}>
             <Download aria-hidden size={16} />
             <span>导出CSV</span>
           </a>
@@ -1923,14 +1984,24 @@ export function InstancesPage() {
               columns={columns}
               data={result.items}
               filters={[
-                { columnId: "db_type", label: "类型", options: uniqueTextOptions(result.items, (item) => dbTypeLabel(item.db_type)) },
-                { columnId: "status", label: "状态", options: uniqueTextOptions(result.items, instanceStatusLabel) },
-                { columnId: "audit_status", label: "审计", options: uniqueTextOptions(result.items, auditStatusLabel) },
-                { columnId: "managed_status", label: "托管", options: uniqueTextOptions(result.items, managedStatusLabel) },
-                { columnId: "backup_status", label: "备份", options: uniqueTextOptions(result.items, backupStatusLabel) },
-                { columnId: "tags", label: "标签", options: uniqueTagOptions(result.items, (item) => item.tags) }
+                { columnId: "db_type", label: "类型", options: DATABASE_TYPE_FILTER_OPTIONS, value: tableState.filters.dbType, onValueChange: (value) => setInstanceFilter("dbType", value) },
+                { columnId: "status", label: "状态", options: ACTIVE_STATUS_FILTER_OPTIONS, value: tableState.filters.status, onValueChange: (value) => setInstanceFilter("status", value) },
+                { columnId: "audit_status", label: "审计", options: INSTANCE_AUDIT_FILTER_OPTIONS, value: tableState.filters.auditStatus, onValueChange: (value) => setInstanceFilter("auditStatus", value) },
+                { columnId: "managed_status", label: "托管", options: INSTANCE_MANAGED_FILTER_OPTIONS, value: tableState.filters.managedStatus, onValueChange: (value) => setInstanceFilter("managedStatus", value) },
+                { columnId: "backup_status", label: "备份", options: INSTANCE_BACKUP_FILTER_OPTIONS, value: tableState.filters.backupStatus, onValueChange: (value) => setInstanceFilter("backupStatus", value) },
+                { columnId: "tags", label: "标签", options: (tagOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.name })), value: tableState.filters.tag, onValueChange: (value) => setInstanceFilter("tag", value) }
               ]}
+              onSearchChange={(value) => { clearInstanceSelection(); tableState.setSearchInput(value); }}
+              pagination={{
+                page: result.page,
+                pageSize: tableState.pageSize,
+                pages: result.pages ?? 1,
+                total: result.total,
+                onPageChange: (page) => { clearInstanceSelection(); tableState.setPage(page); },
+                onPageSizeChange: (pageSize) => { clearInstanceSelection(); tableState.setPageSize(pageSize); }
+              }}
               searchPlaceholder="搜索实例 / 主机"
+              searchValue={tableState.searchInput}
             />
           </ListFrame>
         )}
@@ -1972,7 +2043,7 @@ export function InstancesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>确认批量移入回收站</AlertDialogTitle>
             <AlertDialogDescription>
-              将当前列表中 {formatNumber(deletableInstanceIds.length)} 个未删除实例移入回收站。此操作不会物理删除实例，可在包含已删除记录后恢复。
+              将选中的 {formatNumber(deletableInstanceIds.length)} 个未删除实例移入回收站。此操作不会物理删除实例，可在包含已删除记录后恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2023,18 +2094,24 @@ export function InstancesPage() {
 }
 
 export function DatabaseLedgersPage() {
+  const tableState = useServerTableState({ initialFilters: { dbType: "", tag: "" } });
+  const listParams = {
+    page: tableState.page,
+    limit: tableState.pageSize,
+    search: tableState.search,
+    dbType: tableState.filters.dbType,
+    tags: tableState.filters.tag ? [tableState.filters.tag] : undefined
+  };
   const listQuery = useQuery({
-    queryKey: ["lists", "database-ledgers", 1, 200],
-    queryFn: () => fetchDatabaseLedgers()
+    queryKey: ["lists", "database-ledgers", listParams],
+    queryFn: () => fetchDatabaseLedgers(listParams),
+    placeholderData: (previous) => previous
   });
+  const tagOptionsQuery = useQuery({ queryKey: ["lists", "tag-options"], queryFn: () => fetchTagOptions(), staleTime: 60_000 });
   const [selectedDatabase, setSelectedDatabase] = useState<DatabaseLedgerItem | null>(null);
-  const columns = useMemo(
-    () =>
-      createDatabaseLedgerColumns({
+  const columns = createDatabaseLedgerColumns({
         onViewTables: setSelectedDatabase
-      }),
-    []
-  );
+      });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -2061,7 +2138,7 @@ export function DatabaseLedgersPage() {
           <span>同步所有数据库</span>
         </Button>
         <Button variant="outline" asChild>
-          <a href="/api/v1/databases/ledgers/exports">
+          <a href={buildDatabaseLedgersExportPath(listParams)}>
             <Download aria-hidden size={16} />
             <span>导出CSV</span>
           </a>
@@ -2074,10 +2151,13 @@ export function DatabaseLedgersPage() {
               columns={columns}
               data={result.items}
               filters={[
-                { columnId: "db_type", label: "类型", options: uniqueTextOptions(result.items, (item) => dbTypeLabel(item.db_type)) },
-                { columnId: "tags", label: "标签", options: uniqueTagOptions(result.items, (item) => item.tags) }
+                { columnId: "db_type", label: "类型", options: DATABASE_TYPE_FILTER_OPTIONS, value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) },
+                { columnId: "tags", label: "标签", options: (tagOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.name })), value: tableState.filters.tag, onValueChange: (value) => tableState.setFilter("tag", value) }
               ]}
+              onSearchChange={tableState.setSearchInput}
+              pagination={{ page: result.page, pageSize: tableState.pageSize, pages: result.pages ?? 1, total: result.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
               searchPlaceholder="搜索数据库 / 实例"
+              searchValue={tableState.searchInput}
             />
           </ListFrame>
         )}
@@ -2100,20 +2180,29 @@ export function DatabaseLedgersPage() {
 }
 
 export function AccountLedgersPage() {
+  const tableState = useServerTableState({ initialFilters: { adStatus: "", classification: "", dbType: "", tag: "" } });
+  const listParams = {
+    page: tableState.page,
+    limit: tableState.pageSize,
+    search: tableState.search,
+    classification: tableState.filters.classification,
+    dbType: tableState.filters.dbType,
+    adStatus: tableState.filters.adStatus,
+    tags: tableState.filters.tag ? [tableState.filters.tag] : undefined
+  };
   const listQuery = useQuery({
-    queryKey: ["lists", "account-ledgers", 1, 200],
-    queryFn: () => fetchAccountLedgers()
+    queryKey: ["lists", "account-ledgers", listParams],
+    queryFn: () => fetchAccountLedgers(listParams),
+    placeholderData: (previous) => previous
   });
+  const tagOptionsQuery = useQuery({ queryKey: ["lists", "tag-options"], queryFn: () => fetchTagOptions(), staleTime: 60_000 });
+  const classificationOptionsQuery = useQuery({ queryKey: ["lists", "classification-options"], queryFn: () => fetchAccountClassificationOptions(), staleTime: 60_000 });
   const [permissionsAccount, setPermissionsAccount] = useState<AccountLedgerItem | null>(null);
   const [historyAccount, setHistoryAccount] = useState<AccountLedgerItem | null>(null);
-  const columns = useMemo(
-    () =>
-      createAccountLedgerColumns({
+  const columns = createAccountLedgerColumns({
         onViewHistory: setHistoryAccount,
         onViewPermissions: setPermissionsAccount
-      }),
-    []
-  );
+      });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -2140,7 +2229,7 @@ export function AccountLedgersPage() {
           <span>同步所有账户</span>
         </Button>
         <Button variant="outline" asChild>
-          <a href="/api/v1/accounts/ledgers/exports">
+          <a href={buildAccountLedgersExportPath(listParams)}>
             <Download aria-hidden size={16} />
             <span>导出CSV</span>
           </a>
@@ -2153,11 +2242,15 @@ export function AccountLedgersPage() {
               columns={columns}
               data={result.items}
               filters={[
-                { columnId: "classifications", label: "分类", options: uniqueTextOptions(result.items, classificationText) },
-                { columnId: "ad_status", label: "AD状态", options: uniqueTextOptions(result.items, (item) => adStatusLabel(item.ad_status)) },
-                { columnId: "tags", label: "标签", options: uniqueTagOptions(result.items, (item) => item.tags) }
+                { columnId: "db_type", label: "类型", options: DATABASE_TYPE_FILTER_OPTIONS, value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) },
+                { columnId: "classifications", label: "分类", options: (classificationOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.code })), value: tableState.filters.classification, onValueChange: (value) => tableState.setFilter("classification", value) },
+                { columnId: "ad_status", label: "AD状态", options: ACCOUNT_AD_STATUS_FILTER_OPTIONS, value: tableState.filters.adStatus, onValueChange: (value) => tableState.setFilter("adStatus", value) },
+                { columnId: "tags", label: "标签", options: (tagOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.name })), value: tableState.filters.tag, onValueChange: (value) => tableState.setFilter("tag", value) }
               ]}
+              onSearchChange={tableState.setSearchInput}
+              pagination={{ page: result.page, pageSize: tableState.pageSize, pages: result.pages ?? 1, total: result.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
               searchPlaceholder="搜索账户 / 实例"
+              searchValue={tableState.searchInput}
             />
           </ListFrame>
         )}

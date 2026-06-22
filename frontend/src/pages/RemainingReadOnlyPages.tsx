@@ -250,17 +250,6 @@ function DetailBlock({ label, children }: { label: string; children: ReactNode }
   );
 }
 
-function uniqueTextOptions<TItem>(items: TItem[], getValue: (item: TItem) => string | null | undefined) {
-  const values = new Set<string>();
-  for (const item of items) {
-    const value = getValue(item);
-    if (value) {
-      values.add(value);
-    }
-  }
-  return [...values].sort((first, second) => first.localeCompare(second, "zh-CN")).map((value) => ({ label: value, value }));
-}
-
 function endpointHost(value: unknown): string {
   const text = asText(value);
   if (text === "-") {
@@ -2660,7 +2649,17 @@ function createMySqlClusterColumns({
 }
 
 export function ClustersPage() {
-  const query = useQuery({ queryKey: ["read-only", "clusters"], queryFn: () => fetchClustersSnapshot() });
+  const sqlServerTable = useServerTableState({ initialFilters: { status: "" } });
+  const mySqlTable = useServerTableState({ initialFilters: { status: "" } });
+  const clusterQuery = {
+    sqlServer: { page: sqlServerTable.page, limit: sqlServerTable.pageSize, search: sqlServerTable.search, status: sqlServerTable.filters.status },
+    mySql: { page: mySqlTable.page, limit: mySqlTable.pageSize, search: mySqlTable.search, status: mySqlTable.filters.status }
+  };
+  const query = useQuery({
+    queryKey: ["read-only", "clusters", clusterQuery],
+    queryFn: () => fetchClustersSnapshot(clusterQuery),
+    placeholderData: (previous) => previous
+  });
   const [creatingCluster, setCreatingCluster] = useState<ClusterMode | null>(null);
   const [editingCluster, setEditingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
   const [viewingCluster, setViewingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
@@ -2743,8 +2742,11 @@ export function ClustersPage() {
                 <DataTable
                   columns={sqlServerClusterColumns}
                   data={snapshot.sqlServer.items}
-                  filters={[{ columnId: "is_enabled", label: "状态", options: uniqueTextOptions(snapshot.sqlServer.items, clusterEnabledLabel) }]}
+                  filters={[{ columnId: "is_enabled", label: "状态", options: [{ label: "启用", value: "active" }, { label: "停用", value: "inactive" }], value: sqlServerTable.filters.status, onValueChange: (value) => sqlServerTable.setFilter("status", value) }]}
+                  onSearchChange={sqlServerTable.setSearchInput}
+                  pagination={{ page: snapshot.sqlServer.page, pageSize: sqlServerTable.pageSize, pages: snapshot.sqlServer.pages ?? 1, total: snapshot.sqlServer.total, onPageChange: sqlServerTable.setPage, onPageSizeChange: sqlServerTable.setPageSize }}
                   searchPlaceholder="搜索群集名称或描述"
+                  searchValue={sqlServerTable.searchInput}
                 />
               </ListPanel>
             </TabsContent>
@@ -2753,8 +2755,11 @@ export function ClustersPage() {
                 <DataTable
                   columns={mysqlClusterColumns}
                   data={snapshot.mySql.items}
-                  filters={[{ columnId: "is_enabled", label: "状态", options: uniqueTextOptions(snapshot.mySql.items, clusterEnabledLabel) }]}
+                  filters={[{ columnId: "is_enabled", label: "状态", options: [{ label: "启用", value: "active" }, { label: "停用", value: "inactive" }], value: mySqlTable.filters.status, onValueChange: (value) => mySqlTable.setFilter("status", value) }]}
+                  onSearchChange={mySqlTable.setSearchInput}
+                  pagination={{ page: snapshot.mySql.page, pageSize: mySqlTable.pageSize, pages: snapshot.mySql.pages ?? 1, total: snapshot.mySql.total, onPageChange: mySqlTable.setPage, onPageSizeChange: mySqlTable.setPageSize }}
                   searchPlaceholder="搜索群集名称或描述"
+                  searchValue={mySqlTable.searchInput}
                 />
               </ListPanel>
             </TabsContent>
@@ -4013,7 +4018,9 @@ export function SyncSessionsPage() {
 }
 
 export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
-  const query = useQuery({ queryKey: ["read-only", "users"], queryFn: () => fetchUsersSnapshot() });
+  const tableState = useServerTableState({ initialFilters: { role: "", status: "" } });
+  const listQuery = { page: tableState.page, limit: tableState.pageSize, search: tableState.search, role: tableState.filters.role, status: tableState.filters.status };
+  const query = useQuery({ queryKey: ["read-only", "users", listQuery], queryFn: () => fetchUsersSnapshot(listQuery), placeholderData: (previous) => previous });
   const [creatingUser, setCreatingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
@@ -4056,6 +4063,8 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
                   {
                     columnId: "role",
                     label: "角色",
+                    value: tableState.filters.role,
+                    onValueChange: (value) => tableState.setFilter("role", value),
                     options: [
                       { label: "管理员", value: "admin" },
                       { label: "普通用户", value: "user" },
@@ -4065,13 +4074,18 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
                   {
                     columnId: "is_active",
                     label: "状态",
+                    value: tableState.filters.status,
+                    onValueChange: (value) => tableState.setFilter("status", value),
                     options: [
-                      { label: "启用", value: "true" },
-                      { label: "停用", value: "false" }
+                      { label: "启用", value: "active" },
+                      { label: "停用", value: "inactive" }
                     ]
                   }
                 ]}
+                onSearchChange={tableState.setSearchInput}
+                pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
                 searchPlaceholder="搜索用户名或邮箱"
+                searchValue={tableState.searchInput}
               />
           </ListPanel>
         )}
@@ -5293,7 +5307,9 @@ export function SettingsPage() {
 }
 
 export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
-  const query = useQuery({ queryKey: ["read-only", "credentials"], queryFn: () => fetchCredentialsSnapshot() });
+  const tableState = useServerTableState({ initialFilters: { credentialType: "", dbType: "", status: "" } });
+  const listQuery = { page: tableState.page, limit: tableState.pageSize, search: tableState.search, credentialType: tableState.filters.credentialType, dbType: tableState.filters.dbType, status: tableState.filters.status };
+  const query = useQuery({ queryKey: ["read-only", "credentials", listQuery], queryFn: () => fetchCredentialsSnapshot(listQuery), placeholderData: (previous) => previous });
   const [creatingCredential, setCreatingCredential] = useState(false);
   const [editingCredential, setEditingCredential] = useState<CredentialItem | null>(null);
   const [deletingCredential, setDeletingCredential] = useState<CredentialItem | null>(null);
@@ -5331,18 +5347,23 @@ export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | nu
                 columns={columns}
                 data={snapshot.items}
                 filters={[
-                  { columnId: "credential_type", label: "凭据类型", options: uniqueTextOptions(snapshot.items, (item) => item.credential_type) },
-                  { columnId: "db_type", label: "数据库类型", options: uniqueTextOptions(snapshot.items, (item) => item.db_type) },
+                  { columnId: "credential_type", label: "凭据类型", options: [{ label: "数据库凭据", value: "database" }, { label: "API 凭据", value: "api" }, { label: "Veeam 凭据", value: "veeam" }, { label: "LDAP 凭据", value: "ldap" }, { label: "SSH 凭据", value: "ssh" }], value: tableState.filters.credentialType, onValueChange: (value) => tableState.setFilter("credentialType", value) },
+                  { columnId: "db_type", label: "数据库类型", options: [{ label: "MySQL", value: "mysql" }, { label: "PostgreSQL", value: "postgresql" }, { label: "SQL Server", value: "sqlserver" }, { label: "Oracle", value: "oracle" }], value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) },
                   {
                     columnId: "is_active",
                     label: "状态",
+                    value: tableState.filters.status,
+                    onValueChange: (value) => tableState.setFilter("status", value),
                     options: [
-                      { label: "启用", value: "true" },
-                      { label: "停用", value: "false" }
+                      { label: "启用", value: "active" },
+                      { label: "停用", value: "inactive" }
                     ]
                   }
                 ]}
+                onSearchChange={tableState.setSearchInput}
+                pagination={{ page: snapshot.page, pageSize: tableState.pageSize, pages: snapshot.pages ?? 1, total: snapshot.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
                 searchPlaceholder="搜索凭据、账号或数据库类型"
+                searchValue={tableState.searchInput}
               />
           </ListPanel>
         )}
@@ -5401,7 +5422,9 @@ export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | nu
 }
 
 export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
-  const query = useQuery({ queryKey: ["read-only", "tags"], queryFn: () => fetchTagsSnapshot() });
+  const tableState = useServerTableState({ initialFilters: { category: "", status: "" } });
+  const listQuery = { page: tableState.page, limit: tableState.pageSize, search: tableState.search, category: tableState.filters.category, status: tableState.filters.status };
+  const query = useQuery({ queryKey: ["read-only", "tags", listQuery], queryFn: () => fetchTagsSnapshot(listQuery), placeholderData: (previous) => previous });
   const [creatingTag, setCreatingTag] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
@@ -5465,17 +5488,22 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
                 columns={columns}
                 data={snapshot.list.items}
                 filters={[
-                  { columnId: "category", label: "分类", options: uniqueTextOptions(snapshot.list.items, (item) => item.category) },
+                  { columnId: "category", label: "分类", options: snapshot.categories.map((category) => ({ label: category, value: category })), value: tableState.filters.category, onValueChange: (value) => tableState.setFilter("category", value) },
                   {
                     columnId: "is_active",
                     label: "状态",
+                    value: tableState.filters.status,
+                    onValueChange: (value) => tableState.setFilter("status", value),
                     options: [
-                      { label: "启用", value: "true" },
-                      { label: "停用", value: "false" }
+                      { label: "启用", value: "active" },
+                      { label: "停用", value: "inactive" }
                     ]
                   }
                 ]}
+                onSearchChange={tableState.setSearchInput}
+                pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
                 searchPlaceholder="搜索标签、编码或分类"
+                searchValue={tableState.searchInput}
               />
             </ListPanel>
           </>
@@ -5544,34 +5572,14 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
   );
 }
 
-function PartitionsTable({ items }: { items: PartitionItem[] }) {
-  return (
-    <Table className="min-w-[52rem]">
-      <TableHeader className="text-xs">
-        <TableRow>
-          {["分区", "表", "类型", "大小", "记录", "状态"].map((label) => (
-            <TableHead key={label}>{label}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.length === 0 ? <EmptyRows colSpan={6} /> : null}
-        {items.map((item) => (
-          <TableRow key={item.name}>
-            <TableCell className="font-medium">{item.display_name ?? item.name}</TableCell>
-            <TableCell>{item.table ?? "-"}</TableCell>
-            <TableCell>{item.table_type ?? "-"}</TableCell>
-            <TableCell className="font-mono text-xs">{item.size ?? "-"}</TableCell>
-            <TableCell className="font-mono text-xs">{formatNumber(item.record_count)}</TableCell>
-            <TableCell>
-              <span className="text-xs text-muted-foreground">{item.status ? `分区 ${statusLabel(item.status)}` : "-"}</span>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
+const partitionColumns: ColumnDef<PartitionItem>[] = [
+  { accessorKey: "display_name", header: "分区", cell: ({ row }) => <span className="font-medium">{row.original.display_name ?? row.original.name}</span> },
+  { accessorKey: "table", header: "表", cell: ({ row }) => row.original.table ?? "-" },
+  { accessorKey: "table_type", header: "类型", cell: ({ row }) => row.original.table_type ?? "-" },
+  { accessorKey: "size", header: "大小", cell: ({ row }) => <span className="font-mono text-xs">{row.original.size ?? "-"}</span> },
+  { accessorKey: "record_count", header: "记录", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.record_count)}</span> },
+  { accessorKey: "status", header: "状态", cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.status ? `分区 ${statusLabel(row.original.status)}` : "-"}</span> }
+];
 
 const PARTITION_PERIOD_OPTIONS: Array<PartitionMetricsFilters & { label: string }> = [
   { label: "日", periodType: "daily", days: 7 },
@@ -5592,7 +5600,16 @@ const PARTITION_MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
 
 export function PartitionsPage() {
   const [metricFilters, setMetricFilters] = useState<PartitionMetricsFilters>(PARTITION_PERIOD_OPTIONS[0]);
-  const query = useQuery({ queryKey: ["read-only", "partitions", metricFilters], queryFn: () => fetchPartitionsSnapshot(metricFilters) });
+  const tableState = useServerTableState({ initialFilters: { status: "", tableType: "" } });
+  const partitionQuery = {
+    ...metricFilters,
+    page: tableState.page,
+    limit: tableState.pageSize,
+    search: tableState.search,
+    status: tableState.filters.status,
+    tableType: tableState.filters.tableType
+  };
+  const query = useQuery({ queryKey: ["read-only", "partitions", partitionQuery], queryFn: () => fetchPartitionsSnapshot(partitionQuery), placeholderData: (previous) => previous });
   const chartConfig = { value: { label: "分区指标", color: "var(--chart-2)" } } satisfies ChartConfig;
   const [partitionYear, setPartitionYear] = useState("");
   const [partitionMonth, setPartitionMonth] = useState("");
@@ -5678,7 +5695,18 @@ export function PartitionsPage() {
                   </CardContent>
                 </Card>
                 <ListPanel title="分区列表" count={snapshot.list.total}>
-                  <PartitionsTable items={snapshot.list.items} />
+                  <DataTable
+                    columns={partitionColumns}
+                    data={snapshot.list.items}
+                    filters={[
+                      { columnId: "table_type", label: "类型", options: [{ label: "统计", value: "stats" }, { label: "聚合", value: "aggregations" }, { label: "实例统计", value: "instance_stats" }, { label: "实例聚合", value: "instance_aggregations" }], value: tableState.filters.tableType, onValueChange: (value) => tableState.setFilter("tableType", value) },
+                      { columnId: "status", label: "状态", options: [{ label: "当前", value: "current" }, { label: "历史", value: "past" }, { label: "未来", value: "future" }, { label: "未知", value: "unknown" }], value: tableState.filters.status, onValueChange: (value) => tableState.setFilter("status", value) }
+                    ]}
+                    onSearchChange={tableState.setSearchInput}
+                    pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
+                    searchPlaceholder="搜索分区或数据表"
+                    searchValue={tableState.searchInput}
+                  />
                 </ListPanel>
               </section>
             </>

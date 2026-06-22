@@ -29,6 +29,11 @@ const actionMocks = vi.hoisted(() => ({
 vi.mock("@/api/actions", () => actionMocks);
 
 vi.mock("@/api/lists", () => ({
+  buildAccountLedgersExportPath: vi.fn(() => "/api/v1/accounts/ledgers/exports"),
+  buildDatabaseLedgersExportPath: vi.fn(() => "/api/v1/databases/ledgers/exports"),
+  buildInstancesExportPath: vi.fn(() => "/api/v1/instances/exports"),
+  fetchAccountClassificationOptions: vi.fn(async () => [{ code: "sensitive", display_name: "敏感" }]),
+  fetchTagOptions: vi.fn(async () => [{ name: "prod", display_name: "生产" }]),
   fetchCredentialOptions: vi.fn(async () => [
     { id: 8, name: "prod credential", credential_type: "database", db_type: "mysql", is_active: true },
     { id: 9, name: "disabled credential", credential_type: "database", db_type: "mysql", is_active: false }
@@ -414,6 +419,8 @@ describe("ListPages", () => {
     renderWithQueryClient(<InstancesPage />);
 
     await expectTextPresent("mysql-prod");
+    fireEvent.click(screen.getByRole("checkbox", { name: "选择实例 mysql-prod" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "选择实例 mysql-old" }));
     fireEvent.click(screen.getByRole("button", { name: "批量测试连接" }));
     await waitFor(() => {
       expect(actionMocks.batchTestInstanceConnections).toHaveBeenCalledWith([1, 4]);
@@ -436,6 +443,7 @@ describe("ListPages", () => {
     renderWithQueryClient(<InstancesPage />);
 
     await expectTextPresent("mysql-prod");
+    fireEvent.click(screen.getByRole("checkbox", { name: "选择实例 mysql-prod" }));
     fireEvent.click(screen.getByRole("button", { name: "移入回收站" }));
     expect(await screen.findByRole("alertdialog", { name: "确认批量移入回收站" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "确认批量移入回收站" }));

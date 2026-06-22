@@ -71,6 +71,17 @@ export type ClustersSnapshot = {
   mySql: PaginatedReadOnlyList<ClusterItem>;
 };
 
+export type ServerListQuery = {
+  page?: number;
+  limit?: number;
+  search?: string;
+};
+
+export type ClusterListQuery = ServerListQuery & { status?: string };
+export type UsersListQuery = ServerListQuery & { role?: string; status?: string };
+export type CredentialsListQuery = ServerListQuery & { credentialType?: string; dbType?: string; status?: string };
+export type TagsListQuery = ServerListQuery & { category?: string; status?: string };
+
 export type AccountClassificationItem = {
   id: number;
   code: string;
@@ -418,6 +429,11 @@ export type PartitionsSnapshot = {
 export type PartitionMetricsFilters = {
   days?: number;
   periodType?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+  tableType?: string;
+  status?: string;
 };
 
 function pagePath(path: string, limit = DEFAULT_LIST_LIMIT): string {
@@ -436,10 +452,19 @@ function queryPath(path: string, entries: Array<[string, string | number | undef
   return query ? `${path}?${query}` : path;
 }
 
-export async function fetchClustersSnapshot(client: ApiReader = apiClient): Promise<ClustersSnapshot> {
+export async function fetchClustersSnapshot(
+  query: { sqlServer?: ClusterListQuery; mySql?: ClusterListQuery } = {},
+  client: ApiReader = apiClient
+): Promise<ClustersSnapshot> {
+  const sqlServerQuery = query.sqlServer ?? {};
+  const mySqlQuery = query.mySql ?? {};
   const [sqlServer, mySql] = await Promise.all([
-    client.get<PaginatedReadOnlyList<ClusterItem>>(pagePath("/api/v1/sqlserver-clusters")),
-    client.get<PaginatedReadOnlyList<ClusterItem>>(pagePath("/api/v1/mysql-clusters"))
+    client.get<PaginatedReadOnlyList<ClusterItem>>(queryPath("/api/v1/sqlserver-clusters", [
+      ["page", sqlServerQuery.page ?? 1], ["limit", sqlServerQuery.limit ?? 20], ["search", sqlServerQuery.search], ["status", sqlServerQuery.status]
+    ])),
+    client.get<PaginatedReadOnlyList<ClusterItem>>(queryPath("/api/v1/mysql-clusters", [
+      ["page", mySqlQuery.page ?? 1], ["limit", mySqlQuery.limit ?? 20], ["search", mySqlQuery.search], ["status", mySqlQuery.status]
+    ]))
   ]);
 
   return { sqlServer, mySql };
@@ -625,9 +650,11 @@ export async function fetchTaskRunErrorLogs(
   return client.get<TaskRunErrorLogs>(`/api/v1/task-runs/${encodeURIComponent(runId)}/error-logs`);
 }
 
-export async function fetchUsersSnapshot(client: ApiReader = apiClient): Promise<UsersSnapshot> {
+export async function fetchUsersSnapshot(query: UsersListQuery = {}, client: ApiReader = apiClient): Promise<UsersSnapshot> {
   const [list, stats] = await Promise.all([
-    client.get<PaginatedReadOnlyList<UserItem>>(pagePath("/api/v1/users")),
+    client.get<PaginatedReadOnlyList<UserItem>>(queryPath("/api/v1/users", [
+      ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["search", query.search], ["role", query.role], ["status", query.status]
+    ])),
     client.get<UsersStats>("/api/v1/users/stats")
   ]);
 
@@ -665,18 +692,25 @@ export async function fetchSettingsSnapshot(client: ApiReader = apiClient): Prom
 }
 
 export async function fetchCredentialsSnapshot(
+  query: CredentialsListQuery = {},
   client: ApiReader = apiClient
 ): Promise<PaginatedReadOnlyList<CredentialItem>> {
-  return client.get<PaginatedReadOnlyList<CredentialItem>>(pagePath("/api/v1/credentials"));
+  return client.get<PaginatedReadOnlyList<CredentialItem>>(queryPath("/api/v1/credentials", [
+    ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["search", query.search],
+    ["credential_type", query.credentialType], ["db_type", query.dbType], ["status", query.status]
+  ]));
 }
 
 export function fetchCredentialDetail(credentialId: number, client: ApiReader = apiClient): Promise<CredentialDetail> {
   return client.get<CredentialDetail>(`/api/v1/credentials/${credentialId}`);
 }
 
-export async function fetchTagsSnapshot(client: ApiReader = apiClient): Promise<TagsSnapshot> {
+export async function fetchTagsSnapshot(query: TagsListQuery = {}, client: ApiReader = apiClient): Promise<TagsSnapshot> {
   const [list, categoriesResponse] = await Promise.all([
-    client.get<TagsSnapshot["list"]>(pagePath("/api/v1/tags")),
+    client.get<TagsSnapshot["list"]>(queryPath("/api/v1/tags", [
+      ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["search", query.search],
+      ["category", query.category], ["status", query.status]
+    ])),
     client.get<{ categories: string[] }>("/api/v1/tags/categories")
   ]);
 
@@ -711,7 +745,10 @@ export async function fetchPartitionsSnapshot(
   const days = filters.days ?? 7;
   const [status, list, coreMetrics] = await Promise.all([
     client.get<PartitionsSnapshot["status"]>("/api/v1/partitions/status"),
-    client.get<PaginatedReadOnlyList<PartitionItem>>(pagePath("/api/v1/partitions")),
+    client.get<PaginatedReadOnlyList<PartitionItem>>(queryPath("/api/v1/partitions", [
+      ["page", filters.page ?? 1], ["limit", filters.limit ?? 20], ["search", filters.search],
+      ["table_type", filters.tableType], ["status", filters.status]
+    ])),
     client.get<PartitionsSnapshot["coreMetrics"]>(
       `/api/v1/partitions/core-metrics?period_type=${encodeURIComponent(periodType)}&days=${days}`
     )

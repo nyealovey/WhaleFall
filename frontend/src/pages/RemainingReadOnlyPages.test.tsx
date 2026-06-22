@@ -1489,7 +1489,15 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "周" }));
 
     await waitFor(() => {
-      expect(fetchPartitionsSnapshot).toHaveBeenLastCalledWith({ days: 28, periodType: "weekly" });
+      expect(fetchPartitionsSnapshot).toHaveBeenLastCalledWith({
+        days: 28,
+        limit: 20,
+        page: 1,
+        periodType: "weekly",
+        search: "",
+        status: "",
+        tableType: ""
+      });
     });
   });
 });

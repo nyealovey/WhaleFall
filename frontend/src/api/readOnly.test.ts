@@ -36,10 +36,16 @@ describe("read-only migration api", () => {
         .mockResolvedValueOnce({ items: [{ id: 2, name: "mysql-repl" }], total: 1, page: 1, pages: 1, limit: 20 })
     };
 
-    const snapshot = await fetchClustersSnapshot(client);
+    const snapshot = await fetchClustersSnapshot(
+      {
+        sqlServer: { page: 2, limit: 20, search: "ag", status: "enabled" },
+        mySql: { page: 3, limit: 50, search: "replica", status: "disabled" }
+      },
+      client
+    );
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters?page=1&limit=200");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/mysql-clusters?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters?page=2&limit=20&search=ag&status=enabled");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/mysql-clusters?page=3&limit=50&search=replica&status=disabled");
     expect(snapshot.sqlServer.items[0]?.name).toBe("sql-ag");
     expect(snapshot.mySql.items[0]?.name).toBe("mysql-repl");
   });
@@ -99,6 +105,31 @@ describe("read-only migration api", () => {
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/instances?page=1&limit=200&db_type=sqlserver");
     expect(options[0]?.name).toBe("sql-node-1");
+  });
+
+  it("loads paginated users, credentials, tags, and partitions with filters", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ items: [], total: 0, page: 2, pages: 1, limit: 20 })
+        .mockResolvedValueOnce({ total: 0, active: 0, inactive: 0, admin: 0, user: 0 })
+        .mockResolvedValueOnce({ items: [], total: 0, page: 3, pages: 1, limit: 50 })
+        .mockResolvedValueOnce({ items: [], total: 0, page: 4, pages: 1, limit: 100, stats: {} })
+        .mockResolvedValueOnce({ categories: ["env"] })
+        .mockResolvedValueOnce({ data: { status: "healthy" } })
+        .mockResolvedValueOnce({ items: [], total: 0, page: 5, pages: 1, limit: 20 })
+        .mockResolvedValueOnce({ labels: [], datasets: [], dataPointCount: 0, timeRange: "7d", yAxisLabel: "", chartTitle: "", periodType: "daily" })
+    };
+
+    await fetchUsersSnapshot({ page: 2, limit: 20, search: "admin", role: "admin", status: "active" }, client);
+    await fetchCredentialsSnapshot({ page: 3, limit: 50, search: "prod", credentialType: "password", dbType: "mysql", status: "active" }, client);
+    await fetchTagsSnapshot({ page: 4, limit: 100, search: "生产", category: "env", status: "active" }, client);
+    await fetchPartitionsSnapshot({ page: 5, limit: 20, search: "2026", tableType: "range", status: "current", periodType: "daily", days: 7 }, client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/users?page=2&limit=20&search=admin&role=admin&status=active");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials?page=3&limit=50&search=prod&credential_type=password&db_type=mysql&status=active");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/tags?page=4&limit=100&search=%E7%94%9F%E4%BA%A7&category=env&status=active");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/partitions?page=5&limit=20&search=2026&table_type=range&status=current");
   });
 
   it("loads account scope options by database type", async () => {
@@ -303,18 +334,18 @@ describe("read-only migration api", () => {
         .mockResolvedValueOnce({ labels: ["06-11"], datasets: [], dataPointCount: 1, timeRange: "7d", yAxisLabel: "count", chartTitle: "core", periodType: "daily" })
     };
 
-    const users = await fetchUsersSnapshot(client);
-    const credentials = await fetchCredentialsSnapshot(client);
-    const tags = await fetchTagsSnapshot(client);
+    const users = await fetchUsersSnapshot({}, client);
+    const credentials = await fetchCredentialsSnapshot({}, client);
+    const tags = await fetchTagsSnapshot({}, client);
     const partitions = await fetchPartitionsSnapshot({}, client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/users?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/users?page=1&limit=20");
     expect(client.get).toHaveBeenCalledWith("/api/v1/users/stats");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials?page=1&limit=200");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/tags?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials?page=1&limit=20");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/tags?page=1&limit=20");
     expect(client.get).toHaveBeenCalledWith("/api/v1/tags/categories");
     expect(client.get).toHaveBeenCalledWith("/api/v1/partitions/status");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/partitions?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/partitions?page=1&limit=20");
     expect(client.get).toHaveBeenCalledWith("/api/v1/partitions/core-metrics?period_type=daily&days=7");
     expect(users.stats.total).toBe(1);
     expect(credentials.items[0]?.name).toBe("prod");

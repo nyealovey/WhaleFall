@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  buildAccountLedgersExportPath,
+  buildDatabaseLedgersExportPath,
+  buildInstancesExportPath,
+  fetchAccountClassificationOptions,
   fetchAccountChangeHistory,
   fetchAccountLedgers,
   fetchAccountPermissions,
@@ -14,29 +18,33 @@ import {
   fetchInstanceConnectionStatus,
   fetchInstanceDetail,
   fetchInstanceAccounts,
-  fetchInstances
+  fetchInstances,
+  fetchTagOptions
 } from "./lists";
 
 describe("list api", () => {
-  it("loads the first page of instances", async () => {
+  it("loads a filtered page of instances", async () => {
     const client = {
       get: vi.fn().mockResolvedValueOnce({ items: [{ id: 1, name: "mysql-prod" }], total: 1, page: 1, pages: 1, limit: 20 })
     };
 
-    const result = await fetchInstances(client);
+    const result = await fetchInstances(
+      { page: 2, limit: 50, search: "mysql", dbType: "mysql", status: "active", auditStatus: "enabled", managedStatus: "managed", backupStatus: "backed_up", tags: ["prod"], includeDeleted: true },
+      client
+    );
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/instances?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/instances?page=2&limit=50&search=mysql&db_type=mysql&status=active&audit_status=enabled&managed_status=managed&backup_status=backed_up&tags=prod&include_deleted=true");
     expect(result.items[0]?.name).toBe("mysql-prod");
   });
 
-  it("loads the first page of database ledgers", async () => {
+  it("loads a filtered page of database ledgers", async () => {
     const client = {
       get: vi.fn().mockResolvedValueOnce({ items: [{ id: 1, database_name: "app_db" }], total: 1, page: 1, limit: 20 })
     };
 
-    const result = await fetchDatabaseLedgers(client);
+    const result = await fetchDatabaseLedgers({ page: 3, limit: 20, search: "orders", dbType: "sqlserver", instanceId: 7, tags: ["core"] }, client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/databases/ledgers?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/databases/ledgers?page=3&limit=20&search=orders&db_type=sqlserver&instance_id=7&tags=core");
     expect(result.items[0]?.database_name).toBe("app_db");
   });
 
@@ -51,15 +59,47 @@ describe("list api", () => {
     expect(result[0]?.name).toBe("prod credential");
   });
 
-  it("loads the first page of account ledgers", async () => {
+  it("loads a filtered page of account ledgers", async () => {
     const client = {
       get: vi.fn().mockResolvedValueOnce({ items: [{ id: 1, username: "readonly" }], total: 1, page: 1, pages: 1, limit: 20 })
     };
 
-    const result = await fetchAccountLedgers(client);
+    const result = await fetchAccountLedgers(
+      { page: 4, limit: 100, search: "readonly", instanceId: 7, classification: "dba", dbType: "mysql", adStatus: "synced", tags: ["prod"] },
+      client
+    );
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers?page=1&limit=200");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers?page=4&limit=100&search=readonly&instance_id=7&tags=prod&classification=dba&db_type=mysql&ad_status=synced&sort=username&order=asc");
     expect(result.items[0]?.username).toBe("readonly");
+  });
+
+  it("keeps supported filters in resource export links", () => {
+    expect(buildInstancesExportPath({ search: "prod", dbType: "mysql", status: "active" })).toBe(
+      "/api/v1/instances/exports?search=prod&db_type=mysql"
+    );
+    expect(buildDatabaseLedgersExportPath({ search: "orders", dbType: "sqlserver", instanceId: 7, tags: ["core"] })).toBe(
+      "/api/v1/databases/ledgers/exports?search=orders&db_type=sqlserver&instance_id=7&tags=core"
+    );
+    expect(buildAccountLedgersExportPath({ search: "reader", classification: "sensitive", dbType: "mysql", adStatus: "normal", tags: ["prod"] })).toBe(
+      "/api/v1/accounts/ledgers/exports?search=reader&tags=prod&classification=sensitive&db_type=mysql&ad_status=normal"
+    );
+  });
+
+  it("loads complete tag and classification filter options", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ tags: [{ name: "prod", display_name: "生产" }] })
+        .mockResolvedValueOnce({ classifications: [{ code: "sensitive", display_name: "敏感" }] })
+    };
+
+    const tags = await fetchTagOptions(client);
+    const classifications = await fetchAccountClassificationOptions(client);
+
+    expect(client.get).toHaveBeenCalledWith("/api/v1/tags/options");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/classifications");
+    expect(tags[0]?.name).toBe("prod");
+    expect(classifications[0]?.code).toBe("sensitive");
   });
 
   it("loads list detail resources from v1 endpoints", async () => {
