@@ -35,8 +35,12 @@ function formatNumber(value: number | undefined | null): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
 }
 
+function formatDecimal(value: number | undefined | null): string {
+  return (value ?? 0).toFixed(1).replace(/\.0$/, "");
+}
+
 function formatPercent(value: number | undefined | null): string {
-  return `${(value ?? 0).toFixed(1)}%`;
+  return `${formatDecimal(value)}%`;
 }
 
 function uniqueTextOptions<TItem>(items: TItem[], getValue: (item: TItem) => string | null | undefined) {
@@ -65,22 +69,16 @@ function statusVariant(value: string | undefined): "default" | "secondary" | "de
 }
 
 function PageHeader({
-  eyebrow,
   title,
-  description,
   legacyHref
 }: {
-  eyebrow: string;
   title: string;
-  description: string;
   legacyHref: string;
 }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
-        <span className="font-mono text-xs tracking-[0.06em] text-muted-foreground uppercase">{eyebrow}</span>
-        <h1 className="font-display mt-1 text-2xl leading-none tracking-normal">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+        <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
       <Button variant="outline" asChild>
         <a href={legacyHref}>
@@ -146,15 +144,12 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function ListFrame({ title, description, total, children }: { title: string; description: string; total: number; children: ReactNode }) {
+function ListFrame({ title, total, children }: { title: string; total: number; children: ReactNode }) {
   return (
     <Card>
       <CardContent className="grid gap-3">
         <div className="flex items-start justify-between gap-3 max-sm:grid">
-          <div>
-            <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          </div>
+          <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
           <Badge variant="secondary">共 {formatNumber(total)} 条</Badge>
         </div>
         {children}
@@ -504,9 +499,7 @@ export function HistoryLogsPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader
-        eyebrow="System audit"
         title="日志中心"
-        description="查看最近 24 小时系统日志统计、首屏日志列表和日志详情。"
         legacyHref="/history/logs/"
       />
       <QueryPage snapshot={logsQuery.data} isLoading={logsQuery.isLoading} isError={logsQuery.isError} onRetry={() => void logsQuery.refetch()}>
@@ -514,13 +507,28 @@ export function HistoryLogsPage() {
           <>
             <MetricGrid
               metrics={[
-                { label: "日志总数", value: snapshot.statistics.total_logs, icon: FileText },
-                { label: "错误", value: snapshot.statistics.error_count, detail: `错误率 ${formatPercent(snapshot.statistics.error_rate)}`, icon: XCircle },
-                { label: "告警", value: snapshot.statistics.warning_count, icon: AlertTriangle },
-                { label: "Top 模块", value: snapshot.statistics.top_modules[0]?.module ?? "-", detail: `${formatNumber(snapshot.statistics.top_modules[0]?.count)} 条`, icon: ShieldAlert }
+                {
+                  label: "总日志数",
+                  value: snapshot.statistics.total_logs,
+                  detail: `Top 模块 ${snapshot.statistics.top_modules[0]?.module ?? "-"} · ${formatNumber(snapshot.statistics.top_modules[0]?.count)} 条 · 24h`,
+                  icon: FileText
+                },
+                {
+                  label: "错误日志",
+                  value: snapshot.statistics.error_count,
+                  detail: `错误率 ${formatPercent(snapshot.statistics.error_rate)} · 严重 ${formatNumber(snapshot.statistics.critical_count)} · ${formatDecimal(snapshot.statistics.error_count / 24)}/小时`,
+                  icon: XCircle
+                },
+                {
+                  label: "警告日志",
+                  value: snapshot.statistics.warning_count,
+                  detail: `占比 ${formatPercent(snapshot.statistics.total_logs > 0 ? (snapshot.statistics.warning_count / snapshot.statistics.total_logs) * 100 : 0)} · ${formatDecimal(snapshot.statistics.warning_count / 24)}/小时`,
+                  icon: AlertTriangle
+                },
+                { label: "信息日志", value: snapshot.statistics.info_count, detail: `调试 ${formatNumber(snapshot.statistics.debug_count)}`, icon: ShieldAlert }
               ]}
             />
-            <ListFrame title="日志列表" description={`最近 24 小时 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
+            <ListFrame title="日志列表" total={snapshot.list.total}>
               <DataTable
                 columns={columns}
                 data={snapshot.list.items}
@@ -559,9 +567,7 @@ export function AccountChangeLogsPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader
-        eyebrow="Account audit"
         title="变更历史"
-        description="查看最近 24 小时账户变更统计、首屏变更日志和变更详情。"
         legacyHref="/history/account-change-logs/"
       />
       <QueryPage snapshot={logsQuery.data} isLoading={logsQuery.isLoading} isError={logsQuery.isError} onRetry={() => void logsQuery.refetch()}>
@@ -569,13 +575,33 @@ export function AccountChangeLogsPage() {
           <>
             <MetricGrid
               metrics={[
-                { label: "变更总数", value: snapshot.statistics.total_changes, icon: FileText },
-                { label: "成功", value: snapshot.statistics.success_count, icon: CheckCircle2 },
-                { label: "失败", value: snapshot.statistics.failed_count, icon: XCircle },
-                { label: "影响账户", value: snapshot.statistics.affected_accounts, icon: ShieldAlert }
+                {
+                  label: "变更总数",
+                  value: snapshot.statistics.total_changes,
+                  detail: `人均变更 ${formatDecimal(snapshot.statistics.affected_accounts > 0 ? snapshot.statistics.total_changes / snapshot.statistics.affected_accounts : 0)} · 24h`,
+                  icon: FileText
+                },
+                {
+                  label: "成功率",
+                  value: formatPercent(snapshot.statistics.total_changes > 0 ? (snapshot.statistics.success_count / snapshot.statistics.total_changes) * 100 : 0),
+                  detail: `成功/账号 ${formatDecimal(snapshot.statistics.affected_accounts > 0 ? snapshot.statistics.success_count / snapshot.statistics.affected_accounts : 0)}`,
+                  icon: CheckCircle2
+                },
+                {
+                  label: "失败变更",
+                  value: snapshot.statistics.failed_count,
+                  detail: `失败率 ${formatPercent(snapshot.statistics.total_changes > 0 ? (snapshot.statistics.failed_count / snapshot.statistics.total_changes) * 100 : 0)} · 失败/账号 ${formatDecimal(snapshot.statistics.affected_accounts > 0 ? snapshot.statistics.failed_count / snapshot.statistics.affected_accounts : 0)}`,
+                  icon: XCircle
+                },
+                {
+                  label: "影响账号数",
+                  value: snapshot.statistics.affected_accounts,
+                  detail: `变更/小时 ${formatDecimal(snapshot.statistics.total_changes / 24)}`,
+                  icon: ShieldAlert
+                }
               ]}
             />
-            <ListFrame title="账户变更列表" description={`最近 24 小时 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
+            <ListFrame title="账户变更列表" total={snapshot.list.total}>
               <DataTable
                 columns={columns}
                 data={snapshot.list.items}

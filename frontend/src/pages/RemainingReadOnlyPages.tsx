@@ -5,11 +5,9 @@ import {
   AlertCircle,
   Boxes,
   ChartColumn,
-  Clock,
   Database,
   Eye,
   ExternalLink,
-  KeyRound,
   Layers3,
   ListChecks,
   Pause,
@@ -134,7 +132,6 @@ import {
   fetchClassificationStatisticsSnapshot,
   fetchClusterInstanceOptions,
   fetchClustersSnapshot,
-  fetchCredentialDetail,
   fetchCredentialsSnapshot,
   fetchMySqlClusterDetail,
   fetchPartitionsSnapshot,
@@ -147,9 +144,7 @@ import {
   fetchSyncSessionErrorLogs,
   fetchSyncSessionsSnapshot,
   fetchTagBulkOptions,
-  fetchTagDetail,
   fetchTagsSnapshot,
-  fetchUserDetail,
   fetchUsersSnapshot,
   type AccountClassificationItem,
   type AccountClassificationRuleItem,
@@ -201,9 +196,9 @@ function formatNumber(value: number | undefined | null): string {
 
 function formatPercent(value: number, total: number): string {
   if (total <= 0) {
-    return "0%";
+    return "0.0%";
   }
-  return `${Math.round((value / total) * 100)}%`;
+  return `${((value / total) * 100).toFixed(1)}%`;
 }
 
 function asNumber(value: unknown): number {
@@ -515,7 +510,7 @@ function ListPanel({
   children
 }: {
   title: string;
-  description: string;
+  description?: string;
   count?: number;
   actions?: ReactNode;
   children: ReactNode;
@@ -526,7 +521,7 @@ function ListPanel({
         <div className="flex items-start justify-between gap-3 max-sm:grid">
           <div>
             <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {typeof count === "number" ? <Badge variant="secondary">共 {formatNumber(count)} 条</Badge> : null}
@@ -641,128 +636,6 @@ function SchedulerJobDetailDialog({
             <DetailBlock label="位置参数"><JsonBlock value={detail.args} /></DetailBlock>
             <DetailBlock label="关键字参数"><JsonBlock value={detail.kwargs} /></DetailBlock>
             <DetailBlock label="合并执行"><StatusBadge value={detail.coalesce ?? null} /></DetailBlock>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function UserDetailDialog({
-  item,
-  onOpenChange,
-  open
-}: {
-  item: UserItem | null;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-}) {
-  const query = useQuery({
-    enabled: open && Boolean(item),
-    queryKey: ["read-only", "user-detail", item?.id],
-    queryFn: () => fetchUserDetail(item?.id ?? 0)
-  });
-  const detail = query.data?.user ?? item;
-
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="w-[min(calc(100vw-2rem),42rem)]">
-        <DialogHeader>
-          <DialogTitle>用户详情 {item?.username ?? ""}</DialogTitle>
-          <DialogDescription>展示用户身份、角色、状态和登录时间。</DialogDescription>
-        </DialogHeader>
-        {query.isLoading ? <Skeleton className="h-24" /> : null}
-        {query.isError ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>用户详情加载失败</AlertDescription></Alert> : null}
-        {detail ? (
-          <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-            <DetailBlock label="用户 ID"><span className="font-mono">#{detail.id}</span></DetailBlock>
-            <DetailBlock label="用户名">{detail.username}</DetailBlock>
-            <DetailBlock label="邮箱">{asText(detail.email)}</DetailBlock>
-            <DetailBlock label="角色"><Badge variant={detail.role === "admin" ? "default" : "outline"}>{roleLabel(detail.role)}</Badge></DetailBlock>
-            <DetailBlock label="状态"><StatusBadge value={detail.is_active} /></DetailBlock>
-            <DetailBlock label="创建时间"><span className="font-mono">{asText(detail.created_at_display ?? detail.created_at)}</span></DetailBlock>
-            <DetailBlock label="最近登录"><span className="font-mono">{asText(detail.last_login)}</span></DetailBlock>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function CredentialDetailDialog({
-  item,
-  onOpenChange,
-  open
-}: {
-  item: CredentialItem | null;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-}) {
-  const query = useQuery({
-    enabled: open && Boolean(item),
-    queryKey: ["read-only", "credential-detail", item?.id],
-    queryFn: () => fetchCredentialDetail(item?.id ?? 0)
-  });
-  const detail = query.data?.credential ?? item;
-
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="w-[min(calc(100vw-2rem),46rem)]">
-        <DialogHeader>
-          <DialogTitle>凭据详情 {item?.name ?? ""}</DialogTitle>
-          <DialogDescription>展示凭据类型、账号、适用数据库和引用数量。</DialogDescription>
-        </DialogHeader>
-        {query.isLoading ? <Skeleton className="h-24" /> : null}
-        {query.isError ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>凭据详情加载失败</AlertDescription></Alert> : null}
-        {detail ? (
-          <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-            <DetailBlock label="凭据名称">{detail.name}</DetailBlock>
-            <DetailBlock label="类型">{asText(detail.credential_type)}</DetailBlock>
-            <DetailBlock label="数据库类型">{asText(detail.db_type)}</DetailBlock>
-            <DetailBlock label="账号"><span className="font-mono">{asText(detail.username)}</span></DetailBlock>
-            <DetailBlock label="状态"><StatusBadge value={detail.is_active} /></DetailBlock>
-            <DetailBlock label="绑定实例"><span className="font-mono">{formatNumber(detail.instance_count)}</span></DetailBlock>
-            <DetailBlock label="创建时间"><span className="font-mono">{asText(detail.created_at_display)}</span></DetailBlock>
-            <DetailBlock label="说明">{asText(detail.description)}</DetailBlock>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function TagDetailDialog({
-  item,
-  onOpenChange,
-  open
-}: {
-  item: TagItem | null;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-}) {
-  const query = useQuery({
-    enabled: open && Boolean(item),
-    queryKey: ["read-only", "tag-detail", item?.id],
-    queryFn: () => fetchTagDetail(item?.id ?? 0)
-  });
-  const detail = query.data?.tag ?? item;
-
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="w-[min(calc(100vw-2rem),42rem)]">
-        <DialogHeader>
-          <DialogTitle>标签详情 {item?.display_name ?? ""}</DialogTitle>
-          <DialogDescription>展示标签编码、分类、状态和关联数量。</DialogDescription>
-        </DialogHeader>
-        {query.isLoading ? <Skeleton className="h-24" /> : null}
-        {query.isError ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>标签详情加载失败</AlertDescription></Alert> : null}
-        {detail ? (
-          <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-            <DetailBlock label="标签名称">{detail.display_name}</DetailBlock>
-            <DetailBlock label="编码"><span className="font-mono">#{detail.name}</span></DetailBlock>
-            <DetailBlock label="分类">{detail.category}</DetailBlock>
-            <DetailBlock label="状态"><StatusBadge value={detail.is_active} /></DetailBlock>
-            <DetailBlock label="关联实例"><span className="font-mono">{formatNumber(detail.instance_count)}</span></DetailBlock>
           </div>
         ) : null}
       </DialogContent>
@@ -1442,13 +1315,11 @@ function TagBulkDialog({
 function createCredentialColumns({
   canManage,
   onDelete,
-  onEdit,
-  onView
+  onEdit
 }: {
   canManage: boolean;
   onDelete: (item: CredentialItem) => void;
   onEdit: (item: CredentialItem) => void;
-  onView: (item: CredentialItem) => void;
 }): ColumnDef<CredentialItem>[] {
   return [
   {
@@ -1497,9 +1368,6 @@ function createCredentialColumns({
       const item = row.original;
       return (
         <div className="flex items-center gap-1">
-          <Button aria-label={`查看凭据 ${item.name}`} onClick={() => onView(item)} size="icon" type="button" variant="ghost">
-            <Eye aria-hidden />
-          </Button>
           {canManage ? (
             <>
               <Button aria-label={`编辑凭据 ${item.name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
@@ -1522,13 +1390,11 @@ function createCredentialColumns({
 function createTagColumns({
   canManage,
   onDelete,
-  onEdit,
-  onView
+  onEdit
 }: {
   canManage: boolean;
   onDelete: (item: TagItem) => void;
   onEdit: (item: TagItem) => void;
-  onView: (item: TagItem) => void;
 }): ColumnDef<TagItem>[] {
   return [
   {
@@ -1566,9 +1432,6 @@ function createTagColumns({
       const item = row.original;
       return (
         <div className="flex items-center gap-1">
-          <Button aria-label={`查看标签 ${item.display_name}`} onClick={() => onView(item)} size="icon" type="button" variant="ghost">
-            <Eye aria-hidden />
-          </Button>
           {canManage ? (
             <>
               <Button aria-label={`编辑标签 ${item.display_name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
@@ -1592,14 +1455,12 @@ function createUserColumns({
   canManage,
   currentUserId,
   onDelete,
-  onEdit,
-  onView
+  onEdit
 }: {
   canManage: boolean;
   currentUserId?: number | null;
   onDelete: (item: UserItem) => void;
   onEdit: (item: UserItem) => void;
-  onView: (item: UserItem) => void;
 }): ColumnDef<UserItem>[] {
   return [
   {
@@ -1641,9 +1502,6 @@ function createUserColumns({
       const isCurrentUser = currentUserId !== undefined && currentUserId !== null && item.id === currentUserId;
       return (
         <div className="flex items-center gap-1">
-          <Button aria-label={`查看用户 ${item.username}`} onClick={() => onView(item)} size="icon" type="button" variant="ghost">
-            <Eye aria-hidden />
-          </Button>
           {canManage ? (
             <>
               <Button aria-label={`编辑用户 ${item.username}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
@@ -3092,16 +2950,18 @@ function RuleDetailDialog({
 }
 
 function ClassificationList({
+  canManage,
   items,
   onDelete,
   onEdit
 }: {
+  canManage: boolean;
   items: AccountClassificationItem[];
   onDelete: (item: AccountClassificationItem) => void;
   onEdit: (item: AccountClassificationItem) => void;
 }) {
   if (items.length === 0) {
-    return <p className="rounded-md border p-4 text-sm text-muted-foreground">暂无分类，点击“新建分类”开始配置</p>;
+    return <p className="rounded-md border p-4 text-sm text-muted-foreground">{canManage ? "暂无分类，点击“新建分类”开始配置" : "暂无分类"}</p>;
   }
   return (
     <div className="grid gap-2">
@@ -3119,16 +2979,18 @@ function ClassificationList({
                 <Badge variant="outline">规则 {formatNumber(item.rules_count)}</Badge>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button aria-label={`编辑分类 ${item.display_name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
-                <Pencil aria-hidden />
-              </Button>
-              {!item.is_system ? (
-                <Button aria-label={`删除分类 ${item.display_name}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
-                  <Trash2 aria-hidden />
+            {canManage ? (
+              <div className="flex items-center gap-1">
+                <Button aria-label={`编辑分类 ${item.display_name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
+                  <Pencil aria-hidden />
                 </Button>
-              ) : null}
-            </div>
+                {!item.is_system ? (
+                  <Button aria-label={`删除分类 ${item.display_name}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
+                    <Trash2 aria-hidden />
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       ))}
@@ -3137,11 +2999,13 @@ function ClassificationList({
 }
 
 function RuleGroups({
+  canManage,
   rulesByDbType,
   onDeleteRule,
   onEditRule,
   onViewRule
 }: {
+  canManage: boolean;
   rulesByDbType: Record<string, AccountClassificationRuleItem[]>;
   onDeleteRule: (rule: AccountClassificationRuleItem) => void;
   onEditRule: (rule: AccountClassificationRuleItem) => void;
@@ -3149,7 +3013,7 @@ function RuleGroups({
 }) {
   const entries = Object.entries(rulesByDbType).filter(([, rules]) => rules.length > 0);
   if (entries.length === 0) {
-    return <p className="rounded-md border p-4 text-sm text-muted-foreground">暂无规则，点击“新建规则”开始配置</p>;
+    return <p className="rounded-md border p-4 text-sm text-muted-foreground">{canManage ? "暂无规则，点击“新建规则”开始配置" : "暂无规则"}</p>;
   }
   return (
     <div className="grid gap-2">
@@ -3174,12 +3038,16 @@ function RuleGroups({
                   <Button aria-label={`查看规则 ${rule.rule_name}`} onClick={() => onViewRule(rule)} size="icon" type="button" variant="ghost">
                     <ExternalLink aria-hidden />
                   </Button>
-                  <Button aria-label={`编辑规则 ${rule.rule_name}`} onClick={() => onEditRule(rule)} size="icon" type="button" variant="ghost">
-                    <Pencil aria-hidden />
-                  </Button>
-                  <Button aria-label={`删除规则 ${rule.rule_name}`} onClick={() => onDeleteRule(rule)} size="icon" type="button" variant="ghost">
-                    <Trash2 aria-hidden />
-                  </Button>
+                  {canManage ? (
+                    <>
+                      <Button aria-label={`编辑规则 ${rule.rule_name}`} onClick={() => onEditRule(rule)} size="icon" type="button" variant="ghost">
+                        <Pencil aria-hidden />
+                      </Button>
+                      <Button aria-label={`删除规则 ${rule.rule_name}`} onClick={() => onDeleteRule(rule)} size="icon" type="button" variant="ghost">
+                        <Trash2 aria-hidden />
+                      </Button>
+                    </>
+                  ) : null}
                 </div>
               </div>
             ))}
@@ -3190,7 +3058,7 @@ function RuleGroups({
   );
 }
 
-export function AccountClassificationsPage() {
+export function AccountClassificationsPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
   const query = useQuery({
     queryKey: ["read-only", "account-classifications"],
     queryFn: () => fetchAccountClassificationsSnapshot()
@@ -3202,39 +3070,42 @@ export function AccountClassificationsPage() {
   const [editingRule, setEditingRule] = useState<AccountClassificationRuleItem | null>(null);
   const [viewingRule, setViewingRule] = useState<AccountClassificationRuleItem | null>(null);
   const [deletingRule, setDeletingRule] = useState<AccountClassificationRuleItem | null>(null);
+  const canManage = canManageCatalog(currentUser);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader eyebrow="Account taxonomy" title="账户分类" description="展示分类、风险等级与规则分布，新增和编辑仍保留在旧版。" legacyHref="/accounts/classifications/" />
-      <CommandBar>
-        <Button
-          onClick={() => {
-            void runAction(autoClassifyAccounts(), { success: "自动分类已触发" }).then(() => query.refetch());
-          }}
-          type="button"
-          variant="outline"
-        >
-          <Zap aria-hidden size={16} />
-          <span>自动分类</span>
-        </Button>
-      </CommandBar>
+      {canManage ? (
+        <CommandBar>
+          <Button
+            onClick={() => {
+              void runAction(autoClassifyAccounts(), { success: "自动分类已触发" }).then(() => query.refetch());
+            }}
+            type="button"
+            variant="outline"
+          >
+            <Zap aria-hidden size={16} />
+            <span>自动分类</span>
+          </Button>
+        </CommandBar>
+      ) : null}
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="账户分类" onRetry={() => void query.refetch()}>
         {(snapshot) => {
-          const rules = Object.values(snapshot.rulesByDbType).flat();
           return (
             <section className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2 max-xl:grid-cols-1">
               <ListPanel
                 title="账户分类"
-                description="分类展示名、系统标记、风险等级和规则数量。"
-                count={snapshot.classifications.length}
                 actions={
-                  <Button onClick={() => setCreatingClassification(true)} size="sm" type="button">
-                    <Plus aria-hidden size={16} />
-                    <span>新建分类</span>
-                  </Button>
+                  canManage ? (
+                    <Button onClick={() => setCreatingClassification(true)} size="sm" type="button">
+                      <Plus aria-hidden size={16} />
+                      <span>新建分类</span>
+                    </Button>
+                  ) : null
                 }
               >
                 <ClassificationList
+                  canManage={canManage}
                   items={snapshot.classifications}
                   onEdit={setEditingClassification}
                   onDelete={setDeletingClassification}
@@ -3242,16 +3113,17 @@ export function AccountClassificationsPage() {
               </ListPanel>
               <ListPanel
                 title="规则管理"
-                description="按数据库类型汇总后的分类规则。"
-                count={rules.length}
                 actions={
-                  <Button onClick={() => setCreatingRule(true)} size="sm" type="button">
-                    <Plus aria-hidden size={16} />
-                    <span>新建规则</span>
-                  </Button>
+                  canManage ? (
+                    <Button onClick={() => setCreatingRule(true)} size="sm" type="button">
+                      <Plus aria-hidden size={16} />
+                      <span>新建规则</span>
+                    </Button>
+                  ) : null
                 }
               >
                 <RuleGroups
+                  canManage={canManage}
                   onDeleteRule={setDeletingRule}
                   onEditRule={setEditingRule}
                   onViewRule={setViewingRule}
@@ -3264,7 +3136,7 @@ export function AccountClassificationsPage() {
       </QueryFrame>
       {query.data ? (
         <>
-          {creatingClassification ? (
+          {canManage && creatingClassification ? (
             <ClassificationFormDialog
               item={null}
               onOpenChange={(open) => {
@@ -3279,7 +3151,7 @@ export function AccountClassificationsPage() {
               open={creatingClassification}
             />
           ) : null}
-          {editingClassification ? (
+          {canManage && editingClassification ? (
             <ClassificationFormDialog
               item={editingClassification}
               onOpenChange={(open) => {
@@ -3294,7 +3166,7 @@ export function AccountClassificationsPage() {
               open={editingClassification !== null}
             />
           ) : null}
-          {creatingRule ? (
+          {canManage && creatingRule ? (
             <RuleFormDialog
               classifications={query.data.classifications}
               item={null}
@@ -3310,7 +3182,7 @@ export function AccountClassificationsPage() {
               open={creatingRule}
             />
           ) : null}
-          {editingRule ? (
+          {canManage && editingRule ? (
             <RuleFormDialog
               classifications={query.data.classifications}
               item={editingRule}
@@ -3352,7 +3224,7 @@ export function AccountClassificationsPage() {
                 setDeletingClassification(null);
               }
             }}
-            open={deletingClassification !== null}
+            open={canManage && deletingClassification !== null}
             title={`确认删除分类 ${deletingClassification?.display_name ?? ""}`}
           />
           <DeleteConfirmDialog
@@ -3370,7 +3242,7 @@ export function AccountClassificationsPage() {
                 setDeletingRule(null);
               }
             }}
-            open={deletingRule !== null}
+            open={canManage && deletingRule !== null}
             title={`确认删除规则 ${deletingRule?.rule_name ?? ""}`}
           />
         </>
@@ -3427,16 +3299,6 @@ function selectedTrendName(snapshot: ClassificationStatisticsSnapshot, filters: 
     return snapshot.trends.series.find((series) => String(series.classification_id) === filters.classificationId)?.classification_name ?? `分类 #${filters.classificationId}`;
   }
   return snapshot.trends.series[0]?.classification_name ?? null;
-}
-
-function topClassificationStats(stats: ClassificationStatisticsSnapshot["stats"]) {
-  return Object.entries(stats)
-    .map(([label, value]) => ({
-      label,
-      value: asNumber(value.total_accounts ?? value.matched_accounts_count ?? value.count ?? value.total)
-    }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8);
 }
 
 function buildClassificationOptions(snapshot: ClassificationStatisticsSnapshot): Array<{ value: string; label: string }> {
@@ -3587,7 +3449,6 @@ function ClassificationRulesListPanel({
   return (
     <ListPanel
       title="规则列表"
-      description="选择分类后加载规则列表与规则趋势。"
       actions={<Badge variant="outline">最新周期</Badge>}
     >
       <div className="grid gap-3">
@@ -3685,7 +3546,6 @@ export function ClassificationStatisticsPage() {
         {(snapshot) => {
           const trendPoints = selectedTrendPoints(snapshot, filters);
           const chartData = buildTrendChartData(trendPoints);
-          const topStats = topClassificationStats(snapshot.stats);
           const coverageLabel = trendCoverageLabel(snapshot, trendPoints);
           const trendName = selectedTrendName(snapshot, filters);
           const rules = snapshot.rulesOverview?.rules ?? [];
@@ -3708,15 +3568,6 @@ export function ClassificationStatisticsPage() {
                 }}
                 snapshot={snapshot}
               />
-              <MetricGrid
-                label="分类统计指标"
-                metrics={[
-                  { label: "统计分类", value: Object.keys(snapshot.stats).length, icon: ChartColumn },
-                  { label: "趋势序列", value: snapshot.trends.series.length, icon: Activity },
-                  { label: "周期数量", value: snapshot.trends.buckets.length || chartData.length, icon: Clock },
-                  { label: "Top 命中", value: topStats[0]?.value ?? 0, detail: topStats[0]?.label, icon: Tags }
-                ]}
-              />
               <section className="grid grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] gap-2 max-xl:grid-cols-1">
                 <ClassificationRulesListPanel
                   filters={filters}
@@ -3737,7 +3588,6 @@ export function ClassificationStatisticsPage() {
                     <CardHeader className="flex flex-row items-start justify-between gap-3">
                       <div>
                         <CardTitle>{filters.ruleId ? "规则趋势（命中账号数）" : "分类趋势（去重账号数）"}</CardTitle>
-                        <CardDescription>{filters.ruleId ? "规则趋势面积图" : "分类趋势面积图"}</CardDescription>
                       </div>
                       <Badge variant="outline">{coverageLabel}</Badge>
                     </CardHeader>
@@ -3768,7 +3618,6 @@ export function ClassificationStatisticsPage() {
                     <CardHeader className="flex flex-row items-start justify-between gap-3">
                       <div>
                         <CardTitle>规则贡献（当前周期）</CardTitle>
-                        <CardDescription>选择分类后展示当前周期 Top 规则贡献。</CardDescription>
                       </div>
                       <Badge variant="outline">
                         覆盖 {formatNumber(snapshot.ruleContributions?.coverage_days)}/{formatNumber(snapshot.ruleContributions?.expected_days)}
@@ -3805,25 +3654,6 @@ export function ClassificationStatisticsPage() {
                   </Card>
                 </div>
               </section>
-              <ListPanel title="分类排行" description="按当前统计快照展示 Top 分类。" count={topStats.length}>
-                <Table>
-                  <TableHeader className="text-xs">
-                    <TableRow>
-                      <TableHead>分类</TableHead>
-                      <TableHead>匹配账户</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {topStats.length === 0 ? <EmptyRows colSpan={2} /> : null}
-                    {topStats.map((item) => (
-                      <TableRow key={item.label}>
-                        <TableCell className="font-medium">{item.label}</TableCell>
-                        <TableCell className="font-mono text-xs">{formatNumber(item.value)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ListPanel>
             </>
           );
         }}
@@ -3843,16 +3673,6 @@ export function SchedulerPage() {
       <PageHeader eyebrow="Automation jobs" title="定时任务" description="只读展示调度任务和运行状态，暂停、恢复、立即执行仍保留在旧版。" legacyHref="/scheduler/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="定时任务" onRetry={() => void query.refetch()}>
         {(snapshot) => (
-          <>
-            <MetricGrid
-              label="定时任务指标"
-              metrics={[
-                { label: "任务总数", value: snapshot.jobs.length, icon: Clock },
-                { label: "运行任务", value: snapshot.jobs.filter((job) => isRunningState(job.state)).length, icon: Activity },
-                { label: "内置任务", value: snapshot.jobs.filter((job) => job.is_builtin).length, icon: Settings },
-                { label: "可配置", value: snapshot.jobs.filter((job) => job.trigger_type).length, icon: ListChecks }
-              ]}
-            />
             <ListPanel
               title="任务卡片"
               description="按旧版运行状态分组展示任务名称、运行时间、任务 ID、触发器参数和操作。"
@@ -3888,7 +3708,6 @@ export function SchedulerPage() {
                 />
               </div>
             </ListPanel>
-          </>
         )}
       </QueryFrame>
       <SchedulerJobDetailDialog
@@ -4106,10 +3925,6 @@ function SyncSessionDetailDialog({
             </div>
             <SyncSessionRecordTable emptyLabel="暂无实例执行记录" records={session.instance_records} title="实例执行记录" />
             <SyncSessionRecordTable emptyLabel="暂无错误日志" records={errorRecords} title="错误日志" />
-            <section className="grid gap-2">
-              <h3 className="text-sm font-semibold">同步详情</h3>
-              <JsonBlock value={session.instance_records.map((record) => ({ instance_name: record.instance_name, sync_details: record.sync_details }))} />
-            </section>
           </div>
         ) : null}
       </DialogContent>
@@ -4131,17 +3946,7 @@ export function SyncSessionsPage() {
       <PageHeader eyebrow="Automation sessions" title="会话中心" description="展示同步会话、实例执行详情、错误日志，并支持取消运行中会话。" legacyHref="/history/sessions/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="会话中心" onRetry={() => void query.refetch()}>
         {(snapshot) => (
-          <>
-            <MetricGrid
-              label="会话指标"
-              metrics={[
-                { label: "会话总数", value: snapshot.total, icon: ListChecks },
-                { label: "当前页", value: `${snapshot.page}/${snapshot.pages ?? 1}`, icon: Clock },
-                { label: "运行中", value: snapshot.items.filter((item) => item.status === "running").length, icon: Activity },
-                { label: "失败实例", value: snapshot.items.reduce((sum, item) => sum + (item.failed_instances ?? 0), 0), icon: AlertCircle }
-              ]}
-            />
-            <ListPanel title="同步会话" description="最近同步会话首屏列表。" count={snapshot.total}>
+          <ListPanel title="同步会话" count={snapshot.total}>
               <DataTable
                 columns={columns}
                 data={snapshot.items}
@@ -4152,8 +3957,7 @@ export function SyncSessionsPage() {
                 ]}
                 searchPlaceholder="搜索运行 ID、任务或来源"
               />
-            </ListPanel>
-          </>
+          </ListPanel>
         )}
       </QueryFrame>
       <SyncSessionDetailDialog
@@ -4204,7 +4008,6 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
   const [creatingUser, setCreatingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
-  const [viewingUser, setViewingUser] = useState<UserItem | null>(null);
   const canManage = canManageCatalog(currentUser);
   const currentUserId = currentUser?.id ?? null;
   const columns = useMemo(
@@ -4213,8 +4016,7 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
         canManage,
         currentUserId,
         onDelete: setDeletingUser,
-        onEdit: setEditingUser,
-        onView: setViewingUser
+        onEdit: setEditingUser
       }),
     [canManage, currentUserId]
   );
@@ -4224,19 +4026,8 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
       <PageHeader eyebrow="Access control" title="用户管理" description="展示用户、角色与启用状态，并支持新增、编辑、删除。" legacyHref="/users/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="用户管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
-          <>
-            <MetricGrid
-              label="用户指标"
-              metrics={[
-                { label: "用户总数", value: snapshot.stats.total, icon: UserCog },
-                { label: "活跃用户", value: snapshot.stats.active, icon: Activity },
-                { label: "管理员", value: snapshot.stats.admin, icon: KeyRound },
-                { label: "普通用户", value: snapshot.stats.user, icon: UserCog }
-              ]}
-            />
-            <ListPanel
+          <ListPanel
               title="用户列表"
-              description={`每页 ${formatNumber(snapshot.list.limit)} 条`}
               count={snapshot.list.total}
               actions={
                 canManage ? (
@@ -4273,19 +4064,9 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
                 ]}
                 searchPlaceholder="搜索用户名或邮箱"
               />
-            </ListPanel>
-          </>
+          </ListPanel>
         )}
       </QueryFrame>
-      <UserDetailDialog
-        item={viewingUser}
-        onOpenChange={(open) => {
-          if (!open) {
-            setViewingUser(null);
-          }
-        }}
-        open={viewingUser !== null}
-      />
       {canManage && creatingUser ? (
         <UserFormDialog
           item={null}
@@ -5507,15 +5288,13 @@ export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | nu
   const [creatingCredential, setCreatingCredential] = useState(false);
   const [editingCredential, setEditingCredential] = useState<CredentialItem | null>(null);
   const [deletingCredential, setDeletingCredential] = useState<CredentialItem | null>(null);
-  const [viewingCredential, setViewingCredential] = useState<CredentialItem | null>(null);
   const canManage = canManageCatalog(currentUser);
   const columns = useMemo(
     () =>
       createCredentialColumns({
         canManage,
         onDelete: setDeletingCredential,
-        onEdit: setEditingCredential,
-        onView: setViewingCredential
+        onEdit: setEditingCredential
       }),
     [canManage]
   );
@@ -5525,25 +5304,14 @@ export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | nu
       <PageHeader eyebrow="Credential vault" title="凭据管理" description="展示凭据类型、数据库类型和引用数量，并支持新增、编辑、删除。" legacyHref="/credentials/" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="凭据管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
-          <>
-            <MetricGrid
-              label="凭据指标"
-              metrics={[
-                { label: "凭据总数", value: snapshot.total, icon: KeyRound },
-                { label: "启用凭据", value: snapshot.items.filter((item) => item.is_active !== false).length, icon: Activity },
-                { label: "数据库凭据", value: snapshot.items.filter((item) => item.credential_type === "database").length, icon: Database },
-                { label: "引用实例", value: snapshot.items.reduce((sum, item) => sum + (item.instance_count ?? 0), 0), icon: Layers3 }
-              ]}
-            />
-            <ListPanel
+          <ListPanel
               title="凭据列表"
-              description={`每页 ${formatNumber(snapshot.limit)} 条`}
               count={snapshot.total}
               actions={
                 canManage ? (
                   <Button onClick={() => setCreatingCredential(true)} size="sm" type="button">
                     <Plus aria-hidden />
-                    新建凭据
+                    添加凭据
                   </Button>
                 ) : (
                   <Badge variant="outline">只读</Badge>
@@ -5567,19 +5335,9 @@ export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | nu
                 ]}
                 searchPlaceholder="搜索凭据、账号或数据库类型"
               />
-            </ListPanel>
-          </>
+          </ListPanel>
         )}
       </QueryFrame>
-      <CredentialDetailDialog
-        item={viewingCredential}
-        onOpenChange={(open) => {
-          if (!open) {
-            setViewingCredential(null);
-          }
-        }}
-        open={viewingCredential !== null}
-      />
       {canManage && creatingCredential ? (
         <CredentialFormDialog
           item={null}
@@ -5638,7 +5396,6 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
   const [creatingTag, setCreatingTag] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
-  const [viewingTag, setViewingTag] = useState<TagItem | null>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const canManage = canManageCatalog(currentUser);
   const columns = useMemo(
@@ -5646,8 +5403,7 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
       createTagColumns({
         canManage,
         onDelete: setDeletingTag,
-        onEdit: setEditingTag,
-        onView: setViewingTag
+        onEdit: setEditingTag
       }),
     [canManage]
   );
@@ -5661,22 +5417,31 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
             <MetricGrid
               label="标签指标"
               metrics={[
-                { label: "全部标签", value: snapshot.list.stats.total, icon: Tags },
-                { label: "启用率", value: formatPercent(snapshot.list.stats.active, snapshot.list.stats.total), detail: `${formatNumber(snapshot.list.stats.active)} 个启用`, icon: Activity },
-                { label: "停用率", value: formatPercent(snapshot.list.stats.inactive, snapshot.list.stats.total), detail: `${formatNumber(snapshot.list.stats.inactive)} 个停用`, icon: AlertCircle },
-                { label: "标签分类", value: snapshot.list.stats.category_count, detail: `${snapshot.categories.length} 个分类`, icon: Boxes }
+                {
+                  label: "全部标签",
+                  value: snapshot.list.stats.total,
+                  detail: `均值/分类 ${formatNumber(snapshot.list.stats.category_count > 0 ? snapshot.list.stats.total / snapshot.list.stats.category_count : 0)}`,
+                  icon: Tags
+                },
+                { label: "启用率", value: formatPercent(snapshot.list.stats.active, snapshot.list.stats.total), detail: `启用 ${formatNumber(snapshot.list.stats.active)}`, icon: Activity },
+                { label: "停用率", value: formatPercent(snapshot.list.stats.inactive, snapshot.list.stats.total), detail: `停用 ${formatNumber(snapshot.list.stats.inactive)}`, icon: AlertCircle },
+                {
+                  label: "标签分类",
+                  value: snapshot.list.stats.category_count,
+                  detail: `启用/分类 ${formatNumber(snapshot.list.stats.category_count > 0 ? snapshot.list.stats.active / snapshot.list.stats.category_count : 0)}`,
+                  icon: Boxes
+                }
               ]}
             />
             <ListPanel
               title="标签列表"
-              description={`分类: ${snapshot.categories.join(", ") || "-"}`}
               count={snapshot.list.total}
               actions={
                 canManage ? (
                   <>
                     <Button onClick={() => setCreatingTag(true)} size="sm" type="button">
                       <Plus aria-hidden />
-                      新建标签
+                      添加标签
                     </Button>
                     <Button onClick={() => setBulkDialogOpen(true)} size="sm" type="button" variant="outline">
                       批量分配
@@ -5707,15 +5472,6 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
           </>
         )}
       </QueryFrame>
-      <TagDetailDialog
-        item={viewingTag}
-        onOpenChange={(open) => {
-          if (!open) {
-            setViewingTag(null);
-          }
-        }}
-        open={viewingTag !== null}
-      />
       {canManage && creatingTag ? (
         <TagFormDialog
           item={null}
@@ -5815,27 +5571,33 @@ const PARTITION_PERIOD_OPTIONS: Array<PartitionMetricsFilters & { label: string 
   { label: "季", periodType: "quarterly", days: 365 }
 ];
 
+const PARTITION_YEAR_OPTIONS = Array.from({ length: 3 }, (_, index) => {
+  const year = new Date().getFullYear() + index;
+  return { label: `${year}年`, value: String(year) };
+});
+
+const PARTITION_MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
+  label: `${index + 1}月`,
+  value: String(index + 1)
+}));
+
 export function PartitionsPage() {
   const [metricFilters, setMetricFilters] = useState<PartitionMetricsFilters>(PARTITION_PERIOD_OPTIONS[0]);
   const query = useQuery({ queryKey: ["read-only", "partitions", metricFilters], queryFn: () => fetchPartitionsSnapshot(metricFilters) });
   const chartConfig = { value: { label: "分区指标", color: "var(--chart-2)" } } satisfies ChartConfig;
-  const [partitionDate, setPartitionDate] = useState("");
+  const [partitionYear, setPartitionYear] = useState("");
+  const [partitionMonth, setPartitionMonth] = useState("");
   const [retentionMonths, setRetentionMonths] = useState("12");
+  const [createOpen, setCreateOpen] = useState(false);
   const [cleanupOpen, setCleanupOpen] = useState(false);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader eyebrow="Storage partitions" title="分区管理" description="展示分区健康状态、核心指标和分区列表，并支持创建分区与清理旧分区。" legacyHref="/partition/" />
       <CommandBar>
-        <FormField label="分区日期">
-          <Input className="w-44" onChange={(event) => setPartitionDate(event.target.value)} type="date" value={partitionDate} />
-        </FormField>
-        <FormField label="保留月份">
-          <Input className="w-28" min={1} onChange={(event) => setRetentionMonths(event.target.value)} type="number" value={retentionMonths} />
-        </FormField>
         <Button
           onClick={() => {
-            void runAction(createPartition(partitionDate || undefined), { success: "分区创建已触发" }).then(() => query.refetch());
+            setCreateOpen(true);
           }}
           type="button"
         >
@@ -5871,18 +5633,13 @@ export function PartitionsPage() {
               />
               <section className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2 max-xl:grid-cols-1">
                 <Card>
-                  <CardHeader className="flex flex-row items-start justify-between gap-3">
+                  <CardHeader>
                     <div>
                       <CardTitle>核心指标趋势</CardTitle>
                       <CardDescription>最近7天的核心指标统计</CardDescription>
                     </div>
-                    <StatusBadge value={status.status} />
                   </CardHeader>
                   <CardContent className="grid gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-                      <span>数据库连接</span>
-                      <span>{snapshot.status.timestamp ?? "-"}</span>
-                    </div>
                     <div className="flex flex-wrap gap-1">
                       {PARTITION_PERIOD_OPTIONS.map((option) => (
                         <Button
@@ -5911,7 +5668,7 @@ export function PartitionsPage() {
                     )}
                   </CardContent>
                 </Card>
-                <ListPanel title="分区列表" description={`每页 ${formatNumber(snapshot.list.limit)} 条`} count={snapshot.list.total}>
+                <ListPanel title="分区列表" count={snapshot.list.total}>
                   <PartitionsTable items={snapshot.list.items} />
                 </ListPanel>
               </section>
@@ -5919,14 +5676,49 @@ export function PartitionsPage() {
           );
         }}
       </QueryFrame>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="w-[min(calc(100vw-2rem),36rem)]">
+          <DialogHeader>
+            <DialogTitle>创建分区</DialogTitle>
+            <DialogDescription>选择年月后创建对应的月度分区。</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="年份">
+              <SelectControl label="年份" onValueChange={setPartitionYear} options={PARTITION_YEAR_OPTIONS} value={partitionYear} />
+            </FormField>
+            <FormField label="月份">
+              <SelectControl label="月份" onValueChange={setPartitionMonth} options={PARTITION_MONTH_OPTIONS} value={partitionMonth} />
+            </FormField>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setCreateOpen(false)} type="button" variant="outline">
+              取消
+            </Button>
+            <Button
+              disabled={!partitionYear || !partitionMonth}
+              onClick={() => {
+                const date = `${partitionYear}-${partitionMonth.padStart(2, "0")}-01`;
+                setCreateOpen(false);
+                void runAction(createPartition(date), { success: "分区创建已触发" }).then(() => query.refetch());
+              }}
+              type="button"
+            >
+              创建分区
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={cleanupOpen} onOpenChange={setCleanupOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认清理旧分区</AlertDialogTitle>
+            <AlertDialogTitle>清理旧分区</AlertDialogTitle>
             <AlertDialogDescription>
-              将按当前保留月份清理旧分区。请确认只保留最近 {formatNumber(numberFromInput(retentionMonths, 12))} 个月的数据。
+              超过保留月数的分区将被永久删除，包含历史数据、索引与统计。
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <FormField label="保留月数">
+            <Input max={60} min={1} onChange={(event) => setRetentionMonths(event.target.value)} type="number" value={retentionMonths} />
+          </FormField>
           <AlertDialogFooter>
             <AlertDialogCancel>返回</AlertDialogCancel>
             <AlertDialogAction
@@ -5936,7 +5728,7 @@ export function PartitionsPage() {
                 void runAction(cleanupPartitions(months), { success: "旧分区清理已触发" }).then(() => query.refetch());
               }}
             >
-              确认清理旧分区
+              开始清理
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

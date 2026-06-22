@@ -319,6 +319,7 @@ describe("ListPages", () => {
     renderWithQueryClient(<InstancesPage />);
 
     await expectTextPresent("mysql-prod");
+    expect(screen.queryByText("每页 20 条")).not.toBeInTheDocument();
 
     for (const label of ["搜索", "类型", "状态", "审计", "托管", "备份", "标签"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
@@ -329,8 +330,8 @@ describe("ListPages", () => {
     for (const action of ["实例统计", "添加实例", "移入回收站", "批量测试连接", "批量导入", "显示已删除", "导出CSV"]) {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
-    expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "打开实例详情页 1" })).toHaveAttribute("href", "/console/instances/1");
+    expect(screen.queryByRole("button", { name: "查看详情 1" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看详情 1" })).toHaveAttribute("href", "/console/instances/1");
     expect(screen.getByRole("button", { name: "编辑实例 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "测试连接 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除实例 1" })).toBeInTheDocument();
@@ -413,11 +414,6 @@ describe("ListPages", () => {
     renderWithQueryClient(<InstancesPage />);
 
     await expectTextPresent("mysql-prod");
-    fireEvent.click(screen.getByRole("button", { name: "查看详情 1" }));
-    const detailDialog = await screen.findByRole("dialog", { name: "实例详情 mysql-prod" });
-    expect(await within(detailDialog).findByText("生产实例")).toBeInTheDocument();
-    fireEvent.click(within(detailDialog).getByRole("button", { name: "关闭详情" }));
-
     fireEvent.click(screen.getByRole("button", { name: "批量测试连接" }));
     await waitFor(() => {
       expect(actionMocks.batchTestInstanceConnections).toHaveBeenCalledWith([1, 4]);
@@ -475,6 +471,12 @@ describe("ListPages", () => {
     expect(screen.getByText("容量信息")).toBeInTheDocument();
     expect(screen.getByText("readonly")).toBeInTheDocument();
     expect(screen.getByText("sa")).toBeInTheDocument();
+    expect(screen.queryByText("数据库信息")).not.toBeInTheDocument();
+    expect(screen.queryByText("账户总数")).not.toBeInTheDocument();
+    expect(screen.queryByText("活跃账户")).not.toBeInTheDocument();
+    expect(screen.queryByText("AG账户总数")).not.toBeInTheDocument();
+    expect(screen.queryByText("当前数据库")).not.toBeInTheDocument();
+    expect(document.querySelector("pre")).toBeNull();
 
     const agAccountsTab = screen.getByRole("tab", { name: "账户信息（AG）" });
     fireEvent.pointerDown(agAccountsTab);
@@ -522,6 +524,7 @@ describe("ListPages", () => {
     renderWithQueryClient(<DatabaseLedgersPage />);
 
     await expectTextPresent("app_db");
+    expect(screen.queryByText("每页 20 条")).not.toBeInTheDocument();
 
     for (const label of ["搜索", "类型", "标签"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
@@ -566,6 +569,7 @@ describe("ListPages", () => {
     renderWithQueryClient(<AccountLedgersPage />);
 
     await expectTextPresent("readonly");
+    expect(screen.queryByText("每页 20 条")).not.toBeInTheDocument();
 
     for (const label of ["搜索", "分类", "AD状态", "标签"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);

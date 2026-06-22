@@ -74,8 +74,13 @@ describe("RiskCenterPage", () => {
 
     expect(screen.getByRole("heading", { name: "风险中心" })).toBeInTheDocument();
     expect(screen.getAllByText("高风险").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("备份缺失").length).toBeGreaterThan(0);
-    expect(screen.getByText("10.0.0.1:3306")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看 db-critical 详情" })).toHaveAttribute("href", "/instances/1");
+    expect(screen.queryByText("备份缺失")).not.toBeInTheDocument();
+    expect(screen.queryByText("10.0.0.1:3306")).not.toBeInTheDocument();
+    expect(screen.queryByText("score 100")).not.toBeInTheDocument();
+    expect(screen.queryByText("高优先级风险")).not.toBeInTheDocument();
+    expect(screen.queryByText("实例风险墙")).not.toBeInTheDocument();
+    expect(screen.queryByText("Risk signals")).not.toBeInTheDocument();
     expect(screen.queryByText("React 页面骨架已就绪")).not.toBeInTheDocument();
   });
 
@@ -95,17 +100,15 @@ describe("RiskCenterPage", () => {
       "标签",
       "筛选",
       "清空",
-      "MySQL (1)",
-      "实例核心风险指标",
-      "备份",
-      "审计",
-      "托管",
-      "群集",
-      "任务"
+      "MySQL (1)"
     ]) {
       await waitFor(() => {
         expect(screen.getAllByText(text).length).toBeGreaterThan(0);
       });
+    }
+    expect(screen.getByLabelText("db-critical 实例核心风险指标")).toBeInTheDocument();
+    for (const label of ["备份：未备份", "审计：已开启", "托管：未托管", "群集：无群集", "任务：正常"]) {
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
   });
 
@@ -121,9 +124,8 @@ describe("RiskCenterPage", () => {
     fireEvent.click(screen.getByRole("combobox", { name: "数据库类型" }));
     fireEvent.click(await screen.findByRole("option", { name: "MySQL" }));
     fireEvent.click(screen.getByRole("combobox", { name: "状态" }));
-    fireEvent.click(await screen.findByRole("option", { name: "异常" }));
-    fireEvent.click(screen.getByRole("combobox", { name: "标签" }));
-    fireEvent.click(await screen.findByRole("option", { name: "生产" }));
+    fireEvent.click(await screen.findByRole("option", { name: "启用" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "标签" }), { target: { value: "prod" } });
     fireEvent.click(screen.getByRole("button", { name: "筛选" }));
 
     await waitFor(() => {
@@ -131,7 +133,7 @@ describe("RiskCenterPage", () => {
         dbType: "mysql",
         search: "db-critical",
         severity: "high",
-        status: "warning",
+        status: "active",
         tag: "prod"
       });
     });

@@ -249,6 +249,11 @@ describe("CapacityPages", () => {
     expect(screen.getAllByRole("button", { name: "折线图" })[0]).toBeEnabled();
     expect(screen.getAllByRole("button", { name: "柱状图" })[0]).toBeEnabled();
     expect(screen.getAllByText("2026-06-10").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Instance capacity")).not.toBeInTheDocument();
+    expect(screen.queryByText("按实例维度查看容量统计、容量变化和容量变化百分比趋势。")).not.toBeInTheDocument();
+    expect(screen.queryByText("开始日期")).not.toBeInTheDocument();
+    expect(screen.queryByText("结束日期")).not.toBeInTheDocument();
+    expect(screen.queryByText(/日粒度 · 每页/)).not.toBeInTheDocument();
   });
 
   it("renders database capacity data from the API", async () => {
@@ -280,6 +285,11 @@ describe("CapacityPages", () => {
     expect(screen.getAllByRole("button", { name: "折线图" })[0]).toBeEnabled();
     expect(screen.getAllByRole("button", { name: "柱状图" })[0]).toBeEnabled();
     expect(screen.getAllByText("2026-06-10").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Database capacity")).not.toBeInTheDocument();
+    expect(screen.queryByText("按数据库维度查看容量统计、容量变化和容量变化百分比趋势。")).not.toBeInTheDocument();
+    expect(screen.queryByText("开始日期")).not.toBeInTheDocument();
+    expect(screen.queryByText("结束日期")).not.toBeInTheDocument();
+    expect(screen.queryByText(/日粒度 · 每页/)).not.toBeInTheDocument();
   });
 
   it("triggers current-period aggregation from capacity pages", async () => {

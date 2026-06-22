@@ -128,6 +128,12 @@ describe("AuditPages", () => {
     expect(screen.getByRole("heading", { name: "日志中心" })).toBeInTheDocument();
     expect(screen.getAllByText("scheduler").length).toBeGreaterThan(0);
     expect(screen.getAllByText("ERROR").length).toBeGreaterThan(0);
+    for (const text of ["总日志数", "错误日志", "警告日志", "信息日志", "9", "调试 0"]) {
+      expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText("System audit")).not.toBeInTheDocument();
+    expect(screen.queryByText("查看最近 24 小时系统日志统计、首屏日志列表和日志详情。")).not.toBeInTheDocument();
+    expect(screen.queryByText(/最近 24 小时 · 每页/)).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 
@@ -141,6 +147,12 @@ describe("AuditPages", () => {
     expect(screen.getByRole("heading", { name: "变更历史" })).toBeInTheDocument();
     expect(screen.getByText("新增账户,赋予 5 项权限")).not.toHaveAttribute("title");
     expect(screen.getAllByText("ORACLE").length).toBeGreaterThan(0);
+    for (const text of ["变更总数", "成功率", "75%", "失败变更", "影响账号数"]) {
+      expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText("Account audit")).not.toBeInTheDocument();
+    expect(screen.queryByText("查看最近 24 小时账户变更统计、首屏变更日志和变更详情。")).not.toBeInTheDocument();
+    expect(screen.queryByText(/最近 24 小时 · 每页/)).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 

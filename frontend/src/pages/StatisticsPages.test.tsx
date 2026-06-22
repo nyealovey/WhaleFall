@@ -130,6 +130,8 @@ describe("StatisticsPages", () => {
 
     expect(screen.getByRole("heading", { name: "实例统计" })).toBeInTheDocument();
     expect(screen.getAllByText("3306").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Instance statistics")).not.toBeInTheDocument();
+    expect(screen.queryByText("按实例状态、数据库类型、端口、版本和备份覆盖读取统计数据。")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 
@@ -168,7 +170,10 @@ describe("StatisticsPages", () => {
 
     expect(screen.getByRole("heading", { name: "账户统计" })).toBeInTheDocument();
     expect(screen.getAllByText("sqlserver").length).toBeGreaterThan(0);
-    expect(screen.getByText("rule #7")).toBeInTheDocument();
+    expect(screen.queryByText("rule #7")).not.toBeInTheDocument();
+    expect(screen.queryByText("规则命中")).not.toBeInTheDocument();
+    expect(screen.queryByText("Account statistics")).not.toBeInTheDocument();
+    expect(screen.queryByText("聚合账户状态、实例范围、数据库类型、分类和规则命中信号。")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 
@@ -212,6 +217,8 @@ describe("StatisticsPages", () => {
     expect(screen.getByRole("heading", { name: "数据库统计" })).toBeInTheDocument();
     expect(screen.getByText("app_db")).toBeInTheDocument();
     expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Database statistics")).not.toBeInTheDocument();
+    expect(screen.queryByText("展示数据库数量、同步状态、实例分布和最新容量排行。")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 

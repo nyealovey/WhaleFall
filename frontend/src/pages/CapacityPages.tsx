@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { runAction } from "@/utils/action-feedback";
@@ -71,22 +70,16 @@ function TrendIcon({ value }: { value: number | undefined | null }) {
 }
 
 function PageHeader({
-  eyebrow,
   title,
-  description,
   legacyHref
 }: {
-  eyebrow: string;
   title: string;
-  description: string;
   legacyHref: string;
 }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
-        <span className="font-mono text-xs tracking-[0.06em] text-muted-foreground uppercase">{eyebrow}</span>
-        <h1 className="font-display mt-1 text-2xl leading-none tracking-normal">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+        <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
       <Button variant="outline" asChild>
         <a href={legacyHref}>
@@ -171,17 +164,9 @@ function CapacityFilterBar({
   return (
     <form
       aria-label="容量筛选"
-      className="grid grid-cols-5 gap-3 rounded-lg border bg-card p-3 max-2xl:grid-cols-4 max-xl:grid-cols-2 max-sm:grid-cols-1"
+      className="grid grid-cols-5 gap-3 rounded-lg border bg-card p-3 max-xl:grid-cols-2 max-sm:grid-cols-1"
       onSubmit={handleSubmit}
     >
-      <label className="grid gap-1.5 text-sm font-medium text-foreground">
-        <span>开始日期</span>
-        <Input onChange={(event) => onDraftChange({ ...draft, startDate: event.target.value })} type="date" value={draft.startDate} />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium text-foreground">
-        <span>结束日期</span>
-        <Input onChange={(event) => onDraftChange({ ...draft, endDate: event.target.value })} type="date" value={draft.endDate} />
-      </label>
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>数据库类型</span>
         <SelectControl
@@ -548,15 +533,12 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function ListFrame({ title, description, total, children }: { title: string; description: string; total: number; children: ReactNode }) {
+function ListFrame({ title, total, children }: { title: string; total: number; children: ReactNode }) {
   return (
     <Card>
       <CardContent className="grid gap-3">
         <div className="flex items-start justify-between gap-3 max-sm:grid">
-          <div>
-            <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          </div>
+          <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
           <Badge variant="secondary">共 {formatNumber(total)} 条</Badge>
         </div>
         {children}
@@ -727,9 +709,7 @@ export function CapacityInstancesPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader
-        eyebrow="Instance capacity"
         title="实例容量"
-        description="按实例维度查看容量统计、容量变化和容量变化百分比趋势。"
         legacyHref="/capacity/instances"
       />
       <CommandBar
@@ -774,7 +754,7 @@ export function CapacityInstancesPage() {
               instanceTrendItems={snapshot.charts.trend.items}
               scope="instance"
             />
-            <ListFrame title="实例容量列表" description={`日粒度 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
+            <ListFrame title="实例容量列表" total={snapshot.list.total}>
               <InstanceCapacityTable items={snapshot.list.items} />
             </ListFrame>
           </>
@@ -795,9 +775,7 @@ export function CapacityDatabasesPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader
-        eyebrow="Database capacity"
         title="数据库容量"
-        description="按数据库维度查看容量统计、容量变化和容量变化百分比趋势。"
         legacyHref="/capacity/databases"
       />
       <CommandBar
@@ -849,7 +827,7 @@ export function CapacityDatabasesPage() {
               databaseTrendItems={snapshot.charts.trend.items}
               scope="database"
             />
-            <ListFrame title="数据库容量列表" description={`日粒度 · 每页 ${formatNumber(snapshot.list.limit)} 条`} total={snapshot.list.total}>
+            <ListFrame title="数据库容量列表" total={snapshot.list.total}>
               <DatabaseCapacityTable items={snapshot.list.items} />
             </ListFrame>
           </>

@@ -71,7 +71,6 @@ import {
   type InstanceConnectionStatus,
   type InstanceDatabaseSizeItem,
   type InstanceDatabaseSizesResponse,
-  type InstanceDetailResponse,
   type InstanceListItem,
   type PaginatedList
 } from "@/api/lists";
@@ -560,7 +559,7 @@ function ListFrame({
   children
 }: {
   title: string;
-  description: string;
+  description?: string;
   total: number;
   children: ReactNode;
 }) {
@@ -570,7 +569,7 @@ function ListFrame({
         <div className="flex items-start justify-between gap-3 max-sm:grid">
           <div>
             <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
           </div>
           <Badge variant="secondary">共 {formatNumber(total)} 条</Badge>
         </div>
@@ -658,38 +657,6 @@ function InstanceImportDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function InstanceDetailDialog({ item, onOpenChange }: { item: InstanceListItem; onOpenChange: (open: boolean) => void }) {
-  const query = useQuery({
-    queryKey: ["lists", "instances", "detail", item.id],
-    queryFn: () => fetchInstanceDetail(item.id)
-  });
-  const instance: InstanceDetailResponse["instance"] = query.data?.instance ?? item;
-
-  return (
-    <Dialog onOpenChange={onOpenChange} open>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>实例详情 {instance.name}</DialogTitle>
-          <DialogDescription>来自 `/api/v1/instances/{instance.id}` 的实例详情。</DialogDescription>
-        </DialogHeader>
-        <dl className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-          <DetailField label="实例名称">{instance.name}</DetailField>
-          <DetailField label="数据库类型">{dbTypeLabel(instance.db_type)}</DetailField>
-          <DetailField label="主机/IP">{instance.host}:{instance.port}</DetailField>
-          <DetailField label="状态">{instanceStatusLabel(instance)}</DetailField>
-          <DetailField label="描述">{asText(instance.description)}</DetailField>
-          <DetailField label="最后同步">{formatShortTimestamp(instance.last_sync_time)}</DetailField>
-        </dl>
-        <DialogFooter>
-          <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
-            关闭详情
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -1079,27 +1046,6 @@ function InstanceBackupInfoCard({
   );
 }
 
-type DetailSummaryItem = {
-  label: string;
-  value: ReactNode;
-  hint?: ReactNode;
-};
-
-function DetailSummaryGrid({ items }: { items: DetailSummaryItem[] }) {
-  return (
-    <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
-      {items.map((item) => (
-        <DetailField key={item.label} label={item.label}>
-          <div className="grid gap-1">
-            <span className="font-medium">{item.value}</span>
-            {item.hint ? <span className="text-xs text-muted-foreground">{item.hint}</span> : null}
-          </div>
-        </DetailField>
-      ))}
-    </dl>
-  );
-}
-
 function typeSpecificText(item: AccountLedgerItem, key: string): string {
   return asText(item.type_specific?.[key]);
 }
@@ -1107,25 +1053,6 @@ function typeSpecificText(item: AccountLedgerItem, key: string): string {
 function buildAgListenerLabel(item: InstanceAgAccountItem): string {
   const parts = [item.listener_name, item.listener_host].map((value) => asText(value, "")).filter(Boolean);
   return parts.length > 0 ? parts.join(" / ") : "-";
-}
-
-function summarizeAccountItems(items: Array<{ is_active?: boolean; is_deleted?: boolean; is_superuser?: boolean }>, total?: number) {
-  return {
-    total: total ?? items.length,
-    active: items.filter((item) => item.is_deleted !== true && item.is_active !== false).length,
-    deleted: items.filter((item) => item.is_deleted === true || item.is_active === false).length,
-    superuser: items.filter((item) => item.is_superuser).length
-  };
-}
-
-function summarizeAgAccounts(data?: InstanceAgAccountsResponse) {
-  const fallback = summarizeAccountItems(data?.items ?? [], data?.total);
-  return {
-    total: data?.summary?.total ?? fallback.total,
-    active: data?.summary?.active ?? fallback.active,
-    deleted: data?.summary?.deleted ?? fallback.deleted,
-    superuser: data?.summary?.superuser ?? fallback.superuser
-  };
 }
 
 function createInstanceAccountsColumns(): ColumnDef<AccountLedgerItem>[] {
@@ -1340,19 +1267,10 @@ function InstanceDataTabsCard({
   const accountColumns = useMemo(() => createInstanceAccountsColumns(), []);
   const agAccountColumns = useMemo(() => createInstanceAgAccountsColumns(), []);
   const databaseSizeColumns = useMemo(() => createInstanceDatabaseSizeColumns(), []);
-  const accountSummary = summarizeAccountItems(accountsData?.items ?? [], accountsData?.total);
-  const agSummary = summarizeAgAccounts(agAccountsData);
   const databases = databaseSizesData?.databases ?? [];
-  const databaseTotal = databaseSizesData?.total ?? databases.length;
-  const databaseActive = databaseSizesData?.active_count ?? databases.filter((item) => item.is_active).length;
-  const databaseDeleted = databaseSizesData?.filtered_count ?? databases.filter((item) => !item.is_active).length;
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>数据库信息</CardTitle>
-        <CardDescription>对应旧版详情页的账户信息、AG 账户和容量信息。</CardDescription>
-      </CardHeader>
       <CardContent>
         <Tabs defaultValue="accounts">
           <TabsList className={showAgAccounts ? "grid h-auto w-full grid-cols-3" : "grid h-auto w-full grid-cols-2"}>
@@ -1375,15 +1293,6 @@ function InstanceDataTabsCard({
           <TabsContent className="grid gap-4" forceMount value="accounts">
             <DataTabState isLoading={accountsLoading} isError={accountsError} onRetry={onRetryAccounts} />
             {accountsData ? (
-              <>
-                <DetailSummaryGrid
-                  items={[
-                    { label: "账户总数", value: formatNumber(accountSummary.total), hint: "当前实例账户" },
-                    { label: "活跃账户", value: formatNumber(accountSummary.active), hint: "未删除账户" },
-                    { label: "已删除账户", value: formatNumber(accountSummary.deleted), hint: "已回收账户" },
-                    { label: "超管账户", value: formatNumber(accountSummary.superuser), hint: "高权限账户" }
-                  ]}
-                />
                 <DataTable
                   columns={accountColumns}
                   data={accountsData.items}
@@ -1395,7 +1304,6 @@ function InstanceDataTabsCard({
                   ]}
                   searchPlaceholder="搜索账户、插件、类型"
                 />
-              </>
             ) : null}
           </TabsContent>
 
@@ -1403,15 +1311,6 @@ function InstanceDataTabsCard({
             <TabsContent className="grid gap-4" forceMount value="ag-accounts">
               <DataTabState isLoading={agAccountsLoading} isError={agAccountsError} onRetry={onRetryAgAccounts} />
               {agAccountsData ? (
-                <>
-                  <DetailSummaryGrid
-                    items={[
-                      { label: "AG账户总数", value: formatNumber(agSummary.total), hint: agAccountsData.cluster?.name ? `群集：${agAccountsData.cluster.name}` : "未绑定群集" },
-                      { label: "活跃AG账户", value: formatNumber(agSummary.active), hint: "未删除账户" },
-                      { label: "已删除AG账户", value: formatNumber(agSummary.deleted), hint: "已回收账户" },
-                      { label: "AG超管账户", value: formatNumber(agSummary.superuser), hint: "高权限账户" }
-                    ]}
-                  />
                   <DataTable
                     columns={agAccountColumns}
                     data={agAccountsData.items}
@@ -1423,7 +1322,6 @@ function InstanceDataTabsCard({
                     ]}
                     searchPlaceholder="搜索 AG、监听器、账户"
                   />
-                </>
               ) : null}
             </TabsContent>
           ) : null}
@@ -1431,15 +1329,6 @@ function InstanceDataTabsCard({
           <TabsContent className="grid gap-4" forceMount value="capacity">
             <DataTabState isLoading={databaseSizesLoading} isError={databaseSizesError} onRetry={onRetryDatabaseSizes} />
             {databaseSizesData ? (
-              <>
-                <DetailSummaryGrid
-                  items={[
-                    { label: "当前数据库", value: formatNumber(databaseTotal), hint: "当前结果" },
-                    { label: "在线数据库", value: formatNumber(databaseActive), hint: "在线" },
-                    { label: "已删除数据库", value: formatNumber(databaseDeleted), hint: "已删除" },
-                    { label: "总容量", value: formatMegabytes(databaseSizesData.total_size_mb, "0 GB"), hint: "活跃数据库容量" }
-                  ]}
-                />
                 <DataTable
                   columns={databaseSizeColumns}
                   data={databases}
@@ -1447,7 +1336,6 @@ function InstanceDataTabsCard({
                   filters={[{ columnId: "is_active", label: "状态", options: [{ label: "在线", value: "在线" }, { label: "已删除", value: "已删除" }] }]}
                   searchPlaceholder="搜索数据库名称、状态"
                 />
-              </>
             ) : null}
           </TabsContent>
         </Tabs>
@@ -1459,13 +1347,11 @@ function InstanceDataTabsCard({
 function createInstanceColumns({
   onDelete,
   onEdit,
-  onRestore,
-  onView
+  onRestore
 }: {
   onDelete: (item: InstanceListItem) => void;
   onEdit: (item: InstanceListItem) => void;
   onRestore: (item: InstanceListItem) => void;
-  onView: (item: InstanceListItem) => void;
 }): ColumnDef<InstanceListItem>[] {
   return [
   {
@@ -1551,14 +1437,10 @@ function createInstanceColumns({
     header: "操作",
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-2">
-        <Button aria-label={`查看详情 ${row.original.id}`} onClick={() => onView(row.original)} size="sm" type="button" variant="outline">
-          <Eye aria-hidden size={14} />
-          <span>详情</span>
-        </Button>
         <Button asChild size="sm" variant="outline">
-          <a aria-label={`打开实例详情页 ${row.original.id}`} href={`/console/instances/${row.original.id}`}>
-            <ExternalLink aria-hidden size={14} />
-            <span>详情页</span>
+          <a aria-label={`查看详情 ${row.original.id}`} href={`/console/instances/${row.original.id}`}>
+            <Eye aria-hidden size={14} />
+            <span>详情</span>
           </a>
         </Button>
         <Button aria-label={`编辑实例 ${row.original.id}`} onClick={() => onEdit(row.original)} size="sm" type="button" variant="outline">
@@ -1903,7 +1785,6 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
               <DetailField label="描述">{asText(instance.description)}</DetailField>
               <DetailField label="最后同步">{formatShortTimestamp(instance.last_sync_time)}</DetailField>
             </dl>
-            <JsonBlock value={instance} />
           </CardContent>
         </Card>
       ) : null}
@@ -1949,7 +1830,6 @@ export function InstancesPage() {
     queryKey: ["lists", "instances", 1, 200],
     queryFn: () => fetchInstances()
   });
-  const [selectedInstance, setSelectedInstance] = useState<InstanceListItem | null>(null);
   const [creatingInstance, setCreatingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<InstanceListItem | null>(null);
   const [deletingInstance, setDeletingInstance] = useState<InstanceListItem | null>(null);
@@ -1967,8 +1847,7 @@ export function InstancesPage() {
         onEdit: setEditingInstance,
         onRestore: (item) => {
           void runAction(restoreInstance(item.id), { success: "实例已恢复" }).then(() => listQuery.refetch());
-        },
-        onView: setSelectedInstance
+        }
       }),
     [listQuery]
   );
@@ -2039,7 +1918,7 @@ export function InstancesPage() {
       </CommandBar>
       <QueryPage result={listQuery.data} isLoading={listQuery.isLoading} isError={listQuery.isError} onRetry={() => void listQuery.refetch()}>
         {(result) => (
-          <ListFrame title="实例列表" description={`每页 ${formatNumber(result.limit)} 条`} total={result.total}>
+          <ListFrame title="实例列表" total={result.total}>
             <DataTable
               columns={columns}
               data={result.items}
@@ -2056,16 +1935,6 @@ export function InstancesPage() {
           </ListFrame>
         )}
       </QueryPage>
-      {selectedInstance ? (
-        <InstanceDetailDialog
-          item={selectedInstance}
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedInstance(null);
-            }
-          }}
-        />
-      ) : null}
       {creatingInstance ? (
         <InstanceFormDialog
           item={null}
@@ -2200,7 +2069,7 @@ export function DatabaseLedgersPage() {
       </CommandBar>
       <QueryPage result={listQuery.data} isLoading={listQuery.isLoading} isError={listQuery.isError} onRetry={() => void listQuery.refetch()}>
         {(result) => (
-          <ListFrame title="数据库台账" description={`每页 ${formatNumber(result.limit)} 条`} total={result.total}>
+          <ListFrame title="数据库台账" total={result.total}>
             <DataTable
               columns={columns}
               data={result.items}
@@ -2279,7 +2148,7 @@ export function AccountLedgersPage() {
       </CommandBar>
       <QueryPage result={listQuery.data} isLoading={listQuery.isLoading} isError={listQuery.isError} onRetry={() => void listQuery.refetch()}>
         {(result) => (
-          <ListFrame title="账户台账" description={`每页 ${formatNumber(result.limit)} 条`} total={result.total}>
+          <ListFrame title="账户台账" total={result.total}>
             <DataTable
               columns={columns}
               data={result.items}

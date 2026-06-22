@@ -6,11 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchAccountScopeOptions,
   fetchClassificationStatisticsSnapshot,
-  fetchCredentialDetail,
   fetchPartitionsSnapshot,
   fetchSchedulerJobDetail,
-  fetchTagDetail,
-  fetchUserDetail
 } from "@/api/readOnly";
 import { runAction } from "@/utils/action-feedback";
 
@@ -324,9 +321,6 @@ vi.mock("@/api/readOnly", () => ({
     list: { items: [{ id: 1, username: "admin", role: "admin", is_active: true, created_at_display: "2026-06-11" }], total: 1, page: 1, pages: 1, limit: 10 },
     stats: { total: 1, active: 1, inactive: 0, admin: 1, user: 0 }
   })),
-  fetchUserDetail: vi.fn(async () => ({
-    user: { id: 1, username: "admin", role: "admin", is_active: true, created_at_display: "2026-06-11", last_login: "2026-06-12T10:00:00+08:00" }
-  })),
   fetchSettingsSnapshot: vi.fn(async () => ({
     alerts: {
       smtp_ready: true,
@@ -356,25 +350,9 @@ vi.mock("@/api/readOnly", () => ({
     pages: 1,
     limit: 20
   })),
-  fetchCredentialDetail: vi.fn(async () => ({
-    credential: {
-      id: 1,
-      name: "prod-db",
-      credential_type: "database",
-      db_type: "mysql",
-      username: "root",
-      is_active: true,
-      instance_count: 2,
-      description: "production credential",
-      created_at_display: "2026-06-11"
-    }
-  })),
   fetchTagsSnapshot: vi.fn(async () => ({
     list: { items: [{ id: 1, name: "prod", display_name: "生产", category: "env", is_active: true, instance_count: 3 }], total: 1, page: 1, pages: 1, limit: 20, stats: { total: 1, active: 1, inactive: 0, category_count: 1 } },
     categories: ["env"]
-  })),
-  fetchTagDetail: vi.fn(async () => ({
-    tag: { id: 1, name: "prod", display_name: "生产", category: "env", is_active: true, instance_count: 3, created_at: "2026-06-11T00:00:00+08:00" }
   })),
   fetchTagBulkOptions: vi.fn(async () => ({
     instances: [{ id: 1, name: "mysql-prod", db_type: "mysql", host: "10.0.0.1" }],
@@ -422,10 +400,10 @@ describe("RemainingReadOnlyPages", () => {
   const cases: Array<[string, ReactElement, string[]]> = [
     ["群集管理", <ClustersPage />, ["sql-ag"]],
     ["账户分类", <AccountClassificationsPage />, ["DBA", "root rule"]],
-    ["分类统计", <ClassificationStatisticsPage />, ["DBA", "分类趋势面积图"]],
+    ["分类统计", <ClassificationStatisticsPage />, ["DBA", "分类趋势（去重账号数）"]],
     ["定时任务", <SchedulerPage />, ["同步任务", "运行中"]],
     ["会话中心", <SyncSessionsPage />, ["s-1", "running"]],
-    ["用户管理", <UsersPage />, ["admin", "用户总数"]],
+    ["用户管理", <UsersPage />, ["admin", "用户列表"]],
     ["系统设置", <SettingsPage />, ["设置模块", "告警设置", "邮件告警"]],
     ["凭据管理", <CredentialsPage />, ["prod-db", "root"]],
     ["标签管理", <TagsPage />, ["生产", "env"]],
@@ -454,16 +432,20 @@ describe("RemainingReadOnlyPages", () => {
       await expectTextPresent(text);
     }
 
-    expect(screen.getByRole("button", { name: "新建凭据" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "添加凭据" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "编辑凭据 prod-db" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除凭据 prod-db" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "查看凭据 prod-db" })).not.toBeInTheDocument();
+    expect(screen.queryByText("凭据指标")).not.toBeInTheDocument();
+    expect(screen.queryByText("凭据总数")).not.toBeInTheDocument();
+    expect(screen.queryByText("每页 20 条")).not.toBeInTheDocument();
   });
 
   it("runs credential create, update, and delete through React dialogs", async () => {
     renderWithQueryClient(<CredentialsPage />);
 
     await screen.findByRole("heading", { name: "凭据管理" });
-    fireEvent.click(await screen.findByRole("button", { name: "新建凭据" }));
+    fireEvent.click(await screen.findByRole("button", { name: "添加凭据" }));
     const createDialog = await screen.findByRole("dialog", { name: "新建凭据" });
     fireEvent.change(within(createDialog).getByLabelText("凭据名称"), { target: { value: "ops-db" } });
     fireEvent.change(within(createDialog).getByLabelText("用户名"), { target: { value: "app_user" } });
@@ -519,17 +501,22 @@ describe("RemainingReadOnlyPages", () => {
       await expectTextPresent(text);
     }
 
-    expect(screen.getByRole("button", { name: "新建标签" })).toBeInTheDocument();
+    for (const text of ["均值/分类 1", "启用 1", "停用 0", "启用/分类 1", "100.0%", "0.0%"]) {
+      await expectTextPresent(text);
+    }
+    expect(screen.getByRole("button", { name: "添加标签" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "批量分配" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "编辑标签 生产" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除标签 生产" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "查看标签 生产" })).not.toBeInTheDocument();
+    expect(screen.queryByText("分类: env")).not.toBeInTheDocument();
   });
 
   it("runs tag create, update, and delete through React dialogs", async () => {
     renderWithQueryClient(<TagsPage />);
 
     await screen.findByRole("heading", { name: "标签管理" });
-    fireEvent.click(await screen.findByRole("button", { name: "新建标签" }));
+    fireEvent.click(await screen.findByRole("button", { name: "添加标签" }));
     const createDialog = await screen.findByRole("dialog", { name: "新建标签" });
     fireEvent.change(within(createDialog).getByLabelText("标签编码"), { target: { value: "staging" } });
     fireEvent.change(within(createDialog).getByLabelText("展示名称"), { target: { value: "预发" } });
@@ -580,13 +567,29 @@ describe("RemainingReadOnlyPages", () => {
     expect(screen.getByRole("button", { name: "新建用户" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "编辑用户 admin" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除用户 admin" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "查看用户 admin" })).not.toBeInTheDocument();
+    expect(screen.queryByText("用户指标")).not.toBeInTheDocument();
+    expect(screen.queryByText("用户总数")).not.toBeInTheDocument();
+    expect(screen.queryByText("每页 10 条")).not.toBeInTheDocument();
   });
 
   it("matches legacy read-only management actions for non-admin users", async () => {
+    renderWithQueryClient(<AccountClassificationsPage currentUser={viewerUser} />);
+
+    await screen.findByRole("heading", { name: "账户分类" });
+    expect(await screen.findByRole("button", { name: "查看规则 root rule" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "自动分类" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "新建分类" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "新建规则" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "编辑分类 DBA" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "编辑规则 root rule" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "删除规则 root rule" })).not.toBeInTheDocument();
+
+    cleanup();
     renderWithQueryClient(<UsersPage currentUser={viewerUser} />);
 
     await screen.findByRole("heading", { name: "用户管理" });
-    expect(await screen.findByRole("button", { name: "查看用户 admin" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "查看用户 admin" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "新建用户" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑用户 admin" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "删除用户 admin" })).not.toBeInTheDocument();
@@ -595,8 +598,8 @@ describe("RemainingReadOnlyPages", () => {
     renderWithQueryClient(<CredentialsPage currentUser={viewerUser} />);
 
     await screen.findByRole("heading", { name: "凭据管理" });
-    expect(await screen.findByRole("button", { name: "查看凭据 prod-db" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "新建凭据" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "查看凭据 prod-db" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "添加凭据" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑凭据 prod-db" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "删除凭据 prod-db" })).not.toBeInTheDocument();
 
@@ -604,8 +607,8 @@ describe("RemainingReadOnlyPages", () => {
     renderWithQueryClient(<TagsPage currentUser={viewerUser} />);
 
     await screen.findByRole("heading", { name: "标签管理" });
-    expect(await screen.findByRole("button", { name: "查看标签 生产" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "新建标签" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "查看标签 生产" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "添加标签" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "批量分配" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑标签 生产" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "删除标签 生产" })).not.toBeInTheDocument();
@@ -665,6 +668,12 @@ describe("RemainingReadOnlyPages", () => {
     renderWithQueryClient(<SchedulerPage />);
 
     await screen.findByRole("heading", { name: "定时任务" });
+    await expectTextPresent("同步任务");
+    expect(screen.queryByText("定时任务指标")).not.toBeInTheDocument();
+    expect(screen.queryByText("任务总数")).not.toBeInTheDocument();
+    expect(screen.queryByText("运行任务")).not.toBeInTheDocument();
+    expect(screen.queryByText("内置任务")).not.toBeInTheDocument();
+    expect(screen.queryByText("可配置")).not.toBeInTheDocument();
 
     for (const text of ["重新初始化任务", "运行中的任务", "已暂停的任务", "同步任务", "归档任务", "下次运行", "上次运行", "任务 ID", "触发器参数"]) {
       await expectTextPresent(text);
@@ -688,6 +697,9 @@ describe("RemainingReadOnlyPages", () => {
 
     expect(screen.getByRole("button", { name: "查看详情 s-1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "取消任务 s-1" })).toBeInTheDocument();
+    expect(screen.queryByText("会话指标")).not.toBeInTheDocument();
+    expect(screen.queryByText("会话总数")).not.toBeInTheDocument();
+    expect(screen.queryByText("最近同步会话首屏列表。")).not.toBeInTheDocument();
   });
 
   it("opens sync session detail in a React dialog", async () => {
@@ -700,6 +712,7 @@ describe("RemainingReadOnlyPages", () => {
     expect(await screen.findByText("mysql-prod")).toBeInTheDocument();
     expect(await screen.findByText("oracle-failed")).toBeInTheDocument();
     expect(await screen.findByText("connection refused")).toBeInTheDocument();
+    expect(screen.queryByText("同步详情")).not.toBeInTheDocument();
   });
 
   it("renders clusters with legacy filters, fields, db type panels, and actions", async () => {
@@ -910,6 +923,9 @@ describe("RemainingReadOnlyPages", () => {
     expect(screen.getByRole("button", { name: "查看规则 root rule" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "编辑规则 root rule" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除规则 root rule" })).toBeInTheDocument();
+    expect(screen.queryByText("分类展示名、系统标记、风险等级和规则数量。")).not.toBeInTheDocument();
+    expect(screen.queryByText("按数据库类型汇总后的分类规则。")).not.toBeInTheDocument();
+    expect(screen.queryByText("共 2 条")).not.toBeInTheDocument();
   });
 
   it("renders classification statistics with legacy filters, rule list, and chart panels", async () => {
@@ -940,6 +956,9 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(screen.getByRole("combobox", { name: "统计周期" }));
     for (const option of ["周统计", "月统计", "季统计"]) {
       expect(await screen.findByRole("option", { name: option })).toBeInTheDocument();
+    }
+    for (const text of ["分类统计指标", "统计分类", "趋势序列", "周期数量", "Top 命中", "分类排行", "分类趋势面积图", "选择分类后展示当前周期 Top 规则贡献。"] ) {
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
     }
   });
 
@@ -1221,8 +1240,6 @@ describe("RemainingReadOnlyPages", () => {
     for (const text of [
       "创建分区",
       "清理旧分区",
-      "分区日期",
-      "保留月份",
       "分区总数",
       "总大小",
       "总记录数",
@@ -1244,6 +1261,21 @@ describe("RemainingReadOnlyPages", () => {
     ]) {
       await expectTextPresent(text);
     }
+
+    expect(screen.queryByLabelText("年份")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("月份")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("保留月数")).not.toBeInTheDocument();
+    expect(screen.queryByText("每页 20 条")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "创建分区" }));
+    const createDialog = await screen.findByRole("dialog", { name: "创建分区" });
+    expect(within(createDialog).getByLabelText("年份")).toBeInTheDocument();
+    expect(within(createDialog).getByLabelText("月份")).toBeInTheDocument();
+    fireEvent.click(within(createDialog).getByRole("button", { name: "取消" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "清理旧分区" }));
+    const cleanupDialog = await screen.findByRole("alertdialog", { name: "清理旧分区" });
+    expect(within(cleanupDialog).getByLabelText("保留月数")).toBeInTheDocument();
   });
 
   it("runs scheduler, session, settings, and partition actions through v1 APIs", async () => {
@@ -1361,14 +1393,16 @@ describe("RemainingReadOnlyPages", () => {
     cleanup();
     renderWithQueryClient(<PartitionsPage />);
     await screen.findByRole("heading", { name: "分区管理" });
-    await screen.findByRole("button", { name: "创建分区" });
-    fireEvent.change(screen.getByLabelText("分区日期"), { target: { value: "2026-07-01" } });
-    fireEvent.change(screen.getByLabelText("保留月份"), { target: { value: "18" } });
     fireEvent.click(screen.getByRole("button", { name: "创建分区" }));
+    const createDialog = await screen.findByRole("dialog", { name: "创建分区" });
+    await chooseSelectOption(within(createDialog), "年份", "2026年");
+    await chooseSelectOption(within(createDialog), "月份", "7月");
+    fireEvent.click(within(createDialog).getByRole("button", { name: "创建分区" }));
     fireEvent.click(screen.getByRole("button", { name: "清理旧分区" }));
     expect(actionMocks.cleanupPartitions).not.toHaveBeenCalled();
-    expect(await screen.findByRole("alertdialog", { name: "确认清理旧分区" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "确认清理旧分区" }));
+    const cleanupDialog = await screen.findByRole("alertdialog", { name: "清理旧分区" });
+    fireEvent.change(within(cleanupDialog).getByLabelText("保留月数"), { target: { value: "18" } });
+    fireEvent.click(within(cleanupDialog).getByRole("button", { name: "开始清理" }));
     await waitFor(() => {
       expect(actionMocks.createPartition).toHaveBeenCalledWith("2026-07-01");
       expect(actionMocks.cleanupPartitions).toHaveBeenCalledWith(18);
@@ -1392,37 +1426,13 @@ describe("RemainingReadOnlyPages", () => {
     });
   });
 
-  it("opens detail dialogs for scheduler jobs, users, credentials, and tags", async () => {
+  it("opens the scheduler job detail provided by the legacy page", async () => {
     renderWithQueryClient(<SchedulerPage />);
     await screen.findByRole("heading", { name: "定时任务" });
     fireEvent.click(await screen.findByRole("button", { name: "查看任务 同步任务" }));
     const jobDialog = await screen.findByRole("dialog", { name: "任务详情 同步任务" });
     expect(await within(jobDialog).findByText("tasks.sync")).toBeInTheDocument();
     expect(fetchSchedulerJobDetail).toHaveBeenCalledWith("job-1");
-
-    cleanup();
-    renderWithQueryClient(<UsersPage />);
-    await screen.findByRole("heading", { name: "用户管理" });
-    fireEvent.click(await screen.findByRole("button", { name: "查看用户 admin" }));
-    const userDialog = await screen.findByRole("dialog", { name: "用户详情 admin" });
-    expect(await within(userDialog).findByText("2026-06-12T10:00:00+08:00")).toBeInTheDocument();
-    expect(fetchUserDetail).toHaveBeenCalledWith(1);
-
-    cleanup();
-    renderWithQueryClient(<CredentialsPage />);
-    await screen.findByRole("heading", { name: "凭据管理" });
-    fireEvent.click(await screen.findByRole("button", { name: "查看凭据 prod-db" }));
-    const credentialDialog = await screen.findByRole("dialog", { name: "凭据详情 prod-db" });
-    expect(await within(credentialDialog).findByText("production credential")).toBeInTheDocument();
-    expect(fetchCredentialDetail).toHaveBeenCalledWith(1);
-
-    cleanup();
-    renderWithQueryClient(<TagsPage />);
-    await screen.findByRole("heading", { name: "标签管理" });
-    fireEvent.click(await screen.findByRole("button", { name: "查看标签 生产" }));
-    const tagDialog = await screen.findByRole("dialog", { name: "标签详情 生产" });
-    expect(await within(tagDialog).findByText("#prod")).toBeInTheDocument();
-    expect(fetchTagDetail).toHaveBeenCalledWith(1);
   });
 
   it("runs tag bulk assignment and removal through v1 APIs", async () => {

@@ -125,7 +125,7 @@ function ConsoleRoutes() {
           <Route element={<HistoryLogsPage />} path="/logs" />
           <Route element={<AccountChangeLogsPage />} path="/account-change-logs" />
           <Route element={<ClustersPage />} path="/clusters" />
-          <Route element={<AccountClassificationsPage />} path="/account-classifications" />
+          <Route element={<AccountClassificationsPage currentUser={session.user} />} path="/account-classifications" />
           <Route element={<ClassificationStatisticsPage />} path="/classification-statistics" />
           <Route element={<SchedulerPage />} path="/scheduler" />
           <Route element={<SyncSessionsPage />} path="/sync-sessions" />

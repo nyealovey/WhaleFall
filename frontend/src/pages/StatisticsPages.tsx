@@ -8,7 +8,6 @@ import {
   Database,
   ExternalLink,
   HardDrive,
-  List,
   Network,
   PieChart,
   RefreshCw,
@@ -171,22 +170,16 @@ function formatDateTime(value: string | null | undefined): string {
 }
 
 function PageHeader({
-  eyebrow,
   title,
-  description,
   legacyHref
 }: {
-  eyebrow: string;
   title: string;
-  description: string;
   legacyHref: string;
 }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
-        <span className="font-mono text-xs tracking-[0.06em] text-muted-foreground uppercase">{eyebrow}</span>
-        <h1 className="font-display mt-1 text-2xl leading-none tracking-normal">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+        <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
       <Button variant="outline" asChild>
         <a href={legacyHref}>
@@ -654,12 +647,6 @@ function AccountStatisticsContent({ snapshot }: { snapshot: AccountStatisticsSna
     };
   });
   const classificationRows = recordRows(snapshot.classifications, total, { countKeys: ["account_count", "total_accounts", "count", "total"] });
-  const ruleRows: DistributionRow[] = snapshot.rules.rule_stats.slice(0, 8).map((item) => ({
-    label: `rule #${item.rule_id}`,
-    value: item.matched_accounts_count,
-    percent: ratio(item.matched_accounts_count, total)
-  }));
-
   return (
     <>
       <MetricGrid
@@ -713,7 +700,6 @@ function AccountStatisticsContent({ snapshot }: { snapshot: AccountStatisticsSna
       <section className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
         <DataPanel title="数据库类型分布" description="实时" badge="实时" icon={Database} columns={distributionColumns} data={dbTypeRows} emptyText="暂无数据库类型数据" />
         <DataPanel title="账户分类分布" description="当前规则" badge="当前规则" icon={Tags} columns={distributionColumns} data={classificationRows} emptyText="暂无账户分类数据" />
-        <DataPanel title="规则命中" description="规则命中统计" badge="当前规则" icon={List} columns={distributionColumns} data={ruleRows} emptyText="暂无规则命中统计" />
       </section>
     </>
   );
@@ -814,9 +800,7 @@ export function InstanceStatisticsPage() {
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <CommandBar backHref="/instances/" backLabel="返回实例列表" onRefresh={() => void runAction(statsQuery.refetch(), { success: "实例统计已刷新" })} />
       <PageHeader
-        eyebrow="Instance statistics"
         title="实例统计"
-        description="按实例状态、数据库类型、端口、版本和备份覆盖读取统计数据。"
         legacyHref="/instances/statistics"
       />
       <QueryPage isLoading={statsQuery.isLoading} isError={statsQuery.isError} onRetry={() => void statsQuery.refetch()}>
@@ -836,9 +820,7 @@ export function AccountStatisticsPage() {
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <CommandBar backHref="/accounts/ledgers" backLabel="账户列表" onRefresh={() => void runAction(statsQuery.refetch(), { success: "账户统计已刷新" })} />
       <PageHeader
-        eyebrow="Account statistics"
         title="账户统计"
-        description="聚合账户状态、实例范围、数据库类型、分类和规则命中信号。"
         legacyHref="/accounts/statistics"
       />
       <QueryPage isLoading={statsQuery.isLoading} isError={statsQuery.isError} onRetry={() => void statsQuery.refetch()}>
@@ -858,9 +840,7 @@ export function DatabaseStatisticsPage() {
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <CommandBar backHref="/databases/ledgers" backLabel="数据库台账" onRefresh={() => void runAction(statsQuery.refetch(), { success: "数据库统计已刷新" })} />
       <PageHeader
-        eyebrow="Database statistics"
         title="数据库统计"
-        description="展示数据库数量、同步状态、实例分布和最新容量排行。"
         legacyHref="/databases/statistics"
       />
       <QueryPage isLoading={statsQuery.isLoading} isError={statsQuery.isError} onRetry={() => void statsQuery.refetch()}>
