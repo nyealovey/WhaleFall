@@ -141,13 +141,6 @@ function numberField(record: Record<string, unknown>, keys: string[]): number {
   return 0;
 }
 
-function countFromUnknown(value: unknown): number {
-  if (typeof value === "number") {
-    return value;
-  }
-  return numberField(asRecord(value), ["total_accounts", "account_count", "count", "total", "matched_accounts_count", "value"]);
-}
-
 function toneForBadge(value: string): "default" | "secondary" | "destructive" | "outline" {
   return ["error", "failed", "not_backed_up", "backup_stale", "high", "disabled", "orphaned"].includes(value) ? "destructive" : "secondary";
 }
@@ -361,8 +354,7 @@ function DataPanel<TData, TValue>({
   icon,
   columns,
   data,
-  emptyText,
-  searchPlaceholder
+  emptyText
 }: {
   title: string;
   description?: string;
@@ -371,7 +363,6 @@ function DataPanel<TData, TValue>({
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   emptyText: string;
-  searchPlaceholder?: string;
 }) {
   const Icon = icon;
   return (
@@ -387,7 +378,7 @@ function DataPanel<TData, TValue>({
         {badge ? <Badge variant="outline">{badge}</Badge> : null}
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={data} emptyText={emptyText} searchPlaceholder={searchPlaceholder ?? `${title}搜索`} />
+        <DataTable columns={columns} data={data} emptyText={emptyText} pagination={false} />
       </CardContent>
     </Card>
   );
@@ -476,21 +467,6 @@ function toDistributionRows<TItem>(
       badge: options.badge?.(item)
     };
   });
-}
-
-function recordRows(record: Record<string, unknown>, total: number, options: { labelMap?: Record<string, string>; countKeys?: string[] } = {}): DistributionRow[] {
-  return Object.entries(record)
-    .filter(([key]) => !["total", "items"].includes(key))
-    .map(([key, value]) => {
-      const meta = asRecord(value);
-      const count = numberField(meta, options.countKeys ?? ["total_accounts", "account_count", "count", "total", "matched_accounts_count", "value"]) || countFromUnknown(value);
-      return {
-        label: options.labelMap?.[key] ?? key,
-        value: count,
-        percent: ratio(count, total)
-      };
-    })
-    .filter((row) => Number(row.value) > 0);
 }
 
 function InstanceStatisticsContent({ stats }: { stats: InstanceStatistics }) {
@@ -646,7 +622,18 @@ function AccountStatisticsContent({ snapshot }: { snapshot: AccountStatisticsSna
       ]
     };
   });
-  const classificationRows = recordRows(snapshot.classifications, total, { countKeys: ["account_count", "total_accounts", "count", "total"] });
+  const classificationSource = asRecord(snapshot.classifications);
+  const classificationRows: DistributionRow[] = [
+    ["super", "超高风险"],
+    ["highly", "高风险"],
+    ["sensitive", "敏感"],
+    ["medium", "中风险"],
+    ["low", "低风险"],
+    ["public", "公开"]
+  ].map(([code, label]) => {
+    const count = numberField(asRecord(classificationSource[code]), ["account_count", "total_accounts", "count", "total"]);
+    return { label, value: count, percent: ratio(count, total) };
+  });
   return (
     <>
       <MetricGrid

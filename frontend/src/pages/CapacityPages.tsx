@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Calculator, Database, ExternalLink, HardDrive, RefreshCw, Server } from "lucide-react";
+import { AlertCircle, BarChart3, Calculator, Database, ExternalLink, HardDrive, RefreshCw, Server } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
@@ -16,13 +16,12 @@ import {
 } from "@/api/capacity";
 import { SelectControl } from "@/components/shared/FormControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { runAction } from "@/utils/action-feedback";
+import { formatCapacityMb as formatSizeMb } from "@/utils/display";
 
 type Metric = {
   label: string;
@@ -35,38 +34,8 @@ function formatNumber(value: number | undefined | null): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
 }
 
-function formatSizeMb(value: number | undefined | null): string {
-  const size = value ?? 0;
-  if (size >= 1024) {
-    return `${(size / 1024).toFixed(2)} GB`;
-  }
-  return `${size.toFixed(0)} MB`;
-}
-
 function formatPercent(value: number | undefined | null): string {
   return `${(value ?? 0).toFixed(1)}%`;
-}
-
-function trendVariant(value: number | undefined | null): "default" | "secondary" | "destructive" | "outline" {
-  const resolved = value ?? 0;
-  if (resolved > 0) {
-    return "destructive";
-  }
-  if (resolved < 0) {
-    return "secondary";
-  }
-  return "outline";
-}
-
-function TrendIcon({ value }: { value: number | undefined | null }) {
-  const resolved = value ?? 0;
-  if (resolved > 0) {
-    return <ArrowUpRight aria-hidden size={14} />;
-  }
-  if (resolved < 0) {
-    return <ArrowDownRight aria-hidden size={14} />;
-  }
-  return <ArrowRight aria-hidden size={14} />;
 }
 
 function PageHeader({
@@ -533,30 +502,6 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function ListFrame({ title, total, children }: { title: string; total: number; children: ReactNode }) {
-  return (
-    <Card>
-      <CardContent className="grid gap-3">
-        <div className="flex items-start justify-between gap-3 max-sm:grid">
-          <h2 className="font-display text-lg leading-none font-semibold tracking-normal">{title}</h2>
-          <Badge variant="secondary">共 {formatNumber(total)} 条</Badge>
-        </div>
-        {children}
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmptyRows({ colSpan }: { colSpan: number }) {
-  return (
-    <TableRow>
-      <TableCell className="px-3 py-8 text-center text-sm text-muted-foreground" colSpan={colSpan}>
-        暂无数据
-      </TableCell>
-    </TableRow>
-  );
-}
-
 function QueryPage<TSnapshot>({
   snapshot,
   isLoading,
@@ -620,84 +565,6 @@ function capacityDatabaseOptions(items: CapacityDatabaseItem[]): Array<{ label: 
     .map((value) => ({ label: value, value }));
 }
 
-function InstanceCapacityTable({ items }: { items: CapacityInstanceItem[] }) {
-  return (
-    <Table className="min-w-[58rem]">
-      <TableHeader className="text-xs">
-        <TableRow>
-          {["实例", "周期", "总容量", "数据库数", "变化", "增长率"].map((label) => (
-            <TableHead key={label}>
-              {label}
-            </TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.length === 0 ? <EmptyRows colSpan={6} /> : null}
-        {items.map((item) => (
-          <TableRow className="align-top" key={item.id}>
-            <TableCell>
-              <div className="font-medium">{item.instance.name}</div>
-              <div className="mt-1 text-xs text-muted-foreground">{item.instance.db_type}</div>
-            </TableCell>
-            <TableCell className="font-mono text-xs">
-              {item.period_start} - {item.period_end}
-            </TableCell>
-            <TableCell className="font-mono text-xs">{formatSizeMb(item.total_size_mb)}</TableCell>
-            <TableCell className="font-mono text-xs">{formatNumber(item.database_count)}</TableCell>
-            <TableCell className="font-mono text-xs">{formatSizeMb(item.total_size_change_mb)}</TableCell>
-            <TableCell>
-              <Badge variant={trendVariant(item.growth_rate)}>
-                <TrendIcon value={item.growth_rate} />
-                {formatPercent(item.growth_rate)}
-              </Badge>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-function DatabaseCapacityTable({ items }: { items: CapacityDatabaseItem[] }) {
-  return (
-    <Table className="min-w-[58rem]">
-      <TableHeader className="text-xs">
-        <TableRow>
-          {["数据库", "实例", "周期", "平均容量", "变化", "增长率"].map((label) => (
-            <TableHead key={label}>
-              {label}
-            </TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.length === 0 ? <EmptyRows colSpan={6} /> : null}
-        {items.map((item) => (
-          <TableRow className="align-top" key={item.id}>
-            <TableCell className="font-medium">{item.database_name}</TableCell>
-            <TableCell>
-              <div>{item.instance.name}</div>
-              <div className="mt-1 text-xs text-muted-foreground">{item.instance.db_type}</div>
-            </TableCell>
-            <TableCell className="font-mono text-xs">
-              {item.period_start} - {item.period_end}
-            </TableCell>
-            <TableCell className="font-mono text-xs">{formatSizeMb(item.avg_size_mb)}</TableCell>
-            <TableCell className="font-mono text-xs">{formatSizeMb(item.size_change_mb)}</TableCell>
-            <TableCell>
-              <Badge variant={trendVariant(item.growth_rate)}>
-                <TrendIcon value={item.growth_rate} />
-                {formatPercent(item.growth_rate)}
-              </Badge>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
 export function CapacityInstancesPage() {
   const [filters, setFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
   const [draftFilters, setDraftFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
@@ -754,9 +621,6 @@ export function CapacityInstancesPage() {
               instanceTrendItems={snapshot.charts.trend.items}
               scope="instance"
             />
-            <ListFrame title="实例容量列表" total={snapshot.list.total}>
-              <InstanceCapacityTable items={snapshot.list.items} />
-            </ListFrame>
           </>
         )}
       </QueryPage>
@@ -827,9 +691,6 @@ export function CapacityDatabasesPage() {
               databaseTrendItems={snapshot.charts.trend.items}
               scope="database"
             />
-            <ListFrame title="数据库容量列表" total={snapshot.list.total}>
-              <DatabaseCapacityTable items={snapshot.list.items} />
-            </ListFrame>
           </>
         )}
       </QueryPage>

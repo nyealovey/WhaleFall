@@ -62,10 +62,7 @@ vi.mock("@/api/statistics", () => ({
       mysql: { total: 5, normal: 4, locked: 1, deleted: 0 },
       sqlserver: { total: 3, normal: 2, locked: 0, deleted: 1 }
     },
-    classifications: {
-      DBA: { account_count: 2 },
-      high_risk: { account_count: 1 }
-    },
+    classifications: { sensitive: { account_count: 2 } },
     rules: {
       rule_stats: [{ rule_id: 7, matched_accounts_count: 3 }]
     }
@@ -165,7 +162,7 @@ describe("StatisticsPages", () => {
     renderWithQueryClient(<AccountStatisticsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("DBA")).toBeInTheDocument();
+      expect(screen.getByText("敏感")).toBeInTheDocument();
     });
 
     expect(screen.getByRole("heading", { name: "账户统计" })).toBeInTheDocument();
@@ -175,6 +172,9 @@ describe("StatisticsPages", () => {
     expect(screen.queryByText("Account statistics")).not.toBeInTheDocument();
     expect(screen.queryByText("聚合账户状态、实例范围、数据库类型、分类和规则命中信号。")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
+    for (const category of ["超高风险", "高风险", "敏感", "中风险", "低风险", "公开"]) {
+      expect(screen.getByText(category)).toBeInTheDocument();
+    }
   });
 
   it("keeps account statistics aligned with the legacy page sections", async () => {

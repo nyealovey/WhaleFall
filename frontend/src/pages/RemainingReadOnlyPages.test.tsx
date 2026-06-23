@@ -9,7 +9,6 @@ import {
   fetchPartitionsSnapshot,
   fetchSchedulerJobDetail,
 } from "@/api/readOnly";
-import { runAction } from "@/utils/action-feedback";
 
 import {
   AccountClassificationsPage,
@@ -98,8 +97,8 @@ vi.mock("@/utils/action-feedback", () => ({
 
 vi.mock("@/api/readOnly", () => ({
   fetchClustersSnapshot: vi.fn(async () => ({
-    sqlServer: { items: [{ id: 1, name: "sql-ag", domain_name: "corp.local", is_enabled: true, instance_count: 2, availability_group_count: 1, last_ag_sync_status: "completed" }], total: 1, page: 1, pages: 1, limit: 20 },
-    mySql: { items: [{ id: 2, name: "mysql-repl", is_enabled: true, instance_count: 3, replication_status: "healthy" }], total: 1, page: 1, pages: 1, limit: 20 }
+    sqlServer: { items: [{ id: 1, name: "sql-ag", domain_name: "corp.local", is_enabled: true, instance_count: 2, availability_group_count: 1, last_status_sync_status: "completed", last_status_sync_at: "2026-06-11T09:00:00+08:00", last_ag_sync_status: "completed", last_ag_sync_at: "2026-06-11T10:00:00+08:00" }], total: 1, page: 1, pages: 1, limit: 20 },
+    mySql: { items: [{ id: 2, name: "mysql-repl", is_enabled: true, instance_count: 3, last_topology_sync_status: "completed", last_topology_sync_at: "2026-06-11T11:00:00+08:00", abnormal_replica_count: 2 }], total: 1, page: 1, pages: 1, limit: 20 }
   })),
   fetchSqlServerClusterDetail: vi.fn(async () => ({
     cluster: { id: 1, name: "sql-ag", domain_name: "corp.local", description: "SQL Server 群集", is_enabled: true },
@@ -379,8 +378,8 @@ vi.mock("@/api/readOnly", () => ({
     categoryNames: ["env"]
   })),
   fetchPartitionsSnapshot: vi.fn(async () => ({
-    status: { data: { status: "healthy", total_partitions: 1, total_size: "1 MB", total_records: 1, missing_partitions: [] }, timestamp: "2026-06-11T00:00:00+08:00" },
-    list: { items: [{ name: "p202606", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 1, status: "healthy" }], total: 1, page: 1, pages: 1, limit: 20 },
+    status: { data: { status: "healthy", total_partitions: 3, total_size: "3 MB", total_records: 30, missing_partitions: [], partitions: [{ name: "p202605", date: "2026-05-01", status: "past", size: "1 MB", record_count: 10 }, { name: "p202606", date: "2026-06-01", status: "current", size: "1 MB", record_count: 12 }, { name: "p202607", date: "2026-07-01", status: "future", size: "1 MB", record_count: 8 }] }, timestamp: "2026-06-11T00:00:00+08:00" },
+    list: { items: [{ name: "p202606", date: "2026-06-01", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 12, status: "current" }], total: 1, page: 1, pages: 1, limit: 20 },
     coreMetrics: { labels: ["06-11"], datasets: [{ label: "分区", data: [1] }], dataPointCount: 1, timeRange: "7d", yAxisLabel: "count", chartTitle: "核心指标", periodType: "daily" }
   }))
 }));
@@ -426,7 +425,7 @@ describe("RemainingReadOnlyPages", () => {
     ["系统设置", <SettingsPage />, ["设置模块", "告警设置", "邮件告警"]],
     ["凭据管理", <CredentialsPage />, ["prod-db", "root"]],
     ["标签管理", <TagsPage />, ["生产", "env"]],
-    ["分区管理", <PartitionsPage />, ["p202606", "healthy"]]
+    ["分区管理", <PartitionsPage />, ["2026年6月", "当前分区"]]
   ];
 
   it.each(cases)("renders %s from read-only APIs", async (heading, element, expectedTexts) => {
@@ -694,9 +693,10 @@ describe("RemainingReadOnlyPages", () => {
     expect(screen.queryByText("内置任务")).not.toBeInTheDocument();
     expect(screen.queryByText("可配置")).not.toBeInTheDocument();
 
-    for (const text of ["重新初始化任务", "运行中的任务", "已暂停的任务", "同步任务", "归档任务", "下次运行", "上次运行", "任务 ID", "触发器参数"]) {
+    for (const text of ["重新初始化任务", "运行中的任务", "已暂停的任务", "同步任务", "归档任务", "下次运行", "上次运行", "任务 ID"]) {
       await expectTextPresent(text);
     }
+    expect(screen.queryByText("触发器参数")).not.toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "暂停任务 同步任务" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "恢复任务 归档任务" })).toBeInTheDocument();
@@ -953,7 +953,6 @@ describe("RemainingReadOnlyPages", () => {
     await screen.findByRole("heading", { name: "分类统计" });
 
     for (const text of [
-      "刷新",
       "账户分类",
       "统计周期",
       "日统计",
@@ -973,9 +972,10 @@ describe("RemainingReadOnlyPages", () => {
     }
 
     fireEvent.click(screen.getByRole("combobox", { name: "统计周期" }));
-    for (const option of ["周统计", "月统计", "季统计"]) {
+    for (const option of ["周统计", "月统计", "季统计", "年统计（即将支持）"]) {
       expect(await screen.findByRole("option", { name: option })).toBeInTheDocument();
     }
+    expect(await screen.findByRole("option", { name: "年统计（即将支持）" })).toHaveAttribute("data-disabled");
     for (const text of ["分类统计指标", "统计分类", "趋势序列", "周期数量", "Top 命中", "分类排行", "分类趋势面积图", "选择分类后展示当前周期 Top 规则贡献。"] ) {
       expect(screen.queryByText(text)).not.toBeInTheDocument();
     }
@@ -1027,19 +1027,6 @@ describe("RemainingReadOnlyPages", () => {
         expect.objectContaining({ accountScope: "instance:11", dbType: "mysql" })
       );
     });
-  });
-
-  it("refreshes classification statistics through unified action feedback", async () => {
-    renderWithQueryClient(<ClassificationStatisticsPage />);
-
-    await screen.findByRole("heading", { name: "分类统计" });
-    vi.mocked(fetchClassificationStatisticsSnapshot).mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "刷新" }));
-
-    await waitFor(() => {
-      expect(fetchClassificationStatisticsSnapshot).toHaveBeenCalledTimes(1);
-    });
-    expect(runAction).toHaveBeenCalledWith(expect.any(Promise), { success: "分类统计已刷新" });
   });
 
   it("runs direct account classification actions through v1 APIs", async () => {
@@ -1260,9 +1247,14 @@ describe("RemainingReadOnlyPages", () => {
       "创建分区",
       "清理旧分区",
       "分区总数",
+      "历史分区",
+      "当前分区",
+      "未来分区",
       "总大小",
       "总记录数",
-      "健康状态",
+      "当前分区大小",
+      "平均记录数",
+      "当前记录数",
       "数据库连接",
       "核心指标趋势",
       "最近7天的核心指标统计",
@@ -1483,7 +1475,7 @@ describe("RemainingReadOnlyPages", () => {
     renderWithQueryClient(<PartitionsPage />);
 
     await screen.findByRole("heading", { name: "分区管理" });
-    await waitFor(() => expect(screen.getByText("p202606")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("2026年6月")).toBeInTheDocument());
     vi.mocked(fetchPartitionsSnapshot).mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: "周" }));

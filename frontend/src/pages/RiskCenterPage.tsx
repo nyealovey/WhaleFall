@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Pagination, PaginationContent, PaginationItem } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { runAction } from "@/utils/action-feedback";
@@ -247,11 +248,13 @@ function RiskCard({ card }: { card: RiskCenterCard }) {
 }
 
 export function RiskCenterPage() {
+  const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<RiskCenterFilters>({});
   const [draftFilters, setDraftFilters] = useState<RiskCenterFilters>({});
   const riskQuery = useQuery({
-    queryKey: ["risk-center", "snapshot", filters],
-    queryFn: () => fetchRiskCenterSnapshot(filters)
+    queryKey: ["risk-center", "snapshot", filters, page],
+    queryFn: () => fetchRiskCenterSnapshot({ ...filters, limit: 20, page }),
+    placeholderData: (previous) => previous
   });
 
   const snapshot = riskQuery.data;
@@ -301,11 +304,12 @@ export function RiskCenterPage() {
 
       <RiskFilterPanel
         draft={draftFilters}
-        onApply={() => setFilters(cleanRiskFilters(draftFilters))}
+        onApply={() => { setPage(1); setFilters(cleanRiskFilters(draftFilters)); }}
         onDraftChange={setDraftFilters}
         onReset={() => {
           setDraftFilters({});
           setFilters({});
+          setPage(1);
         }}
       />
 
@@ -347,6 +351,16 @@ export function RiskCenterPage() {
               <p className="rounded-md border bg-secondary/40 p-4 text-sm text-muted-foreground">暂无风险实例</p>
             )}
           </section>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+            <span>显示 {(snapshot.cards.page - 1) * snapshot.cards.limit + (snapshot.cards.items.length > 0 ? 1 : 0)}-{Math.min(snapshot.cards.page * snapshot.cards.limit, snapshot.cards.total)}，共 {formatNumber(snapshot.cards.total)} 条</span>
+            <Pagination className="w-auto">
+              <PaginationContent>
+                <PaginationItem><Button disabled={snapshot.cards.page <= 1} onClick={() => setPage((current) => Math.max(current - 1, 1))} size="sm" variant="outline">上一页</Button></PaginationItem>
+                <PaginationItem><span className="px-2">第 {snapshot.cards.page} / {Math.max(snapshot.cards.pages, 1)} 页</span></PaginationItem>
+                <PaginationItem><Button disabled={snapshot.cards.page >= snapshot.cards.pages} onClick={() => setPage((current) => current + 1)} size="sm" variant="outline">下一页</Button></PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
           </TooltipProvider>
         </>
       ) : null}

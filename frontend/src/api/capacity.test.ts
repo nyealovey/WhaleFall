@@ -31,7 +31,7 @@ describe("capacity api", () => {
       "/api/v1/capacity/instances/summary?period_type=daily&start_date=2026-05-12&end_date=2026-06-11"
     );
     expect(client.get).toHaveBeenCalledWith(
-      "/api/v1/capacity/instances?period_type=daily&page=1&limit=200&start_date=2026-05-12&end_date=2026-06-11&get_all=true&chart_mode=instance"
+      "/api/v1/capacity/instances?period_type=daily&page=1&limit=200&start_date=2026-05-12&end_date=2026-06-11&get_all=true"
     );
     expect(snapshot.list.items[0]?.instance_id).toBe(10);
     expect(snapshot.summary.total_instances).toBe(1);
@@ -68,7 +68,7 @@ describe("capacity api", () => {
       "/api/v1/capacity/databases/summary?period_type=daily&start_date=2026-05-12&end_date=2026-06-11"
     );
     expect(client.get).toHaveBeenCalledWith(
-      "/api/v1/capacity/databases?period_type=daily&page=1&limit=200&start_date=2026-05-12&end_date=2026-06-11&get_all=true&chart_mode=database"
+      "/api/v1/capacity/databases?period_type=daily&page=1&limit=200&start_date=2026-05-12&end_date=2026-06-11&get_all=true"
     );
     expect(snapshot.list.items[0]?.database_name).toBe("app_db");
     expect(snapshot.summary.total_databases).toBe(1);

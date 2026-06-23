@@ -5,14 +5,18 @@ import {
   AlertCircle,
   Boxes,
   ChartColumn,
+  Clock,
   Database,
   Eye,
   ExternalLink,
+  HardDrive,
+  History,
   Layers3,
   ListChecks,
   Pause,
   Pencil,
   Play,
+  PlugZap,
   Plus,
   RotateCcw,
   Settings,
@@ -26,6 +30,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "rec
 
 import { CheckboxLine, SelectControl, SwitchField } from "@/components/shared/FormControls";
 import { runAction } from "@/utils/action-feedback";
+import { formatDateTime, formatStatus } from "@/utils/display";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -322,25 +327,6 @@ function schedulerStatusLabel(state: string | undefined | null): string {
 
 function schedulerJobName(job: SchedulerJobItem): string {
   return job.task_name ?? job.name ?? job.id;
-}
-
-function triggerArgsEntries(value: unknown): string[] {
-  if (!value) {
-    return [];
-  }
-  if (typeof value === "string") {
-    try {
-      return triggerArgsEntries(JSON.parse(value) as unknown);
-    } catch {
-      return [value];
-    }
-  }
-  if (typeof value !== "object") {
-    return [String(value)];
-  }
-  return Object.entries(value as Record<string, unknown>)
-    .filter(([key, entry]) => !["__proto__", "prototype", "constructor"].includes(key) && entry !== undefined && entry !== null && entry !== "")
-    .map(([key, entry]) => (key === "description" ? String(entry) : `${key}: ${String(entry)}`));
 }
 
 function syncRunId(item: TaskRunItem): string {
@@ -1621,7 +1607,6 @@ function SchedulerJobCard({
   onView: (job: SchedulerJobItem) => void;
 }) {
   const name = schedulerJobName(job);
-  const triggerEntries = triggerArgsEntries(job.trigger_args);
 
   return (
     <Card className="min-h-[16rem]">
@@ -1636,23 +1621,17 @@ function SchedulerJobCard({
         <dl className="grid gap-3 text-sm">
           <div className="flex items-center justify-between gap-3">
             <dt className="text-muted-foreground">下次运行</dt>
-            <dd className="font-mono text-xs">{job.next_run_time ?? "未计划"}</dd>
+            <dd className="font-mono text-xs">{job.next_run_time ? formatDateTime(job.next_run_time) : "未计划"}</dd>
           </div>
           <div className="flex items-center justify-between gap-3">
             <dt className="text-muted-foreground">上次运行</dt>
-            <dd className="font-mono text-xs">{job.last_run_time ?? "从未运行"}</dd>
+            <dd className="font-mono text-xs">{job.last_run_time ? formatDateTime(job.last_run_time) : "从未运行"}</dd>
           </div>
           <div className="flex items-center justify-between gap-3">
             <dt className="text-muted-foreground">任务 ID</dt>
             <dd className="font-mono text-xs">{job.task_id ?? job.id}</dd>
           </div>
         </dl>
-        <div className="grid gap-2">
-          <span className="text-sm font-medium">触发器参数</span>
-          <div className="flex min-h-8 flex-wrap gap-1">
-            {triggerEntries.length > 0 ? triggerEntries.map((entry) => <Badge key={entry} variant="outline">{entry}</Badge>) : <span className="text-sm text-muted-foreground">-</span>}
-          </div>
-        </div>
         <div className="flex flex-wrap items-center gap-1">
           {isRunningState(job.state) ? (
             <Button
@@ -1752,19 +1731,19 @@ function sqlServerAgSummary(item: ClusterItem): string {
 }
 
 function sqlServerDatabaseSyncSummary(item: ClusterItem): string {
-  const abnormalCount = asNumber((item as Record<string, unknown>).ag_database_sync_abnormal_count);
+  const abnormalCount = asNumber(item.ag_database_sync_abnormal_count);
   if (abnormalCount > 0) {
     return `异常 ${formatNumber(abnormalCount)}`;
   }
-  return asText(item.last_ag_sync_status, "未同步");
+  return item.last_status_sync_status ? formatStatus(item.last_status_sync_status) : "未同步";
 }
 
 function mysqlTopologySummary(item: ClusterItem): string {
-  const abnormalCount = asNumber((item as Record<string, unknown>).abnormal_replica_count);
+  const abnormalCount = asNumber(item.abnormal_replica_count);
   if (abnormalCount > 0) {
     return `异常 ${formatNumber(abnormalCount)}`;
   }
-  return asText(item.replication_status, "replication");
+  return item.last_topology_sync_status ? formatStatus(item.last_topology_sync_status) : "未同步";
 }
 
 type ClusterMode = "sqlserver" | "mysql";
@@ -2545,13 +2524,23 @@ function createSqlServerClusterColumns({
       accessorFn: (item) => asText(item.last_ag_sync_status, "未同步"),
       id: "last_ag_sync_status",
       header: "最近 AG 同步",
-      cell: ({ row }) => <StatusBadge value={row.original.last_ag_sync_status ?? "未同步"} />
+      cell: ({ row }) => (
+        <div className="grid gap-1">
+          <StatusBadge value={formatStatus(row.original.last_ag_sync_status ?? "unknown")} />
+          <span className="font-mono text-xs text-muted-foreground">{formatDateTime(row.original.last_ag_sync_at)}</span>
+        </div>
+      )
     },
     {
       accessorFn: sqlServerDatabaseSyncSummary,
       id: "ag_database_sync_abnormal_count",
       header: "数据库同步状态",
-      cell: ({ row }) => <Badge variant="outline">{sqlServerDatabaseSyncSummary(row.original)}</Badge>
+      cell: ({ row }) => (
+        <div className="grid gap-1">
+          <Badge variant="outline">{sqlServerDatabaseSyncSummary(row.original)}</Badge>
+          <span className="font-mono text-xs text-muted-foreground">{formatDateTime(row.original.last_status_sync_at)}</span>
+        </div>
+      )
     },
     {
       id: "actions",
@@ -2626,7 +2615,12 @@ function createMySqlClusterColumns({
       accessorFn: mysqlTopologySummary,
       id: "abnormal_replica_count",
       header: "主从状态",
-      cell: ({ row }) => <Badge variant="outline">{mysqlTopologySummary(row.original)}</Badge>
+      cell: ({ row }) => (
+        <div className="grid gap-1">
+          <Badge variant="outline">{mysqlTopologySummary(row.original)}</Badge>
+          <span className="font-mono text-xs text-muted-foreground">{formatDateTime(row.original.last_topology_sync_at)}</span>
+        </div>
+      )
     },
     {
       id: "actions",
@@ -3385,7 +3379,8 @@ function ClassificationFilterPanel({
                 { label: "日统计", value: "daily" },
                 { label: "周统计", value: "weekly" },
                 { label: "月统计", value: "monthly" },
-                { label: "季统计", value: "quarterly" }
+                { label: "季统计", value: "quarterly" },
+                { label: "年统计（即将支持）", value: "yearly", disabled: true }
               ]}
               value={draft.periodType}
             />
@@ -3542,12 +3537,6 @@ export function ClassificationStatisticsPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <PageHeader eyebrow="Classification analytics" title="分类统计" description="只读展示账户分类统计、规则列表入口和最近周期趋势，写操作仍保留在旧版。" legacyHref="/accounts/statistics/classifications" />
-      <CommandBar>
-        <Button variant="outline" onClick={() => void runAction(query.refetch(), { success: "分类统计已刷新" })}>
-          <RotateCcw aria-hidden size={16} />
-          <span>刷新</span>
-        </Button>
-      </CommandBar>
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="分类统计" onRetry={() => void query.refetch()}>
         {(snapshot) => {
           const trendPoints = selectedTrendPoints(snapshot, filters);
@@ -3681,7 +3670,7 @@ export function SchedulerPage() {
         {(snapshot) => (
             <ListPanel
               title="任务卡片"
-              description="按旧版运行状态分组展示任务名称、运行时间、任务 ID、触发器参数和操作。"
+              description="按旧版运行状态分组展示任务名称、运行时间、任务 ID 和操作。"
               count={snapshot.jobs.length}
               actions={
                 <Button
@@ -5573,13 +5562,22 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
 }
 
 const partitionColumns: ColumnDef<PartitionItem>[] = [
-  { accessorKey: "display_name", header: "分区", cell: ({ row }) => <span className="font-medium">{row.original.display_name ?? row.original.name}</span> },
+  { accessorKey: "display_name", header: "分区", cell: ({ row }) => <span className="font-medium">{partitionMonthLabel(row.original)}</span> },
   { accessorKey: "table", header: "表", cell: ({ row }) => row.original.table ?? "-" },
   { accessorKey: "table_type", header: "类型", cell: ({ row }) => row.original.table_type ?? "-" },
   { accessorKey: "size", header: "大小", cell: ({ row }) => <span className="font-mono text-xs">{row.original.size ?? "-"}</span> },
   { accessorKey: "record_count", header: "记录", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.record_count)}</span> },
-  { accessorKey: "status", header: "状态", cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.status ? `分区 ${statusLabel(row.original.status)}` : "-"}</span> }
+  { accessorKey: "status", header: "状态", cell: ({ row }) => <span className="text-xs text-muted-foreground">{partitionStatusLabel(row.original.status)}</span> }
 ];
+
+function partitionMonthLabel(item: PartitionItem): string {
+  const match = item.date?.match(/^(\d{4})-(\d{1,2})/);
+  return match ? `${match[1]}年${Number(match[2])}月` : (item.display_name ?? item.name);
+}
+
+function partitionStatusLabel(value: string | undefined): string {
+  return ({ current: "当前分区", past: "历史分区", future: "未来分区", unknown: "未知状态" } as Record<string, string>)[value ?? ""] ?? "未知状态";
+}
 
 const PARTITION_PERIOD_OPTIONS: Array<PartitionMetricsFilters & { label: string }> = [
   { label: "日", periodType: "daily", days: 7 },
@@ -5644,6 +5642,12 @@ export function PartitionsPage() {
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="分区管理" onRetry={() => void query.refetch()}>
         {(snapshot) => {
           const status = snapshot.status.data;
+          const partitions = status.partitions ?? [];
+          const historyCount = partitions.filter((item) => item.status === "past").length;
+          const currentPartitions = partitions.filter((item) => item.status === "current");
+          const futureCount = partitions.filter((item) => item.status === "future").length;
+          const currentPartition = currentPartitions[0];
+          const averageRecords = (status.total_partitions ?? 0) > 0 ? Math.round((status.total_records ?? 0) / (status.total_partitions ?? 1)) : 0;
           const metricValues = snapshot.coreMetrics.datasets[0]?.data ?? [];
           const chartData = snapshot.coreMetrics.labels.map((label, index) => ({ label, value: metricValues[index] ?? 0 }));
           return (
@@ -5652,9 +5656,15 @@ export function PartitionsPage() {
                 label="分区指标"
                 metrics={[
                   { label: "分区总数", value: status.total_partitions ?? snapshot.list.total, icon: Boxes },
+                  { label: "历史分区", value: historyCount, icon: History },
+                  { label: "当前分区", value: currentPartitions.length, icon: Activity },
+                  { label: "未来分区", value: futureCount, icon: Clock },
                   { label: "总大小", value: status.total_size ?? "-", icon: Database },
                   { label: "总记录数", value: status.total_records ?? 0, icon: ListChecks },
-                  { label: "健康状态", value: statusLabel(status.status), detail: "数据库连接", icon: Activity }
+                  { label: "当前分区大小", value: currentPartition?.size ?? "-", icon: HardDrive },
+                  { label: "平均记录数", value: averageRecords, icon: ChartColumn },
+                  { label: "当前记录数", value: currentPartition?.record_count ?? 0, icon: ListChecks },
+                  { label: "数据库连接", value: status.status === "healthy" ? "正常" : "异常", icon: PlugZap }
                 ]}
               />
               <section className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2 max-xl:grid-cols-1">

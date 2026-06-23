@@ -39,7 +39,7 @@ vi.mock("@/api/riskCenter", () => ({
       total: 1,
       page: 1,
       pages: 1,
-      limit: 12
+      limit: 20
     }
   }))
 }));
@@ -131,6 +131,8 @@ describe("RiskCenterPage", () => {
     await waitFor(() => {
       expect(fetchRiskCenterSnapshot).toHaveBeenCalledWith({
         dbType: "mysql",
+        limit: 20,
+        page: 1,
         search: "db-critical",
         severity: "high",
         status: "active",

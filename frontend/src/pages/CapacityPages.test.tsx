@@ -229,7 +229,7 @@ describe("CapacityPages", () => {
 
     expect(screen.getByRole("heading", { name: "实例容量" })).toBeInTheDocument();
     expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
-    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.queryByText("实例容量列表")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 
@@ -266,6 +266,7 @@ describe("CapacityPages", () => {
     expect(screen.getByRole("heading", { name: "数据库容量" })).toBeInTheDocument();
     expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0);
     expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
+    expect(screen.queryByText("数据库容量列表")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 

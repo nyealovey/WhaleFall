@@ -156,7 +156,7 @@ function appendCapacityFilters(params: URLSearchParams, filters: CapacityFilters
   }
 }
 
-function listPath(basePath: string, filters: CapacityFilters, options?: { chartMode?: "instance" | "database"; getAll?: boolean }): string {
+function listPath(basePath: string, filters: CapacityFilters, options?: { getAll?: boolean }): string {
   const range = filters.range ?? getDefaultCapacityRange();
   const params = new URLSearchParams();
   params.set("period_type", filters.periodType || "daily");
@@ -167,9 +167,6 @@ function listPath(basePath: string, filters: CapacityFilters, options?: { chartM
   appendCapacityFilters(params, filters);
   if (options?.getAll) {
     params.set("get_all", "true");
-  }
-  if (options?.chartMode) {
-    params.set("chart_mode", options.chartMode);
   }
   return `${basePath}?${params.toString()}`;
 }
@@ -191,7 +188,7 @@ export async function fetchCapacityInstanceSnapshot(
   const [list, summaryEnvelope, trend, change, percent] = await Promise.all([
     client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters)),
     client.get<SummaryEnvelope<CapacityInstanceSummary>>(summaryPath("/api/v1/capacity/instances", filters)),
-    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters, { chartMode: "instance", getAll: true })),
+    client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters, { getAll: true })),
     client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters, { getAll: true })),
     client.get<CapacityList<CapacityInstanceItem>>(listPath("/api/v1/capacity/instances", filters, { getAll: true }))
   ]);
@@ -210,9 +207,9 @@ export async function fetchCapacityDatabaseSnapshot(
   const [list, summaryEnvelope, trend, change, percent] = await Promise.all([
     client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters)),
     client.get<SummaryEnvelope<CapacityDatabaseSummary>>(summaryPath("/api/v1/capacity/databases", filters)),
-    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { chartMode: "database", getAll: true })),
-    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { chartMode: "database", getAll: true })),
-    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { chartMode: "database", getAll: true }))
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { getAll: true })),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { getAll: true })),
+    client.get<CapacityList<CapacityDatabaseItem>>(listPath("/api/v1/capacity/databases", filters, { getAll: true }))
   ]);
 
   return {

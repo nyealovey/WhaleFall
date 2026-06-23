@@ -21,7 +21,14 @@ export type ClusterItem = {
   instance_count?: number;
   availability_group_count?: number;
   contained_ag_count?: number;
+  last_status_sync_status?: string | null;
+  last_status_sync_at?: string | null;
   last_ag_sync_status?: string | null;
+  last_ag_sync_at?: string | null;
+  last_topology_sync_status?: string | null;
+  last_topology_sync_at?: string | null;
+  abnormal_replica_count?: number;
+  ag_database_sync_abnormal_count?: number;
   replication_status?: string | null;
 };
 
@@ -398,6 +405,7 @@ export type PartitionItem = {
   table_type?: string;
   display_name?: string;
   size?: string;
+  size_bytes?: number;
   record_count?: number;
   date?: string;
   status?: string;
@@ -411,6 +419,7 @@ export type PartitionsSnapshot = {
       total_size?: string;
       total_records?: number;
       missing_partitions?: string[];
+      partitions?: PartitionItem[];
     };
     timestamp?: string;
   };

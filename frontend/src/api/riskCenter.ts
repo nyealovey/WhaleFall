@@ -72,10 +72,8 @@ export type RiskCenterFilters = {
 
 function riskCardsPath(filters: RiskCenterFilters): string {
   const params = new URLSearchParams();
-  params.set("limit", String(filters.limit ?? 12));
-  if (filters.page) {
-    params.set("page", String(filters.page));
-  }
+  params.set("limit", String(filters.limit ?? 20));
+  params.set("page", String(filters.page ?? 1));
   if (filters.severity) {
     params.set("severity", filters.severity);
   }

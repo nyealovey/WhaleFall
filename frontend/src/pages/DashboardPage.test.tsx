@@ -33,7 +33,17 @@ vi.mock("@/api/dashboard", () => ({
       log_levels: [{ level: "ERROR", count: 3 }],
       sync_trend: [{ date: "2026-06-11", count: 4 }]
     },
-    activities: []
+    activities: [],
+    riskSummary: {
+      total_instances: 6,
+      severity_counts: { high: 6 },
+      top_risks: Array.from({ length: 6 }, (_, index) => ({
+        rule_key: `risk-${index + 1}`,
+        instance_name: `risk-${index + 1}`,
+        severity: "high",
+        label: "风险"
+      }))
+    }
   }))
 }));
 
@@ -77,6 +87,7 @@ describe("DashboardPage", () => {
     expect(screen.queryByRole("img", { name: "同步趋势面积图" })).not.toBeInTheDocument();
     expect(screen.queryByText("迁移状态")).not.toBeInTheDocument();
     expect(screen.queryByText("活动流")).not.toBeInTheDocument();
+    expect(screen.getByText("risk-6 · 风险")).toBeInTheDocument();
   });
 
   it("keeps dashboard aligned with the legacy cockpit content", async () => {

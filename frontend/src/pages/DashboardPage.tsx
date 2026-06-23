@@ -260,7 +260,7 @@ function RiskAlertBoard({ summary }: { summary: DashboardRiskSummary | undefined
       </CardHeader>
       <CardContent className="grid gap-2">
         {topRisks.length > 0 ? (
-          topRisks.slice(0, 5).map((risk, index) => (
+          topRisks.map((risk, index) => (
             <a
               className="grid gap-1 rounded-md border bg-secondary/40 p-3 text-sm transition-colors hover:bg-secondary"
               href={risk.target_url ?? "#"}
