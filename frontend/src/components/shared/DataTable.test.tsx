@@ -92,6 +92,21 @@ describe("DataTable", () => {
     expect(onStatusChange).toHaveBeenCalledWith("failed");
   });
 
+  it("keeps large server pagination controls on one line", () => {
+    const { container } = render(
+      <DataTable
+        columns={columns}
+        data={[{ id: "p-81", status: "success", amount: 81 }]}
+        pagination={{ page: 5, pageSize: 20, pages: 383, total: 7641, onPageChange: vi.fn(), onPageSizeChange: vi.fn() }}
+      />
+    );
+
+    const summary = screen.getByText("显示 81-100，共 7641 条");
+    expect(summary.parentElement).not.toHaveClass("flex-wrap");
+    expect(container.querySelector('nav[aria-label="分页"]')).toHaveClass("shrink-0");
+    expect(container.querySelector('nav[aria-label="分页"] ul')).toHaveClass("flex-nowrap");
+  });
+
   it("filters rows through the table toolbar", async () => {
     const { container } = render(
       <DataTable

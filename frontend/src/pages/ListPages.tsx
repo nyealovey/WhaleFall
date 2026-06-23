@@ -885,7 +885,7 @@ function InstanceConnectionStatusCard({
   );
 }
 
-function InstanceAuditInfoCard({
+function InstanceAuditInfoPanel({
   data,
   isLoading,
   isError,
@@ -903,12 +903,11 @@ function InstanceAuditInfoCard({
   const specs = [...serverSpecs, ...databaseSpecs];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>审计信息</CardTitle>
-        <CardDescription>审计目标、审计规范和覆盖数据库概览。</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
+    <section className="grid gap-4">
+      <div className="grid gap-1">
+        <h3 className="font-display text-base font-semibold leading-none tracking-normal">审计信息</h3>
+        <p className="text-sm text-muted-foreground">审计目标、审计规范和覆盖数据库概览。</p>
+      </div>
         {isLoading ? <Skeleton className="h-28 w-full" /> : null}
         {isError ? <ErrorState onRetry={onRetry} /> : null}
         {data && !data.supported ? (
@@ -985,12 +984,11 @@ function InstanceAuditInfoCard({
             </div>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+    </section>
   );
 }
 
-function InstanceBackupInfoCard({
+function InstanceBackupInfoPanel({
   data,
   isLoading,
   isError,
@@ -1007,12 +1005,11 @@ function InstanceBackupInfoCard({
   const sourceText = [data?.source_name, data?.source_server_host].map((value) => asText(value, "")).filter(Boolean).join(" / ") || "-";
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>备份信息</CardTitle>
-        <CardDescription>Veeam 匹配结果、最近备份时间和恢复点明细。</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
+    <section className="grid gap-4">
+      <div className="grid gap-1">
+        <h3 className="font-display text-base font-semibold leading-none tracking-normal">备份信息</h3>
+        <p className="text-sm text-muted-foreground">Veeam 匹配结果、最近备份时间和恢复点明细。</p>
+      </div>
         {isLoading ? <Skeleton className="h-28 w-full" /> : null}
         {isError ? <ErrorState onRetry={onRetry} /> : null}
         {data && restorePoints.length === 0 ? (
@@ -1075,8 +1072,7 @@ function InstanceBackupInfoCard({
             </div>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+    </section>
   );
 }
 
@@ -1316,11 +1312,19 @@ function InstanceDataTabsCard({
   agAccountsData,
   agAccountsError,
   agAccountsLoading,
+  auditData,
+  auditError,
+  auditLoading,
+  backupData,
+  backupError,
+  backupLoading,
   databaseSizesData,
   databaseSizesError,
   databaseSizesLoading,
   onRetryAccounts,
   onRetryAgAccounts,
+  onRetryAudit,
+  onRetryBackup,
   onRetryDatabaseSizes,
   showAgAccounts
 }: {
@@ -1330,11 +1334,19 @@ function InstanceDataTabsCard({
   agAccountsData?: InstanceAgAccountsResponse;
   agAccountsError: boolean;
   agAccountsLoading: boolean;
+  auditData?: InstanceAuditInfo;
+  auditError: boolean;
+  auditLoading: boolean;
+  backupData?: InstanceBackupInfo;
+  backupError: boolean;
+  backupLoading: boolean;
   databaseSizesData?: InstanceDatabaseSizesResponse;
   databaseSizesError: boolean;
   databaseSizesLoading: boolean;
   onRetryAccounts: () => void;
   onRetryAgAccounts: () => void;
+  onRetryAudit: () => void;
+  onRetryBackup: () => void;
   onRetryDatabaseSizes: () => void;
   showAgAccounts: boolean;
 }) {
@@ -1363,12 +1375,15 @@ function InstanceDataTabsCard({
   const activeAgAccounts = agAccounts.filter((item) => item.is_active && !item.is_deleted).length;
   const activeDatabases = databaseSizesData?.active_count ?? databases.filter((item) => item.is_active).length;
   const deletedDatabases = Math.max((databaseSizesData?.total ?? databases.length) - activeDatabases, 0);
+  const tabsListClass = showAgAccounts
+    ? "grid h-auto w-full grid-cols-5 max-xl:grid-cols-3 max-md:grid-cols-2"
+    : "grid h-auto w-full grid-cols-4 max-xl:grid-cols-2";
 
   return (
     <Card>
-      <CardContent>
+      <CardContent className="grid gap-4">
         <Tabs defaultValue="accounts">
-          <TabsList className={showAgAccounts ? "grid h-auto w-full grid-cols-3" : "grid h-auto w-full grid-cols-2"}>
+          <TabsList className={tabsListClass}>
             <TabsTrigger value="accounts">
               <Users aria-hidden size={16} />
               <span>账户信息</span>
@@ -1382,6 +1397,14 @@ function InstanceDataTabsCard({
             <TabsTrigger value="capacity">
               <Database aria-hidden size={16} />
               <span>容量信息</span>
+            </TabsTrigger>
+            <TabsTrigger value="audit">
+              <ShieldCheck aria-hidden size={16} />
+              <span>审计信息</span>
+            </TabsTrigger>
+            <TabsTrigger value="backup">
+              <HardDrive aria-hidden size={16} />
+              <span>备份信息</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1456,6 +1479,12 @@ function InstanceDataTabsCard({
                 />
               </>
             ) : null}
+          </TabsContent>
+          <TabsContent className="grid gap-4" forceMount value="audit">
+            <InstanceAuditInfoPanel data={auditData} isLoading={auditLoading} isError={auditError} onRetry={onRetryAudit} />
+          </TabsContent>
+          <TabsContent className="grid gap-4" forceMount value="backup">
+            <InstanceBackupInfoPanel data={backupData} isLoading={backupLoading} isError={backupError} onRetry={onRetryBackup} />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -1956,18 +1985,6 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
         isError={connectionQuery.isError}
         onRetry={() => void connectionQuery.refetch()}
       />
-      <InstanceAuditInfoCard
-        data={auditQuery.data}
-        isLoading={auditQuery.isLoading}
-        isError={auditQuery.isError}
-        onRetry={() => void auditQuery.refetch()}
-      />
-      <InstanceBackupInfoCard
-        data={backupQuery.data}
-        isLoading={backupQuery.isLoading}
-        isError={backupQuery.isError}
-        onRetry={() => void backupQuery.refetch()}
-      />
       <InstanceDataTabsCard
         accountsData={accountsQuery.data}
         accountsError={accountsQuery.isError}
@@ -1975,11 +1992,19 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
         agAccountsData={agAccountsQuery.data}
         agAccountsError={agAccountsQuery.isError}
         agAccountsLoading={agAccountsQuery.isLoading}
+        auditData={auditQuery.data}
+        auditError={auditQuery.isError}
+        auditLoading={auditQuery.isLoading}
+        backupData={backupQuery.data}
+        backupError={backupQuery.isError}
+        backupLoading={backupQuery.isLoading}
         databaseSizesData={databaseSizesQuery.data}
         databaseSizesError={databaseSizesQuery.isError}
         databaseSizesLoading={databaseSizesQuery.isLoading}
         onRetryAccounts={() => void accountsQuery.refetch()}
         onRetryAgAccounts={() => void agAccountsQuery.refetch()}
+        onRetryAudit={() => void auditQuery.refetch()}
+        onRetryBackup={() => void backupQuery.refetch()}
         onRetryDatabaseSizes={() => void databaseSizesQuery.refetch()}
         showAgAccounts={isSqlServer}
       />

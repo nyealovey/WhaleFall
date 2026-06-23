@@ -508,6 +508,8 @@ describe("ListPages", () => {
     expect(screen.getByText("50%")).toBeInTheDocument();
     expect(screen.getByText("AuditProd")).toBeInTheDocument();
     expect(screen.getByText("Restore 1")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "审计信息" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "备份信息" })).toBeInTheDocument();
     expect(screen.getByText("账户信息")).toBeInTheDocument();
     expect(screen.getByText("账户信息（AG）")).toBeInTheDocument();
     expect(screen.getByText("容量信息")).toBeInTheDocument();

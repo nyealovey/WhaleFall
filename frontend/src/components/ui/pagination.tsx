@@ -7,16 +7,16 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
 }
 
 function PaginationContent({ className, ...props }: React.ComponentProps<"ul">) {
-  return <ul className={cn("flex flex-row items-center gap-1", className)} {...props} />;
+  return <ul className={cn("flex flex-row flex-nowrap items-center gap-1 whitespace-nowrap", className)} {...props} />;
 }
 
-function PaginationItem(props: React.ComponentProps<"li">) {
-  return <li {...props} />;
+function PaginationItem({ className, ...props }: React.ComponentProps<"li">) {
+  return <li className={cn("shrink-0", className)} {...props} />;
 }
 
 function PaginationEllipsis({ className, ...props }: React.ComponentProps<"span">) {
   return (
-    <span aria-hidden className={cn("flex size-8 items-center justify-center text-muted-foreground", className)} {...props}>
+    <span aria-hidden className={cn("flex size-8 shrink-0 items-center justify-center text-muted-foreground", className)} {...props}>
       ...
     </span>
   );

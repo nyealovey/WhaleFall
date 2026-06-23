@@ -199,9 +199,9 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       {paginationEnabled ? (
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 max-lg:grid">
         <p className="text-sm text-muted-foreground">显示 {firstRow}-{lastRow}，共 {total} 条</p>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3 overflow-x-auto whitespace-nowrap pb-1">
           <Select
             onValueChange={(value) => {
               const resolved = Number(value);
@@ -220,7 +220,7 @@ export function DataTable<TData, TValue>({
               {[20, 50, 100].map((size) => <SelectItem key={size} value={String(size)}>{size} 条</SelectItem>)}
             </SelectContent>
           </Select>
-          <Pagination className="w-auto">
+          <Pagination className="w-auto shrink-0 justify-start">
             <PaginationContent>
               <PaginationItem>
           <Button
