@@ -129,6 +129,9 @@ export type InstanceBackupInfo = {
   backup_last_time?: string | null;
   matched_machine_name?: string | null;
   match_candidates: string[];
+  source_binding_id?: number | null;
+  source_name?: string | null;
+  source_server_host?: string | null;
   backup_id?: string | null;
   backup_file_id?: string | null;
   job_name?: string | null;

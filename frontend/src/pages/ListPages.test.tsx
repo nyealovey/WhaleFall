@@ -168,10 +168,28 @@ vi.mock("@/api/lists", () => ({
     backup_status: "backed_up",
     backup_last_time: "2026-06-11T01:10:00+00:00",
     matched_machine_name: "mysql-prod",
+    backup_id: "backup-1",
+    source_name: "生产 Veeam",
+    source_server_host: "10.0.0.9",
     backup_chain_size_bytes: 2147483648,
     restore_point_count: 2,
+    backup_metrics_coverage: {
+      expected_restore_point_count: 2,
+      enriched_restore_point_count: 1,
+      missing_restore_point_count: 1,
+      partial: true
+    },
     restore_points: [
-      { id: "rp-1", name: "Restore 1", type: "full", backup_size_bytes: 1073741824, creation_time: "2026-06-11T01:00:00+00:00" }
+      {
+        id: "rp-1",
+        name: "Restore 1",
+        type: "full",
+        backup_id: "backup-1",
+        data_size_bytes: 2147483648,
+        backup_size_bytes: 1073741824,
+        compress_ratio: 50,
+        creation_time: "2026-06-11T01:00:00+00:00"
+      }
     ]
   })),
   fetchInstanceAccounts: vi.fn(async () => ({
@@ -468,10 +486,26 @@ describe("ListPages", () => {
 
     expect(await screen.findByRole("heading", { name: "实例详情 mysql-prod" })).toBeInTheDocument();
     expect(screen.getByText("生产实例")).toBeInTheDocument();
+    expect(screen.getByText("实例ID")).toBeInTheDocument();
+    expect(screen.getByText("数据库版本")).toBeInTheDocument();
+    expect(screen.getByText("8.0")).toBeInTheDocument();
+    expect(screen.getByText("标签")).toBeInTheDocument();
+    expect(screen.getAllByText("生产").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "编辑实例" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "移入回收站" })).toBeInTheDocument();
     expect(screen.getAllByText("10.0.0.8:3306").length).toBeGreaterThan(0);
     expect(await screen.findByText("连接状态")).toBeInTheDocument();
     expect(screen.getByText("审计目标数")).toBeInTheDocument();
     expect(screen.getByText("备份链完整大小")).toBeInTheDocument();
+    expect(screen.getAllByText("Backup ID").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("backup-1").length).toBeGreaterThan(0);
+    expect(screen.getByText("覆盖数量")).toBeInTheDocument();
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(screen.getByText("平台")).toBeInTheDocument();
+    expect(screen.getByText("生产 Veeam / 10.0.0.9")).toBeInTheDocument();
+    expect(screen.getByText("数据大小")).toBeInTheDocument();
+    expect(screen.getByText("压缩率")).toBeInTheDocument();
+    expect(screen.getByText("50%")).toBeInTheDocument();
     expect(screen.getByText("AuditProd")).toBeInTheDocument();
     expect(screen.getByText("Restore 1")).toBeInTheDocument();
     expect(screen.getByText("账户信息")).toBeInTheDocument();
@@ -479,11 +513,12 @@ describe("ListPages", () => {
     expect(screen.getByText("容量信息")).toBeInTheDocument();
     expect(screen.getByText("readonly")).toBeInTheDocument();
     expect(screen.getByText("sa")).toBeInTheDocument();
+    expect(screen.getByText("账户总数")).toBeInTheDocument();
+    expect(screen.getByText("活跃账户")).toBeInTheDocument();
+    expect(screen.getByText("AG账户总数")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看权限 readonly" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "变更历史 readonly" })).toBeInTheDocument();
     expect(screen.queryByText("数据库信息")).not.toBeInTheDocument();
-    expect(screen.queryByText("账户总数")).not.toBeInTheDocument();
-    expect(screen.queryByText("活跃账户")).not.toBeInTheDocument();
-    expect(screen.queryByText("AG账户总数")).not.toBeInTheDocument();
-    expect(screen.queryByText("当前数据库")).not.toBeInTheDocument();
     expect(document.querySelector("pre")).toBeNull();
 
     const agAccountsTab = screen.getByRole("tab", { name: "账户信息（AG）" });
@@ -498,6 +533,9 @@ describe("ListPages", () => {
     expect(screen.getAllByText("app_db").length).toBeGreaterThan(0);
     expect(screen.getByText("legacy_db")).toBeInTheDocument();
     expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
+    expect(screen.getByText("当前数据库")).toBeInTheDocument();
+    expect(screen.getByText("容量总量")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "表容量 app_db" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回实例列表" })).toHaveAttribute("href", "/console/instances");
 
     fireEvent.click(screen.getByRole("button", { name: "测试连接" }));

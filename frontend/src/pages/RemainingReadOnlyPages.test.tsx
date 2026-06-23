@@ -349,6 +349,8 @@ vi.mock("@/api/readOnly", () => ({
         feishu_webhook_url: "https://feishu.example",
         recipients: ["ops@example.com"],
         database_capacity_enabled: true,
+        database_capacity_percent_threshold: 30,
+        database_capacity_absolute_gb_threshold: 20,
         account_sync_failure_enabled: true,
         database_sync_failure_enabled: false,
         cluster_status_enabled: true,
@@ -356,10 +358,18 @@ vi.mock("@/api/readOnly", () => ({
         backup_issue_enabled: true
       }
     },
-    riskRules: [{ rule_key: "backup_issue", enabled: true, severity: "high" }],
-    jumpserver: { provider_ready: true, binding: { credential_id: 3, base_url: "https://jump.example", org_id: "org-1", verify_ssl: true }, api_credentials: [] },
-    veeam: { provider_ready: false, sources: [{ id: 9, name: "veeam-main", credential_id: 4, server_host: "10.0.0.9", server_port: 9419, api_version: "v1", is_active: true, verify_ssl: true, domains: ["corp.local"] }], veeam_credentials: [] },
-    adDomains: { configs: [{ id: 1, name: "corp", netbios_name: "CORP", ldap_port: 636, domain_controllers: ["dc01"], base_dn: "DC=corp,DC=local", credential_id: 5, use_ssl: true, verify_ssl: true, is_enabled: true }] }
+    riskRules: [{ rule_key: "backup_issue", category: "备份", display_name: "备份问题", description: "最近一次备份不可用", enabled: true, severity: "high" }],
+    jumpserver: {
+      provider_ready: true,
+      binding: { credential_id: 3, credential: { id: 3, name: "jump-api" }, base_url: "https://jump.example", org_id: "org-1", verify_ssl: true, last_sync_status: "completed", last_sync_at: "2026-06-11T01:00:00+00:00" },
+      api_credentials: [{ id: 3, name: "jump-api" }]
+    },
+    veeam: {
+      provider_ready: false,
+      sources: [{ id: 9, name: "veeam-main", credential_id: 4, credential: { id: 4, name: "veeam-api" }, server_host: "10.0.0.9", server_port: 9419, api_version: "v1", is_active: true, verify_ssl: true, domains: ["corp.local"], last_sync_status: "completed", last_sync_at: "2026-06-11T02:00:00+00:00" }],
+      veeam_credentials: [{ id: 4, name: "veeam-api" }]
+    },
+    adDomains: { configs: [{ id: 1, name: "corp", netbios_name: "CORP", ldap_port: 636, domain_controllers: ["dc01"], base_dn: "DC=corp,DC=local", credential_id: 5, credential: { id: 5, name: "ldap-bind" }, use_ssl: true, verify_ssl: true, is_enabled: true, last_sync_status: "completed", last_sync_at: "2026-06-11T03:00:00+00:00", last_sync_metrics: { ad_principals_total: 12, ad_users_total: 10, ad_groups_total: 2, total: 8, normal: 6, disabled: 1, orphaned: 1, updated: 3 } }], credentials: [{ id: 5, name: "ldap-bind" }] }
   })),
   fetchCredentialsSnapshot: vi.fn(async () => ({
     items: [{ id: 1, name: "prod-db", credential_type: "database", db_type: "mysql", username: "root", is_active: true, instance_count: 2 }],
@@ -1156,6 +1166,8 @@ describe("RemainingReadOnlyPages", () => {
       "启用邮件告警",
       "发送到飞书",
       "飞书机器人 URL",
+      "当前飞书 Webhook",
+      "清空飞书 Webhook",
       "收件人",
       "共享收件人列表",
       "发送测试邮件",
@@ -1163,6 +1175,8 @@ describe("RemainingReadOnlyPages", () => {
       "保存配置",
       "规则设置",
       "容量异常增长",
+      "容量增长百分比阈值",
+      "容量增长绝对阈值",
       "账户同步异常",
       "数据库同步异常",
       "群集状态",
@@ -1171,42 +1185,57 @@ describe("RemainingReadOnlyPages", () => {
     ]) {
       await expectTextPresent(text);
     }
+    expect(screen.getByDisplayValue("https://***.example")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("https://feishu.example")).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("30")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("20")).toBeInTheDocument();
     expect(screen.queryByText("系统设置指标")).not.toBeInTheDocument();
     expect(screen.queryByText("JumpServer 数据源设置")).not.toBeInTheDocument();
     expect(screen.queryByText("Veeam 数据源设置")).not.toBeInTheDocument();
     expect(screen.queryByText("AD 域列表")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "风险规则" }));
+    await switchTab("风险规则");
     await expectTextPresent("保存规则");
-    await expectTextPresent("仅影响风险中心展示");
+    for (const text of ["备份", "备份问题", "最近一次备份不可用", "严重级别"]) {
+      await expectTextPresent(text);
+    }
+    expect(screen.getByRole("radio", { name: "高" })).toBeChecked();
     expect(screen.queryByText("发送设置")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "JumpServer" }));
+    await switchTab("JumpServer");
     for (const text of [
       "JumpServer 数据源设置",
       "绑定配置",
       "API 凭据",
+      "jump-api",
       "JumpServer URL",
       "组织 ID",
       "SSL 证书验证",
       "保存绑定",
       "解绑数据源",
       "同步 JumpServer 资源",
-      "运行状态"
+      "运行状态",
+      "最近同步状态"
     ]) {
       await expectTextPresent(text);
     }
+    expect(screen.getByDisplayValue("completed")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-06-11T01:00:00+00:00")).toBeInTheDocument();
     expect(screen.queryByText("邮件告警")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Veeam" }));
+    await switchTab("Veeam");
     for (const text of [
       "新增数据源",
       "数据源名称",
       "Veeam 凭据",
+      "veeam-api",
       "Veeam IP",
       "端口",
       "API 版本",
       "域名列表",
+      "启用状态",
+      "最近同步",
+      "Provider 汇总",
       "保存数据源",
       "删除数据源",
       "新增模式",
@@ -1217,7 +1246,7 @@ describe("RemainingReadOnlyPages", () => {
     }
     expect(screen.queryByText("JumpServer 数据源设置")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "AD 设置" }));
+    await switchTab("AD 设置");
     for (const text of [
       "新增 AD 域",
       "域名",
@@ -1236,6 +1265,11 @@ describe("RemainingReadOnlyPages", () => {
     ]) {
       await expectTextPresent(text);
     }
+    expect(screen.getByText(/ldap-bind/)).toBeInTheDocument();
+    expect(screen.getByText(/同步状态 completed/)).toBeInTheDocument();
+    expect(screen.getByText(/AD对象 12/)).toBeInTheDocument();
+    expect(screen.getByText(/SQL账户 8/)).toBeInTheDocument();
+    expect(screen.getByText(/孤账户 1/)).toBeInTheDocument();
   });
 
   it("renders partitions with legacy commands, metric cards, period controls, chart, and list", async () => {
@@ -1327,21 +1361,22 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "发送飞书测试" }));
     fireEvent.click(screen.getByRole("button", { name: "保存配置" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "风险规则" }));
+    await switchTab("风险规则");
     fireEvent.click(screen.getByRole("button", { name: "保存规则" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "JumpServer" }));
+    await switchTab("JumpServer");
     fireEvent.click(screen.getByRole("button", { name: "保存绑定" }));
     fireEvent.click(screen.getByRole("button", { name: "同步 JumpServer 资源" }));
     fireEvent.click(screen.getByRole("button", { name: "解绑数据源" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Veeam" }));
+    await switchTab("Veeam");
     fireEvent.click(screen.getByRole("button", { name: "保存数据源" }));
     fireEvent.click(screen.getByRole("button", { name: "停用数据源" }));
     fireEvent.click(screen.getByRole("button", { name: "同步 Veeam 备份" }));
     fireEvent.click(screen.getByRole("button", { name: "删除数据源" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "AD 设置" }));
+    await switchTab("AD 设置");
+    fireEvent.click(screen.getByRole("button", { name: "编辑AD域 corp" }));
     fireEvent.click(screen.getByRole("button", { name: "保存 AD 域" }));
     fireEvent.click(screen.getByRole("button", { name: "停用 AD 域" }));
     fireEvent.click(screen.getByRole("button", { name: "测试 AD 连接" }));
@@ -1349,18 +1384,22 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "删除配置" }));
     await waitFor(() => {
       expect(actionMocks.sendAlertTestEmail).toHaveBeenCalledWith(["ops@example.com"]);
-      expect(actionMocks.sendFeishuTest).toHaveBeenCalledWith("https://feishu.example");
+      expect(actionMocks.sendFeishuTest).toHaveBeenCalledWith("");
       expect(actionMocks.saveAlertSettings).toHaveBeenCalledWith({
         account_sync_failure_enabled: true,
         backup_issue_enabled: true,
         cluster_status_enabled: true,
         database_capacity_enabled: true,
+        database_capacity_percent_threshold: 30,
+        database_capacity_absolute_gb_threshold: 20,
         database_sync_failure_enabled: false,
         feishu_enabled: true,
-        feishu_webhook_url: "https://feishu.example",
+        feishu_webhook_url: "",
+        clear_feishu_webhook_url: false,
         global_enabled: true,
         privileged_account_enabled: true,
-        recipients: ["ops@example.com"]
+        recipients: ["ops@example.com"],
+        shared_recipients_enabled: false
       });
       expect(actionMocks.saveRiskRules).toHaveBeenCalledWith([{ rule_key: "backup_issue", enabled: true, severity: "high" }]);
       expect(actionMocks.saveJumpServerSource).toHaveBeenCalledWith({

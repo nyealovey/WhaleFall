@@ -675,12 +675,20 @@ function InstanceImportDialog({
   );
 }
 
+type DatabaseTableSizesTarget = {
+  id: number;
+  database_name: string;
+  instance?: { name?: string | null };
+  capacity?: { collected_at?: string | null };
+  collected_at?: string | null;
+};
+
 function DatabaseTableSizesDialog({
   item,
   onOpenChange,
   onRefresh
 }: {
-  item: DatabaseLedgerItem;
+  item: DatabaseTableSizesTarget;
   onOpenChange: (open: boolean) => void;
   onRefresh: () => void;
 }) {
@@ -696,7 +704,7 @@ function DatabaseTableSizesDialog({
         <DialogHeader>
           <DialogTitle>数据库表容量 {item.database_name}</DialogTitle>
           <DialogDescription>
-            {item.instance.name} · {formatShortTimestamp(data?.collected_at ?? item.capacity.collected_at)}
+            {item.instance?.name ?? "当前实例"} · {formatShortTimestamp(data?.collected_at ?? item.capacity?.collected_at ?? item.collected_at)}
           </DialogDescription>
         </DialogHeader>
         <div className="overflow-hidden rounded-md border">
@@ -994,6 +1002,9 @@ function InstanceBackupInfoCard({
   onRetry: () => void;
 }) {
   const restorePoints: InstanceBackupRestorePoint[] = data?.restore_points ?? [];
+  const coverage = data?.backup_metrics_coverage;
+  const coverageText = coverage ? `${formatNumber(coverage.enriched_restore_point_count)} / ${formatNumber(coverage.expected_restore_point_count)}` : "-";
+  const sourceText = [data?.source_name, data?.source_server_host].map((value) => asText(value, "")).filter(Boolean).join(" / ") || "-";
 
   return (
     <Card>
@@ -1018,6 +1029,10 @@ function InstanceBackupInfoCard({
             <DetailField label="最近备份时间">{formatShortTimestamp(data.backup_last_time)}</DetailField>
             <DetailField label="备份链完整大小">{formatBytes(data.backup_chain_size_bytes)}</DetailField>
             <DetailField label="恢复点数量">{formatNumber(data.restore_point_count ?? restorePoints.length)}</DetailField>
+            <DetailField label="Backup ID">{asText(data.backup_id)}</DetailField>
+            <DetailField label="覆盖数量">{coverageText}</DetailField>
+            <DetailField label="平台">{sourceText}</DetailField>
+            <DetailField label="源记录">{asText(data.source_record_id ?? data.backup_file_id)}</DetailField>
           </dl>
         ) : null}
         {data ? (
@@ -1035,8 +1050,11 @@ function InstanceBackupInfoCard({
                 <TableHeader>
                   <TableRow>
                     <TableHead>恢复点</TableHead>
+                    <TableHead>Backup ID</TableHead>
                     <TableHead>备份方式</TableHead>
+                    <TableHead>数据大小</TableHead>
                     <TableHead>备份大小</TableHead>
+                    <TableHead>压缩率</TableHead>
                     <TableHead>创建时间</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1044,8 +1062,11 @@ function InstanceBackupInfoCard({
                   {restorePoints.map((item, index) => (
                     <TableRow key={`${item.id ?? item.name ?? "restore-point"}-${index}`}>
                       <TableCell className="font-medium">{asText(item.name ?? item.id)}</TableCell>
+                      <TableCell className="font-mono text-xs">{asText(item.backup_id)}</TableCell>
                       <TableCell>{asText(item.type)}</TableCell>
+                      <TableCell className="font-mono text-xs">{formatBytes(item.data_size_bytes)}</TableCell>
                       <TableCell className="font-mono text-xs">{formatBytes(item.backup_size_bytes ?? item.data_size_bytes)}</TableCell>
+                      <TableCell className="font-mono text-xs">{item.compress_ratio === null || item.compress_ratio === undefined ? "-" : `${item.compress_ratio}%`}</TableCell>
                       <TableCell className="font-mono text-xs">{formatShortTimestamp(item.creation_time)}</TableCell>
                     </TableRow>
                   ))}
@@ -1068,7 +1089,13 @@ function buildAgListenerLabel(item: InstanceAgAccountItem): string {
   return parts.length > 0 ? parts.join(" / ") : "-";
 }
 
-function createInstanceAccountsColumns(): ColumnDef<AccountLedgerItem>[] {
+function createInstanceAccountsColumns({
+  onShowHistory,
+  onShowPermissions
+}: {
+  onShowHistory: (item: AccountLedgerItem) => void;
+  onShowPermissions: (item: AccountLedgerItem) => void;
+}): ColumnDef<AccountLedgerItem>[] {
   return [
     {
       accessorKey: "id",
@@ -1123,6 +1150,20 @@ function createInstanceAccountsColumns(): ColumnDef<AccountLedgerItem>[] {
       id: "last_change_time",
       header: "最后变更",
       cell: ({ row }) => <span className="font-mono text-xs">{formatShortTimestamp(row.original.last_change_time)}</span>
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-2">
+          <Button aria-label={`查看权限 ${row.original.username}`} onClick={() => onShowPermissions(row.original)} size="sm" type="button" variant="outline">
+            查看权限
+          </Button>
+          <Button aria-label={`变更历史 ${row.original.username}`} onClick={() => onShowHistory(row.original)} size="sm" type="button" variant="outline">
+            变更历史
+          </Button>
+        </div>
+      )
     }
   ];
 }
@@ -1183,7 +1224,7 @@ function createInstanceAgAccountsColumns(): ColumnDef<InstanceAgAccountItem>[] {
   ];
 }
 
-function createInstanceDatabaseSizeColumns(): ColumnDef<InstanceDatabaseSizeItem>[] {
+function createInstanceDatabaseSizeColumns({ onShowTableSizes }: { onShowTableSizes: (item: InstanceDatabaseSizeItem) => void }): ColumnDef<InstanceDatabaseSizeItem>[] {
   return [
     {
       accessorFn: (item) => item.database_name,
@@ -1234,6 +1275,26 @@ function createInstanceDatabaseSizeColumns(): ColumnDef<InstanceDatabaseSizeItem
           <span>隐藏时间：{formatShortTimestamp(row.original.deleted_at)}</span>
         </div>
       )
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => (
+        <Button
+          aria-label={`表容量 ${row.original.database_name}`}
+          disabled={typeof row.original.id !== "number"}
+          onClick={() => {
+            if (typeof row.original.id === "number") {
+              onShowTableSizes(row.original);
+            }
+          }}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          表容量
+        </Button>
+      )
     }
   ];
 }
@@ -1277,10 +1338,31 @@ function InstanceDataTabsCard({
   onRetryDatabaseSizes: () => void;
   showAgAccounts: boolean;
 }) {
-  const accountColumns = useMemo(() => createInstanceAccountsColumns(), []);
+  const [permissionsAccount, setPermissionsAccount] = useState<AccountLedgerItem | null>(null);
+  const [historyAccount, setHistoryAccount] = useState<AccountLedgerItem | null>(null);
+  const [tableSizeDatabase, setTableSizeDatabase] = useState<InstanceDatabaseSizeItem | null>(null);
+  const accountColumns = useMemo(
+    () => createInstanceAccountsColumns({ onShowHistory: setHistoryAccount, onShowPermissions: setPermissionsAccount }),
+    []
+  );
   const agAccountColumns = useMemo(() => createInstanceAgAccountsColumns(), []);
-  const databaseSizeColumns = useMemo(() => createInstanceDatabaseSizeColumns(), []);
+  const databaseSizeColumns = useMemo(() => createInstanceDatabaseSizeColumns({ onShowTableSizes: setTableSizeDatabase }), []);
   const databases = databaseSizesData?.databases ?? [];
+  const tableSizeTarget =
+    tableSizeDatabase && typeof tableSizeDatabase.id === "number"
+      ? {
+          ...tableSizeDatabase,
+          id: tableSizeDatabase.id
+        }
+      : null;
+  const accounts = accountsData?.items ?? [];
+  const activeAccounts = accounts.filter((item) => item.is_active && !item.is_deleted).length;
+  const superuserAccounts = accounts.filter((item) => item.is_superuser).length;
+  const deletedAccounts = accounts.filter((item) => item.is_deleted).length;
+  const agAccounts = agAccountsData?.items ?? [];
+  const activeAgAccounts = agAccounts.filter((item) => item.is_active && !item.is_deleted).length;
+  const activeDatabases = databaseSizesData?.active_count ?? databases.filter((item) => item.is_active).length;
+  const deletedDatabases = Math.max((databaseSizesData?.total ?? databases.length) - activeDatabases, 0);
 
   return (
     <Card>
@@ -1306,6 +1388,13 @@ function InstanceDataTabsCard({
           <TabsContent className="grid gap-4" forceMount value="accounts">
             <DataTabState isLoading={accountsLoading} isError={accountsError} onRetry={onRetryAccounts} />
             {accountsData ? (
+              <>
+                <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+                  <DetailField label="账户总数">{formatNumber(accountsData.total)}</DetailField>
+                  <DetailField label="活跃账户">{formatNumber(activeAccounts)}</DetailField>
+                  <DetailField label="超管账户">{formatNumber(superuserAccounts)}</DetailField>
+                  <DetailField label="已删除账户">{formatNumber(deletedAccounts)}</DetailField>
+                </dl>
                 <DataTable
                   columns={accountColumns}
                   data={accountsData.items}
@@ -1317,6 +1406,7 @@ function InstanceDataTabsCard({
                   ]}
                   searchPlaceholder="搜索账户、插件、类型"
                 />
+              </>
             ) : null}
           </TabsContent>
 
@@ -1324,6 +1414,13 @@ function InstanceDataTabsCard({
             <TabsContent className="grid gap-4" forceMount value="ag-accounts">
               <DataTabState isLoading={agAccountsLoading} isError={agAccountsError} onRetry={onRetryAgAccounts} />
               {agAccountsData ? (
+                <>
+                  <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+                    <DetailField label="AG账户总数">{formatNumber(agAccountsData.total)}</DetailField>
+                    <DetailField label="AG活跃账户">{formatNumber(activeAgAccounts)}</DetailField>
+                    <DetailField label="AG超管账户">{formatNumber(agAccounts.filter((item) => item.is_superuser).length)}</DetailField>
+                    <DetailField label="AG已删除账户">{formatNumber(agAccounts.filter((item) => item.is_deleted).length)}</DetailField>
+                  </dl>
                   <DataTable
                     columns={agAccountColumns}
                     data={agAccountsData.items}
@@ -1335,6 +1432,7 @@ function InstanceDataTabsCard({
                     ]}
                     searchPlaceholder="搜索 AG、监听器、账户"
                   />
+                </>
               ) : null}
             </TabsContent>
           ) : null}
@@ -1342,6 +1440,13 @@ function InstanceDataTabsCard({
           <TabsContent className="grid gap-4" forceMount value="capacity">
             <DataTabState isLoading={databaseSizesLoading} isError={databaseSizesError} onRetry={onRetryDatabaseSizes} />
             {databaseSizesData ? (
+              <>
+                <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+                  <DetailField label="数据库总数">{formatNumber(databaseSizesData.total)}</DetailField>
+                  <DetailField label="当前数据库">{formatNumber(activeDatabases)}</DetailField>
+                  <DetailField label="删除数据库">{formatNumber(deletedDatabases)}</DetailField>
+                  <DetailField label="容量总量">{formatMegabytes(databaseSizesData.total_size_mb, "-")}</DetailField>
+                </dl>
                 <DataTable
                   columns={databaseSizeColumns}
                   data={databases}
@@ -1349,10 +1454,22 @@ function InstanceDataTabsCard({
                   filters={[{ columnId: "is_active", label: "状态", options: [{ label: "在线", value: "在线" }, { label: "已删除", value: "已删除" }] }]}
                   searchPlaceholder="搜索数据库名称、状态"
                 />
+              </>
             ) : null}
           </TabsContent>
         </Tabs>
       </CardContent>
+      {permissionsAccount ? <AccountPermissionsDialog item={permissionsAccount} onOpenChange={() => setPermissionsAccount(null)} /> : null}
+      {historyAccount ? <AccountChangeHistoryDialog item={historyAccount} onOpenChange={() => setHistoryAccount(null)} /> : null}
+      {tableSizeTarget ? (
+        <DatabaseTableSizesDialog
+          item={tableSizeTarget}
+          onOpenChange={() => setTableSizeDatabase(null)}
+          onRefresh={() => {
+            void runAction(refreshDatabaseTableSizes(tableSizeTarget.id), { success: "表容量已刷新" }).then(() => onRetryDatabaseSizes());
+          }}
+        />
+      ) : null}
     </Card>
   );
 }
@@ -1664,6 +1781,8 @@ function resolveInstanceRouteId(instanceId?: number): number {
 export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
   const params = useParams();
   const routeId = resolveInstanceRouteId(instanceId ?? Number(params.instanceId));
+  const [editingInstance, setEditingInstance] = useState<InstanceListItem | null>(null);
+  const [deletingInstance, setDeletingInstance] = useState<InstanceListItem | null>(null);
   const detailQuery = useQuery({
     enabled: routeId > 0,
     queryKey: ["lists", "instances", "detail-page", routeId],
@@ -1701,6 +1820,10 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
     queryKey: ["lists", "instances", routeId, "database-sizes"],
     queryFn: () => fetchInstanceDatabaseSizes(routeId)
   });
+  function handleInstanceDetailSaved() {
+    setEditingInstance(null);
+    void detailQuery.refetch();
+  }
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
@@ -1716,6 +1839,14 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
             <ExternalLink aria-hidden size={16} />
             <span>返回实例列表</span>
           </a>
+        </Button>
+        <Button disabled={!instance} onClick={() => setEditingInstance(instance ?? null)} type="button" variant="outline">
+          <Pencil aria-hidden size={16} />
+          <span>编辑实例</span>
+        </Button>
+        <Button disabled={!instance || Boolean(instance.deleted_at)} onClick={() => setDeletingInstance(instance ?? null)} type="button" variant="outline">
+          <Trash2 aria-hidden size={16} />
+          <span>移入回收站</span>
         </Button>
         <Button
           disabled={!instance}
@@ -1806,11 +1937,14 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
               </p>
             </div>
             <dl className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
+              <DetailField label="实例ID">{instance.id}</DetailField>
               <DetailField label="实例名称">{instance.name}</DetailField>
               <DetailField label="数据库类型">{dbTypeLabel(instance.db_type)}</DetailField>
               <DetailField label="主机/IP">{instance.host}:{instance.port}</DetailField>
+              <DetailField label="数据库版本">{asText((instance as Record<string, unknown>).main_version ?? (instance as Record<string, unknown>).version)}</DetailField>
               <DetailField label="状态">{instanceStatusLabel(instance)}</DetailField>
               <DetailField label="描述">{asText(instance.description)}</DetailField>
+              <DetailField label="标签"><TagList tags={instance.tags} /></DetailField>
               <DetailField label="最后同步">{formatShortTimestamp(instance.last_sync_time)}</DetailField>
             </dl>
           </CardContent>
@@ -1849,6 +1983,48 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
         onRetryDatabaseSizes={() => void databaseSizesQuery.refetch()}
         showAgAccounts={isSqlServer}
       />
+      {editingInstance ? (
+        <InstanceFormDialog
+          item={editingInstance}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingInstance(null);
+            }
+          }}
+          onSaved={handleInstanceDetailSaved}
+          open
+        />
+      ) : null}
+      <AlertDialog
+        open={deletingInstance !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingInstance(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认移入回收站 {deletingInstance?.name ?? ""}</AlertDialogTitle>
+            <AlertDialogDescription>实例会被软删除并从默认列表中隐藏，可在包含已删除记录后恢复。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>返回</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!deletingInstance) {
+                  return;
+                }
+                const targetId = deletingInstance.id;
+                setDeletingInstance(null);
+                void runAction(deleteInstance(targetId), { success: "实例已移入回收站" }).then(() => void detailQuery.refetch());
+              }}
+            >
+              确认移入回收站
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

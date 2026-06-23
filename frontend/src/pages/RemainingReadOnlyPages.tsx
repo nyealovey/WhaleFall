@@ -49,6 +49,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -4295,7 +4296,10 @@ type AlertSettingsFormState = {
   account_sync_failure_enabled: boolean;
   backup_issue_enabled: boolean;
   cluster_status_enabled: boolean;
+  clear_feishu_webhook_url: boolean;
+  database_capacity_absolute_gb_threshold: string;
   database_capacity_enabled: boolean;
+  database_capacity_percent_threshold: string;
   database_sync_failure_enabled: boolean;
   feishu_enabled: boolean;
   feishu_webhook_url: string;
@@ -4365,10 +4369,13 @@ function alertSettingsFormState(settings: Record<string, unknown>): AlertSetting
     account_sync_failure_enabled: booleanValue(settings.account_sync_failure_enabled, false),
     backup_issue_enabled: booleanValue(settings.backup_issue_enabled, false),
     cluster_status_enabled: booleanValue(settings.cluster_status_enabled, false),
+    clear_feishu_webhook_url: false,
+    database_capacity_absolute_gb_threshold: String(numericValue(settings.database_capacity_absolute_gb_threshold, 20)),
     database_capacity_enabled: booleanValue(settings.database_capacity_enabled, false),
+    database_capacity_percent_threshold: String(numericValue(settings.database_capacity_percent_threshold, 30)),
     database_sync_failure_enabled: booleanValue(settings.database_sync_failure_enabled, false),
     feishu_enabled: booleanValue(settings.feishu_enabled, false),
-    feishu_webhook_url: asText(settings.feishu_webhook_url, ""),
+    feishu_webhook_url: "",
     global_enabled: booleanValue(settings.global_enabled, false),
     privileged_account_enabled: booleanValue(settings.privileged_account_enabled, false),
     recipients: textList(settings.recipients).join("\n"),
@@ -4381,13 +4388,17 @@ function alertSettingsPayload(form: AlertSettingsFormState): Record<string, unkn
     account_sync_failure_enabled: form.account_sync_failure_enabled,
     backup_issue_enabled: form.backup_issue_enabled,
     cluster_status_enabled: form.cluster_status_enabled,
+    clear_feishu_webhook_url: form.clear_feishu_webhook_url,
     database_capacity_enabled: form.database_capacity_enabled,
+    database_capacity_percent_threshold: numericValue(form.database_capacity_percent_threshold, 30),
+    database_capacity_absolute_gb_threshold: numericValue(form.database_capacity_absolute_gb_threshold, 20),
     database_sync_failure_enabled: form.database_sync_failure_enabled,
     feishu_enabled: form.feishu_enabled,
     feishu_webhook_url: form.feishu_webhook_url.trim(),
     global_enabled: form.global_enabled,
     privileged_account_enabled: form.privileged_account_enabled,
-    recipients: textList(form.recipients)
+    recipients: textList(form.recipients),
+    shared_recipients_enabled: form.shared_recipients_enabled
   };
 }
 
@@ -4491,6 +4502,45 @@ function ToggleRow({ label, checked }: { label: string; checked: unknown }) {
   );
 }
 
+function maskWebhookUrl(value: unknown): string {
+  const text = asText(value, "");
+  if (!text) {
+    return "未配置";
+  }
+  try {
+    const url = new URL(text);
+    const suffix = url.hostname.split(".").slice(-1)[0] || url.hostname;
+    return `${url.protocol}//***.${suffix}`;
+  } catch {
+    return "***";
+  }
+}
+
+function recordName(value: unknown, fallback = "-"): string {
+  return value && typeof value === "object" ? asText((value as Record<string, unknown>).name, fallback) : fallback;
+}
+
+function adSyncMetricsText(metrics: unknown): string {
+  if (!metrics || typeof metrics !== "object") {
+    return "未执行同步";
+  }
+  const record = metrics as Record<string, unknown>;
+  return [
+    `AD对象 ${asText(record.ad_principals_total, "0")}`,
+    `SQL账户 ${asText(record.total, "0")}`,
+    `正常 ${asText(record.normal, "0")}`,
+    `停用 ${asText(record.disabled, "0")}`,
+    `孤账户 ${asText(record.orphaned, "0")}`,
+    `更新 ${asText(record.updated, "0")}`
+  ].join(" · ");
+}
+
+const severityOptions = [
+  { label: "低", value: "low" },
+  { label: "中", value: "medium" },
+  { label: "高", value: "high" }
+];
+
 type SettingsModule = "alerts" | "risk" | "jumpserver" | "veeam" | "ad";
 
 const settingsModules: Array<{ label: string; value: SettingsModule }> = [
@@ -4514,8 +4564,8 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
   const [jumpServerForm, setJumpServerForm] = useState(() => jumpServerFormState(jumpserverBinding));
   const [selectedVeeamSourceId, setSelectedVeeamSourceId] = useState<number | null>(() => numericId(veeamSources[0]?.id));
   const [veeamForm, setVeeamForm] = useState(() => veeamFormState(veeamSources[0] ?? null, snapshot));
-  const [selectedAdDomainId, setSelectedAdDomainId] = useState<number | null>(() => numericId(adDomainConfigs[0]?.id));
-  const [adDomainForm, setAdDomainForm] = useState(() => adDomainFormState(adDomainConfigs[0] ?? null));
+  const [selectedAdDomainId, setSelectedAdDomainId] = useState<number | null>(null);
+  const [adDomainForm, setAdDomainForm] = useState(() => adDomainFormState(null));
   const selectedVeeamSource = selectedVeeamSourceId === null ? null : veeamSources.find((source) => numericId(source.id) === selectedVeeamSourceId) ?? null;
   const selectedAdDomain = selectedAdDomainId === null ? null : adDomainConfigs.find((config) => numericId(config.id) === selectedAdDomainId) ?? null;
   const jumpServerPayload = jumpServerPayloadFromForm(jumpServerForm);
@@ -4545,23 +4595,19 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
 
   return (
     <>
-      <section className="grid grid-cols-[16rem_minmax(0,1fr)] gap-2 max-xl:grid-cols-1">
+      <Tabs className="grid grid-cols-[16rem_minmax(0,1fr)] gap-2 max-xl:grid-cols-1" value={activeModule} onValueChange={(value) => setActiveModule(value as SettingsModule)}>
         <Card className="self-start">
           <CardHeader>
             <CardTitle>设置模块</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2">
-            {settingsModules.map((module) => (
-              <Button
-                className="justify-start"
-                key={module.value}
-                onClick={() => setActiveModule(module.value)}
-                type="button"
-                variant={activeModule === module.value ? "secondary" : "ghost"}
-              >
-                {module.label}
-              </Button>
-            ))}
+          <CardContent>
+            <TabsList className="grid h-auto w-full gap-2 bg-transparent p-0">
+              {settingsModules.map((module) => (
+                <TabsTrigger className="justify-start" key={module.value} value={module.value}>
+                  {module.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </CardContent>
         </Card>
         <div className="grid gap-2">
@@ -4570,17 +4616,27 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
             <SettingsSubsection title="发送设置">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 <ReadonlyField label="投递通道" value={snapshot.alerts.smtp_ready ? "SMTP" : "未就绪"} />
+                <ReadonlyField label="当前飞书 Webhook" value={maskWebhookUrl(alertSettings.feishu_webhook_url)} />
                 <FormField label="飞书机器人 URL">
-                  <Input value={alertForm.feishu_webhook_url} onChange={(event) => setAlertForm((form) => ({ ...form, feishu_webhook_url: event.target.value }))} />
+                  <Input placeholder="输入新 Webhook 后替换已保存地址" value={alertForm.feishu_webhook_url} onChange={(event) => setAlertForm((form) => ({ ...form, feishu_webhook_url: event.target.value }))} />
                 </FormField>
                 <FormField label="收件人">
                   <Textarea value={alertForm.recipients} onChange={(event) => setAlertForm((form) => ({ ...form, recipients: event.target.value }))} />
+                </FormField>
+                <FormField label="容量增长百分比阈值">
+                  <Input min={1} type="number" value={alertForm.database_capacity_percent_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_percent_threshold: event.target.value }))} />
+                </FormField>
+                <FormField label="容量增长绝对阈值">
+                  <Input min={1} type="number" value={alertForm.database_capacity_absolute_gb_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_absolute_gb_threshold: event.target.value }))} />
                 </FormField>
               </div>
               <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 <SwitchField checked={alertForm.global_enabled} label="启用邮件告警" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, global_enabled: checked }))} />
                 <SwitchField checked={alertForm.feishu_enabled} label="发送到飞书" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, feishu_enabled: checked }))} />
                 <SwitchField checked={alertForm.shared_recipients_enabled} label="共享收件人列表" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, shared_recipients_enabled: checked }))} />
+                <CheckboxLine checked={alertForm.clear_feishu_webhook_url} label="清空飞书 Webhook" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, clear_feishu_webhook_url: checked }))}>
+                  清空飞书 Webhook
+                </CheckboxLine>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => void runAction(sendAlertTestEmail(textList(alertForm.recipients)), { success: "测试邮件已发送" })} size="sm" type="button">
@@ -4625,26 +4681,40 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               </Button>
             </div>
             {riskRules.length > 0 ? (
-              riskRules.map((rule, index) => (
-                <div className="grid grid-cols-[minmax(0,1fr)_10rem_8rem] items-center gap-2 rounded-md border bg-secondary/40 px-3 py-2 max-sm:grid-cols-1" key={rule.rule_key}>
-                  <span>{rule.rule_key}</span>
-                  <SelectControl
-                    label={`${rule.rule_key} 严重度`}
-                    onValueChange={(severity) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, severity } : item)))}
-                    options={[
-                      { label: "low", value: "low" },
-                      { label: "medium", value: "medium" },
-                      { label: "high", value: "high" }
-                    ]}
-                    value={rule.severity}
-                  />
+              riskRules.map((rule, index) => {
+                const sourceRule = recordList(snapshot.riskRules).find((item) => asText(item.rule_key, "") === rule.rule_key) ?? {};
+                return (
+                <div className="grid grid-cols-[minmax(0,1fr)_18rem_8rem] items-center gap-3 rounded-md border bg-secondary/40 px-3 py-2 max-lg:grid-cols-1" key={rule.rule_key}>
+                  <div className="grid gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{asText(sourceRule.category, "未分类")}</Badge>
+                      <span className="font-medium">{asText(sourceRule.display_name ?? sourceRule.name, rule.rule_key)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{asText(sourceRule.description, rule.rule_key)}</div>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">严重级别</span>
+                    <RadioGroup
+                      className="grid grid-cols-3 gap-2"
+                      onValueChange={(severity) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, severity } : item)))}
+                      value={rule.severity}
+                    >
+                      {severityOptions.map((option) => (
+                        <label className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-sm" key={option.value}>
+                          <RadioGroupItem value={option.value} />
+                          <span>{option.label}</span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </div>
                   <SwitchField
                     checked={rule.enabled}
                     label="启用规则"
                     onCheckedChange={(enabled) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, enabled } : item)))}
                   />
                 </div>
-              ))
+                );
+              })
             ) : (
               <p className="text-muted-foreground">暂无风险规则</p>
             )}
@@ -4669,6 +4739,7 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 <FormField label="组织 ID">
                   <Input value={jumpServerForm.orgId} onChange={(event) => setJumpServerForm((form) => ({ ...form, orgId: event.target.value }))} />
                 </FormField>
+                <ReadonlyField label="当前 API 凭据" value={recordName(jumpserverBinding.credential, jumpServerForm.credentialId ? `凭据 #${jumpServerForm.credentialId}` : "-")} />
               </div>
               <SwitchField checked={jumpServerForm.verifySsl} label="SSL 证书验证" onCheckedChange={(checked) => setJumpServerForm((form) => ({ ...form, verifySsl: checked }))} />
               <div className="flex flex-wrap gap-2">
@@ -4696,7 +4767,8 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 <ReadonlyField label="Provider" value={statusLabel(Boolean(snapshot.jumpserver.provider_ready))} />
                 <ReadonlyField label="当前绑定" value={endpointHost(jumpServerForm.baseUrl)} />
-                <ReadonlyField label="最近同步" value={snapshot.jumpserver.last_sync_at} />
+                <ReadonlyField label="最近同步状态" value={asText(jumpserverBinding.last_sync_status ?? snapshot.jumpserver.last_sync_status)} />
+                <ReadonlyField label="最近同步" value={asText(jumpserverBinding.last_sync_at ?? snapshot.jumpserver.last_sync_at)} />
               </div>
               <span className="font-mono text-sm">{endpointHost(jumpServerForm.baseUrl)}</span>
             </SettingsSubsection>
@@ -4718,6 +4790,7 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                     value={veeamForm.credentialId}
                   />
                 </FormField>
+                <ReadonlyField label="当前 Veeam 凭据" value={recordName(selectedVeeamSource?.credential, veeamForm.credentialId ? `凭据 #${veeamForm.credentialId}` : "-")} />
                 <FormField label="Veeam IP">
                   <Input value={veeamForm.serverHost} onChange={(event) => setVeeamForm((form) => ({ ...form, serverHost: event.target.value }))} />
                 </FormField>
@@ -4730,6 +4803,9 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 <FormField label="域名列表">
                   <Textarea value={veeamForm.domains} onChange={(event) => setVeeamForm((form) => ({ ...form, domains: event.target.value }))} />
                 </FormField>
+                <ReadonlyField label="启用状态" value={statusLabel(selectedVeeamSource?.is_active !== false)} />
+                <ReadonlyField label="最近同步" value={selectedVeeamSource?.last_sync_at} />
+                <ReadonlyField label="最近同步状态" value={selectedVeeamSource?.last_sync_status} />
               </div>
               <SwitchField checked={veeamForm.verifySsl} label="SSL 证书验证" onCheckedChange={(checked) => setVeeamForm((form) => ({ ...form, verifySsl: checked }))} />
               <div className="flex flex-wrap gap-2">
@@ -4771,6 +4847,13 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 </Button>
               </div>
             </SettingsSubsection>
+            <SettingsSubsection title="Provider 汇总">
+              <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+                <ReadonlyField label="Provider" value={statusLabel(Boolean(snapshot.veeam.provider_ready))} />
+                <ReadonlyField label="数据源数量" value={veeamSources.length} />
+                <ReadonlyField label="凭据数量" value={veeamCredentials.length} />
+              </div>
+            </SettingsSubsection>
             <SettingsSubsection title="数据源列表">
               {veeamSources.length > 0 ? (
                 veeamSources.map((source) => (
@@ -4779,6 +4862,9 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                       <div className="font-medium">{asText(source.name)}</div>
                       <div className="font-mono text-xs text-muted-foreground">
                         {asText(source.server_host)}:{asText(source.server_port)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {recordName(source.credential)} · {statusLabel(source.is_active !== false)} · {asText(source.last_sync_status)}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
@@ -4902,9 +4988,16 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 adDomainConfigs.map((config) => (
                   <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2 max-sm:grid" key={asText(config.id ?? config.name)}>
                     <div>
-                      <div className="font-medium">{asText(config.name)}</div>
-                      <div className="font-mono text-xs text-muted-foreground">{asText(config.netbios_name)}</div>
-                    </div>
+                  <div className="font-medium">{asText(config.name)}</div>
+                  <div className="font-mono text-xs text-muted-foreground">{asText(config.netbios_name)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    域控 {textList(config.domain_controllers).join(", ") || "-"} · 凭据 {recordName(config.credential, numericValue(config.credential_id, 0) > 0 ? `凭据 #${numericValue(config.credential_id, 0)}` : "-")}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    同步状态 {asText(config.last_sync_status, "未执行")} · {asText(config.last_sync_at)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{adSyncMetricsText(config.last_sync_metrics)}</div>
+                </div>
                     <div className="flex flex-wrap items-center gap-1">
                       <StatusBadge value={config.is_enabled === true} />
                       <Button onClick={() => editAdDomain(config)} size="sm" type="button" variant="outline">
@@ -4920,7 +5013,7 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
           </SettingsCard>
           ) : null}
         </div>
-      </section>
+      </Tabs>
     </>
   );
 }
