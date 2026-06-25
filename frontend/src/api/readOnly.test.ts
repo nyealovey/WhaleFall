@@ -12,7 +12,6 @@ import {
   fetchSqlServerAvailabilityGroupDashboard,
   fetchSqlServerClusterDetail,
   fetchCredentialsSnapshot,
-  fetchCredentialDetail,
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
   fetchSchedulerJobDetail,
@@ -20,14 +19,20 @@ import {
   fetchTaskRunErrorLogs,
   fetchSettingsSnapshot,
   fetchTaskRunsSnapshot,
-  fetchTagDetail,
   fetchTagBulkOptions,
   fetchTagsSnapshot,
-  fetchUserDetail,
   fetchUsersSnapshot
 } from "./readOnly";
 
 describe("read-only migration api", () => {
+  it("does not expose standalone detail readers for pages without legacy detail views", async () => {
+    const api = await import("./readOnly");
+
+    expect(api).not.toHaveProperty("fetchUserDetail");
+    expect(api).not.toHaveProperty("fetchCredentialDetail");
+    expect(api).not.toHaveProperty("fetchTagDetail");
+  });
+
   it("loads SQL Server and MySQL clusters", async () => {
     const client = {
       get: vi
@@ -278,29 +283,17 @@ describe("read-only migration api", () => {
     expect(sessions.items[0]?.run_id).toBe("s-1");
   });
 
-  it("loads scheduler job, user, credential, and tag details", async () => {
+  it("loads scheduler job details", async () => {
     const client = {
       get: vi
         .fn()
         .mockResolvedValueOnce({ id: "job-1", trigger: "cron[minute='*/5']", func: "tasks.sync", max_instances: 1 })
-        .mockResolvedValueOnce({ user: { id: 1, username: "admin", last_login: "2026-06-11" } })
-        .mockResolvedValueOnce({ credential: { id: 2, name: "prod", username: "root" } })
-        .mockResolvedValueOnce({ tag: { id: 3, display_name: "生产", category: "env" } })
     };
 
     const job = await fetchSchedulerJobDetail("job-1", client);
-    const user = await fetchUserDetail(1, client);
-    const credential = await fetchCredentialDetail(2, client);
-    const tag = await fetchTagDetail(3, client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/scheduler/jobs/job-1");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/users/1");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/credentials/2");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/tags/3");
     expect(job.trigger).toContain("cron");
-    expect(user.user.username).toBe("admin");
-    expect(credential.credential.name).toBe("prod");
-    expect(tag.tag.display_name).toBe("生产");
   });
 
   it("loads sync session detail and error logs", async () => {

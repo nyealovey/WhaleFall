@@ -147,7 +147,7 @@ related:
 
 ```bash
 npm --prefix frontend run test -- src/layout/AppShell.test.tsx src/pages/ListPages.test.tsx src/pages/AuditPages.test.tsx src/pages/RemainingReadOnlyPages.test.tsx  # 4 files, 60 tests passed
-npm --prefix frontend run test       # 26 files, 149 tests passed
+npm --prefix frontend run test       # 26 files, 150 tests passed
 npm --prefix frontend run typecheck  # passed
 npm --prefix frontend run lint       # passed
 npm --prefix frontend run build      # passed; Vite chunk-size warning remains
@@ -160,4 +160,4 @@ git diff --check                     # passed
 - 旧版对应页面：23 个。
 - React 弹窗/子面板：实例、账户、群集、调度、日志、变更、用户、设置、凭据、标签、分区等。
 - 旧版弹窗/子页面：添加/编辑实例、权限详情、添加群集、AG 账户、AG 状态、编辑任务、日志详情、变更详情、用户、凭据、标签、分区等。
-- 本轮未执行本地构建或测试；该文档为线上浏览器复核报告。
+- 初始浏览器复核时未执行本地构建或测试；后续代码侧验证见上方“代码侧验证”。

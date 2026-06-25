@@ -317,10 +317,6 @@ export type UsersSnapshot = {
   stats: UsersStats;
 };
 
-export type UserDetail = {
-  user: UserItem & Record<string, unknown>;
-};
-
 export type SettingsSnapshot = {
   alerts: {
     smtp_ready?: boolean;
@@ -349,10 +345,6 @@ export type CredentialItem = {
   created_at_display?: string | null;
 };
 
-export type CredentialDetail = {
-  credential: CredentialItem & Record<string, unknown>;
-};
-
 export type TagItem = {
   id: number;
   name: string;
@@ -360,10 +352,6 @@ export type TagItem = {
   category: string;
   is_active?: boolean;
   instance_count?: number;
-};
-
-export type TagDetail = {
-  tag: TagItem & Record<string, unknown>;
 };
 
 export type TagsSnapshot = {
@@ -673,10 +661,6 @@ export async function fetchUsersSnapshot(query: UsersListQuery = {}, client: Api
   return { list, stats };
 }
 
-export function fetchUserDetail(userId: number, client: ApiReader = apiClient): Promise<UserDetail> {
-  return client.get<UserDetail>(`/api/v1/users/${userId}`);
-}
-
 function normalizeRiskRules(payload: unknown): Array<Record<string, unknown>> {
   if (Array.isArray(payload)) {
     return payload.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object");
@@ -713,10 +697,6 @@ export async function fetchCredentialsSnapshot(
   ]));
 }
 
-export function fetchCredentialDetail(credentialId: number, client: ApiReader = apiClient): Promise<CredentialDetail> {
-  return client.get<CredentialDetail>(`/api/v1/credentials/${credentialId}`);
-}
-
 export async function fetchTagsSnapshot(query: TagsListQuery = {}, client: ApiReader = apiClient): Promise<TagsSnapshot> {
   const [list, categoriesResponse] = await Promise.all([
     client.get<TagsSnapshot["list"]>(queryPath("/api/v1/tags", [
@@ -730,10 +710,6 @@ export async function fetchTagsSnapshot(query: TagsListQuery = {}, client: ApiRe
     list,
     categories: categoriesResponse.categories
   };
-}
-
-export function fetchTagDetail(tagId: number, client: ApiReader = apiClient): Promise<TagDetail> {
-  return client.get<TagDetail>(`/api/v1/tags/${tagId}`);
 }
 
 export async function fetchTagBulkOptions(client: ApiReader = apiClient): Promise<TagBulkOptions> {
