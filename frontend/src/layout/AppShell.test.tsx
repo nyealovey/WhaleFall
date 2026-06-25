@@ -24,12 +24,15 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByRole("banner")).toBeInTheDocument();
-    expect(screen.getByText("鲸落")).toBeInTheDocument();
+    expect(screen.getAllByText("鲸落").length).toBeGreaterThan(0);
     expect(screen.getByText("OPS CONSOLE")).toBeInTheDocument();
     expect(screen.getByText("Dashboard body")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /实例管理/ })).toHaveAttribute("href", "/instances");
     expect(screen.getByRole("link", { name: /系统设置/ })).toHaveAttribute("href", "/settings");
     expect(screen.getByRole("link", { name: "修改密码" })).toHaveAttribute("href", "/auth/change-password");
     expect(screen.getByRole("button", { name: "退出" })).toBeInTheDocument();
+    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+    expect(screen.getByText("1.5.0")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "关于" })).toHaveAttribute("href", "/console/about");
   });
 });

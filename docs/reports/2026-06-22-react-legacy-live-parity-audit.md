@@ -313,8 +313,8 @@ MySQL：
 
 源码证据：
 
-- `frontend/src/pages/RemainingReadOnlyPages.tsx:1760-1778`
-- `frontend/src/pages/RemainingReadOnlyPages.tsx:2554-2565`
+- `frontend/src/pages/ClustersPage.tsx`
+- `frontend/src/pages/ConsolePageScaffold.tsx`
 - `app/models/sqlserver_cluster.py:50-61`
 - `app/models/mysql_cluster.py:31-43`
 

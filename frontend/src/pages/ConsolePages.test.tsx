@@ -10,18 +10,13 @@ import {
   fetchSchedulerJobDetail,
 } from "@/api/readOnly";
 
-import {
-  AccountClassificationsPage,
-  ClassificationStatisticsPage,
-  ClustersPage,
-  CredentialsPage,
-  PartitionsPage,
-  SchedulerPage,
-  SettingsPage,
-  SyncSessionsPage,
-  TagsPage,
-  UsersPage
-} from "./RemainingReadOnlyPages";
+import { CredentialsPage, TagsPage, UsersPage } from "./CatalogAdminPages";
+import { AccountClassificationsPage, ClassificationStatisticsPage } from "./ClassificationPages";
+import { ClustersPage } from "./ClustersPage";
+import { PartitionsPage } from "./PartitionsPage";
+import { SchedulerPage } from "./SchedulerPage";
+import { SettingsPage } from "./SettingsPage";
+import { SyncSessionsPage } from "./SyncSessionsPage";
 
 const adminUser = { id: 1, username: "admin", role: "admin", is_active: true };
 const viewerUser = { id: 2, username: "viewer", role: "viewer", is_active: true };
@@ -463,7 +458,7 @@ async function chooseSelectOption(scope: ReturnType<typeof within>, label: strin
   fireEvent.click(await screen.findByRole("option", { name: optionName }));
 }
 
-describe("RemainingReadOnlyPages", () => {
+describe("Console pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

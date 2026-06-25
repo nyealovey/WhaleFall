@@ -23,9 +23,9 @@
 ## 当前摘要
 
 - React 入口: `/console`
-- 路由级已接入页面: 22
+- 路由级已接入页面: 23（22 个导航页面 + 1 个页脚关于页）
 - 路由级占位页: 0（仅表示导航路径已有 React 页面，不代表完整替代完成）
-- 完整替代完成页: 22（代码侧已完成；用户重新构建部署后继续做线上复核）
+- 完整替代完成页: 23（代码侧已完成；用户重新构建部署后继续做线上复核）
 - 完整替代缺口页: 0
 - 当前策略: 迁移清单已闭环；后续只做线上复核发现的问题修复，新增旧版没有的能力另立需求，不写入本迁移清单
 - API 核查口径: 路由级占位页 0 不代表完整替代完成；旧版没有的能力直接不纳入迁移范围，不再保留占位；只有旧版有入口/动作且 v1 缺路由的能力才作为替代阻塞项
@@ -53,6 +53,7 @@
 | 新前端路径 | 旧页面路径 | 状态 | 接入 API | 备注 |
 | --- | --- | --- | --- | --- |
 | `/console/dashboard` | `/dashboard/` | Done - replacement | `/api/v1/dashboard/overview`, `/api/v1/dashboard/status`, `/api/v1/dashboard/charts?type=all`, `/api/v1/risk-center/summary` | 已按旧版补齐刷新数据、数据库实例/账户总数/总容量/数据库总数指标、风险告警、错误和告警日志趋势、系统状态、运行时间和分类分布；刷新接入 Sonner 反馈；旧版模板没有活动流展示，新版已删除活动流卡片，完成替代验收 |
+| `/console/about` | `/about` | Done - replacement | 无新增 v1 API | 已恢复旧版全局页脚“关于”入口，并补齐项目介绍、核心功能、技术栈、支持的数据库和更新日志；关于页仅展示静态说明和版本时间线，不新增旧版没有的动作 |
 | `/console/risk-center` | `/risk-center/` | Done - replacement | `/api/v1/risk-center/summary`, `/api/v1/risk-center/cards?page=...&limit=20&severity=...&db_type=...&status=...&tag=...&search=...` | 已按旧版补齐刷新、总实例/高中低健康指标、搜索/严重度/数据库类型/状态/标签筛选联动、数据库类型分组风险墙和备份/审计/托管/群集/任务核心信号；风险卡默认每页 20 条并接入服务端分页；刷新接入 Sonner 反馈；风险卡沿用旧版跳转实例详情口径；旧版没有风险处置/风险详情独立入口，React 不接入对应功能，完成替代验收 |
 | `/console/instances` | `/instances/` | Done - replacement | `/api/v1/instances?page=...&limit=...`, `/api/v1/instances/{id}`, `/api/v1/instances/{id}/connection-status`, `/api/v1/accounts/ledgers?instance_id={id}&owner_type=instance&include_roles=true`, `/api/v1/instances/{id}/ag-accounts`, `/api/v1/databases/sizes?instance_id={id}&latest_only=true&include_inactive=true`, `/api/v1/instances/{id}/audit-info`, `/api/v1/instances/{id}/backup-info`, `/api/v1/credentials?page=...&limit=...`, `POST /api/v1/instances`, `PUT /api/v1/instances/{id}`, `/api/v1/instances/actions/test-connection`, `/api/v1/instances/actions/validate-connection-params`, `/api/v1/instances/actions/batch-test-connections`, `/api/v1/instances/actions/batch-delete`, `/api/v1/instances/actions/batch-create`, `/api/v1/instances/imports/template`, `/api/v1/instances/{id}/actions/sync-accounts`, `/api/v1/instances/{id}/actions/sync-capacity`, `/api/v1/instances/{id}/actions/sync-audit-info`, `/api/v1/integrations/veeam/actions/sync-instance/{id}`, `/api/v1/instances/{id}/actions/restore`, `DELETE /api/v1/instances/{id}`, `/api/v1/instances/exports` | 已按旧版补齐名称、类型、主机/IP、状态、审计、已托管、备份、活跃、版本/同步、标签、操作列；搜索、类型、状态、审计、托管、备份、标签筛选由 DataTable 工具栏承载并接入服务端分页；实例详情补齐实例 ID、数据库版本、标签、编辑、移入回收站、账户/容量四项汇总、查看权限、变更历史、表容量入口、Backup ID、覆盖数量、平台、数据大小、备份大小和压缩率；账户、AG 账户、容量、审计、备份统一在同一个 shadcn Tabs 卡片中切换；连接状态统一中文业务文本，残留英文说明已继续收敛；基础新增/编辑实例表单、凭据下拉选择、单实例连接测试、高级连接参数校验、实例级账户/容量/审计/备份同步、当前可见列表批量测试、批量移入回收站、批量导入 CSV、删除到回收站、恢复、导出 CSV 均已接入 React，完成替代验收 |
 | `/console/database-ledgers` | `/databases/ledgers` | Done - replacement | `/api/v1/databases/ledgers?page=...&limit=...`, `/api/v1/databases/ledgers/exports`, `/api/v1/databases/ledgers/actions/sync-all`, `/api/v1/databases/{id}/tables/sizes`, `/api/v1/databases/{id}/tables/sizes/actions/refresh` | 已按旧版补齐数据库/实例、类型、数据库大小、标签、操作列；搜索、类型、标签筛选由 DataTable 工具栏承载并接入服务端分页；同步所有数据库、表容量详情和刷新表容量已接入 React；导出 CSV 链接携带当前筛选条件；残留英文说明已继续收敛，完成替代验收 |
@@ -77,7 +78,7 @@
 
 ## 迁移结论
 
-当前导航内没有路由级占位页，22 个页面均达到 `Done - replacement`。后续不再以“迁移缺口”方式追踪旧版没有的能力；新增需求需要单独开需求、确认旧版依据或新增后端 API。
+当前导航内没有路由级占位页，22 个导航页面和 1 个页脚关于页均达到 `Done - replacement`。后续不再以“迁移缺口”方式追踪旧版没有的能力；新增需求需要单独开需求、确认旧版依据或新增后端 API。
 
 ## 完整替代缺口矩阵
 
@@ -114,6 +115,7 @@
 7. 迁移范围外口径已收口：旧版没有的能力不作为迁移缺口，不在本清单保留占位；如需新增，按新需求单独评估。
 8. 持续保留导入导出收敛口径：实例/数据库台账/账户台账三类导出 CSV 链接已接入并携带当前筛选；实例导入上传、实例批量删除、标签批量分配/移除已完成。
 9. 已完成 2026-06-25 新一轮线上对比修复：全局修改密码入口、AG 账户查看、AG 状态副本/数据库同步明细、调度任务拆字段编辑、日志详情复制/上下文、凭据数据库类型条件展示、分区表头语义、实例连接状态中文化和残留英文说明收敛。
+10. 已完成页脚关于页迁移：React AppShell 恢复旧版所有页面底部“关于”入口，新增 `/console/about` 静态说明页并纳入迁移清单。
 
 ## 本次动作迁移与风险
 
@@ -192,11 +194,12 @@ git diff --check                     # passed
 2026-06-25 新一轮线上对比修复批次验证通过:
 
 ```bash
-npm --prefix frontend run test -- src/layout/AppShell.test.tsx src/pages/ListPages.test.tsx src/pages/AuditPages.test.tsx src/pages/RemainingReadOnlyPages.test.tsx  # 4 files, 60 tests passed
-npm --prefix frontend run test       # 26 files, 150 tests passed
+npm --prefix frontend run test -- src/layout/AppShell.test.tsx src/pages/ListPages.test.tsx src/pages/AuditPages.test.tsx src/pages/ConsolePages.test.tsx  # 4 files, 60 tests passed
+npm --prefix frontend run test -- src/layout/AppShell.test.tsx src/migration/legacyParity.test.ts src/pages/AboutPage.test.tsx  # 3 files, 5 tests passed
+npm --prefix frontend run test       # 28 files, 154 tests passed
 npm --prefix frontend run typecheck  # passed
 npm --prefix frontend run lint       # passed
-npm --prefix frontend run build      # passed; Vite chunk-size warning remains
+npm --prefix frontend run build      # passed; no Vite chunk-size warning
 git diff --check                     # passed
 ```
 
@@ -240,3 +243,6 @@ git diff --check                     # passed
 - 2026-06-23: 根据生产复核继续修复：实例详情恢复旧版同框标签切换形态，账户、AG 账户、容量、审计、备份统一在一个 shadcn Tabs 卡片；DataTable 分页按钮组改为单行不可换行，修复大页数场景分页换行溢出。
 - 2026-06-25: 按新一轮线上对比文档完成代码侧修复：Shell 补修改密码入口；实例和数据库台账继续删除残留英文说明；实例连接状态中文化；群集补 AG 账户查看弹窗和 AG 状态副本/数据库同步明细；调度任务恢复旧版拆字段编辑；日志详情补复制和上下文动作；凭据数据库类型改为条件展示；分区恢复旧版表头语义。
 - 2026-06-25: 按“旧版没有直接删除”口径完成迁移闭环：删除迁移清单中的占位清单和相关说明，移除 React 未使用的 `fetchUserDetail`、`fetchCredentialDetail`、`fetchTagDetail` 只读 API 封装，并新增测试防止重新导出。
+- 2026-06-25: 补迁移旧版全局页脚“关于”入口和 `/about` 页面；React 新增 `/console/about`，保留旧版项目介绍、核心功能、技术栈、支持数据库和更新日志内容。
+- 2026-06-25: 完成前端拆包优化：路由页面改为 `React.lazy` 按需加载，剩余大页面拆出懒加载入口模块，Vite 手动分包增加 React、TanStack、Radix、icons 和 charts vendor chunk；生产构建已消除大 chunk 警告。
+- 2026-06-25: 删除迁移临时聚合页面文件，按业务域拆分为 `ClustersPage`、`ClassificationPages`、`SchedulerPage`、`SyncSessionsPage`、`SettingsPage`、`CatalogAdminPages`、`PartitionsPage` 和共享 `ConsolePageScaffold`。

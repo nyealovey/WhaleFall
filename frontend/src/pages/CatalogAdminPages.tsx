@@ -1,0 +1,1214 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useQuery } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+  Activity,
+  AlertCircle,
+  Boxes,
+  ChartColumn,
+  Clock,
+  Database,
+  Eye,
+  ExternalLink,
+  HardDrive,
+  History,
+  Layers3,
+  ListChecks,
+  Pause,
+  Pencil,
+  Play,
+  PlugZap,
+  Plus,
+  RotateCcw,
+  Settings,
+  Tags,
+  Trash2,
+  UserCog,
+  Zap
+} from "lucide-react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+
+import { CheckboxLine, SelectControl, SwitchField } from "@/components/shared/FormControls";
+import { runAction } from "@/utils/action-feedback";
+import { formatDateTime, formatStatus } from "@/utils/display";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  assignTagsToInstances,
+  autoClassifyAccounts,
+  cancelSyncSession,
+  cleanupPartitions,
+  createAccountClassification,
+  createAccountClassificationRule,
+  createAdDomainConfig,
+  createPartition,
+  createCredential,
+  createMySqlCluster,
+  createSqlServerAvailabilityGroup,
+  createSqlServerCluster,
+  createTag,
+  createUser,
+  createVeeamSource,
+  deleteAccountClassification,
+  deleteAccountClassificationRule,
+  deleteAdDomainConfig,
+  deleteCredential,
+  deleteSchedulerJob,
+  deleteTag,
+  deleteUser,
+  deleteVeeamSource,
+  disableVeeamSource,
+  enableVeeamSource,
+  pauseSchedulerJob,
+  reloadSchedulerJobs,
+  removeAllTagsFromInstances,
+  removeTagsFromInstances,
+  replaceMySqlClusterInstances,
+  replaceSqlServerClusterInstances,
+  resumeSchedulerJob,
+  runSchedulerJob,
+  saveAlertSettings,
+  saveJumpServerSource,
+  saveRiskRules,
+  sendAlertTestEmail,
+  sendFeishuTest,
+  setAdDomainConfigEnabled,
+  syncAdDomains,
+  syncJumpServer,
+  syncMySqlClusterTopology,
+  syncSqlServerAgAccounts,
+  syncSqlServerAvailabilityGroups,
+  syncSqlServerClusterStatus,
+  syncVeeam,
+  testAdDomainConfig,
+  unbindJumpServer,
+  updateAccountClassification,
+  updateAccountClassificationRule,
+  updateAdDomainConfig,
+  updateCredential,
+  updateMySqlCluster,
+  updateSchedulerJob,
+  updateSqlServerAvailabilityGroup,
+  updateSqlServerCluster,
+  updateTag,
+  updateUser,
+  validateAccountClassificationRuleExpression,
+  updateVeeamSource,
+  type AccountClassificationRuleWritePayload,
+  type AccountClassificationWritePayload,
+  type AdDomainConfigPayload,
+  type CredentialWritePayload,
+  type JumpServerSourcePayload,
+  type MySqlClusterPayload,
+  type RiskRulePayload,
+  type SchedulerJobWritePayload,
+  type SqlServerAvailabilityGroupPayload,
+  type SqlServerClusterPayload,
+  type TagWritePayload,
+  type UserWritePayload,
+  type VeeamSourcePayload
+} from "@/api/actions";
+import {
+  fetchAccountClassificationsSnapshot,
+  fetchAccountClassificationPermissions,
+  fetchAccountClassificationRuleDetail,
+  fetchAccountScopeOptions,
+  fetchClassificationStatisticsSnapshot,
+  fetchClusterInstanceOptions,
+  fetchClustersSnapshot,
+  fetchCredentialsSnapshot,
+  fetchMySqlClusterDetail,
+  fetchPartitionsSnapshot,
+  fetchSchedulerJobDetail,
+  fetchSchedulerSnapshot,
+  fetchSettingsSnapshot,
+  fetchSqlServerAvailabilityGroupDashboard,
+  fetchSqlServerClusterDetail,
+  fetchTaskRunDetail,
+  fetchTaskRunErrorLogs,
+  fetchTaskRunsSnapshot,
+  fetchTagBulkOptions,
+  fetchTagsSnapshot,
+  fetchUsersSnapshot,
+  type AccountClassificationItem,
+  type AccountClassificationRuleItem,
+  type AccountScopeOption,
+  type ClassificationRuleContributionItem,
+  type ClassificationRuleOverviewItem,
+  type ClassificationStatisticsFilters,
+  type ClassificationStatisticsSnapshot,
+  type ClusterDetailRecord,
+  type ClusterInstanceOption,
+  type ClusterItem,
+  type CredentialItem,
+  type MySqlClusterDetail,
+  type PartitionMetricsFilters,
+  type PartitionItem,
+  type SchedulerJobDetail,
+  type SchedulerJobItem,
+  type SettingsSnapshot,
+  type SqlServerAvailabilityGroupDashboard,
+  type SqlServerClusterDetail,
+  type TaskRunChildItem,
+  type TaskRunDetail,
+  type TaskRunErrorLogs,
+  type TaskRunItem,
+  type TagBulkOptions,
+  type TagItem,
+  type TagOptionItem,
+  type TaggableInstanceItem,
+  type UserItem
+} from "@/api/readOnly";
+import { DataTable } from "@/components/shared/DataTable";
+import { useServerTableState } from "@/components/shared/useServerTableState";
+import {
+  ActiveField,
+  CommandBar,
+  DeleteConfirmDialog,
+  DetailBlock,
+  EmptyRows,
+  ErrorState,
+  FormField,
+  JsonBlock,
+  ListPanel,
+  MetricGrid,
+  PageHeader,
+  QueryFrame,
+  StatusBadge,
+  asNumber,
+  asText,
+  canManageCatalog,
+  endpointHost,
+  formatNumber,
+  formatPercent,
+  isRunningState,
+  isEmptyDetailValue,
+  roleLabel,
+  schedulerJobName,
+  schedulerStatusLabel,
+  statusLabel,
+  statusVariant,
+  syncCategory,
+  syncDuration,
+  syncProgress,
+  syncRunId,
+  syncSource,
+  syncTaskName,
+  type AccessUser,
+  type Metric
+} from "./ConsolePageScaffold";
+
+function UserFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: UserItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [username, setUsername] = useState(item?.username ?? "");
+  const [role, setRole] = useState(item?.role ?? "user");
+  const [password, setPassword] = useState("");
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑用户 ${item.username}` : "新建用户";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: UserWritePayload = {
+      username: username.trim(),
+      role,
+      is_active: isActive
+    };
+    if (item) {
+      if (password.trim()) {
+        payload.password = password;
+      }
+      void runAction(updateUser(item.id, payload), { success: "用户已更新" }).then(onSaved);
+      return;
+    }
+    void runAction(createUser({ ...payload, password }), { success: "用户已创建" }).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护登录账号、角色和启用状态。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="用户名">
+              <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
+            </FormField>
+            <FormField label="角色">
+              <SelectControl
+                label="角色"
+                onValueChange={setRole}
+                options={[
+                  { label: "管理员", value: "admin" },
+                  { label: "普通用户", value: "user" },
+                  { label: "查看者", value: "viewer" }
+                ]}
+                value={role}
+              />
+            </FormField>
+            <FormField label={item ? "新密码" : "初始密码"}>
+              <Input onChange={(event) => setPassword(event.target.value)} required={!item} type="password" value={password} />
+            </FormField>
+            <ActiveField checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存用户</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CredentialFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: CredentialItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [name, setName] = useState(item?.name ?? "");
+  const [credentialType, setCredentialType] = useState(item?.credential_type ?? "database");
+  const [dbType, setDbType] = useState(item?.db_type ?? "mysql");
+  const [username, setUsername] = useState(item?.username ?? "");
+  const [password, setPassword] = useState("");
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑凭据 ${item.name}` : "新建凭据";
+  const isDatabaseCredential = credentialType === "database";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: CredentialWritePayload = {
+      name: name.trim(),
+      credential_type: credentialType,
+      db_type: isDatabaseCredential ? dbType || null : null,
+      username: username.trim(),
+      description: description.trim() || null,
+      is_active: isActive
+    };
+    if (item) {
+      if (password.trim()) {
+        payload.password = password;
+      }
+      void runAction(updateCredential(item.id, payload), { success: "凭据已更新" }).then(onSaved);
+      return;
+    }
+    void runAction(createCredential({ ...payload, password }), { success: "凭据已创建" }).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护数据库、平台等连接凭据。密码为空时编辑不会覆盖旧密码。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="凭据名称">
+              <Input onChange={(event) => setName(event.target.value)} required value={name} />
+            </FormField>
+            <FormField label="凭据类型">
+              <SelectControl
+                label="凭据类型"
+                onValueChange={setCredentialType}
+                options={[
+                  { label: "database", value: "database" },
+                  { label: "ssh", value: "ssh" },
+                  { label: "api", value: "api" },
+                  { label: "ldap", value: "ldap" }
+                ]}
+                value={credentialType}
+              />
+            </FormField>
+            {isDatabaseCredential ? (
+              <FormField label="数据库类型">
+                <SelectControl
+                  label="数据库类型"
+                  onValueChange={setDbType}
+                  options={[
+                    { label: "mysql", value: "mysql" },
+                    { label: "postgresql", value: "postgresql" },
+                    { label: "sqlserver", value: "sqlserver" },
+                    { label: "oracle", value: "oracle" },
+                    { label: "无", value: "" }
+                  ]}
+                  value={dbType}
+                />
+              </FormField>
+            ) : null}
+            <FormField label="用户名">
+              <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
+            </FormField>
+            <FormField label="密码">
+              <Input onChange={(event) => setPassword(event.target.value)} required={!item} type="password" value={password} />
+            </FormField>
+            <ActiveField checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <FormField label="描述">
+            <Textarea onChange={(event) => setDescription(event.target.value)} value={description} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存凭据</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TagFormDialog({
+  item,
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  item: TagItem | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [name, setName] = useState(item?.name ?? "");
+  const [displayName, setDisplayName] = useState(item?.display_name ?? "");
+  const [category, setCategory] = useState(item?.category ?? "");
+  const [isActive, setIsActive] = useState(item?.is_active ?? true);
+  const title = item ? `编辑标签 ${item.display_name}` : "新建标签";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: TagWritePayload = {
+      name: name.trim(),
+      display_name: displayName.trim(),
+      category: category.trim(),
+      is_active: isActive
+    };
+    if (item) {
+      void runAction(updateTag(item.id, payload), { success: "标签已更新" }).then(onSaved);
+      return;
+    }
+    void runAction(createTag(payload), { success: "标签已创建" }).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>维护标签编码、展示名称、分类和启用状态。</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="标签编码">
+              <Input onChange={(event) => setName(event.target.value)} required value={name} />
+            </FormField>
+            <FormField label="展示名称">
+              <Input onChange={(event) => setDisplayName(event.target.value)} required value={displayName} />
+            </FormField>
+            <FormField label="分类">
+              <Input onChange={(event) => setCategory(event.target.value)} required value={category} />
+            </FormField>
+            <ActiveField checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存标签</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+function taggableInstanceLabel(item: TaggableInstanceItem): string {
+  return asText(item.name ?? item.instance_name ?? item.id);
+}
+
+function tagOptionLabel(item: TagOptionItem): string {
+  return asText(item.display_name ?? item.name ?? item.id);
+}
+
+function toggleNumberSelection(values: number[], value: number, checked: boolean): number[] {
+  if (checked) {
+    return values.includes(value) ? values : [...values, value];
+  }
+  return values.filter((item) => item !== value);
+}
+
+function TagBulkDialog({
+  onOpenChange,
+  onSaved,
+  open
+}: {
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  open: boolean;
+}) {
+  const [operation, setOperation] = useState<"assign" | "remove" | "remove_all">("assign");
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<number[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const query = useQuery<TagBulkOptions>({
+    enabled: open,
+    queryKey: ["read-only", "tags", "bulk-options"],
+    queryFn: () => fetchTagBulkOptions()
+  });
+  const actionLabel =
+    operation === "assign" ? "执行批量分配" : operation === "remove" ? "执行批量移除" : "执行批量移除全部";
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const action =
+      operation === "assign"
+        ? assignTagsToInstances(selectedInstanceIds, selectedTagIds)
+        : operation === "remove"
+          ? removeTagsFromInstances(selectedInstanceIds, selectedTagIds)
+          : removeAllTagsFromInstances(selectedInstanceIds);
+    void runAction(action, { success: actionLabel }).then(onSaved);
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),56rem)]">
+        <DialogHeader>
+          <DialogTitle>批量分配标签</DialogTitle>
+          <DialogDescription>选择实例和标签后执行批量分配或移除。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? (
+          <div className="grid gap-3">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : null}
+        {query.isError ? (
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden size={16} />
+            <AlertDescription>标签批量选项加载失败</AlertDescription>
+          </Alert>
+        ) : null}
+        {query.data ? (
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <FormField label="操作">
+              <SelectControl
+                label="操作"
+                onValueChange={(value) => setOperation(value as "assign" | "remove" | "remove_all")}
+                options={[
+                  { label: "批量分配", value: "assign" },
+                  { label: "批量移除指定标签", value: "remove" },
+                  { label: "批量移除全部标签", value: "remove_all" }
+                ]}
+                value={operation}
+              />
+            </FormField>
+            <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
+              <section className="grid gap-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">实例</h3>
+                  <Badge variant="secondary">{formatNumber(query.data.instances.length)}</Badge>
+                </div>
+                <div className="grid max-h-64 gap-2 overflow-auto">
+                  {query.data.instances.map((instance) => (
+                    <CheckboxLine
+                      checked={selectedInstanceIds.includes(instance.id)}
+                      key={instance.id}
+                      label={`实例 ${taggableInstanceLabel(instance)}`}
+                      onCheckedChange={(checked) => setSelectedInstanceIds((current) => toggleNumberSelection(current, instance.id, checked))}
+                    >
+                      <span>
+                        <span className="sr-only">实例 </span>
+                        {taggableInstanceLabel(instance)}
+                      </span>
+                    </CheckboxLine>
+                  ))}
+                </div>
+              </section>
+              <section className="grid gap-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">标签</h3>
+                  <Badge variant="secondary">{formatNumber(query.data.tags.length)}</Badge>
+                </div>
+                <div className="grid max-h-64 gap-2 overflow-auto">
+                  {query.data.tags.map((tag) => (
+                    <CheckboxLine
+                      checked={selectedTagIds.includes(tag.id)}
+                      disabled={operation === "remove_all"}
+                      key={tag.id}
+                      label={`标签 ${tagOptionLabel(tag)}`}
+                      onCheckedChange={(checked) => setSelectedTagIds((current) => toggleNumberSelection(current, tag.id, checked))}
+                    >
+                      <span>
+                        <span className="sr-only">标签 </span>
+                        {tagOptionLabel(tag)}
+                      </span>
+                    </CheckboxLine>
+                  ))}
+                </div>
+              </section>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                取消
+              </Button>
+              <Button type="submit" disabled={selectedInstanceIds.length === 0 || (operation !== "remove_all" && selectedTagIds.length === 0)}>
+                {actionLabel}
+              </Button>
+            </DialogFooter>
+          </form>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function createCredentialColumns({
+  canManage,
+  onDelete,
+  onEdit
+}: {
+  canManage: boolean;
+  onDelete: (item: CredentialItem) => void;
+  onEdit: (item: CredentialItem) => void;
+}): ColumnDef<CredentialItem>[] {
+  return [
+  {
+    accessorKey: "name",
+    header: "凭据",
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="grid gap-1">
+          <span className="font-medium">{item.name}</span>
+          <span className="font-mono text-xs text-muted-foreground">{item.username ?? "-"}</span>
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: "credential_type",
+    header: "类型",
+    cell: ({ row }) => row.original.credential_type ?? "-"
+  },
+  {
+    accessorKey: "db_type",
+    header: "数据库类型",
+    cell: ({ row }) => row.original.db_type ?? "-"
+  },
+  {
+    accessorKey: "is_active",
+    header: "状态",
+    cell: ({ row }) => <StatusBadge value={row.original.is_active} />,
+    filterFn: (row, columnId, filterValue) => String(row.getValue(columnId)) === filterValue
+  },
+  {
+    accessorKey: "instance_count",
+    header: "绑定实例",
+    cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.instance_count)}</span>
+  },
+  {
+    accessorKey: "created_at_display",
+    header: "创建时间",
+    cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.created_at_display ?? "-"}</span>
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="flex items-center gap-1">
+          {canManage ? (
+            <>
+              <Button aria-label={`编辑凭据 ${item.name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
+                <Pencil aria-hidden />
+              </Button>
+              <Button aria-label={`删除凭据 ${item.name}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
+                <Trash2 aria-hidden />
+              </Button>
+            </>
+          ) : (
+            <Badge variant="outline">只读</Badge>
+          )}
+        </div>
+      );
+    }
+  }
+  ];
+}
+
+function createTagColumns({
+  canManage,
+  onDelete,
+  onEdit
+}: {
+  canManage: boolean;
+  onDelete: (item: TagItem) => void;
+  onEdit: (item: TagItem) => void;
+}): ColumnDef<TagItem>[] {
+  return [
+  {
+    accessorKey: "display_name",
+    header: "标签",
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="grid gap-1">
+          <span className="font-medium">{item.display_name}</span>
+          <span className="font-mono text-xs text-muted-foreground">#{item.name}</span>
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: "category",
+    header: "分类"
+  },
+  {
+    accessorKey: "is_active",
+    header: "状态",
+    cell: ({ row }) => <StatusBadge value={row.original.is_active} />,
+    filterFn: (row, columnId, filterValue) => String(row.getValue(columnId)) === filterValue
+  },
+  {
+    accessorKey: "instance_count",
+    header: "关联",
+    cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.instance_count)}</span>
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="flex items-center gap-1">
+          {canManage ? (
+            <>
+              <Button aria-label={`编辑标签 ${item.display_name}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
+                <Pencil aria-hidden />
+              </Button>
+              <Button aria-label={`删除标签 ${item.display_name}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
+                <Trash2 aria-hidden />
+              </Button>
+            </>
+          ) : (
+            <Badge variant="outline">只读</Badge>
+          )}
+        </div>
+      );
+    }
+  }
+  ];
+}
+
+function createUserColumns({
+  canManage,
+  currentUserId,
+  onDelete,
+  onEdit
+}: {
+  canManage: boolean;
+  currentUserId?: number | null;
+  onDelete: (item: UserItem) => void;
+  onEdit: (item: UserItem) => void;
+}): ColumnDef<UserItem>[] {
+  return [
+  {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">#{row.original.id}</span>
+  },
+  {
+    accessorKey: "username",
+    header: "用户",
+    cell: ({ row }) => (
+      <div className="grid gap-1">
+        <span className="font-medium">{row.original.username}</span>
+        {row.original.email ? <span className="text-xs text-muted-foreground">{row.original.email}</span> : null}
+      </div>
+    )
+  },
+  {
+    accessorKey: "role",
+    header: "角色",
+    cell: ({ row }) => <Badge variant={row.original.role === "admin" ? "default" : "outline"}>{roleLabel(row.original.role)}</Badge>
+  },
+  {
+    accessorKey: "is_active",
+    header: "状态",
+    cell: ({ row }) => <StatusBadge value={row.original.is_active} />,
+    filterFn: (row, columnId, filterValue) => String(row.getValue(columnId)) === filterValue
+  },
+  {
+    accessorKey: "created_at_display",
+    header: "创建时间",
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.created_at_display ?? row.original.created_at ?? "-"}</span>
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: ({ row }) => {
+      const item = row.original;
+      const isCurrentUser = currentUserId !== undefined && currentUserId !== null && item.id === currentUserId;
+      return (
+        <div className="flex items-center gap-1">
+          {canManage ? (
+            <>
+              <Button aria-label={`编辑用户 ${item.username}`} onClick={() => onEdit(item)} size="icon" type="button" variant="ghost">
+                <Pencil aria-hidden />
+              </Button>
+              {isCurrentUser ? (
+                <Button aria-label="不能删除当前登录用户" disabled size="icon" type="button" variant="ghost">
+                  <Trash2 aria-hidden />
+                </Button>
+              ) : (
+                <Button aria-label={`删除用户 ${item.username}`} onClick={() => onDelete(item)} size="icon" type="button" variant="ghost">
+                  <Trash2 aria-hidden />
+                </Button>
+              )}
+            </>
+          ) : (
+            <Badge variant="outline">只读</Badge>
+          )}
+        </div>
+      );
+    }
+  }
+  ];
+}
+
+
+export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
+  const tableState = useServerTableState({ initialFilters: { role: "", status: "" } });
+  const listQuery = { page: tableState.page, limit: tableState.pageSize, search: tableState.search, role: tableState.filters.role, status: tableState.filters.status };
+  const query = useQuery({ queryKey: ["read-only", "users", listQuery], queryFn: () => fetchUsersSnapshot(listQuery), placeholderData: (previous) => previous });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
+  const canManage = canManageCatalog(currentUser);
+  const currentUserId = currentUser?.id ?? null;
+  const columns = useMemo(
+    () =>
+      createUserColumns({
+        canManage,
+        currentUserId,
+        onDelete: setDeletingUser,
+        onEdit: setEditingUser
+      }),
+    [canManage, currentUserId]
+  );
+
+  return (
+    <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
+      <PageHeader eyebrow="Access control" title="用户管理" description="展示用户、角色与启用状态，并支持新增、编辑、删除。" legacyHref="/users/" />
+      <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="用户管理" onRetry={() => void query.refetch()}>
+        {(snapshot) => (
+          <ListPanel
+              title="用户列表"
+              count={snapshot.list.total}
+              actions={
+                canManage ? (
+                  <Button onClick={() => setCreatingUser(true)} size="sm" type="button">
+                  <Plus aria-hidden />
+                  新建用户
+                  </Button>
+                ) : (
+                  <Badge variant="outline">只读</Badge>
+                )
+              }
+            >
+              <DataTable
+                columns={columns}
+                data={snapshot.list.items}
+                filters={[
+                  {
+                    columnId: "role",
+                    label: "角色",
+                    value: tableState.filters.role,
+                    onValueChange: (value) => tableState.setFilter("role", value),
+                    options: [
+                      { label: "管理员", value: "admin" },
+                      { label: "普通用户", value: "user" },
+                      { label: "查看者", value: "viewer" }
+                    ]
+                  },
+                  {
+                    columnId: "is_active",
+                    label: "状态",
+                    value: tableState.filters.status,
+                    onValueChange: (value) => tableState.setFilter("status", value),
+                    options: [
+                      { label: "启用", value: "active" },
+                      { label: "停用", value: "inactive" }
+                    ]
+                  }
+                ]}
+                onSearchChange={tableState.setSearchInput}
+                pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
+                searchPlaceholder="搜索用户名或邮箱"
+                searchValue={tableState.searchInput}
+              />
+          </ListPanel>
+        )}
+      </QueryFrame>
+      {canManage && creatingUser ? (
+        <UserFormDialog
+          item={null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingUser(false);
+            }
+          }}
+          onSaved={() => {
+            setCreatingUser(false);
+            void query.refetch();
+          }}
+          open={creatingUser}
+        />
+      ) : null}
+      {canManage && editingUser ? (
+        <UserFormDialog
+          item={editingUser}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingUser(null);
+            }
+          }}
+          onSaved={() => {
+            setEditingUser(null);
+            void query.refetch();
+          }}
+          open={editingUser !== null}
+        />
+      ) : null}
+      <DeleteConfirmDialog
+        confirmLabel="确认删除用户"
+        description="删除用户后，该账号将不能继续登录。"
+        onConfirm={() => {
+          if (!deletingUser) {
+            return;
+          }
+          const userId = deletingUser.id;
+          setDeletingUser(null);
+          void runAction(deleteUser(userId), { success: "用户已删除" }).then(() => query.refetch());
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingUser(null);
+          }
+        }}
+        open={canManage && deletingUser !== null}
+        title={`确认删除用户 ${deletingUser?.username ?? ""}`}
+      />
+    </main>
+  );
+}
+
+
+export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
+  const tableState = useServerTableState({ initialFilters: { credentialType: "", dbType: "", status: "" } });
+  const listQuery = { page: tableState.page, limit: tableState.pageSize, search: tableState.search, credentialType: tableState.filters.credentialType, dbType: tableState.filters.dbType, status: tableState.filters.status };
+  const query = useQuery({ queryKey: ["read-only", "credentials", listQuery], queryFn: () => fetchCredentialsSnapshot(listQuery), placeholderData: (previous) => previous });
+  const [creatingCredential, setCreatingCredential] = useState(false);
+  const [editingCredential, setEditingCredential] = useState<CredentialItem | null>(null);
+  const [deletingCredential, setDeletingCredential] = useState<CredentialItem | null>(null);
+  const canManage = canManageCatalog(currentUser);
+  const columns = useMemo(
+    () =>
+      createCredentialColumns({
+        canManage,
+        onDelete: setDeletingCredential,
+        onEdit: setEditingCredential
+      }),
+    [canManage]
+  );
+
+  return (
+    <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
+      <PageHeader eyebrow="Credential vault" title="凭据管理" description="展示凭据类型、数据库类型和引用数量，并支持新增、编辑、删除。" legacyHref="/credentials/" />
+      <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="凭据管理" onRetry={() => void query.refetch()}>
+        {(snapshot) => (
+          <ListPanel
+              title="凭据列表"
+              count={snapshot.total}
+              actions={
+                canManage ? (
+                  <Button onClick={() => setCreatingCredential(true)} size="sm" type="button">
+                    <Plus aria-hidden />
+                    添加凭据
+                  </Button>
+                ) : (
+                  <Badge variant="outline">只读</Badge>
+                )
+              }
+            >
+              <DataTable
+                columns={columns}
+                data={snapshot.items}
+                filters={[
+                  { columnId: "credential_type", label: "凭据类型", options: [{ label: "数据库凭据", value: "database" }, { label: "API 凭据", value: "api" }, { label: "Veeam 凭据", value: "veeam" }, { label: "LDAP 凭据", value: "ldap" }, { label: "SSH 凭据", value: "ssh" }], value: tableState.filters.credentialType, onValueChange: (value) => tableState.setFilter("credentialType", value) },
+                  { columnId: "db_type", label: "数据库类型", options: [{ label: "MySQL", value: "mysql" }, { label: "PostgreSQL", value: "postgresql" }, { label: "SQL Server", value: "sqlserver" }, { label: "Oracle", value: "oracle" }], value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) },
+                  {
+                    columnId: "is_active",
+                    label: "状态",
+                    value: tableState.filters.status,
+                    onValueChange: (value) => tableState.setFilter("status", value),
+                    options: [
+                      { label: "启用", value: "active" },
+                      { label: "停用", value: "inactive" }
+                    ]
+                  }
+                ]}
+                onSearchChange={tableState.setSearchInput}
+                pagination={{ page: snapshot.page, pageSize: tableState.pageSize, pages: snapshot.pages ?? 1, total: snapshot.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
+                searchPlaceholder="搜索凭据、账号或数据库类型"
+                searchValue={tableState.searchInput}
+              />
+          </ListPanel>
+        )}
+      </QueryFrame>
+      {canManage && creatingCredential ? (
+        <CredentialFormDialog
+          item={null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingCredential(false);
+            }
+          }}
+          onSaved={() => {
+            setCreatingCredential(false);
+            void query.refetch();
+          }}
+          open={creatingCredential}
+        />
+      ) : null}
+      {canManage && editingCredential ? (
+        <CredentialFormDialog
+          item={editingCredential}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingCredential(null);
+            }
+          }}
+          onSaved={() => {
+            setEditingCredential(null);
+            void query.refetch();
+          }}
+          open={editingCredential !== null}
+        />
+      ) : null}
+      <DeleteConfirmDialog
+        confirmLabel="确认删除凭据"
+        description="删除凭据会影响后续使用该凭据的实例配置，请先确认引用关系。"
+        onConfirm={() => {
+          if (!deletingCredential) {
+            return;
+          }
+          const credentialId = deletingCredential.id;
+          setDeletingCredential(null);
+          void runAction(deleteCredential(credentialId), { success: "凭据已删除" }).then(() => query.refetch());
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingCredential(null);
+          }
+        }}
+        open={canManage && deletingCredential !== null}
+        title={`确认删除凭据 ${deletingCredential?.name ?? ""}`}
+      />
+    </main>
+  );
+}
+
+export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = {}) {
+  const tableState = useServerTableState({ initialFilters: { category: "", status: "" } });
+  const listQuery = { page: tableState.page, limit: tableState.pageSize, search: tableState.search, category: tableState.filters.category, status: tableState.filters.status };
+  const query = useQuery({ queryKey: ["read-only", "tags", listQuery], queryFn: () => fetchTagsSnapshot(listQuery), placeholderData: (previous) => previous });
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [editingTag, setEditingTag] = useState<TagItem | null>(null);
+  const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const canManage = canManageCatalog(currentUser);
+  const columns = useMemo(
+    () =>
+      createTagColumns({
+        canManage,
+        onDelete: setDeletingTag,
+        onEdit: setEditingTag
+      }),
+    [canManage]
+  );
+
+  return (
+    <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
+      <PageHeader eyebrow="Resource tags" title="标签管理" description="展示标签、分类和实例引用数量，并支持新增、编辑、删除。" legacyHref="/tags/" />
+      <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="标签管理" onRetry={() => void query.refetch()}>
+        {(snapshot) => (
+          <>
+            <MetricGrid
+              label="标签指标"
+              metrics={[
+                {
+                  label: "全部标签",
+                  value: snapshot.list.stats.total,
+                  detail: `均值/分类 ${formatNumber(snapshot.list.stats.category_count > 0 ? snapshot.list.stats.total / snapshot.list.stats.category_count : 0)}`,
+                  icon: Tags
+                },
+                { label: "启用率", value: formatPercent(snapshot.list.stats.active, snapshot.list.stats.total), detail: `启用 ${formatNumber(snapshot.list.stats.active)}`, icon: Activity },
+                { label: "停用率", value: formatPercent(snapshot.list.stats.inactive, snapshot.list.stats.total), detail: `停用 ${formatNumber(snapshot.list.stats.inactive)}`, icon: AlertCircle },
+                {
+                  label: "标签分类",
+                  value: snapshot.list.stats.category_count,
+                  detail: `启用/分类 ${formatNumber(snapshot.list.stats.category_count > 0 ? snapshot.list.stats.active / snapshot.list.stats.category_count : 0)}`,
+                  icon: Boxes
+                }
+              ]}
+            />
+            <ListPanel
+              title="标签列表"
+              count={snapshot.list.total}
+              actions={
+                canManage ? (
+                  <>
+                    <Button onClick={() => setCreatingTag(true)} size="sm" type="button">
+                      <Plus aria-hidden />
+                      添加标签
+                    </Button>
+                    <Button onClick={() => setBulkDialogOpen(true)} size="sm" type="button" variant="outline">
+                      批量分配
+                    </Button>
+                  </>
+                ) : (
+                  <Badge variant="outline">只读</Badge>
+                )
+              }
+            >
+              <DataTable
+                columns={columns}
+                data={snapshot.list.items}
+                filters={[
+                  { columnId: "category", label: "分类", options: snapshot.categories.map((category) => ({ label: category, value: category })), value: tableState.filters.category, onValueChange: (value) => tableState.setFilter("category", value) },
+                  {
+                    columnId: "is_active",
+                    label: "状态",
+                    value: tableState.filters.status,
+                    onValueChange: (value) => tableState.setFilter("status", value),
+                    options: [
+                      { label: "启用", value: "active" },
+                      { label: "停用", value: "inactive" }
+                    ]
+                  }
+                ]}
+                onSearchChange={tableState.setSearchInput}
+                pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
+                searchPlaceholder="搜索标签、编码或分类"
+                searchValue={tableState.searchInput}
+              />
+            </ListPanel>
+          </>
+        )}
+      </QueryFrame>
+      {canManage && creatingTag ? (
+        <TagFormDialog
+          item={null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreatingTag(false);
+            }
+          }}
+          onSaved={() => {
+            setCreatingTag(false);
+            void query.refetch();
+          }}
+          open={creatingTag}
+        />
+      ) : null}
+      {canManage && editingTag ? (
+        <TagFormDialog
+          item={editingTag}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingTag(null);
+            }
+          }}
+          onSaved={() => {
+            setEditingTag(null);
+            void query.refetch();
+          }}
+          open={editingTag !== null}
+        />
+      ) : null}
+      {canManage && bulkDialogOpen ? (
+        <TagBulkDialog
+          onOpenChange={setBulkDialogOpen}
+          onSaved={() => {
+            setBulkDialogOpen(false);
+            void query.refetch();
+          }}
+          open={bulkDialogOpen}
+        />
+      ) : null}
+      <DeleteConfirmDialog
+        confirmLabel="确认删除标签"
+        description="删除标签会解除与实例等资源的关联。"
+        onConfirm={() => {
+          if (!deletingTag) {
+            return;
+          }
+          const tagId = deletingTag.id;
+          setDeletingTag(null);
+          void runAction(deleteTag(tagId), { success: "标签已删除" }).then(() => query.refetch());
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingTag(null);
+          }
+        }}
+        open={canManage && deletingTag !== null}
+        title={`确认删除标签 ${deletingTag?.display_name ?? ""}`}
+      />
+    </main>
+  );
+}

@@ -17,6 +17,8 @@ type AppShellProps = {
   children: ReactNode;
 };
 
+const APP_VERSION = "1.5.0";
+
 export function AppShell({ navigationGroups, user, onLogout, children }: AppShellProps) {
   return (
     <div className="grid min-h-dvh grid-cols-[15.75rem_minmax(0,1fr)] bg-background max-lg:grid-cols-1">
@@ -59,7 +61,7 @@ export function AppShell({ navigationGroups, user, onLogout, children }: AppShel
         </nav>
       </aside>
 
-      <div className="min-w-0">
+      <div className="flex min-w-0 flex-col">
         <header className="flex min-h-[var(--topbar-height)] items-center justify-end gap-3 border-b bg-muted px-5 max-sm:justify-between" role="banner">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="outline">React preview</Badge>
@@ -78,7 +80,20 @@ export function AppShell({ navigationGroups, user, onLogout, children }: AppShel
             <span>退出</span>
           </Button>
         </header>
-        {children}
+        <div className="min-w-0 flex-1">{children}</div>
+        <footer className="border-t bg-muted px-5 py-3 text-sm text-muted-foreground" role="contentinfo">
+          <p className="mb-0 flex flex-wrap items-center justify-center gap-1.5">
+            <span>&copy; {new Date().getFullYear()}</span>
+            <span>鲸落</span>
+            <span>{APP_VERSION}</span>
+            <span>-</span>
+            <span>数据同步管理平台</span>
+            <span>|</span>
+            <a className="font-medium text-foreground underline-offset-4 hover:underline" href="/console/about">
+              关于
+            </a>
+          </p>
+        </footer>
       </div>
     </div>
   );

@@ -4,9 +4,12 @@ import { legacyParityPages, parityByConsolePath } from "./legacyParity";
 
 describe("legacyParityPages", () => {
   it("tracks every console navigation page plus known legacy drill-down pages", () => {
-    expect(legacyParityPages).toHaveLength(26);
+    expect(legacyParityPages).toHaveLength(27);
     expect(parityByConsolePath("/clusters")?.sections.map((section) => section.title)).toEqual(
       expect.arrayContaining(["SQL Server 群集列表", "AG 配置", "AG 状态面板", "AG 账户面板", "MySQL 群集列表", "MySQL 主从状态面板"])
+    );
+    expect(parityByConsolePath("/about")?.sections.map((section) => section.title)).toEqual(
+      expect.arrayContaining(["项目介绍", "核心功能", "技术栈", "支持的数据库", "更新日志"])
     );
     expect(parityByConsolePath("/tags/bulk/assign")?.actions).toEqual(
       expect.arrayContaining(["分配模式", "移除模式", "清空选择", "执行操作"])

@@ -260,6 +260,21 @@ export const legacyParityPages: LegacyParityPage[] = [
     apiPaths: ["/api/v1/instances/{instance_id}", "/api/v1/instances/{instance_id}/actions/sync-accounts", "/api/v1/instances/{instance_id}/actions/sync-capacity", "/api/v1/instances/{instance_id}/audit-info", "/api/v1/instances/{instance_id}/backup-info"]
   },
   {
+    consolePath: "/about",
+    legacyPath: "/about",
+    title: "关于鲸落",
+    sections: [
+      { title: "项目介绍", fields: ["鲸落 WhaleFall", "面向 DBA 的数据库资源管理平台", "Kurtis.Jin", "版本"] },
+      { title: "核心功能", fields: ["数据库管理", "账户管理", "任务调度", "监控与聚合"] },
+      { title: "技术栈", fields: ["后端技术", "前端技术"] },
+      { title: "支持的数据库", fields: ["PostgreSQL", "MySQL", "SQL Server", "Oracle"] },
+      { title: "更新日志", fields: ["版本", "日期", "标签", "摘要"] }
+    ],
+    filters: [],
+    actions: ["页脚打开"],
+    apiPaths: []
+  },
+  {
     consolePath: "/tags/bulk/assign",
     legacyPath: "/tags/bulk/assign",
     title: "标签批量分配",

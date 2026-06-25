@@ -29,6 +29,7 @@ related:
 | P1 | 定时任务 | 已把编辑任务弹窗恢复为任务名称、执行函数、秒/分/时/日/月/周/年字段。 |
 | P1 | 日志中心 | 已补日志详情复制消息、复制 JSON、复制堆栈、展开上下文、复制详情入口。 |
 | P1 | 凭据管理 | 已把“数据库类型”改为仅数据库凭据类型时显示；非数据库凭据不再显示。 |
+| P1 | 全局页脚与关于页 | 已补旧版所有页面底部“关于”入口，并新增 `/console/about` 静态说明页。 |
 | P2 | 多个 React 页面 | 已继续收敛列表页和实例详情残留英文 eyebrow/说明文字。 |
 | P2 | 实例详情 | 已把连接状态原始值映射为中文业务文本，例如 `poor` 显示为“连接较差”。 |
 
@@ -138,6 +139,7 @@ related:
 5. 实例详情和列表页：删除残留英文 eyebrow/说明文字；连接状态统一中文业务文本。
 6. 凭据表单：数据库类型字段仅在数据库凭据类型下展示。
 7. 分区表头：恢复旧版“分区名称/表类型/记录数/分区月份”展示语义。
+8. 全局页脚和关于页：补回旧版所有页面底部“关于”入口；新增 `/console/about`，展示旧版项目介绍、核心功能、技术栈、支持数据库和更新日志。
 
 以上为代码侧修复结果；需要用户重新构建部署后，再按本文档逐页线上复核并把状态改为 `Closed`。
 
@@ -146,11 +148,11 @@ related:
 2026-06-25 修复批次本地验证通过：
 
 ```bash
-npm --prefix frontend run test -- src/layout/AppShell.test.tsx src/pages/ListPages.test.tsx src/pages/AuditPages.test.tsx src/pages/RemainingReadOnlyPages.test.tsx  # 4 files, 60 tests passed
-npm --prefix frontend run test       # 26 files, 150 tests passed
+npm --prefix frontend run test -- src/layout/AppShell.test.tsx src/pages/ListPages.test.tsx src/pages/AuditPages.test.tsx src/pages/ConsolePages.test.tsx  # 4 files, 60 tests passed
+npm --prefix frontend run test       # 28 files, 154 tests passed
 npm --prefix frontend run typecheck  # passed
 npm --prefix frontend run lint       # passed
-npm --prefix frontend run build      # passed; Vite chunk-size warning remains
+npm --prefix frontend run build      # passed; no Vite chunk-size warning
 git diff --check                     # passed
 ```
 
