@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/utils/cn";
 
 export type DataTableFilter = {
   columnId: string;
@@ -110,9 +111,18 @@ export function DataTable<TData, TValue>({
   return (
     <div className="grid gap-3">
       {hasToolbar ? (
-        <div className="flex items-end justify-between gap-3 max-xl:grid" role="search">
+        <div
+          aria-label="列表搜索和筛选"
+          className={cn(
+            "grid gap-3",
+            searchPlaceholder && (filters.length > 0 || toolbarExtras)
+              ? "xl:grid-cols-[minmax(16rem,28rem)_minmax(0,1fr)] xl:items-end"
+              : "xl:items-end"
+          )}
+          role="search"
+        >
           {searchPlaceholder ? (
-            <label className="grid min-w-60 flex-1 gap-1.5 text-sm font-medium text-foreground">
+            <label className="grid w-full gap-1.5 text-sm font-medium text-foreground xl:max-w-[28rem]">
               <span>搜索</span>
               <Input
                 aria-label="搜索"
@@ -130,7 +140,11 @@ export function DataTable<TData, TValue>({
             </label>
           ) : null}
           {filters.length > 0 ? (
-            <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+            <div
+              aria-label="筛选条件"
+              className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-3"
+              role="group"
+            >
               {filters.map((filter) => (
                 <label className="grid gap-1.5 text-sm font-medium text-foreground" key={filter.columnId}>
                   <span>{filter.label}</span>
@@ -162,7 +176,13 @@ export function DataTable<TData, TValue>({
               {toolbarExtras}
             </div>
           ) : toolbarExtras ? (
-            <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">{toolbarExtras}</div>
+            <div
+              aria-label="工具栏操作"
+              className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-3"
+              role="group"
+            >
+              {toolbarExtras}
+            </div>
           ) : null}
         </div>
       ) : null}

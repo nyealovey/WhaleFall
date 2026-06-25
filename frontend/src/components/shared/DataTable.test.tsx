@@ -9,6 +9,9 @@ type Payment = {
   id: string;
   status: string;
   amount: number;
+  category?: string;
+  tag?: string;
+  type?: string;
 };
 
 const columns: ColumnDef<Payment>[] = [
@@ -20,6 +23,18 @@ const columns: ColumnDef<Payment>[] = [
     accessorKey: "amount",
     header: () => <div className="text-right">金额</div>,
     cell: ({ row }) => <div className="text-right">{row.original.amount}</div>
+  },
+  {
+    accessorKey: "type",
+    header: "类型"
+  },
+  {
+    accessorKey: "category",
+    header: "分类"
+  },
+  {
+    accessorKey: "tag",
+    header: "标签"
   }
 ];
 
@@ -144,5 +159,25 @@ describe("DataTable", () => {
 
     expect(screen.getByText("success")).toBeInTheDocument();
     expect(screen.queryByText("failed")).not.toBeInTheDocument();
+  });
+
+  it("keeps search compact so filters are not squeezed", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[{ id: "p-1", status: "success", amount: 316 }]}
+        filters={[
+          { columnId: "status", label: "状态", options: [{ label: "成功", value: "success" }] },
+          { columnId: "type", label: "类型", options: [{ label: "线上", value: "prod" }] },
+          { columnId: "category", label: "分类", options: [{ label: "核心", value: "core" }] },
+          { columnId: "tag", label: "标签", options: [{ label: "重点", value: "critical" }] }
+        ]}
+        searchPlaceholder="搜索账户 / 实例"
+      />
+    );
+
+    expect(screen.getByRole("search")).toHaveClass("xl:grid-cols-[minmax(16rem,28rem)_minmax(0,1fr)]");
+    expect(screen.getByRole("searchbox", { name: "搜索" }).closest("label")).toHaveClass("xl:max-w-[28rem]");
+    expect(screen.getByRole("group", { name: "筛选条件" })).toHaveClass("grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))]");
   });
 });
