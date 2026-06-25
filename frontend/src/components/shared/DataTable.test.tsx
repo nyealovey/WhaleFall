@@ -105,6 +105,8 @@ describe("DataTable", () => {
     expect(summary.parentElement).not.toHaveClass("flex-wrap");
     expect(container.querySelector('nav[aria-label="分页"]')).toHaveClass("shrink-0");
     expect(container.querySelector('nav[aria-label="分页"] ul')).toHaveClass("flex-nowrap");
+    expect(screen.getByRole("button", { name: "第 4 页" }).parentElement).not.toHaveTextContent("...");
+    expect(screen.getByRole("button", { name: "第 383 页" }).parentElement).not.toHaveTextContent("...");
   });
 
   it("filters rows through the table toolbar", async () => {

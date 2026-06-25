@@ -7,7 +7,7 @@ import {
   getPaginationRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -223,44 +223,50 @@ export function DataTable<TData, TValue>({
           <Pagination className="w-auto shrink-0 justify-start">
             <PaginationContent>
               <PaginationItem>
-          <Button
-            disabled={currentPage <= 1}
-            onClick={() => {
-              if (serverPagination) serverPagination.onPageChange(currentPage - 1);
-              else table.previousPage();
-            }}
-            size="sm"
-            variant="outline"
-          >
-            上一页
-          </Button>
+                <Button
+                  disabled={currentPage <= 1}
+                  onClick={() => {
+                    if (serverPagination) serverPagination.onPageChange(currentPage - 1);
+                    else table.previousPage();
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  上一页
+                </Button>
               </PaginationItem>
               {pageNumbers.map((page, index) => (
-                <PaginationItem key={page}>
-                  {index > 0 && page - pageNumbers[index - 1] > 1 ? <PaginationEllipsis /> : null}
-                  <Button
-                    aria-current={page === currentPage ? "page" : undefined}
-                    aria-label={`第 ${page} 页`}
-                    onClick={() => serverPagination ? serverPagination.onPageChange(page) : table.setPageIndex(page - 1)}
-                    size="icon"
-                    variant={page === currentPage ? "default" : "outline"}
-                  >
-                    {page}
-                  </Button>
-                </PaginationItem>
+                <Fragment key={page}>
+                  {index > 0 && page - pageNumbers[index - 1] > 1 ? (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : null}
+                  <PaginationItem>
+                    <Button
+                      aria-current={page === currentPage ? "page" : undefined}
+                      aria-label={`第 ${page} 页`}
+                      onClick={() => serverPagination ? serverPagination.onPageChange(page) : table.setPageIndex(page - 1)}
+                      size="icon"
+                      variant={page === currentPage ? "default" : "outline"}
+                    >
+                      {page}
+                    </Button>
+                  </PaginationItem>
+                </Fragment>
               ))}
               <PaginationItem>
-          <Button
-            disabled={currentPage >= pages}
-            onClick={() => {
-              if (serverPagination) serverPagination.onPageChange(currentPage + 1);
-              else table.nextPage();
-            }}
-            size="sm"
-            variant="outline"
-          >
-            下一页
-          </Button>
+                <Button
+                  disabled={currentPage >= pages}
+                  onClick={() => {
+                    if (serverPagination) serverPagination.onPageChange(currentPage + 1);
+                    else table.nextPage();
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  下一页
+                </Button>
               </PaginationItem>
             </PaginationContent>
           </Pagination>

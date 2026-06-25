@@ -495,19 +495,6 @@ describe("ListPages", () => {
     expect(screen.getByRole("button", { name: "移入回收站" })).toBeInTheDocument();
     expect(screen.getAllByText("10.0.0.8:3306").length).toBeGreaterThan(0);
     expect(await screen.findByText("连接状态")).toBeInTheDocument();
-    expect(screen.getByText("审计目标数")).toBeInTheDocument();
-    expect(screen.getByText("备份链完整大小")).toBeInTheDocument();
-    expect(screen.getAllByText("Backup ID").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("backup-1").length).toBeGreaterThan(0);
-    expect(screen.getByText("覆盖数量")).toBeInTheDocument();
-    expect(screen.getByText("1 / 2")).toBeInTheDocument();
-    expect(screen.getByText("平台")).toBeInTheDocument();
-    expect(screen.getByText("生产 Veeam / 10.0.0.9")).toBeInTheDocument();
-    expect(screen.getByText("数据大小")).toBeInTheDocument();
-    expect(screen.getByText("压缩率")).toBeInTheDocument();
-    expect(screen.getByText("50%")).toBeInTheDocument();
-    expect(screen.getByText("AuditProd")).toBeInTheDocument();
-    expect(screen.getByText("Restore 1")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "审计信息" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "备份信息" })).toBeInTheDocument();
     expect(screen.getByText("账户信息")).toBeInTheDocument();
@@ -517,20 +504,24 @@ describe("ListPages", () => {
     expect(screen.getByText("sa")).toBeInTheDocument();
     expect(screen.getByText("账户总数")).toBeInTheDocument();
     expect(screen.getByText("活跃账户")).toBeInTheDocument();
-    expect(screen.getByText("AG账户总数")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看权限 readonly" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "变更历史 readonly" })).toBeInTheDocument();
+    expect(screen.queryByText("AG账户总数")).not.toBeInTheDocument();
+    expect(screen.queryByText("当前数据库")).not.toBeInTheDocument();
+    expect(screen.queryByText("审计目标数")).not.toBeInTheDocument();
+    expect(screen.queryByText("备份链完整大小")).not.toBeInTheDocument();
     expect(screen.queryByText("数据库信息")).not.toBeInTheDocument();
     expect(document.querySelector("pre")).toBeNull();
 
     const agAccountsTab = screen.getByRole("tab", { name: "账户信息（AG）" });
-    fireEvent.pointerDown(agAccountsTab);
+    fireEvent.mouseDown(agAccountsTab, { button: 0, ctrlKey: false });
     fireEvent.click(agAccountsTab);
+    expect(await screen.findByText("AG账户总数")).toBeInTheDocument();
     expect(await screen.findByText("AG_PROD")).toBeInTheDocument();
     expect(screen.getByText(/AG_LISTENER/)).toBeInTheDocument();
 
     const capacityTab = screen.getByRole("tab", { name: "容量信息" });
-    fireEvent.pointerDown(capacityTab);
+    fireEvent.mouseDown(capacityTab, { button: 0, ctrlKey: false });
     fireEvent.click(capacityTab);
     expect(screen.getAllByText("app_db").length).toBeGreaterThan(0);
     expect(screen.getByText("legacy_db")).toBeInTheDocument();
@@ -539,6 +530,27 @@ describe("ListPages", () => {
     expect(screen.getByText("容量总量")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "表容量 app_db" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回实例列表" })).toHaveAttribute("href", "/console/instances");
+
+    const auditTab = screen.getByRole("tab", { name: "审计信息" });
+    fireEvent.mouseDown(auditTab, { button: 0, ctrlKey: false });
+    fireEvent.click(auditTab);
+    expect(await screen.findByText("审计目标数")).toBeInTheDocument();
+    expect(screen.getByText("AuditProd")).toBeInTheDocument();
+
+    const backupTab = screen.getByRole("tab", { name: "备份信息" });
+    fireEvent.mouseDown(backupTab, { button: 0, ctrlKey: false });
+    fireEvent.click(backupTab);
+    expect(await screen.findByText("备份链完整大小")).toBeInTheDocument();
+    expect(screen.getAllByText("Backup ID").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("backup-1").length).toBeGreaterThan(0);
+    expect(screen.getByText("覆盖数量")).toBeInTheDocument();
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(screen.getByText("平台")).toBeInTheDocument();
+    expect(screen.getByText("生产 Veeam / 10.0.0.9")).toBeInTheDocument();
+    expect(screen.getByText("数据大小")).toBeInTheDocument();
+    expect(screen.getByText("压缩率")).toBeInTheDocument();
+    expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(screen.getByText("Restore 1")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "测试连接" }));
     fireEvent.click(screen.getByRole("button", { name: "同步账户" }));

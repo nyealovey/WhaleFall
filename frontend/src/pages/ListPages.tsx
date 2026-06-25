@@ -1408,7 +1408,7 @@ function InstanceDataTabsCard({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent className="grid gap-4" forceMount value="accounts">
+          <TabsContent className="grid gap-4" value="accounts">
             <DataTabState isLoading={accountsLoading} isError={accountsError} onRetry={onRetryAccounts} />
             {accountsData ? (
               <>
@@ -1434,7 +1434,7 @@ function InstanceDataTabsCard({
           </TabsContent>
 
           {showAgAccounts ? (
-            <TabsContent className="grid gap-4" forceMount value="ag-accounts">
+            <TabsContent className="grid gap-4" value="ag-accounts">
               <DataTabState isLoading={agAccountsLoading} isError={agAccountsError} onRetry={onRetryAgAccounts} />
               {agAccountsData ? (
                 <>
@@ -1460,7 +1460,7 @@ function InstanceDataTabsCard({
             </TabsContent>
           ) : null}
 
-          <TabsContent className="grid gap-4" forceMount value="capacity">
+          <TabsContent className="grid gap-4" value="capacity">
             <DataTabState isLoading={databaseSizesLoading} isError={databaseSizesError} onRetry={onRetryDatabaseSizes} />
             {databaseSizesData ? (
               <>
@@ -1480,10 +1480,10 @@ function InstanceDataTabsCard({
               </>
             ) : null}
           </TabsContent>
-          <TabsContent className="grid gap-4" forceMount value="audit">
+          <TabsContent className="grid gap-4" value="audit">
             <InstanceAuditInfoPanel data={auditData} isLoading={auditLoading} isError={auditError} onRetry={onRetryAudit} />
           </TabsContent>
-          <TabsContent className="grid gap-4" forceMount value="backup">
+          <TabsContent className="grid gap-4" value="backup">
             <InstanceBackupInfoPanel data={backupData} isLoading={backupLoading} isError={backupError} onRetry={onRetryBackup} />
           </TabsContent>
         </Tabs>
