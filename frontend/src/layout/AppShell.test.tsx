@@ -29,6 +29,7 @@ describe("AppShell", () => {
     expect(screen.getByText("Dashboard body")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /实例管理/ })).toHaveAttribute("href", "/instances");
     expect(screen.getByRole("link", { name: /系统设置/ })).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("link", { name: "修改密码" })).toHaveAttribute("href", "/auth/change-password");
     expect(screen.getByRole("button", { name: "退出" })).toBeInTheDocument();
   });
 });

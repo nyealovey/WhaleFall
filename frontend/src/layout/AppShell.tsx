@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -67,6 +67,12 @@ export function AppShell({ navigationGroups, user, onLogout, children }: AppShel
             <Separator className="h-4 w-px" />
             <span>{user.role}</span>
           </div>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/auth/change-password">
+              <KeyRound aria-hidden size={16} />
+              <span>修改密码</span>
+            </a>
+          </Button>
           <Button variant="outline" size="sm" type="button" onClick={onLogout}>
             <LogOut aria-hidden size={16} />
             <span>退出</span>

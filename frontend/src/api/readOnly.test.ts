@@ -86,7 +86,7 @@ describe("read-only migration api", () => {
     const dashboard = await fetchSqlServerAvailabilityGroupDashboard(1, 21, client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/1/availability-groups/21/dashboard");
-    expect(dashboard.availability_group.name).toBe("ag-sales");
+    expect(dashboard.availability_group?.name).toBe("ag-sales");
     expect(dashboard.replicas[0]?.replica_server_name).toBe("sql-node-1");
   });
 

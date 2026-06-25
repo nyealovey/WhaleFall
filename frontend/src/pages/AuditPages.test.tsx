@@ -178,6 +178,9 @@ describe("AuditPages", () => {
     expect(screen.getAllByText("sync failed").length).toBeGreaterThan(0);
     expect(await screen.findByText("Traceback")).toBeInTheDocument();
     expect(await screen.findByText(/run-1/)).toBeInTheDocument();
+    for (const action of ["复制消息", "复制 JSON", "复制堆栈", "展开上下文", "复制详情"]) {
+      expect(screen.getByRole("button", { name: action })).toBeInTheDocument();
+    }
   });
 
   it("renders account change logs with legacy filters, fields, and actions", async () => {

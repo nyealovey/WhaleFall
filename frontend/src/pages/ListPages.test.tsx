@@ -139,7 +139,7 @@ vi.mock("@/api/lists", () => ({
     db_type: "mysql",
     host: "10.0.0.8",
     port: 3306,
-    status: "ok",
+    status: "poor",
     is_active: true,
     last_connected: "2026-06-11T01:30:00+00:00"
   })),
@@ -335,6 +335,8 @@ describe("ListPages", () => {
     expect(screen.getByRole("heading", { name: "实例管理" })).toBeInTheDocument();
     expect(screen.getByText("10.0.0.8:3306")).toBeInTheDocument();
     expect(screen.getAllByText("生产").length).toBeGreaterThan(0);
+    expect(screen.queryByText("RESOURCE INVENTORY")).not.toBeInTheDocument();
+    expect(screen.queryByText("管理数据库实例，包括增删改查和连接测试。")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 
@@ -486,6 +488,8 @@ describe("ListPages", () => {
 
     expect(await screen.findByRole("heading", { name: "实例详情 mysql-prod" })).toBeInTheDocument();
     expect(screen.getByText("生产实例")).toBeInTheDocument();
+    expect(screen.queryByText("Instance detail")).not.toBeInTheDocument();
+    expect(screen.queryByText("实例基础信息、连接状态、账户、容量、审计和备份信息。")).not.toBeInTheDocument();
     expect(screen.getByText("实例ID")).toBeInTheDocument();
     expect(screen.getByText("数据库版本")).toBeInTheDocument();
     expect(screen.getByText("8.0")).toBeInTheDocument();
@@ -495,6 +499,8 @@ describe("ListPages", () => {
     expect(screen.getByRole("button", { name: "移入回收站" })).toBeInTheDocument();
     expect(screen.getAllByText("10.0.0.8:3306").length).toBeGreaterThan(0);
     expect(await screen.findByText("连接状态")).toBeInTheDocument();
+    expect(screen.getByText("连接较差")).toBeInTheDocument();
+    expect(screen.queryByText("poor")).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "审计信息" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "备份信息" })).toBeInTheDocument();
     expect(screen.getByText("账户信息")).toBeInTheDocument();
@@ -577,6 +583,8 @@ describe("ListPages", () => {
     expect(screen.getByRole("heading", { level: 1, name: "数据库台账" })).toBeInTheDocument();
     expect(screen.getByText("2.00 GB")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "数据库大小" })).toBeInTheDocument();
+    expect(screen.queryByText("Database ledger")).not.toBeInTheDocument();
+    expect(screen.queryByText("查看数据库容量、实例归属、标签和表容量趋势。")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
   });
 

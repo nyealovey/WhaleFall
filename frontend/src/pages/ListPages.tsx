@@ -252,27 +252,46 @@ function adStatusLabel(value: string | null | undefined): string {
   }
 }
 
+function connectionStatusLabel(value: string | null | undefined): string {
+  switch ((value ?? "").toLowerCase()) {
+    case "ok":
+    case "success":
+    case "healthy":
+    case "connected":
+      return "连接正常";
+    case "poor":
+    case "warning":
+    case "degraded":
+      return "连接较差";
+    case "failed":
+    case "error":
+    case "unreachable":
+      return "连接失败";
+    case "unknown":
+    case "":
+      return "未检测";
+    default:
+      return String(value);
+  }
+}
+
 function classificationText(item: AccountLedgerItem): string {
   return item.classifications.map((classification) => classification.display_name).filter(Boolean).join(" ");
 }
 
 function PageHeader({
-  eyebrow,
   title,
-  description,
   legacyHref
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
-  description: string;
+  description?: string;
   legacyHref: string;
 }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
-        <span className="font-mono text-xs tracking-[0.06em] text-muted-foreground uppercase">{eyebrow}</span>
-        <h1 className="font-display mt-1 text-2xl leading-none tracking-normal">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+        <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
       <Button variant="outline" asChild>
         <a href={legacyHref}>
@@ -871,7 +890,7 @@ function InstanceConnectionStatusCard({
         {data ? (
           <dl className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">
             <DetailField label="当前状态">
-              <BadgeText value={asText(data.status)} />
+              <BadgeText value={connectionStatusLabel(data.status)} variantValue={asText(data.status)} />
             </DetailField>
             <DetailField label="启用状态">{data.is_active ? "启用" : "停用"}</DetailField>
             <DetailField label="主机/IP">

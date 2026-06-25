@@ -238,6 +238,26 @@ function DetailText({ value }: { value: unknown }) {
   return <span>{String(value)}</span>;
 }
 
+function writeClipboard(text: string) {
+  void navigator.clipboard?.writeText(text);
+}
+
+function historyLogDetailPayload(log: HistoryLogItem): string {
+  return JSON.stringify(
+    {
+      id: log.id,
+      timestamp: log.timestamp_display || log.timestamp,
+      level: log.level,
+      module: log.module,
+      message: log.message,
+      traceback: log.traceback,
+      context: log.context
+    },
+    null,
+    2
+  );
+}
+
 function DetailLoading() {
   return (
     <div className="grid gap-3">
@@ -257,6 +277,7 @@ function HistoryLogDetailDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const [showContext, setShowContext] = useState(true);
   const detailQuery = useQuery<HistoryLogDetail>({
     enabled: open && logId !== null,
     queryKey: ["audit", "history-log-detail", logId],
@@ -285,6 +306,23 @@ function HistoryLogDetailDialog({
         ) : null}
         {log ? (
           <div className="grid gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" type="button" variant="outline" onClick={() => writeClipboard(String(log.message ?? ""))}>
+                复制消息
+              </Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => writeClipboard(historyLogDetailPayload(log))}>
+                复制 JSON
+              </Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => writeClipboard(String(log.traceback ?? ""))}>
+                复制堆栈
+              </Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => setShowContext((current) => !current)}>
+                展开上下文
+              </Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => writeClipboard(historyLogDetailPayload(log))}>
+                复制详情
+              </Button>
+            </div>
             <dl className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
               <DetailField label="时间">
                 <DetailText value={log.timestamp_display || log.timestamp} />
@@ -309,9 +347,11 @@ function HistoryLogDetailDialog({
                 <span className="text-muted-foreground">-</span>
               )}
             </DetailField>
-            <DetailField label="上下文">
-              <JsonBlock value={log.context} />
-            </DetailField>
+            {showContext ? (
+              <DetailField label="上下文">
+                <JsonBlock value={log.context} />
+              </DetailField>
+            ) : null}
           </div>
         ) : null}
       </DialogContent>

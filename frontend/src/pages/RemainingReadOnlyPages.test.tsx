@@ -111,6 +111,7 @@ vi.mock("@/api/readOnly", () => ({
         listener_host: "ag.example",
         listener_port: 1433,
         connection_database: "master",
+        last_sync_at: "2026-06-11T10:00:00+08:00",
         account_credential_id: 9,
         contained_enabled: true,
         is_enabled: true
@@ -129,9 +130,47 @@ vi.mock("@/api/readOnly", () => ({
         ]
   ),
   fetchSqlServerAvailabilityGroupDashboard: vi.fn(async () => ({
-    availability_group: { id: 21, name: "ag-sales", listener_name: "ag-listener" },
-    replicas: [{ replica_server_name: "sql-node-1", role_desc: "PRIMARY" }],
-    databases: [{ database_name: "sales", synchronization_state_desc: "SYNCHRONIZED" }]
+    summary: {
+      ag_name: "ag-sales",
+      cluster_name: "sql-ag",
+      listener_name: "ag-listener",
+      listener_host: "ag.example",
+      listener_port: 1433,
+      status: "normal",
+      cluster_status: "normal",
+      cluster_type: "SQL Server AG",
+      primary_replica: "sql-node-1",
+      last_checked_at: "2026-06-11T10:00:00+08:00"
+    },
+    replicas: [
+      {
+        replica_server_name: "sql-node-1",
+        role_desc: "PRIMARY",
+        availability_mode_desc: "SYNCHRONOUS_COMMIT",
+        failover_mode_desc: "AUTOMATIC",
+        connected_state_desc: "CONNECTED",
+        synchronization_health_desc: "HEALTHY",
+        status: "normal"
+      }
+    ],
+    database_groups: [
+      {
+        replica_server_name: "sql-node-1",
+        status: "normal",
+        databases: [
+          {
+            database_name: "sales",
+            synchronization_state_desc: "SYNCHRONIZED",
+            synchronization_health_desc: "HEALTHY",
+            failover_ready: true,
+            log_send_queue_size: 0,
+            redo_queue_size: 0,
+            status: "normal"
+          }
+        ]
+      }
+    ],
+    kpis: { total_databases: 1, abnormal_databases: 0, affected_replicas: 0 }
   })),
   fetchMySqlClusterDetail: vi.fn(async () => ({
     cluster: { id: 2, name: "mysql-repl", description: "MySQL replication 群集", is_enabled: true },
@@ -219,9 +258,10 @@ vi.mock("@/api/readOnly", () => ({
         task_id: "job-1",
         name: "同步任务",
         task_name: "同步任务",
+        func: "tasks.sync",
         state: "STATE_RUNNING",
         trigger_type: "cron",
-        trigger_args: { minute: "*/5", description: "每 5 分钟" },
+        trigger_args: { second: "0", minute: "*/5", hour: "*", day: "*", month: "*", day_of_week: "*", year: "*", description: "每 5 分钟" },
         next_run_time: "2026-06-11 12:00",
         last_run_time: "2026-06-11 11:55",
         is_builtin: true
@@ -372,8 +412,11 @@ vi.mock("@/api/readOnly", () => ({
     adDomains: { configs: [{ id: 1, name: "corp", netbios_name: "CORP", ldap_port: 636, domain_controllers: ["dc01"], base_dn: "DC=corp,DC=local", credential_id: 5, credential: { id: 5, name: "ldap-bind" }, use_ssl: true, verify_ssl: true, is_enabled: true, last_sync_status: "completed", last_sync_at: "2026-06-11T03:00:00+00:00", last_sync_metrics: { ad_principals_total: 12, ad_users_total: 10, ad_groups_total: 2, total: 8, normal: 6, disabled: 1, orphaned: 1, updated: 3 } }], credentials: [{ id: 5, name: "ldap-bind" }] }
   })),
   fetchCredentialsSnapshot: vi.fn(async () => ({
-    items: [{ id: 1, name: "prod-db", credential_type: "database", db_type: "mysql", username: "root", is_active: true, instance_count: 2 }],
-    total: 1,
+    items: [
+      { id: 1, name: "prod-db", credential_type: "database", db_type: "mysql", username: "root", is_active: true, instance_count: 2 },
+      { id: 2, name: "ldap-bind", credential_type: "ldap", db_type: null, username: "bind", is_active: true, instance_count: 0 }
+    ],
+    total: 2,
     page: 1,
     pages: 1,
     limit: 20
@@ -518,6 +561,22 @@ describe("RemainingReadOnlyPages", () => {
     await waitFor(() => {
       expect(actionMocks.deleteCredential).toHaveBeenCalledWith(1);
     });
+  });
+
+  it("hides database type in credential forms when the credential is not a database credential", async () => {
+    renderWithQueryClient(<CredentialsPage />);
+
+    await screen.findByRole("heading", { name: "凭据管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "编辑凭据 ldap-bind" }));
+    const editDialog = await screen.findByRole("dialog", { name: "编辑凭据 ldap-bind" });
+    expect(within(editDialog).getByRole("combobox", { name: "凭据类型" })).toHaveTextContent("ldap");
+    expect(within(editDialog).queryByRole("combobox", { name: "数据库类型" })).not.toBeInTheDocument();
+    fireEvent.click(within(editDialog).getByRole("button", { name: "取消" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "添加凭据" }));
+    const createDialog = await screen.findByRole("dialog", { name: "新建凭据" });
+    await chooseSelectOption(within(createDialog), "凭据类型", "ldap");
+    expect(within(createDialog).queryByRole("combobox", { name: "数据库类型" })).not.toBeInTheDocument();
   });
 
   it("renders tag management with legacy stats, filters, fields, and actions", async () => {
@@ -840,7 +899,11 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(await screen.findByRole("button", { name: "查看AG状态 sql-ag" }));
     const sqlDetailDialog = await screen.findByRole("dialog", { name: "SQL Server 群集详情 sql-ag" });
     expect(await within(sqlDetailDialog).findByText("sql-node-1")).toBeInTheDocument();
-    expect(await within(sqlDetailDialog).findByText("ag-sales")).toBeInTheDocument();
+    expect((await within(sqlDetailDialog).findAllByText("ag-sales")).length).toBeGreaterThan(0);
+    expect(await within(sqlDetailDialog).findByText("副本状态")).toBeInTheDocument();
+    expect(await within(sqlDetailDialog).findByText("数据库状态")).toBeInTheDocument();
+    expect(await within(sqlDetailDialog).findByText("PRIMARY")).toBeInTheDocument();
+    expect(await within(sqlDetailDialog).findByText("SYNCHRONIZED")).toBeInTheDocument();
     fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "同步AG信息" }));
     fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "同步群集状态" }));
     fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "同步AG账户" }));
@@ -853,9 +916,17 @@ describe("RemainingReadOnlyPages", () => {
     fireEvent.click(within(sqlDetailDialog).getByRole("button", { name: "关闭详情" }));
 
     fireEvent.click(screen.getByRole("button", { name: "AG账户 sql-ag" }));
+    const agAccountsDialog = await screen.findByRole("dialog", { name: "AG 账户 sql-ag" });
+    for (const text of ["AG 总数", "Contained", "已配凭据", "启用采集", "暂无 AG 账户，请先同步 AG 账户"]) {
+      expect(await within(agAccountsDialog).findByText(text)).toBeInTheDocument();
+    }
+    expect((await within(agAccountsDialog).findAllByText("ag-sales")).length).toBeGreaterThan(0);
+    expect(actionMocks.syncSqlServerAgAccounts).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(agAccountsDialog).getByRole("button", { name: "同步 AG 账户" }));
     await waitFor(() => {
       expect(actionMocks.syncSqlServerAgAccounts).toHaveBeenCalledTimes(2);
     });
+    fireEvent.click(within(agAccountsDialog).getAllByRole("button", { name: "关闭" })[0]);
 
     await switchTab(/MySQL/);
 
@@ -935,7 +1006,7 @@ describe("RemainingReadOnlyPages", () => {
 
     fireEvent.click(within(agDialog).getByRole("button", { name: "查看AG看板 ag-sales" }));
     expect(await within(agDialog).findByRole("heading", { name: "SQL Server AG 看板 ag-sales" })).toBeInTheDocument();
-    expect(await within(agDialog).findByText("sql-node-1")).toBeInTheDocument();
+    expect((await within(agDialog).findAllByText("sql-node-1")).length).toBeGreaterThan(0);
     expect(await within(agDialog).findByText("sales")).toBeInTheDocument();
   });
 
@@ -1261,6 +1332,7 @@ describe("RemainingReadOnlyPages", () => {
       "保存 AD 域",
       "删除配置",
       "AD 域账户同步",
+      "测试 AD 连接",
       "AD 域列表"
     ]) {
       await expectTextPresent(text);
@@ -1297,11 +1369,11 @@ describe("RemainingReadOnlyPages", () => {
       "月",
       "季",
       "分区列表",
-      "分区",
-      "表",
-      "类型",
+      "分区名称",
+      "表类型",
       "大小",
-      "记录",
+      "记录数",
+      "分区月份",
       "状态"
     ]) {
       await expectTextPresent(text);
@@ -1459,13 +1531,18 @@ describe("RemainingReadOnlyPages", () => {
     });
   });
 
-  it("updates scheduler cron through a React dialog", async () => {
+  it("updates scheduler cron through the legacy split-field editor", async () => {
     renderWithQueryClient(<SchedulerPage />);
 
     await screen.findByRole("heading", { name: "定时任务" });
     fireEvent.click(await screen.findByRole("button", { name: "编辑任务 同步任务" }));
     const dialog = await screen.findByRole("dialog", { name: "编辑任务 同步任务" });
-    fireEvent.change(within(dialog).getByLabelText("Cron 表达式"), { target: { value: "*/10 * * * *" } });
+    expect(within(dialog).getByLabelText("任务名称")).toHaveValue("同步任务");
+    expect(within(dialog).getByLabelText("执行函数")).toHaveValue("tasks.sync");
+    for (const label of ["秒", "分钟", "小时", "日", "月份", "星期", "年份"]) {
+      expect(within(dialog).getByLabelText(label)).toBeInTheDocument();
+    }
+    fireEvent.change(within(dialog).getByLabelText("分钟"), { target: { value: "*/10" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "保存任务" }));
 
     await waitFor(() => {

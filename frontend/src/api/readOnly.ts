@@ -68,9 +68,12 @@ export type MySqlClusterDetail = {
 };
 
 export type SqlServerAvailabilityGroupDashboard = {
-  availability_group: ClusterDetailRecord;
+  summary?: ClusterDetailRecord;
+  availability_group?: ClusterDetailRecord;
   replicas: ClusterDetailRecord[];
-  databases: ClusterDetailRecord[];
+  databases?: ClusterDetailRecord[];
+  database_groups?: Array<ClusterDetailRecord & { databases?: ClusterDetailRecord[] }>;
+  kpis?: Record<string, unknown>;
 };
 
 export type ClustersSnapshot = {

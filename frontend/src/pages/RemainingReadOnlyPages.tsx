@@ -714,13 +714,14 @@ function CredentialFormDialog({
   const [description, setDescription] = useState(item?.description ?? "");
   const [isActive, setIsActive] = useState(item?.is_active ?? true);
   const title = item ? `编辑凭据 ${item.name}` : "新建凭据";
+  const isDatabaseCredential = credentialType === "database";
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const payload: CredentialWritePayload = {
       name: name.trim(),
       credential_type: credentialType,
-      db_type: dbType || null,
+      db_type: isDatabaseCredential ? dbType || null : null,
       username: username.trim(),
       description: description.trim() || null,
       is_active: isActive
@@ -760,20 +761,22 @@ function CredentialFormDialog({
                 value={credentialType}
               />
             </FormField>
-            <FormField label="数据库类型">
-              <SelectControl
-                label="数据库类型"
-                onValueChange={setDbType}
-                options={[
-                  { label: "mysql", value: "mysql" },
-                  { label: "postgresql", value: "postgresql" },
-                  { label: "sqlserver", value: "sqlserver" },
-                  { label: "oracle", value: "oracle" },
-                  { label: "无", value: "" }
-                ]}
-                value={dbType}
-              />
-            </FormField>
+            {isDatabaseCredential ? (
+              <FormField label="数据库类型">
+                <SelectControl
+                  label="数据库类型"
+                  onValueChange={setDbType}
+                  options={[
+                    { label: "mysql", value: "mysql" },
+                    { label: "postgresql", value: "postgresql" },
+                    { label: "sqlserver", value: "sqlserver" },
+                    { label: "oracle", value: "oracle" },
+                    { label: "无", value: "" }
+                  ]}
+                  value={dbType}
+                />
+              </FormField>
+            ) : null}
             <FormField label="用户名">
               <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
             </FormField>
@@ -1101,6 +1104,57 @@ function cronExpressionFromJob(job: SchedulerJobItem): string {
   return `${minute} ${hour} ${day} ${month} ${dayOfWeek}`;
 }
 
+type SchedulerCronParts = {
+  second: string;
+  minute: string;
+  hour: string;
+  day: string;
+  month: string;
+  dayOfWeek: string;
+  year: string;
+};
+
+function cronPartsFromJob(job: SchedulerJobItem): SchedulerCronParts {
+  const defaults: SchedulerCronParts = {
+    second: "0",
+    minute: "*",
+    hour: "*",
+    day: "*",
+    month: "*",
+    dayOfWeek: "*",
+    year: "*"
+  };
+  const args = job.trigger_args;
+  if (args && typeof args === "object") {
+    const record = args as Record<string, unknown>;
+    return {
+      second: asText(record.second, defaults.second),
+      minute: asText(record.minute, defaults.minute),
+      hour: asText(record.hour, defaults.hour),
+      day: asText(record.day, defaults.day),
+      month: asText(record.month, defaults.month),
+      dayOfWeek: asText(record.day_of_week ?? record.dayOfWeek, defaults.dayOfWeek),
+      year: asText(record.year, defaults.year)
+    };
+  }
+  const parts = cronExpressionFromJob(job).split(/\s+/).filter(Boolean);
+  if (parts.length >= 5) {
+    return {
+      ...defaults,
+      minute: parts[0] ?? defaults.minute,
+      hour: parts[1] ?? defaults.hour,
+      day: parts[2] ?? defaults.day,
+      month: parts[3] ?? defaults.month,
+      dayOfWeek: parts[4] ?? defaults.dayOfWeek
+    };
+  }
+  return defaults;
+}
+
+function cronExpressionFromParts(parts: SchedulerCronParts): string {
+  return [parts.minute, parts.hour, parts.day, parts.month, parts.dayOfWeek].map((part) => part.trim() || "*").join(" ");
+}
+
 function SchedulerJobFormDialog({
   item,
   onOpenChange,
@@ -1112,8 +1166,12 @@ function SchedulerJobFormDialog({
   onSaved: () => void;
   open: boolean;
 }) {
-  const [cronExpression, setCronExpression] = useState(item ? cronExpressionFromJob(item) : "* * * * *");
+  const [cronParts, setCronParts] = useState<SchedulerCronParts>(() => (item ? cronPartsFromJob(item) : cronPartsFromJob({ id: "new" })));
   const title = item ? `编辑任务 ${item.task_name ?? item.name ?? item.id}` : "编辑任务";
+
+  function setCronPart(key: keyof SchedulerCronParts, value: string) {
+    setCronParts((current) => ({ ...current, [key]: value }));
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1122,7 +1180,7 @@ function SchedulerJobFormDialog({
     }
     const payload: SchedulerJobWritePayload = {
       trigger_type: "cron",
-      cron_expression: cronExpression.trim()
+      cron_expression: cronExpressionFromParts(cronParts)
     };
     void runAction(updateSchedulerJob(item.id, payload), { success: "调度任务已更新" }).then(onSaved);
   }
@@ -1135,9 +1193,35 @@ function SchedulerJobFormDialog({
           <DialogDescription>更新内置任务 cron 触发器。</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={handleSubmit}>
-          <FormField label="Cron 表达式">
-            <Input className="font-mono" onChange={(event) => setCronExpression(event.target.value)} required value={cronExpression} />
-          </FormField>
+          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <FormField label="任务名称">
+              <Input readOnly value={item?.task_name ?? item?.name ?? item?.id ?? ""} />
+            </FormField>
+            <FormField label="执行函数">
+              <Input className="font-mono" readOnly value={item?.func ?? "-"} />
+            </FormField>
+            <FormField label="秒">
+              <Input className="font-mono" onChange={(event) => setCronPart("second", event.target.value)} value={cronParts.second} />
+            </FormField>
+            <FormField label="分钟">
+              <Input className="font-mono" onChange={(event) => setCronPart("minute", event.target.value)} required value={cronParts.minute} />
+            </FormField>
+            <FormField label="小时">
+              <Input className="font-mono" onChange={(event) => setCronPart("hour", event.target.value)} required value={cronParts.hour} />
+            </FormField>
+            <FormField label="日">
+              <Input className="font-mono" onChange={(event) => setCronPart("day", event.target.value)} required value={cronParts.day} />
+            </FormField>
+            <FormField label="月份">
+              <Input className="font-mono" onChange={(event) => setCronPart("month", event.target.value)} required value={cronParts.month} />
+            </FormField>
+            <FormField label="星期">
+              <Input className="font-mono" onChange={(event) => setCronPart("dayOfWeek", event.target.value)} required value={cronParts.dayOfWeek} />
+            </FormField>
+            <FormField label="年份">
+              <Input className="font-mono" onChange={(event) => setCronPart("year", event.target.value)} value={cronParts.year} />
+            </FormField>
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
@@ -2206,7 +2290,7 @@ function SqlServerAgDashboardInline({
 }: {
   clusterId: number;
   item: ClusterDetailRecord;
-  onClose: () => void;
+  onClose?: () => void;
 }) {
   const agId = clusterRecordId(item);
   const query = useQuery({
@@ -2220,9 +2304,11 @@ function SqlServerAgDashboardInline({
     <section className="grid gap-3 rounded-md border bg-secondary/20 p-3">
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-display text-base font-semibold">{title}</h3>
-        <Button onClick={onClose} size="sm" type="button" variant="outline">
-          收起看板
-        </Button>
+        {onClose ? (
+          <Button onClick={onClose} size="sm" type="button" variant="outline">
+            收起看板
+          </Button>
+        ) : null}
       </div>
       {query.isLoading ? <Skeleton className="h-32 w-full" /> : null}
       {query.isError ? <ErrorState label={title} onRetry={() => void query.refetch()} /> : null}
@@ -2232,13 +2318,20 @@ function SqlServerAgDashboardInline({
 }
 
 function SqlServerAgDashboardContent({ dashboard }: { dashboard: SqlServerAvailabilityGroupDashboard }) {
+  const summary = dashboard.summary ?? dashboard.availability_group ?? {};
+  const databaseGroups = dashboard.database_groups ?? [];
+  const flatDatabases = dashboard.databases ?? databaseGroups.flatMap((group) => group.databases ?? []);
+  const listener = [clusterRecordField(summary, ["listener_name"], ""), clusterRecordField(summary, ["listener_host"], "")]
+    .filter(Boolean)
+    .join(" / ");
+
   return (
     <div className="grid gap-3">
       <section className="grid grid-cols-3 gap-2 max-lg:grid-cols-1">
-        <DetailBlock label="AG">{clusterRecordField(dashboard.availability_group, ["name", "availability_group_name"])}</DetailBlock>
-        <DetailBlock label="监听器">{clusterRecordField(dashboard.availability_group, ["listener_name", "listener_host"])}</DetailBlock>
+        <DetailBlock label="AG">{clusterRecordField(summary, ["ag_name", "name", "availability_group_name"])}</DetailBlock>
+        <DetailBlock label="监听器">{listener || clusterRecordField(summary, ["listener_name", "listener_host"])}</DetailBlock>
         <DetailBlock label="状态">
-          <StatusBadge value={clusterRecordField(dashboard.availability_group, ["health_status", "sync_status", "is_enabled"])} />
+          <StatusBadge value={clusterRecordField(summary, ["status", "health_status", "sync_status", "is_enabled"])} />
         </DetailBlock>
       </section>
       <ListPanel title="副本状态" description="AG 看板中的副本角色与同步健康。" count={dashboard.replicas.length}>
@@ -2246,20 +2339,49 @@ function SqlServerAgDashboardContent({ dashboard }: { dashboard: SqlServerAvaila
           columns={[
             { label: "副本", keys: ["replica_server_name", "server_name", "name"] },
             { label: "角色", keys: ["role_desc", "role"] },
-            { label: "同步健康", keys: ["synchronization_health_desc", "health_status"] }
+            { label: "可用模式", keys: ["availability_mode_desc"] },
+            { label: "故障转移", keys: ["failover_mode_desc"] },
+            { label: "连接状态", keys: ["connected_state_desc"] },
+            { label: "同步健康", keys: ["synchronization_health_desc", "health_status"] },
+            { label: "问题", keys: ["error_summary"] }
           ]}
           records={dashboard.replicas}
         />
       </ListPanel>
-      <ListPanel title="数据库状态" description="AG 看板中的数据库同步状态。" count={dashboard.databases.length}>
-        <ClusterDetailRecordsTable
-          columns={[
-            { label: "数据库", keys: ["database_name", "name"] },
-            { label: "同步状态", keys: ["synchronization_state_desc", "sync_status"] },
-            { label: "同步健康", keys: ["synchronization_health_desc", "health_status"] }
-          ]}
-          records={dashboard.databases}
-        />
+      <ListPanel title="数据库状态" description="AG 看板中的数据库同步状态。" count={flatDatabases.length}>
+        {databaseGroups.length > 0 ? (
+          <div className="grid gap-3">
+            {databaseGroups.map((group, index) => (
+              <section className="grid gap-2" key={`${clusterRecordField(group, ["replica_server_name", "name"], String(index))}-${index}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{clusterRecordField(group, ["replica_server_name", "name"])}</span>
+                  <StatusBadge value={clusterRecordField(group, ["status", "health_status"])} />
+                </div>
+                <ClusterDetailRecordsTable
+                  columns={[
+                    { label: "数据库", keys: ["database_name", "name"] },
+                    { label: "同步状态", keys: ["synchronization_state_desc", "sync_status"] },
+                    { label: "健康", keys: ["synchronization_health_desc", "health_status"] },
+                    { label: "故障转移就绪", keys: ["failover_ready"] },
+                    { label: "发送队列", keys: ["log_send_queue_size"] },
+                    { label: "Redo 队列", keys: ["redo_queue_size"] },
+                    { label: "问题", keys: ["error_summary"] }
+                  ]}
+                  records={group.databases ?? []}
+                />
+              </section>
+            ))}
+          </div>
+        ) : (
+          <ClusterDetailRecordsTable
+            columns={[
+              { label: "数据库", keys: ["database_name", "name"] },
+              { label: "同步状态", keys: ["synchronization_state_desc", "sync_status"] },
+              { label: "健康", keys: ["synchronization_health_desc", "health_status"] }
+            ]}
+            records={flatDatabases}
+          />
+        )}
       </ListPanel>
     </div>
   );
@@ -2333,7 +2455,15 @@ function SqlServerAgConfigurationPanel({
   );
 }
 
-function SqlServerClusterDetailContent({ detail }: { detail: SqlServerClusterDetail }) {
+function agRecordKey(record: ClusterDetailRecord, index = 0): string {
+  return String(clusterRecordId(record) ?? clusterRecordField(record, ["name", "availability_group_name"], `ag-${index}`));
+}
+
+function SqlServerClusterDetailContent({ clusterId, detail }: { clusterId: number; detail: SqlServerClusterDetail }) {
+  const availabilityGroups = detail.availability_groups;
+  const [selectedAgKey, setSelectedAgKey] = useState(() => (availabilityGroups[0] ? agRecordKey(availabilityGroups[0]) : ""));
+  const selectedAg = availabilityGroups.find((record, index) => agRecordKey(record, index) === selectedAgKey) ?? availabilityGroups[0];
+
   return (
     <div className="grid gap-4">
       <section className="grid grid-cols-3 gap-2 max-sm:grid-cols-1">
@@ -2349,6 +2479,20 @@ function SqlServerClusterDetailContent({ detail }: { detail: SqlServerClusterDet
       <ListPanel title="可用性组" description="SQL Server AG 监听器与同步状态。" count={detail.availability_groups.length}>
         <SqlServerAvailabilityGroupsTable records={detail.availability_groups} />
       </ListPanel>
+      {selectedAg ? (
+        <section className="grid gap-3">
+          <Tabs className="grid gap-3" value={selectedAgKey} onValueChange={setSelectedAgKey}>
+            <TabsList className="h-auto w-full justify-start overflow-x-auto p-1">
+              {availabilityGroups.map((record, index) => (
+                <TabsTrigger key={agRecordKey(record, index)} value={agRecordKey(record, index)}>
+                  {sqlServerAgName(record)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          <SqlServerAgDashboardInline clusterId={clusterId} item={selectedAg} />
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -2394,7 +2538,7 @@ function SqlServerClusterDetailDialog({
         </DialogHeader>
         {query.isLoading ? <Skeleton className="h-48 w-full" /> : null}
         {query.isError ? <ErrorState label="SQL Server 群集详情" onRetry={() => void query.refetch()} /> : null}
-        {query.data ? <SqlServerClusterDetailContent detail={query.data} /> : null}
+        {query.data ? <SqlServerClusterDetailContent clusterId={item.id} detail={query.data} /> : null}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             关闭详情
@@ -2474,18 +2618,114 @@ function MySqlClusterDetailDialog({
   );
 }
 
+function SqlServerAgAccountsDialog({
+  item,
+  onOpenChange,
+  onSynced,
+  open
+}: {
+  item: ClusterItem;
+  onOpenChange: (open: boolean) => void;
+  onSynced: () => void;
+  open: boolean;
+}) {
+  const query = useQuery({
+    queryKey: ["read-only", "clusters", "sqlserver", item.id, "ag-accounts"],
+    queryFn: () => fetchSqlServerClusterDetail(item.id),
+    enabled: open
+  });
+  const availabilityGroups = query.data?.availability_groups ?? [];
+  const [selectedAgKey, setSelectedAgKey] = useState("");
+  const activeKey = selectedAgKey || (availabilityGroups[0] ? agRecordKey(availabilityGroups[0]) : "empty");
+  const selectedAg = availabilityGroups.find((record, index) => agRecordKey(record, index) === activeKey) ?? availabilityGroups[0];
+  const containedCount = availabilityGroups.filter((record) => Boolean(record.contained_enabled)).length;
+  const credentialedCount = availabilityGroups.filter((record) => !isEmptyDetailValue(record.account_credential_id)).length;
+  const enabledCount = availabilityGroups.filter((record) => record.is_enabled === true).length;
+
+  function handleSync() {
+    void runAction(syncSqlServerAgAccounts(item.id), { success: "AG 账户同步已触发" }).then(() => {
+      onSynced();
+      void query.refetch();
+    });
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="w-[min(calc(100vw-2rem),60rem)]">
+        <DialogHeader>
+          <DialogTitle>AG 账户 {item.name}</DialogTitle>
+          <DialogDescription>查看 SQL Server contained AG 账户采集概览，并触发 AG 账户同步。</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? <Skeleton className="h-48 w-full" /> : null}
+        {query.isError ? <ErrorState label="AG 账户" onRetry={() => void query.refetch()} /> : null}
+        {query.data ? (
+          <div className="grid gap-4">
+            <section className="grid grid-cols-4 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
+              <DetailBlock label="AG 总数">{formatNumber(availabilityGroups.length)}</DetailBlock>
+              <DetailBlock label="Contained">{formatNumber(containedCount)}</DetailBlock>
+              <DetailBlock label="已配凭据">{formatNumber(credentialedCount)}</DetailBlock>
+              <DetailBlock label="启用采集">{formatNumber(enabledCount)}</DetailBlock>
+            </section>
+            <Tabs className="grid gap-3" value={activeKey} onValueChange={setSelectedAgKey}>
+              <TabsList className="h-auto w-full justify-start overflow-x-auto p-1">
+                {availabilityGroups.length > 0 ? (
+                  availabilityGroups.map((record, index) => (
+                    <TabsTrigger key={agRecordKey(record, index)} value={agRecordKey(record, index)}>
+                      {sqlServerAgName(record)}
+                    </TabsTrigger>
+                  ))
+                ) : (
+                  <TabsTrigger value="empty">暂无 AG</TabsTrigger>
+                )}
+              </TabsList>
+            </Tabs>
+            <section className="grid gap-2 rounded-md border bg-secondary/20 p-3">
+              <div className="grid gap-1">
+                <h3 className="font-display text-base font-semibold">{selectedAg ? sqlServerAgName(selectedAg) : "暂无 AG"}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAg
+                    ? [sqlServerAgName(selectedAg), clusterRecordField(selectedAg, ["listener_name", "listener_host"], ""), clusterRecordField(selectedAg, ["connection_endpoint"], "")]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : "-"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedAg && !isEmptyDetailValue(selectedAg.last_sync_at)
+                    ? `最近同步 ${formatDateTime(asText(selectedAg.last_sync_at))}`
+                    : "未同步"}
+                </p>
+              </div>
+              <ListPanel title="账户列表" count={0}>
+                <p className="text-sm text-muted-foreground">暂无 AG 账户，请先同步 AG 账户</p>
+              </ListPanel>
+            </section>
+          </div>
+        ) : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            关闭
+          </Button>
+          <Button type="button" onClick={handleSync}>
+            同步 AG 账户
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function createSqlServerClusterColumns({
   onAgConfig,
+  onAgAccounts,
   onBind,
   onDetail,
-  onEdit,
-  onSyncAccounts
+  onEdit
 }: {
   onAgConfig: (item: ClusterItem) => void;
+  onAgAccounts: (item: ClusterItem) => void;
   onBind: (item: ClusterItem) => void;
   onDetail: (item: ClusterItem) => void;
   onEdit: (item: ClusterItem) => void;
-  onSyncAccounts: (item: ClusterItem) => void;
 }): ColumnDef<ClusterItem>[] {
   return [
     {
@@ -2559,7 +2799,7 @@ function createSqlServerClusterColumns({
           </Button>
           <Button
             aria-label={`AG账户 ${row.original.name}`}
-            onClick={() => onSyncAccounts(row.original)}
+            onClick={() => onAgAccounts(row.original)}
             size="icon"
             type="button"
             variant="ghost"
@@ -2658,6 +2898,7 @@ export function ClustersPage() {
   const [creatingCluster, setCreatingCluster] = useState<ClusterMode | null>(null);
   const [editingCluster, setEditingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
   const [viewingCluster, setViewingCluster] = useState<{ mode: ClusterMode; item: ClusterItem } | null>(null);
+  const [viewingAgAccountsCluster, setViewingAgAccountsCluster] = useState<ClusterItem | null>(null);
   const [maintainingCluster, setMaintainingCluster] = useState<{
     mode: ClusterMode;
     item: ClusterItem;
@@ -2667,14 +2908,12 @@ export function ClustersPage() {
     () =>
       createSqlServerClusterColumns({
         onAgConfig: (item) => setMaintainingCluster({ mode: "sqlserver", item, panel: "sqlserver-ag" }),
+        onAgAccounts: setViewingAgAccountsCluster,
         onBind: (item) => setMaintainingCluster({ mode: "sqlserver", item, panel: "instances" }),
         onDetail: (item) => setViewingCluster({ mode: "sqlserver", item }),
-        onEdit: (item) => setEditingCluster({ mode: "sqlserver", item }),
-        onSyncAccounts: (item) => {
-          void runAction(syncSqlServerAgAccounts(item.id), { success: "AG 账户同步已触发" }).then(() => void query.refetch());
-        }
+        onEdit: (item) => setEditingCluster({ mode: "sqlserver", item })
       }),
-    [query]
+    []
   );
   const mysqlClusterColumns = useMemo(
     () =>
@@ -2821,6 +3060,18 @@ export function ClustersPage() {
               setViewingCluster(null);
             }
           }}
+          open
+        />
+      ) : null}
+      {viewingAgAccountsCluster ? (
+        <SqlServerAgAccountsDialog
+          item={viewingAgAccountsCluster}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingAgAccountsCluster(null);
+            }
+          }}
+          onSynced={refreshClusters}
           open
         />
       ) : null}
@@ -5000,6 +5251,10 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 </div>
                     <div className="flex flex-wrap items-center gap-1">
                       <StatusBadge value={config.is_enabled === true} />
+                      <Button onClick={() => numericId(config.id) !== null && void runAction(testAdDomainConfig(numericId(config.id) as number), { success: "AD 连接测试已完成" })} size="sm" type="button" variant="outline">
+                        <span>测试 AD 连接</span>
+                        <span className="sr-only"> {asText(config.name)}</span>
+                      </Button>
                       <Button onClick={() => editAdDomain(config)} size="sm" type="button" variant="outline">
                         编辑AD域 {asText(config.name)}
                       </Button>
@@ -5655,11 +5910,11 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
 }
 
 const partitionColumns: ColumnDef<PartitionItem>[] = [
-  { accessorKey: "display_name", header: "分区", cell: ({ row }) => <span className="font-medium">{partitionMonthLabel(row.original)}</span> },
-  { accessorKey: "table", header: "表", cell: ({ row }) => row.original.table ?? "-" },
-  { accessorKey: "table_type", header: "类型", cell: ({ row }) => row.original.table_type ?? "-" },
+  { accessorKey: "name", header: "分区名称", cell: ({ row }) => <span className="font-medium">{row.original.name ?? row.original.display_name ?? "-"}</span> },
+  { accessorKey: "table_type", header: "表类型", cell: ({ row }) => row.original.table_type ?? "-" },
   { accessorKey: "size", header: "大小", cell: ({ row }) => <span className="font-mono text-xs">{row.original.size ?? "-"}</span> },
-  { accessorKey: "record_count", header: "记录", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.record_count)}</span> },
+  { accessorKey: "record_count", header: "记录数", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.record_count)}</span> },
+  { id: "partition_month", header: "分区月份", cell: ({ row }) => <span>{partitionMonthLabel(row.original)}</span> },
   { accessorKey: "status", header: "状态", cell: ({ row }) => <span className="text-xs text-muted-foreground">{partitionStatusLabel(row.original.status)}</span> }
 ];
 
