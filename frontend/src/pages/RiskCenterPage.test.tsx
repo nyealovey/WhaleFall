@@ -98,8 +98,8 @@ describe("RiskCenterPage", () => {
       "数据库类型",
       "状态",
       "标签",
-      "筛选",
-      "清空",
+      "应用筛选",
+      "重置",
       "MySQL (1)"
     ]) {
       await waitFor(() => {
@@ -126,7 +126,7 @@ describe("RiskCenterPage", () => {
     fireEvent.click(screen.getByRole("combobox", { name: "状态" }));
     fireEvent.click(await screen.findByRole("option", { name: "启用" }));
     fireEvent.change(screen.getByRole("textbox", { name: "标签" }), { target: { value: "prod" } });
-    fireEvent.click(screen.getByRole("button", { name: "筛选" }));
+    fireEvent.click(screen.getByRole("button", { name: "应用筛选" }));
 
     await waitFor(() => {
       expect(fetchRiskCenterSnapshot).toHaveBeenCalledWith({

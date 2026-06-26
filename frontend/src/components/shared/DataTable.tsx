@@ -41,6 +41,8 @@ type DataTableProps<TData, TValue> = {
   data: TData[];
   emptyText?: string;
   filters?: DataTableFilter[];
+  onApplyFilters?: () => void;
+  onResetFilters?: () => void;
   onSearchChange?: (value: string) => void;
   pagination?: false | DataTableServerPagination;
   searchPlaceholder?: string;
@@ -55,6 +57,8 @@ export function DataTable<TData, TValue>({
   data,
   emptyText = "暂无数据",
   filters = [],
+  onApplyFilters,
+  onResetFilters,
   onSearchChange,
   pagination,
   searchPlaceholder,
@@ -98,6 +102,29 @@ export function DataTable<TData, TValue>({
     pageCount: serverPagination?.pages
   });
 
+  function applyFilters() {
+    if (serverPagination) {
+      onSearchChange?.(searchValue ?? "");
+      for (const filter of filters) {
+        filter.onValueChange?.(filter.value ?? "");
+      }
+    }
+    onApplyFilters?.();
+  }
+
+  function resetFilters() {
+    if (serverPagination) {
+      onSearchChange?.("");
+      for (const filter of filters) {
+        filter.onValueChange?.("");
+      }
+    } else {
+      setGlobalFilter("");
+      setColumnFilters([]);
+    }
+    onResetFilters?.();
+  }
+
   const currentPage = serverPagination?.page ?? table.getState().pagination.pageIndex + 1;
   const pageSize = serverPagination?.pageSize ?? table.getState().pagination.pageSize;
   const total = serverPagination?.total ?? table.getFilteredRowModel().rows.length;
@@ -115,7 +142,7 @@ export function DataTable<TData, TValue>({
           aria-label="列表搜索和筛选"
           className={cn(
             "grid gap-3",
-            searchPlaceholder && (filters.length > 0 || toolbarExtras)
+            searchPlaceholder && (filters.length > 0 || toolbarExtras || hasToolbar)
               ? "xl:grid-cols-[minmax(16rem,28rem)_minmax(0,1fr)] xl:items-end"
               : "xl:items-end"
           )}
@@ -139,7 +166,7 @@ export function DataTable<TData, TValue>({
               />
             </label>
           ) : null}
-          {filters.length > 0 ? (
+          {filters.length > 0 || toolbarExtras || hasToolbar ? (
             <div
               aria-label="筛选条件"
               className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-3"
@@ -174,14 +201,14 @@ export function DataTable<TData, TValue>({
                 </label>
               ))}
               {toolbarExtras}
-            </div>
-          ) : toolbarExtras ? (
-            <div
-              aria-label="工具栏操作"
-              className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-3"
-              role="group"
-            >
-              {toolbarExtras}
+              <div className="flex items-end justify-end gap-2 self-end">
+                <Button onClick={applyFilters} type="button">
+                  应用筛选
+                </Button>
+                <Button onClick={resetFilters} type="button" variant="outline">
+                  重置
+                </Button>
+              </div>
             </div>
           ) : null}
         </div>

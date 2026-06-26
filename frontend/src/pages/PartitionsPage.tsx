@@ -461,6 +461,7 @@ export function PartitionsPage() {
                       { columnId: "status", label: "状态", options: [{ label: "当前", value: "current" }, { label: "历史", value: "past" }, { label: "未来", value: "future" }, { label: "未知", value: "unknown" }], value: tableState.filters.status, onValueChange: (value) => tableState.setFilter("status", value) }
                     ]}
                     onSearchChange={tableState.setSearchInput}
+                    onResetFilters={tableState.reset}
                     pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
                     searchPlaceholder="搜索分区或数据表"
                     searchValue={tableState.searchInput}

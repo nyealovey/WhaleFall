@@ -194,9 +194,9 @@ function RiskFilterPanel({
             />
           </label>
           <div className="flex items-center gap-2">
-            <Button type="submit">筛选</Button>
+            <Button type="submit">应用筛选</Button>
             <Button onClick={onReset} type="button" variant="outline">
-              清空
+              重置
             </Button>
           </div>
         </form>

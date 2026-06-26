@@ -518,6 +518,7 @@ export function SyncSessionsPage() {
                   { columnId: "status", label: "状态", options: [{ label: "运行中", value: "running" }, { label: "已完成", value: "completed" }, { label: "部分完成", value: "partial" }, { label: "失败", value: "failed" }, { label: "已取消", value: "cancelled" }], value: table.filters.status, onValueChange: (value) => table.setFilter("status", value) }
                 ]}
                 onSearchChange={table.setSearchInput}
+                onResetFilters={table.reset}
                 pagination={{ page: table.page, pageSize: table.pageSize, pages: snapshot.pages ?? 1, total: snapshot.total, onPageChange: table.setPage, onPageSizeChange: table.setPageSize }}
                 searchPlaceholder="搜索运行 ID、任务或来源"
                 searchValue={table.searchInput}

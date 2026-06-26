@@ -455,12 +455,21 @@ describe("ListPages", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 生产" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 核心" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "确认选择" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "应用" }));
 
     await waitFor(() => {
       expect(fetchInstances).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["prod", "core"] }));
     });
     expect(screen.getByRole("button", { name: /标签筛选 生产 \/ 核心/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /标签筛选 生产 \/ 核心/ }));
+    const resetDialog = await screen.findByRole("dialog", { name: "选择标签" });
+    fireEvent.click(within(resetDialog).getByRole("button", { name: "重置" }));
+
+    await waitFor(() => {
+      expect(fetchInstances).toHaveBeenLastCalledWith(expect.objectContaining({ tags: [] }));
+    });
+    expect(screen.getByRole("button", { name: "标签筛选 选择标签" })).toBeInTheDocument();
   });
 
   it("uses the legacy multi-tag selector for database and account ledger filters", async () => {
@@ -470,10 +479,16 @@ describe("ListPages", () => {
     fireEvent.click(await screen.findByRole("button", { name: /标签筛选/ }));
     let dialog = await screen.findByRole("dialog", { name: "选择标签" });
     fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 核心" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "确认选择" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "应用" }));
 
     await waitFor(() => {
       expect(fetchDatabaseLedgers).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["core"] }));
+    });
+    fireEvent.click(screen.getByRole("button", { name: /标签筛选 核心/ }));
+    dialog = await screen.findByRole("dialog", { name: "选择标签" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "重置" }));
+    await waitFor(() => {
+      expect(fetchDatabaseLedgers).toHaveBeenLastCalledWith(expect.objectContaining({ tags: [] }));
     });
 
     unmount();
@@ -484,10 +499,16 @@ describe("ListPages", () => {
     dialog = await screen.findByRole("dialog", { name: "选择标签" });
     fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 生产" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 核心" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "确认选择" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "应用" }));
 
     await waitFor(() => {
       expect(fetchAccountLedgers).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["prod", "core"] }));
+    });
+    fireEvent.click(screen.getByRole("button", { name: /标签筛选 生产 \/ 核心/ }));
+    dialog = await screen.findByRole("dialog", { name: "选择标签" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "重置" }));
+    await waitFor(() => {
+      expect(fetchAccountLedgers).toHaveBeenLastCalledWith(expect.objectContaining({ tags: [] }));
     });
   });
 

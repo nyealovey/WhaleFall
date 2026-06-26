@@ -88,6 +88,7 @@ describe("DataTable", () => {
   it("delegates pagination and filters in server mode", async () => {
     const onPageChange = vi.fn();
     const onPageSizeChange = vi.fn();
+    const onSearchChange = vi.fn();
     const onStatusChange = vi.fn();
 
     render(
@@ -95,7 +96,10 @@ describe("DataTable", () => {
         columns={columns}
         data={[{ id: "p-21", status: "failed", amount: 128 }]}
         filters={[{ columnId: "status", label: "状态", options: [{ label: "失败", value: "failed" }], value: "" , onValueChange: onStatusChange }]}
+        onSearchChange={onSearchChange}
         pagination={{ page: 2, pageSize: 20, pages: 3, total: 41, onPageChange, onPageSizeChange }}
+        searchPlaceholder="搜索支付"
+        searchValue=""
       />
     );
 
@@ -105,6 +109,13 @@ describe("DataTable", () => {
 
     await chooseOption("状态", "失败");
     expect(onStatusChange).toHaveBeenCalledWith("failed");
+    fireEvent.change(screen.getByRole("searchbox", { name: "搜索" }), { target: { value: "p-21" } });
+    expect(onSearchChange).toHaveBeenCalledWith("p-21");
+    expect(screen.getByRole("button", { name: "应用筛选" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "重置" }));
+    expect(onSearchChange).toHaveBeenLastCalledWith("");
+    expect(onStatusChange).toHaveBeenLastCalledWith("");
   });
 
   it("keeps large server pagination controls on one line", () => {
@@ -154,7 +165,10 @@ describe("DataTable", () => {
     expect(screen.queryByText("success")).not.toBeInTheDocument();
     expect(screen.getByText("failed")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "搜索" }), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "重置" }));
+    expect(screen.getByText("success")).toBeInTheDocument();
+    expect(screen.getByText("failed")).toBeInTheDocument();
+
     await chooseOption("状态", "成功");
 
     expect(screen.getByText("success")).toBeInTheDocument();

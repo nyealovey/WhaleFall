@@ -56,7 +56,7 @@ export const legacyParityPages: LegacyParityPage[] = [
       { title: "三栏选择区", fields: ["分类导航", "可选标签", "已选择"] }
     ],
     filters: ["标签分类", "标签搜索"],
-    actions: ["选择标签", "取消选择标签", "取消", "确认选择"],
+    actions: ["选择标签", "取消选择标签", "取消", "重置", "应用"],
     apiPaths: ["/api/v1/tags/options"]
   },
   {

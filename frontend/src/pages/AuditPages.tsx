@@ -579,6 +579,7 @@ export function HistoryLogsPage() {
                   { columnId: "module", label: "模块", options: (modulesQuery.data ?? []).map((module) => ({ label: module, value: module })), value: table.filters.module, onValueChange: (value) => table.setFilter("module", value) }
                 ]}
                 onSearchChange={table.setSearchInput}
+                onResetFilters={table.reset}
                 pagination={{ page: table.page, pageSize: table.pageSize, pages: snapshot.list.pages, total: snapshot.list.total, onPageChange: table.setPage, onPageSizeChange: table.setPageSize }}
                 searchPlaceholder="输入搜索关键词"
                 searchValue={table.searchInput}
@@ -660,6 +661,7 @@ export function AccountChangeLogsPage() {
                   { columnId: "change_type", label: "变更类型", options: [{ label: "新增", value: "add" }, { label: "权限变更", value: "modify_privilege" }, { label: "属性变更", value: "modify_other" }, { label: "删除", value: "delete" }], value: table.filters.changeType, onValueChange: (value) => table.setFilter("changeType", value) }
                 ]}
                 onSearchChange={table.setSearchInput}
+                onResetFilters={table.reset}
                 pagination={{ page: table.page, pageSize: table.pageSize, pages: snapshot.list.pages, total: snapshot.list.total, onPageChange: table.setPage, onPageSizeChange: table.setPageSize }}
                 searchPlaceholder="搜索账号 / 实例"
                 searchValue={table.searchInput}

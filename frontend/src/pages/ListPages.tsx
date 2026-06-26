@@ -258,6 +258,11 @@ function TagSelectorFilter({
     }
   }
 
+  function applyValues(values: string[]) {
+    onChange(values);
+    handleOpenChange(false);
+  }
+
   return (
     <div className="grid gap-1.5 text-sm font-medium text-foreground">
       <span>标签筛选</span>
@@ -402,20 +407,20 @@ function TagSelectorFilter({
               </section>
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={() => handleOpenChange(false)} type="button" variant="outline">
-              取消
+          <DialogFooter className="items-center justify-between gap-2 sm:justify-between">
+            <Button onClick={() => applyValues([])} type="button" variant="ghost">
+              <RotateCcw aria-hidden size={16} />
+              重置
             </Button>
-            <Button
-              onClick={() => {
-                onChange(draftValues);
-                handleOpenChange(false);
-              }}
-              type="button"
-            >
-              <Check aria-hidden size={16} />
-              确认选择
-            </Button>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button onClick={() => handleOpenChange(false)} type="button" variant="outline">
+                取消
+              </Button>
+              <Button onClick={() => applyValues(draftValues)} type="button">
+                <Check aria-hidden size={16} />
+                应用
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2452,6 +2457,10 @@ export function InstancesPage() {
                 { columnId: "backup_status", label: "备份", options: INSTANCE_BACKUP_FILTER_OPTIONS, value: tableState.filters.backupStatus, onValueChange: (value) => setInstanceFilter("backupStatus", value) }
               ]}
               onSearchChange={(value) => { clearInstanceSelection(); tableState.setSearchInput(value); }}
+              onResetFilters={() => {
+                clearInstanceSelection();
+                tableState.reset();
+              }}
               pagination={{
                 page: result.page,
                 pageSize: tableState.pageSize,
@@ -2623,6 +2632,7 @@ export function DatabaseLedgersPage() {
                 { columnId: "db_type", label: "类型", options: DATABASE_TYPE_FILTER_OPTIONS, value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) }
               ]}
               onSearchChange={tableState.setSearchInput}
+              onResetFilters={tableState.reset}
               pagination={{ page: result.page, pageSize: tableState.pageSize, pages: result.pages ?? 1, total: result.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
               searchPlaceholder="搜索数据库 / 实例"
               searchValue={tableState.searchInput}
@@ -2724,6 +2734,7 @@ export function AccountLedgersPage() {
                 { columnId: "ad_status", label: "AD状态", options: ACCOUNT_AD_STATUS_FILTER_OPTIONS, value: tableState.filters.adStatus, onValueChange: (value) => tableState.setFilter("adStatus", value) }
               ]}
               onSearchChange={tableState.setSearchInput}
+              onResetFilters={tableState.reset}
               pagination={{ page: result.page, pageSize: tableState.pageSize, pages: result.pages ?? 1, total: result.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
               searchPlaceholder="搜索账户 / 实例"
               searchValue={tableState.searchInput}

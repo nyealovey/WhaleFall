@@ -1404,6 +1404,7 @@ export function ClustersPage() {
                   data={snapshot.sqlServer.items}
                   filters={[{ columnId: "is_enabled", label: "状态", options: [{ label: "启用", value: "active" }, { label: "停用", value: "inactive" }], value: sqlServerTable.filters.status, onValueChange: (value) => sqlServerTable.setFilter("status", value) }]}
                   onSearchChange={sqlServerTable.setSearchInput}
+                  onResetFilters={sqlServerTable.reset}
                   pagination={{ page: snapshot.sqlServer.page, pageSize: sqlServerTable.pageSize, pages: snapshot.sqlServer.pages ?? 1, total: snapshot.sqlServer.total, onPageChange: sqlServerTable.setPage, onPageSizeChange: sqlServerTable.setPageSize }}
                   searchPlaceholder="搜索群集名称或描述"
                   searchValue={sqlServerTable.searchInput}
@@ -1417,6 +1418,7 @@ export function ClustersPage() {
                   data={snapshot.mySql.items}
                   filters={[{ columnId: "is_enabled", label: "状态", options: [{ label: "启用", value: "active" }, { label: "停用", value: "inactive" }], value: mySqlTable.filters.status, onValueChange: (value) => mySqlTable.setFilter("status", value) }]}
                   onSearchChange={mySqlTable.setSearchInput}
+                  onResetFilters={mySqlTable.reset}
                   pagination={{ page: snapshot.mySql.page, pageSize: mySqlTable.pageSize, pages: snapshot.mySql.pages ?? 1, total: snapshot.mySql.total, onPageChange: mySqlTable.setPage, onPageSizeChange: mySqlTable.setPageSize }}
                   searchPlaceholder="搜索群集名称或描述"
                   searchValue={mySqlTable.searchInput}

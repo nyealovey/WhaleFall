@@ -1077,7 +1077,7 @@ describe("Console pages", () => {
     await screen.findByRole("heading", { name: "分类统计" });
     fireEvent.click(await screen.findByRole("combobox", { name: "账户分类" }));
     fireEvent.click(await screen.findByRole("option", { name: "DBA" }));
-    fireEvent.click(screen.getByRole("button", { name: "应用" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "应用筛选" })[0]);
 
     await waitFor(() => {
       expect(fetchClassificationStatisticsSnapshot).toHaveBeenLastCalledWith(
@@ -1110,7 +1110,7 @@ describe("Console pages", () => {
 
     fireEvent.click(screen.getByRole("combobox", { name: "实例/AG" }));
     fireEvent.click(await screen.findByRole("option", { name: "mysql-prod (MYSQL)" }));
-    fireEvent.click(screen.getByRole("button", { name: "应用" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "应用筛选" })[0]);
 
     await waitFor(() => {
       expect(fetchClassificationStatisticsSnapshot).toHaveBeenLastCalledWith(

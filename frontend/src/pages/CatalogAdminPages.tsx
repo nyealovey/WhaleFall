@@ -740,6 +740,7 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
                   }
                 ]}
                 onSearchChange={tableState.setSearchInput}
+                onResetFilters={tableState.reset}
                 pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
                 searchPlaceholder="搜索用户名或邮箱"
                 searchValue={tableState.searchInput}
@@ -856,6 +857,7 @@ export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | nu
                   }
                 ]}
                 onSearchChange={tableState.setSearchInput}
+                onResetFilters={tableState.reset}
                 pagination={{ page: snapshot.page, pageSize: tableState.pageSize, pages: snapshot.pages ?? 1, total: snapshot.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
                 searchPlaceholder="搜索凭据、账号或数据库类型"
                 searchValue={tableState.searchInput}
@@ -995,6 +997,7 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
                   }
                 ]}
                 onSearchChange={tableState.setSearchInput}
+                onResetFilters={tableState.reset}
                 pagination={{ page: snapshot.list.page, pageSize: tableState.pageSize, pages: snapshot.list.pages ?? 1, total: snapshot.list.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
                 searchPlaceholder="搜索标签、编码或分类"
                 searchValue={tableState.searchInput}

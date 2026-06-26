@@ -1026,7 +1026,7 @@ function ClassificationFilterPanel({
           </label>
           <div className="flex gap-2">
             <Button variant="outline" type="submit">
-              应用
+              应用筛选
             </Button>
             <Button onClick={onReset} type="button" variant="ghost">
               重置
@@ -1040,6 +1040,8 @@ function ClassificationFilterPanel({
 
 function ClassificationRulesListPanel({
   filters,
+  onApply,
+  onReset,
   onRuleSelect,
   onRuleStatusChange,
   onSearchChange,
@@ -1047,6 +1049,8 @@ function ClassificationRulesListPanel({
   search
 }: {
   filters: ClassificationFiltersState;
+  onApply: () => void;
+  onReset: () => void;
   onRuleSelect: (ruleId: string) => void;
   onRuleStatusChange: (status: string) => void;
   onSearchChange: (search: string) => void;
@@ -1067,7 +1071,7 @@ function ClassificationRulesListPanel({
       actions={<Badge variant="outline">最新周期</Badge>}
     >
       <div className="grid gap-3">
-        <div className="grid grid-cols-[minmax(0,1fr)_9rem] gap-2 max-sm:grid-cols-1">
+        <div className="grid grid-cols-[minmax(0,1fr)_9rem_auto] items-end gap-2 max-sm:grid-cols-1">
           <label className="grid gap-1.5 text-sm font-medium">
             <span>搜索规则名/备注</span>
             <Input onChange={(event) => onSearchChange(event.target.value)} type="search" value={search} />
@@ -1085,6 +1089,14 @@ function ClassificationRulesListPanel({
               value={filters.ruleStatus}
             />
           </label>
+          <div className="flex gap-2">
+            <Button onClick={onApply} type="button">
+              应用筛选
+            </Button>
+            <Button onClick={onReset} type="button" variant="outline">
+              重置
+            </Button>
+          </div>
         </div>
         {filters.classificationId ? (
           <Table>
@@ -1180,6 +1192,14 @@ export function ClassificationStatisticsPage() {
               <section className="grid grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] gap-2 max-xl:grid-cols-1">
                 <ClassificationRulesListPanel
                   filters={filters}
+                  onApply={() => {
+                    void query.refetch();
+                  }}
+                  onReset={() => {
+                    setRuleSearch("");
+                    setFilters({ ...filters, ruleId: "", ruleStatus: "active" });
+                    setDraftFilters({ ...draftFilters, ruleId: "", ruleStatus: "active" });
+                  }}
                   onRuleSelect={(ruleId) => {
                     setFilters({ ...filters, ruleId });
                     setDraftFilters({ ...draftFilters, ruleId });
