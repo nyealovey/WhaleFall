@@ -127,24 +127,10 @@ class InstancesRepository:
         return instance
 
     @staticmethod
-    def list_instances_for_export(*, search: str = "", db_type: str = "") -> list[Instance]:
+    def list_instances_for_export(filters: InstanceListFilters) -> list[Instance]:
         """导出场景使用的实例列表查询(不分页)."""
         query: Query[Any] = cast(Query[Any], Instance.query)
-
-        normalized_search = search.strip()
-        if normalized_search:
-            query = query.filter(
-                or_(
-                    Instance.name.contains(normalized_search),
-                    Instance.host.contains(normalized_search),
-                    Instance.description.contains(normalized_search),
-                ),
-            )
-
-        normalized_db_type = db_type.strip()
-        if normalized_db_type:
-            query = query.filter(Instance.db_type == normalized_db_type)
-
+        query = InstancesRepository._apply_instance_filters(query, filters)
         return list(query.order_by(Instance.id.asc()).all())
 
     @staticmethod

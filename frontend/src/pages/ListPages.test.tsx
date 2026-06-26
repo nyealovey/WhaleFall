@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { fetchAccountLedgers, fetchDatabaseLedgers, fetchInstances } from "@/api/lists";
 
 import { AccountLedgersPage, DatabaseLedgersPage, InstanceDetailPage, InstancesPage } from "./ListPages";
 
@@ -33,7 +34,11 @@ vi.mock("@/api/lists", () => ({
   buildDatabaseLedgersExportPath: vi.fn(() => "/api/v1/databases/ledgers/exports"),
   buildInstancesExportPath: vi.fn(() => "/api/v1/instances/exports"),
   fetchAccountClassificationOptions: vi.fn(async () => [{ code: "sensitive", display_name: "敏感" }]),
-  fetchTagOptions: vi.fn(async () => [{ name: "prod", display_name: "生产" }]),
+  fetchTagOptions: vi.fn(async () => [
+    { name: "prod", display_name: "生产", category: "environment", is_active: true },
+    { name: "core", display_name: "核心", category: "project", is_active: true },
+    { name: "old", display_name: "旧标签", category: "other", is_active: false }
+  ]),
   fetchCredentialOptions: vi.fn(async () => [
     { id: 8, name: "prod credential", credential_type: "database", db_type: "mysql", is_active: true },
     { id: 9, name: "disabled credential", credential_type: "database", db_type: "mysql", is_active: false }
@@ -432,6 +437,57 @@ describe("ListPages", () => {
           is_active: true
         })
       );
+    });
+  });
+
+  it("uses the legacy multi-tag selector for instance filters", async () => {
+    renderWithQueryClient(<InstancesPage />);
+
+    await expectTextPresent("mysql-prod");
+    fireEvent.click(await screen.findByRole("button", { name: /标签筛选/ }));
+
+    const dialog = await screen.findByRole("dialog", { name: "选择标签" });
+    for (const text of ["总数", "筛选后", "已启用", "已选择", "分类导航", "可选标签", "已选择"]) {
+      expect(within(dialog).getAllByText(text).length).toBeGreaterThan(0);
+    }
+    expect(within(dialog).getAllByText("environment").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("project").length).toBeGreaterThan(0);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 生产" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 核心" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "确认选择" }));
+
+    await waitFor(() => {
+      expect(fetchInstances).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["prod", "core"] }));
+    });
+    expect(screen.getByRole("button", { name: /标签筛选 生产 \/ 核心/ })).toBeInTheDocument();
+  });
+
+  it("uses the legacy multi-tag selector for database and account ledger filters", async () => {
+    const { unmount } = renderWithQueryClient(<DatabaseLedgersPage />);
+
+    await expectTextPresent("app_db");
+    fireEvent.click(await screen.findByRole("button", { name: /标签筛选/ }));
+    let dialog = await screen.findByRole("dialog", { name: "选择标签" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 核心" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "确认选择" }));
+
+    await waitFor(() => {
+      expect(fetchDatabaseLedgers).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["core"] }));
+    });
+
+    unmount();
+    renderWithQueryClient(<AccountLedgersPage />);
+
+    await expectTextPresent("readonly");
+    fireEvent.click(await screen.findByRole("button", { name: /标签筛选/ }));
+    dialog = await screen.findByRole("dialog", { name: "选择标签" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 生产" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "选择标签 核心" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "确认选择" }));
+
+    await waitFor(() => {
+      expect(fetchAccountLedgers).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["prod", "core"] }));
     });
   });
 

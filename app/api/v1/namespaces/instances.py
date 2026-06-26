@@ -400,6 +400,17 @@ _instances_options_query_parser.add_argument("db_type", type=str, action="append
 _instances_export_query_parser = new_parser()
 _instances_export_query_parser.add_argument("search", type=str, default="", location="args")
 _instances_export_query_parser.add_argument("db_type", type=str, default="", location="args")
+_instances_export_query_parser.add_argument("status", type=str, default="", location="args")
+_instances_export_query_parser.add_argument("audit_status", type=str, default="", location="args")
+_instances_export_query_parser.add_argument("managed_status", type=str, default="", location="args")
+_instances_export_query_parser.add_argument("backup_status", type=str, default="", location="args")
+_instances_export_query_parser.add_argument("tags", type=str, action="append", location="args")
+_instances_export_query_parser.add_argument(
+    "include_deleted",
+    type=bool_with_default(False),
+    default=False,
+    location="args",
+)
 
 
 def _parse_instance_filters(parsed: dict[str, object]) -> InstanceListFilters:
@@ -639,11 +650,10 @@ class InstancesExportResource(BaseResource):
         """导出实例."""
         parsed = _instances_export_query_parser.parse_args()
         query = validate_or_raise(InstancesExportQuery, parsed)
-        search = query.search
-        db_type = query.db_type
+        filters = query.to_filters()
 
         def _execute() -> Response:
-            result = _instances_export_service.export_instances_csv(search=search, db_type=db_type)
+            result = _instances_export_service.export_instances_csv(filters)
             return Response(
                 result.content,
                 mimetype=result.mimetype,
@@ -655,7 +665,7 @@ class InstancesExportResource(BaseResource):
             module="instances",
             action="export_instances",
             public_error="导出实例失败",
-            context={"search": search, "db_type": db_type},
+            context={"search": filters.search, "db_type": filters.db_type, "tags": filters.tags},
         )
 
 

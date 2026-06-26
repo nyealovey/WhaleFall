@@ -44,6 +44,7 @@ describe("bundle splitting", () => {
       "SyncSessionsPage",
       "SettingsPage",
       "CatalogAdminPages",
+      "TagBulkAssignPage",
       "PartitionsPage"
     ];
 

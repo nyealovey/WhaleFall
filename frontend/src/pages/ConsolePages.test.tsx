@@ -17,6 +17,7 @@ import { PartitionsPage } from "./PartitionsPage";
 import { SchedulerPage } from "./SchedulerPage";
 import { SettingsPage } from "./SettingsPage";
 import { SyncSessionsPage } from "./SyncSessionsPage";
+import { TagBulkAssignPage } from "./TagBulkAssignPage";
 
 const adminUser = { id: 1, username: "admin", role: "admin", is_active: true };
 const viewerUser = { id: 2, username: "viewer", role: "viewer", is_active: true };
@@ -428,7 +429,20 @@ vi.mock("@/api/readOnly", () => ({
   fetchPartitionsSnapshot: vi.fn(async () => ({
     status: { data: { status: "healthy", total_partitions: 3, total_size: "3 MB", total_records: 30, missing_partitions: [], partitions: [{ name: "p202605", date: "2026-05-01", status: "past", size: "1 MB", record_count: 10 }, { name: "p202606", date: "2026-06-01", status: "current", size: "1 MB", record_count: 12 }, { name: "p202607", date: "2026-07-01", status: "future", size: "1 MB", record_count: 8 }] }, timestamp: "2026-06-11T00:00:00+08:00" },
     list: { items: [{ name: "p202606", date: "2026-06-01", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 12, status: "current" }], total: 1, page: 1, pages: 1, limit: 20 },
-    coreMetrics: { labels: ["06-11"], datasets: [{ label: "分区", data: [1] }], dataPointCount: 1, timeRange: "7d", yAxisLabel: "count", chartTitle: "核心指标", periodType: "daily" }
+    coreMetrics: {
+      labels: ["2026-06-11"],
+      datasets: [
+        { label: "实例数总量", data: [77] },
+        { label: "实例日统计数量", data: [3] },
+        { label: "数据库数总量", data: [130] },
+        { label: "数据库日统计数量", data: [9] }
+      ],
+      dataPointCount: 1,
+      timeRange: "最近7天的核心指标统计",
+      yAxisLabel: "数量",
+      chartTitle: "日核心指标趋势",
+      periodType: "daily"
+    }
   }))
 }));
 
@@ -587,7 +601,7 @@ describe("Console pages", () => {
       await expectTextPresent(text);
     }
     expect(screen.getByRole("button", { name: "添加标签" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "批量分配" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "批量分配" })).toHaveAttribute("href", "/console/tags/bulk/assign");
     expect(screen.getByRole("button", { name: "编辑标签 生产" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除标签 生产" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "查看标签 生产" })).not.toBeInTheDocument();
@@ -1357,8 +1371,12 @@ describe("Console pages", () => {
       "平均记录数",
       "当前记录数",
       "数据库连接",
-      "核心指标趋势",
+      "日核心指标趋势",
       "最近7天的核心指标统计",
+      "实例数总量",
+      "实例日统计数量",
+      "数据库数总量",
+      "数据库日统计数量",
       "日",
       "周",
       "月",
@@ -1557,25 +1575,31 @@ describe("Console pages", () => {
     expect(fetchSchedulerJobDetail).toHaveBeenCalledWith("job-1");
   });
 
-  it("runs tag bulk assignment and removal through v1 APIs", async () => {
-    renderWithQueryClient(<TagsPage />);
+  it("runs tag bulk assignment and removal from the legacy-style page", async () => {
+    renderWithQueryClient(<TagBulkAssignPage />);
 
-    await screen.findByRole("heading", { name: "标签管理" });
-    fireEvent.click(await screen.findByRole("button", { name: "批量分配" }));
-    const dialog = await screen.findByRole("dialog", { name: "批量分配标签" });
-    fireEvent.click(await within(dialog).findByLabelText("实例 mysql-prod"));
-    fireEvent.click(within(dialog).getByLabelText("标签 生产"));
-    fireEvent.click(within(dialog).getByRole("button", { name: "执行批量分配" }));
+    await screen.findByRole("heading", { name: "批量分配标签" });
+    expect(screen.getByRole("link", { name: "返回标签管理" })).toHaveAttribute("href", "/console/tags");
+    expect(screen.getByRole("tab", { name: "分配模式" })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText("选择实例")).toBeInTheDocument();
+    expect(screen.getByText("选择标签")).toBeInTheDocument();
+    expect(screen.getByText("当前选择")).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByLabelText("选择实例 mysql-prod"));
+    fireEvent.click(screen.getByLabelText("选择标签 生产"));
+    expect(screen.getAllByText("mysql-prod").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("生产").length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole("button", { name: "分配标签" }));
 
     await waitFor(() => {
       expect(actionMocks.assignTagsToInstances).toHaveBeenCalledWith([1], [1]);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "批量分配" }));
-    const removeDialog = await screen.findByRole("dialog", { name: "批量分配标签" });
-    await chooseSelectOption(within(removeDialog), "操作", "批量移除全部标签");
-    fireEvent.click(await within(removeDialog).findByLabelText("实例 mysql-prod"));
-    fireEvent.click(within(removeDialog).getByRole("button", { name: "执行批量移除全部" }));
+    await switchTab("移除模式");
+    expect(screen.getByText("选择要移除标签的实例，系统将移除这些实例上的所有标签。")).toBeInTheDocument();
+    expect(screen.queryByLabelText("选择标签 生产")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("选择实例 mysql-prod"));
+    fireEvent.click(screen.getByRole("button", { name: "移除标签" }));
 
     await waitFor(() => {
       expect(actionMocks.removeAllTagsFromInstances).toHaveBeenCalledWith([1]);
@@ -1593,7 +1617,7 @@ describe("Console pages", () => {
 
     await waitFor(() => {
       expect(fetchPartitionsSnapshot).toHaveBeenLastCalledWith({
-        days: 28,
+        days: 7,
         limit: 20,
         page: 1,
         periodType: "weekly",

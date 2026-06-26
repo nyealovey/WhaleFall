@@ -27,7 +27,7 @@ import {
   Zap
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { CheckboxLine, SelectControl, SwitchField } from "@/components/shared/FormControls";
 import { runAction } from "@/utils/action-feedback";
@@ -245,10 +245,65 @@ function partitionStatusLabel(value: string | undefined): string {
 
 const PARTITION_PERIOD_OPTIONS: Array<PartitionMetricsFilters & { label: string }> = [
   { label: "日", periodType: "daily", days: 7 },
-  { label: "周", periodType: "weekly", days: 28 },
-  { label: "月", periodType: "monthly", days: 90 },
-  { label: "季", periodType: "quarterly", days: 365 }
+  { label: "周", periodType: "weekly", days: 7 },
+  { label: "月", periodType: "monthly", days: 7 },
+  { label: "季", periodType: "quarterly", days: 7 }
 ];
+
+const PARTITION_PERIOD_COPY: Record<string, { title: string; subtitle: string }> = {
+  daily: { title: "日核心指标趋势", subtitle: "最近7天的核心指标统计" },
+  weekly: { title: "周核心指标趋势", subtitle: "最近7周的核心指标统计" },
+  monthly: { title: "月核心指标趋势", subtitle: "最近7个月的核心指标统计" },
+  quarterly: { title: "季度核心指标趋势", subtitle: "最近7个季度的核心指标统计" }
+};
+
+const PARTITION_CHART_COLORS = ["#2f80ed", "#ff7aa2", "#4cc9c0", "#f59f00", "#8b5cf6", "#10b981"];
+
+type PartitionChartSeries = {
+  key: string;
+  label: string;
+  color: string;
+  data: number[];
+  strokeWidth: number;
+};
+
+type PartitionChartPoint = {
+  label: string;
+} & Record<string, number | string>;
+
+function partitionPeriodCopy(periodType: string | undefined): { title: string; subtitle: string } {
+  return PARTITION_PERIOD_COPY[periodType ?? ""] ?? PARTITION_PERIOD_COPY.daily;
+}
+
+function partitionSeriesColor(dataset: { borderColor?: string }, index: number): string {
+  const color = dataset.borderColor?.trim();
+  return color && color.toLowerCase() !== "#fff" && color.toLowerCase() !== "#ffffff" ? color : PARTITION_CHART_COLORS[index % PARTITION_CHART_COLORS.length];
+}
+
+function buildPartitionChart(
+  labels: string[],
+  datasets: Array<{ label?: string; data?: number[]; borderColor?: string; borderWidth?: number }>
+): { chartData: PartitionChartPoint[]; chartConfig: ChartConfig; series: PartitionChartSeries[] } {
+  const series = datasets
+    .filter((dataset) => Array.isArray(dataset.data))
+    .map((dataset, index) => ({
+      key: `metric${index}`,
+      label: dataset.label?.trim() || `指标 ${index + 1}`,
+      color: partitionSeriesColor(dataset, index),
+      data: dataset.data ?? [],
+      strokeWidth: dataset.borderWidth ?? 3
+    }));
+  const chartConfig = Object.fromEntries(series.map((item) => [item.key, { label: item.label, color: item.color }])) satisfies ChartConfig;
+  const chartData = labels.map((label, index) => {
+    const point: PartitionChartPoint = { label };
+    series.forEach((item) => {
+      const value = Number(item.data[index] ?? 0);
+      point[item.key] = Number.isFinite(value) ? value : 0;
+    });
+    return point;
+  });
+  return { chartData, chartConfig, series };
+}
 
 const PARTITION_YEAR_OPTIONS = Array.from({ length: 3 }, (_, index) => {
   const year = new Date().getFullYear() + index;
@@ -272,7 +327,6 @@ export function PartitionsPage() {
     tableType: tableState.filters.tableType
   };
   const query = useQuery({ queryKey: ["read-only", "partitions", partitionQuery], queryFn: () => fetchPartitionsSnapshot(partitionQuery), placeholderData: (previous) => previous });
-  const chartConfig = { value: { label: "分区指标", color: "var(--chart-2)" } } satisfies ChartConfig;
   const [partitionYear, setPartitionYear] = useState("");
   const [partitionMonth, setPartitionMonth] = useState("");
   const [retentionMonths, setRetentionMonths] = useState("12");
@@ -312,8 +366,8 @@ export function PartitionsPage() {
           const futureCount = partitions.filter((item) => item.status === "future").length;
           const currentPartition = currentPartitions[0];
           const averageRecords = (status.total_partitions ?? 0) > 0 ? Math.round((status.total_records ?? 0) / (status.total_partitions ?? 1)) : 0;
-          const metricValues = snapshot.coreMetrics.datasets[0]?.data ?? [];
-          const chartData = snapshot.coreMetrics.labels.map((label, index) => ({ label, value: metricValues[index] ?? 0 }));
+          const chartCopy = partitionPeriodCopy(snapshot.coreMetrics.periodType || metricFilters.periodType);
+          const { chartData, chartConfig, series } = buildPartitionChart(snapshot.coreMetrics.labels, snapshot.coreMetrics.datasets);
           return (
             <>
               <MetricGrid
@@ -331,38 +385,68 @@ export function PartitionsPage() {
                   { label: "数据库连接", value: status.status === "healthy" ? "正常" : "异常", icon: PlugZap }
                 ]}
               />
-              <section className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2 max-xl:grid-cols-1">
+              <section className="grid gap-2">
                 <Card>
                   <CardHeader>
-                    <div>
-                      <CardTitle>核心指标趋势</CardTitle>
-                      <CardDescription>最近7天的核心指标统计</CardDescription>
+                    <div className="flex items-start justify-between gap-3 max-sm:grid">
+                      <div>
+                        <CardTitle>{chartCopy.title}</CardTitle>
+                        <CardDescription>{chartCopy.subtitle}</CardDescription>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {PARTITION_PERIOD_OPTIONS.map((option) => (
+                          <Button
+                            key={option.periodType}
+                            onClick={() => setMetricFilters({ days: option.days, periodType: option.periodType })}
+                            size="sm"
+                            type="button"
+                            variant={metricFilters.periodType === option.periodType ? "default" : "outline"}
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="grid gap-3">
-                    <div className="flex flex-wrap gap-1">
-                      {PARTITION_PERIOD_OPTIONS.map((option) => (
-                        <Button
-                          key={option.periodType}
-                          onClick={() => setMetricFilters({ days: option.days, periodType: option.periodType })}
-                          size="sm"
-                          type="button"
-                          variant={metricFilters.periodType === option.periodType ? "default" : "outline"}
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </div>
-                    {chartData.length > 0 ? (
-                      <ChartContainer config={chartConfig} className="h-[220px] w-full">
-                        <AreaChart accessibilityLayer data={chartData} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
-                          <CartesianGrid vertical={false} />
-                          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                          <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Area dataKey="value" name="分区指标" type="monotone" stroke="var(--color-value)" strokeWidth={2} fill="var(--color-value)" fillOpacity={0.16} />
-                        </AreaChart>
-                      </ChartContainer>
+                    {chartData.length > 0 && series.length > 0 ? (
+                      <>
+                        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold text-muted-foreground">
+                          {series.map((item) => (
+                            <span className="inline-flex items-center gap-2" key={item.key}>
+                              <span className="size-2.5 rounded-full" style={{ backgroundColor: `var(--color-${item.key})` }} />
+                              {item.label}
+                            </span>
+                          ))}
+                        </div>
+                        <ChartContainer config={chartConfig} className="h-[340px] w-full">
+                          <LineChart accessibilityLayer data={chartData} margin={{ left: 12, right: 16, top: 12, bottom: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                            <YAxis
+                              tickLine={false}
+                              axisLine={false}
+                              tickMargin={8}
+                              width={72}
+                              label={{ value: snapshot.coreMetrics.yAxisLabel || "数量", angle: -90, position: "insideLeft", offset: -2 }}
+                            />
+                            <ChartTooltip content={<ChartTooltipContent />} />
+                            {series.map((item) => (
+                              <Line
+                                activeDot={{ r: 5 }}
+                                connectNulls
+                                dataKey={item.key}
+                                dot={{ r: 3, strokeWidth: 2 }}
+                                key={item.key}
+                                name={item.label}
+                                stroke={`var(--color-${item.key})`}
+                                strokeWidth={item.strokeWidth}
+                                type="monotone"
+                              />
+                            ))}
+                          </LineChart>
+                        </ChartContainer>
+                      </>
                     ) : (
                       <p className="text-sm text-muted-foreground">暂无核心指标</p>
                     )}

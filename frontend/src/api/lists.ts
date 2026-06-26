@@ -33,10 +33,12 @@ export type AccountLedgerQuery = PaginatedQuery & {
   adStatus?: string;
 };
 
-type TagItem = {
+export type TagItem = {
+  category?: string | null;
   name: string;
   display_name: string;
   color?: string;
+  is_active?: boolean | null;
 };
 
 export type AccountClassificationOption = {
@@ -368,7 +370,11 @@ export async function fetchAccountLedgers(query: AccountLedgerQuery = {}, client
 }
 
 export function buildInstancesExportPath(query: InstanceListQuery): string {
-  return queryPath("/api/v1/instances/exports", [["search", query.search], ["db_type", query.dbType]]);
+  return queryPath("/api/v1/instances/exports", [
+    ["search", query.search], ["db_type", query.dbType], ["status", query.status],
+    ["audit_status", query.auditStatus], ["managed_status", query.managedStatus],
+    ["backup_status", query.backupStatus], ["tags", query.tags], ["include_deleted", query.includeDeleted || undefined]
+  ]);
 }
 
 export function buildDatabaseLedgersExportPath(query: DatabaseLedgerQuery): string {

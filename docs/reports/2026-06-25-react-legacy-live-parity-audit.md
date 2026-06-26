@@ -3,7 +3,7 @@ title: React 新旧页面线上一致性复核
 status: Remediated - pending deploy verification
 owner: team
 created: 2026-06-25
-updated: 2026-06-25
+updated: 2026-06-26
 scope: React `/console/**` 与旧版 Flask 页面主页面、详情页、弹窗和设置子面板
 related:
   - ../plans/2026-06-11-react-frontend-migration-checklist.md
@@ -30,12 +30,27 @@ related:
 | P1 | 日志中心 | 已补日志详情复制消息、复制 JSON、复制堆栈、展开上下文、复制详情入口。 |
 | P1 | 凭据管理 | 已把“数据库类型”改为仅数据库凭据类型时显示；非数据库凭据不再显示。 |
 | P1 | 全局页脚与关于页 | 已补旧版所有页面底部“关于”入口，并新增 `/console/about` 静态说明页。 |
+| P1 | 共享标签选择器 | 已补旧版实例、数据库台账、账户台账共用的“选择标签”弹窗；React 从单选下拉恢复为可搜索、按分类过滤、多选确认的 shadcn Dialog。 |
+| P1 | 标签批量分配/移除 | 已恢复旧版独立批量页面，React 不再用标签管理页内弹窗承载，也不再展示旧版没有的“移除指定标签”模式。 |
 | P2 | 多个 React 页面 | 已继续收敛列表页和实例详情残留英文 eyebrow/说明文字。 |
 | P2 | 实例详情 | 已把连接状态原始值映射为中文业务文本，例如 `poor` 显示为“连接较差”。 |
 
 浏览器控制台错误：本轮抽样页面未捕获前端 `error` 级控制台错误。
 
 ## 复核范围与方法
+
+### 方法修正
+
+2026-06-26 追加复核确认：此前按导航路由和主页面入口扫描，仍会漏掉旧版通过模板 include 注入的共享弹窗。后续迁移复核必须同时覆盖：
+
+- 导航路由和详情路由。
+- 页脚、全局 Shell、批量页、旧版跳转页。
+- 共享模板和 JS 组件，例如 `components/tag_selector.html`。
+- 列表工具栏、行内操作、批量操作、表单内选择器和确认弹窗。
+
+本次漏项对应旧版 `components/tag_selector.html`，由 `/instances/`、`/databases/ledgers`、`/accounts/ledgers` 三个页面的标签筛选使用。React 已补共享 `TagSelectorFilter`，不再只用单选标签下拉。
+
+追加静态补扫已覆盖 `app/templates` 下的路由模板、modal include、共享组件 include 和批量页模板。除本次标签选择器外，其余明显 modal 入口均已归入现有页面复核表，例如实例表单、批量导入、权限详情、群集 AG、日志详情、会话详情、用户/凭据/标签表单、分区表单和系统设置子面板。
 
 ### 复核范围
 
@@ -92,6 +107,7 @@ related:
 
 | 范围 | 旧版弹窗/子页面 | React 弹窗/子面板 | 差异结论 |
 | --- | --- | --- | --- |
+| 实例/数据库台账/账户台账 - 标签筛选 | 旧版共用 `components/tag_selector.html`：搜索标签名称/代码/分类，展示总数/筛选后/已启用/已选择，左侧分类导航，中间可选标签，右侧已选择，确认后写回当前页面 | React 早期只使用单个标签 Select；现已改为共享 shadcn Dialog，支持搜索、分类、统计、多选托盘和确认写回 | 已修复；该项属于非路由共享弹窗，后续必须纳入复核范围 |
 | 实例管理 - 添加实例 | 添加实例：实例名称、数据库类型、描述、主机、端口、数据库名称、凭据、启用 | 新建实例：实例名称、数据库类型、主机/IP、端口、默认数据库、凭据、标签代码、启用、校验连接参数、保存实例 | React 新增标签代码和校验连接参数；校验属于新增能力，标签代码若旧版新增页没有则需确认。 |
 | 实例管理 - 编辑实例 | 编辑实例：同旧版添加字段，保存 | 编辑实例：同 React 新建字段，保存实例 | 同上。 |
 | 实例管理 - 批量导入 | 旧版有批量导入入口 | React 批量导入弹窗：CSV 文件、上传并创建 | 与旧版入口一致，未执行上传。 |
@@ -126,7 +142,7 @@ related:
 | 凭据管理 - 添加/编辑 | 旧版凭据名称、凭据类型、描述、用户名、密码、启用 | React 新增数据库类型字段，并保留用户名、密码、状态、描述 | P1/P2，需确认“数据库类型”是否旧版动态字段；若不是，应调整。 |
 | 凭据管理 - 删除 | 旧版删除凭据入口 | React 删除确认 AlertDialog | 未确认删除，确认弹窗可用。 |
 | 标签管理 - 添加/编辑 | 旧版标签代码、显示名称、分类、启用 | React 标签编码、展示名称、分类、启用 | 内容等价，命名略有差异。 |
-| 标签管理 - 批量分配 | 旧版跳转到批量页面，含分配/移除模式、实例选择、分配标签 | React 批量分配标签弹窗内完成实例和标签选择 | 内容接近，形态不同。 |
+| 标签管理 - 批量分配 | 旧版跳转到批量页面，含分配/移除模式、实例选择、标签选择、当前选择和执行进度；移除模式移除所选实例的所有标签 | React 已恢复 `/console/tags/bulk/assign` 独立页面，标签管理页只保留跳转入口 | 已修复。 |
 | 分区管理 - 创建 | 旧版年份、月份 | React 年份、月份 | 内容等价。 |
 | 分区管理 - 清理 | 旧版保留月数 | React 保留月数 AlertDialog | 内容等价。 |
 
@@ -140,6 +156,8 @@ related:
 6. 凭据表单：数据库类型字段仅在数据库凭据类型下展示。
 7. 分区表头：恢复旧版“分区名称/表类型/记录数/分区月份”展示语义。
 8. 全局页脚和关于页：补回旧版所有页面底部“关于”入口；新增 `/console/about`，展示旧版项目介绍、核心功能、技术栈、支持数据库和更新日志。
+9. 共享标签选择器：补回旧版 `components/tag_selector.html` 对应能力，实例管理、数据库台账和账户台账的标签筛选均从单选 Select 改为可搜索、按分类过滤、多选确认的 shadcn Dialog；实例导出同步携带当前标签、状态等筛选条件。
+10. 标签批量分配/移除：删除标签管理页内批量操作弹窗，新增 `/console/tags/bulk/assign` 独立页面；恢复旧版分配模式/移除模式、实例分组、标签分组、当前选择和清空/执行动作。
 
 以上为代码侧修复结果；需要用户重新构建部署后，再按本文档逐页线上复核并把状态改为 `Closed`。
 
@@ -153,6 +171,29 @@ npm --prefix frontend run test       # 28 files, 154 tests passed
 npm --prefix frontend run typecheck  # passed
 npm --prefix frontend run lint       # passed
 npm --prefix frontend run build      # passed; no Vite chunk-size warning
+git diff --check                     # passed
+```
+
+2026-06-26 共享标签选择器补漏验证通过：
+
+```bash
+npm --prefix frontend run test -- src/api/lists.test.ts src/pages/ListPages.test.tsx src/migration/legacyParity.test.ts  # 3 files, 25 tests passed
+npm --prefix frontend run test       # 29 files, 158 tests passed
+npm --prefix frontend run typecheck  # passed
+npm --prefix frontend run lint       # passed
+npm --prefix frontend run build      # passed; no Vite chunk-size warning
+uv run pytest tests/unit/routes/test_api_v1_files_contract.py tests/unit/schemas/test_instances_query.py -q  # 9 passed
+git diff --check                     # passed
+```
+
+2026-06-26 标签批量页体验回退验证通过：
+
+```bash
+npm --prefix frontend run test -- src/pages/ConsolePages.test.tsx src/bundleSplitting.test.ts  # 2 files, 43 tests passed
+npm --prefix frontend run test       # passed
+npm --prefix frontend run typecheck  # passed
+npm --prefix frontend run lint       # passed
+npm --prefix frontend run build      # passed
 git diff --check                     # passed
 ```
 

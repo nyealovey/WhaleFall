@@ -56,7 +56,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  assignTagsToInstances,
   autoClassifyAccounts,
   cancelSyncSession,
   cleanupPartitions,
@@ -83,8 +82,6 @@ import {
   enableVeeamSource,
   pauseSchedulerJob,
   reloadSchedulerJobs,
-  removeAllTagsFromInstances,
-  removeTagsFromInstances,
   replaceMySqlClusterInstances,
   replaceSqlServerClusterInstances,
   resumeSchedulerJob,
@@ -149,7 +146,6 @@ import {
   fetchTaskRunDetail,
   fetchTaskRunErrorLogs,
   fetchTaskRunsSnapshot,
-  fetchTagBulkOptions,
   fetchTagsSnapshot,
   fetchUsersSnapshot,
   type AccountClassificationItem,
@@ -175,10 +171,7 @@ import {
   type TaskRunDetail,
   type TaskRunErrorLogs,
   type TaskRunItem,
-  type TagBulkOptions,
   type TagItem,
-  type TagOptionItem,
-  type TaggableInstanceItem,
   type UserItem
 } from "@/api/readOnly";
 import { DataTable } from "@/components/shared/DataTable";
@@ -464,145 +457,6 @@ function TagFormDialog({
   );
 }
 
-
-function taggableInstanceLabel(item: TaggableInstanceItem): string {
-  return asText(item.name ?? item.instance_name ?? item.id);
-}
-
-function tagOptionLabel(item: TagOptionItem): string {
-  return asText(item.display_name ?? item.name ?? item.id);
-}
-
-function toggleNumberSelection(values: number[], value: number, checked: boolean): number[] {
-  if (checked) {
-    return values.includes(value) ? values : [...values, value];
-  }
-  return values.filter((item) => item !== value);
-}
-
-function TagBulkDialog({
-  onOpenChange,
-  onSaved,
-  open
-}: {
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-  open: boolean;
-}) {
-  const [operation, setOperation] = useState<"assign" | "remove" | "remove_all">("assign");
-  const [selectedInstanceIds, setSelectedInstanceIds] = useState<number[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-  const query = useQuery<TagBulkOptions>({
-    enabled: open,
-    queryKey: ["read-only", "tags", "bulk-options"],
-    queryFn: () => fetchTagBulkOptions()
-  });
-  const actionLabel =
-    operation === "assign" ? "执行批量分配" : operation === "remove" ? "执行批量移除" : "执行批量移除全部";
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const action =
-      operation === "assign"
-        ? assignTagsToInstances(selectedInstanceIds, selectedTagIds)
-        : operation === "remove"
-          ? removeTagsFromInstances(selectedInstanceIds, selectedTagIds)
-          : removeAllTagsFromInstances(selectedInstanceIds);
-    void runAction(action, { success: actionLabel }).then(onSaved);
-  }
-
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="w-[min(calc(100vw-2rem),56rem)]">
-        <DialogHeader>
-          <DialogTitle>批量分配标签</DialogTitle>
-          <DialogDescription>选择实例和标签后执行批量分配或移除。</DialogDescription>
-        </DialogHeader>
-        {query.isLoading ? (
-          <div className="grid gap-3">
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : null}
-        {query.isError ? (
-          <Alert variant="destructive">
-            <AlertCircle aria-hidden size={16} />
-            <AlertDescription>标签批量选项加载失败</AlertDescription>
-          </Alert>
-        ) : null}
-        {query.data ? (
-          <form className="grid gap-4" onSubmit={handleSubmit}>
-            <FormField label="操作">
-              <SelectControl
-                label="操作"
-                onValueChange={(value) => setOperation(value as "assign" | "remove" | "remove_all")}
-                options={[
-                  { label: "批量分配", value: "assign" },
-                  { label: "批量移除指定标签", value: "remove" },
-                  { label: "批量移除全部标签", value: "remove_all" }
-                ]}
-                value={operation}
-              />
-            </FormField>
-            <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
-              <section className="grid gap-2 rounded-md border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">实例</h3>
-                  <Badge variant="secondary">{formatNumber(query.data.instances.length)}</Badge>
-                </div>
-                <div className="grid max-h-64 gap-2 overflow-auto">
-                  {query.data.instances.map((instance) => (
-                    <CheckboxLine
-                      checked={selectedInstanceIds.includes(instance.id)}
-                      key={instance.id}
-                      label={`实例 ${taggableInstanceLabel(instance)}`}
-                      onCheckedChange={(checked) => setSelectedInstanceIds((current) => toggleNumberSelection(current, instance.id, checked))}
-                    >
-                      <span>
-                        <span className="sr-only">实例 </span>
-                        {taggableInstanceLabel(instance)}
-                      </span>
-                    </CheckboxLine>
-                  ))}
-                </div>
-              </section>
-              <section className="grid gap-2 rounded-md border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">标签</h3>
-                  <Badge variant="secondary">{formatNumber(query.data.tags.length)}</Badge>
-                </div>
-                <div className="grid max-h-64 gap-2 overflow-auto">
-                  {query.data.tags.map((tag) => (
-                    <CheckboxLine
-                      checked={selectedTagIds.includes(tag.id)}
-                      disabled={operation === "remove_all"}
-                      key={tag.id}
-                      label={`标签 ${tagOptionLabel(tag)}`}
-                      onCheckedChange={(checked) => setSelectedTagIds((current) => toggleNumberSelection(current, tag.id, checked))}
-                    >
-                      <span>
-                        <span className="sr-only">标签 </span>
-                        {tagOptionLabel(tag)}
-                      </span>
-                    </CheckboxLine>
-                  ))}
-                </div>
-              </section>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                取消
-              </Button>
-              <Button type="submit" disabled={selectedInstanceIds.length === 0 || (operation !== "remove_all" && selectedTagIds.length === 0)}>
-                {actionLabel}
-              </Button>
-            </DialogFooter>
-          </form>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function createCredentialColumns({
   canManage,
@@ -1069,7 +923,6 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
   const [creatingTag, setCreatingTag] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
-  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const canManage = canManageCatalog(currentUser);
   const columns = useMemo(
     () =>
@@ -1116,8 +969,8 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
                       <Plus aria-hidden />
                       添加标签
                     </Button>
-                    <Button onClick={() => setBulkDialogOpen(true)} size="sm" type="button" variant="outline">
-                      批量分配
+                    <Button asChild size="sm" variant="outline">
+                      <a href="/console/tags/bulk/assign">批量分配</a>
                     </Button>
                   </>
                 ) : (
@@ -1178,16 +1031,6 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
             void query.refetch();
           }}
           open={editingTag !== null}
-        />
-      ) : null}
-      {canManage && bulkDialogOpen ? (
-        <TagBulkDialog
-          onOpenChange={setBulkDialogOpen}
-          onSaved={() => {
-            setBulkDialogOpen(false);
-            void query.refetch();
-          }}
-          open={bulkDialogOpen}
         />
       ) : null}
       <DeleteConfirmDialog

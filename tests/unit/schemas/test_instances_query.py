@@ -88,6 +88,13 @@ def test_instances_options_query_supports_multiple_db_types() -> None:
 
 @pytest.mark.unit
 def test_instances_export_query_strips_params() -> None:
-    query = validate_or_raise(InstancesExportQuery, {"search": " foo ", "db_type": " mysql "})
+    query = validate_or_raise(
+        InstancesExportQuery,
+        {"search": " foo ", "db_type": " mysql ", "status": " active ", "tags": [" prod ", "core"], "include_deleted": "true"},
+    )
     assert query.search == "foo"
     assert query.db_type == "mysql"
+    filters = query.to_filters()
+    assert filters.status == "active"
+    assert filters.tags == ["prod", "core"]
+    assert filters.include_deleted is True

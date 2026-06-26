@@ -135,8 +135,41 @@ class InstancesExportQuery(PayloadSchema):
 
     search: str = ""
     db_type: str = ""
+    status: str = ""
+    audit_status: str = ""
+    managed_status: str = ""
+    backup_status: str = ""
+    tags: list[str] = Field(default_factory=list)
+    include_deleted: bool = False
 
-    @field_validator("search", "db_type", mode="before")
+    @field_validator("search", "db_type", "status", "audit_status", "managed_status", "backup_status", mode="before")
     @classmethod
     def _parse_export_params(cls, value: Any) -> str:
         return parse_text(value)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _parse_tags(cls, value: Any) -> list[str]:
+        return parse_tags(value)
+
+    @field_validator("include_deleted", mode="before")
+    @classmethod
+    def _parse_include_deleted(cls, value: Any) -> bool:
+        return as_bool(value, default=False)
+
+    def to_filters(self) -> InstanceListFilters:
+        """转换为导出使用的实例筛选条件."""
+        return InstanceListFilters(
+            page=1,
+            limit=_MAX_LIMIT,
+            sort_field="id",
+            sort_order="asc",
+            search=self.search,
+            db_type=self.db_type,
+            status=self.status,
+            audit_status=self.audit_status,
+            managed_status=self.managed_status,
+            backup_status=self.backup_status,
+            tags=list(self.tags),
+            include_deleted=self.include_deleted,
+        )

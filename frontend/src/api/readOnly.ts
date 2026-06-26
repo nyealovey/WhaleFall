@@ -417,7 +417,16 @@ export type PartitionsSnapshot = {
   list: PaginatedReadOnlyList<PartitionItem>;
   coreMetrics: {
     labels: string[];
-    datasets: Array<{ label?: string; data?: number[] }>;
+    datasets: Array<{
+      label?: string;
+      data?: number[];
+      borderColor?: string;
+      backgroundColor?: string;
+      borderWidth?: number;
+      fill?: boolean;
+      pointStyle?: string;
+      tension?: number;
+    }>;
     dataPointCount: number;
     timeRange: string;
     yAxisLabel: string;

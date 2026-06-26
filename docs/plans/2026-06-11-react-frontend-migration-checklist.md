@@ -3,7 +3,7 @@
 > 状态: Active
 > 负责人: WhaleFall Team
 > 创建: 2026-06-11
-> 更新: 2026-06-25
+> 更新: 2026-06-26
 > 范围: `/console` React 新前端迁移进度
 > 关联: `frontend/`, `app/api/v1/`, `docs/Obsidian/standards/doc/guide/documentation.md`
 > 展示内容跟踪: `docs/plans/2026-06-18-react-display-parity-tracker.md`
@@ -23,9 +23,10 @@
 ## 当前摘要
 
 - React 入口: `/console`
-- 路由级已接入页面: 23（22 个导航页面 + 1 个页脚关于页）
+- 路由级已接入页面: 24（22 个导航页面 + 1 个页脚关于页 + 1 个批量子页面）
 - 路由级占位页: 0（仅表示导航路径已有 React 页面，不代表完整替代完成）
-- 完整替代完成页: 23（代码侧已完成；用户重新构建部署后继续做线上复核）
+- 非路由共享入口: 已纳入清单，包含页脚入口、共享弹窗、批量子页面、列表工具栏内选择器和确认弹窗
+- 完整替代完成页: 24（代码侧已完成；用户重新构建部署后继续做线上复核）
 - 完整替代缺口页: 0
 - 当前策略: 迁移清单已闭环；后续只做线上复核发现的问题修复，新增旧版没有的能力另立需求，不写入本迁移清单
 - API 核查口径: 路由级占位页 0 不代表完整替代完成；旧版没有的能力直接不纳入迁移范围，不再保留占位；只有旧版有入口/动作且 v1 缺路由的能力才作为替代阻塞项
@@ -35,6 +36,7 @@
 ## 完整替代验收口径
 
 - 展示内容与旧版一致：指标、列表字段、筛选项、状态、详情信息和空态不能缺项。
+- 复核范围不能只看 URL 和菜单：旧版模板 include、共享 JS 组件、列表工具栏、行内操作、批量操作、表单内选择器、页脚和全局 Shell 都要逐项登记。
 - 展示形态可以调整：优先使用 shadcn 组件、TanStack Table 和 Recharts，避免继续复制旧版 DOM 结构。
 - 表格筛选由新版 DataTable 工具栏承载；如果表格自带筛选，不再额外做页面级筛选区。
 - 写操作必须在 React 内调用 `/api/v1/` 或新增受控 API，不能只跳回旧版后标记完整替代。
@@ -55,9 +57,9 @@
 | `/console/dashboard` | `/dashboard/` | Done - replacement | `/api/v1/dashboard/overview`, `/api/v1/dashboard/status`, `/api/v1/dashboard/charts?type=all`, `/api/v1/risk-center/summary` | 已按旧版补齐刷新数据、数据库实例/账户总数/总容量/数据库总数指标、风险告警、错误和告警日志趋势、系统状态、运行时间和分类分布；刷新接入 Sonner 反馈；旧版模板没有活动流展示，新版已删除活动流卡片，完成替代验收 |
 | `/console/about` | `/about` | Done - replacement | 无新增 v1 API | 已恢复旧版全局页脚“关于”入口，并补齐项目介绍、核心功能、技术栈、支持的数据库和更新日志；关于页仅展示静态说明和版本时间线，不新增旧版没有的动作 |
 | `/console/risk-center` | `/risk-center/` | Done - replacement | `/api/v1/risk-center/summary`, `/api/v1/risk-center/cards?page=...&limit=20&severity=...&db_type=...&status=...&tag=...&search=...` | 已按旧版补齐刷新、总实例/高中低健康指标、搜索/严重度/数据库类型/状态/标签筛选联动、数据库类型分组风险墙和备份/审计/托管/群集/任务核心信号；风险卡默认每页 20 条并接入服务端分页；刷新接入 Sonner 反馈；风险卡沿用旧版跳转实例详情口径；旧版没有风险处置/风险详情独立入口，React 不接入对应功能，完成替代验收 |
-| `/console/instances` | `/instances/` | Done - replacement | `/api/v1/instances?page=...&limit=...`, `/api/v1/instances/{id}`, `/api/v1/instances/{id}/connection-status`, `/api/v1/accounts/ledgers?instance_id={id}&owner_type=instance&include_roles=true`, `/api/v1/instances/{id}/ag-accounts`, `/api/v1/databases/sizes?instance_id={id}&latest_only=true&include_inactive=true`, `/api/v1/instances/{id}/audit-info`, `/api/v1/instances/{id}/backup-info`, `/api/v1/credentials?page=...&limit=...`, `POST /api/v1/instances`, `PUT /api/v1/instances/{id}`, `/api/v1/instances/actions/test-connection`, `/api/v1/instances/actions/validate-connection-params`, `/api/v1/instances/actions/batch-test-connections`, `/api/v1/instances/actions/batch-delete`, `/api/v1/instances/actions/batch-create`, `/api/v1/instances/imports/template`, `/api/v1/instances/{id}/actions/sync-accounts`, `/api/v1/instances/{id}/actions/sync-capacity`, `/api/v1/instances/{id}/actions/sync-audit-info`, `/api/v1/integrations/veeam/actions/sync-instance/{id}`, `/api/v1/instances/{id}/actions/restore`, `DELETE /api/v1/instances/{id}`, `/api/v1/instances/exports` | 已按旧版补齐名称、类型、主机/IP、状态、审计、已托管、备份、活跃、版本/同步、标签、操作列；搜索、类型、状态、审计、托管、备份、标签筛选由 DataTable 工具栏承载并接入服务端分页；实例详情补齐实例 ID、数据库版本、标签、编辑、移入回收站、账户/容量四项汇总、查看权限、变更历史、表容量入口、Backup ID、覆盖数量、平台、数据大小、备份大小和压缩率；账户、AG 账户、容量、审计、备份统一在同一个 shadcn Tabs 卡片中切换；连接状态统一中文业务文本，残留英文说明已继续收敛；基础新增/编辑实例表单、凭据下拉选择、单实例连接测试、高级连接参数校验、实例级账户/容量/审计/备份同步、当前可见列表批量测试、批量移入回收站、批量导入 CSV、删除到回收站、恢复、导出 CSV 均已接入 React，完成替代验收 |
-| `/console/database-ledgers` | `/databases/ledgers` | Done - replacement | `/api/v1/databases/ledgers?page=...&limit=...`, `/api/v1/databases/ledgers/exports`, `/api/v1/databases/ledgers/actions/sync-all`, `/api/v1/databases/{id}/tables/sizes`, `/api/v1/databases/{id}/tables/sizes/actions/refresh` | 已按旧版补齐数据库/实例、类型、数据库大小、标签、操作列；搜索、类型、标签筛选由 DataTable 工具栏承载并接入服务端分页；同步所有数据库、表容量详情和刷新表容量已接入 React；导出 CSV 链接携带当前筛选条件；残留英文说明已继续收敛，完成替代验收 |
-| `/console/account-ledgers` | `/accounts/ledgers` | Done - replacement | `/api/v1/accounts/ledgers?page=...&limit=...`, `/api/v1/accounts/ledgers/exports`, `/api/v1/instances/actions/sync-accounts`, `/api/v1/accounts/ledgers/{id}/permissions`, `/api/v1/accounts/ledgers/{id}/change-history` | 已按旧版补齐账户/实例、是否可用、是否删除、是否超管、AD 状态、分类、类型、标签、操作列；搜索、分类、AD 状态、标签筛选由 DataTable 工具栏承载并接入服务端分页；同步所有账户、权限详情、变更历史和导出 CSV 已接入 React，导出 CSV 链接携带当前筛选条件，完成替代验收 |
+| `/console/instances` | `/instances/` | Done - replacement | `/api/v1/instances?page=...&limit=...`, `/api/v1/instances/{id}`, `/api/v1/instances/{id}/connection-status`, `/api/v1/accounts/ledgers?instance_id={id}&owner_type=instance&include_roles=true`, `/api/v1/instances/{id}/ag-accounts`, `/api/v1/databases/sizes?instance_id={id}&latest_only=true&include_inactive=true`, `/api/v1/instances/{id}/audit-info`, `/api/v1/instances/{id}/backup-info`, `/api/v1/credentials?page=...&limit=...`, `POST /api/v1/instances`, `PUT /api/v1/instances/{id}`, `/api/v1/instances/actions/test-connection`, `/api/v1/instances/actions/validate-connection-params`, `/api/v1/instances/actions/batch-test-connections`, `/api/v1/instances/actions/batch-delete`, `/api/v1/instances/actions/batch-create`, `/api/v1/instances/imports/template`, `/api/v1/instances/{id}/actions/sync-accounts`, `/api/v1/instances/{id}/actions/sync-capacity`, `/api/v1/instances/{id}/actions/sync-audit-info`, `/api/v1/integrations/veeam/actions/sync-instance/{id}`, `/api/v1/instances/{id}/actions/restore`, `DELETE /api/v1/instances/{id}`, `/api/v1/instances/exports` | 已按旧版补齐名称、类型、主机/IP、状态、审计、已托管、备份、活跃、版本/同步、标签、操作列；搜索、类型、状态、审计、托管、备份筛选由 DataTable 工具栏承载并接入服务端分页；标签筛选已恢复旧版共享“选择标签”弹窗，支持搜索标签名称/代码/分类、分类导航、多选托盘和确认写回；实例详情补齐实例 ID、数据库版本、标签、编辑、移入回收站、账户/容量四项汇总、查看权限、变更历史、表容量入口、Backup ID、覆盖数量、平台、数据大小、备份大小和压缩率；账户、AG 账户、容量、审计、备份统一在同一个 shadcn Tabs 卡片中切换；连接状态统一中文业务文本，残留英文说明已继续收敛；基础新增/编辑实例表单、凭据下拉选择、单实例连接测试、高级连接参数校验、实例级账户/容量/审计/备份同步、当前可见列表批量测试、批量移入回收站、批量导入 CSV、删除到回收站、恢复、导出 CSV 均已接入 React，完成替代验收 |
+| `/console/database-ledgers` | `/databases/ledgers` | Done - replacement | `/api/v1/databases/ledgers?page=...&limit=...`, `/api/v1/databases/ledgers/exports`, `/api/v1/databases/ledgers/actions/sync-all`, `/api/v1/databases/{id}/tables/sizes`, `/api/v1/databases/{id}/tables/sizes/actions/refresh` | 已按旧版补齐数据库/实例、类型、数据库大小、标签、操作列；搜索、类型筛选由 DataTable 工具栏承载并接入服务端分页；标签筛选已恢复旧版共享“选择标签”弹窗，支持搜索、分类导航、多选托盘和确认写回；同步所有数据库、表容量详情和刷新表容量已接入 React；导出 CSV 链接携带当前筛选条件；残留英文说明已继续收敛，完成替代验收 |
+| `/console/account-ledgers` | `/accounts/ledgers` | Done - replacement | `/api/v1/accounts/ledgers?page=...&limit=...`, `/api/v1/accounts/ledgers/exports`, `/api/v1/instances/actions/sync-accounts`, `/api/v1/accounts/ledgers/{id}/permissions`, `/api/v1/accounts/ledgers/{id}/change-history` | 已按旧版补齐账户/实例、是否可用、是否删除、是否超管、AD 状态、分类、类型、标签、操作列；搜索、分类、AD 状态筛选由 DataTable 工具栏承载并接入服务端分页；标签筛选已恢复旧版共享“选择标签”弹窗，支持搜索、分类导航、多选托盘和确认写回；同步所有账户、权限详情、变更历史和导出 CSV 已接入 React，导出 CSV 链接携带当前筛选条件，完成替代验收 |
 | `/console/capacity/instances` | `/capacity/instances` | Done - replacement | `/api/v1/capacity/instances?period_type=...&page=...&limit=...&start_date=...&end_date=...&instance_id=...&db_type=...`, `/api/v1/capacity/instances?period_type=...&start_date=...&end_date=...&get_all=true`, `/api/v1/capacity/instances/summary?period_type=...&start_date=...&end_date=...`, `/api/v1/capacity/aggregations/current` | 已按旧版补齐刷新数据、统计当前周期、开始/结束日期、数据库类型、实例、周期筛选联动、在线实例数/总容量/平均容量/最大容量指标，以及容量统计趋势图、容量变化趋势图、容量变化趋势图(百分比)；趋势图改用旧版同源全量图表数据，容量单位按 MB/GB/TB 自适应；旧版没有的大容量明细列表已删除；刷新和实例当前周期统计已接入 Sonner 反馈，完成替代验收 |
 | `/console/capacity/databases` | `/capacity/databases` | Done - replacement | `/api/v1/capacity/databases?period_type=...&page=...&limit=...&start_date=...&end_date=...&instance_id=...&db_type=...&database_name=...`, `/api/v1/capacity/databases?period_type=...&start_date=...&end_date=...&get_all=true`, `/api/v1/capacity/databases/summary?period_type=...&start_date=...&end_date=...`, `/api/v1/capacity/aggregations/current` | 已按旧版补齐刷新数据、统计当前周期、开始/结束日期、数据库类型、实例、数据库、周期筛选联动、总数据库数/总容量/平均容量/最大容量指标，以及容量统计趋势图、容量变化趋势图、容量变化趋势图(百分比)；趋势图改用旧版同源全量图表数据，容量单位按 MB/GB/TB 自适应；旧版没有的大容量明细列表已删除；刷新和数据库当前周期统计已接入 Sonner 反馈，完成替代验收 |
 | `/console/instance-statistics` | `/instances/statistics` | Done - replacement | `/api/v1/instances/statistics` | 已按旧版补齐返回实例列表/刷新统计命令、实例总数/审计信息/托管统计/备份统计、备份状态分布、数据库类型分布、端口分布、数据库版本统计和版本分布图；刷新统计已接入 Sonner 反馈，完成替代验收 |
@@ -73,8 +75,9 @@
 | `/console/users` | `/users/` | Done - replacement | `/api/v1/users?page=...&limit=...`, `/api/v1/users`, `/api/v1/users/{id}` | 已按旧版补齐 ID、用户、角色、状态、创建时间、操作列；搜索、角色、状态筛选由 DataTable 工具栏承载并接入服务端分页；新建、编辑、删除使用 shadcn Dialog/AlertDialog 并接入 v1 action；旧版没有独立详情入口，因此 React 不展示详情按钮；禁用和重置密码沿用旧版编辑用户保存口径；非管理员操作列只读，管理员不可删除当前登录用户，完成替代验收 |
 | `/console/settings` | `/admin/system-settings` | Done - replacement | `/api/v1/alerts/email-settings`, `/api/v1/alerts/email-settings/actions/send-test`, `/api/v1/alerts/email-settings/actions/send-feishu-test`, `/api/v1/risk-center/rules`, `/api/v1/integrations/jumpserver/source`, `/api/v1/integrations/jumpserver/actions/sync`, `/api/v1/integrations/veeam/sources`, `/api/v1/integrations/veeam/sources/{id}/actions/enable`, `/api/v1/integrations/veeam/sources/{id}/actions/disable`, `/api/v1/integrations/veeam/actions/sync`, `/api/v1/ad-domain-configs`, `/api/v1/ad-domain-configs/{id}/actions/set-enabled`, `/api/v1/ad-domain-configs/{id}/actions/test-connection`, `/api/v1/ad-domain-configs/actions/sync`, `/api/v1/credentials?page=...&limit=...&credential_type=ldap&status=active` | 已按旧版补齐设置模块导航并改用 shadcn Tabs；告警设置补脱敏 Webhook、清空选项、共享收件人与容量增长百分比/绝对值阈值；风险规则补分类、中文名称、描述、严重级别 RadioGroup 和启用 Switch；JumpServer 补凭据、SSL 状态、最近同步状态/时间；Veeam 补凭据、启用状态、最近同步和 Provider 汇总；AD 默认进入新增模式，列表补域控、凭据、同步状态、测试 AD 连接入口及 AD/SQL 账户统计；告警测试/保存、风险规则保存、JumpServer 保存/同步/解绑、Veeam 新增/编辑/启停/同步/删除/新增模式/数据源列表编辑、AD 新增/编辑/启停/测试/同步/删除/新增模式/域列表编辑已接入 React；旧版未发现 JumpServer/Veeam 测试连接入口，不纳入迁移范围，完成替代验收 |
 | `/console/credentials` | `/credentials/` | Done - replacement | `/api/v1/credentials?page=...&limit=...`, `/api/v1/credentials`, `/api/v1/credentials/{id}` | 已按旧版补齐凭据、类型、数据库类型、状态、绑定实例、创建时间、操作列；搜索、凭据类型、数据库类型、状态筛选由 DataTable 工具栏承载并接入服务端分页；添加、编辑、删除使用 shadcn Dialog/AlertDialog 并接入 v1 action，数据库类型字段仅数据库凭据表单展示；非管理员操作列只读，完成替代验收 |
-| `/console/tags` | `/tags/` | Done - replacement | `/api/v1/tags?page=...&limit=...`, `/api/v1/tags/categories`, `/api/v1/tags`, `/api/v1/tags/{id}`, `/api/v1/tags/bulk/instances`, `/api/v1/tags/bulk/tags`, `/api/v1/tags/bulk/actions/assign`, `/api/v1/tags/bulk/actions/remove`, `/api/v1/tags/bulk/actions/remove-all` | 已按旧版补齐全部标签、启用率、停用率、标签分类及其辅助指标，以及标签/分类/状态/关联/操作列；搜索、分类、状态筛选由 DataTable 工具栏承载并接入服务端分页；添加、编辑、删除、批量分配、批量移除、批量移除全部使用 shadcn Dialog/AlertDialog 并接入 v1 action；非管理员操作列只读，完成替代验收 |
-| `/console/partitions` | `/partition/` | Done - replacement | `/api/v1/partitions/status`, `/api/v1/partitions?page=...&limit=...`, `/api/v1/partitions/core-metrics?period_type=...&days=...`, `/api/v1/partitions`, `/api/v1/partitions/actions/cleanup` | 已按旧版补齐创建分区/清理旧分区入口、历史/当前/未来分区数量、当前分区大小、平均记录数、当前记录数、数据库连接状态、核心指标趋势、日周月季切换参数联动和分区列表；分区列表恢复旧版分区名称、表类型、大小、记录数、分区月份、状态表头语义，默认每页 20 条并接入服务端分页；创建分区年份/月份位于 shadcn Dialog，清理保留月数与二次确认位于 shadcn AlertDialog，动作接入 Sonner；旧版没有分区详情和核心指标点位钻取，React 不接入对应功能，完成替代验收 |
+| `/console/tags` | `/tags/` | Done - replacement | `/api/v1/tags?page=...&limit=...`, `/api/v1/tags/categories`, `/api/v1/tags`, `/api/v1/tags/{id}` | 已按旧版补齐全部标签、启用率、停用率、标签分类及其辅助指标，以及标签/分类/状态/关联/操作列；搜索、分类、状态筛选由 DataTable 工具栏承载并接入服务端分页；添加、编辑、删除使用 shadcn Dialog/AlertDialog 并接入 v1 action；批量分配入口恢复为跳转独立批量页；非管理员操作列只读，完成替代验收 |
+| `/console/tags/bulk/assign` | `/tags/bulk/assign` | Done - replacement | `/api/v1/tags/bulk/instances`, `/api/v1/tags/bulk/tags`, `/api/v1/tags/bulk/actions/assign`, `/api/v1/tags/bulk/actions/remove-all` | 已恢复旧版独立工作台形态：返回标签管理、分配模式/移除模式切换、移除模式提示、按数据库类型分组选择实例、按分类分组选择标签、右侧当前选择、清空选择和执行进度；移除模式沿用旧版口径，选择实例后移除这些实例上的所有标签，不再展示新版额外的“移除指定标签”模式，完成替代验收 |
+| `/console/partitions` | `/partition/` | Done - replacement | `/api/v1/partitions/status`, `/api/v1/partitions?page=...&limit=...`, `/api/v1/partitions/core-metrics?period_type=...&days=...`, `/api/v1/partitions`, `/api/v1/partitions/actions/cleanup` | 已按旧版补齐创建分区/清理旧分区入口、历史/当前/未来分区数量、当前分区大小、平均记录数、当前记录数、数据库连接状态、核心指标趋势、日周月季切换参数联动和分区列表；核心指标趋势已恢复旧版全宽图表，按日/周/月/季请求最近 7 个周期，并渲染 v1 返回的全部四组指标线：实例数、实例统计数量、数据库数、数据库统计数量；分区列表恢复旧版分区名称、表类型、大小、记录数、分区月份、状态表头语义，默认每页 20 条并接入服务端分页；创建分区年份/月份位于 shadcn Dialog，清理保留月数与二次确认位于 shadcn AlertDialog，动作接入 Sonner；旧版没有分区详情和核心指标点位钻取，React 不接入对应功能，完成替代验收 |
 
 ## 迁移结论
 
@@ -116,10 +119,13 @@
 8. 持续保留导入导出收敛口径：实例/数据库台账/账户台账三类导出 CSV 链接已接入并携带当前筛选；实例导入上传、实例批量删除、标签批量分配/移除已完成。
 9. 已完成 2026-06-25 新一轮线上对比修复：全局修改密码入口、AG 账户查看、AG 状态副本/数据库同步明细、调度任务拆字段编辑、日志详情复制/上下文、凭据数据库类型条件展示、分区表头语义、实例连接状态中文化和残留英文说明收敛。
 10. 已完成页脚关于页迁移：React AppShell 恢复旧版所有页面底部“关于”入口，新增 `/console/about` 静态说明页并纳入迁移清单。
+11. 已完成 2026-06-26 非路由共享弹窗补漏：旧版实例管理、数据库台账、账户台账共用的“选择标签”弹窗已迁移为 React 共享 shadcn Dialog，并修正后续审计口径，防止只按菜单路由检查。
+12. 已完成标签批量分配/移除体验回退：React 删除新版批量操作弹窗，新增 `/console/tags/bulk/assign` 独立页面并恢复旧版分配模式/移除模式工作台。
+13. 已完成分区核心指标图复核修复：React 分区图不再只取第一条 dataset，恢复旧版四指标线和最近 7 个周期口径，图表布局恢复为全宽区域。
 
 ## 本次动作迁移与风险
 
-- 已迁移动作与基础能力：shadcn Pagination 服务端分页、固定业务筛选选项、仪表盘刷新、实例基础新增/编辑、实例凭据选择、实例连接测试、高级连接参数校验、实例级账户/容量/审计/备份同步、当前明确选择记录批量测试、实例批量移入回收站、实例批量导入 CSV、实例详情、连接状态、账户信息、SQL Server AG 账户信息、容量信息、数据库表容量详情/刷新、审计详情、备份详情、删除到回收站、恢复、数据库同步、账户同步、账户权限详情/变更历史、容量当前周期统计、容量实例/数据库筛选联动、容量页刷新、统计页刷新、风险中心刷新、分类统计实例/AG筛选和刷新、账户自动分类、分类新建/编辑/删除确认、规则新建/编辑/删除确认、规则表达式校验、规则详情/权限范围详情、SQL Server/MySQL 群集新建编辑、SQL Server 群集详情/AG 信息同步/群集状态同步/AG 账户同步、SQL Server/MySQL 群集实例绑定/解绑、SQL Server AG 新建/编辑/看板、MySQL 主从详情/拓扑同步、调度器重新初始化/暂停/恢复/立即执行/查看详情/cron 编辑/删除确认、会话取消确认、用户详情/新建/编辑/删除、凭据详情/新建/编辑/删除、标签详情/新建/编辑/删除/批量分配/批量移除/批量移除全部、告警测试/保存、风险规则保存、JumpServer 保存/同步/解绑、Veeam 新增/编辑/启停/同步/删除/新增模式、AD 新增/编辑/启停/测试/同步/删除/新增模式、分区按日期创建/按保留月份清理、分区清理二次确认、分区核心指标周期切换。
+- 已迁移动作与基础能力：shadcn Pagination 服务端分页、固定业务筛选选项、共享标签选择器多选弹窗、仪表盘刷新、实例基础新增/编辑、实例凭据选择、实例连接测试、高级连接参数校验、实例级账户/容量/审计/备份同步、当前明确选择记录批量测试、实例批量移入回收站、实例批量导入 CSV、实例详情、连接状态、账户信息、SQL Server AG 账户信息、容量信息、数据库表容量详情/刷新、审计详情、备份详情、删除到回收站、恢复、数据库同步、账户同步、账户权限详情/变更历史、容量当前周期统计、容量实例/数据库筛选联动、容量页刷新、统计页刷新、风险中心刷新、分类统计实例/AG筛选和刷新、账户自动分类、分类新建/编辑/删除确认、规则新建/编辑/删除确认、规则表达式校验、规则详情/权限范围详情、SQL Server/MySQL 群集新建编辑、SQL Server 群集详情/AG 信息同步/群集状态同步/AG 账户同步、SQL Server/MySQL 群集实例绑定/解绑、SQL Server AG 新建/编辑/看板、MySQL 主从详情/拓扑同步、调度器重新初始化/暂停/恢复/立即执行/查看详情/cron 编辑/删除确认、会话取消确认、用户详情/新建/编辑/删除、凭据详情/新建/编辑/删除、标签详情/新建/编辑/删除、标签批量分配、标签批量移除全部、告警测试/保存、风险规则保存、JumpServer 保存/同步/解绑、Veeam 新增/编辑/启停/同步/删除/新增模式、AD 新增/编辑/启停/测试/同步/删除/新增模式、分区按日期创建/按保留月份清理、分区清理二次确认、分区核心指标周期切换和四指标线展示。
 - 权限展示收敛：用户、凭据、标签页面接入当前登录用户角色；非管理员仅显示查看和只读状态，不暴露新增、编辑、删除、批量分配等写入口；管理员删除当前登录用户时禁用删除按钮。
 - 权限校验：所有写操作仍走同源 `/api/v1/**`，后端权限与 CSRF 契约不在 React 层放宽；前端只负责触发与刷新。
 - 回滚路径：每页保留“在旧版打开”，如新前端动作异常，可直接回到旧版页面执行同一操作；旧站点模板和静态资源未改动。
@@ -203,6 +209,40 @@ npm --prefix frontend run build      # passed; no Vite chunk-size warning
 git diff --check                     # passed
 ```
 
+2026-06-26 共享标签选择器补漏批次验证通过:
+
+```bash
+npm --prefix frontend run test -- src/api/lists.test.ts src/pages/ListPages.test.tsx src/migration/legacyParity.test.ts  # 3 files, 25 tests passed
+npm --prefix frontend run test       # 29 files, 158 tests passed
+npm --prefix frontend run typecheck  # passed
+npm --prefix frontend run lint       # passed
+npm --prefix frontend run build      # passed; no Vite chunk-size warning
+uv run pytest tests/unit/routes/test_api_v1_files_contract.py tests/unit/schemas/test_instances_query.py -q  # 9 passed
+git diff --check                     # passed
+```
+
+2026-06-26 标签批量页体验回退批次验证通过:
+
+```bash
+npm --prefix frontend run test -- src/pages/ConsolePages.test.tsx src/bundleSplitting.test.ts  # 2 files, 43 tests passed
+npm --prefix frontend run test       # passed
+npm --prefix frontend run typecheck  # passed
+npm --prefix frontend run lint       # passed
+npm --prefix frontend run build      # passed
+git diff --check                     # passed
+```
+
+2026-06-26 分区核心指标趋势复核修复验证通过:
+
+```bash
+npm --prefix frontend run test -- src/pages/ConsolePages.test.tsx src/api/readOnly.test.ts  # 2 files, 58 tests passed
+npm --prefix frontend run test       # 29 files, 158 tests passed
+npm --prefix frontend run typecheck  # passed
+npm --prefix frontend run lint       # passed
+npm --prefix frontend run build      # passed; no Vite chunk-size warning
+git diff --check                     # passed
+```
+
 ## 变更记录
 
 - 2026-06-11: 建立 React 迁移清单；记录 dashboard、risk-center、instances、database-ledgers、account-ledgers、instance-statistics、account-statistics、database-statistics 的只读迁移状态。
@@ -246,3 +286,6 @@ git diff --check                     # passed
 - 2026-06-25: 补迁移旧版全局页脚“关于”入口和 `/about` 页面；React 新增 `/console/about`，保留旧版项目介绍、核心功能、技术栈、支持数据库和更新日志内容。
 - 2026-06-25: 完成前端拆包优化：路由页面改为 `React.lazy` 按需加载，剩余大页面拆出懒加载入口模块，Vite 手动分包增加 React、TanStack、Radix、icons 和 charts vendor chunk；生产构建已消除大 chunk 警告。
 - 2026-06-25: 删除迁移临时聚合页面文件，按业务域拆分为 `ClustersPage`、`ClassificationPages`、`SchedulerPage`、`SyncSessionsPage`、`SettingsPage`、`CatalogAdminPages`、`PartitionsPage` 和共享 `ConsolePageScaffold`。
+- 2026-06-26: 修正迁移审计口径，补入非路由共享入口；实例管理、数据库台账、账户台账恢复旧版共用“选择标签”弹窗，并让实例导出携带当前状态和标签筛选。
+- 2026-06-26: 标签批量分配/移除恢复为 `/console/tags/bulk/assign` 独立页面，标签管理页只保留跳转入口；移除旧版没有的“移除指定标签”模式。
+- 2026-06-26: 分区核心指标趋势恢复旧版展示口径：图表改为全宽多线 LineChart，渲染实例数、实例统计数量、数据库数、数据库统计数量四组 dataset，日/周/月/季均按最近 7 个周期请求。

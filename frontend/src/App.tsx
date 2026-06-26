@@ -33,6 +33,7 @@ const UsersPage = lazy(() => import("./pages/CatalogAdminPages").then((module) =
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 const CredentialsPage = lazy(() => import("./pages/CatalogAdminPages").then((module) => ({ default: module.CredentialsPage })));
 const TagsPage = lazy(() => import("./pages/CatalogAdminPages").then((module) => ({ default: module.TagsPage })));
+const TagBulkAssignPage = lazy(() => import("./pages/TagBulkAssignPage").then((module) => ({ default: module.TagBulkAssignPage })));
 const PartitionsPage = lazy(() => import("./pages/PartitionsPage").then((module) => ({ default: module.PartitionsPage })));
 const PlaceholderPage = lazy(() => import("./pages/PlaceholderPage").then((module) => ({ default: module.PlaceholderPage })));
 
@@ -67,6 +68,7 @@ const migratedConsolePaths = [
   "/settings",
   "/credentials",
   "/tags",
+  "/tags/bulk/assign",
   "/partitions"
 ];
 
@@ -142,6 +144,7 @@ function ConsoleRoutes() {
             <Route element={<SettingsPage />} path="/settings" />
             <Route element={<CredentialsPage currentUser={session.user} />} path="/credentials" />
             <Route element={<TagsPage currentUser={session.user} />} path="/tags" />
+            <Route element={<TagBulkAssignPage />} path="/tags/bulk/assign" />
             <Route element={<PartitionsPage />} path="/partitions" />
             {visibleItems
               .filter((item) => !migratedConsolePaths.includes(item.consolePath))

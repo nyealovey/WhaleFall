@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import io
 
+from app.core.types.instances import InstanceListFilters
 from app.repositories.instances_repository import InstancesRepository
 from app.services.files.csv_export_result import CsvExportResult
 from app.utils.spreadsheet_formula_safety import sanitize_csv_row
@@ -23,9 +24,9 @@ class InstancesExportService:
         """初始化服务并注入实例仓库."""
         self._repository = repository or InstancesRepository()
 
-    def export_instances_csv(self, *, search: str, db_type: str) -> CsvExportResult:
+    def export_instances_csv(self, filters: InstanceListFilters) -> CsvExportResult:
         """导出实例列表为 CSV."""
-        instances = self._repository.list_instances_for_export(search=search, db_type=db_type)
+        instances = self._repository.list_instances_for_export(filters)
         tags_map = self._repository.fetch_tags_map([instance.id for instance in instances])
 
         output = io.StringIO()

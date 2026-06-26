@@ -35,8 +35,8 @@ def test_api_v1_files_endpoints_contract(auth_client, monkeypatch) -> None:
 
     class _DummyInstancesExportService:
         @staticmethod
-        def export_instances_csv(*, search: str, db_type: str):
-            del search, db_type
+        def export_instances_csv(filters):
+            del filters
             return _DummyExportResult()
 
     monkeypatch.setattr(accounts_api, "_account_export_service", _DummyAccountExportService())

@@ -3,11 +3,13 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   AlertCircle,
   BarChart3,
+  Check,
   Database,
   Download,
   ExternalLink,
   Eye,
   FileUp,
+  Folder,
   HardDrive,
   Layers,
   Pencil,
@@ -15,7 +17,9 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Search,
   ShieldCheck,
+  Tag,
   Trash2,
   Users
 } from "lucide-react";
@@ -77,7 +81,8 @@ import {
   type InstanceDatabaseSizeItem,
   type InstanceDatabaseSizesResponse,
   type InstanceListItem,
-  type PaginatedList
+  type PaginatedList,
+  type TagItem
 } from "@/api/lists";
 import { DataTable } from "@/components/shared/DataTable";
 import { useServerTableState } from "@/components/shared/useServerTableState";
@@ -105,11 +110,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { runAction } from "@/utils/action-feedback";
-
-type TagItem = {
-  name: string;
-  display_name: string;
-};
 
 const DATABASE_TYPE_FILTER_OPTIONS = [
   { label: "MySQL", value: "mysql" },
@@ -181,6 +181,246 @@ function dbTypeLabel(value: string | undefined | null): string {
 
 function tagsText(tags: TagItem[]): string {
   return tags.map((tag) => tag.display_name || tag.name).filter(Boolean).join(" ");
+}
+
+function selectedTagValues(value: string): string[] {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function tagDisplayName(tag: TagItem): string {
+  return tag.display_name || tag.name;
+}
+
+function tagCategoryName(tag: TagItem): string {
+  return tag.category?.trim() || "未分类";
+}
+
+function summarizeSelectedTags(options: TagItem[], selectedValues: string[]): string {
+  if (selectedValues.length === 0) {
+    return "选择标签";
+  }
+  const optionMap = new Map(options.map((option) => [option.name, tagDisplayName(option)]));
+  if (selectedValues.length <= 2) {
+    return selectedValues.map((value) => optionMap.get(value) || value).join(" / ");
+  }
+  return `已选 ${selectedValues.length} 个标签`;
+}
+
+function TagSelectorFilter({
+  disabled = false,
+  onChange,
+  options,
+  selectedValues
+}: {
+  disabled?: boolean;
+  onChange: (values: string[]) => void;
+  options: TagItem[];
+  selectedValues: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [draftValues, setDraftValues] = useState<string[]>(selectedValues);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const selectedSet = new Set(draftValues);
+  const categories = useMemo(() => {
+    return Array.from(new Set(options.map(tagCategoryName))).sort((left, right) => left.localeCompare(right, "zh-Hans-CN"));
+  }, [options]);
+  const filteredOptions = options.filter((tag) => {
+    const keyword = search.trim().toLowerCase();
+    const matchesCategory = !category || tagCategoryName(tag) === category;
+    const matchesSearch = !keyword
+      || tagDisplayName(tag).toLowerCase().includes(keyword)
+      || tag.name.toLowerCase().includes(keyword)
+      || tagCategoryName(tag).toLowerCase().includes(keyword);
+    return matchesCategory && matchesSearch;
+  });
+  const selectedTags = draftValues
+    .map((value) => options.find((tag) => tag.name === value))
+    .filter((tag): tag is TagItem => Boolean(tag));
+  const activeCount = options.filter((tag) => tag.is_active !== false).length;
+  const summary = summarizeSelectedTags(options, selectedValues);
+
+  function toggleTag(value: string) {
+    setDraftValues((current) => {
+      if (current.includes(value)) {
+        return current.filter((item) => item !== value);
+      }
+      return [...current, value];
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (nextOpen) {
+      setDraftValues(selectedValues);
+      setSearch("");
+      setCategory("");
+    }
+  }
+
+  return (
+    <div className="grid gap-1.5 text-sm font-medium text-foreground">
+      <span>标签筛选</span>
+      <Button
+        aria-label={`标签筛选 ${summary}`}
+        className="justify-start"
+        disabled={disabled}
+        onClick={() => handleOpenChange(true)}
+        type="button"
+        variant={selectedValues.length > 0 ? "default" : "outline"}
+      >
+        <Tag aria-hidden size={16} />
+        <span>{summary}</span>
+      </Button>
+      <Dialog onOpenChange={handleOpenChange} open={open}>
+        <DialogContent className="w-[min(calc(100vw-2rem),72rem)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag aria-hidden size={18} />
+              选择标签
+            </DialogTitle>
+            <DialogDescription>按分类或搜索筛选标签，并在右侧确认当前筛选条件。</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-[minmax(16rem,1fr)_repeat(4,minmax(5.5rem,7rem))] gap-3 max-lg:grid-cols-2">
+              <label className="relative grid gap-1.5 text-sm font-medium text-foreground max-lg:col-span-2">
+                <span className="sr-only">搜索标签</span>
+                <Search aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <Input
+                  aria-label="搜索标签"
+                  className="pl-9"
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="搜索标签名称 / 代码 / 分类"
+                  type="search"
+                  value={search}
+                />
+              </label>
+              {[
+                ["总数", options.length],
+                ["筛选后", filteredOptions.length],
+                ["已启用", activeCount],
+                ["已选择", draftValues.length]
+              ].map(([label, value]) => (
+                <div className="rounded-md border bg-card px-3 py-2" key={label}>
+                  <div className="text-xs text-muted-foreground">{label}</div>
+                  <div className="font-mono text-xl font-semibold">{value}</div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-[13rem_minmax(0,1fr)_18rem] gap-4 max-xl:grid-cols-[12rem_minmax(0,1fr)] max-lg:grid-cols-1">
+              <section className="rounded-md border bg-card p-3">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <Layers aria-hidden size={16} />
+                  分类导航
+                </div>
+                <div className="grid gap-2">
+                  <Button
+                    className="justify-start"
+                    onClick={() => setCategory("")}
+                    type="button"
+                    variant={category === "" ? "default" : "outline"}
+                  >
+                    <Layers aria-hidden size={16} />
+                    全部
+                  </Button>
+                  {categories.map((item) => (
+                    <Button
+                      className="justify-start"
+                      key={item}
+                      onClick={() => setCategory(item)}
+                      type="button"
+                      variant={category === item ? "default" : "outline"}
+                    >
+                      <Layers aria-hidden size={16} />
+                      {item}
+                    </Button>
+                  ))}
+                </div>
+              </section>
+              <section className="rounded-md border bg-card p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Tag aria-hidden size={16} />
+                    可选标签
+                  </div>
+                  <Badge variant="outline">按分类或搜索筛选</Badge>
+                </div>
+                <div className="grid max-h-[26rem] gap-2 overflow-y-auto pr-1">
+                  {filteredOptions.length > 0 ? filteredOptions.map((tag) => {
+                    const selected = selectedSet.has(tag.name);
+                    const inactive = tag.is_active === false;
+                    return (
+                      <button
+                        aria-label={`${selected ? "取消选择标签" : "选择标签"} ${tagDisplayName(tag)}`}
+                        className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-md border bg-background px-3 py-2 text-left text-sm transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={inactive && !selected}
+                        key={tag.name}
+                        onClick={() => toggleTag(tag.name)}
+                        type="button"
+                      >
+                        <span className="min-w-0 font-medium">{tagDisplayName(tag)}</span>
+                        <Badge variant="outline">
+                          <Folder aria-hidden size={13} />
+                          {tagCategoryName(tag)}
+                        </Badge>
+                        <span className="grid size-8 place-items-center rounded-md bg-muted text-muted-foreground">
+                          {selected ? <Check aria-hidden size={16} /> : <Plus aria-hidden size={16} />}
+                        </span>
+                      </button>
+                    );
+                  }) : (
+                    <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">暂无匹配标签</div>
+                  )}
+                </div>
+              </section>
+              <section className="rounded-md border bg-card p-3 max-xl:col-span-2 max-lg:col-span-1">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Check aria-hidden size={16} />
+                    已选择
+                  </div>
+                  <Badge variant="secondary">{draftValues.length} 项</Badge>
+                </div>
+                <p className="mb-3 text-sm text-muted-foreground">确认后写回当前页面的标签筛选条件。</p>
+                {selectedTags.length > 0 ? (
+                  <div className="grid max-h-[20rem] gap-2 overflow-y-auto pr-1">
+                    {selectedTags.map((tag) => (
+                      <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2" key={tag.name}>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">{tagDisplayName(tag)}</div>
+                          <div className="truncate text-xs text-muted-foreground">{tagCategoryName(tag)}</div>
+                        </div>
+                        <Button aria-label={`移除标签 ${tagDisplayName(tag)}`} onClick={() => toggleTag(tag.name)} size="icon" type="button" variant="ghost">
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid h-[14rem] place-items-center rounded-md border border-dashed text-sm text-muted-foreground">暂无选择的标签</div>
+                )}
+              </section>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => handleOpenChange(false)} type="button" variant="outline">
+              取消
+            </Button>
+            <Button
+              onClick={() => {
+                onChange(draftValues);
+                handleOpenChange(false);
+              }}
+              type="button"
+            >
+              <Check aria-hidden size={16} />
+              确认选择
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 function instanceStatusLabel(item: InstanceListItem): string {
@@ -2086,7 +2326,7 @@ export function InstancesPage() {
     auditStatus: tableState.filters.auditStatus,
     managedStatus: tableState.filters.managedStatus,
     backupStatus: tableState.filters.backupStatus,
-    tags: tableState.filters.tag ? [tableState.filters.tag] : undefined,
+    tags: selectedTagValues(tableState.filters.tag),
     includeDeleted: tableState.filters.includeDeleted === "true"
   };
   const listQuery = useQuery({
@@ -2095,6 +2335,7 @@ export function InstancesPage() {
     placeholderData: (previous) => previous
   });
   const tagOptionsQuery = useQuery({ queryKey: ["lists", "tag-options"], queryFn: () => fetchTagOptions(), staleTime: 60_000 });
+  const selectedTags = selectedTagValues(tableState.filters.tag);
   const [creatingInstance, setCreatingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<InstanceListItem | null>(null);
   const [deletingInstance, setDeletingInstance] = useState<InstanceListItem | null>(null);
@@ -2208,8 +2449,7 @@ export function InstancesPage() {
                 { columnId: "status", label: "状态", options: ACTIVE_STATUS_FILTER_OPTIONS, value: tableState.filters.status, onValueChange: (value) => setInstanceFilter("status", value) },
                 { columnId: "audit_status", label: "审计", options: INSTANCE_AUDIT_FILTER_OPTIONS, value: tableState.filters.auditStatus, onValueChange: (value) => setInstanceFilter("auditStatus", value) },
                 { columnId: "managed_status", label: "托管", options: INSTANCE_MANAGED_FILTER_OPTIONS, value: tableState.filters.managedStatus, onValueChange: (value) => setInstanceFilter("managedStatus", value) },
-                { columnId: "backup_status", label: "备份", options: INSTANCE_BACKUP_FILTER_OPTIONS, value: tableState.filters.backupStatus, onValueChange: (value) => setInstanceFilter("backupStatus", value) },
-                { columnId: "tags", label: "标签", options: (tagOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.name })), value: tableState.filters.tag, onValueChange: (value) => setInstanceFilter("tag", value) }
+                { columnId: "backup_status", label: "备份", options: INSTANCE_BACKUP_FILTER_OPTIONS, value: tableState.filters.backupStatus, onValueChange: (value) => setInstanceFilter("backupStatus", value) }
               ]}
               onSearchChange={(value) => { clearInstanceSelection(); tableState.setSearchInput(value); }}
               pagination={{
@@ -2222,6 +2462,14 @@ export function InstancesPage() {
               }}
               searchPlaceholder="搜索实例 / 主机"
               searchValue={tableState.searchInput}
+              toolbarExtras={
+                <TagSelectorFilter
+                  disabled={tagOptionsQuery.isLoading}
+                  onChange={(values) => setInstanceFilter("tag", values.join(","))}
+                  options={tagOptionsQuery.data ?? []}
+                  selectedValues={selectedTags}
+                />
+              }
             />
           </ListFrame>
         )}
@@ -2315,12 +2563,13 @@ export function InstancesPage() {
 
 export function DatabaseLedgersPage() {
   const tableState = useServerTableState({ initialFilters: { dbType: "", tag: "" } });
+  const selectedTags = selectedTagValues(tableState.filters.tag);
   const listParams = {
     page: tableState.page,
     limit: tableState.pageSize,
     search: tableState.search,
     dbType: tableState.filters.dbType,
-    tags: tableState.filters.tag ? [tableState.filters.tag] : undefined
+    tags: selectedTags
   };
   const listQuery = useQuery({
     queryKey: ["lists", "database-ledgers", listParams],
@@ -2371,13 +2620,20 @@ export function DatabaseLedgersPage() {
               columns={columns}
               data={result.items}
               filters={[
-                { columnId: "db_type", label: "类型", options: DATABASE_TYPE_FILTER_OPTIONS, value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) },
-                { columnId: "tags", label: "标签", options: (tagOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.name })), value: tableState.filters.tag, onValueChange: (value) => tableState.setFilter("tag", value) }
+                { columnId: "db_type", label: "类型", options: DATABASE_TYPE_FILTER_OPTIONS, value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) }
               ]}
               onSearchChange={tableState.setSearchInput}
               pagination={{ page: result.page, pageSize: tableState.pageSize, pages: result.pages ?? 1, total: result.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
               searchPlaceholder="搜索数据库 / 实例"
               searchValue={tableState.searchInput}
+              toolbarExtras={
+                <TagSelectorFilter
+                  disabled={tagOptionsQuery.isLoading}
+                  onChange={(values) => tableState.setFilter("tag", values.join(","))}
+                  options={tagOptionsQuery.data ?? []}
+                  selectedValues={selectedTags}
+                />
+              }
             />
           </ListFrame>
         )}
@@ -2401,6 +2657,7 @@ export function DatabaseLedgersPage() {
 
 export function AccountLedgersPage() {
   const tableState = useServerTableState({ initialFilters: { adStatus: "", classification: "", dbType: "", tag: "" } });
+  const selectedTags = selectedTagValues(tableState.filters.tag);
   const listParams = {
     page: tableState.page,
     limit: tableState.pageSize,
@@ -2408,7 +2665,7 @@ export function AccountLedgersPage() {
     classification: tableState.filters.classification,
     dbType: tableState.filters.dbType,
     adStatus: tableState.filters.adStatus,
-    tags: tableState.filters.tag ? [tableState.filters.tag] : undefined
+    tags: selectedTags
   };
   const listQuery = useQuery({
     queryKey: ["lists", "account-ledgers", listParams],
@@ -2464,13 +2721,20 @@ export function AccountLedgersPage() {
               filters={[
                 { columnId: "db_type", label: "类型", options: DATABASE_TYPE_FILTER_OPTIONS, value: tableState.filters.dbType, onValueChange: (value) => tableState.setFilter("dbType", value) },
                 { columnId: "classifications", label: "分类", options: (classificationOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.code })), value: tableState.filters.classification, onValueChange: (value) => tableState.setFilter("classification", value) },
-                { columnId: "ad_status", label: "AD状态", options: ACCOUNT_AD_STATUS_FILTER_OPTIONS, value: tableState.filters.adStatus, onValueChange: (value) => tableState.setFilter("adStatus", value) },
-                { columnId: "tags", label: "标签", options: (tagOptionsQuery.data ?? []).map((item) => ({ label: item.display_name, value: item.name })), value: tableState.filters.tag, onValueChange: (value) => tableState.setFilter("tag", value) }
+                { columnId: "ad_status", label: "AD状态", options: ACCOUNT_AD_STATUS_FILTER_OPTIONS, value: tableState.filters.adStatus, onValueChange: (value) => tableState.setFilter("adStatus", value) }
               ]}
               onSearchChange={tableState.setSearchInput}
               pagination={{ page: result.page, pageSize: tableState.pageSize, pages: result.pages ?? 1, total: result.total, onPageChange: tableState.setPage, onPageSizeChange: tableState.setPageSize }}
               searchPlaceholder="搜索账户 / 实例"
               searchValue={tableState.searchInput}
+              toolbarExtras={
+                <TagSelectorFilter
+                  disabled={tagOptionsQuery.isLoading}
+                  onChange={(values) => tableState.setFilter("tag", values.join(","))}
+                  options={tagOptionsQuery.data ?? []}
+                  selectedValues={selectedTags}
+                />
+              }
             />
           </ListFrame>
         )}

@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { legacyParityPages, parityByConsolePath } from "./legacyParity";
 
 describe("legacyParityPages", () => {
-  it("tracks every console navigation page plus known legacy drill-down pages", () => {
-    expect(legacyParityPages).toHaveLength(27);
+  it("tracks every console navigation page plus known legacy drill-down pages and shared surfaces", () => {
+    expect(legacyParityPages).toHaveLength(28);
     expect(parityByConsolePath("/clusters")?.sections.map((section) => section.title)).toEqual(
       expect.arrayContaining(["SQL Server 群集列表", "AG 配置", "AG 状态面板", "AG 账户面板", "MySQL 群集列表", "MySQL 主从状态面板"])
     );
@@ -13,6 +13,9 @@ describe("legacyParityPages", () => {
     );
     expect(parityByConsolePath("/tags/bulk/assign")?.actions).toEqual(
       expect.arrayContaining(["分配模式", "移除模式", "清空选择", "执行操作"])
+    );
+    expect(parityByConsolePath("/_shared/tag-selector")?.sections.map((section) => section.title)).toEqual(
+      expect.arrayContaining(["顶部筛选", "三栏选择区"])
     );
   });
 

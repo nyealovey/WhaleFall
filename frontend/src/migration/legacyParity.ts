@@ -48,6 +48,18 @@ export const legacyParityPages: LegacyParityPage[] = [
     apiPaths: ["/api/v1/instances", "/api/v1/instances/options", "/api/v1/instances/actions/batch-create", "/api/v1/instances/exports"]
   },
   {
+    consolePath: "/_shared/tag-selector",
+    legacyPath: "components/tag_selector.html",
+    title: "共享标签选择器",
+    sections: [
+      { title: "顶部筛选", fields: ["搜索标签名称 / 代码 / 分类", "总数", "筛选后", "已启用", "已选择"] },
+      { title: "三栏选择区", fields: ["分类导航", "可选标签", "已选择"] }
+    ],
+    filters: ["标签分类", "标签搜索"],
+    actions: ["选择标签", "取消选择标签", "取消", "确认选择"],
+    apiPaths: ["/api/v1/tags/options"]
+  },
+  {
     consolePath: "/clusters",
     legacyPath: "/cluster/",
     title: "群集管理",
