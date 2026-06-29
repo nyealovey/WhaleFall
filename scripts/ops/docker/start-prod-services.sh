@@ -58,6 +58,16 @@ cleanup_stale_pid() {
     log_success "残留 PID 已清理"
 }
 
+verify_frontend_dist() {
+    local index_file="/app/frontend/dist/index.html"
+    if [ ! -s "$index_file" ]; then
+        log_error "React 默认前端构建产物缺失：$index_file"
+        log_error "请重新构建生产镜像，确认 Dockerfile.prod 已执行 frontend-build 阶段"
+        exit 1
+    fi
+    log_success "React 默认前端构建产物存在：$index_file"
+}
+
 render_nginx_site_config() {
     local template="/etc/nginx/templates/whalefall-prod.template"
     local rendered="/etc/nginx/sites-available/whalefall"
@@ -105,6 +115,7 @@ main() {
     load_env_file
     prepare_runtime_dirs
     cleanup_stale_pid
+    verify_frontend_dist
     render_nginx_site_config
     verify_supervisor_config
     start_supervisor

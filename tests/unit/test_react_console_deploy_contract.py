@@ -120,10 +120,21 @@ def test_nginx_serves_react_app_at_root_and_legacy_flask_under_old() -> None:
         assert config.count("location ^~ /old/") >= expected_server_count
         assert config.count("proxy_set_header X-Forwarded-Prefix /old;") >= expected_server_count
         assert config.count("location ^~ /api/") >= expected_server_count
-        assert config.count("alias /app/frontend/dist/index.html;") >= expected_server_count
+        assert config.count("root /app/frontend/dist;") >= expected_server_count
+        assert config.count("try_files /index.html =404;") >= expected_server_count * 2
+        assert "alias /app/frontend/dist/index.html;" not in config
         assert config.index("location ^~ /api/") < config.index("location / {")
         assert config.index("location ^~ /old/") < config.index("location / {")
         assert config.index("location ^~ /assets/") < config.index("location / {")
+
+
+def test_container_entrypoint_fails_fast_when_react_dist_is_missing() -> None:
+    script = _read_project_file("scripts/ops/docker/start-prod-services.sh")
+
+    assert "verify_frontend_dist" in script
+    assert "/app/frontend/dist/index.html" in script
+    assert "React 默认前端构建产物缺失" in script
+    assert script.index("verify_frontend_dist") < script.index("render_nginx_site_config")
 
 
 def test_makefile_exposes_frontend_lifecycle_commands() -> None:

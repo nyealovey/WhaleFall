@@ -30,13 +30,15 @@ server {
 
     location = / {
         default_type text/html;
-        alias /app/frontend/dist/index.html;
+        root /app/frontend/dist;
+        try_files /index.html =404;
         add_header Cache-Control "no-store";
     }
 
     location = /index.html {
         default_type text/html;
-        alias /app/frontend/dist/index.html;
+        root /app/frontend/dist;
+        try_files /index.html =404;
         add_header Cache-Control "no-store";
     }
 
