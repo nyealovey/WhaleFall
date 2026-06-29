@@ -302,9 +302,6 @@ export function DashboardPage() {
             <RefreshCw aria-hidden size={16} />
             刷新数据
           </Button>
-          <Button variant="outline" asChild>
-            <a href="/dashboard/">在旧版打开</a>
-          </Button>
         </div>
       </section>
 

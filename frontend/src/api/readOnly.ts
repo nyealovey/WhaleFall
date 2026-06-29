@@ -373,6 +373,7 @@ export type TaggableInstanceItem = {
   db_type?: string | null;
   host?: string | null;
   ip_address?: string | null;
+  port?: number | string | null;
   tags?: unknown;
 };
 

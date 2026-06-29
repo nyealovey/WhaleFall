@@ -6,7 +6,6 @@ import {
   BarChart3,
   CircleCheck,
   Database,
-  ExternalLink,
   HardDrive,
   Network,
   PieChart,
@@ -162,24 +161,12 @@ function formatDateTime(value: string | null | undefined): string {
   return value.split("+")[0]?.replace("T", " ") ?? value;
 }
 
-function PageHeader({
-  title,
-  legacyHref
-}: {
-  title: string;
-  legacyHref: string;
-}) {
+function PageHeader({ title }: { title: string }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
         <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
-      <Button variant="outline" asChild>
-        <a href={legacyHref}>
-          <ExternalLink aria-hidden size={16} />
-          <span>在旧版打开</span>
-        </a>
-      </Button>
     </section>
   );
 }
@@ -786,10 +773,7 @@ export function InstanceStatisticsPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <CommandBar backHref="/instances/" backLabel="返回实例列表" onRefresh={() => void runAction(statsQuery.refetch(), { success: "实例统计已刷新" })} />
-      <PageHeader
-        title="实例统计"
-        legacyHref="/instances/statistics"
-      />
+      <PageHeader title="实例统计" />
       <QueryPage isLoading={statsQuery.isLoading} isError={statsQuery.isError} onRetry={() => void statsQuery.refetch()}>
         {statsQuery.data ? <InstanceStatisticsContent stats={statsQuery.data} /> : null}
       </QueryPage>
@@ -806,10 +790,7 @@ export function AccountStatisticsPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <CommandBar backHref="/accounts/ledgers" backLabel="账户列表" onRefresh={() => void runAction(statsQuery.refetch(), { success: "账户统计已刷新" })} />
-      <PageHeader
-        title="账户统计"
-        legacyHref="/accounts/statistics"
-      />
+      <PageHeader title="账户统计" />
       <QueryPage isLoading={statsQuery.isLoading} isError={statsQuery.isError} onRetry={() => void statsQuery.refetch()}>
         {statsQuery.data ? <AccountStatisticsContent snapshot={statsQuery.data} /> : null}
       </QueryPage>
@@ -826,10 +807,7 @@ export function DatabaseStatisticsPage() {
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <CommandBar backHref="/databases/ledgers" backLabel="数据库台账" onRefresh={() => void runAction(statsQuery.refetch(), { success: "数据库统计已刷新" })} />
-      <PageHeader
-        title="数据库统计"
-        legacyHref="/databases/statistics"
-      />
+      <PageHeader title="数据库统计" />
       <QueryPage isLoading={statsQuery.isLoading} isError={statsQuery.isError} onRetry={() => void statsQuery.refetch()}>
         {statsQuery.data ? <DatabaseStatisticsContent stats={statsQuery.data.stats} /> : null}
       </QueryPage>

@@ -115,7 +115,7 @@ RUN /app/.venv/bin/python --version
 # 复制应用代码
 COPY . /app/
 
-# 复制 React 控制台构建产物(`/console`)
+# 复制 React 默认前端构建产物
 COPY --from=frontend-build /frontend/dist /app/frontend/dist
 
 # 创建必要的目录（临时存储）

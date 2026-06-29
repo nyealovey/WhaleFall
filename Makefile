@@ -36,7 +36,7 @@ help:
 	@echo "  version     - 查看版本信息"
 	@echo "  typecheck   - 使用 Pyright 扫描类型问题"
 	@echo "  frontend-install - 安装 React 前端依赖"
-	@echo "  frontend-build   - 构建 React 前端(`/console`)"
+	@echo "  frontend-build   - 构建 React 默认前端"
 	@echo "  frontend-lint    - 检查 React 前端 lint"
 	@echo "  frontend-test    - 运行 React 前端测试"
 	@echo "  frontend-typecheck - 检查 React 前端类型"

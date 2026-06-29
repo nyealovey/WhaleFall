@@ -9,6 +9,7 @@ import {
   Clock,
   Database,
   Eye,
+  EyeOff,
   ExternalLink,
   HardDrive,
   History,
@@ -304,6 +305,7 @@ function CredentialFormDialog({
   const [dbType, setDbType] = useState(item?.db_type ?? "mysql");
   const [username, setUsername] = useState(item?.username ?? "");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [description, setDescription] = useState(item?.description ?? "");
   const [isActive, setIsActive] = useState(item?.is_active ?? true);
   const title = item ? `编辑凭据 ${item.name}` : "新建凭据";
@@ -346,10 +348,11 @@ function CredentialFormDialog({
                 label="凭据类型"
                 onValueChange={setCredentialType}
                 options={[
-                  { label: "database", value: "database" },
-                  { label: "ssh", value: "ssh" },
-                  { label: "api", value: "api" },
-                  { label: "ldap", value: "ldap" }
+                  { label: "数据库", value: "database" },
+                  { label: "API", value: "api" },
+                  { label: "Veeam", value: "veeam" },
+                  { label: "LDAP", value: "ldap" },
+                  { label: "SSH", value: "ssh" }
                 ]}
                 value={credentialType}
               />
@@ -374,7 +377,25 @@ function CredentialFormDialog({
               <Input onChange={(event) => setUsername(event.target.value)} required value={username} />
             </FormField>
             <FormField label="密码">
-              <Input onChange={(event) => setPassword(event.target.value)} required={!item} type="password" value={password} />
+              <div className="relative">
+                <Input
+                  className="pr-10"
+                  onChange={(event) => setPassword(event.target.value)}
+                  required={!item}
+                  type={passwordVisible ? "text" : "password"}
+                  value={password}
+                />
+                <Button
+                  aria-label={passwordVisible ? "隐藏密码" : "显示密码"}
+                  className="absolute top-1/2 right-1 size-7 -translate-y-1/2"
+                  onClick={() => setPasswordVisible((current) => !current)}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  {passwordVisible ? <EyeOff aria-hidden size={16} /> : <Eye aria-hidden size={16} />}
+                </Button>
+              </div>
             </FormField>
             <ActiveField checked={isActive} onCheckedChange={setIsActive} />
           </div>
@@ -696,7 +717,7 @@ export function UsersPage({ currentUser }: { currentUser?: AccessUser | null } =
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Access control" title="用户管理" description="展示用户、角色与启用状态，并支持新增、编辑、删除。" legacyHref="/users/" />
+      <PageHeader eyebrow="Access control" title="用户管理" description="展示用户、角色与启用状态，并支持新增、编辑、删除。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="用户管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <ListPanel
@@ -822,7 +843,7 @@ export function CredentialsPage({ currentUser }: { currentUser?: AccessUser | nu
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Credential vault" title="凭据管理" description="展示凭据类型、数据库类型和引用数量，并支持新增、编辑、删除。" legacyHref="/credentials/" />
+      <PageHeader eyebrow="Credential vault" title="凭据管理" description="展示凭据类型、数据库类型和引用数量，并支持新增、编辑、删除。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="凭据管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <ListPanel
@@ -938,7 +959,7 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Resource tags" title="标签管理" description="展示标签、分类和实例引用数量，并支持新增、编辑、删除。" legacyHref="/tags/" />
+      <PageHeader eyebrow="Resource tags" title="标签管理" description="展示标签、分类和实例引用数量，并支持新增、编辑、删除。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="标签管理" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <>
@@ -972,7 +993,7 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
                       添加标签
                     </Button>
                     <Button asChild size="sm" variant="outline">
-                      <a href="/console/tags/bulk/assign">批量分配</a>
+                      <a href="/tags/bulk/assign">批量分配</a>
                     </Button>
                   </>
                 ) : (

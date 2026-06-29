@@ -2,7 +2,6 @@ import { KeyRound, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/utils/cn";
@@ -23,7 +22,7 @@ export function AppShell({ navigationGroups, user, onLogout, children }: AppShel
   return (
     <div className="grid min-h-dvh grid-cols-[15.75rem_minmax(0,1fr)] bg-background max-lg:grid-cols-1">
       <aside className="sticky top-0 h-dvh overflow-y-auto border-r bg-sidebar text-sidebar-foreground max-lg:static max-lg:h-auto" aria-label="主导航">
-        <a className="flex min-h-18 items-center gap-3 px-4 py-3 no-underline" href="/console/dashboard">
+        <a className="flex min-h-18 items-center gap-3 px-4 py-3 no-underline" href="/dashboard">
           <img className="rounded-md" src="/static/img/logo.webp" alt="鲸落" width="40" height="40" />
           <span>
             <strong className="font-display block text-[1.35rem] leading-none">鲸落</strong>
@@ -64,13 +63,12 @@ export function AppShell({ navigationGroups, user, onLogout, children }: AppShel
       <div className="flex min-w-0 flex-col">
         <header className="flex min-h-[var(--topbar-height)] items-center justify-end gap-3 border-b bg-muted px-5 max-sm:justify-between" role="banner">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline">React preview</Badge>
             <strong>{user.username}</strong>
             <Separator className="h-4 w-px" />
             <span>{user.role}</span>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <a href="/auth/change-password">
+            <a href="/old/auth/change-password">
               <KeyRound aria-hidden size={16} />
               <span>修改密码</span>
             </a>
@@ -83,14 +81,22 @@ export function AppShell({ navigationGroups, user, onLogout, children }: AppShel
         <div className="min-w-0 flex-1">{children}</div>
         <footer className="border-t bg-muted px-5 py-3 text-sm text-muted-foreground" role="contentinfo">
           <p className="mb-0 flex flex-wrap items-center justify-center gap-1.5">
-            <span>&copy; {new Date().getFullYear()}</span>
+            <span>&copy; 2026</span>
             <span>鲸落</span>
             <span>{APP_VERSION}</span>
             <span>-</span>
             <span>数据同步管理平台</span>
             <span>|</span>
-            <a className="font-medium text-foreground underline-offset-4 hover:underline" href="/console/about">
+            <a className="font-medium text-foreground underline-offset-4 hover:underline" href="/about">
               关于
+            </a>
+            <span>|</span>
+            <a className="font-medium text-foreground underline-offset-4 hover:underline" href="/dashboard">
+              新版
+            </a>
+            <span>|</span>
+            <a className="font-medium text-foreground underline-offset-4 hover:underline" href="/old/">
+              旧版
             </a>
           </p>
         </footer>

@@ -14,7 +14,7 @@ const user: SessionUser = {
 };
 
 describe("AppShell", () => {
-  it("renders the complete React console navigation without replacing legacy links", () => {
+  it("renders root-mounted navigation and the global version switch links", () => {
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
         <AppShell navigationGroups={navigationGroups} user={user} onLogout={vi.fn()}>
@@ -29,10 +29,13 @@ describe("AppShell", () => {
     expect(screen.getByText("Dashboard body")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /实例管理/ })).toHaveAttribute("href", "/instances");
     expect(screen.getByRole("link", { name: /系统设置/ })).toHaveAttribute("href", "/settings");
-    expect(screen.getByRole("link", { name: "修改密码" })).toHaveAttribute("href", "/auth/change-password");
+    expect(screen.getByRole("link", { name: "修改密码" })).toHaveAttribute("href", "/old/auth/change-password");
     expect(screen.getByRole("button", { name: "退出" })).toBeInTheDocument();
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
     expect(screen.getByText("1.5.0")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "关于" })).toHaveAttribute("href", "/console/about");
+    expect(screen.queryByText("React preview")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "关于" })).toHaveAttribute("href", "/about");
+    expect(screen.getByRole("link", { name: "新版" })).toHaveAttribute("href", "/dashboard");
+    expect(screen.getByRole("link", { name: "旧版" })).toHaveAttribute("href", "/old/");
   });
 });

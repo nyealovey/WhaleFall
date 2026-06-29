@@ -51,7 +51,7 @@ export function LoginPage({ errorMessage, onLogin }: LoginPageProps) {
             <Button disabled={isSubmitting} type="submit">
               {isSubmitting ? "登录中" : "登录"}
             </Button>
-            <a className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline" href="/auth/login">
+            <a className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline" href="/old/auth/login">
               使用旧版登录页
             </a>
           </form>

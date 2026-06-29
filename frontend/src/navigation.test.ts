@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { flattenNavigationItems, navigationGroups } from "./navigation";
 
 describe("console navigation", () => {
-  it("defines the full legacy module skeleton for the React console", () => {
+  it("defines the full module navigation for the root-mounted React app", () => {
     expect(navigationGroups.map((group) => group.label)).toEqual([
       "态势总览",
       "资源管理",
@@ -40,12 +40,10 @@ describe("console navigation", () => {
     ]);
   });
 
-  it("keeps every placeholder linked back to the existing Flask page", () => {
+  it("keeps every React route mounted at the site root", () => {
     const items = flattenNavigationItems(navigationGroups);
 
     expect(items.every((item) => item.consolePath.startsWith("/"))).toBe(true);
-    expect(items.every((item) => item.legacyHref.startsWith("/"))).toBe(true);
-    expect(items.some((item) => item.legacyHref === "/dashboard/")).toBe(true);
-    expect(items.some((item) => item.legacyHref === "/instances/")).toBe(true);
+    expect(items.every((item) => !item.consolePath.startsWith("/console"))).toBe(true);
   });
 });

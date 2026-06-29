@@ -570,6 +570,8 @@ class Settings(BaseSettings):
             object.__setattr__(self, "proxy_fix_x_for", default_x)
         if "proxy_fix_x_proto" not in self.model_fields_set:
             object.__setattr__(self, "proxy_fix_x_proto", default_x)
+        if "proxy_fix_x_prefix" not in self.model_fields_set:
+            object.__setattr__(self, "proxy_fix_x_prefix", default_x)
 
     def _apply_api_docs_default(self, environment_normalized: str) -> None:
         if environment_normalized != "production":

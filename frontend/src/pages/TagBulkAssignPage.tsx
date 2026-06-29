@@ -53,7 +53,9 @@ function instanceLabel(item: TaggableInstanceItem): string {
 
 function instanceMeta(item: TaggableInstanceItem): string {
   const host = asLabel(item.host ?? item.ip_address, "-");
-  return `${host} · ${dbTypeLabel(item.db_type)}`;
+  const port = asLabel(item.port, "");
+  const endpoint = port ? `${host}:${port}` : host;
+  return `${endpoint} · ${dbTypeLabel(item.db_type)}`;
 }
 
 function tagLabel(item: TagOptionItem): string {
@@ -146,7 +148,7 @@ function InstanceGroupList({
                 return (
                   <label
                     className={cn(
-                      "grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-accent/40",
+                      "grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-accent/40",
                       selected ? "bg-primary/5 shadow-[inset_3px_0_0_hsl(var(--primary))]" : ""
                     )}
                     key={item.id}
@@ -160,7 +162,6 @@ function InstanceGroupList({
                       <span className="block truncate font-medium">{instanceLabel(item)}</span>
                       <span className="block truncate text-xs text-muted-foreground">{instanceMeta(item)}</span>
                     </span>
-                    <Badge variant="secondary">{dbTypeLabel(item.db_type)}</Badge>
                   </label>
                 );
               })}
@@ -308,7 +309,7 @@ export function TagBulkAssignPage() {
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
       <div className="flex items-center justify-between gap-3">
         <Button asChild variant="outline">
-          <a href="/console/tags">
+          <a href="/tags">
             <ArrowLeft aria-hidden />
             返回标签管理
           </a>

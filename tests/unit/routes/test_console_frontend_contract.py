@@ -1,43 +1,14 @@
-from pathlib import Path
-
 import pytest
 
-
-def _write_console_dist(root: Path) -> None:
-    assets_dir = root / "assets"
-    static_css_dir = root / "static" / "css"
-    assets_dir.mkdir(parents=True)
-    static_css_dir.mkdir(parents=True)
-    (root / "index.html").write_text(
-        '<!doctype html><html><head><link rel="stylesheet" href="/console/static/css/fonts.css"></head><body><div id="root"></div><script type="module" src="/console/assets/app.js"></script></body></html>',
-        encoding="utf-8",
-    )
-    (assets_dir / "app.js").write_text("window.__WHALEFALL_CONSOLE__ = true;", encoding="utf-8")
-    (static_css_dir / "fonts.css").write_text("@font-face { font-family: 'IBM Plex Sans'; }", encoding="utf-8")
+from app import create_app
+from app.settings import Settings
 
 
 @pytest.mark.unit
-def test_console_frontend_entry_and_spa_fallback_contract(app, client, tmp_path) -> None:
-    dist_dir = tmp_path / "console-dist"
-    _write_console_dist(dist_dir)
-    app.config["CONSOLE_FRONTEND_DIST_DIR"] = str(dist_dir)
-
-    entry_response = client.get("/console")
-    assert entry_response.status_code == 200
-    assert b'id="root"' in entry_response.data
-    assert b"/console/assets/app.js" in entry_response.data
-
-    nested_response = client.get("/console/instances")
-    assert nested_response.status_code == 200
-    assert nested_response.data == entry_response.data
-
-    asset_response = client.get("/console/assets/app.js")
-    assert asset_response.status_code == 200
-    assert b"__WHALEFALL_CONSOLE__" in asset_response.data
-
-    static_response = client.get("/console/static/css/fonts.css")
-    assert static_response.status_code == 200
-    assert b"IBM Plex Sans" in static_response.data
+def test_console_frontend_routes_are_removed(client) -> None:
+    for path in ("/console", "/console/instances", "/console/assets/app.js", "/console/static/css/fonts.css"):
+        response = client.get(path)
+        assert response.status_code == 404
 
 
 @pytest.mark.unit
@@ -47,3 +18,26 @@ def test_console_frontend_does_not_replace_existing_login_page(client) -> None:
     assert response.status_code == 200
     assert b"/console/assets/" not in response.data
     assert b"app/static" not in response.data
+
+
+@pytest.mark.unit
+def test_legacy_templates_respect_forwarded_old_prefix(monkeypatch) -> None:
+    monkeypatch.setenv("FLASK_ENV", "testing")
+    monkeypatch.setenv("CACHE_TYPE", "simple")
+    monkeypatch.setenv("PROXY_FIX_X_PREFIX", "1")
+    monkeypatch.delenv("CACHE_REDIS_URL", raising=False)
+
+    app = create_app(init_scheduler_on_start=False, settings=Settings.load())
+    client = app.test_client()
+    response = client.get("/about", headers={"X-Forwarded-Prefix": "/old"})
+
+    assert response.status_code == 200
+    assert b'href="/old/auth/login"' in response.data
+    assert b'href="/about"' in response.data
+    assert b'href="/dashboard"' in response.data
+    assert b'href="/old/"' in response.data
+    assert b"/old/static/" in response.data
+    assert b'href="/old/about"' not in response.data
+    assert b'href="/auth/login"' not in response.data
+    assert b'href="/static/' not in response.data
+    assert b'src="/static/' not in response.data

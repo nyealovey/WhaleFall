@@ -1,20 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, BarChart3, Calculator, Database, ExternalLink, HardDrive, RefreshCw, Server } from "lucide-react";
+import { AlertCircle, BarChart3, Calculator, Database, HardDrive, RefreshCw, Server } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { triggerCapacityAggregation } from "@/api/actions";
 import {
+  fetchCapacityDatabaseOptions,
   fetchCapacityDatabaseSnapshot,
+  fetchCapacityInstanceOptions,
   fetchCapacityInstanceSnapshot,
   getDefaultCapacityRange,
+  type CapacityDatabaseOption,
   type CapacityDatabaseItem,
   type CapacityDatabaseSnapshot,
   type CapacityFilters,
   type CapacityInstanceItem,
+  type CapacityInstanceOption,
   type CapacityInstanceSnapshot
 } from "@/api/capacity";
-import { SelectControl } from "@/components/shared/FormControls";
+import { MultiSelectDialogControl, SelectControl } from "@/components/shared/FormControls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,24 +42,12 @@ function formatPercent(value: number | undefined | null): string {
   return `${(value ?? 0).toFixed(1)}%`;
 }
 
-function PageHeader({
-  title,
-  legacyHref
-}: {
-  title: string;
-  legacyHref: string;
-}) {
+function PageHeader({ title }: { title: string }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
         <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
-      <Button variant="outline" asChild>
-        <a href={legacyHref}>
-          <ExternalLink aria-hidden size={16} />
-          <span>在旧版打开</span>
-        </a>
-      </Button>
     </section>
   );
 }
@@ -77,20 +69,27 @@ function CommandBar({ onAggregate, onRefresh }: { onAggregate: () => void; onRef
 
 type CapacityFilterState = {
   databaseName: string;
-  dbType: string;
+  dbTypes: string[];
   endDate: string;
-  instanceId: string;
+  instanceIds: string[];
   periodType: string;
   startDate: string;
 };
+
+const CAPACITY_DB_TYPE_OPTIONS = [
+  { label: "MySQL", value: "mysql" },
+  { label: "PostgreSQL", value: "postgresql" },
+  { label: "SQL Server", value: "sqlserver" },
+  { label: "Oracle", value: "oracle" }
+];
 
 function defaultCapacityFilterState(): CapacityFilterState {
   const range = getDefaultCapacityRange();
   return {
     databaseName: "",
-    dbType: "",
+    dbTypes: [],
     endDate: range.endDate,
-    instanceId: "",
+    instanceIds: [],
     periodType: "daily",
     startDate: range.startDate
   };
@@ -99,8 +98,8 @@ function defaultCapacityFilterState(): CapacityFilterState {
 function toCapacityFilters(filters: CapacityFilterState): CapacityFilters {
   return {
     databaseName: filters.databaseName || undefined,
-    dbTypes: filters.dbType ? [filters.dbType] : undefined,
-    instanceIds: filters.instanceId ? [Number(filters.instanceId)] : undefined,
+    dbTypes: filters.dbTypes.length > 0 ? filters.dbTypes : undefined,
+    instanceIds: filters.instanceIds.length > 0 ? filters.instanceIds.map(Number) : undefined,
     periodType: filters.periodType,
     range: { startDate: filters.startDate, endDate: filters.endDate }
   };
@@ -138,26 +137,28 @@ function CapacityFilterBar({
     >
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>数据库类型</span>
-        <SelectControl
+        <MultiSelectDialogControl
           label="数据库类型"
-          onValueChange={(dbType) => onDraftChange({ ...draft, dbType })}
-          options={[{ label: "全部类型", value: "" }, ...dbTypeOptions]}
-          value={draft.dbType}
+          onValueChange={(dbTypes) => onDraftChange({ ...draft, databaseName: "", dbTypes, instanceIds: [] })}
+          options={dbTypeOptions}
+          value={draft.dbTypes}
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium text-foreground">
         <span>实例</span>
-        <SelectControl
+        <MultiSelectDialogControl
+          disabled={draft.dbTypes.length === 0}
           label="实例"
-          onValueChange={(instanceId) => onDraftChange({ ...draft, instanceId })}
-          options={[{ label: "全部实例", value: "" }, ...instanceOptions]}
-          value={draft.instanceId}
+          onValueChange={(instanceIds) => onDraftChange({ ...draft, databaseName: instanceIds.length === 1 ? draft.databaseName : "", instanceIds })}
+          options={instanceOptions}
+          value={draft.instanceIds}
         />
       </label>
       {includeDatabase ? (
         <label className="grid gap-1.5 text-sm font-medium text-foreground">
           <span>数据库</span>
           <SelectControl
+            disabled={draft.instanceIds.length !== 1}
             label="数据库"
             onValueChange={(databaseName) => onDraftChange({ ...draft, databaseName })}
             options={[{ label: "全部数据库", value: "" }, ...databaseOptions]}
@@ -542,27 +543,12 @@ function databaseLargestShare(summary: CapacityDatabaseSnapshot["summary"]): str
   return formatPercent((summary.max_size_mb / summary.total_size_mb) * 100);
 }
 
-function capacityDbTypeOptions(items: Array<CapacityInstanceItem | CapacityDatabaseItem>): Array<{ label: string; value: string }> {
-  return [...new Set(items.map((item) => item.instance.db_type).filter(Boolean))]
-    .sort()
-    .map((value) => ({
-      label: value === "mysql" ? "MySQL" : value === "sqlserver" ? "SQL Server" : value,
-      value
-    }));
+function capacityInstanceOptions(items: CapacityInstanceOption[]): Array<{ label: string; value: string }> {
+  return items.map((item) => ({ label: item.display_name || item.name, value: String(item.id) }));
 }
 
-function capacityInstanceOptions(items: Array<CapacityInstanceItem | CapacityDatabaseItem>): Array<{ label: string; value: string }> {
-  const options = new Map<string, string>();
-  items.forEach((item) => {
-    options.set(String(item.instance.id), item.instance.name);
-  });
-  return [...options.entries()].map(([value, label]) => ({ label, value }));
-}
-
-function capacityDatabaseOptions(items: CapacityDatabaseItem[]): Array<{ label: string; value: string }> {
-  return [...new Set(items.map((item) => item.database_name).filter(Boolean))]
-    .sort()
-    .map((value) => ({ label: value, value }));
+function capacityDatabaseOptions(items: CapacityDatabaseOption[]): Array<{ label: string; value: string }> {
+  return items.map((item) => ({ label: item.database_name, value: item.database_name }));
 }
 
 export function CapacityInstancesPage() {
@@ -572,13 +558,16 @@ export function CapacityInstancesPage() {
     queryKey: ["capacity", "instances", filters],
     queryFn: () => fetchCapacityInstanceSnapshot(toCapacityFilters(filters))
   });
+  const instanceOptionsQuery = useQuery({
+    enabled: draftFilters.dbTypes.length > 0,
+    queryKey: ["capacity", "instance-options", draftFilters.dbTypes],
+    queryFn: () => fetchCapacityInstanceOptions(draftFilters.dbTypes),
+    staleTime: 60_000
+  });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader
-        title="实例容量"
-        legacyHref="/capacity/instances"
-      />
+      <PageHeader title="实例容量" />
       <CommandBar
         onAggregate={() => {
           void runAction(triggerCapacityAggregation("instance"), { success: "实例容量统计已触发" }).then(() => capacityQuery.refetch());
@@ -604,9 +593,9 @@ export function CapacityInstancesPage() {
               ]}
             />
             <CapacityFilterBar
-              dbTypeOptions={capacityDbTypeOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              dbTypeOptions={CAPACITY_DB_TYPE_OPTIONS}
               draft={draftFilters}
-              instanceOptions={capacityInstanceOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              instanceOptions={capacityInstanceOptions(instanceOptionsQuery.data ?? [])}
               onApply={() => setFilters(draftFilters)}
               onDraftChange={setDraftFilters}
               onReset={() => {
@@ -635,13 +624,22 @@ export function CapacityDatabasesPage() {
     queryKey: ["capacity", "databases", filters],
     queryFn: () => fetchCapacityDatabaseSnapshot(toCapacityFilters(filters))
   });
+  const instanceOptionsQuery = useQuery({
+    enabled: draftFilters.dbTypes.length > 0,
+    queryKey: ["capacity", "instance-options", draftFilters.dbTypes],
+    queryFn: () => fetchCapacityInstanceOptions(draftFilters.dbTypes),
+    staleTime: 60_000
+  });
+  const databaseOptionsQuery = useQuery({
+    enabled: draftFilters.instanceIds.length === 1,
+    queryKey: ["capacity", "database-options", draftFilters.instanceIds[0]],
+    queryFn: () => fetchCapacityDatabaseOptions(draftFilters.instanceIds[0] ?? ""),
+    staleTime: 60_000
+  });
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader
-        title="数据库容量"
-        legacyHref="/capacity/databases"
-      />
+      <PageHeader title="数据库容量" />
       <CommandBar
         onAggregate={() => {
           void runAction(triggerCapacityAggregation("database"), { success: "数据库容量统计已触发" }).then(() => capacityQuery.refetch());
@@ -672,11 +670,11 @@ export function CapacityDatabasesPage() {
               ]}
             />
             <CapacityFilterBar
-              databaseOptions={capacityDatabaseOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
-              dbTypeOptions={capacityDbTypeOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              databaseOptions={capacityDatabaseOptions(databaseOptionsQuery.data ?? [])}
+              dbTypeOptions={CAPACITY_DB_TYPE_OPTIONS}
               draft={draftFilters}
               includeDatabase
-              instanceOptions={capacityInstanceOptions(snapshot.charts.trend.items.concat(snapshot.list.items))}
+              instanceOptions={capacityInstanceOptions(instanceOptionsQuery.data ?? [])}
               onApply={() => setFilters(draftFilters)}
               onDraftChange={setDraftFilters}
               onReset={() => {

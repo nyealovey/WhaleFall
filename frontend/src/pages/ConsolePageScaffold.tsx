@@ -1,4 +1,4 @@
-import { AlertCircle, ExternalLink, Layers3 } from "lucide-react";
+import { AlertCircle, Layers3 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { SwitchField } from "@/components/shared/FormControls";
@@ -210,26 +210,12 @@ export function syncDuration(item: TaskRunItem): string {
   return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
-export function PageHeader({
-  title,
-  legacyHref
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  legacyHref: string;
-}) {
+export function PageHeader({ title }: { eyebrow?: string; title: string; description?: string }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
         <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
-      <Button variant="outline" asChild>
-        <a href={legacyHref}>
-          <ExternalLink aria-hidden size={16} />
-          <span>在旧版打开</span>
-        </a>
-      </Button>
     </section>
   );
 }

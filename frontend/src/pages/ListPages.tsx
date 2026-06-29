@@ -525,25 +525,17 @@ function classificationText(item: AccountLedgerItem): string {
 }
 
 function PageHeader({
-  title,
-  legacyHref
+  title
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
-  legacyHref: string;
 }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
         <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
-      <Button variant="outline" asChild>
-        <a href={legacyHref}>
-          <ExternalLink aria-hidden size={16} />
-          <span>在旧版打开</span>
-        </a>
-      </Button>
     </section>
   );
 }
@@ -1617,6 +1609,9 @@ function InstanceDataTabsCard({
   const [permissionsAccount, setPermissionsAccount] = useState<AccountLedgerItem | null>(null);
   const [historyAccount, setHistoryAccount] = useState<AccountLedgerItem | null>(null);
   const [tableSizeDatabase, setTableSizeDatabase] = useState<InstanceDatabaseSizeItem | null>(null);
+  const [showDeletedAccounts, setShowDeletedAccounts] = useState(false);
+  const [showDeletedAgAccounts, setShowDeletedAgAccounts] = useState(false);
+  const [showDeletedDatabases, setShowDeletedDatabases] = useState(false);
   const accountColumns = useMemo(
     () => createInstanceAccountsColumns({ onShowHistory: setHistoryAccount, onShowPermissions: setPermissionsAccount }),
     []
@@ -1632,13 +1627,16 @@ function InstanceDataTabsCard({
         }
       : null;
   const accounts = accountsData?.items ?? [];
+  const visibleAccounts = showDeletedAccounts ? accounts : accounts.filter((item) => !item.is_deleted);
   const activeAccounts = accounts.filter((item) => item.is_active && !item.is_deleted).length;
   const superuserAccounts = accounts.filter((item) => item.is_superuser).length;
   const deletedAccounts = accounts.filter((item) => item.is_deleted).length;
   const agAccounts = agAccountsData?.items ?? [];
+  const visibleAgAccounts = showDeletedAgAccounts ? agAccounts : agAccounts.filter((item) => !item.is_deleted);
   const activeAgAccounts = agAccounts.filter((item) => item.is_active && !item.is_deleted).length;
   const activeDatabases = databaseSizesData?.active_count ?? databases.filter((item) => item.is_active).length;
   const deletedDatabases = Math.max((databaseSizesData?.total ?? databases.length) - activeDatabases, 0);
+  const visibleDatabases = showDeletedDatabases ? databases : databases.filter((item) => item.is_active);
   const tabsListClass = showAgAccounts
     ? "grid h-auto w-full grid-cols-5 max-xl:grid-cols-3 max-md:grid-cols-2"
     : "grid h-auto w-full grid-cols-4 max-xl:grid-cols-2";
@@ -1684,14 +1682,21 @@ function InstanceDataTabsCard({
                 </dl>
                 <DataTable
                   columns={accountColumns}
-                  data={accountsData.items}
+                  data={visibleAccounts}
                   emptyText="暂无账户信息"
                   filters={[
                     { columnId: "is_locked", label: "是否可用", options: [{ label: "正常", value: "正常" }, { label: "已锁定", value: "已锁定" }] },
-                    { columnId: "is_deleted", label: "是否删除", options: [{ label: "未删除", value: "未删除" }, { label: "已删除", value: "已删除" }] },
                     { columnId: "is_superuser", label: "是否超管", options: [{ label: "超管用户", value: "超管用户" }, { label: "普通用户", value: "普通用户" }] }
                   ]}
                   searchPlaceholder="搜索账户、插件、类型"
+                  toolbarExtras={
+                    <SwitchField
+                      checked={showDeletedAccounts}
+                      label="显示已删除账户"
+                      onCheckedChange={setShowDeletedAccounts}
+                      switchLabel="显示已删除账户"
+                    />
+                  }
                 />
               </>
             ) : null}
@@ -1710,14 +1715,21 @@ function InstanceDataTabsCard({
                   </dl>
                   <DataTable
                     columns={agAccountColumns}
-                    data={agAccountsData.items}
+                    data={visibleAgAccounts}
                     emptyText="暂无 AG 账户信息"
                     filters={[
                       { columnId: "is_locked", label: "是否可用", options: [{ label: "正常", value: "正常" }, { label: "已锁定", value: "已锁定" }] },
-                      { columnId: "is_deleted", label: "是否删除", options: [{ label: "未删除", value: "未删除" }, { label: "已删除", value: "已删除" }] },
                       { columnId: "is_superuser", label: "是否超管", options: [{ label: "超管用户", value: "超管用户" }, { label: "普通用户", value: "普通用户" }] }
                     ]}
                     searchPlaceholder="搜索 AG、监听器、账户"
+                    toolbarExtras={
+                      <SwitchField
+                        checked={showDeletedAgAccounts}
+                        label="显示已删除账户"
+                        onCheckedChange={setShowDeletedAgAccounts}
+                        switchLabel="显示已删除账户"
+                      />
+                    }
                   />
                 </>
               ) : null}
@@ -1736,10 +1748,17 @@ function InstanceDataTabsCard({
                 </dl>
                 <DataTable
                   columns={databaseSizeColumns}
-                  data={databases}
+                  data={visibleDatabases}
                   emptyText="暂无数据库容量信息"
-                  filters={[{ columnId: "is_active", label: "状态", options: [{ label: "在线", value: "在线" }, { label: "已删除", value: "已删除" }] }]}
                   searchPlaceholder="搜索数据库名称、状态"
+                  toolbarExtras={
+                    <SwitchField
+                      checked={showDeletedDatabases}
+                      label="显示已删除数据库"
+                      onCheckedChange={setShowDeletedDatabases}
+                      switchLabel="显示已删除数据库"
+                    />
+                  }
                 />
               </>
             ) : null}
@@ -1876,7 +1895,7 @@ function createInstanceColumns({
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-2">
         <Button asChild size="sm" variant="outline">
-          <a aria-label={`查看详情 ${row.original.id}`} href={`/console/instances/${row.original.id}`}>
+          <a aria-label={`查看详情 ${row.original.id}`} href={`/instances/${row.original.id}`}>
             <Eye aria-hidden size={14} />
             <span>详情</span>
           </a>
@@ -2124,11 +2143,10 @@ export function InstanceDetailPage({ instanceId }: { instanceId?: number }) {
         eyebrow="Instance detail"
         title={instance ? `实例详情 ${instance.name}` : "实例详情"}
         description="查看实例基础连接信息、状态和同步信号。"
-        legacyHref={routeId > 0 ? `/instances/${routeId}` : "/instances/"}
       />
       <CommandBar>
         <Button variant="outline" asChild>
-          <a href="/console/instances">
+          <a href="/instances">
             <ExternalLink aria-hidden size={16} />
             <span>返回实例列表</span>
           </a>
@@ -2383,7 +2401,6 @@ export function InstancesPage() {
         eyebrow="Resource inventory"
         title="实例管理"
         description="管理数据库实例，包括增删改查和连接测试。"
-        legacyHref="/instances/"
       />
       <CommandBar>
         <Button variant="outline" asChild>
@@ -2597,7 +2614,6 @@ export function DatabaseLedgersPage() {
         eyebrow="Database ledger"
         title="数据库台账"
         description="查看数据库所属实例、容量采集时间和标签。"
-        legacyHref="/databases/ledgers"
       />
       <CommandBar>
         <Button variant="outline" asChild>
@@ -2697,7 +2713,6 @@ export function AccountLedgersPage() {
         eyebrow="Account ledger"
         title="账户台账"
         description="查看账户所属实例、可用性、删除状态、超管标识、AD 状态、分类和标签。"
-        legacyHref="/accounts/ledgers"
       />
       <CommandBar>
         <Button variant="outline" asChild>

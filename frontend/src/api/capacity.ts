@@ -32,6 +32,23 @@ export type CapacityInstanceRef = {
   db_type: string;
 };
 
+export type CapacityInstanceOption = {
+  asset_url?: string | null;
+  db_type: string;
+  display_name?: string | null;
+  id: number;
+  name: string;
+};
+
+export type CapacityDatabaseOption = {
+  database_name: string;
+  deleted_at?: string | null;
+  first_seen_date?: string | null;
+  id: number;
+  is_active?: boolean | null;
+  last_seen_date?: string | null;
+};
+
 export type CapacityInstanceItem = {
   id: number;
   instance_id: number;
@@ -217,4 +234,40 @@ export async function fetchCapacityDatabaseSnapshot(
     summary: summaryEnvelope.summary,
     charts: { trend, change, percent }
   };
+}
+
+export async function fetchCapacityInstanceOptions(
+  dbTypes: string[] | string,
+  client: ApiReader = apiClient
+): Promise<CapacityInstanceOption[]> {
+  const selectedDbTypes = (Array.isArray(dbTypes) ? dbTypes : [dbTypes]).filter(Boolean);
+  if (selectedDbTypes.length === 0) {
+    return [];
+  }
+  const responses = await Promise.all(
+    selectedDbTypes.map((dbType) =>
+      client.get<{ instances?: CapacityInstanceOption[] }>(`/api/v1/instances/options?db_type=${encodeURIComponent(dbType)}`)
+    )
+  );
+  const optionsById = new Map<number, CapacityInstanceOption>();
+  for (const response of responses) {
+    for (const item of response.instances ?? []) {
+      optionsById.set(item.id, item);
+    }
+  }
+  return [...optionsById.values()];
+}
+
+export async function fetchCapacityDatabaseOptions(
+  instanceId: number | string,
+  client: ApiReader = apiClient
+): Promise<CapacityDatabaseOption[]> {
+  const resolvedInstanceId = String(instanceId || "").trim();
+  if (!resolvedInstanceId) {
+    return [];
+  }
+  const response = await client.get<{ databases?: CapacityDatabaseOption[] }>(
+    `/api/v1/databases/options?instance_id=${encodeURIComponent(resolvedInstanceId)}&page=1&limit=200`
+  );
+  return response.databases ?? [];
 }

@@ -207,11 +207,11 @@ copy_frontend_files_to_temp_dir() {
     local temp_dir="$1"
 
     if [ ! -d "frontend" ]; then
-        log_info "未找到 frontend 目录，跳过 React /console 前端文件同步"
+        log_info "未找到 frontend 目录，跳过 React 默认前端文件同步"
         return 0
     fi
 
-    log_info "准备 React /console 前端文件（仅拷贝，不构建）..."
+    log_info "准备 React 默认前端文件（仅拷贝，不构建）..."
     cp -r frontend "$temp_dir/"
     rm -rf "$temp_dir/frontend/node_modules" "$temp_dir/frontend/coverage"
 
@@ -306,9 +306,9 @@ copy_code_to_container() {
     fi
 
     if docker exec "$flask_container_id" test -f /app/frontend/dist/index.html; then
-        log_success "React /console 前端产物存在：/app/frontend/dist/index.html"
+        log_success "React 默认前端产物存在：/app/frontend/dist/index.html"
     else
-        log_warning "容器内未找到 /app/frontend/dist/index.html；/console 仍需完整镜像构建或手动同步 dist"
+        log_warning "容器内未找到 /app/frontend/dist/index.html；默认前端仍需完整镜像构建或手动同步 dist"
     fi
 
     # 同步关键部署配置（避免“热更新仅覆盖 /app 代码，但容器内 /etc 配置仍为旧版本”）
@@ -752,12 +752,20 @@ verify_update() {
         log_warning "端口5001健康检查失败 (状态码: $http_status)，但继续执行"
     fi
 
-    local console_status
-    console_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost/console 2>/dev/null || echo "000")
-    if [ "$console_status" = "200" ]; then
-        log_success "React /console 入口检查通过 (状态码: $console_status)"
+    local react_status
+    react_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost/ 2>/dev/null || echo "000")
+    if [ "$react_status" = "200" ]; then
+        log_success "React 默认入口检查通过 (状态码: $react_status)"
     else
-        log_warning "React /console 入口检查失败 (状态码: $console_status)，但继续执行"
+        log_warning "React 默认入口检查失败 (状态码: $react_status)，但继续执行"
+    fi
+
+    local old_status
+    old_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost/old/ 2>/dev/null || echo "000")
+    if [ "$old_status" = "200" ] || [ "$old_status" = "302" ]; then
+        log_success "旧版 /old 入口检查通过 (状态码: $old_status)"
+    else
+        log_warning "旧版 /old 入口检查失败 (状态码: $old_status)，但继续执行"
     fi
 
     # 测试数据库和Redis连接（通过健康检查已验证）
@@ -793,7 +801,7 @@ show_update_result() {
     echo "  - 停机时间: 约30-60秒"
     echo "  - 数据保留: 完全保留"
     echo "  - 缓存刷新: Nginx缓存已刷新"
-    echo "  - React前端: 已同步 frontend 文件；如存在 frontend/dist，则已同步 /console 产物"
+    echo "  - React前端: 已同步 frontend 文件；如存在 frontend/dist，则已同步默认前端产物"
     if [ "$FORCE_SYNC_NGINX_SITE_CONFIG" = "1" ]; then
         echo "  - Nginx站点配置: 已按仓库模板强制同步"
     else
@@ -803,7 +811,8 @@ show_update_result() {
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
     echo "  - 健康检查: http://localhost/api/v1/health/basic"
-    echo "  - React控制台: http://localhost/console"
+    echo "  - React默认前端: http://localhost/"
+    echo "  - 旧版页面: http://localhost/old/"
     echo "  - 直接访问: http://localhost:5001"
     echo ""
     echo -e "${BLUE}🔧 管理命令：${NC}"

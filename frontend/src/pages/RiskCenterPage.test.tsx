@@ -110,6 +110,10 @@ describe("RiskCenterPage", () => {
     for (const label of ["备份：未备份", "审计：已开启", "托管：未托管", "群集：无群集", "任务：正常"]) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
+
+    fireEvent.click(screen.getByRole("combobox", { name: "严重度" }));
+    expect(await screen.findByRole("option", { name: "正常" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "健康" })).not.toBeInTheDocument();
   });
 
   it("applies legacy risk filters to the cards request", async () => {

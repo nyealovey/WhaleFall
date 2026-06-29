@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fetchCapacityDatabaseSnapshot, fetchCapacityInstanceSnapshot } from "./capacity";
+import {
+  fetchCapacityDatabaseOptions,
+  fetchCapacityDatabaseSnapshot,
+  fetchCapacityInstanceOptions,
+  fetchCapacityInstanceSnapshot
+} from "./capacity";
 
 describe("capacity api", () => {
   it("loads instance capacity list and summary with an explicit range", async () => {
@@ -86,8 +91,8 @@ describe("capacity api", () => {
 
     await fetchCapacityInstanceSnapshot(
       {
-        dbTypes: ["mysql"],
-        instanceIds: [10],
+        dbTypes: ["mysql", "sqlserver"],
+        instanceIds: [10, 20],
         periodType: "weekly",
         range: { startDate: "2026-06-01", endDate: "2026-06-16" }
       },
@@ -105,10 +110,29 @@ describe("capacity api", () => {
     );
 
     expect(client.get).toHaveBeenCalledWith(
-      "/api/v1/capacity/instances?period_type=weekly&page=1&limit=200&start_date=2026-06-01&end_date=2026-06-16&instance_id=10&db_type=mysql"
+      "/api/v1/capacity/instances?period_type=weekly&page=1&limit=200&start_date=2026-06-01&end_date=2026-06-16&instance_id=10&instance_id=20&db_type=mysql&db_type=sqlserver"
     );
     expect(client.get).toHaveBeenCalledWith(
       "/api/v1/capacity/databases?period_type=monthly&page=1&limit=200&start_date=2026-06-01&end_date=2026-06-16&instance_id=10&db_type=mysql&database_name=app_db"
     );
+  });
+
+  it("loads linked capacity filter options from v1 option endpoints", async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ instances: [{ id: 10, name: "mysql-capacity", db_type: "mysql" }] })
+        .mockResolvedValueOnce({ instances: [{ id: 20, name: "sqlserver-capacity", db_type: "sqlserver" }] })
+        .mockResolvedValueOnce({ databases: [{ id: 100, database_name: "app_db" }] })
+    };
+
+    const instances = await fetchCapacityInstanceOptions(["mysql", "sqlserver"], client);
+    const databases = await fetchCapacityDatabaseOptions(10, client);
+
+    expect(client.get).toHaveBeenNthCalledWith(1, "/api/v1/instances/options?db_type=mysql");
+    expect(client.get).toHaveBeenNthCalledWith(2, "/api/v1/instances/options?db_type=sqlserver");
+    expect(client.get).toHaveBeenNthCalledWith(3, "/api/v1/databases/options?instance_id=10&page=1&limit=200");
+    expect(instances[0]?.name).toBe("mysql-capacity");
+    expect(databases[0]?.database_name).toBe("app_db");
   });
 });

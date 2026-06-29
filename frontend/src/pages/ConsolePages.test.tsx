@@ -422,7 +422,7 @@ vi.mock("@/api/readOnly", () => ({
     categories: ["env"]
   })),
   fetchTagBulkOptions: vi.fn(async () => ({
-    instances: [{ id: 1, name: "mysql-prod", db_type: "mysql", host: "10.0.0.1" }],
+    instances: [{ id: 1, name: "mysql-prod", db_type: "mysql", host: "10.0.0.1", port: 3306 }],
     tags: [{ id: 1, name: "prod", display_name: "生产", category: "env", is_active: true }],
     categoryNames: ["env"]
   })),
@@ -578,14 +578,36 @@ describe("Console pages", () => {
     await screen.findByRole("heading", { name: "凭据管理" });
     fireEvent.click(await screen.findByRole("button", { name: "编辑凭据 ldap-bind" }));
     const editDialog = await screen.findByRole("dialog", { name: "编辑凭据 ldap-bind" });
-    expect(within(editDialog).getByRole("combobox", { name: "凭据类型" })).toHaveTextContent("ldap");
+    expect(within(editDialog).getByRole("combobox", { name: "凭据类型" })).toHaveTextContent("LDAP");
     expect(within(editDialog).queryByRole("combobox", { name: "数据库类型" })).not.toBeInTheDocument();
     fireEvent.click(within(editDialog).getByRole("button", { name: "取消" }));
 
     fireEvent.click(screen.getByRole("button", { name: "添加凭据" }));
     const createDialog = await screen.findByRole("dialog", { name: "新建凭据" });
-    await chooseSelectOption(within(createDialog), "凭据类型", "ldap");
+    await chooseSelectOption(within(createDialog), "凭据类型", "LDAP");
     expect(within(createDialog).queryByRole("combobox", { name: "数据库类型" })).not.toBeInTheDocument();
+  });
+
+  it("keeps legacy credential type labels and password visibility control", async () => {
+    renderWithQueryClient(<CredentialsPage />);
+
+    await screen.findByRole("heading", { name: "凭据管理" });
+    fireEvent.click(await screen.findByRole("button", { name: "添加凭据" }));
+    const createDialog = await screen.findByRole("dialog", { name: "新建凭据" });
+
+    fireEvent.click(within(createDialog).getByRole("combobox", { name: "凭据类型" }));
+    for (const option of ["数据库", "API", "Veeam", "LDAP", "SSH"]) {
+      expect(await screen.findByRole("option", { name: option })).toBeInTheDocument();
+    }
+    fireEvent.click(await screen.findByRole("option", { name: "Veeam" }));
+    expect(within(createDialog).queryByRole("combobox", { name: "数据库类型" })).not.toBeInTheDocument();
+
+    const passwordInput = within(createDialog).getByLabelText("密码");
+    expect(passwordInput).toHaveAttribute("type", "password");
+    fireEvent.click(within(createDialog).getByRole("button", { name: "显示密码" }));
+    expect(passwordInput).toHaveAttribute("type", "text");
+    fireEvent.click(within(createDialog).getByRole("button", { name: "隐藏密码" }));
+    expect(passwordInput).toHaveAttribute("type", "password");
   });
 
   it("renders tag management with legacy stats, filters, fields, and actions", async () => {
@@ -601,7 +623,7 @@ describe("Console pages", () => {
       await expectTextPresent(text);
     }
     expect(screen.getByRole("button", { name: "添加标签" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "批量分配" })).toHaveAttribute("href", "/console/tags/bulk/assign");
+    expect(screen.getByRole("link", { name: "批量分配" })).toHaveAttribute("href", "/tags/bulk/assign");
     expect(screen.getByRole("button", { name: "编辑标签 生产" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除标签 生产" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "查看标签 生产" })).not.toBeInTheDocument();
@@ -780,7 +802,7 @@ describe("Console pages", () => {
     expect(screen.getByRole("button", { name: "恢复任务 归档任务" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "立即执行 同步任务" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "编辑任务 同步任务" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "删除任务 同步任务" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "删除任务 同步任务" })).not.toBeInTheDocument();
   });
 
   it("renders sync sessions with legacy filters, fields, progress, and actions", async () => {
@@ -1416,15 +1438,13 @@ describe("Console pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "暂停任务 同步任务" }));
     fireEvent.click(screen.getByRole("button", { name: "恢复任务 归档任务" }));
     fireEvent.click(screen.getByRole("button", { name: "立即执行 同步任务" }));
-    fireEvent.click(screen.getByRole("button", { name: "删除任务 同步任务" }));
-    expect(await screen.findByRole("alertdialog", { name: "确认删除任务 同步任务" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "确认删除任务" }));
+    expect(screen.queryByRole("button", { name: "删除任务 同步任务" })).not.toBeInTheDocument();
     await waitFor(() => {
       expect(actionMocks.reloadSchedulerJobs).toHaveBeenCalled();
       expect(actionMocks.pauseSchedulerJob).toHaveBeenCalledWith("job-1");
       expect(actionMocks.resumeSchedulerJob).toHaveBeenCalledWith("job-2");
       expect(actionMocks.runSchedulerJob).toHaveBeenCalledWith("job-1");
-      expect(actionMocks.deleteSchedulerJob).toHaveBeenCalledWith("job-1");
+      expect(actionMocks.deleteSchedulerJob).not.toHaveBeenCalled();
     });
 
     cleanup();
@@ -1579,11 +1599,12 @@ describe("Console pages", () => {
     renderWithQueryClient(<TagBulkAssignPage />);
 
     await screen.findByRole("heading", { name: "批量分配标签" });
-    expect(screen.getByRole("link", { name: "返回标签管理" })).toHaveAttribute("href", "/console/tags");
+    expect(screen.getByRole("link", { name: "返回标签管理" })).toHaveAttribute("href", "/tags");
     expect(screen.getByRole("tab", { name: "分配模式" })).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText("选择实例")).toBeInTheDocument();
     expect(screen.getByText("选择标签")).toBeInTheDocument();
     expect(screen.getByText("当前选择")).toBeInTheDocument();
+    expect(screen.getByText("10.0.0.1:3306 · MySQL")).toBeInTheDocument();
 
     fireEvent.click(await screen.findByLabelText("选择实例 mysql-prod"));
     fireEvent.click(screen.getByLabelText("选择标签 生产"));

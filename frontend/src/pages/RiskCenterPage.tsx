@@ -19,6 +19,11 @@ const SEVERITY_LABELS: Record<string, string> = {
   high: "高风险",
   medium: "中风险",
   low: "低风险",
+  ok: "正常"
+};
+
+const SEVERITY_SUMMARY_LABELS: Record<string, string> = {
+  ...SEVERITY_LABELS,
   ok: "健康"
 };
 
@@ -27,7 +32,7 @@ const RISK_SEVERITY_OPTIONS = [
   { label: "高风险", value: "high" },
   { label: "中风险", value: "medium" },
   { label: "低风险", value: "low" },
-  { label: "健康", value: "ok" }
+  { label: "正常", value: "ok" }
 ];
 
 const RISK_DB_TYPE_OPTIONS = [
@@ -71,6 +76,10 @@ function formatNumber(value: number | undefined): string {
 
 function severityLabel(severity: RiskSeverity): string {
   return SEVERITY_LABELS[String(severity)] ?? String(severity || "未知");
+}
+
+function severitySummaryLabel(severity: RiskSeverity): string {
+  return SEVERITY_SUMMARY_LABELS[String(severity)] ?? severityLabel(severity);
 }
 
 function severityBadgeVariant(severity: RiskSeverity): "default" | "secondary" | "destructive" | "outline" {
@@ -271,9 +280,6 @@ export function RiskCenterPage() {
             <RefreshCw aria-hidden size={16} />
             刷新
           </Button>
-          <Button variant="outline" asChild>
-            <a href="/risk-center/">在旧版打开</a>
-          </Button>
         </div>
       </section>
 
@@ -325,7 +331,7 @@ export function RiskCenterPage() {
             {(["high", "medium", "low", "ok"] as const).map((severity) => (
               <Card key={severity}>
                 <CardContent>
-                  <div className="text-sm text-muted-foreground">{severityLabel(severity)}</div>
+                  <div className="text-sm text-muted-foreground">{severitySummaryLabel(severity)}</div>
                   <div className="mt-2 font-mono text-3xl font-semibold">{formatNumber(severityCounts[severity])}</div>
                 </CardContent>
               </Card>

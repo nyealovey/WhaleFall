@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +14,8 @@ export type SelectOption = {
   value: string;
   disabled?: boolean;
 };
+
+export type MultiSelectOption = SelectOption;
 
 const emptySelectValue = "__empty__";
 
@@ -63,6 +67,100 @@ export function SelectControl({
   );
 }
 
+function reactNodeText(value: ReactNode): string {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  return "";
+}
+
+export function MultiSelectDialogControl({
+  className,
+  disabled,
+  emptyLabel = "全部",
+  label,
+  onValueChange,
+  options,
+  placeholder = "请选择",
+  value
+}: {
+  className?: string;
+  disabled?: boolean;
+  emptyLabel?: string;
+  label: string;
+  onValueChange: (value: string[]) => void;
+  options: MultiSelectOption[];
+  placeholder?: string;
+  value: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedSet = useMemo(() => new Set(value), [value]);
+  const selectedLabels = options
+    .filter((option) => selectedSet.has(option.value))
+    .map((option) => reactNodeText(option.label) || option.value);
+  const buttonText = selectedLabels.length > 0 ? selectedLabels.join("、") : emptyLabel;
+
+  function toggleOption(optionValue: string, checked: boolean) {
+    if (checked) {
+      onValueChange(value.includes(optionValue) ? value : [...value, optionValue]);
+      return;
+    }
+    onValueChange(value.filter((item) => item !== optionValue));
+  }
+
+  return (
+    <>
+      <Button
+        aria-label={`${label} ${buttonText}`}
+        className={cn("w-full justify-between", className)}
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        type="button"
+        variant="outline"
+      >
+        <span className="truncate">{buttonText || placeholder}</span>
+        <span className="text-xs text-muted-foreground">{selectedLabels.length > 0 ? `${selectedLabels.length} 项` : ""}</span>
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>选择{label}</DialogTitle>
+            <DialogDescription>可同时选择多项，关闭后仍需点击应用筛选才会刷新数据。</DialogDescription>
+          </DialogHeader>
+          <div className="grid max-h-[24rem] gap-2 overflow-y-auto pr-1">
+            {options.length > 0 ? (
+              options.map((option) => {
+                const optionLabel = reactNodeText(option.label) || option.value;
+                return (
+                  <CheckboxLine
+                    checked={selectedSet.has(option.value)}
+                    disabled={option.disabled}
+                    key={option.value}
+                    label={`选择 ${optionLabel}`}
+                    onCheckedChange={(checked) => toggleOption(option.value, checked)}
+                  >
+                    {option.label}
+                  </CheckboxLine>
+                );
+              })
+            ) : (
+              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">暂无可选项</div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => onValueChange([])} type="button" variant="outline">
+              清空
+            </Button>
+            <Button onClick={() => setOpen(false)} type="button">
+              完成
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export function Field({ children, label }: { children: ReactNode; label: string }) {
   return (
     <div className="grid gap-1.5">
@@ -75,17 +173,19 @@ export function Field({ children, label }: { children: ReactNode; label: string 
 export function SwitchField({
   checked,
   label,
-  onCheckedChange
+  onCheckedChange,
+  switchLabel = "启用"
 }: {
   checked: boolean;
   label: string;
   onCheckedChange: (checked: boolean) => void;
+  switchLabel?: string;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2 text-sm font-medium">
       <Label>{label}</Label>
       <span className="flex items-center gap-2">
-        <Switch aria-label="启用" checked={checked} onCheckedChange={onCheckedChange} />
+        <Switch aria-label={switchLabel} checked={checked} onCheckedChange={onCheckedChange} />
         <span className="text-muted-foreground">启用</span>
       </span>
     </div>

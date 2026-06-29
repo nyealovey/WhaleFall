@@ -22,7 +22,6 @@ import {
   RotateCcw,
   Settings,
   Tags,
-  Trash2,
   UserCog,
   Zap
 } from "lucide-react";
@@ -75,7 +74,6 @@ import {
   deleteAccountClassificationRule,
   deleteAdDomainConfig,
   deleteCredential,
-  deleteSchedulerJob,
   deleteTag,
   deleteUser,
   deleteVeeamSource,
@@ -186,7 +184,6 @@ import { useServerTableState } from "@/components/shared/useServerTableState";
 import {
   ActiveField,
   CommandBar,
-  DeleteConfirmDialog,
   DetailBlock,
   EmptyRows,
   ErrorState,
@@ -425,12 +422,10 @@ function SchedulerJobFormDialog({
 
 function SchedulerJobCard({
   job,
-  onDelete,
   onEdit,
   onView
 }: {
   job: SchedulerJobItem;
-  onDelete: (job: SchedulerJobItem) => void;
   onEdit: (job: SchedulerJobItem) => void;
   onView: (job: SchedulerJobItem) => void;
 }) {
@@ -503,9 +498,6 @@ function SchedulerJobCard({
           <Button aria-label={`编辑任务 ${name}`} onClick={() => onEdit(job)} size="icon" type="button" variant="outline">
             <Pencil aria-hidden />
           </Button>
-          <Button aria-label={`删除任务 ${name}`} onClick={() => onDelete(job)} size="icon" type="button" variant="outline">
-            <Trash2 aria-hidden />
-          </Button>
         </div>
       </CardContent>
     </Card>
@@ -514,13 +506,11 @@ function SchedulerJobCard({
 
 function SchedulerJobSection({
   jobs,
-  onDelete,
   onEdit,
   onView,
   title
 }: {
   jobs: SchedulerJobItem[];
-  onDelete: (job: SchedulerJobItem) => void;
   onEdit: (job: SchedulerJobItem) => void;
   onView: (job: SchedulerJobItem) => void;
   title: string;
@@ -534,7 +524,7 @@ function SchedulerJobSection({
       {jobs.length > 0 ? (
         <div className="grid grid-cols-3 gap-2 max-2xl:grid-cols-2 max-lg:grid-cols-1">
           {jobs.map((job) => (
-            <SchedulerJobCard job={job} key={job.id} onDelete={onDelete} onEdit={onEdit} onView={onView} />
+            <SchedulerJobCard job={job} key={job.id} onEdit={onEdit} onView={onView} />
           ))}
         </div>
       ) : (
@@ -551,11 +541,10 @@ export function SchedulerPage() {
   const query = useQuery({ queryKey: ["read-only", "scheduler"], queryFn: () => fetchSchedulerSnapshot() });
   const [editingJob, setEditingJob] = useState<SchedulerJobItem | null>(null);
   const [viewingJob, setViewingJob] = useState<SchedulerJobItem | null>(null);
-  const [deletingJob, setDeletingJob] = useState<SchedulerJobItem | null>(null);
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Automation jobs" title="定时任务" description="只读展示调度任务和运行状态，暂停、恢复、立即执行仍保留在旧版。" legacyHref="/scheduler/" />
+      <PageHeader eyebrow="Automation jobs" title="定时任务" description="只读展示调度任务和运行状态，暂停、恢复、立即执行仍保留在旧版。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="定时任务" onRetry={() => void query.refetch()}>
         {(snapshot) => (
             <ListPanel
@@ -580,14 +569,12 @@ export function SchedulerPage() {
                 <SchedulerJobSection
                   title="运行中的任务"
                   jobs={snapshot.jobs.filter((job) => isRunningState(job.state))}
-                  onDelete={setDeletingJob}
                   onEdit={setEditingJob}
                   onView={setViewingJob}
                 />
                 <SchedulerJobSection
                   title="已暂停的任务"
                   jobs={snapshot.jobs.filter((job) => !isRunningState(job.state))}
-                  onDelete={setDeletingJob}
                   onEdit={setEditingJob}
                   onView={setViewingJob}
                 />
@@ -619,24 +606,6 @@ export function SchedulerPage() {
           open={editingJob !== null}
         />
       ) : null}
-      <DeleteConfirmDialog
-        confirmLabel="确认删除任务"
-        description="删除任务后将从调度器移除，后续需要重新初始化或重新配置。"
-        onConfirm={() => {
-          const job = deletingJob;
-          setDeletingJob(null);
-          if (job) {
-            void runAction(deleteSchedulerJob(job.id), { success: "任务已删除" }).then(() => query.refetch());
-          }
-        }}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeletingJob(null);
-          }
-        }}
-        open={deletingJob !== null}
-        title={`确认删除任务 ${deletingJob ? schedulerJobName(deletingJob) : ""}`}
-      />
     </main>
   );
 }

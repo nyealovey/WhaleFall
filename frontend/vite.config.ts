@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  base: "/console/",
+  base: "/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

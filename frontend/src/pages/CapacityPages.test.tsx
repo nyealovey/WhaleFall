@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,6 +20,17 @@ vi.mock("@/utils/action-feedback", () => ({
 
 vi.mock("@/api/capacity", () => ({
   getDefaultCapacityRange: vi.fn(() => ({ startDate: "2026-05-17", endDate: "2026-06-16" })),
+  fetchCapacityInstanceOptions: vi.fn(async (dbTypes: string[] | string) => {
+    const selectedTypes = Array.isArray(dbTypes) ? dbTypes : [dbTypes];
+    const options = [
+      { id: 10, name: "mysql-capacity", display_name: "mysql-capacity", db_type: "mysql" },
+      { id: 20, name: "sqlserver-capacity", display_name: "sqlserver-capacity", db_type: "sqlserver" }
+    ];
+    return options.filter((item) => selectedTypes.includes(item.db_type));
+  }),
+  fetchCapacityDatabaseOptions: vi.fn(async () => [
+    { id: 100, database_name: "app_db", is_active: true }
+  ]),
   fetchCapacityInstanceSnapshot: vi.fn(async () => ({
     summary: {
       total_instances: 2,
@@ -215,6 +226,15 @@ async function chooseSelectOption(label: string, optionName: string) {
   fireEvent.click(await screen.findByRole("option", { name: optionName }));
 }
 
+async function chooseMultiOptions(label: string, optionNames: string[]) {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(label) }));
+  const dialog = await screen.findByRole("dialog", { name: `选择${label}` });
+  for (const optionName of optionNames) {
+    fireEvent.click(await within(dialog).findByLabelText(`选择 ${optionName}`));
+  }
+  fireEvent.click(within(dialog).getByRole("button", { name: "完成" }));
+}
+
 describe("CapacityPages", () => {
   beforeEach(() => {
     vi.mocked(runAction).mockClear();
@@ -264,7 +284,6 @@ describe("CapacityPages", () => {
     });
 
     expect(screen.getByRole("heading", { name: "数据库容量" })).toBeInTheDocument();
-    expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0);
     expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
     expect(screen.queryByText("数据库容量列表")).not.toBeInTheDocument();
     expect(screen.queryByText("页面骨架已接入")).not.toBeInTheDocument();
@@ -340,8 +359,8 @@ describe("CapacityPages", () => {
     await waitFor(() => expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0));
     vi.mocked(fetchCapacityInstanceSnapshot).mockClear();
 
-    await chooseSelectOption("数据库类型", "MySQL");
-    await chooseSelectOption("实例", "mysql-capacity");
+    await chooseMultiOptions("数据库类型", ["MySQL"]);
+    await chooseMultiOptions("实例", ["mysql-capacity"]);
     await chooseSelectOption("周期", "周");
     fireEvent.click(screen.getByRole("button", { name: "应用筛选" }));
 
@@ -361,8 +380,8 @@ describe("CapacityPages", () => {
     await waitFor(() => expect(screen.getAllByText("app_db").length).toBeGreaterThan(0));
     vi.mocked(fetchCapacityDatabaseSnapshot).mockClear();
 
-    await chooseSelectOption("数据库类型", "MySQL");
-    await chooseSelectOption("实例", "mysql-capacity");
+    await chooseMultiOptions("数据库类型", ["MySQL"]);
+    await chooseMultiOptions("实例", ["mysql-capacity"]);
     await chooseSelectOption("数据库", "app_db");
     await chooseSelectOption("周期", "月");
     fireEvent.click(screen.getByRole("button", { name: "应用筛选" }));
@@ -374,6 +393,130 @@ describe("CapacityPages", () => {
           dbTypes: ["mysql"],
           instanceIds: [10],
           periodType: "monthly"
+        })
+      );
+    });
+  });
+
+  it("keeps capacity filter options fixed and linked by selected database type", async () => {
+    vi.mocked(fetchCapacityInstanceSnapshot).mockResolvedValueOnce({
+      summary: {
+        total_instances: 2,
+        total_size_mb: 3072,
+        avg_size_mb: 1536,
+        max_size_mb: 2048,
+        period_type: "daily",
+        source: "capacity_aggregation"
+      },
+      list: {
+        items: [
+          {
+            id: 1,
+            instance_id: 10,
+            period_type: "daily",
+            period_start: "2026-06-10",
+            period_end: "2026-06-10",
+            total_size_mb: 2048,
+            avg_size_mb: 2048,
+            max_size_mb: 2048,
+            min_size_mb: 2048,
+            data_count: 1,
+            database_count: 12,
+            instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+          },
+          {
+            id: 2,
+            instance_id: 20,
+            period_type: "daily",
+            period_start: "2026-06-10",
+            period_end: "2026-06-10",
+            total_size_mb: 1024,
+            avg_size_mb: 1024,
+            max_size_mb: 1024,
+            min_size_mb: 1024,
+            data_count: 1,
+            database_count: 6,
+            instance: { id: 20, name: "sqlserver-capacity", db_type: "sqlserver" }
+          }
+        ],
+        total: 2,
+        page: 1,
+        pages: 1,
+        limit: 20
+      },
+      charts: {
+        trend: {
+          items: [
+            {
+              id: 11,
+              instance_id: 10,
+              period_type: "daily",
+              period_start: "2026-06-10",
+              period_end: "2026-06-10",
+              total_size_mb: 2048,
+              avg_size_mb: 2048,
+              max_size_mb: 2048,
+              min_size_mb: 2048,
+              data_count: 1,
+              database_count: 12,
+              instance: { id: 10, name: "mysql-capacity", db_type: "mysql" }
+            },
+            {
+              id: 12,
+              instance_id: 20,
+              period_type: "daily",
+              period_start: "2026-06-10",
+              period_end: "2026-06-10",
+              total_size_mb: 1024,
+              avg_size_mb: 1024,
+              max_size_mb: 1024,
+              min_size_mb: 1024,
+              data_count: 1,
+              database_count: 6,
+              instance: { id: 20, name: "sqlserver-capacity", db_type: "sqlserver" }
+            }
+          ],
+          total: 2,
+          page: 1,
+          pages: 1,
+          limit: 200
+        },
+        change: { items: [], total: 0, page: 1, pages: 1, limit: 200 },
+        percent: { items: [], total: 0, page: 1, pages: 1, limit: 200 }
+      }
+    });
+
+    renderWithQueryClient(<CapacityInstancesPage />);
+    await screen.findByRole("heading", { name: "实例容量" });
+    await waitFor(() => expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole("button", { name: /数据库类型/ }));
+    const dbTypeDialog = await screen.findByRole("dialog", { name: "选择数据库类型" });
+    expect(within(dbTypeDialog).getByLabelText("选择 Oracle")).toBeInTheDocument();
+    fireEvent.click(within(dbTypeDialog).getByLabelText("选择 MySQL"));
+    fireEvent.click(within(dbTypeDialog).getByRole("button", { name: "完成" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /实例/ }));
+    const instanceDialog = await screen.findByRole("dialog", { name: "选择实例" });
+    expect(await within(instanceDialog).findByLabelText("选择 mysql-capacity")).toBeInTheDocument();
+    expect(within(instanceDialog).queryByLabelText("选择 sqlserver-capacity")).not.toBeInTheDocument();
+  });
+
+  it("supports legacy multi-select capacity filters", async () => {
+    renderWithQueryClient(<CapacityInstancesPage />);
+    await screen.findByRole("heading", { name: "实例容量" });
+    await waitFor(() => expect(screen.getAllByText("mysql-capacity").length).toBeGreaterThan(0));
+    vi.mocked(fetchCapacityInstanceSnapshot).mockClear();
+
+    await chooseMultiOptions("数据库类型", ["MySQL", "SQL Server"]);
+    await chooseMultiOptions("实例", ["mysql-capacity", "sqlserver-capacity"]);
+    fireEvent.click(screen.getByRole("button", { name: "应用筛选" }));
+
+    await waitFor(() => {
+      expect(fetchCapacityInstanceSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          dbTypes: ["mysql", "sqlserver"],
+          instanceIds: [10, 20]
         })
       );
     });

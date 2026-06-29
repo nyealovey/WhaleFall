@@ -168,6 +168,19 @@ describe("AuditPages", () => {
     expect(screen.getByRole("button", { name: "查看详情 1" })).toBeInTheDocument();
   });
 
+  it("uses the selected history time window in metric details", async () => {
+    renderWithQueryClient(<HistoryLogsPage />);
+
+    await screen.findByRole("heading", { name: "日志中心" });
+    expect(await screen.findByText("Top 模块 scheduler · 6 条 · 24h")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("combobox", { name: "时间范围" }));
+    fireEvent.click(await screen.findByRole("option", { name: "最近 1 小时" }));
+
+    expect(await screen.findByText("Top 模块 scheduler · 6 条 · 1h")).toBeInTheDocument();
+    expect(screen.getByText("错误率 8.3% · 严重 0 · 1/小时")).toBeInTheDocument();
+  });
+
   it("opens history log detail in a React dialog", async () => {
     renderWithQueryClient(<HistoryLogsPage />);
 
@@ -193,6 +206,16 @@ describe("AuditPages", () => {
     }
 
     expect(screen.getByRole("button", { name: "查看详情 2" })).toBeInTheDocument();
+  });
+
+  it("does not show account change metrics as a hard-coded 24h window when all time is selected", async () => {
+    renderWithQueryClient(<AccountChangeLogsPage />);
+
+    await screen.findByRole("heading", { name: "变更历史" });
+
+    expect(await screen.findByText("人均变更 2 · 全部")).toBeInTheDocument();
+    expect(screen.getByText("变更/小时 -")).toBeInTheDocument();
+    expect(screen.queryByText("人均变更 2 · 24h")).not.toBeInTheDocument();
   });
 
   it("opens account change log detail in a React dialog", async () => {

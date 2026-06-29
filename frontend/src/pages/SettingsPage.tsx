@@ -1114,7 +1114,7 @@ export function SettingsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="System integrations" title="系统设置" description="迁移旧版系统设置模块，保留告警、风险规则、JumpServer、Veeam 和 AD 配置能力。" legacyHref="/admin/system-settings" />
+      <PageHeader eyebrow="System integrations" title="系统设置" description="迁移旧版系统设置模块，保留告警、风险规则、JumpServer、Veeam 和 AD 配置能力。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="系统设置" onRetry={() => void query.refetch()}>
         {(snapshot) => {
           const editorKey = settingsSnapshotKey(snapshot);

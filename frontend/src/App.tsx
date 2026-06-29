@@ -110,7 +110,7 @@ function ConsoleRoutes() {
   }
 
   return (
-    <BrowserRouter basename="/console">
+    <BrowserRouter>
       <AppShell
         navigationGroups={visibleGroups}
         user={session.user}
@@ -154,7 +154,6 @@ function ConsoleRoutes() {
                     <PlaceholderPage
                       description={item.description}
                       label={item.label}
-                      legacyHref={item.legacyHref}
                     />
                   }
                   key={item.consolePath}

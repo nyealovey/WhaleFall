@@ -101,7 +101,7 @@ CACHE_TYPE=simple
 | `PROXY_FIX_X_PROTO` | 否 | `1`(production)/`0`(其他) | 信任的 `X-Forwarded-Proto` 层数. |
 | `PROXY_FIX_X_HOST` | 否 | `0` | 信任的 `X-Forwarded-Host` 层数. |
 | `PROXY_FIX_X_PORT` | 否 | `0` | 信任的 `X-Forwarded-Port` 层数. |
-| `PROXY_FIX_X_PREFIX` | 否 | `0` | 信任的 `X-Forwarded-Prefix` 层数. |
+| `PROXY_FIX_X_PREFIX` | 否 | `1`(production)/`0`(其他) | 信任的 `X-Forwarded-Prefix` 层数. |
 | `PROXY_FIX_TRUSTED_IPS` | 否 | `127.0.0.1,::1` | 可信代理 IP 列表(逗号分隔). |
 
 ## 安全与认证
@@ -210,7 +210,7 @@ CACHE_TYPE=simple
 - SECRET 的严格性取决于 `debug`: 当 `FLASK_DEBUG=false` 时, 即使处于非 production 环境, 缺失 `SECRET_KEY` 也会触发启动失败(因为 `Settings` 会认为需要更严格的密钥口径).
 - `CACHE_TYPE=redis` 且 `FLASK_ENV=production` 时必须提供 `CACHE_REDIS_URL`; 非 production 环境缺失会回退 `redis://localhost:6379/0`.
 - `DATABASE_URL` 仅在 production 强制必填; 非 production 缺失会回退到 `<project_root>/userdata/whalefall_dev.db` 的 SQLite(启动时会记录 warning, 避免静默误用).
-- ProxyFix 的默认策略按环境分支: production 默认信任 `X-Forwarded-For/Proto` 一层, 其余环境默认关闭; 如上游代理链更复杂, 需要显式调整 `PROXY_FIX_X_*` 与 `PROXY_FIX_TRUSTED_IPS`.
+- ProxyFix 的默认策略按环境分支: production 默认信任 `X-Forwarded-For/Proto/Prefix` 一层, 其余环境默认关闭; 如上游代理链更复杂, 需要显式调整 `PROXY_FIX_X_*` 与 `PROXY_FIX_TRUSTED_IPS`.
 
 ## 常见错误
 

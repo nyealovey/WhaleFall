@@ -73,6 +73,14 @@ const escapeHtml = window.UI?.escapeHtml;
 const resolveErrorMessage = window.UI?.resolveErrorMessage;
 const getRowMeta = window.GridRowMeta?.get;
 
+function resolvePagePath(path) {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const pathname = window.location?.pathname || '';
+    return pathname === '/old' || pathname.startsWith('/old/')
+        ? `/old${normalizedPath}`
+        : normalizedPath;
+}
+
 if (typeof escapeHtml !== 'function') {
     console.error('UI.escapeHtml 未初始化');
     return;
@@ -498,7 +506,7 @@ async function confirmDeleteInstance(event) {
         .deleteInstance(instanceId)
         .then((resp) => {
             window.toast?.success?.(resp?.message || '实例已移入回收站');
-            window.location.href = '/instances';
+            window.location.href = resolvePagePath('/instances');
         })
         .catch((error) => {
             console.error('移入回收站失败', error);

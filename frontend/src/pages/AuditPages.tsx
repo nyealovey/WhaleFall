@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, FileText, ShieldAlert, XCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, FileText, ShieldAlert, XCircle } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
 import {
@@ -60,24 +60,12 @@ function statusVariant(value: string | undefined): "default" | "secondary" | "de
   return "outline";
 }
 
-function PageHeader({
-  title,
-  legacyHref
-}: {
-  title: string;
-  legacyHref: string;
-}) {
+function PageHeader({ title }: { title: string }) {
   return (
     <section className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4 max-sm:grid">
       <div>
         <h1 className="font-display text-2xl leading-none tracking-normal">{title}</h1>
       </div>
-      <Button variant="outline" asChild>
-        <a href={legacyHref}>
-          <ExternalLink aria-hidden size={16} />
-          <span>在旧版打开</span>
-        </a>
-      </Button>
     </section>
   );
 }
@@ -175,6 +163,18 @@ function QueryPage<TSnapshot>({
 type TimeRangeValue = "1h" | "1d" | "1w" | "1m" | "all";
 
 const timeRangeHours: Record<Exclude<TimeRangeValue, "all">, number> = { "1h": 1, "1d": 24, "1w": 168, "1m": 720 };
+
+function timeWindowLabel(hours: number | undefined): string {
+  return hours ? `${hours}h` : "全部";
+}
+
+function perHourValue(total: number, hours: number | undefined): string {
+  return hours ? formatDecimal(total / hours) : "-";
+}
+
+function perHourDetail(label: string, total: number, hours: number | undefined): string {
+  return `${label} ${perHourValue(total, hours)}`;
+}
 
 function TimeRangeFilter({ includeAll, onChange, value }: { includeAll?: boolean; onChange: (value: TimeRangeValue) => void; value: TimeRangeValue }) {
   const options = [
@@ -531,6 +531,7 @@ export function HistoryLogsPage() {
   const table = useServerTableState({ initialFilters: { level: "", module: "", timeRange: "1d" } });
   const columns = useMemo(() => createHistoryLogColumns(setSelectedHistoryLogId), [setSelectedHistoryLogId]);
   const hours = timeRangeHours[table.filters.timeRange as Exclude<TimeRangeValue, "all">];
+  const windowLabel = timeWindowLabel(hours);
   const logsQuery = useQuery({
     queryKey: ["audit", "history-logs", table.page, table.pageSize, table.search, table.filters, hours],
     queryFn: () => fetchHistoryLogsSnapshot({ page: table.page, limit: table.pageSize, search: table.search, level: table.filters.level, module: table.filters.module, hours }),
@@ -540,10 +541,7 @@ export function HistoryLogsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader
-        title="日志中心"
-        legacyHref="/history/logs/"
-      />
+      <PageHeader title="日志中心" />
       <QueryPage snapshot={logsQuery.data} isLoading={logsQuery.isLoading} isError={logsQuery.isError} onRetry={() => void logsQuery.refetch()}>
         {(snapshot: HistoryLogsSnapshot) => (
           <>
@@ -552,19 +550,19 @@ export function HistoryLogsPage() {
                 {
                   label: "总日志数",
                   value: snapshot.statistics.total_logs,
-                  detail: `Top 模块 ${snapshot.statistics.top_modules[0]?.module ?? "-"} · ${formatNumber(snapshot.statistics.top_modules[0]?.count)} 条 · 24h`,
+                  detail: `Top 模块 ${snapshot.statistics.top_modules[0]?.module ?? "-"} · ${formatNumber(snapshot.statistics.top_modules[0]?.count)} 条 · ${windowLabel}`,
                   icon: FileText
                 },
                 {
                   label: "错误日志",
                   value: snapshot.statistics.error_count,
-                  detail: `错误率 ${formatPercent(snapshot.statistics.error_rate)} · 严重 ${formatNumber(snapshot.statistics.critical_count)} · ${formatDecimal(snapshot.statistics.error_count / 24)}/小时`,
+                  detail: `错误率 ${formatPercent(snapshot.statistics.error_rate)} · 严重 ${formatNumber(snapshot.statistics.critical_count)} · ${perHourValue(snapshot.statistics.error_count, hours)}/小时`,
                   icon: XCircle
                 },
                 {
                   label: "警告日志",
                   value: snapshot.statistics.warning_count,
-                  detail: `占比 ${formatPercent(snapshot.statistics.total_logs > 0 ? (snapshot.statistics.warning_count / snapshot.statistics.total_logs) * 100 : 0)} · ${formatDecimal(snapshot.statistics.warning_count / 24)}/小时`,
+                  detail: `占比 ${formatPercent(snapshot.statistics.total_logs > 0 ? (snapshot.statistics.warning_count / snapshot.statistics.total_logs) * 100 : 0)} · ${perHourValue(snapshot.statistics.warning_count, hours)}/小时`,
                   icon: AlertTriangle
                 },
                 { label: "信息日志", value: snapshot.statistics.info_count, detail: `调试 ${formatNumber(snapshot.statistics.debug_count)}`, icon: ShieldAlert }
@@ -607,6 +605,7 @@ export function AccountChangeLogsPage() {
   const table = useServerTableState({ initialFilters: { instanceId: "", dbType: "", changeType: "", timeRange: "all" } });
   const columns = useMemo(() => createAccountChangeLogColumns(setSelectedAccountChangeLogId), [setSelectedAccountChangeLogId]);
   const hours = table.filters.timeRange === "all" ? undefined : timeRangeHours[table.filters.timeRange as Exclude<TimeRangeValue, "all">];
+  const windowLabel = timeWindowLabel(hours);
   const logsQuery = useQuery({
     queryKey: ["audit", "account-change-logs", table.page, table.pageSize, table.search, table.filters, hours],
     queryFn: () => fetchAccountChangeLogsSnapshot({ page: table.page, limit: table.pageSize, search: table.search, instanceId: table.filters.instanceId ? Number(table.filters.instanceId) : undefined, dbType: table.filters.dbType, changeType: table.filters.changeType, hours }),
@@ -616,10 +615,7 @@ export function AccountChangeLogsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader
-        title="变更历史"
-        legacyHref="/history/account-change-logs/"
-      />
+      <PageHeader title="变更历史" />
       <QueryPage snapshot={logsQuery.data} isLoading={logsQuery.isLoading} isError={logsQuery.isError} onRetry={() => void logsQuery.refetch()}>
         {(snapshot: AccountChangeLogsSnapshot) => (
           <>
@@ -628,7 +624,7 @@ export function AccountChangeLogsPage() {
                 {
                   label: "变更总数",
                   value: snapshot.statistics.total_changes,
-                  detail: `人均变更 ${formatDecimal(snapshot.statistics.affected_accounts > 0 ? snapshot.statistics.total_changes / snapshot.statistics.affected_accounts : 0)} · 24h`,
+                  detail: `人均变更 ${formatDecimal(snapshot.statistics.affected_accounts > 0 ? snapshot.statistics.total_changes / snapshot.statistics.affected_accounts : 0)} · ${windowLabel}`,
                   icon: FileText
                 },
                 {
@@ -646,7 +642,7 @@ export function AccountChangeLogsPage() {
                 {
                   label: "影响账号数",
                   value: snapshot.statistics.affected_accounts,
-                  detail: `变更/小时 ${formatDecimal(snapshot.statistics.total_changes / 24)}`,
+                  detail: perHourDetail("变更/小时", snapshot.statistics.total_changes, hours),
                   icon: ShieldAlert
                 }
               ]}

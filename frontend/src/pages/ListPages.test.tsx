@@ -361,7 +361,7 @@ describe("ListPages", () => {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
     expect(screen.queryByRole("button", { name: "查看详情 1" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "查看详情 1" })).toHaveAttribute("href", "/console/instances/1");
+    expect(screen.getByRole("link", { name: "查看详情 1" })).toHaveAttribute("href", "/instances/1");
     expect(screen.getByRole("button", { name: "编辑实例 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "测试连接 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除实例 1" })).toBeInTheDocument();
@@ -589,6 +589,7 @@ describe("ListPages", () => {
     expect(screen.getByText("活跃账户")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看权限 readonly" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "变更历史 readonly" })).toBeInTheDocument();
+    expect(screen.getByText("显示已删除账户")).toBeInTheDocument();
     expect(screen.queryByText("AG账户总数")).not.toBeInTheDocument();
     expect(screen.queryByText("当前数据库")).not.toBeInTheDocument();
     expect(screen.queryByText("审计目标数")).not.toBeInTheDocument();
@@ -602,17 +603,21 @@ describe("ListPages", () => {
     expect(await screen.findByText("AG账户总数")).toBeInTheDocument();
     expect(await screen.findByText("AG_PROD")).toBeInTheDocument();
     expect(screen.getByText(/AG_LISTENER/)).toBeInTheDocument();
+    expect(screen.getByText("显示已删除账户")).toBeInTheDocument();
 
     const capacityTab = screen.getByRole("tab", { name: "容量信息" });
     fireEvent.mouseDown(capacityTab, { button: 0, ctrlKey: false });
     fireEvent.click(capacityTab);
     expect(screen.getAllByText("app_db").length).toBeGreaterThan(0);
+    expect(screen.queryByText("legacy_db")).not.toBeInTheDocument();
+    expect(screen.getByText("显示已删除数据库")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("switch", { name: "显示已删除数据库" }));
     expect(screen.getByText("legacy_db")).toBeInTheDocument();
     expect(screen.getAllByText("2.00 GB").length).toBeGreaterThan(0);
     expect(screen.getByText("当前数据库")).toBeInTheDocument();
     expect(screen.getByText("容量总量")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "表容量 app_db" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "返回实例列表" })).toHaveAttribute("href", "/console/instances");
+    expect(screen.getByRole("link", { name: "返回实例列表" })).toHaveAttribute("href", "/instances");
 
     const auditTab = screen.getByRole("tab", { name: "审计信息" });
     fireEvent.mouseDown(auditTab, { button: 0, ctrlKey: false });

@@ -505,7 +505,7 @@ export function SyncSessionsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Automation sessions" title="会话中心" description="展示同步会话、实例执行详情、错误日志，并支持取消运行中会话。" legacyHref="/history/sessions/" />
+      <PageHeader eyebrow="Automation sessions" title="会话中心" description="展示同步会话、实例执行详情、错误日志，并支持取消运行中会话。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="会话中心" onRetry={() => void query.refetch()}>
         {(snapshot) => (
           <ListPanel title="同步会话" count={snapshot.total}>

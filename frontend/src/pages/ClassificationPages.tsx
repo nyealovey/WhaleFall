@@ -688,7 +688,7 @@ export function AccountClassificationsPage({ currentUser }: { currentUser?: Acce
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Account taxonomy" title="账户分类" description="展示分类、风险等级与规则分布，新增和编辑仍保留在旧版。" legacyHref="/accounts/classifications/" />
+      <PageHeader eyebrow="Account taxonomy" title="账户分类" description="展示分类、风险等级与规则分布，新增和编辑仍保留在旧版。" />
       {canManage ? (
         <CommandBar>
           <Button
@@ -1162,7 +1162,7 @@ export function ClassificationStatisticsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Classification analytics" title="分类统计" description="只读展示账户分类统计、规则列表入口和最近周期趋势，写操作仍保留在旧版。" legacyHref="/accounts/statistics/classifications" />
+      <PageHeader eyebrow="Classification analytics" title="分类统计" description="只读展示账户分类统计、规则列表入口和最近周期趋势，写操作仍保留在旧版。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="分类统计" onRetry={() => void query.refetch()}>
         {(snapshot) => {
           const trendPoints = selectedTrendPoints(snapshot, filters);

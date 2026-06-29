@@ -1367,7 +1367,6 @@ export function ClustersPage() {
         eyebrow="Cluster topology"
         title="群集管理"
         description="展示 SQL Server AG 与 MySQL 群集拓扑，并支持群集基础信息维护、详情查看和同步操作。"
-        legacyHref="/cluster/"
       />
       <CommandBar>
         <span className="text-sm font-medium text-muted-foreground">添加群集</span>

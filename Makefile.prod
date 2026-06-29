@@ -12,8 +12,8 @@ help:
 	@echo "  config      - 配置环境文件"
 	@echo ""
 	@echo "部署命令:"
-	@echo "  deploy      - 部署生产环境（包含 React /console 前端）"
-	@echo "  build       - 构建生产镜像（包含 React /console 前端）"
+	@echo "  deploy      - 部署生产环境（包含 React 默认前端）"
+	@echo "  build       - 构建生产镜像（包含 React 默认前端）"
 	@echo "  start       - 启动生产环境"
 	@echo "  stop        - 停止生产环境"
 	@echo "  restart     - 重启生产环境"
@@ -74,7 +74,7 @@ deploy:
 	@echo "🚀 部署生产环境..."
 	@echo "🔍 验证环境变量..."
 	@./scripts/setup/validate-env.sh
-	@echo "🐳 构建并启动Docker容器（包含 React /console 前端）..."
+	@echo "🐳 构建并启动Docker容器（包含 React 默认前端）..."
 	@docker-compose -f docker-compose.prod.yml up -d --build
 	@echo "✅ 生产环境部署完成"
 	@echo "🌐 应用地址: http://localhost"
@@ -219,7 +219,7 @@ volume-size:
 
 # 构建生产镜像
 build:
-	@echo "🔨 构建生产镜像（包含 React /console 前端）..."
+	@echo "🔨 构建生产镜像（包含 React 默认前端）..."
 	@docker-compose -f docker-compose.prod.yml build
 
 # 查看版本信息

@@ -335,7 +335,7 @@ export function PartitionsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="Storage partitions" title="分区管理" description="展示分区健康状态、核心指标和分区列表，并支持创建分区与清理旧分区。" legacyHref="/partition/" />
+      <PageHeader eyebrow="Storage partitions" title="分区管理" description="展示分区健康状态、核心指标和分区列表，并支持创建分区与清理旧分区。" />
       <CommandBar>
         <Button
           onClick={() => {
