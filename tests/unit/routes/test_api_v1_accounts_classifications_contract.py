@@ -185,7 +185,7 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
 
         permission_config = PermissionConfig(
             db_type="mysql",
-            category="mysql_global_privileges",
+            category="global_privileges",
             permission_name="SELECT",
             description="select",
             is_active=True,
@@ -429,10 +429,10 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert "version_context" not in permissions_data
     permissions = permissions_data.get("permissions")
     assert isinstance(permissions, dict)
-    mysql_global_privileges = permissions.get("mysql_global_privileges")
-    assert isinstance(mysql_global_privileges, list)
-    assert mysql_global_privileges
-    first_perm = mysql_global_privileges[0]
+    global_privileges = permissions.get("global_privileges")
+    assert isinstance(global_privileges, list)
+    assert global_privileges
+    first_perm = global_privileges[0]
     assert isinstance(first_perm, dict)
     assert first_perm.get("name") == "SELECT"
     assert "introduced_in_major" in first_perm

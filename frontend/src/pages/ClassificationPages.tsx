@@ -195,7 +195,6 @@ import {
   EmptyRows,
   ErrorState,
   FormField,
-  JsonBlock,
   ListPanel,
   MetricGrid,
   PageHeader,
@@ -321,7 +320,6 @@ type PermissionDefinition = {
   icon: LucideIcon;
   key: string;
   scope?: string;
-  sourceKey: string;
   title: string;
 };
 
@@ -399,7 +397,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
       return [
         {
           key: "global_privileges",
-          sourceKey: "mysql_global_privileges",
           title: "全局权限",
           emptyLabel: "暂无全局权限",
           icon: Globe2,
@@ -409,7 +406,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
         },
         {
           key: "database_privileges",
-          sourceKey: "mysql_database_privileges",
           title: "数据库权限",
           emptyLabel: "暂无数据库权限",
           icon: Database,
@@ -422,7 +418,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
       return [
         {
           key: "predefined_roles",
-          sourceKey: "postgresql_predefined_roles",
           title: "预定义角色",
           emptyLabel: "暂无预定义角色",
           icon: UserCheck,
@@ -431,7 +426,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
         },
         {
           key: "role_attributes",
-          sourceKey: "postgresql_role_attributes",
           title: "角色属性",
           emptyLabel: "暂无角色属性",
           icon: ShieldCheck,
@@ -440,7 +434,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
         },
         {
           key: "database_privileges",
-          sourceKey: "postgresql_database_privileges",
           title: "数据库权限",
           emptyLabel: "暂无数据库权限",
           icon: Database,
@@ -453,7 +446,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
       return [
         {
           key: "server_roles",
-          sourceKey: "sqlserver_server_roles",
           title: "服务器角色",
           emptyLabel: "暂无服务器角色",
           icon: UserCog,
@@ -462,7 +454,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
         },
         {
           key: "server_permissions",
-          sourceKey: "sqlserver_server_permissions",
           title: "服务器权限",
           emptyLabel: "暂无服务器权限",
           icon: Server,
@@ -472,7 +463,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
         },
         {
           key: "database_roles",
-          sourceKey: "sqlserver_database_roles",
           title: "数据库角色",
           emptyLabel: "暂无数据库角色",
           icon: Database,
@@ -481,7 +471,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
         },
         {
           key: "database_privileges",
-          sourceKey: "sqlserver_database_permissions",
           title: "数据库权限",
           emptyLabel: "暂无数据库权限",
           icon: KeyRound,
@@ -494,7 +483,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
       return [
         {
           key: "roles",
-          sourceKey: "oracle_roles",
           title: "角色",
           emptyLabel: "暂无角色",
           icon: UserCog,
@@ -503,7 +491,6 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
         },
         {
           key: "system_privileges",
-          sourceKey: "oracle_system_privileges",
           title: "系统权限",
           emptyLabel: "暂无系统权限",
           icon: Settings,
@@ -542,7 +529,7 @@ function permissionCategoriesForDbType(dbType: string, permissions: Record<strin
   const source = permissions ?? {};
   return permissionDefinitionsForDbType(dbType).map((definition) => ({
     ...definition,
-    items: normalizePermissionItems(source[definition.sourceKey]).sort((left, right) =>
+    items: normalizePermissionItems(source[definition.key]).sort((left, right) =>
       permissionItemName(left).localeCompare(permissionItemName(right), undefined, { sensitivity: "base" })
     )
   }));
@@ -839,28 +826,62 @@ function ruleGroupTitle(dbType: string): string {
   return `${(dbType || "unknown").toUpperCase()} 规则`;
 }
 
-function flattenPermissionValues(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.flatMap((entry) => flattenPermissionValues(entry));
-  }
-  if (value && typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).flatMap((entry) => flattenPermissionValues(entry));
-  }
-  if (typeof value === "string" && value.trim()) {
-    return [value];
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return [String(value)];
-  }
-  return [];
+function operatorLabel(value: "AND" | "OR"): string {
+  return value === "AND" ? "AND · 所有条件满足" : "OR · 任一条件满足";
 }
 
-function ruleExpressionFunction(value: unknown): string | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
+function findPermissionItem(category: PermissionCategory, name: string): PermissionOptionItem | undefined {
+  return category.items.find((item) => permissionItemName(item).toLowerCase() === name.toLowerCase());
+}
+
+function SelectedPermissionPanel({
+  categories,
+  isLoading,
+  selection
+}: {
+  categories: PermissionCategory[];
+  isLoading: boolean;
+  selection: PermissionSelection;
+}) {
+  const totalSelected = selectedPermissionCount(selection);
+  if (isLoading) {
+    return <Skeleton className="h-28 w-full" />;
   }
-  const fn = (value as Record<string, unknown>).fn;
-  return typeof fn === "string" && fn.trim() ? fn : null;
+  if (totalSelected === 0) {
+    return <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">暂无权限配置</div>;
+  }
+  return (
+    <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
+      {categories
+        .filter((category) => (selection[category.key] ?? []).length > 0)
+        .map((category) => {
+          const Icon = category.icon;
+          const selectedNames = selection[category.key] ?? [];
+          return (
+            <section className="rounded-md border bg-background p-3" key={category.key}>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Icon aria-hidden className={category.colorClass} size={18} />
+                  <span>{category.title}</span>
+                </div>
+                <Badge variant="secondary">{formatNumber(selectedNames.length)}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedNames.map((name) => {
+                  const item = findPermissionItem(category, name);
+                  return (
+                    <Badge key={`${category.key}:${name}`} title={item?.description ?? undefined} variant="outline">
+                      <span>{name}</span>
+                      {item?.description ? <span className="text-muted-foreground">{item.description}</span> : null}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+    </div>
+  );
 }
 
 function RuleDetailDialog({
@@ -883,50 +904,39 @@ function RuleDetailDialog({
     enabled: open
   });
   const rule = detailQuery.data?.rule ?? item;
-  const permissionValues = [...new Set(flattenPermissionValues(permissionsQuery.data?.permissions))];
-  const expressionFunction = ruleExpressionFunction(rule.rule_expression);
+  const permissionCategories = permissionCategoriesForDbType(rule.db_type, permissionsQuery.data?.permissions);
+  const selectedPermissions = buildPermissionSelectionFromExpression(rule.db_type, rule.rule_expression);
+  const operator = inferRuleOperator(rule.rule_expression, rule.operator);
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="w-[min(calc(100vw-2rem),46rem)]">
         <DialogHeader>
           <DialogTitle>规则详情 {item.rule_name}</DialogTitle>
-          <DialogDescription>展示规则版本、表达式和当前数据库类型的权限元数据。</DialogDescription>
+          <DialogDescription>展示匹配逻辑、账户分类、数据库类型和权限配置。</DialogDescription>
         </DialogHeader>
         <div className="flex flex-wrap gap-1">
           <Badge variant="secondary">规则详情</Badge>
           <Badge variant="outline">{rule.db_type}</Badge>
           <Badge variant={rule.is_active ? "secondary" : "outline"}>{rule.is_active ? "启用" : "停用"}</Badge>
           {rule.rule_version ? <Badge variant="outline">版本 {rule.rule_version}</Badge> : null}
-          {expressionFunction ? <Badge variant="outline">{expressionFunction}</Badge> : null}
         </div>
         {detailQuery.isLoading ? <Skeleton className="h-20 w-full" /> : null}
         <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
           <DetailBlock label="规则名称">{rule.rule_name}</DetailBlock>
           <DetailBlock label="账户分类">{asText(rule.classification_name, "未分类")}</DetailBlock>
           <DetailBlock label="数据库类型">{rule.db_type}</DetailBlock>
+          <DetailBlock label="匹配逻辑">{operatorLabel(operator)}</DetailBlock>
           <DetailBlock label="规则组">{asText(rule.rule_group_id)}</DetailBlock>
           <DetailBlock label="创建时间">{asText(rule.created_at)}</DetailBlock>
           <DetailBlock label="更新时间">{asText(rule.updated_at)}</DetailBlock>
         </div>
         <section className="grid gap-2">
-          <h3 className="text-sm font-semibold">规则表达式</h3>
-          <JsonBlock value={rule.rule_expression} />
-        </section>
-        <section className="grid gap-2">
-          <h3 className="text-sm font-semibold">权限选项</h3>
-          {permissionsQuery.isLoading ? <Skeleton className="h-10 w-full" /> : null}
-          {permissionValues.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {permissionValues.map((value) => (
-                <Badge key={value} variant="outline">
-                  {value}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">暂无权限元数据</span>
-          )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">权限配置</h3>
+            <Badge variant="outline">已选择 {formatNumber(selectedPermissionCount(selectedPermissions))} 项</Badge>
+          </div>
+          <SelectedPermissionPanel categories={permissionCategories} isLoading={permissionsQuery.isLoading} selection={selectedPermissions} />
         </section>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

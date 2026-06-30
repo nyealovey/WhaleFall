@@ -206,7 +206,16 @@ vi.mock("@/api/readOnly", () => ({
       rule_group_id: "rg-1",
       rule_version: 2,
       is_active: true,
-      rule_expression: { fn: "username_like", args: ["root"] },
+      rule_expression: {
+        version: 4,
+        expr: {
+          op: "AND",
+          args: [
+            { op: "OR", args: [{ fn: "has_privilege", args: { name: "SELECT", scope: "global" } }] },
+            { op: "OR", args: [{ fn: "has_privilege", args: { name: "CREATE", scope: "database" } }] }
+          ]
+        }
+      },
       created_at: "2026-06-01T00:00:00+08:00",
       updated_at: "2026-06-02T00:00:00+08:00"
     }
@@ -215,20 +224,20 @@ vi.mock("@/api/readOnly", () => ({
     if (dbType === "mysql") {
       return {
         permissions: {
-          mysql_global_privileges: [
+          global_privileges: [
             { name: "SELECT", description: "查询数据", introduced_in_major: null },
             { name: "SUPER", description: "超级权限", introduced_in_major: null }
           ],
-          mysql_database_privileges: [{ name: "CREATE", description: "创建数据库对象", introduced_in_major: null }]
+          database_privileges: [{ name: "CREATE", description: "创建数据库对象", introduced_in_major: null }]
         }
       };
     }
     if (dbType === "postgresql") {
       return {
         permissions: {
-          postgresql_predefined_roles: [{ name: "pg_read_all_data", description: "读取所有数据", introduced_in_major: null }],
-          postgresql_role_attributes: [{ name: "CREATEDB", description: "创建数据库", introduced_in_major: null }],
-          postgresql_database_privileges: [{ name: "CONNECT", description: "连接数据库", introduced_in_major: null }]
+          predefined_roles: [{ name: "pg_read_all_data", description: "读取所有数据", introduced_in_major: null }],
+          role_attributes: [{ name: "CREATEDB", description: "创建数据库", introduced_in_major: null }],
+          database_privileges: [{ name: "CONNECT", description: "连接数据库", introduced_in_major: null }]
         }
       };
     }
@@ -1309,6 +1318,26 @@ describe("Console pages", () => {
     });
   });
 
+  it("ignores legacy prefixed permission keys in account classification rule forms", async () => {
+    vi.mocked(fetchAccountClassificationPermissions).mockResolvedValueOnce({
+      permissions: {
+        mysql_database_privileges: [{ name: "LEGACY_CREATE", description: "旧口径数据库权限", introduced_in_major: null }],
+        mysql_global_privileges: [{ name: "LEGACY_SELECT", description: "旧口径全局权限", introduced_in_major: null }]
+      }
+    });
+
+    renderWithQueryClient(<AccountClassificationsPage />);
+
+    await screen.findByRole("heading", { name: "账户分类" });
+    fireEvent.click(await screen.findByRole("button", { name: "新建规则" }));
+    const createRuleDialog = await screen.findByRole("dialog", { name: "新建规则" });
+
+    expect(await within(createRuleDialog).findByText("暂无全局权限")).toBeInTheDocument();
+    expect(await within(createRuleDialog).findByText("暂无数据库权限")).toBeInTheDocument();
+    expect(within(createRuleDialog).queryByText("LEGACY_SELECT")).not.toBeInTheDocument();
+    expect(within(createRuleDialog).queryByText("LEGACY_CREATE")).not.toBeInTheDocument();
+  });
+
   it("opens account classification rule detail with parsed expression and permission metadata", async () => {
     renderWithQueryClient(<AccountClassificationsPage />);
 
@@ -1316,9 +1345,12 @@ describe("Console pages", () => {
     fireEvent.click(await screen.findByRole("button", { name: "查看规则 root rule" }));
 
     const detailDialog = await screen.findByRole("dialog", { name: "规则详情 root rule" });
-    for (const text of ["规则详情", "root rule", "DBA", "版本 2", "username_like", "权限选项", "SELECT", "SUPER"]) {
+    for (const text of ["规则详情", "root rule", "DBA", "版本 2", "匹配逻辑", "AND · 所有条件满足", "权限配置", "全局权限", "数据库权限", "SELECT", "CREATE"]) {
       expect(await within(detailDialog).findByText(text)).toBeInTheDocument();
     }
+    expect(within(detailDialog).queryByText("规则表达式")).not.toBeInTheDocument();
+    expect(within(detailDialog).queryByText("权限选项")).not.toBeInTheDocument();
+    expect(within(detailDialog).queryByText(/"expr"/)).not.toBeInTheDocument();
     expect(within(detailDialog).getAllByText("mysql").length).toBeGreaterThan(0);
     fireEvent.click(within(detailDialog).getByRole("button", { name: "关闭详情" }));
   });
