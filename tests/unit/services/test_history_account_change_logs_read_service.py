@@ -127,3 +127,47 @@ def test_get_log_detail_returns_minimal_payload_for_add() -> None:
     assert log["message"] == "新增账户"
     assert log["privilege_diff"] == []
     assert log["other_diff"] == []
+
+
+@pytest.mark.unit
+def test_get_log_detail_returns_display_instance_fields() -> None:
+    class _Repository:
+        @staticmethod
+        def list_logs(_filters):  # type: ignore[no-untyped-def]
+            raise AssertionError("not used")
+
+        @staticmethod
+        def get_log_detail_row(_log_id: int):  # type: ignore[no-untyped-def]
+            log_entry = SimpleNamespace(
+                id=2,
+                instance_id=123,
+                db_type="sqlserver",
+                username="ecp_admin",
+                change_type="modify_privilege",
+                status="success",
+                message="权限更新:新增 4 项授权",
+                change_time=None,
+                session_id="session_123",
+                privilege_diff={
+                    "version": 1,
+                    "entries": [
+                        {
+                            "field": "database_roles",
+                            "label": "数据库角色",
+                            "object": "ECP",
+                            "action": "GRANT",
+                            "permissions": ["db_datareader"],
+                        }
+                    ],
+                },
+                other_diff=None,
+            )
+            return log_entry, "gf-mssqlag-01", "10.10.103.185", 26921
+
+    service = HistoryAccountChangeLogsReadService(repository=cast(Any, _Repository()))
+    payload = service.get_log_detail(2)
+    log = cast(Any, payload.get("log"))
+
+    assert log["instance_name"] == "gf-mssqlag-01"
+    assert log["instance_host"] == "10.10.103.185"
+    assert log["account_id"] == 26921

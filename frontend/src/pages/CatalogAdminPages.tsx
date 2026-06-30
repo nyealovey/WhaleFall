@@ -415,11 +415,13 @@ function CredentialFormDialog({
 }
 
 function TagFormDialog({
+  categoryOptions,
   item,
   onOpenChange,
   onSaved,
   open
 }: {
+  categoryOptions: string[];
   item: TagItem | null;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
@@ -430,6 +432,13 @@ function TagFormDialog({
   const [category, setCategory] = useState(item?.category ?? "");
   const [isActive, setIsActive] = useState(item?.is_active ?? true);
   const title = item ? `编辑标签 ${item.display_name}` : "新建标签";
+  const effectiveCategoryOptions = useMemo(
+    () =>
+      Array.from(new Set([item?.category ?? "", ...categoryOptions].map((value) => value.trim()).filter(Boolean))).sort((left, right) =>
+        left.localeCompare(right, "zh-Hans-CN")
+      ),
+    [categoryOptions, item?.category]
+  );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -462,7 +471,14 @@ function TagFormDialog({
               <Input onChange={(event) => setDisplayName(event.target.value)} required value={displayName} />
             </FormField>
             <FormField label="分类">
-              <Input onChange={(event) => setCategory(event.target.value)} required value={category} />
+              <SelectControl
+                disabled={effectiveCategoryOptions.length === 0}
+                label="分类"
+                onValueChange={setCategory}
+                options={effectiveCategoryOptions.map((option) => ({ label: option, value: option }))}
+                placeholder="请选择分类"
+                value={category}
+              />
             </FormField>
             <ActiveField checked={isActive} onCheckedChange={setIsActive} />
           </div>
@@ -947,6 +963,7 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
   const canManage = canManageCatalog(currentUser);
+  const categoryOptions = query.data?.categories ?? [];
   const columns = useMemo(
     () =>
       createTagColumns({
@@ -1029,6 +1046,7 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
       </QueryFrame>
       {canManage && creatingTag ? (
         <TagFormDialog
+          categoryOptions={categoryOptions}
           item={null}
           onOpenChange={(open) => {
             if (!open) {
@@ -1044,6 +1062,7 @@ export function TagsPage({ currentUser }: { currentUser?: AccessUser | null } = 
       ) : null}
       {canManage && editingTag ? (
         <TagFormDialog
+          categoryOptions={categoryOptions}
           item={editingTag}
           onOpenChange={(open) => {
             if (!open) {

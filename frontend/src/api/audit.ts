@@ -94,6 +94,7 @@ export type AccountChangeLogsSnapshot = {
 };
 
 export type AccountChangeLogDetailItem = AccountChangeLogItem & {
+  instance_info?: unknown;
   privilege_diff?: unknown;
   other_diff?: unknown;
 };

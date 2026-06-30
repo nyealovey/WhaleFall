@@ -6,7 +6,10 @@ import {
   AlertCircle,
   Boxes,
   ChartColumn,
+  CheckCircle2,
   Clock,
+  Circle,
+  CircleHelp,
   Database,
   Eye,
   ExternalLink,
@@ -21,7 +24,10 @@ import {
   Plus,
   RotateCcw,
   Settings,
+  Square,
+  Star,
   Tags,
+  Triangle,
   Trash2,
   UserCog,
   Zap
@@ -231,7 +237,7 @@ const partitionColumns: ColumnDef<PartitionItem>[] = [
   { accessorKey: "size", header: "大小", cell: ({ row }) => <span className="font-mono text-xs">{row.original.size ?? "-"}</span> },
   { accessorKey: "record_count", header: "记录数", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.record_count)}</span> },
   { id: "partition_month", header: "分区月份", cell: ({ row }) => <span>{partitionMonthLabel(row.original)}</span> },
-  { accessorKey: "status", header: "状态", cell: ({ row }) => <span className="text-xs text-muted-foreground">{partitionStatusLabel(row.original.status)}</span> }
+  { accessorKey: "status", header: "状态", cell: ({ row }) => <PartitionStatusBadge status={row.original.status} /> }
 ];
 
 function partitionMonthLabel(item: PartitionItem): string {
@@ -239,8 +245,33 @@ function partitionMonthLabel(item: PartitionItem): string {
   return match ? `${match[1]}年${Number(match[2])}月` : (item.display_name ?? item.name);
 }
 
-function partitionStatusLabel(value: string | undefined): string {
-  return ({ current: "当前分区", past: "历史分区", future: "未来分区", unknown: "未知状态" } as Record<string, string>)[value ?? ""] ?? "未知状态";
+function partitionStatusMeta(value: string | undefined): {
+  className: string;
+  icon: typeof CheckCircle2;
+  text: string;
+  tone: "success" | "muted" | "info" | "danger";
+} {
+  switch ((value ?? "unknown").toLowerCase()) {
+    case "current":
+      return { text: "当前", tone: "success", icon: CheckCircle2, className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+    case "past":
+      return { text: "历史", tone: "muted", icon: History, className: "border-slate-200 bg-slate-100 text-slate-600" };
+    case "future":
+      return { text: "未来", tone: "info", icon: Clock, className: "border-sky-200 bg-sky-50 text-sky-700" };
+    default:
+      return { text: "未知", tone: "danger", icon: CircleHelp, className: "border-rose-200 bg-rose-50 text-rose-700" };
+  }
+}
+
+function PartitionStatusBadge({ status }: { status: string | undefined }) {
+  const meta = partitionStatusMeta(status);
+  const Icon = meta.icon;
+  return (
+    <Badge aria-label={`分区状态 ${meta.text}`} className={meta.className} data-status-tone={meta.tone} variant="outline">
+      <Icon aria-hidden size={13} />
+      {meta.text}
+    </Badge>
+  );
 }
 
 const PARTITION_PERIOD_OPTIONS: Array<PartitionMetricsFilters & { label: string }> = [
@@ -257,13 +288,30 @@ const PARTITION_PERIOD_COPY: Record<string, { title: string; subtitle: string }>
   quarterly: { title: "季度核心指标趋势", subtitle: "最近7个季度的核心指标统计" }
 };
 
-const PARTITION_CHART_COLORS = ["#2f80ed", "#ff7aa2", "#4cc9c0", "#f59f00", "#8b5cf6", "#10b981"];
+type PartitionSeriesStyle = {
+  borderDash: string;
+  color: string;
+  icon: typeof Circle;
+  legacyType: string;
+  pointStyle: "circle" | "rect" | "triangle" | "star";
+};
+
+const PARTITION_LEGACY_SERIES_STYLES: Record<string, PartitionSeriesStyle> = {
+  数据库聚合: { color: "#2f855a", borderDash: "", pointStyle: "circle", legacyType: "数据库聚合", icon: Circle },
+  实例聚合: { color: "#2f80ed", borderDash: "5 5", pointStyle: "rect", legacyType: "实例聚合", icon: Square },
+  数据库统计: { color: "#c75d16", borderDash: "10 5", pointStyle: "triangle", legacyType: "数据库统计", icon: Triangle },
+  实例统计: { color: "#dc2626", borderDash: "2 2", pointStyle: "star", legacyType: "实例统计", icon: Star }
+};
 
 type PartitionChartSeries = {
+  borderDash: string;
   key: string;
   label: string;
+  legacyType: string;
   color: string;
   data: number[];
+  icon: typeof Circle;
+  pointStyle: "circle" | "rect" | "triangle" | "star";
   strokeWidth: number;
 };
 
@@ -275,9 +323,25 @@ function partitionPeriodCopy(periodType: string | undefined): { title: string; s
   return PARTITION_PERIOD_COPY[periodType ?? ""] ?? PARTITION_PERIOD_COPY.daily;
 }
 
-function partitionSeriesColor(dataset: { borderColor?: string }, index: number): string {
+function usableDatasetColor(dataset: { borderColor?: string }): string | null {
   const color = dataset.borderColor?.trim();
-  return color && color.toLowerCase() !== "#fff" && color.toLowerCase() !== "#ffffff" ? color : PARTITION_CHART_COLORS[index % PARTITION_CHART_COLORS.length];
+  return color && color.toLowerCase() !== "#fff" && color.toLowerCase() !== "#ffffff" ? color : null;
+}
+
+function partitionSeriesStyle(label: string | undefined, index: number, dataset: { borderColor?: string }): PartitionSeriesStyle {
+  const text = label ?? "";
+  const type =
+    text.includes("实例") && (text.includes("统计") || text.includes("日统计"))
+      ? "实例统计"
+      : text.includes("实例")
+        ? "实例聚合"
+        : text.includes("数据库") && (text.includes("统计") || text.includes("日统计"))
+          ? "数据库统计"
+          : text.includes("数据库")
+            ? "数据库聚合"
+            : (["数据库聚合", "实例聚合", "数据库统计", "实例统计"][index % 4] ?? "数据库聚合");
+  const baseStyle = PARTITION_LEGACY_SERIES_STYLES[type] ?? PARTITION_LEGACY_SERIES_STYLES.数据库聚合;
+  return { ...baseStyle, color: usableDatasetColor(dataset) ?? baseStyle.color };
 }
 
 function buildPartitionChart(
@@ -286,13 +350,20 @@ function buildPartitionChart(
 ): { chartData: PartitionChartPoint[]; chartConfig: ChartConfig; series: PartitionChartSeries[] } {
   const series = datasets
     .filter((dataset) => Array.isArray(dataset.data))
-    .map((dataset, index) => ({
-      key: `metric${index}`,
-      label: dataset.label?.trim() || `指标 ${index + 1}`,
-      color: partitionSeriesColor(dataset, index),
-      data: dataset.data ?? [],
-      strokeWidth: dataset.borderWidth ?? 3
-    }));
+    .map((dataset, index) => {
+      const style = partitionSeriesStyle(dataset.label, index, dataset);
+      return {
+        borderDash: style.borderDash,
+        key: `metric${index}`,
+        label: dataset.label?.trim() || `指标 ${index + 1}`,
+        legacyType: style.legacyType,
+        color: style.color,
+        data: dataset.data ?? [],
+        icon: style.icon,
+        pointStyle: style.pointStyle,
+        strokeWidth: dataset.borderWidth ?? 3
+      };
+    });
   const chartConfig = Object.fromEntries(series.map((item) => [item.key, { label: item.label, color: item.color }])) satisfies ChartConfig;
   const chartData = labels.map((label, index) => {
     const point: PartitionChartPoint = { label };
@@ -360,12 +431,6 @@ export function PartitionsPage() {
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="分区管理" onRetry={() => void query.refetch()}>
         {(snapshot) => {
           const status = snapshot.status.data;
-          const partitions = status.partitions ?? [];
-          const historyCount = partitions.filter((item) => item.status === "past").length;
-          const currentPartitions = partitions.filter((item) => item.status === "current");
-          const futureCount = partitions.filter((item) => item.status === "future").length;
-          const currentPartition = currentPartitions[0];
-          const averageRecords = (status.total_partitions ?? 0) > 0 ? Math.round((status.total_records ?? 0) / (status.total_partitions ?? 1)) : 0;
           const chartCopy = partitionPeriodCopy(snapshot.coreMetrics.periodType || metricFilters.periodType);
           const { chartData, chartConfig, series } = buildPartitionChart(snapshot.coreMetrics.labels, snapshot.coreMetrics.datasets);
           return (
@@ -374,15 +439,9 @@ export function PartitionsPage() {
                 label="分区指标"
                 metrics={[
                   { label: "分区总数", value: status.total_partitions ?? snapshot.list.total, icon: Boxes },
-                  { label: "历史分区", value: historyCount, icon: History },
-                  { label: "当前分区", value: currentPartitions.length, icon: Activity },
-                  { label: "未来分区", value: futureCount, icon: Clock },
                   { label: "总大小", value: status.total_size ?? "-", icon: Database },
                   { label: "总记录数", value: status.total_records ?? 0, icon: ListChecks },
-                  { label: "当前分区大小", value: currentPartition?.size ?? "-", icon: HardDrive },
-                  { label: "平均记录数", value: averageRecords, icon: ChartColumn },
-                  { label: "当前记录数", value: currentPartition?.record_count ?? 0, icon: ListChecks },
-                  { label: "数据库连接", value: status.status === "healthy" ? "正常" : "异常", icon: PlugZap }
+                  { label: "健康状态", value: status.status === "healthy" ? "正常" : "异常", icon: Activity }
                 ]}
               />
               <section className="grid gap-2">
@@ -411,13 +470,25 @@ export function PartitionsPage() {
                   <CardContent className="grid gap-3">
                     {chartData.length > 0 && series.length > 0 ? (
                       <>
-                        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold text-muted-foreground">
-                          {series.map((item) => (
-                            <span className="inline-flex items-center gap-2" key={item.key}>
-                              <span className="size-2.5 rounded-full" style={{ backgroundColor: `var(--color-${item.key})` }} />
-                              {item.label}
-                            </span>
-                          ))}
+                        <div aria-label="核心指标趋势图例" className="flex flex-wrap justify-center gap-2 text-sm font-semibold text-muted-foreground">
+                          {series.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <span
+                                aria-label={`${item.label}：${item.legacyType}`}
+                                className="inline-flex items-center gap-2 rounded-md border bg-background px-2.5 py-1"
+                                data-line-dash={item.borderDash || "solid"}
+                                data-point-style={item.pointStyle}
+                                key={item.key}
+                              >
+                                <Icon aria-hidden size={14} style={{ color: `var(--color-${item.key})` }} />
+                                <span>{item.label}</span>
+                                <span className="rounded border px-1.5 py-0.5 text-[0.68rem] leading-none" style={{ borderColor: `var(--color-${item.key})`, color: `var(--color-${item.key})` }}>
+                                  {item.legacyType}
+                                </span>
+                              </span>
+                            );
+                          })}
                         </div>
                         <ChartContainer config={chartConfig} className="h-[340px] w-full">
                           <LineChart accessibilityLayer data={chartData} margin={{ left: 12, right: 16, top: 12, bottom: 8 }}>
@@ -440,6 +511,7 @@ export function PartitionsPage() {
                                 key={item.key}
                                 name={item.label}
                                 stroke={`var(--color-${item.key})`}
+                                strokeDasharray={item.borderDash}
                                 strokeWidth={item.strokeWidth}
                                 type="monotone"
                               />

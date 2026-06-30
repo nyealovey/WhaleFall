@@ -74,6 +74,12 @@ def test_api_v1_account_change_logs_endpoints_contract(auth_client, monkeypatch)
         return {
             "log": {
                 "id": 1,
+                "account_id": 4453,
+                "instance_id": 100,
+                "instance_name": "CBRAIN",
+                "instance_host": "10.0.0.1",
+                "db_type": "oracle",
+                "username": "CBRAIN",
                 "change_type": "add",
                 "change_time": "2025-12-31 08:13:25",
                 "status": "success",
@@ -122,3 +128,7 @@ def test_api_v1_account_change_logs_endpoints_contract(auth_client, monkeypatch)
     data = payload.get("data")
     assert isinstance(data, dict)
     assert "log" in data
+    log = data.get("log")
+    assert isinstance(log, dict)
+    assert log["instance_name"] == "CBRAIN"
+    assert log["instance_host"] == "10.0.0.1"

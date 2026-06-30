@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  fetchAccountClassificationPermissions,
   fetchAccountScopeOptions,
   fetchClassificationStatisticsSnapshot,
   fetchPartitionsSnapshot,
@@ -177,7 +178,23 @@ vi.mock("@/api/readOnly", () => ({
       { id: 1, code: "dba", display_name: "DBA", risk_level: 2, rules_count: 1, is_system: true },
       { id: 2, code: "app", display_name: "App", risk_level: 4, rules_count: 0, is_system: false }
     ],
-    rulesByDbType: { mysql: [{ id: 9, rule_name: "root rule", classification_name: "DBA", db_type: "mysql", is_active: true, matched_accounts_count: 8 }] }
+    rulesByDbType: {
+      mysql: [
+        {
+          id: 9,
+          rule_name: "root rule",
+          classification_id: 1,
+          classification_name: "DBA",
+          db_type: "mysql",
+          is_active: true,
+          matched_accounts_count: 8,
+          rule_expression: {
+            version: 4,
+            expr: { op: "OR", args: [{ fn: "has_privilege", args: { name: "SELECT", scope: "global" } }] }
+          }
+        }
+      ]
+    }
   })),
   fetchAccountClassificationRuleDetail: vi.fn(async () => ({
     rule: {
@@ -194,9 +211,29 @@ vi.mock("@/api/readOnly", () => ({
       updated_at: "2026-06-02T00:00:00+08:00"
     }
   })),
-  fetchAccountClassificationPermissions: vi.fn(async () => ({
-    permissions: { mysql: ["SELECT", "SUPER"] }
-  })),
+  fetchAccountClassificationPermissions: vi.fn(async (dbType: string) => {
+    if (dbType === "mysql") {
+      return {
+        permissions: {
+          mysql_global_privileges: [
+            { name: "SELECT", description: "查询数据", introduced_in_major: null },
+            { name: "SUPER", description: "超级权限", introduced_in_major: null }
+          ],
+          mysql_database_privileges: [{ name: "CREATE", description: "创建数据库对象", introduced_in_major: null }]
+        }
+      };
+    }
+    if (dbType === "postgresql") {
+      return {
+        permissions: {
+          postgresql_predefined_roles: [{ name: "pg_read_all_data", description: "读取所有数据", introduced_in_major: null }],
+          postgresql_role_attributes: [{ name: "CREATEDB", description: "创建数据库", introduced_in_major: null }],
+          postgresql_database_privileges: [{ name: "CONNECT", description: "连接数据库", introduced_in_major: null }]
+        }
+      };
+    }
+    return { permissions: {} };
+  }),
   fetchAccountScopeOptions: vi.fn(async (dbType?: string) =>
     dbType === "mysql"
       ? [
@@ -214,10 +251,13 @@ vi.mock("@/api/readOnly", () => ({
   ),
   fetchClassificationStatisticsSnapshot: vi.fn(
     async (filters?: { classificationId?: string | number; ruleId?: string | number; ruleStatus?: string }) => ({
-    stats: { dba: { total_accounts: 8, matched_accounts_count: 8 } },
+    stats: { dba: { total_accounts: 8, matched_accounts_count: 8 }, app: { total_accounts: 3, matched_accounts_count: 3 } },
     trends: {
       buckets: [{ period_start: "2026-06-05", period_end: "2026-06-05" }],
-      series: [{ classification_id: 1, classification_name: "DBA", points: [{ period_start: "2026-06-05", value: 8 }] }]
+      series: [
+        { classification_id: 1, classification_name: "DBA", points: [{ period_start: "2026-06-05", value: 8 }] },
+        { classification_id: 2, classification_name: "App", points: [{ period_start: "2026-06-05", value: 3 }] }
+      ]
     },
     selectedClassificationTrend: filters?.classificationId ? [{ period_start: "2026-06-05", value: 8 }] : undefined,
     selectedRuleTrend: filters?.ruleId ? [{ period_start: "2026-06-05", value: 8 }] : undefined,
@@ -382,7 +422,8 @@ vi.mock("@/api/readOnly", () => ({
       settings: {
         global_enabled: true,
         feishu_enabled: true,
-        feishu_webhook_url: "https://feishu.example",
+        feishu_webhook_url_configured: true,
+        feishu_webhook_url_masked: "https://open.feishu.cn/open-apis/bot/v2/hook/**********oken",
         recipients: ["ops@example.com"],
         database_capacity_enabled: true,
         database_capacity_percent_threshold: 30,
@@ -428,7 +469,17 @@ vi.mock("@/api/readOnly", () => ({
   })),
   fetchPartitionsSnapshot: vi.fn(async () => ({
     status: { data: { status: "healthy", total_partitions: 3, total_size: "3 MB", total_records: 30, missing_partitions: [], partitions: [{ name: "p202605", date: "2026-05-01", status: "past", size: "1 MB", record_count: 10 }, { name: "p202606", date: "2026-06-01", status: "current", size: "1 MB", record_count: 12 }, { name: "p202607", date: "2026-07-01", status: "future", size: "1 MB", record_count: 8 }] }, timestamp: "2026-06-11T00:00:00+08:00" },
-    list: { items: [{ name: "p202606", date: "2026-06-01", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 12, status: "current" }], total: 1, page: 1, pages: 1, limit: 20 },
+    list: {
+      items: [
+        { name: "p202605", date: "2026-05-01", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 10, status: "past" },
+        { name: "p202606", date: "2026-06-01", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 12, status: "current" },
+        { name: "p202607", date: "2026-07-01", table: "account_stats", table_type: "stats", size: "1 MB", record_count: 8, status: "future" }
+      ],
+      total: 3,
+      page: 1,
+      pages: 1,
+      limit: 20
+    },
     coreMetrics: {
       labels: ["2026-06-11"],
       datasets: [
@@ -484,10 +535,10 @@ describe("Console pages", () => {
     ["定时任务", <SchedulerPage />, ["同步任务", "运行中"]],
     ["会话中心", <SyncSessionsPage />, ["s-1", "running"]],
     ["用户管理", <UsersPage />, ["admin", "用户列表"]],
-    ["系统设置", <SettingsPage />, ["设置模块", "告警设置", "邮件告警"]],
+    ["系统设置", <SettingsPage />, ["设置模块", "Alerts", "邮件告警"]],
     ["凭据管理", <CredentialsPage />, ["prod-db", "root"]],
     ["标签管理", <TagsPage />, ["生产", "env"]],
-    ["分区管理", <PartitionsPage />, ["2026年6月", "当前分区"]]
+    ["分区管理", <PartitionsPage />, ["2026年6月", "当前"]]
   ];
 
   it.each(cases)("renders %s from read-only APIs", async (heading, element, expectedTexts) => {
@@ -638,7 +689,8 @@ describe("Console pages", () => {
     const createDialog = await screen.findByRole("dialog", { name: "新建标签" });
     fireEvent.change(within(createDialog).getByLabelText("标签编码"), { target: { value: "staging" } });
     fireEvent.change(within(createDialog).getByLabelText("展示名称"), { target: { value: "预发" } });
-    fireEvent.change(within(createDialog).getByLabelText("分类"), { target: { value: "env" } });
+    fireEvent.click(within(createDialog).getByRole("combobox", { name: "分类" }));
+    fireEvent.click(await screen.findByRole("option", { name: "env" }));
     fireEvent.click(within(createDialog).getByRole("button", { name: "保存标签" }));
 
     await waitFor(() => {
@@ -1076,6 +1128,9 @@ describe("Console pages", () => {
       "启用",
       "选择分类后加载规则列表与规则趋势",
       "分类趋势（去重账号数）",
+      "全部分类",
+      "DBA",
+      "App",
       "覆盖 1/1 天",
       "规则贡献（当前周期）",
       "说明：规则之间允许重叠，“各规则之和”不等于分类去重总数。"
@@ -1091,6 +1146,7 @@ describe("Console pages", () => {
     for (const text of ["分类统计指标", "统计分类", "趋势序列", "周期数量", "Top 命中", "分类排行", "分类趋势面积图", "选择分类后展示当前周期 Top 规则贡献。"] ) {
       expect(screen.queryByText(text)).not.toBeInTheDocument();
     }
+    expect(screen.queryByText("DBA", { selector: ".mb-2" })).not.toBeInTheDocument();
   });
 
   it("loads classification rule list, contributions, and rule trend after selecting a classification", async () => {
@@ -1200,16 +1256,10 @@ describe("Console pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "新建规则" }));
     const createRuleDialog = await screen.findByRole("dialog", { name: "新建规则" });
     fireEvent.change(within(createRuleDialog).getByLabelText("规则名称"), { target: { value: "readonly rule" } });
-    fireEvent.change(within(createRuleDialog).getByLabelText("规则表达式"), {
-      target: { value: "{\"fn\":\"username_like\",\"args\":[\"readonly\"]}" }
-    });
-    fireEvent.click(within(createRuleDialog).getByRole("button", { name: "校验表达式" }));
-    await waitFor(() => {
-      expect(actionMocks.validateAccountClassificationRuleExpression).toHaveBeenCalledWith({
-        fn: "username_like",
-        args: ["readonly"]
-      });
-    });
+    expect(within(createRuleDialog).queryByLabelText("规则表达式")).not.toBeInTheDocument();
+    expect(await within(createRuleDialog).findByText("全局权限")).toBeInTheDocument();
+    expect(await within(createRuleDialog).findByText("数据库权限")).toBeInTheDocument();
+    fireEvent.click(within(createRuleDialog).getByRole("checkbox", { name: "选择权限 SELECT" }));
     fireEvent.click(within(createRuleDialog).getByRole("button", { name: "保存规则" }));
 
     await waitFor(() => {
@@ -1217,8 +1267,11 @@ describe("Console pages", () => {
         rule_name: "readonly rule",
         classification_id: 1,
         db_type: "mysql",
-        operator: "any",
-        rule_expression: { fn: "username_like", args: ["readonly"] },
+        operator: "OR",
+        rule_expression: {
+          version: 4,
+          expr: { op: "OR", args: [{ fn: "has_privilege", args: { name: "SELECT", scope: "global" } }] }
+        },
         is_active: true
       });
     });
@@ -1233,6 +1286,26 @@ describe("Console pages", () => {
         9,
         expect.objectContaining({ rule_name: "root rule v2", classification_id: 1, db_type: "mysql" })
       );
+    });
+  });
+
+  it("reloads account classification permissions after changing rule database type", async () => {
+    renderWithQueryClient(<AccountClassificationsPage />);
+
+    await screen.findByRole("heading", { name: "账户分类" });
+    fireEvent.click(await screen.findByRole("button", { name: "新建规则" }));
+    const createRuleDialog = await screen.findByRole("dialog", { name: "新建规则" });
+    expect(await within(createRuleDialog).findByText("SELECT")).toBeInTheDocument();
+
+    const dbTypeSelect = within(createRuleDialog).getByRole("combobox", { name: "数据库类型" });
+    dbTypeSelect.focus();
+    fireEvent.keyDown(dbTypeSelect, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "PostgreSQL" }));
+
+    expect(await within(createRuleDialog).findByText("预定义角色")).toBeInTheDocument();
+    expect(await within(createRuleDialog).findByText("pg_read_all_data")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchAccountClassificationPermissions).toHaveBeenLastCalledWith("postgresql");
     });
   });
 
@@ -1258,20 +1331,21 @@ describe("Console pages", () => {
 
     for (const text of [
       "设置模块",
-      "告警设置",
-      "风险规则",
+      "Alerts",
+      "Risk Rules",
       "JumpServer",
       "Veeam",
-      "AD 设置",
+      "Active Directory",
       "发送设置",
       "投递通道",
       "启用邮件告警",
-      "发送到飞书",
+      "飞书数据源",
+      "飞书数据源列表",
+      "编辑飞书数据源",
       "飞书机器人 URL",
       "当前飞书 Webhook",
       "清空飞书 Webhook",
       "收件人",
-      "共享收件人列表",
       "发送测试邮件",
       "发送飞书测试",
       "保存配置",
@@ -1287,21 +1361,27 @@ describe("Console pages", () => {
     ]) {
       await expectTextPresent(text);
     }
-    expect(screen.getByDisplayValue("https://***.example")).toBeInTheDocument();
-    expect(screen.queryByDisplayValue("https://feishu.example")).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue("30")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("20")).toBeInTheDocument();
+    const moduleTabs = screen.getByRole("tablist");
+    for (const label of ["告警设置", "风险规则", "AD 设置"]) {
+      expect(within(moduleTabs).queryByRole("tab", { name: label })).not.toBeInTheDocument();
+    }
+    expect(screen.getByDisplayValue("已配置：https://open.feishu.cn/open-apis/bot/v2/hook/**********oken")).toBeInTheDocument();
+    expect(screen.queryByText("共享收件人列表")).not.toBeInTheDocument();
+    const capacityRule = screen.getByLabelText("容量异常增长规则");
+    expect(within(capacityRule).getByLabelText("容量增长百分比阈值")).toHaveValue(30);
+    expect(within(capacityRule).getByLabelText("容量增长绝对阈值")).toHaveValue(20);
     expect(screen.queryByText("系统设置指标")).not.toBeInTheDocument();
     expect(screen.queryByText("JumpServer 数据源设置")).not.toBeInTheDocument();
     expect(screen.queryByText("Veeam 数据源设置")).not.toBeInTheDocument();
     expect(screen.queryByText("AD 域列表")).not.toBeInTheDocument();
 
-    await switchTab("风险规则");
+    await switchTab("Risk Rules");
     await expectTextPresent("保存规则");
     for (const text of ["备份", "备份问题", "最近一次备份不可用", "严重级别"]) {
       await expectTextPresent(text);
     }
     expect(screen.getByRole("radio", { name: "高" })).toBeChecked();
+    expect(screen.queryByText("启用规则")).not.toBeInTheDocument();
     expect(screen.queryByText("发送设置")).not.toBeInTheDocument();
 
     await switchTab("JumpServer");
@@ -1348,7 +1428,7 @@ describe("Console pages", () => {
     }
     expect(screen.queryByText("JumpServer 数据源设置")).not.toBeInTheDocument();
 
-    await switchTab("AD 设置");
+    await switchTab("Active Directory");
     for (const text of [
       "新增 AD 域",
       "域名",
@@ -1384,15 +1464,9 @@ describe("Console pages", () => {
       "创建分区",
       "清理旧分区",
       "分区总数",
-      "历史分区",
-      "当前分区",
-      "未来分区",
       "总大小",
       "总记录数",
-      "当前分区大小",
-      "平均记录数",
-      "当前记录数",
-      "数据库连接",
+      "健康状态",
       "日核心指标趋势",
       "最近7天的核心指标统计",
       "实例数总量",
@@ -1413,6 +1487,26 @@ describe("Console pages", () => {
     ]) {
       await expectTextPresent(text);
     }
+
+    const metricRegion = screen.getByLabelText("分区指标");
+    expect(within(metricRegion).getByText("分区总数")).toBeInTheDocument();
+    expect(within(metricRegion).getByText("总大小")).toBeInTheDocument();
+    expect(within(metricRegion).getByText("总记录数")).toBeInTheDocument();
+    expect(within(metricRegion).getByText("健康状态")).toBeInTheDocument();
+    expect(within(metricRegion).queryByText("历史分区")).not.toBeInTheDocument();
+    expect(within(metricRegion).queryByText("当前分区")).not.toBeInTheDocument();
+    expect(within(metricRegion).queryByText("未来分区")).not.toBeInTheDocument();
+    expect(within(metricRegion).queryByText("当前分区大小")).not.toBeInTheDocument();
+
+    const chartLegend = screen.getByLabelText("核心指标趋势图例");
+    expect(within(chartLegend).getByLabelText("实例数总量：实例聚合")).toHaveAttribute("data-point-style", "rect");
+    expect(within(chartLegend).getByLabelText("实例日统计数量：实例统计")).toHaveAttribute("data-point-style", "star");
+    expect(within(chartLegend).getByLabelText("数据库数总量：数据库聚合")).toHaveAttribute("data-point-style", "circle");
+    expect(within(chartLegend).getByLabelText("数据库日统计数量：数据库统计")).toHaveAttribute("data-point-style", "triangle");
+
+    expect(screen.getByLabelText("分区状态 历史")).toHaveAttribute("data-status-tone", "muted");
+    expect(screen.getByLabelText("分区状态 当前")).toHaveAttribute("data-status-tone", "success");
+    expect(screen.getByLabelText("分区状态 未来")).toHaveAttribute("data-status-tone", "info");
 
     expect(screen.queryByLabelText("年份")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("月份")).not.toBeInTheDocument();
@@ -1466,7 +1560,7 @@ describe("Console pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "发送飞书测试" }));
     fireEvent.click(screen.getByRole("button", { name: "保存配置" }));
 
-    await switchTab("风险规则");
+    await switchTab("Risk Rules");
     fireEvent.click(screen.getByRole("button", { name: "保存规则" }));
 
     await switchTab("JumpServer");
@@ -1480,7 +1574,7 @@ describe("Console pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "同步 Veeam 备份" }));
     fireEvent.click(screen.getByRole("button", { name: "删除数据源" }));
 
-    await switchTab("AD 设置");
+    await switchTab("Active Directory");
     fireEvent.click(screen.getByRole("button", { name: "编辑AD域 corp" }));
     fireEvent.click(screen.getByRole("button", { name: "保存 AD 域" }));
     fireEvent.click(screen.getByRole("button", { name: "停用 AD 域" }));
@@ -1503,8 +1597,7 @@ describe("Console pages", () => {
         clear_feishu_webhook_url: false,
         global_enabled: true,
         privileged_account_enabled: true,
-        recipients: ["ops@example.com"],
-        shared_recipients_enabled: false
+        recipients: ["ops@example.com"]
       });
       expect(actionMocks.saveRiskRules).toHaveBeenCalledWith([{ rule_key: "backup_issue", enabled: true, severity: "high" }]);
       expect(actionMocks.saveJumpServerSource).toHaveBeenCalledWith({
@@ -1605,6 +1698,18 @@ describe("Console pages", () => {
     expect(screen.getByText("选择标签")).toBeInTheDocument();
     expect(screen.getByText("当前选择")).toBeInTheDocument();
     expect(screen.getByText("10.0.0.1:3306 · MySQL")).toBeInTheDocument();
+    const mysqlGroup = screen.getByRole("button", { name: /数据库类型 MySQL/ });
+    const envGroup = screen.getByRole("button", { name: /标签分类 env/ });
+    expect(mysqlGroup).toHaveAttribute("aria-expanded", "true");
+    expect(envGroup).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(mysqlGroup);
+    expect(mysqlGroup).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(mysqlGroup);
+    expect(mysqlGroup).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(envGroup);
+    expect(envGroup).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(envGroup);
+    expect(envGroup).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.click(await screen.findByLabelText("选择实例 mysql-prod"));
     fireEvent.click(screen.getByLabelText("选择标签 生产"));

@@ -52,6 +52,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -393,7 +394,6 @@ type AlertSettingsFormState = {
   global_enabled: boolean;
   privileged_account_enabled: boolean;
   recipients: string;
-  shared_recipients_enabled: boolean;
 };
 
 type JumpServerFormState = {
@@ -465,8 +465,7 @@ function alertSettingsFormState(settings: Record<string, unknown>): AlertSetting
     feishu_webhook_url: "",
     global_enabled: booleanValue(settings.global_enabled, false),
     privileged_account_enabled: booleanValue(settings.privileged_account_enabled, false),
-    recipients: textList(settings.recipients).join("\n"),
-    shared_recipients_enabled: booleanValue(settings.shared_recipients_enabled, false)
+    recipients: textList(settings.recipients).join("\n")
   };
 }
 
@@ -484,8 +483,7 @@ function alertSettingsPayload(form: AlertSettingsFormState): Record<string, unkn
     feishu_webhook_url: form.feishu_webhook_url.trim(),
     global_enabled: form.global_enabled,
     privileged_account_enabled: form.privileged_account_enabled,
-    recipients: textList(form.recipients),
-    shared_recipients_enabled: form.shared_recipients_enabled
+    recipients: textList(form.recipients)
   };
 }
 
@@ -603,6 +601,25 @@ function maskWebhookUrl(value: unknown): string {
   }
 }
 
+function feishuWebhookDisplay(settings: Record<string, unknown>): string {
+  const masked = asText(settings.feishu_webhook_url_masked, "");
+  if (settings.feishu_webhook_url_configured === true && masked) {
+    return `已配置：${masked}`;
+  }
+  if (settings.feishu_webhook_url_configured === true) {
+    return "已配置";
+  }
+  const raw = asText(settings.feishu_webhook_url, "");
+  if (raw) {
+    return `已配置：${maskWebhookUrl(raw)}`;
+  }
+  return "未配置";
+}
+
+function feishuWebhookConfigured(settings: Record<string, unknown>): boolean {
+  return settings.feishu_webhook_url_configured === true || Boolean(asText(settings.feishu_webhook_url_masked, "")) || Boolean(asText(settings.feishu_webhook_url, ""));
+}
+
 function recordName(value: unknown, fallback = "-"): string {
   return value && typeof value === "object" ? asText((value as Record<string, unknown>).name, fallback) : fallback;
 }
@@ -631,11 +648,11 @@ const severityOptions = [
 type SettingsModule = "alerts" | "risk" | "jumpserver" | "veeam" | "ad";
 
 const settingsModules: Array<{ label: string; value: SettingsModule }> = [
-  { label: "告警设置", value: "alerts" },
-  { label: "风险规则", value: "risk" },
+  { label: "Alerts", value: "alerts" },
+  { label: "Risk Rules", value: "risk" },
   { label: "JumpServer", value: "jumpserver" },
   { label: "Veeam", value: "veeam" },
-  { label: "AD 设置", value: "ad" }
+  { label: "Active Directory", value: "ad" }
 ];
 
 function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapshot: SettingsSnapshot }) {
@@ -701,34 +718,32 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
           {activeModule === "alerts" ? (
           <SettingsCard title="邮件告警" description="SMTP、飞书投递和告警规则。" status={snapshot.alerts.smtp_ready}>
             <SettingsSubsection title="发送设置">
-              <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+              <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
                 <ReadonlyField label="投递通道" value={snapshot.alerts.smtp_ready ? "SMTP" : "未就绪"} />
-                <ReadonlyField label="当前飞书 Webhook" value={maskWebhookUrl(alertSettings.feishu_webhook_url)} />
-                <FormField label="飞书机器人 URL">
-                  <Input placeholder="输入新 Webhook 后替换已保存地址" value={alertForm.feishu_webhook_url} onChange={(event) => setAlertForm((form) => ({ ...form, feishu_webhook_url: event.target.value }))} />
-                </FormField>
                 <FormField label="收件人">
                   <Textarea value={alertForm.recipients} onChange={(event) => setAlertForm((form) => ({ ...form, recipients: event.target.value }))} />
                 </FormField>
-                <FormField label="容量增长百分比阈值">
-                  <Input min={1} type="number" value={alertForm.database_capacity_percent_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_percent_threshold: event.target.value }))} />
-                </FormField>
-                <FormField label="容量增长绝对阈值">
-                  <Input min={1} type="number" value={alertForm.database_capacity_absolute_gb_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_absolute_gb_threshold: event.target.value }))} />
-                </FormField>
               </div>
-              <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
+              <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
                 <SwitchField checked={alertForm.global_enabled} label="启用邮件告警" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, global_enabled: checked }))} />
+                <Button onClick={() => void runAction(sendAlertTestEmail(textList(alertForm.recipients)), { success: "测试邮件已发送" })} size="sm" type="button" variant="outline">
+                  发送测试邮件
+                </Button>
+              </div>
+            </SettingsSubsection>
+
+            <SettingsSubsection title="飞书数据源">
+              <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+                <ReadonlyField label="当前飞书 Webhook" value={feishuWebhookDisplay(alertSettings)} />
+                <FormField label="飞书机器人 URL">
+                  <Input placeholder={feishuWebhookConfigured(alertSettings) ? "已配置，留空表示不修改" : "请输入飞书机器人 URL"} type="password" value={alertForm.feishu_webhook_url} onChange={(event) => setAlertForm((form) => ({ ...form, feishu_webhook_url: event.target.value }))} />
+                </FormField>
                 <SwitchField checked={alertForm.feishu_enabled} label="发送到飞书" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, feishu_enabled: checked }))} />
-                <SwitchField checked={alertForm.shared_recipients_enabled} label="共享收件人列表" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, shared_recipients_enabled: checked }))} />
-                <CheckboxLine checked={alertForm.clear_feishu_webhook_url} label="清空飞书 Webhook" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, clear_feishu_webhook_url: checked }))}>
+                <CheckboxLine checked={alertForm.clear_feishu_webhook_url} label="清空飞书 Webhook" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, clear_feishu_webhook_url: checked, feishu_webhook_url: checked ? "" : form.feishu_webhook_url }))}>
                   清空飞书 Webhook
                 </CheckboxLine>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void runAction(sendAlertTestEmail(textList(alertForm.recipients)), { success: "测试邮件已发送" })} size="sm" type="button">
-                  发送测试邮件
-                </Button>
                 <Button onClick={() => void runAction(sendFeishuTest(alertForm.feishu_webhook_url.trim()), { success: "飞书测试已发送" })} size="sm" type="button" variant="outline">
                   发送飞书测试
                 </Button>
@@ -737,10 +752,39 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 </Button>
               </div>
             </SettingsSubsection>
+
+            <SettingsSubsection title="飞书数据源列表">
+              <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2 max-sm:grid">
+                <div>
+                  <div className="font-medium">飞书机器人</div>
+                  <div className="font-mono text-xs text-muted-foreground">{feishuWebhookDisplay(alertSettings)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {alertForm.feishu_enabled ? "已启用" : "未启用"} · {feishuWebhookConfigured(alertSettings) ? "Webhook 已配置" : "Webhook 未配置"}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge value={alertForm.feishu_enabled && feishuWebhookConfigured(alertSettings)} />
+                  <Button onClick={() => setActiveModule("alerts")} size="sm" type="button" variant="outline">
+                    编辑飞书数据源
+                  </Button>
+                </div>
+              </div>
+            </SettingsSubsection>
+
             <SettingsSubsection title="规则设置">
+              <section aria-label="容量异常增长规则" className="grid gap-3 rounded-md border bg-background p-3">
+                <SwitchField checked={alertForm.database_capacity_enabled} label="容量异常增长" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, database_capacity_enabled: checked }))} />
+                <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+                  <FormField label="容量增长百分比阈值">
+                    <Input min={1} type="number" value={alertForm.database_capacity_percent_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_percent_threshold: event.target.value }))} />
+                  </FormField>
+                  <FormField label="容量增长绝对阈值">
+                    <Input min={1} type="number" value={alertForm.database_capacity_absolute_gb_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_absolute_gb_threshold: event.target.value }))} />
+                  </FormField>
+                </div>
+              </section>
               <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 {[
-                  ["database_capacity_enabled", "容量异常增长"],
                   ["account_sync_failure_enabled", "账户同步异常"],
                   ["database_sync_failure_enabled", "数据库同步异常"],
                   ["cluster_status_enabled", "群集状态"],
@@ -794,11 +838,13 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                       ))}
                     </RadioGroup>
                   </div>
-                  <SwitchField
-                    checked={rule.enabled}
-                    label="启用规则"
-                    onCheckedChange={(enabled) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, enabled } : item)))}
-                  />
+                  <div className="flex justify-end">
+                    <Switch
+                      aria-label={`启用风险规则 ${asText(sourceRule.display_name ?? sourceRule.name, rule.rule_key)}`}
+                      checked={rule.enabled}
+                      onCheckedChange={(enabled) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, enabled } : item)))}
+                    />
+                  </div>
                 </div>
                 );
               })
@@ -1152,7 +1198,7 @@ export function SettingsPage() {
                     <CardDescription>旧版模块导航</CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-2">
-                    {["告警设置", "风险规则", "JumpServer", "Veeam", "AD 设置"].map((label) => (
+                    {["Alerts", "Risk Rules", "JumpServer", "Veeam", "Active Directory"].map((label) => (
                       <Button className="justify-start" key={label} type="button" variant="ghost">
                         {label}
                       </Button>
@@ -1164,13 +1210,12 @@ export function SettingsPage() {
                     <SettingsSubsection title="发送设置">
                       <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
                         <ReadonlyField label="投递通道" value={snapshot.alerts.smtp_ready ? "SMTP" : "未就绪"} />
-                        <ReadonlyField label="飞书机器人 URL" value={alertSettings.feishu_webhook_url} />
+                        <ReadonlyField label="飞书机器人 URL" value={feishuWebhookDisplay(alertSettings)} />
                         <ReadonlyField label="收件人" value={alertSettings.recipients} />
                       </div>
                       <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
                         <ToggleRow label="启用邮件告警" checked={alertSettings.global_enabled} />
                         <ToggleRow label="发送到飞书" checked={alertSettings.feishu_enabled} />
-                        <ToggleRow label="共享收件人列表" checked={alertSettings.shared_recipients_enabled} />
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button

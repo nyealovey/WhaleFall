@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { assignTagsToInstances, removeAllTagsFromInstances } from "@/api/actions";
 import { fetchTagBulkOptions, type TaggableInstanceItem, type TagOptionItem } from "@/api/readOnly";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,55 +122,65 @@ function InstanceGroupList({
     return <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">暂无实例数据</div>;
   }
 
+  const defaultValues = groups.map((group) => `db:${group.key}`);
+
   return (
-    <div className="grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
+    <Accordion className="grid max-h-[32rem] gap-3 overflow-y-auto pr-1" defaultValue={defaultValues} key={defaultValues.join("|")} type="multiple">
       {groups.map((group) => {
         const itemIds = group.items.map((item) => item.id);
+        const groupLabel = dbTypeLabel(group.key);
         return (
-          <section className="rounded-md border bg-card" key={group.key}>
+          <AccordionItem className="rounded-md border bg-card" key={group.key} value={`db:${group.key}`}>
             <div className="flex items-center justify-between gap-3 border-b px-3 py-2">
-              <div className="flex items-center gap-2">
-                <Layers3 aria-hidden size={16} />
-                <Badge variant="outline">{dbTypeLabel(group.key)}</Badge>
-                <span className="text-xs text-muted-foreground">{group.items.length} 个</span>
-              </div>
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <AccordionTrigger
+                aria-label={`数据库类型 ${groupLabel} ${group.items.length} 个`}
+                className="min-w-0 justify-start gap-2 py-0 hover:no-underline"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <Layers3 aria-hidden size={16} />
+                  <Badge variant="outline">{groupLabel}</Badge>
+                  <span className="text-xs text-muted-foreground">{group.items.length} 个</span>
+                </span>
+              </AccordionTrigger>
+              <label className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
                 <Checkbox
-                  aria-label={`选择全部 ${dbTypeLabel(group.key)} 实例`}
+                  aria-label={`选择全部 ${groupLabel} 实例`}
                   checked={groupedSelectionState(selectedIds, itemIds)}
                   onCheckedChange={(checked) => onSelectedIdsChange(toggleMany(selectedIds, itemIds, checked === true))}
                 />
                 全选
               </label>
             </div>
-            <div className="grid">
-              {group.items.map((item) => {
-                const selected = selectedIds.includes(item.id);
-                return (
-                  <label
-                    className={cn(
-                      "grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-accent/40",
-                      selected ? "bg-primary/5 shadow-[inset_3px_0_0_hsl(var(--primary))]" : ""
-                    )}
-                    key={item.id}
-                  >
-                    <Checkbox
-                      aria-label={`选择实例 ${instanceLabel(item)}`}
-                      checked={selected}
-                      onCheckedChange={(checked) => onSelectedIdsChange(toggleNumber(selectedIds, item.id, checked === true))}
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">{instanceLabel(item)}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{instanceMeta(item)}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </section>
+            <AccordionContent className="pb-0">
+              <div className="grid">
+                {group.items.map((item) => {
+                  const selected = selectedIds.includes(item.id);
+                  return (
+                    <label
+                      className={cn(
+                        "grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-accent/40",
+                        selected ? "bg-primary/5 shadow-[inset_3px_0_0_hsl(var(--primary))]" : ""
+                      )}
+                      key={item.id}
+                    >
+                      <Checkbox
+                        aria-label={`选择实例 ${instanceLabel(item)}`}
+                        checked={selected}
+                        onCheckedChange={(checked) => onSelectedIdsChange(toggleNumber(selectedIds, item.id, checked === true))}
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{instanceLabel(item)}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{instanceMeta(item)}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         );
       })}
-    </div>
+    </Accordion>
   );
 }
 
@@ -186,19 +197,26 @@ function TagGroupList({
     return <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">暂无标签数据</div>;
   }
 
+  const defaultValues = groups.map((group) => `tag:${group.key}`);
+
   return (
-    <div className="grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
+    <Accordion className="grid max-h-[32rem] gap-3 overflow-y-auto pr-1" defaultValue={defaultValues} key={defaultValues.join("|")} type="multiple">
       {groups.map((group) => {
         const itemIds = group.items.map((item) => item.id);
         return (
-          <section className="rounded-md border bg-card" key={group.key}>
+          <AccordionItem className="rounded-md border bg-card" key={group.key} value={`tag:${group.key}`}>
             <div className="flex items-center justify-between gap-3 border-b px-3 py-2">
-              <div className="flex items-center gap-2">
-                <Layers3 aria-hidden size={16} />
-                <Badge variant="outline">{group.key}</Badge>
-                <span className="text-xs text-muted-foreground">{group.items.length} 个</span>
-              </div>
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <AccordionTrigger
+                aria-label={`标签分类 ${group.key} ${group.items.length} 个`}
+                className="min-w-0 justify-start gap-2 py-0 hover:no-underline"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <Layers3 aria-hidden size={16} />
+                  <Badge variant="outline">{group.key}</Badge>
+                  <span className="text-xs text-muted-foreground">{group.items.length} 个</span>
+                </span>
+              </AccordionTrigger>
+              <label className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
                 <Checkbox
                   aria-label={`选择全部 ${group.key} 标签`}
                   checked={groupedSelectionState(selectedIds, itemIds)}
@@ -207,36 +225,38 @@ function TagGroupList({
                 全选
               </label>
             </div>
-            <div className="grid">
-              {group.items.map((item) => {
-                const selected = selectedIds.includes(item.id);
-                const active = item.is_active !== false;
-                return (
-                  <label
-                    className={cn(
-                      "grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-accent/40",
-                      selected ? "bg-primary/5 shadow-[inset_3px_0_0_hsl(var(--primary))]" : ""
-                    )}
-                    key={item.id}
-                  >
-                    <Checkbox
-                      aria-label={`选择标签 ${tagLabel(item)}`}
-                      checked={selected}
-                      onCheckedChange={(checked) => onSelectedIdsChange(toggleNumber(selectedIds, item.id, checked === true))}
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">{tagLabel(item)}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{item.name ?? "-"}</span>
-                    </span>
-                    <Badge variant={active ? "default" : "secondary"}>{active ? "启用" : "停用"}</Badge>
-                  </label>
-                );
-              })}
-            </div>
-          </section>
+            <AccordionContent className="pb-0">
+              <div className="grid">
+                {group.items.map((item) => {
+                  const selected = selectedIds.includes(item.id);
+                  const active = item.is_active !== false;
+                  return (
+                    <label
+                      className={cn(
+                        "grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-accent/40",
+                        selected ? "bg-primary/5 shadow-[inset_3px_0_0_hsl(var(--primary))]" : ""
+                      )}
+                      key={item.id}
+                    >
+                      <Checkbox
+                        aria-label={`选择标签 ${tagLabel(item)}`}
+                        checked={selected}
+                        onCheckedChange={(checked) => onSelectedIdsChange(toggleNumber(selectedIds, item.id, checked === true))}
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{tagLabel(item)}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{item.name ?? "-"}</span>
+                      </span>
+                      <Badge variant={active ? "default" : "secondary"}>{active ? "启用" : "停用"}</Badge>
+                    </label>
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         );
       })}
-    </div>
+    </Accordion>
   );
 }
 

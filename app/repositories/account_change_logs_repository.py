@@ -135,6 +135,70 @@ class AccountChangeLogsRepository:
             raise NotFoundError("变更日志不存在")
         return cast(AccountChangeLog, log_entry)
 
+    def get_log_detail_row(
+        self, log_id: int
+    ) -> tuple[AccountChangeLog, str | None, str | None, int | None]:
+        """按 log_id 获取详情日志和列表一致的展示实例字段."""
+        instance_name_column = cast(ColumnElement[str], Instance.name)
+        instance_host_column = cast(ColumnElement[str], Instance.host)
+        ag_listener_name_column = cast(ColumnElement[str], SQLServerAvailabilityGroup.listener_name)
+        ag_name_column = cast(ColumnElement[str], SQLServerAvailabilityGroup.name)
+        ag_listener_host_column = cast(ColumnElement[str], SQLServerAvailabilityGroup.listener_host)
+        account_id_column = cast(ColumnElement[int], AccountPermission.instance_account_id)
+        display_instance_name_column = case(
+            (
+                AccountChangeLog.owner_type == "sqlserver_ag",
+                func.coalesce(ag_listener_name_column, ag_name_column),
+            ),
+            else_=instance_name_column,
+        )
+        display_instance_host_column = case(
+            (
+                AccountChangeLog.owner_type == "sqlserver_ag",
+                ag_listener_host_column,
+            ),
+            else_=instance_host_column,
+        )
+
+        join_condition = and_(
+            AccountPermission.instance_id == AccountChangeLog.instance_id,
+            AccountPermission.db_type == AccountChangeLog.db_type,
+            AccountPermission.username == AccountChangeLog.username,
+            AccountPermission.owner_type == AccountChangeLog.owner_type,
+            or_(
+                AccountPermission.owner_id == AccountChangeLog.owner_id,
+                and_(AccountPermission.owner_id.is_(None), AccountChangeLog.owner_id.is_(None)),
+            ),
+        )
+
+        row = (
+            AccountChangeLog.query.join(Instance, Instance.id == AccountChangeLog.instance_id)
+            .outerjoin(
+                SQLServerAvailabilityGroup,
+                and_(
+                    AccountChangeLog.owner_type == "sqlserver_ag",
+                    SQLServerAvailabilityGroup.id == AccountChangeLog.owner_id,
+                ),
+            )
+            .outerjoin(AccountPermission, join_condition)
+            .add_columns(
+                display_instance_name_column.label("instance_name"),
+                display_instance_host_column.label("instance_host"),
+                account_id_column.label("account_id"),
+            )
+            .filter(AccountChangeLog.id == log_id)
+            .first()
+        )
+        if not row:
+            raise NotFoundError("变更日志不存在")
+        log_entry, instance_name, instance_host, account_id = row
+        return (
+            cast(AccountChangeLog, log_entry),
+            str(instance_name) if instance_name else None,
+            str(instance_host) if instance_host else None,
+            int(account_id) if account_id is not None else None,
+        )
+
     def get_statistics(self, *, hours: int | None) -> dict[str, int]:
         """获取统计汇总."""
         change_time_column = cast("ColumnElement[Any]", AccountChangeLog.change_time)

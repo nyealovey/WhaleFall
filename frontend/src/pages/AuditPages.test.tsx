@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -11,12 +11,21 @@ vi.mock("@/api/audit", () => ({
   fetchAccountChangeLogDetail: vi.fn(async () => ({
     log: {
       id: 2,
-      username: "CBRAIN",
-      change_type: "add",
+      username: "ecp_admin",
+      change_type: "modify_privilege",
       change_time: "2026-06-11 10:00:00",
       status: "success",
-      message: "新增账户,赋予 5 项权限",
-      privilege_diff: [{ privilege: "CREATE SESSION", action: "added" }],
+      message: "权限更新:新增 4 项授权",
+      db_type: "sqlserver",
+      instance_info: {
+        name: "gf-mssqlag-01",
+        host: "10.10.103.185"
+      },
+      privilege_diff: [
+        { privilege: "db_datareader", action: "added" },
+        { privilege: "db_owner", action: "removed" },
+        { privilege: "public", action: "unchanged" }
+      ],
       other_diff: [{ field: "status", after: "OPEN" }],
       session_id: "session_123"
     }
@@ -148,7 +157,7 @@ describe("AuditPages", () => {
     expect(screen.getByText("新增账户,赋予 5 项权限")).not.toHaveAttribute("title");
     expect(screen.getAllByText("ORACLE").length).toBeGreaterThan(0);
     for (const text of ["变更总数", "成功率", "75%", "失败变更", "影响账号数"]) {
-      expect(screen.getAllByText(text).length).toBeGreaterThan(0);
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
     }
     expect(screen.queryByText("Account audit")).not.toBeInTheDocument();
     expect(screen.queryByText("查看最近 24 小时账户变更统计、首屏变更日志和变更详情。")).not.toBeInTheDocument();
@@ -208,14 +217,14 @@ describe("AuditPages", () => {
     expect(screen.getByRole("button", { name: "查看详情 2" })).toBeInTheDocument();
   });
 
-  it("does not show account change metrics as a hard-coded 24h window when all time is selected", async () => {
+  it("does not show account change metric cards above the list", async () => {
     renderWithQueryClient(<AccountChangeLogsPage />);
 
     await screen.findByRole("heading", { name: "变更历史" });
 
-    expect(await screen.findByText("人均变更 2 · 全部")).toBeInTheDocument();
-    expect(screen.getByText("变更/小时 -")).toBeInTheDocument();
-    expect(screen.queryByText("人均变更 2 · 24h")).not.toBeInTheDocument();
+    expect(screen.queryByText("人均变更 2 · 全部")).not.toBeInTheDocument();
+    expect(screen.queryByText("变更/小时 -")).not.toBeInTheDocument();
+    expect(screen.queryByText("成功/账号 1.5")).not.toBeInTheDocument();
   });
 
   it("opens account change log detail in a React dialog", async () => {
@@ -225,8 +234,16 @@ describe("AuditPages", () => {
     fireEvent.click(screen.getByRole("button", { name: "查看详情 2" }));
 
     expect(await screen.findByRole("dialog", { name: "变更详情 #2" })).toBeInTheDocument();
-    expect(screen.getAllByText("CBRAIN").length).toBeGreaterThan(0);
-    expect(await screen.findByText(/CREATE SESSION/)).toBeInTheDocument();
-    expect(await screen.findByText(/status/)).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "变更详情 #2" });
+    expect(await within(dialog).findByText("ecp_admin")).toBeInTheDocument();
+    expect(await within(dialog).findByText("gf-mssqlag-01")).toBeInTheDocument();
+    expect(await within(dialog).findByText("10.10.103.185")).toBeInTheDocument();
+    expect(within(dialog).getByText("新增权限")).toBeInTheDocument();
+    expect(within(dialog).getByText("移除权限")).toBeInTheDocument();
+    expect(within(dialog).getByText("未变化")).toBeInTheDocument();
+    expect(within(dialog).getByText("db_datareader")).toBeInTheDocument();
+    expect(within(dialog).getByText("db_owner")).toBeInTheDocument();
+    expect(within(dialog).getByText("public")).toBeInTheDocument();
+    expect(within(dialog).getByText(/status/)).toBeInTheDocument();
   });
 });

@@ -114,7 +114,19 @@ class HistoryAccountChangeLogsReadService:
 
     def get_log_detail(self, log_id: int) -> dict[str, object]:
         """获取单条变更日志详情."""
-        log_entry = self._repository.get_log(log_id)
+        detail_row_getter = getattr(self._repository, "get_log_detail_row", None)
+        if callable(detail_row_getter):
+            log_entry, instance_name, instance_host, account_id = detail_row_getter(log_id)
+        else:
+            log_entry = self._repository.get_log(log_id)
+            instance = getattr(log_entry, "instance", None)
+            instance_name = (
+                str(getattr(log_entry, "instance_name", "") or getattr(instance, "name", "") or "") or None
+            )
+            instance_host = (
+                str(getattr(log_entry, "instance_host", "") or getattr(instance, "host", "") or "") or None
+            )
+            account_id = getattr(log_entry, "account_id", None)
         change_type = str(getattr(log_entry, "change_type", "") or "")
 
         raw_privilege_diff = getattr(log_entry, "privilege_diff", None)
@@ -142,7 +154,10 @@ class HistoryAccountChangeLogsReadService:
 
         payload: dict[str, object] = {
             "id": int(getattr(log_entry, "id", 0) or 0),
+            "account_id": int(account_id) if account_id is not None else None,
             "instance_id": int(getattr(log_entry, "instance_id", 0) or 0),
+            "instance_name": instance_name,
+            "instance_host": instance_host,
             "db_type": str(getattr(log_entry, "db_type", "") or ""),
             "username": username,
             "change_type": change_type,

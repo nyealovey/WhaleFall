@@ -10,21 +10,26 @@ import {
   Database,
   Eye,
   ExternalLink,
+  Globe2,
   HardDrive,
   History,
+  KeyRound,
   Layers3,
-  ListChecks,
   Pause,
   Pencil,
   Play,
   PlugZap,
   Plus,
   RotateCcw,
+  Server,
   Settings,
+  ShieldCheck,
   Tags,
   Trash2,
   UserCog,
-  Zap
+  UserCheck,
+  Zap,
+  type LucideIcon
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -114,7 +119,6 @@ import {
   updateSqlServerCluster,
   updateTag,
   updateUser,
-  validateAccountClassificationRuleExpression,
   updateVeeamSource,
   type AccountClassificationRuleWritePayload,
   type AccountClassificationWritePayload,
@@ -301,26 +305,367 @@ function ClassificationFormDialog({
   );
 }
 
-function formatRuleExpression(value: unknown): string {
-  if (isEmptyDetailValue(value)) {
-    return "{}";
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  return JSON.stringify(value, null, 2);
+type PermissionOptionItem = {
+  description?: string | null;
+  introduced_in_major?: string | null;
+  name?: string | null;
+  permission_name?: string | null;
+};
+
+type PermissionSelection = Record<string, string[]>;
+
+type PermissionDefinition = {
+  colorClass: string;
+  emptyLabel: string;
+  fn: "has_capability" | "has_privilege" | "has_role";
+  icon: LucideIcon;
+  key: string;
+  scope?: string;
+  sourceKey: string;
+  title: string;
+};
+
+type PermissionCategory = PermissionDefinition & {
+  items: PermissionOptionItem[];
+};
+
+type DslFunctionCall = {
+  args: Record<string, unknown>;
+  fn: string;
+};
+
+function normalizeRuleOperator(value: unknown): "AND" | "OR" {
+  return String(value ?? "OR").toUpperCase() === "AND" ? "AND" : "OR";
 }
 
-function parseRuleExpression(value: string): unknown {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return {};
+function isDslV4Expression(value: unknown): value is { expr: unknown; version: 4 } {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value) && (value as Record<string, unknown>).version === 4);
+}
+
+function extractDslFunctionCalls(ruleExpression: unknown): DslFunctionCall[] {
+  const calls: DslFunctionCall[] = [];
+  if (!isDslV4Expression(ruleExpression)) {
+    return calls;
   }
-  try {
-    return JSON.parse(trimmed) as unknown;
-  } catch {
-    return trimmed;
+
+  function walk(node: unknown) {
+    if (!node || typeof node !== "object" || Array.isArray(node)) {
+      return;
+    }
+    const record = node as Record<string, unknown>;
+    if (typeof record.fn === "string") {
+      calls.push({
+        fn: record.fn,
+        args: record.args && typeof record.args === "object" && !Array.isArray(record.args) ? (record.args as Record<string, unknown>) : {}
+      });
+      return;
+    }
+    if (Array.isArray(record.args)) {
+      record.args.forEach(walk);
+    }
   }
+
+  walk(ruleExpression.expr);
+  return calls;
+}
+
+function inferRuleOperator(ruleExpression: unknown, fallback?: string | null): "AND" | "OR" {
+  const normalizedFallback = normalizeRuleOperator(fallback);
+  if (!isDslV4Expression(ruleExpression) || !ruleExpression.expr || typeof ruleExpression.expr !== "object") {
+    if (ruleExpression && typeof ruleExpression === "object" && !Array.isArray(ruleExpression)) {
+      return normalizeRuleOperator((ruleExpression as Record<string, unknown>).operator ?? fallback);
+    }
+    return normalizedFallback;
+  }
+  const rootOp = normalizeRuleOperator((ruleExpression.expr as Record<string, unknown>).op);
+  return rootOp || normalizedFallback;
+}
+
+function buildDslFn(fn: PermissionDefinition["fn"], args: Record<string, unknown>) {
+  return { fn, args };
+}
+
+function buildDslOp(op: "AND" | "OR", args: unknown[]) {
+  return { op, args };
+}
+
+function buildDslV4Rule(expr: unknown) {
+  return { version: 4, expr };
+}
+
+function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] {
+  switch (dbType) {
+    case "mysql":
+      return [
+        {
+          key: "global_privileges",
+          sourceKey: "mysql_global_privileges",
+          title: "全局权限",
+          emptyLabel: "暂无全局权限",
+          icon: Globe2,
+          colorClass: "text-primary",
+          fn: "has_privilege",
+          scope: "global"
+        },
+        {
+          key: "database_privileges",
+          sourceKey: "mysql_database_privileges",
+          title: "数据库权限",
+          emptyLabel: "暂无数据库权限",
+          icon: Database,
+          colorClass: "text-emerald-700",
+          fn: "has_privilege",
+          scope: "database"
+        }
+      ];
+    case "postgresql":
+      return [
+        {
+          key: "predefined_roles",
+          sourceKey: "postgresql_predefined_roles",
+          title: "预定义角色",
+          emptyLabel: "暂无预定义角色",
+          icon: UserCheck,
+          colorClass: "text-primary",
+          fn: "has_role"
+        },
+        {
+          key: "role_attributes",
+          sourceKey: "postgresql_role_attributes",
+          title: "角色属性",
+          emptyLabel: "暂无角色属性",
+          icon: ShieldCheck,
+          colorClass: "text-emerald-700",
+          fn: "has_capability"
+        },
+        {
+          key: "database_privileges",
+          sourceKey: "postgresql_database_privileges",
+          title: "数据库权限",
+          emptyLabel: "暂无数据库权限",
+          icon: Database,
+          colorClass: "text-amber-700",
+          fn: "has_privilege",
+          scope: "database"
+        }
+      ];
+    case "sqlserver":
+      return [
+        {
+          key: "server_roles",
+          sourceKey: "sqlserver_server_roles",
+          title: "服务器角色",
+          emptyLabel: "暂无服务器角色",
+          icon: UserCog,
+          colorClass: "text-sky-700",
+          fn: "has_role"
+        },
+        {
+          key: "server_permissions",
+          sourceKey: "sqlserver_server_permissions",
+          title: "服务器权限",
+          emptyLabel: "暂无服务器权限",
+          icon: Server,
+          colorClass: "text-amber-700",
+          fn: "has_privilege",
+          scope: "server"
+        },
+        {
+          key: "database_roles",
+          sourceKey: "sqlserver_database_roles",
+          title: "数据库角色",
+          emptyLabel: "暂无数据库角色",
+          icon: Database,
+          colorClass: "text-emerald-700",
+          fn: "has_role"
+        },
+        {
+          key: "database_privileges",
+          sourceKey: "sqlserver_database_permissions",
+          title: "数据库权限",
+          emptyLabel: "暂无数据库权限",
+          icon: KeyRound,
+          colorClass: "text-primary",
+          fn: "has_privilege",
+          scope: "database"
+        }
+      ];
+    case "oracle":
+      return [
+        {
+          key: "roles",
+          sourceKey: "oracle_roles",
+          title: "角色",
+          emptyLabel: "暂无角色",
+          icon: UserCog,
+          colorClass: "text-primary",
+          fn: "has_role"
+        },
+        {
+          key: "system_privileges",
+          sourceKey: "oracle_system_privileges",
+          title: "系统权限",
+          emptyLabel: "暂无系统权限",
+          icon: Settings,
+          colorClass: "text-emerald-700",
+          fn: "has_privilege",
+          scope: "server"
+        }
+      ];
+    default:
+      return [];
+  }
+}
+
+function permissionItemName(item: PermissionOptionItem): string {
+  return String(item.name ?? item.permission_name ?? "").trim();
+}
+
+function normalizePermissionItems(value: unknown): PermissionOptionItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return { name: item };
+      }
+      if (item && typeof item === "object") {
+        return item as PermissionOptionItem;
+      }
+      return null;
+    })
+    .filter((item): item is PermissionOptionItem => Boolean(item && permissionItemName(item)));
+}
+
+function permissionCategoriesForDbType(dbType: string, permissions: Record<string, unknown> | undefined): PermissionCategory[] {
+  const source = permissions ?? {};
+  return permissionDefinitionsForDbType(dbType).map((definition) => ({
+    ...definition,
+    items: normalizePermissionItems(source[definition.sourceKey]).sort((left, right) =>
+      permissionItemName(left).localeCompare(permissionItemName(right), undefined, { sensitivity: "base" })
+    )
+  }));
+}
+
+function buildPermissionSelectionFromExpression(dbType: string, ruleExpression: unknown): PermissionSelection {
+  const definitions = permissionDefinitionsForDbType(dbType);
+  const selected: PermissionSelection = Object.fromEntries(definitions.map((definition) => [definition.key, []]));
+
+  if (isDslV4Expression(ruleExpression)) {
+    extractDslFunctionCalls(ruleExpression).forEach((call) => {
+      const name = typeof call.args.name === "string" ? call.args.name : "";
+      if (!name) {
+        return;
+      }
+      definitions.forEach((definition) => {
+        const scope = typeof call.args.scope === "string" ? call.args.scope.toLowerCase() : "";
+        const matchesFn = call.fn === definition.fn;
+        const matchesScope = !definition.scope || definition.scope === scope;
+        if (matchesFn && matchesScope && !selected[definition.key]?.includes(name)) {
+          selected[definition.key] = [...(selected[definition.key] ?? []), name];
+        }
+      });
+    });
+    return selected;
+  }
+
+  if (ruleExpression && typeof ruleExpression === "object" && !Array.isArray(ruleExpression)) {
+    definitions.forEach((definition) => {
+      const value = (ruleExpression as Record<string, unknown>)[definition.key];
+      selected[definition.key] = Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+    });
+  }
+  return selected;
+}
+
+function selectedPermissionCount(selection: PermissionSelection): number {
+  return Object.values(selection).reduce((sum, values) => sum + values.length, 0);
+}
+
+function buildPermissionExpression(dbType: string, selection: PermissionSelection, operator: "AND" | "OR") {
+  const groups = permissionDefinitionsForDbType(dbType).flatMap((definition) => {
+    const nodes = (selection[definition.key] ?? []).map((name) => {
+      const args: Record<string, unknown> = { name };
+      if (definition.scope) {
+        args.scope = definition.scope;
+      }
+      return buildDslFn(definition.fn, args);
+    });
+    return nodes.length > 0 ? [buildDslOp(operator, nodes)] : [];
+  });
+
+  if (groups.length === 0) {
+    return buildDslV4Rule(buildDslOp(operator, []));
+  }
+  const rootOperator = dbType === "mysql" && groups.length > 1 ? "AND" : operator;
+  return buildDslV4Rule(groups.length === 1 ? groups[0] : buildDslOp(rootOperator, groups));
+}
+
+function togglePermissionSelection(selection: PermissionSelection, categoryKey: string, itemName: string, checked: boolean): PermissionSelection {
+  const existing = selection[categoryKey] ?? [];
+  const nextValues = checked ? Array.from(new Set([...existing, itemName])) : existing.filter((item) => item !== itemName);
+  return { ...selection, [categoryKey]: nextValues };
+}
+
+function PermissionSelectionPanel({
+  categories,
+  isLoading,
+  onToggle,
+  selection
+}: {
+  categories: PermissionCategory[];
+  isLoading: boolean;
+  onToggle: (categoryKey: string, itemName: string, checked: boolean) => void;
+  selection: PermissionSelection;
+}) {
+  if (isLoading) {
+    return <Skeleton className="h-40 w-full" />;
+  }
+  if (categories.length === 0) {
+    return <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">请选择数据库类型后加载权限项</div>;
+  }
+  return (
+    <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
+      {categories.map((category) => {
+        const Icon = category.icon;
+        const selected = new Set(selection[category.key] ?? []);
+        return (
+          <section className="rounded-md border bg-background p-3" key={category.key}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Icon aria-hidden className={category.colorClass} size={18} />
+                <span>{category.title}</span>
+              </div>
+              <Badge variant="secondary">{formatNumber(selected.size)}/{formatNumber(category.items.length)}</Badge>
+            </div>
+            <div className="grid max-h-56 gap-2 overflow-y-auto pr-1">
+              {category.items.length > 0 ? (
+                category.items.map((item) => {
+                  const name = permissionItemName(item);
+                  return (
+                    <CheckboxLine
+                      checked={selected.has(name)}
+                      key={`${category.key}:${name}`}
+                      label={`选择权限 ${name}`}
+                      onCheckedChange={(checked) => onToggle(category.key, name, checked)}
+                    >
+                      <span className="grid gap-0.5">
+                        <span className="font-semibold">{name}</span>
+                        <span className="text-xs text-muted-foreground">{item.description || category.title}</span>
+                      </span>
+                    </CheckboxLine>
+                  );
+                })
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{category.emptyLabel}</div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
 }
 
 function RuleFormDialog({
@@ -340,29 +685,38 @@ function RuleFormDialog({
   const [ruleName, setRuleName] = useState(item?.rule_name ?? "");
   const [classificationId, setClassificationId] = useState(String(defaultClassificationId));
   const [dbType, setDbType] = useState(item?.db_type ?? "mysql");
-  const [operator, setOperator] = useState(item?.operator ?? "any");
-  const [ruleExpression, setRuleExpression] = useState(formatRuleExpression(item?.rule_expression));
+  const [operator, setOperator] = useState<"AND" | "OR">(inferRuleOperator(item?.rule_expression, item?.operator));
+  const [selectedPermissions, setSelectedPermissions] = useState<PermissionSelection>(() =>
+    buildPermissionSelectionFromExpression(item?.db_type ?? "mysql", item?.rule_expression)
+  );
   const [isActive, setIsActive] = useState(item?.is_active ?? true);
-  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
   const title = item ? `编辑规则 ${item.rule_name}` : "新建规则";
+  const permissionsQuery = useQuery({
+    queryKey: ["read-only", "account-classification-permissions", dbType],
+    queryFn: () => fetchAccountClassificationPermissions(dbType),
+    enabled: open && Boolean(dbType)
+  });
+  const permissionCategories = permissionCategoriesForDbType(dbType, permissionsQuery.data?.permissions);
 
-  function handleValidateExpression() {
-    const parsedExpression = parseRuleExpression(ruleExpression);
-    void runAction(validateAccountClassificationRuleExpression(parsedExpression), { success: "规则表达式校验通过" }).then((result) => {
-      const validated = (result as { rule_expression?: unknown }).rule_expression ?? parsedExpression;
-      setRuleExpression(formatRuleExpression(validated));
-      setValidationMessage("规则表达式校验通过");
-    });
+  function handleDbTypeChange(nextDbType: string) {
+    setDbType(nextDbType);
+    setSelectedPermissions({});
+    setFormMessage(null);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (selectedPermissionCount(selectedPermissions) === 0) {
+      setFormMessage("请至少选择一个权限");
+      return;
+    }
     const payload: AccountClassificationRuleWritePayload = {
       rule_name: ruleName.trim(),
       classification_id: numberFromInput(classificationId, defaultClassificationId),
       db_type: dbType,
       operator,
-      rule_expression: parseRuleExpression(ruleExpression),
+      rule_expression: buildPermissionExpression(dbType, selectedPermissions, operator),
       is_active: isActive
     };
     if (item) {
@@ -374,12 +728,19 @@ function RuleFormDialog({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="w-[min(calc(100vw-2rem),44rem)]">
+      <DialogContent className="max-h-[calc(100vh-2rem)] w-[min(calc(100vw-2rem),74rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>维护分类规则的数据库类型、匹配逻辑和 DSL 表达式。</DialogDescription>
+          <DialogDescription>按照旧版方式选择数据库类型、匹配逻辑和需要匹配的权限。</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={handleSubmit}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Badge variant="secondary">
+              <Settings aria-hidden size={14} />
+              <span>规则配置</span>
+            </Badge>
+            <Badge variant="outline">{item ? "编辑" : "新建"}</Badge>
+          </div>
           <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
             <FormField label="规则名称">
               <Input onChange={(event) => setRuleName(event.target.value)} required value={ruleName} />
@@ -387,47 +748,61 @@ function RuleFormDialog({
             <FormField label="账户分类">
               <SelectControl
                 label="账户分类"
+                disabled={Boolean(item)}
                 onValueChange={setClassificationId}
                 options={classifications.map((classification) => ({ label: classification.display_name, value: String(classification.id) }))}
                 value={classificationId}
               />
+              {item ? <p className="text-xs text-muted-foreground">如需调整分类，请重新创建规则</p> : null}
             </FormField>
             <FormField label="数据库类型">
               <SelectControl
                 label="数据库类型"
-                onValueChange={setDbType}
+                disabled={Boolean(item)}
+                onValueChange={handleDbTypeChange}
                 options={[
-                  { label: "mysql", value: "mysql" },
-                  { label: "postgresql", value: "postgresql" },
-                  { label: "sqlserver", value: "sqlserver" },
-                  { label: "oracle", value: "oracle" }
+                  { label: "MySQL", value: "mysql" },
+                  { label: "PostgreSQL", value: "postgresql" },
+                  { label: "SQL Server", value: "sqlserver" },
+                  { label: "Oracle", value: "oracle" }
                 ]}
                 value={dbType}
               />
+              {item ? <p className="text-xs text-muted-foreground">如需调整数据库类型，请重新创建规则</p> : null}
             </FormField>
             <FormField label="匹配逻辑">
               <SelectControl
                 label="匹配逻辑"
-                onValueChange={setOperator}
+                onValueChange={(value) => setOperator(normalizeRuleOperator(value))}
                 options={[
-                  { label: "any", value: "any" },
-                  { label: "all", value: "all" }
+                  { label: "OR · 任一条件满足", value: "OR" },
+                  { label: "AND · 所有条件满足", value: "AND" }
                 ]}
                 value={operator}
               />
+              <p className="text-xs text-muted-foreground">用于决定权限条件的组合方式</p>
             </FormField>
             <ActiveField checked={isActive} onCheckedChange={setIsActive} />
           </div>
-          <FormField label="规则表达式">
-            <Textarea className="min-h-32 font-mono text-xs" onChange={(event) => setRuleExpression(event.target.value)} value={ruleExpression} />
-          </FormField>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Button type="button" variant="outline" onClick={handleValidateExpression}>
-              <ListChecks aria-hidden size={16} />
-              <span>校验表达式</span>
-            </Button>
-            {validationMessage ? <span className="text-sm text-muted-foreground">{validationMessage}</span> : null}
-          </div>
+          <section className="grid gap-3 rounded-md border bg-secondary/10 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldCheck aria-hidden size={18} />
+                <span>权限配置</span>
+              </div>
+              <span className="text-sm text-muted-foreground">已选择 {formatNumber(selectedPermissionCount(selectedPermissions))} 项权限</span>
+            </div>
+            <PermissionSelectionPanel
+              categories={permissionCategories}
+              isLoading={permissionsQuery.isLoading}
+              onToggle={(categoryKey, itemName, checked) => {
+                setSelectedPermissions((current) => togglePermissionSelection(current, categoryKey, itemName, checked));
+                setFormMessage(null);
+              }}
+              selection={selectedPermissions}
+            />
+          </section>
+          {formMessage ? <Alert variant="destructive"><AlertCircle aria-hidden size={16} /><AlertDescription>{formMessage}</AlertDescription></Alert> : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
@@ -885,34 +1260,74 @@ const DEFAULT_CLASSIFICATION_FILTERS: ClassificationFiltersState = {
   ruleStatus: "active"
 };
 
-function buildTrendChartData(points: ClassificationStatisticsSnapshot["trends"]["series"][number]["points"]): Array<Record<string, string | number>> {
-  return points.map((point, index) => ({
-    label: point.period_start ?? point.period_end ?? String(index + 1),
-    value: asNumber(point.value ?? point.value_avg ?? point.value_sum)
+const classificationTrendPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "#6f7f95", "#c49a4a", "#d16f5f"];
+
+type ClassificationTrendSeries = {
+  color: string;
+  key: string;
+  label: string;
+  points: ClassificationStatisticsSnapshot["trends"]["series"][number]["points"];
+};
+
+function selectedTrendSeries(
+  snapshot: ClassificationStatisticsSnapshot,
+  filters: ClassificationFiltersState
+): ClassificationTrendSeries[] {
+  if (filters.ruleId && snapshot.selectedRuleTrend) {
+    return [
+      {
+        color: "var(--chart-1)",
+        key: "value",
+        label: snapshot.rulesOverview?.rules.find((rule) => String(rule.rule_id) === filters.ruleId)?.rule_name ?? `规则 #${filters.ruleId}`,
+        points: snapshot.selectedRuleTrend
+      }
+    ];
+  }
+  if (filters.classificationId && snapshot.selectedClassificationTrend) {
+    return [
+      {
+        color: "var(--chart-1)",
+        key: "value",
+        label: snapshot.trends.series.find((series) => String(series.classification_id) === filters.classificationId)?.classification_name ?? `分类 #${filters.classificationId}`,
+        points: snapshot.selectedClassificationTrend
+      }
+    ];
+  }
+  return snapshot.trends.series.map((series, index) => ({
+    color: classificationTrendPalette[index % classificationTrendPalette.length] ?? "var(--chart-1)",
+    key: `series_${index}`,
+    label: series.classification_name,
+    points: series.points
   }));
 }
 
-function selectedTrendPoints(
-  snapshot: ClassificationStatisticsSnapshot,
-  filters: ClassificationFiltersState
-): ClassificationStatisticsSnapshot["trends"]["series"][number]["points"] {
-  if (filters.ruleId && snapshot.selectedRuleTrend) {
-    return snapshot.selectedRuleTrend;
-  }
-  if (filters.classificationId && snapshot.selectedClassificationTrend) {
-    return snapshot.selectedClassificationTrend;
-  }
-  return snapshot.trends.series[0]?.points ?? [];
-}
-
-function selectedTrendName(snapshot: ClassificationStatisticsSnapshot, filters: ClassificationFiltersState): string | null {
+function trendModeLabel(filters: ClassificationFiltersState): string {
   if (filters.ruleId) {
-    return snapshot.rulesOverview?.rules.find((rule) => String(rule.rule_id) === filters.ruleId)?.rule_name ?? `规则 #${filters.ruleId}`;
+    return "规则趋势";
   }
   if (filters.classificationId) {
-    return snapshot.trends.series.find((series) => String(series.classification_id) === filters.classificationId)?.classification_name ?? `分类 #${filters.classificationId}`;
+    return "单分类";
   }
-  return snapshot.trends.series[0]?.classification_name ?? null;
+  return "全部分类";
+}
+
+function buildMultiTrendChartData(
+  buckets: ClassificationStatisticsSnapshot["trends"]["buckets"],
+  seriesList: ClassificationTrendSeries[]
+): Array<Record<string, string | number>> {
+  const rowCount = Math.max(buckets.length, ...seriesList.map((series) => series.points.length), 0);
+  return Array.from({ length: rowCount }, (_, index) => {
+    const firstPoint = seriesList.find((series) => series.points[index])?.points[index];
+    const bucket = buckets[index];
+    const row: Record<string, string | number> = {
+      label: asText(bucket?.period_start ?? bucket?.period_end ?? firstPoint?.period_start ?? firstPoint?.period_end, String(index + 1))
+    };
+    seriesList.forEach((series) => {
+      const point = series.points[index];
+      row[series.key] = asNumber(point?.value ?? point?.value_avg ?? point?.value_sum);
+    });
+    return row;
+  });
 }
 
 function buildClassificationOptions(snapshot: ClassificationStatisticsSnapshot): Array<{ value: string; label: string }> {
@@ -922,9 +1337,10 @@ function buildClassificationOptions(snapshot: ClassificationStatisticsSnapshot):
   }));
 }
 
-function trendCoverageLabel(snapshot: ClassificationStatisticsSnapshot, points: ClassificationStatisticsSnapshot["trends"]["series"][number]["points"]): string {
-  const total = snapshot.trends.buckets.length || points.length;
-  const covered = points.length;
+function trendCoverageLabel(snapshot: ClassificationStatisticsSnapshot, seriesList: ClassificationTrendSeries[]): string {
+  const maxPointCount = Math.max(...seriesList.map((series) => series.points.length), 0);
+  const total = snapshot.trends.buckets.length || maxPointCount;
+  const covered = maxPointCount;
   return `覆盖 ${formatNumber(covered)}/${formatNumber(total)} 天`;
 }
 
@@ -1157,7 +1573,6 @@ export function ClassificationStatisticsPage() {
     queryKey: ["read-only", "classification-account-scopes", draftFilters.dbType],
     queryFn: () => fetchAccountScopeOptions(draftFilters.dbType)
   });
-  const chartConfig = { value: { label: "匹配账户", color: "var(--chart-1)" } } satisfies ChartConfig;
   const contributionChartConfig = { value: { label: "规则贡献", color: "var(--chart-2)" } } satisfies ChartConfig;
 
   return (
@@ -1165,10 +1580,12 @@ export function ClassificationStatisticsPage() {
       <PageHeader eyebrow="Classification analytics" title="分类统计" description="只读展示账户分类统计、规则列表入口和最近周期趋势，写操作仍保留在旧版。" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="分类统计" onRetry={() => void query.refetch()}>
         {(snapshot) => {
-          const trendPoints = selectedTrendPoints(snapshot, filters);
-          const chartData = buildTrendChartData(trendPoints);
-          const coverageLabel = trendCoverageLabel(snapshot, trendPoints);
-          const trendName = selectedTrendName(snapshot, filters);
+          const trendSeries = selectedTrendSeries(snapshot, filters);
+          const chartData = buildMultiTrendChartData(snapshot.trends.buckets, trendSeries);
+          const trendChartConfig = Object.fromEntries(
+            trendSeries.map((series) => [series.key, { label: series.label, color: series.color }])
+          ) satisfies ChartConfig;
+          const coverageLabel = trendCoverageLabel(snapshot, trendSeries);
           const rules = snapshot.rulesOverview?.rules ?? [];
           const contributionItems = snapshot.ruleContributions?.contributions ?? [];
           const contributionData = buildRuleContributionChartData(contributionItems);
@@ -1221,21 +1638,43 @@ export function ClassificationStatisticsPage() {
                       <Badge variant="outline">{coverageLabel}</Badge>
                     </CardHeader>
                     <CardContent>
-                      {trendName ? <div className="mb-2 text-sm font-medium">{trendName}</div> : null}
+                      {trendSeries.length > 0 ? (
+                        <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                          <Badge variant="secondary">{trendModeLabel(filters)}</Badge>
+                          {trendSeries.map((series) => (
+                            <span className="inline-flex items-center gap-1.5 text-muted-foreground" key={series.key}>
+                              <span className="size-2.5 rounded-[3px]" style={{ backgroundColor: series.color }} />
+                              {series.label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                       {chartData.length > 0 ? (
-                        <ChartContainer config={chartConfig} className="h-[240px] w-full">
+                        <ChartContainer config={trendChartConfig} className="h-[240px] w-full">
                           <AreaChart accessibilityLayer data={chartData} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
                             <defs>
-                              <linearGradient id="classificationTrendFill" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.34} />
-                                <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.04} />
-                              </linearGradient>
+                              {trendSeries.map((series) => (
+                                <linearGradient id={`${series.key}Fill`} x1="0" y1="0" x2="0" y2="1" key={series.key}>
+                                  <stop offset="5%" stopColor={`var(--color-${series.key})`} stopOpacity={0.24} />
+                                  <stop offset="95%" stopColor={`var(--color-${series.key})`} stopOpacity={0.03} />
+                                </linearGradient>
+                              ))}
                             </defs>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
                             <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                             <ChartTooltip content={<ChartTooltipContent />} />
-                            <Area dataKey="value" name="匹配账户" type="monotone" stroke="var(--color-value)" strokeWidth={2} fill="url(#classificationTrendFill)" />
+                            {trendSeries.map((series) => (
+                              <Area
+                                dataKey={series.key}
+                                fill={`url(#${series.key}Fill)`}
+                                key={series.key}
+                                name={series.label}
+                                stroke={`var(--color-${series.key})`}
+                                strokeWidth={2}
+                                type="monotone"
+                              />
+                            ))}
                           </AreaChart>
                         </ChartContainer>
                       ) : (

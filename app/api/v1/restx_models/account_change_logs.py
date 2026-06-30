@@ -23,7 +23,10 @@ ACCOUNT_CHANGE_LOG_LIST_ITEM_FIELDS = {
 
 ACCOUNT_CHANGE_LOG_DETAIL_FIELDS = {
     "id": fields.Integer(description="变更日志 ID", example=1),
+    "account_id": fields.Integer(description="账号 ID(可选)", example=4453),
     "instance_id": fields.Integer(description="实例 ID", example=100),
+    "instance_name": fields.String(description="实例名称(可选)", example="CBRAIN"),
+    "instance_host": fields.String(description="实例主机/监听器 IP(可选)", example="192.168.0.73"),
     "db_type": fields.String(description="数据库类型", example="oracle"),
     "username": fields.String(description="账号名", example="CBRAIN"),
     "change_type": fields.String(description="变更类型", example="modify_privilege"),
