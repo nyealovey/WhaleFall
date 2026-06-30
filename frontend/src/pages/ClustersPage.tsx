@@ -131,6 +131,10 @@ import {
   type VeeamSourcePayload
 } from "@/api/actions";
 import {
+  fetchAccountLedgers,
+  type AccountLedgerItem,
+} from "@/api/lists";
+import {
   fetchAccountClassificationsSnapshot,
   fetchAccountClassificationPermissions,
   fetchAccountClassificationRuleDetail,
@@ -885,6 +889,86 @@ function agRecordKey(record: ClusterDetailRecord, index = 0): string {
   return String(clusterRecordId(record) ?? clusterRecordField(record, ["name", "availability_group_name"], `ag-${index}`));
 }
 
+function agAccountAvailabilityLabel(item: AccountLedgerItem): string {
+  if (item.is_deleted || item.is_active === false) {
+    return "已删除";
+  }
+  if (item.is_locked) {
+    return "不可用";
+  }
+  return "可用";
+}
+
+function agAccountAdStatusLabel(value: string | null | undefined): string {
+  switch (value) {
+    case "normal":
+      return "AD正常";
+    case "disabled":
+      return "AD已停用";
+    case "orphaned":
+      return "AD孤账户";
+    default:
+      return "未匹配AD";
+  }
+}
+
+function agAccountTimestamp(value: string | null | undefined): string {
+  if (!value) {
+    return "-";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.replace("T", " ").replace(/\.\d+/, "").replace(/\+\d{2}:\d{2}$/, "");
+  }
+  const parts = new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).formatToParts(date);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day} ${byType.hour}:${byType.minute}:${byType.second}`;
+}
+
+function agAccountNames(items: Array<{ display_name?: string | null; name?: string | null }>): string {
+  return items.map((item) => item.display_name || item.name).filter(Boolean).join(" / ") || "-";
+}
+
+function AgAccountLedgerRows({ items }: { items: AccountLedgerItem[] }) {
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">暂无 AG 账户，请先同步 AG 账户</p>;
+  }
+  return (
+    <div className="grid gap-2">
+      {items.map((account) => (
+        <div key={account.id} className="grid grid-cols-[minmax(12rem,1.4fr)_auto_minmax(16rem,1.6fr)] items-center gap-3 rounded-md border bg-background p-3 max-lg:grid-cols-1">
+          <div className="grid gap-1">
+            <strong>{account.username}</strong>
+            <small className="text-muted-foreground">{[account.instance_name, account.instance_host].filter(Boolean).join(" · ") || "-"}</small>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-emerald-50 text-emerald-700" variant="outline">
+              {agAccountAvailabilityLabel(account)}
+            </Badge>
+            <Badge className={account.is_superuser ? "bg-emerald-50 text-emerald-700" : ""} variant="outline">
+              {account.is_superuser ? "是" : "否"}
+            </Badge>
+            <Badge variant="secondary">{agAccountAdStatusLabel(account.ad_status)}</Badge>
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span>分类 {agAccountNames(account.classifications)}</span>
+            <span>标签 {agAccountNames(account.tags)}</span>
+            <span>最近变更 {agAccountTimestamp(account.last_change_time)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SqlServerClusterDetailContent({ clusterId, detail }: { clusterId: number; detail: SqlServerClusterDetail }) {
   const availabilityGroups = detail.availability_groups;
   const [selectedAgKey, setSelectedAgKey] = useState(() => (availabilityGroups[0] ? agRecordKey(availabilityGroups[0]) : ""));
@@ -1064,6 +1148,20 @@ function SqlServerAgAccountsDialog({
   const [selectedAgKey, setSelectedAgKey] = useState("");
   const activeKey = selectedAgKey || (availabilityGroups[0] ? agRecordKey(availabilityGroups[0]) : "empty");
   const selectedAg = availabilityGroups.find((record, index) => agRecordKey(record, index) === activeKey) ?? availabilityGroups[0];
+  const selectedAgId = selectedAg ? clusterRecordId(selectedAg) : null;
+  const accountsQuery = useQuery({
+    queryKey: ["lists", "accounts", "sqlserver-ag", selectedAgId],
+    queryFn: () =>
+      fetchAccountLedgers({
+        page: 1,
+        limit: 100,
+        ownerType: "sqlserver_ag",
+        ownerId: selectedAgId ?? undefined,
+        includeRoles: true
+      }),
+    enabled: open && selectedAgId !== null,
+    placeholderData: (previous) => previous
+  });
   const containedCount = availabilityGroups.filter((record) => Boolean(record.contained_enabled)).length;
   const credentialedCount = availabilityGroups.filter((record) => !isEmptyDetailValue(record.account_credential_id)).length;
   const enabledCount = availabilityGroups.filter((record) => record.is_enabled === true).length;
@@ -1072,6 +1170,7 @@ function SqlServerAgAccountsDialog({
     void runAction(syncSqlServerAgAccounts(item.id), { success: "AG 账户同步已触发" }).then(() => {
       onSynced();
       void query.refetch();
+      void accountsQuery.refetch();
     });
   }
 
@@ -1121,8 +1220,10 @@ function SqlServerAgAccountsDialog({
                     : "未同步"}
                 </p>
               </div>
-              <ListPanel title="账户列表" count={0}>
-                <p className="text-sm text-muted-foreground">暂无 AG 账户，请先同步 AG 账户</p>
+              <ListPanel title="账户列表" count={accountsQuery.data?.total ?? 0}>
+                {accountsQuery.isLoading ? <p className="text-sm text-muted-foreground">账户列表加载中...</p> : null}
+                {accountsQuery.isError ? <ErrorState label="AG 账户列表" onRetry={() => void accountsQuery.refetch()} /> : null}
+                {accountsQuery.data ? <AgAccountLedgerRows items={accountsQuery.data.items} /> : null}
               </ListPanel>
             </section>
           </div>

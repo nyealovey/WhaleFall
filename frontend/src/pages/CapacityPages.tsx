@@ -95,6 +95,27 @@ function defaultCapacityFilterState(): CapacityFilterState {
   };
 }
 
+function capacityFilterStateFromSearch(search: string): CapacityFilterState {
+  const base = defaultCapacityFilterState();
+  const params = new URLSearchParams(search);
+  const instanceIds = params
+    .getAll("instance_id")
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0)
+    .map(String);
+  const dbTypes = params.getAll("db_type").filter(Boolean);
+  const databaseName = params.get("database_name") ?? "";
+  const periodType = params.get("period_type") ?? base.periodType;
+
+  return {
+    ...base,
+    databaseName,
+    dbTypes,
+    instanceIds,
+    periodType: ["daily", "weekly", "monthly"].includes(periodType) ? periodType : base.periodType
+  };
+}
+
 function toCapacityFilters(filters: CapacityFilterState): CapacityFilters {
   return {
     databaseName: filters.databaseName || undefined,
@@ -618,8 +639,8 @@ export function CapacityInstancesPage() {
 }
 
 export function CapacityDatabasesPage() {
-  const [filters, setFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
-  const [draftFilters, setDraftFilters] = useState<CapacityFilterState>(() => defaultCapacityFilterState());
+  const [filters, setFilters] = useState<CapacityFilterState>(() => capacityFilterStateFromSearch(window.location.search));
+  const [draftFilters, setDraftFilters] = useState<CapacityFilterState>(() => capacityFilterStateFromSearch(window.location.search));
   const capacityQuery = useQuery({
     queryKey: ["capacity", "databases", filters],
     queryFn: () => fetchCapacityDatabaseSnapshot(toCapacityFilters(filters))

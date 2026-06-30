@@ -87,6 +87,7 @@ import {
 import { DataTable } from "@/components/shared/DataTable";
 import { useServerTableState } from "@/components/shared/useServerTableState";
 import { SelectControl, SwitchField } from "@/components/shared/FormControls";
+import { PermissionSnapshotView } from "@/components/shared/PermissionSnapshotView";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -638,17 +639,6 @@ function snapshotRecords(snapshot: Record<string, unknown> | undefined, key: str
   return recordsFromUnknown(snapshot?.[key]);
 }
 
-function JsonBlock({ value }: { value: unknown }) {
-  if (value === null || value === undefined || value === "") {
-    return <span className="text-muted-foreground">-</span>;
-  }
-  return (
-    <pre className="max-h-56 overflow-auto rounded-md border bg-secondary/30 p-3 font-mono text-xs whitespace-pre-wrap">
-      {JSON.stringify(value, null, 2)}
-    </pre>
-  );
-}
-
 function DetailField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid gap-1 rounded-md border bg-secondary/30 p-3">
@@ -1015,37 +1005,28 @@ function AccountPermissionsDialog({ item, onOpenChange }: { item: AccountLedgerI
     queryFn: () => fetchAccountPermissions(item.id)
   });
   const data: AccountPermissionsResponse | undefined = query.data;
-  const snapshot = data?.permissions.snapshot as { roles?: unknown } | undefined;
-  const roles = Array.isArray(snapshot?.roles) ? snapshot.roles.map((role) => asText(role)).filter((role) => role !== "-") : [];
+  const username = data?.account.username ?? item.username;
+  const dbType = data?.permissions.db_type ?? data?.account.db_type ?? item.db_type;
+  const instanceName = data?.account.instance_name ?? item.instance_name;
+  const metaParts = [username, dbType ? dbType.toUpperCase() : null, instanceName].filter(Boolean);
 
   return (
     <Dialog onOpenChange={onOpenChange} open>
-      <DialogContent>
+      <DialogContent className="w-[min(calc(100vw-2rem),74rem)]">
         <DialogHeader>
-          <DialogTitle>权限详情 {data?.account.username ?? item.username}</DialogTitle>
-          <DialogDescription>
-            {item.instance_name} · {dbTypeLabel(data?.permissions.db_type ?? item.db_type)}
-          </DialogDescription>
+          <DialogTitle className="sr-only">权限详情 {username}</DialogTitle>
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className="gap-2 rounded-full border-orange-200 bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-800" variant="outline">
+              <ShieldCheck aria-hidden size={16} />
+              账户权限详情
+            </Badge>
+            <Badge className="rounded-full px-3 py-1 font-mono text-sm tracking-wider" variant="secondary">
+              {metaParts.length > 0 ? metaParts.join(" · ") : "账号信息缺失"}
+            </Badge>
+          </div>
+          <DialogDescription className="sr-only">{instanceName} · {dbTypeLabel(dbType)}</DialogDescription>
         </DialogHeader>
-        <dl className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-          <DetailField label="账户">{data?.account.username ?? item.username}</DetailField>
-          <DetailField label="是否超管">{data?.permissions.is_superuser ? "是" : "否"}</DetailField>
-          <DetailField label="最后同步">{formatShortTimestamp(data?.permissions.last_sync_time)}</DetailField>
-          <DetailField label="角色">
-            {roles.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {roles.map((role) => (
-                  <Badge key={role} variant="outline">
-                    {role}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </DetailField>
-        </dl>
-        <JsonBlock value={data?.permissions.snapshot} />
+        <PermissionSnapshotView dbType={dbType} snapshot={data?.permissions.snapshot} />
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
             关闭详情
@@ -1640,6 +1621,7 @@ function InstanceDataTabsCard({
   const tabsListClass = showAgAccounts
     ? "grid h-auto w-full grid-cols-5 max-xl:grid-cols-3 max-md:grid-cols-2"
     : "grid h-auto w-full grid-cols-4 max-xl:grid-cols-2";
+  const tabContentClass = "grid min-h-[48rem] content-start gap-4 max-md:min-h-[36rem]";
 
   return (
     <Card>
@@ -1670,7 +1652,7 @@ function InstanceDataTabsCard({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent className="grid gap-4" value="accounts">
+          <TabsContent className={tabContentClass} value="accounts">
             <DataTabState isLoading={accountsLoading} isError={accountsError} onRetry={onRetryAccounts} />
             {accountsData ? (
               <>
@@ -1703,7 +1685,7 @@ function InstanceDataTabsCard({
           </TabsContent>
 
           {showAgAccounts ? (
-            <TabsContent className="grid gap-4" value="ag-accounts">
+            <TabsContent className={tabContentClass} value="ag-accounts">
               <DataTabState isLoading={agAccountsLoading} isError={agAccountsError} onRetry={onRetryAgAccounts} />
               {agAccountsData ? (
                 <>
@@ -1736,7 +1718,7 @@ function InstanceDataTabsCard({
             </TabsContent>
           ) : null}
 
-          <TabsContent className="grid gap-4" value="capacity">
+          <TabsContent className={tabContentClass} value="capacity">
             <DataTabState isLoading={databaseSizesLoading} isError={databaseSizesError} onRetry={onRetryDatabaseSizes} />
             {databaseSizesData ? (
               <>
@@ -1763,10 +1745,10 @@ function InstanceDataTabsCard({
               </>
             ) : null}
           </TabsContent>
-          <TabsContent className="grid gap-4" value="audit">
+          <TabsContent className={tabContentClass} value="audit">
             <InstanceAuditInfoPanel data={auditData} isLoading={auditLoading} isError={auditError} onRetry={onRetryAudit} />
           </TabsContent>
-          <TabsContent className="grid gap-4" value="backup">
+          <TabsContent className={tabContentClass} value="backup">
             <InstanceBackupInfoPanel data={backupData} isLoading={backupLoading} isError={backupError} onRetry={onRetryBackup} />
           </TabsContent>
         </Tabs>
@@ -1933,6 +1915,15 @@ function createInstanceColumns({
   ];
 }
 
+function databaseCapacityHref(item: DatabaseLedgerItem): string {
+  const params = new URLSearchParams({
+    instance_id: String(item.instance.id),
+    db_type: item.db_type,
+    database_name: item.database_name
+  });
+  return `/capacity/databases?${params.toString()}`;
+}
+
 function createDatabaseLedgerColumns({
   onViewTables
 }: {
@@ -1979,10 +1970,18 @@ function createDatabaseLedgerColumns({
     id: "actions",
     header: "操作",
     cell: ({ row }) => (
-      <Button aria-label={`查看容量趋势 ${row.original.id}`} onClick={() => onViewTables(row.original)} size="sm" type="button" variant="outline">
-        <ExternalLink aria-hidden size={14} />
-        <span>趋势</span>
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button aria-label={`表容量 ${row.original.database_name}`} onClick={() => onViewTables(row.original)} size="sm" type="button" variant="outline">
+          <Database aria-hidden size={14} />
+          <span>表容量</span>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <a aria-label={`查看容量趋势 ${row.original.database_name}`} href={databaseCapacityHref(row.original)}>
+            <BarChart3 aria-hidden size={14} />
+            <span>趋势</span>
+          </a>
+        </Button>
+      </div>
     )
   }
   ];

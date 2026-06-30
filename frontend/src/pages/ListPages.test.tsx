@@ -288,13 +288,20 @@ vi.mock("@/api/lists", () => ({
     ]
   })),
   fetchAccountPermissions: vi.fn(async () => ({
-    account: { id: 3, username: "readonly", db_type: "mysql", instance_name: "mysql-prod" },
+    account: { id: 3, username: "readonly", db_type: "sqlserver", instance_name: "mysql-prod" },
     permissions: {
-      db_type: "mysql",
+      db_type: "sqlserver",
       username: "readonly",
       is_superuser: false,
       last_sync_time: "2026-06-11T01:00:00+00:00",
-      snapshot: { roles: ["reader"], grants: ["SELECT"] }
+      snapshot: {
+        categories: {
+          sqlserver_server_roles: [],
+          sqlserver_database_roles: {},
+          sqlserver_server_permissions: ["CONNECT SQL"],
+          sqlserver_database_permissions: {}
+        }
+      }
     }
   })),
   fetchAccountChangeHistory: vi.fn(async () => ({
@@ -583,12 +590,25 @@ describe("ListPages", () => {
     expect(screen.getByText("账户信息")).toBeInTheDocument();
     expect(screen.getByText("账户信息（AG）")).toBeInTheDocument();
     expect(screen.getByText("容量信息")).toBeInTheDocument();
+    const detailTabPanels = Array.from(document.querySelectorAll('[data-slot="tabs-content"]'));
+    expect(detailTabPanels.length).toBeGreaterThanOrEqual(5);
+    for (const panel of detailTabPanels) {
+      expect(panel.getAttribute("class")).toContain("min-h-[48rem]");
+      expect(panel.getAttribute("class")).toContain("content-start");
+    }
     expect(screen.getByText("readonly")).toBeInTheDocument();
     expect(screen.getByText("sa")).toBeInTheDocument();
     expect(screen.getByText("账户总数")).toBeInTheDocument();
     expect(screen.getByText("活跃账户")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看权限 readonly" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "变更历史 readonly" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "查看权限 readonly" }));
+    const permissionsDialog = await screen.findByRole("dialog", { name: "权限详情 readonly" });
+    expect(await within(permissionsDialog).findByText("服务器权限")).toBeInTheDocument();
+    expect(within(permissionsDialog).getByText("CONNECT SQL")).toBeInTheDocument();
+    expect(within(permissionsDialog).getByText("无服务器角色")).toBeInTheDocument();
+    expect(within(permissionsDialog).queryByText(/"categories"/)).not.toBeInTheDocument();
+    fireEvent.click(within(permissionsDialog).getByRole("button", { name: "关闭详情" }));
     expect(screen.getByText("显示已删除账户")).toBeInTheDocument();
     expect(screen.queryByText("AG账户总数")).not.toBeInTheDocument();
     expect(screen.queryByText("当前数据库")).not.toBeInTheDocument();
@@ -685,14 +705,18 @@ describe("ListPages", () => {
     for (const action of ["数据库统计", "同步所有数据库", "导出CSV"]) {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
-    expect(screen.getByRole("button", { name: "查看容量趋势 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "表容量 app_db" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看容量趋势 app_db" })).toHaveAttribute(
+      "href",
+      "/capacity/databases?instance_id=1&db_type=mysql&database_name=app_db"
+    );
   });
 
   it("opens database table sizes and refreshes them through v1 APIs", async () => {
     renderWithQueryClient(<DatabaseLedgersPage />);
 
     await expectTextPresent("app_db");
-    fireEvent.click(screen.getByRole("button", { name: "查看容量趋势 2" }));
+    fireEvent.click(screen.getByRole("button", { name: "表容量 app_db" }));
     const dialog = await screen.findByRole("dialog", { name: "数据库表容量 app_db" });
     expect(await within(dialog).findByText("orders")).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "刷新表容量 app_db" }));
@@ -739,7 +763,10 @@ describe("ListPages", () => {
     await expectTextPresent("readonly");
     fireEvent.click(screen.getByRole("button", { name: "查看权限 3" }));
     const permissionsDialog = await screen.findByRole("dialog", { name: "权限详情 readonly" });
-    expect(await within(permissionsDialog).findByText("reader")).toBeInTheDocument();
+    expect(await within(permissionsDialog).findByText("服务器权限")).toBeInTheDocument();
+    expect(within(permissionsDialog).getByText("CONNECT SQL")).toBeInTheDocument();
+    expect(within(permissionsDialog).getByText("无服务器角色")).toBeInTheDocument();
+    expect(within(permissionsDialog).queryByText(/"categories"/)).not.toBeInTheDocument();
     fireEvent.click(within(permissionsDialog).getByRole("button", { name: "关闭详情" }));
 
     fireEvent.click(screen.getByRole("button", { name: "查看变更历史 3" }));

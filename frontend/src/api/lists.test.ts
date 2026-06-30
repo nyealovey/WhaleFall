@@ -65,11 +65,23 @@ describe("list api", () => {
     };
 
     const result = await fetchAccountLedgers(
-      { page: 4, limit: 100, search: "readonly", instanceId: 7, classification: "dba", dbType: "mysql", adStatus: "synced", tags: ["prod", "core"] },
+      {
+        page: 4,
+        limit: 100,
+        search: "readonly",
+        instanceId: 7,
+        classification: "dba",
+        dbType: "mysql",
+        adStatus: "synced",
+        tags: ["prod", "core"],
+        ownerType: "sqlserver_ag",
+        ownerId: 21,
+        includeRoles: true
+      },
       client
     );
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers?page=4&limit=100&search=readonly&instance_id=7&tags=prod&tags=core&classification=dba&db_type=mysql&ad_status=synced&sort=username&order=asc");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/accounts/ledgers?page=4&limit=100&search=readonly&instance_id=7&tags=prod&tags=core&classification=dba&db_type=mysql&ad_status=synced&owner_type=sqlserver_ag&owner_id=21&include_roles=true&sort=username&order=asc");
     expect(result.items[0]?.username).toBe("readonly");
   });
 

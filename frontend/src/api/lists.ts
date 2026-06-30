@@ -31,6 +31,9 @@ export type AccountLedgerQuery = PaginatedQuery & {
   classification?: string;
   dbType?: string;
   adStatus?: string;
+  ownerType?: string;
+  ownerId?: number;
+  includeRoles?: boolean;
 };
 
 export type TagItem = {
@@ -365,6 +368,7 @@ export async function fetchAccountLedgers(query: AccountLedgerQuery = {}, client
   return client.get<PaginatedList<AccountLedgerItem>>(queryPath("/api/v1/accounts/ledgers", [
     ["page", query.page ?? 1], ["limit", query.limit ?? 20], ["search", query.search], ["instance_id", query.instanceId],
     ["tags", query.tags], ["classification", query.classification], ["db_type", query.dbType], ["ad_status", query.adStatus],
+    ["owner_type", query.ownerType], ["owner_id", query.ownerId], ["include_roles", query.includeRoles || undefined],
     ["sort", "username"], ["order", "asc"]
   ]));
 }

@@ -92,6 +92,35 @@ vi.mock("@/utils/action-feedback", () => ({
   runAction: vi.fn((promise: Promise<unknown>) => promise)
 }));
 
+const listApiMocks = vi.hoisted(() => ({
+  fetchAccountLedgers: vi.fn(async () => ({
+    items: [
+      {
+        id: 501,
+        username: "WZ\\admin-zmian",
+        instance_name: "AGDB10",
+        instance_host: "10.10.10.177",
+        db_type: "sqlserver",
+        is_locked: false,
+        is_superuser: true,
+        is_active: true,
+        is_deleted: false,
+        ad_status: "unmatched",
+        last_change_time: "2026-05-21T09:04:43+08:00",
+        availability_reasons: [],
+        classifications: [{ display_name: "分类" }],
+        tags: [{ name: "prod", display_name: "生产环境" }, { name: "wenzhou", display_name: "温州" }, { name: "primary", display_name: "主从" }]
+      }
+    ],
+    total: 1,
+    page: 1,
+    pages: 1,
+    limit: 100
+  }))
+}));
+
+vi.mock("@/api/lists", () => listApiMocks);
+
 vi.mock("@/api/readOnly", () => ({
   fetchClustersSnapshot: vi.fn(async () => ({
     sqlServer: { items: [{ id: 1, name: "sql-ag", domain_name: "corp.local", is_enabled: true, instance_count: 2, availability_group_count: 1, last_status_sync_status: "completed", last_status_sync_at: "2026-06-11T09:00:00+08:00", last_ag_sync_status: "completed", last_ag_sync_at: "2026-06-11T10:00:00+08:00" }], total: 1, page: 1, pages: 1, limit: 20 },
@@ -1009,10 +1038,24 @@ describe("Console pages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "AG账户 sql-ag" }));
     const agAccountsDialog = await screen.findByRole("dialog", { name: "AG 账户 sql-ag" });
-    for (const text of ["AG 总数", "Contained", "已配凭据", "启用采集", "暂无 AG 账户，请先同步 AG 账户"]) {
+    for (const text of ["AG 总数", "Contained", "已配凭据", "启用采集"]) {
       expect(await within(agAccountsDialog).findByText(text)).toBeInTheDocument();
     }
     expect((await within(agAccountsDialog).findAllByText("ag-sales")).length).toBeGreaterThan(0);
+    await within(agAccountsDialog).findByText("WZ\\admin-zmian");
+    expect(within(agAccountsDialog).getByText("AGDB10 · 10.10.10.177")).toBeInTheDocument();
+    expect(within(agAccountsDialog).getByText("可用")).toBeInTheDocument();
+    expect(within(agAccountsDialog).getByText("是")).toBeInTheDocument();
+    expect(within(agAccountsDialog).getByText("未匹配AD")).toBeInTheDocument();
+    expect(within(agAccountsDialog).getByText("分类 分类")).toBeInTheDocument();
+    expect(within(agAccountsDialog).getByText("标签 生产环境 / 温州 / 主从")).toBeInTheDocument();
+    expect(within(agAccountsDialog).getByText("最近变更 2026-05-21 09:04:43")).toBeInTheDocument();
+    expect(within(agAccountsDialog).queryByText("暂无 AG 账户，请先同步 AG 账户")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(listApiMocks.fetchAccountLedgers).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerType: "sqlserver_ag", ownerId: 21, includeRoles: true, limit: 100 })
+      );
+    });
     expect(actionMocks.syncSqlServerAgAccounts).toHaveBeenCalledTimes(1);
     fireEvent.click(within(agAccountsDialog).getByRole("button", { name: "同步 AG 账户" }));
     await waitFor(() => {

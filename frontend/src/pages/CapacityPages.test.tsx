@@ -238,6 +238,7 @@ async function chooseMultiOptions(label: string, optionNames: string[]) {
 describe("CapacityPages", () => {
   beforeEach(() => {
     vi.mocked(runAction).mockClear();
+    window.history.replaceState({}, "", "/capacity/databases");
   });
 
   it("renders instance capacity data from the API", async () => {
@@ -310,6 +311,24 @@ describe("CapacityPages", () => {
     expect(screen.queryByText("开始日期")).not.toBeInTheDocument();
     expect(screen.queryByText("结束日期")).not.toBeInTheDocument();
     expect(screen.queryByText(/日粒度 · 每页/)).not.toBeInTheDocument();
+  });
+
+  it("initializes database capacity filters from URL query parameters", async () => {
+    window.history.replaceState({}, "", "/capacity/databases?instance_id=10&db_type=mysql&database_name=app_db&period_type=monthly");
+    vi.mocked(fetchCapacityDatabaseSnapshot).mockClear();
+
+    renderWithQueryClient(<CapacityDatabasesPage />);
+
+    await waitFor(() => {
+      expect(fetchCapacityDatabaseSnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({
+          databaseName: "app_db",
+          dbTypes: ["mysql"],
+          instanceIds: [10],
+          periodType: "monthly"
+        })
+      );
+    });
   });
 
   it("triggers current-period aggregation from capacity pages", async () => {
