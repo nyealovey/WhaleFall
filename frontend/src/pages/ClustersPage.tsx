@@ -277,6 +277,11 @@ function clusterRecordField(record: ClusterDetailRecord, keys: string[], fallbac
   return fallback;
 }
 
+function clusterRecordBoolean(record: ClusterDetailRecord, key: string): boolean | null {
+  const value = record[key];
+  return typeof value === "boolean" ? value : null;
+}
+
 function clusterRecordId(record: ClusterDetailRecord | ClusterInstanceOption | ClusterItem): number | null {
   const value = record.id;
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -305,6 +310,128 @@ function optionalNumber(value: string): number | null {
 function nullableText(value: string): string | null {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function clusterNumberValue(record: Record<string, unknown>, key: string): number | null {
+  const value = record[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function formatNullableSecondsValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? `${parsed}s` : asText(value);
+}
+
+function mysqlTopologyStatusLabel(cluster: Record<string, unknown>): string {
+  const status = cluster.last_topology_sync_status;
+  const checkedAt = cluster.last_topology_sync_at;
+  if (!checkedAt && !status) {
+    return "未检测";
+  }
+  if (status === "failed") {
+    return "检测失败";
+  }
+  const abnormal = clusterNumberValue(cluster, "abnormal_replica_count") ?? 0;
+  if (abnormal > 0) {
+    return `异常 ${formatNumber(abnormal)}`;
+  }
+  return "正常";
+}
+
+function mysqlMaxReplicaLagLabel(cluster: Record<string, unknown>): string {
+  if (!cluster.last_topology_sync_at) {
+    return "-";
+  }
+  const replicaCount = clusterNumberValue(cluster, "replica_count") ?? 0;
+  if (replicaCount <= 0) {
+    return "-";
+  }
+  const lag = clusterNumberValue(cluster, "max_replica_lag_seconds");
+  if (lag === null) {
+    return (clusterNumberValue(cluster, "unknown_replica_lag_count") ?? 0) > 0 ? "未知" : "-";
+  }
+  return `${lag}s`;
+}
+
+function mysqlReplicaSource(record: ClusterDetailRecord): string {
+  const host = clusterRecordField(record, ["source_host"], "");
+  if (!host) {
+    return "-";
+  }
+  const port = clusterRecordField(record, ["source_port"], "3306");
+  return `${host}:${port || "3306"}`;
+}
+
+function mysqlLogPosition(record: ClusterDetailRecord): { read: string; exec: string } {
+  const read = [record.source_log_file, record.read_source_log_pos]
+    .filter((value) => !isEmptyDetailValue(value))
+    .map((value) => asText(value))
+    .join(":");
+  const exec = [record.relay_source_log_file, record.exec_source_log_pos]
+    .filter((value) => !isEmptyDetailValue(value))
+    .map((value) => asText(value))
+    .join(":");
+  return {
+    read: read || "-",
+    exec: exec || "-"
+  };
+}
+
+function mysqlGtidSummary(record: ClusterDetailRecord): { retrieved: string; executed: string } {
+  return {
+    retrieved: clusterRecordField(record, ["retrieved_gtid_set"]),
+    executed: clusterRecordField(record, ["executed_gtid_set"])
+  };
+}
+
+function mysqlReadOnlyState(record: ClusterDetailRecord): { readOnly: string; superReadOnly: string } {
+  const readOnly = clusterRecordBoolean(record, "read_only");
+  const superReadOnly = clusterRecordBoolean(record, "super_read_only");
+  return {
+    readOnly: readOnly === null ? "-" : readOnly ? "ON" : "OFF",
+    superReadOnly: superReadOnly === null ? "-" : superReadOnly ? "ON" : "OFF"
+  };
+}
+
+function mysqlErrorReason(record: ClusterDetailRecord): string {
+  const reason = [record.last_io_error, record.last_sql_error, record.last_error]
+    .filter((value) => !isEmptyDetailValue(value))
+    .map((value) => asText(value))
+    .join(" / ");
+  return reason || "-";
+}
+
+function mysqlCheckedAtLabel(record: ClusterDetailRecord): string {
+  const checkedAt = record.last_checked_at;
+  return isEmptyDetailValue(checkedAt) ? "未检测" : formatDateTime(asText(checkedAt));
+}
+
+function shortMysqlText(value: string, maxLength = 32): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
+
+function MySqlTopologyStatusBadge({ label }: { label: string }) {
+  const className = label.includes("异常") || label.includes("失败")
+    ? "border-red-200 bg-red-50 text-red-700"
+    : label === "正常" || label.toLowerCase() === "healthy"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "";
+
+  return (
+    <Badge className={className} variant="outline">
+      {label}
+    </Badge>
+  );
 }
 
 function ClusterFormDialog({
@@ -1015,7 +1142,90 @@ function SqlServerClusterDetailContent({ clusterId, detail }: { clusterId: numbe
   );
 }
 
+function MySqlTopologyField({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div className="grid grid-cols-[9rem_minmax(0,1fr)] items-start gap-4 border-t px-3 py-3 first:border-t-0 max-sm:grid-cols-1 max-sm:gap-1">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <div className="min-w-0 font-medium break-words">{children}</div>
+    </div>
+  );
+}
+
+function MySqlTopologyInstanceCard({ record }: { record: ClusterDetailRecord }) {
+  const source = mysqlReplicaSource(record);
+  const lag = formatNullableSecondsValue(record.seconds_behind_source);
+  const sqlDelay = formatNullableSecondsValue(record.sql_delay);
+  const logPosition = mysqlLogPosition(record);
+  const gtid = mysqlGtidSummary(record);
+  const readOnly = mysqlReadOnlyState(record);
+  const status = clusterRecordField(record, ["replication_status", "status"]);
+
+  return (
+    <section className="overflow-hidden rounded-lg border bg-card">
+      <div className="flex items-start justify-between gap-3 border-b bg-muted/40 px-4 py-3 max-sm:grid">
+        <div>
+          <h4 className="font-display text-base font-semibold">{clusterRecordField(record, ["name", "instance_name", "display_name"])}</h4>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">
+            {mysqlCheckedAtLabel(record)}
+          </p>
+        </div>
+        <MySqlTopologyStatusBadge label={status} />
+      </div>
+      <div>
+        <MySqlTopologyField label="角色">{clusterRecordField(record, ["replication_role", "role"])}</MySqlTopologyField>
+        <MySqlTopologyField label="上游">{source}</MySqlTopologyField>
+        <MySqlTopologyField label="IO 线程">{clusterRecordField(record, ["io_running"])}</MySqlTopologyField>
+        <MySqlTopologyField label="SQL 线程">{clusterRecordField(record, ["sql_running"])}</MySqlTopologyField>
+        <MySqlTopologyField label="延迟">
+          {lag} <span className="text-muted-foreground">· SQL delay {sqlDelay}</span>
+        </MySqlTopologyField>
+        <MySqlTopologyField label="IO 状态">{clusterRecordField(record, ["io_state"])}</MySqlTopologyField>
+        <MySqlTopologyField label="日志位置">
+          <div>read {logPosition.read}</div>
+          <div className="text-sm text-muted-foreground">exec {logPosition.exec}</div>
+        </MySqlTopologyField>
+        <MySqlTopologyField label="GTID">
+          <div title={gtid.retrieved}>retrieved {shortMysqlText(gtid.retrieved)}</div>
+          <div className="text-sm text-muted-foreground" title={gtid.executed}>executed {shortMysqlText(gtid.executed)}</div>
+        </MySqlTopologyField>
+        <MySqlTopologyField label="只读">
+          <div>read_only {readOnly.readOnly}</div>
+          <div className="text-sm text-muted-foreground">super {readOnly.superReadOnly}</div>
+        </MySqlTopologyField>
+        <MySqlTopologyField label="Last_IO_Error / Last_SQL_Error">{mysqlErrorReason(record)}</MySqlTopologyField>
+      </div>
+    </section>
+  );
+}
+
 function MySqlClusterDetailContent({ detail }: { detail: MySqlClusterDetail }) {
+  const metrics: Metric[] = [
+    {
+      label: "绑定实例",
+      value: clusterNumberValue(detail.cluster, "instance_count") ?? detail.instances.length,
+      detail: "MySQL 主从拓扑",
+      icon: Database
+    },
+    {
+      label: "副本数",
+      value: clusterNumberValue(detail.cluster, "replica_count") ?? 0,
+      detail: "replica 节点",
+      icon: Layers3
+    },
+    {
+      label: "异常实例",
+      value: clusterNumberValue(detail.cluster, "abnormal_replica_count") ?? 0,
+      detail: mysqlTopologyStatusLabel(detail.cluster),
+      icon: AlertCircle
+    },
+    {
+      label: "最大延迟",
+      value: mysqlMaxReplicaLagLabel(detail.cluster),
+      detail: "Seconds_Behind_Source",
+      icon: Clock
+    }
+  ];
+
   return (
     <div className="grid gap-4">
       <section className="grid grid-cols-3 gap-2 max-sm:grid-cols-1">
@@ -1025,9 +1235,32 @@ function MySqlClusterDetailContent({ detail }: { detail: MySqlClusterDetail }) {
           <StatusBadge value={detail.cluster.is_enabled !== false} />
         </DetailBlock>
       </section>
-      <ListPanel title="主从实例" description="旧版主从状态页中的实例拓扑。" count={detail.instances.length}>
-        <ClusterInstancesTable records={detail.instances} />
-      </ListPanel>
+      <section className="grid gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3">
+          <div>
+            <h3 className="font-display text-base font-semibold">MySQL 主从状态</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {detail.cluster.last_topology_sync_at ? `最近检测 ${formatDateTime(asText(detail.cluster.last_topology_sync_at))}` : "未检测"}
+            </p>
+          </div>
+          <MySqlTopologyStatusBadge label={mysqlTopologyStatusLabel(detail.cluster)} />
+        </div>
+        <MetricGrid metrics={metrics} label="MySQL 主从状态概览" />
+        <ListPanel title="实例状态" description="旧版主从状态页中的实例拓扑与复制诊断。" count={detail.instances.length}>
+          <div className="grid gap-3">
+            {detail.instances.length > 0 ? (
+              detail.instances.map((record, index) => (
+                <MySqlTopologyInstanceCard
+                  key={`${clusterRecordField(record, ["id", "binding_id", "name"], String(index))}-${index}`}
+                  record={record}
+                />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">暂无主从状态</p>
+            )}
+          </div>
+        </ListPanel>
+      </section>
     </div>
   );
 }
