@@ -33,7 +33,6 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: "退出" })).toBeInTheDocument();
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
     expect(screen.getByText("1.5.0")).toBeInTheDocument();
-    expect(screen.queryByText("React preview")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "关于" })).toHaveAttribute("href", "/about");
     expect(screen.getByRole("link", { name: "新版" })).toHaveAttribute("href", "/dashboard");
     expect(screen.getByRole("link", { name: "旧版" })).toHaveAttribute("href", "/old/");

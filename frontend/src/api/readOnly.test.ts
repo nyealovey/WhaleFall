@@ -24,15 +24,7 @@ import {
   fetchUsersSnapshot
 } from "./readOnly";
 
-describe("read-only migration api", () => {
-  it("does not expose standalone detail readers for pages without legacy detail views", async () => {
-    const api = await import("./readOnly");
-
-    expect(api).not.toHaveProperty("fetchUserDetail");
-    expect(api).not.toHaveProperty("fetchCredentialDetail");
-    expect(api).not.toHaveProperty("fetchTagDetail");
-  });
-
+describe("read-only api", () => {
   it("loads SQL Server and MySQL clusters", async () => {
     const client = {
       get: vi

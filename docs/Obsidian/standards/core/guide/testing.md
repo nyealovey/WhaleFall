@@ -8,7 +8,7 @@ tags:
 status: active
 enforcement: guide
 created: 2025-12-25
-updated: 2026-01-25
+updated: 2026-07-01
 owner: WhaleFall Team
 scope: "`tests/` 目录下所有测试代码"
 related:
@@ -374,6 +374,9 @@ pytest --cov=app --cov-report=xml tests/
 
 - MUST：`tests/` 只保留“运行时行为/契约验证”（例如 API contract、service 规则、schema 校验）。
 - MUST NOT：在 `tests/` 内写“扫描仓库源码/目录结构/模板/静态文件文本”的门禁（例如 `rglob/read_text/rg` 扫描 `app/**`）。此类检查必须落在 `scripts/ci/**`，并在 CI gates job 中执行。
+- MUST NOT：为一次性迁移对齐、UI 排版、线上 bug 复现长期保留专用测试；修复完成后应删除，或合并为已有长期契约中的最小断言。
+- SHOULD：React 页面测试只保留少量稳定 smoke / 核心交互覆盖；旧版 parity 和视觉细节以审计文档、人工复核、构建/类型/lint 为主。
+- SHOULD：测试名称描述长期业务语义，不写历史修复语境（例如“修复某 bug”“迁移对齐某字段”）。
 - MUST：新增门禁脚本必须在对应 SSOT 文档的“门禁/检查方式”登记（避免只有脚本没有入口导致规则漂移）。
 
 ### 12.1 CI 门禁（强约束）
