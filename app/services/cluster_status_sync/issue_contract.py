@@ -8,6 +8,8 @@ from typing import Any, TypedDict, cast
 
 
 class ClusterRiskKwargs(TypedDict):
+    """Keyword arguments used to build a cluster risk issue."""
+
     rule_key: str
     category: str
     severity: str

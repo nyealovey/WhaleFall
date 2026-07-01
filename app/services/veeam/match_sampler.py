@@ -107,7 +107,6 @@ class VeeamMatchSampler:
 
 def resolve_backup_machine_name(item: dict[str, Any]) -> str | None:
     """从 backupObject payload 提取机器名."""
-
     return _pick_string(
         item,
         (
@@ -130,7 +129,6 @@ def resolve_backup_machine_name(item: dict[str, Any]) -> str | None:
 
 def resolve_backup_machine_ip(item: dict[str, Any]) -> str | None:
     """从 backupObject payload 提取机器 IP."""
-
     return _pick_string(
         item,
         (

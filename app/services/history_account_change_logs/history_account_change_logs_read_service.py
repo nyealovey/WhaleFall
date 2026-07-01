@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from app.core.types.account_change_logs import (
     AccountChangeLogListItem,
     AccountChangeLogsListFilters,
@@ -116,7 +118,8 @@ class HistoryAccountChangeLogsReadService:
         """获取单条变更日志详情."""
         detail_row_getter = getattr(self._repository, "get_log_detail_row", None)
         if callable(detail_row_getter):
-            log_entry, instance_name, instance_host, account_id = detail_row_getter(log_id)
+            detail_row = cast("tuple[Any, object, object, object | None]", detail_row_getter(log_id))
+            log_entry, instance_name, instance_host, account_id = detail_row
         else:
             log_entry = self._repository.get_log(log_id)
             instance = getattr(log_entry, "instance", None)
@@ -151,10 +154,11 @@ class HistoryAccountChangeLogsReadService:
         change_time_value = getattr(log_entry, "change_time", None)
         change_time_display = time_utils.format_china_time(change_time_value) if change_time_value else "未知"
         username = str(getattr(log_entry, "username", "") or "")
+        account_id_value = cast("Any", account_id)
 
         payload: dict[str, object] = {
             "id": int(getattr(log_entry, "id", 0) or 0),
-            "account_id": int(account_id) if account_id is not None else None,
+            "account_id": int(account_id_value) if account_id_value is not None else None,
             "instance_id": int(getattr(log_entry, "instance_id", 0) or 0),
             "instance_name": instance_name,
             "instance_host": instance_host,

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from contextlib import suppress
 from collections.abc import Mapping
+from contextlib import suppress
 from typing import Any
 
 from app import create_app, db

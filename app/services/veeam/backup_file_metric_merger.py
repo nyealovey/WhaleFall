@@ -135,7 +135,6 @@ class VeeamBackupFileMetricMerger:
 
 def extract_backup_metric_int(payload: object, keys: tuple[str, ...]) -> int | None:
     """从 payload 中按候选键提取整数指标."""
-
     if not isinstance(payload, dict):
         return None
     for key in keys:

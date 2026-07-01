@@ -18,7 +18,6 @@ from flask import current_app, has_app_context
 from app.core.types import JsonValue
 from app.infra.route_safety import log_with_context
 from app.services.veeam.match_sampler import VeeamMatchSampler, resolve_backup_machine_ip
-from app.settings import Settings
 from app.services.veeam.types import (
     VeeamBackupFileCollection,
     VeeamBackupFileRecord,
@@ -30,6 +29,7 @@ from app.services.veeam.types import (
     VeeamRequestTimeoutError,
     VeeamRestorePointsFetchError,
 )
+from app.settings import Settings
 from app.utils.time_utils import time_utils
 
 VEEAM_TOKEN_PATH = "/api/oauth2/token"
