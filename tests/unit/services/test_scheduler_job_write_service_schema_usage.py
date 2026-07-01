@@ -14,9 +14,18 @@ class _DummyJob:
 class _DummyScheduler:
     def __init__(self, job: object) -> None:
         self._job = job
+        self.modified_job_id: object | None = None
+        self.rescheduled_job_id: object | None = None
+        self.rescheduled_trigger: object | None = None
 
     def modify_job(self, *_args: object, **_kwargs: object) -> None:
+        self.modified_job_id = _args[0] if _args else None
         return
+
+    def reschedule_job(self, job_id: object, **kwargs: object) -> object:
+        self.rescheduled_job_id = job_id
+        self.rescheduled_trigger = kwargs.get("trigger")
+        return self._job
 
     def get_job(self, _job_id: object) -> object:
         return self._job
@@ -60,3 +69,20 @@ def test_scheduler_job_write_service_upsert_uses_validate_or_raise(monkeypatch) 
             {"trigger_type": "cron", "cron_expression": "*/5 * * * *"},
             resource=resource,
         )
+
+
+@pytest.mark.unit
+def test_scheduler_job_write_service_reschedules_job_to_recalculate_next_run_time() -> None:
+    service = SchedulerJobWriteService()
+    job = _DummyJob()
+    scheduler = _DummyScheduler(job)
+    resource = SchedulerJobResource(scheduler=cast(Any, scheduler), job=cast(Any, job))
+
+    service.upsert(
+        {"trigger_type": "cron", "cron_expression": "*/5 * * * *"},
+        resource=resource,
+    )
+
+    assert scheduler.rescheduled_job_id == "sync_accounts"
+    assert scheduler.rescheduled_trigger is not None
+    assert scheduler.modified_job_id is None

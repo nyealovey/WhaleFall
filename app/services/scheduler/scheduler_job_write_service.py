@@ -81,7 +81,7 @@ class SchedulerJobWriteService:
             raise ValidationError("无效的触发器配置", message_key="VALIDATION_ERROR")
 
         try:
-            resource.scheduler.modify_job(job.id, trigger=trigger)
+            resource.scheduler.reschedule_job(job.id, trigger=trigger)
         except (ValueError, TypeError, KeyError, AttributeError) as exc:
             log_error("更新任务触发器失败", module="scheduler", job_id=str(job.id), error=str(exc))
             raise ValidationError("更新任务触发器失败", extra={"exception": str(exc)}) from exc

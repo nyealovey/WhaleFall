@@ -498,8 +498,8 @@ export function SyncSessionsPage() {
   );
   const table = useServerTableState({ initialFilters: { triggerSource: "", taskCategory: "", status: "" } });
   const query = useQuery({
-    queryKey: ["read-only", "task-runs", table.page, table.pageSize, table.search, table.filters],
-    queryFn: () => fetchTaskRunsSnapshot({ page: table.page, limit: table.pageSize, taskKey: table.search, triggerSource: table.filters.triggerSource, taskCategory: table.filters.taskCategory, status: table.filters.status }),
+    queryKey: ["read-only", "task-runs", table.page, table.pageSize, table.filters],
+    queryFn: () => fetchTaskRunsSnapshot({ page: table.page, limit: table.pageSize, triggerSource: table.filters.triggerSource, taskCategory: table.filters.taskCategory, status: table.filters.status }),
     placeholderData: (previous) => previous
   });
 
@@ -514,14 +514,11 @@ export function SyncSessionsPage() {
                 data={snapshot.items}
                 filters={[
                   { columnId: "trigger_source", label: "来源", options: [{ label: "定时", value: "scheduled" }, { label: "手动", value: "manual" }, { label: "API", value: "api" }], value: table.filters.triggerSource, onValueChange: (value) => table.setFilter("triggerSource", value) },
-                  { columnId: "task_category", label: "分类", options: [{ label: "账户", value: "account" }, { label: "容量", value: "capacity" }, { label: "聚合", value: "aggregation" }, { label: "分类", value: "classification" }, { label: "群集", value: "cluster" }, { label: "告警", value: "alert" }, { label: "其他", value: "other" }], value: table.filters.taskCategory, onValueChange: (value) => table.setFilter("taskCategory", value) },
+                  { columnId: "task_category", label: "分类", options: [{ label: "账户", value: "account" }, { label: "容量", value: "capacity" }, { label: "聚合", value: "aggregation" }, { label: "分类", value: "classification" }, { label: "群集", value: "cluster" }, { label: "告警", value: "notification" }, { label: "其他", value: "other" }], value: table.filters.taskCategory, onValueChange: (value) => table.setFilter("taskCategory", value) },
                   { columnId: "status", label: "状态", options: [{ label: "运行中", value: "running" }, { label: "已完成", value: "completed" }, { label: "部分完成", value: "partial" }, { label: "失败", value: "failed" }, { label: "已取消", value: "cancelled" }], value: table.filters.status, onValueChange: (value) => table.setFilter("status", value) }
                 ]}
-                onSearchChange={table.setSearchInput}
                 onResetFilters={table.reset}
                 pagination={{ page: table.page, pageSize: table.pageSize, pages: snapshot.pages ?? 1, total: snapshot.total, onPageChange: table.setPage, onPageSizeChange: table.setPageSize }}
-                searchPlaceholder="搜索运行 ID、任务或来源"
-                searchValue={table.searchInput}
               />
           </ListPanel>
         )}

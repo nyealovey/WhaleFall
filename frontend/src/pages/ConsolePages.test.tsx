@@ -8,7 +8,9 @@ import {
   fetchAccountScopeOptions,
   fetchClassificationStatisticsSnapshot,
   fetchPartitionsSnapshot,
+  fetchSchedulerSnapshot,
   fetchSchedulerJobDetail,
+  fetchTaskRunsSnapshot,
 } from "@/api/readOnly";
 
 import { CredentialsPage, TagsPage, UsersPage } from "./CatalogAdminPages";
@@ -380,9 +382,23 @@ vi.mock("@/api/readOnly", () => ({
         progress_failed: 0,
         started_at: "2026-06-11T12:00:00+08:00",
         completed_at: null
+      },
+      {
+        id: 2,
+        run_id: "s-2",
+        task_key: "email_alert",
+        task_name: "邮件告警汇总",
+        task_category: "notification",
+        trigger_source: "scheduled",
+        status: "completed",
+        progress_total: 1,
+        progress_completed: 1,
+        progress_failed: 0,
+        started_at: "2026-06-11T01:00:00+08:00",
+        completed_at: "2026-06-11T01:00:03+08:00"
       }
     ],
-    total: 1,
+    total: 2,
     page: 1,
     pages: 1
   })),
@@ -900,15 +916,31 @@ describe("Console pages", () => {
 
     await screen.findByRole("heading", { name: "会话中心" });
 
-    for (const text of ["来源", "分类", "状态", "运行ID", "进度", "任务", "开始时间", "耗时", "操作", "50%", "手动", "账户"]) {
+    for (const text of ["来源", "分类", "状态", "运行ID", "进度", "任务", "开始时间", "耗时", "操作", "50%", "手动", "账户", "告警"]) {
       await expectTextPresent(text);
     }
 
     expect(screen.getByRole("button", { name: "查看详情 s-1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "取消任务 s-1" })).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox", { name: "搜索" })).not.toBeInTheDocument();
+    expect(screen.queryByText("notification")).not.toBeInTheDocument();
     expect(screen.queryByText("会话指标")).not.toBeInTheDocument();
     expect(screen.queryByText("会话总数")).not.toBeInTheDocument();
     expect(screen.queryByText("最近同步会话首屏列表。")).not.toBeInTheDocument();
+  });
+
+  it("filters sync sessions with the backend notification category", async () => {
+    renderWithQueryClient(<SyncSessionsPage />);
+
+    await screen.findByRole("heading", { name: "会话中心" });
+    fireEvent.click(await screen.findByRole("combobox", { name: "分类" }));
+    fireEvent.click(await screen.findByRole("option", { name: "告警" }));
+
+    await waitFor(() => {
+      expect(fetchTaskRunsSnapshot).toHaveBeenLastCalledWith(
+        expect.objectContaining({ taskCategory: "notification" })
+      );
+    });
   });
 
   it("opens sync session detail in a React dialog", async () => {
@@ -1760,7 +1792,26 @@ describe("Console pages", () => {
     fireEvent.click(await screen.findByRole("button", { name: "查看任务 同步任务" }));
     const jobDialog = await screen.findByRole("dialog", { name: "任务详情 同步任务" });
     expect(await within(jobDialog).findByText("tasks.sync")).toBeInTheDocument();
+    expect(within(jobDialog).getByText("2026/6/11 11:55:00")).toBeInTheDocument();
+    for (const internalLabel of ["状态", "最大实例数", "错过执行宽限", "触发参数", "位置参数", "关键字参数", "合并执行"]) {
+      expect(within(jobDialog).queryByText(internalLabel)).not.toBeInTheDocument();
+    }
     expect(fetchSchedulerJobDetail).toHaveBeenCalledWith("job-1");
+  });
+
+  it("refreshes scheduler groups after pausing or resuming a job", async () => {
+    renderWithQueryClient(<SchedulerPage />);
+    await screen.findByRole("heading", { name: "定时任务" });
+    await screen.findByRole("button", { name: "暂停任务 同步任务" });
+    expect(fetchSchedulerSnapshot).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "暂停任务 同步任务" }));
+    await waitFor(() => expect(actionMocks.pauseSchedulerJob).toHaveBeenCalledWith("job-1"));
+    await waitFor(() => expect(fetchSchedulerSnapshot).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "恢复任务 归档任务" }));
+    await waitFor(() => expect(actionMocks.resumeSchedulerJob).toHaveBeenCalledWith("job-2"));
+    await waitFor(() => expect(fetchSchedulerSnapshot).toHaveBeenCalledTimes(3));
   });
 
   it("runs tag bulk assignment and removal from the legacy-style page", async () => {

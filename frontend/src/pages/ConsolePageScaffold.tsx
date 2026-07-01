@@ -180,7 +180,7 @@ export function syncSource(item: TaskRunItem): string {
 }
 
 export function syncCategory(item: TaskRunItem): string {
-  return ({ account: "账户", capacity: "容量", aggregation: "聚合", classification: "分类", cluster: "群集", alert: "告警", other: "其他" } as Record<string, string>)[item.task_category] ?? item.task_category;
+  return ({ account: "账户", capacity: "容量", aggregation: "聚合", classification: "分类", cluster: "群集", notification: "告警", other: "其他" } as Record<string, string>)[item.task_category] ?? item.task_category;
 }
 
 export function syncProgress(item: TaskRunItem) {

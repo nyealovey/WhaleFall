@@ -188,12 +188,10 @@ import {
   EmptyRows,
   ErrorState,
   FormField,
-  JsonBlock,
   ListPanel,
   MetricGrid,
   PageHeader,
   QueryFrame,
-  StatusBadge,
   asNumber,
   asText,
   canManageCatalog,
@@ -231,7 +229,15 @@ function SchedulerJobDetailDialog({
     queryKey: ["read-only", "scheduler-job-detail", item?.id],
     queryFn: () => fetchSchedulerJobDetail(item?.id ?? "")
   });
-  const detail = (query.data ?? item) as SchedulerJobDetail | null;
+  const detail = item
+    ? ({
+        ...item,
+        ...(query.data ?? {}),
+        next_run_time: query.data?.next_run_time ?? item.next_run_time,
+        last_run_time: query.data?.last_run_time ?? item.last_run_time,
+        state: query.data?.state ?? item.state
+      } as SchedulerJobDetail)
+    : null;
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -250,17 +256,10 @@ function SchedulerJobDetailDialog({
         {detail ? (
           <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
             <DetailBlock label="任务 ID"><span className="font-mono">{detail.task_id ?? detail.id}</span></DetailBlock>
-            <DetailBlock label="状态"><StatusBadge value={detail.state} /></DetailBlock>
             <DetailBlock label="执行函数"><span className="font-mono">{asText(detail.func)}</span></DetailBlock>
             <DetailBlock label="触发器"><span className="font-mono">{asText(detail.trigger ?? detail.trigger_type)}</span></DetailBlock>
-            <DetailBlock label="下次运行"><span className="font-mono">{asText(detail.next_run_time, "未计划")}</span></DetailBlock>
-            <DetailBlock label="上次运行"><span className="font-mono">{asText(detail.last_run_time, "从未运行")}</span></DetailBlock>
-            <DetailBlock label="最大实例数"><span className="font-mono">{asText(detail.max_instances)}</span></DetailBlock>
-            <DetailBlock label="错过执行宽限"><span className="font-mono">{asText(detail.misfire_grace_time)}</span></DetailBlock>
-            <DetailBlock label="触发参数"><JsonBlock value={detail.trigger_args} /></DetailBlock>
-            <DetailBlock label="位置参数"><JsonBlock value={detail.args} /></DetailBlock>
-            <DetailBlock label="关键字参数"><JsonBlock value={detail.kwargs} /></DetailBlock>
-            <DetailBlock label="合并执行"><StatusBadge value={detail.coalesce ?? null} /></DetailBlock>
+            <DetailBlock label="下次运行"><span className="font-mono">{detail.next_run_time ? formatDateTime(detail.next_run_time) : "未计划"}</span></DetailBlock>
+            <DetailBlock label="上次运行"><span className="font-mono">{detail.last_run_time ? formatDateTime(detail.last_run_time) : "从未运行"}</span></DetailBlock>
           </div>
         ) : null}
       </DialogContent>
@@ -423,10 +422,12 @@ function SchedulerJobFormDialog({
 function SchedulerJobCard({
   job,
   onEdit,
+  onJobChanged,
   onView
 }: {
   job: SchedulerJobItem;
   onEdit: (job: SchedulerJobItem) => void;
+  onJobChanged: () => void;
   onView: (job: SchedulerJobItem) => void;
 }) {
   const name = schedulerJobName(job);
@@ -460,7 +461,7 @@ function SchedulerJobCard({
             <Button
               aria-label={`暂停任务 ${name}`}
               onClick={() => {
-                void runAction(pauseSchedulerJob(job.id), { success: "任务已暂停" });
+                void runAction(pauseSchedulerJob(job.id), { success: "任务已暂停" }).then(onJobChanged);
               }}
               size="icon"
               type="button"
@@ -472,7 +473,7 @@ function SchedulerJobCard({
             <Button
               aria-label={`恢复任务 ${name}`}
               onClick={() => {
-                void runAction(resumeSchedulerJob(job.id), { success: "任务已恢复" });
+                void runAction(resumeSchedulerJob(job.id), { success: "任务已恢复" }).then(onJobChanged);
               }}
               size="icon"
               type="button"
@@ -507,11 +508,13 @@ function SchedulerJobCard({
 function SchedulerJobSection({
   jobs,
   onEdit,
+  onJobChanged,
   onView,
   title
 }: {
   jobs: SchedulerJobItem[];
   onEdit: (job: SchedulerJobItem) => void;
+  onJobChanged: () => void;
   onView: (job: SchedulerJobItem) => void;
   title: string;
 }) {
@@ -524,7 +527,7 @@ function SchedulerJobSection({
       {jobs.length > 0 ? (
         <div className="grid grid-cols-3 gap-2 max-2xl:grid-cols-2 max-lg:grid-cols-1">
           {jobs.map((job) => (
-            <SchedulerJobCard job={job} key={job.id} onEdit={onEdit} onView={onView} />
+            <SchedulerJobCard job={job} key={job.id} onEdit={onEdit} onJobChanged={onJobChanged} onView={onView} />
           ))}
         </div>
       ) : (
@@ -570,12 +573,14 @@ export function SchedulerPage() {
                   title="运行中的任务"
                   jobs={snapshot.jobs.filter((job) => isRunningState(job.state))}
                   onEdit={setEditingJob}
+                  onJobChanged={() => void query.refetch()}
                   onView={setViewingJob}
                 />
                 <SchedulerJobSection
                   title="已暂停的任务"
                   jobs={snapshot.jobs.filter((job) => !isRunningState(job.state))}
                   onEdit={setEditingJob}
+                  onJobChanged={() => void query.refetch()}
                   onView={setViewingJob}
                 />
               </div>

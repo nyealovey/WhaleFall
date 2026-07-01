@@ -275,10 +275,10 @@ describe("read-only migration api", () => {
     };
 
     const scheduler = await fetchSchedulerSnapshot(client);
-    const sessions = await fetchTaskRunsSnapshot({ page: 2, limit: 20, status: "failed", taskCategory: "alert" }, client);
+    const sessions = await fetchTaskRunsSnapshot({ page: 2, limit: 20, status: "failed", taskCategory: "notification" }, client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/scheduler/jobs");
-    expect(client.get).toHaveBeenCalledWith("/api/v1/task-runs?page=2&limit=20&task_category=alert&status=failed&sort=started_at&order=desc");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/task-runs?page=2&limit=20&task_category=notification&status=failed&sort=started_at&order=desc");
     expect(scheduler.jobs[0]?.task_name).toBe("同步任务");
     expect(sessions.items[0]?.run_id).toBe("s-1");
   });
