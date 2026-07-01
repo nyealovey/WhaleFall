@@ -21,7 +21,8 @@ import {
   ShieldCheck,
   Tag,
   Trash2,
-  Users
+  Users,
+  type LucideIcon
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
@@ -575,23 +576,84 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function TagList({ tags }: { tags: TagItem[] }) {
+function TagList({ tags, limit = 6 }: { tags: TagItem[]; limit?: number }) {
   if (tags.length === 0) {
     return <span className="text-muted-foreground">无标签</span>;
   }
+  const visibleTags = tags.slice(0, limit);
+  const hiddenTags = tags.slice(limit);
   return (
     <div className="flex flex-wrap gap-1">
-      {tags.slice(0, 6).map((tag) => (
+      {visibleTags.map((tag) => (
         <Badge variant="outline" key={tag.name}>
           {tag.display_name || tag.name}
         </Badge>
       ))}
+      {hiddenTags.length > 0 ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="secondary">+{hiddenTags.length}</Badge>
+          </TooltipTrigger>
+          <TooltipContent>{hiddenTags.map((tag) => tag.display_name || tag.name).join(" / ")}</TooltipContent>
+        </Tooltip>
+      ) : null}
     </div>
   );
 }
 
 function BadgeText({ value, variantValue }: { value: string; variantValue?: string }) {
   return <Badge variant={statusVariant(variantValue ?? value)}>{value}</Badge>;
+}
+
+function CompactStatusChip({ icon: Icon, label, variantValue }: { icon: LucideIcon; label: string; variantValue?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge aria-label={label} className="size-7 justify-center rounded-full px-0" tabIndex={0} variant={statusVariant(variantValue ?? label)}>
+          <Icon aria-hidden size={14} />
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function InstanceActionButton({
+  href,
+  icon: Icon,
+  label,
+  onClick
+}: {
+  href?: string;
+  icon: LucideIcon;
+  label: string;
+  onClick?: () => void;
+}) {
+  if (href) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button asChild aria-label={label} className="size-8" size="icon" variant="outline">
+            <a aria-label={label} href={href}>
+              <Icon aria-hidden size={14} />
+            </a>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button aria-label={label} className="size-8" onClick={onClick} size="icon" type="button" variant="outline">
+          <Icon aria-hidden size={14} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function asText(value: unknown, fallback = "-"): string {
@@ -1782,136 +1844,99 @@ function createInstanceColumns({
   selectedIds: Set<number>;
 }): ColumnDef<InstanceListItem>[] {
   return [
-  {
-    id: "select",
-    header: "选择",
-    cell: ({ row }) => (
-      <Checkbox
-        aria-label={`选择实例 ${row.original.name}`}
-        checked={selectedIds.has(row.original.id)}
-        onCheckedChange={(checked) => onSelectedChange(row.original.id, checked === true)}
-      />
-    )
-  },
-  {
-    accessorKey: "name",
-    header: "名称",
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.name}</div>
-        <div className="mt-1 text-xs text-muted-foreground">ID {row.original.id}</div>
-      </div>
-    )
-  },
-  {
-    accessorFn: (item) => dbTypeLabel(item.db_type),
-    id: "db_type",
-    header: "类型",
-    cell: ({ getValue }) => <Badge variant="outline">{String(getValue())}</Badge>
-  },
-  {
-    accessorFn: (item) => `${item.host}:${item.port}`,
-    id: "host",
-    header: "主机/IP",
-    cell: ({ row }) => (
-      <div className="font-mono text-xs">
-        {row.original.host}:{row.original.port}
-      </div>
-    )
-  },
-  {
-    accessorFn: instanceStatusLabel,
-    id: "status",
-    header: "状态",
-    cell: ({ row }) => <BadgeText value={instanceStatusLabel(row.original)} />
-  },
-  {
-    accessorFn: auditStatusLabel,
-    id: "audit_status",
-    header: "审计",
-    cell: ({ row }) => <BadgeText value={auditStatusLabel(row.original)} variantValue={row.original.audit_status} />
-  },
-  {
-    accessorFn: managedStatusLabel,
-    id: "managed_status",
-    header: "已托管",
-    cell: ({ row }) => <BadgeText value={managedStatusLabel(row.original)} />
-  },
-  {
-    accessorFn: backupStatusLabel,
-    id: "backup_status",
-    header: "备份",
-    cell: ({ row }) => <BadgeText value={backupStatusLabel(row.original)} variantValue={row.original.backup_status} />
-  },
-  {
-    accessorFn: (item) => `${item.active_db_count}/${item.active_account_count}`,
-    id: "active_counts",
-    header: "活跃",
-    cell: ({ row }) => (
-      <div className="grid gap-1 text-xs text-muted-foreground">
-        <span>数据库 {formatNumber(row.original.active_db_count)}</span>
-        <span>账户 {formatNumber(row.original.active_account_count)}</span>
-      </div>
-    )
-  },
-  {
-    accessorFn: (item) => `${item.main_version ?? "未检测"} ${formatShortTimestamp(item.last_sync_time)}`,
-    id: "version_sync",
-    header: "版本 / 同步",
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.main_version || "未检测"}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{formatShortTimestamp(row.original.last_sync_time)}</div>
-      </div>
-    )
-  },
-  {
-    accessorFn: (item) => tagsText(item.tags),
-    id: "tags",
-    header: "标签",
-    cell: ({ row }) => <TagList tags={row.original.tags} />
-  },
-  {
-    id: "actions",
-    header: "操作",
-    cell: ({ row }) => (
-      <div className="flex flex-wrap gap-2">
-        <Button asChild size="sm" variant="outline">
-          <a aria-label={`查看详情 ${row.original.id}`} href={`/instances/${row.original.id}`}>
-            <Eye aria-hidden size={14} />
-            <span>详情</span>
-          </a>
-        </Button>
-        <Button aria-label={`编辑实例 ${row.original.id}`} onClick={() => onEdit(row.original)} size="sm" type="button" variant="outline">
-          <Pencil aria-hidden size={14} />
-          <span>编辑</span>
-        </Button>
-        <Button
-          aria-label={`测试连接 ${row.original.id}`}
-          onClick={() => {
-            void runAction(testInstanceConnection(row.original.id), { success: "连接测试已完成" });
-          }}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <PlugZap aria-hidden size={14} />
-          <span>测试</span>
-        </Button>
-        {row.original.deleted_at ? (
-          <Button aria-label={`恢复实例 ${row.original.id}`} onClick={() => onRestore(row.original)} size="sm" type="button" variant="outline">
-            <RotateCcw aria-hidden size={14} />
-            <span>恢复</span>
-          </Button>
-        ) : (
-          <Button aria-label={`删除实例 ${row.original.id}`} onClick={() => onDelete(row.original)} size="sm" type="button" variant="outline">
-            <Trash2 aria-hidden size={14} />
-            <span>删除</span>
-          </Button>
-        )}
-      </div>
-    )
-  }
+    {
+      id: "select",
+      header: "选择",
+      cell: ({ row }) => (
+        <Checkbox
+          aria-label={`选择实例 ${row.original.name}`}
+          checked={selectedIds.has(row.original.id)}
+          onCheckedChange={(checked) => onSelectedChange(row.original.id, checked === true)}
+        />
+      )
+    },
+    {
+      accessorFn: (item) => `${item.name} ${item.id} ${dbTypeLabel(item.db_type)}`,
+      id: "instance",
+      header: "实例",
+      cell: ({ row }) => (
+        <div className="grid min-h-14 content-center gap-1">
+          <div className="font-medium leading-tight">{row.original.name}</div>
+          <div className="text-xs text-muted-foreground">
+            ID {row.original.id} · {dbTypeLabel(row.original.db_type)}
+          </div>
+        </div>
+      )
+    },
+    {
+      accessorFn: (item) => `${item.host}:${item.port}`,
+      id: "host",
+      header: "主机/IP",
+      cell: ({ row }) => (
+        <div className="font-mono text-xs">
+          {row.original.host}:{row.original.port}
+        </div>
+      )
+    },
+    {
+      accessorFn: (item) => [instanceStatusLabel(item), auditStatusLabel(item), managedStatusLabel(item), backupStatusLabel(item)].join(" "),
+      id: "status",
+      header: "状态",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="flex min-h-14 flex-wrap content-center items-center gap-1.5">
+            <BadgeText value={instanceStatusLabel(item)} variantValue={item.status} />
+            <CompactStatusChip icon={ShieldCheck} label={`审计：${auditStatusLabel(item)}`} variantValue={item.audit_status} />
+            <CompactStatusChip icon={ExternalLink} label={`托管：${managedStatusLabel(item)}`} variantValue={managedStatusLabel(item)} />
+            <CompactStatusChip icon={HardDrive} label={`备份：${backupStatusLabel(item)}`} variantValue={item.backup_status} />
+          </div>
+        );
+      }
+    },
+    {
+      accessorFn: (item) => `${item.active_db_count}/${item.active_account_count} ${item.main_version ?? "未检测"} ${formatShortTimestamp(item.last_sync_time)}`,
+      id: "runtime_summary",
+      header: "运行摘要",
+      cell: ({ row }) => (
+        <div className="grid min-h-14 content-center gap-1 text-xs">
+          <div className="font-medium">
+            数据库 {formatNumber(row.original.active_db_count)} · 账户 {formatNumber(row.original.active_account_count)}
+          </div>
+          <div className="text-muted-foreground">
+            {row.original.main_version || "未检测"} · {formatShortTimestamp(row.original.last_sync_time)}
+          </div>
+        </div>
+      )
+    },
+    {
+      accessorFn: (item) => tagsText(item.tags),
+      id: "tags",
+      header: "标签",
+      cell: ({ row }) => <TagList limit={2} tags={row.original.tags} />
+    },
+    {
+      id: "actions",
+      header: "操作",
+      cell: ({ row }) => (
+        <div className="flex min-h-14 items-center gap-1.5">
+          <InstanceActionButton href={`/instances/${row.original.id}`} icon={Eye} label={`查看详情 ${row.original.id}`} />
+          <InstanceActionButton icon={Pencil} label={`编辑实例 ${row.original.id}`} onClick={() => onEdit(row.original)} />
+          <InstanceActionButton
+            icon={PlugZap}
+            label={`测试连接 ${row.original.id}`}
+            onClick={() => {
+              void runAction(testInstanceConnection(row.original.id), { success: "连接测试已完成" });
+            }}
+          />
+          {row.original.deleted_at ? (
+            <InstanceActionButton icon={RotateCcw} label={`恢复实例 ${row.original.id}`} onClick={() => onRestore(row.original)} />
+          ) : (
+            <InstanceActionButton icon={Trash2} label={`删除实例 ${row.original.id}`} onClick={() => onDelete(row.original)} />
+          )}
+        </div>
+      )
+    }
   ];
 }
 

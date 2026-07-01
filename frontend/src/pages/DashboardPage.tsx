@@ -180,7 +180,7 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
   const logTrendChartConfig = {
     error_count: {
       label: "错误日志",
-      color: "var(--chart-3)"
+      color: "var(--destructive)"
     },
     warning_count: {
       label: "告警日志",

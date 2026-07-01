@@ -122,6 +122,16 @@ describe("DashboardPage", () => {
     }
   });
 
+  it("uses semantic visible colors for dashboard error and warning log trend lines", async () => {
+    renderWithQueryClient();
+
+    await screen.findByRole("img", { name: "错误和告警日志趋势图" });
+
+    const chart = document.querySelector<HTMLElement>("[data-chart]");
+    expect(chart?.style.getPropertyValue("--color-error_count").trim()).toBe("var(--destructive)");
+    expect(chart?.style.getPropertyValue("--color-warning_count").trim()).toBe("var(--chart-4)");
+  });
+
   it("refreshes through unified action feedback", async () => {
     renderWithQueryClient();
 

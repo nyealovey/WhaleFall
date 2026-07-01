@@ -59,7 +59,13 @@ vi.mock("@/api/lists", () => ({
         is_jumpserver_managed: true,
         active_db_count: 12,
         active_account_count: 20,
-        tags: [{ name: "prod", display_name: "生产" }]
+        main_version: "8.0",
+        last_sync_time: "2026-06-11T03:00:00+08:00",
+        tags: [
+          { name: "prod", display_name: "生产" },
+          { name: "core", display_name: "核心" },
+          { name: "shanghai", display_name: "上海" }
+        ]
       },
       {
         id: 4,
@@ -361,18 +367,30 @@ describe("ListPages", () => {
     for (const label of ["搜索", "类型", "状态", "审计", "托管", "备份", "标签"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    for (const header of ["名称", "类型", "主机/IP", "状态", "审计", "已托管", "备份", "活跃", "版本 / 同步", "标签", "操作"]) {
+    for (const header of ["选择", "实例", "主机/IP", "状态", "运行摘要", "标签", "操作"]) {
       expect(screen.getByRole("columnheader", { name: header })).toBeInTheDocument();
+    }
+    for (const removedHeader of ["名称", "已托管", "备份", "活跃", "版本 / 同步"]) {
+      expect(screen.queryByRole("columnheader", { name: removedHeader })).not.toBeInTheDocument();
     }
     for (const action of ["实例统计", "添加实例", "移入回收站", "批量测试连接", "批量导入", "显示已删除", "导出CSV"]) {
       expect(screen.getAllByText(action).length).toBeGreaterThan(0);
     }
+    expect(screen.getByText("ID 1 · MYSQL")).toBeInTheDocument();
+    expect(screen.getByText("数据库 12 · 账户 20")).toBeInTheDocument();
+    expect(screen.getByText("8.0 · 06/11 03:00")).toBeInTheDocument();
+    expect(screen.getByText("生产")).toBeInTheDocument();
+    expect(screen.getByText("核心")).toBeInTheDocument();
+    expect(screen.getByText("+1")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "查看详情 1" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "查看详情 1" })).toHaveAttribute("href", "/instances/1");
-    expect(screen.getByRole("button", { name: "编辑实例 1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "测试连接 1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "删除实例 1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "恢复实例 4" })).toBeInTheDocument();
+    const detailLink = screen.getByRole("link", { name: "查看详情 1" });
+    expect(detailLink).toHaveAttribute("href", "/instances/1");
+    expect(detailLink).toHaveTextContent(/^$/);
+    for (const name of ["编辑实例 1", "测试连接 1", "删除实例 1", "恢复实例 4"]) {
+      const actionButton = screen.getByRole("button", { name });
+      expect(actionButton).toBeInTheDocument();
+      expect(actionButton).toHaveTextContent(/^$/);
+    }
   });
 
   it("runs instance create and update forms through v1 APIs", async () => {
