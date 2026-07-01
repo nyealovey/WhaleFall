@@ -6,7 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchAccountClassificationPermissions,
   fetchAccountScopeOptions,
+  fetchClusterInstanceOptions,
   fetchClassificationStatisticsSnapshot,
+  fetchMySqlClusterDetail,
   fetchPartitionsSnapshot,
   fetchSchedulerSnapshot,
   fetchSchedulerJobDetail,
@@ -1175,6 +1177,39 @@ describe("Console pages", () => {
     expect(await within(agDialog).findByRole("heading", { name: "SQL Server AG 看板 ag-sales" })).toBeInTheDocument();
     expect((await within(agDialog).findAllByText("sql-node-1")).length).toBeGreaterThan(0);
     expect(await within(agDialog).findByText("sales")).toBeInTheDocument();
+  });
+
+  it("uses instance_id rather than binding id when editing MySQL cluster bindings", async () => {
+    vi.mocked(fetchMySqlClusterDetail).mockResolvedValueOnce({
+      cluster: { id: 2, name: "mysql-repl", description: "MySQL replication 群集", is_enabled: true },
+      instances: [
+        { id: 900, instance_id: 12, name: "mysql-primary", host: "10.0.0.21", role: "primary" },
+        { id: 901, instance_id: 14, name: "mysql-replica", host: "10.0.0.24", role: "replica" }
+      ]
+    });
+    vi.mocked(fetchClusterInstanceOptions).mockResolvedValueOnce([
+      { id: 12, name: "mysql-primary", host: "10.0.0.21", db_type: "mysql" },
+      { id: 14, name: "mysql-replica", host: "10.0.0.24", db_type: "mysql" },
+      { id: 900, name: "wrong-selected-instance", host: "10.0.9.0", db_type: "mysql" }
+    ]);
+    renderWithQueryClient(<ClustersPage />);
+
+    await screen.findByRole("heading", { name: "群集管理" });
+    await screen.findByRole("tab", { name: /MySQL/ });
+    await switchTab(/MySQL/);
+    fireEvent.click(screen.getByRole("button", { name: "绑定实例 mysql-repl" }));
+    const bindingDialog = await screen.findByRole("dialog", { name: "编辑 MySQL 实例绑定 mysql-repl" });
+
+    expect(await within(bindingDialog).findByRole("checkbox", { name: /mysql-primary/ })).toBeChecked();
+    expect(within(bindingDialog).getByRole("checkbox", { name: /mysql-replica/ })).toBeChecked();
+    expect(within(bindingDialog).getByRole("checkbox", { name: /wrong-selected-instance/ })).not.toBeChecked();
+
+    fireEvent.click(within(bindingDialog).getByRole("checkbox", { name: /mysql-primary/ }));
+    fireEvent.click(within(bindingDialog).getByRole("button", { name: "保存绑定" }));
+
+    await waitFor(() => {
+      expect(actionMocks.replaceMySqlClusterInstances).toHaveBeenCalledWith(2, [14]);
+    });
   });
 
   it("renders account classifications with legacy panels, rule groups, and actions", async () => {

@@ -406,5 +406,8 @@ class MySQLClusterManagementService:
 
     def _serialize_bound_instance(self, binding: MySQLClusterInstance) -> dict[str, Any]:
         payload = self._serialize_instance(cast(Instance | None, binding.instance))
-        payload.update(binding.to_dict())
+        binding_payload = binding.to_dict()
+        binding_id = binding_payload.pop("id", None)
+        payload.update(binding_payload)
+        payload["binding_id"] = binding_id
         return payload

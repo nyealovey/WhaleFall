@@ -82,17 +82,17 @@ def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() ->
         cluster = _make_mysql_cluster(name="mysql-cluster-a", description="")
         db.session.add_all([user, instance, cluster])
         db.session.flush()
-        db.session.add(
-            _make_mysql_cluster_instance(
-                cluster_id=cluster.id,
-                instance_id=instance.id,
-                replication_role="replica",
-                replication_status="unhealthy",
-                seconds_behind_source=9,
-                read_only=True,
-                super_read_only=True,
-            ),
+        binding = _make_mysql_cluster_instance(
+            cluster_id=cluster.id,
+            instance_id=instance.id,
+            replication_role="replica",
+            replication_status="unhealthy",
+            seconds_behind_source=9,
+            read_only=True,
+            super_read_only=True,
         )
+        binding.id = 900
+        db.session.add(binding)
         db.session.commit()
 
         client = app.test_client()
@@ -103,6 +103,9 @@ def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() ->
         assert response.status_code == 200
         data = response.get_json()["data"]
         item = data["instances"][0]
+        assert item["id"] == instance.id
+        assert item["instance_id"] == instance.id
+        assert item["binding_id"] == binding.id
         assert {
             "io_state",
             "source_log_file",

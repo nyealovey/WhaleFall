@@ -34,6 +34,8 @@ export type ClusterItem = {
 
 export type ClusterDetailRecord = Record<string, unknown> & {
   id?: number;
+  binding_id?: number | null;
+  instance_id?: number | null;
   name?: string | null;
   host?: string | null;
   role?: string | null;

@@ -285,6 +285,14 @@ function clusterRecordId(record: ClusterDetailRecord | ClusterInstanceOption | C
   return null;
 }
 
+function clusterBoundInstanceId(record: ClusterDetailRecord): number | null {
+  const instanceId = record.instance_id;
+  if (typeof instanceId === "number" && Number.isFinite(instanceId)) {
+    return instanceId;
+  }
+  return clusterRecordId(record);
+}
+
 function optionalNumber(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -430,7 +438,7 @@ function ClusterInstanceBindingPanel({
   const boundIds = useMemo(
     () =>
       (detailQuery.data?.instances ?? [])
-        .map((record) => clusterRecordId(record))
+        .map((record) => clusterBoundInstanceId(record))
         .filter((id): id is number => id !== null),
     [detailQuery.data]
   );
