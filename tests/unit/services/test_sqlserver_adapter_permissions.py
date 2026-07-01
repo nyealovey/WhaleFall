@@ -3,6 +3,7 @@ from typing import Any, cast
 import pymssql  # type: ignore[import-not-found]
 import pytest
 
+import app.models.sqlserver_cluster  # noqa: F401  # register SQLAlchemy relationship targets
 from app.models.instance import Instance
 from app.services.accounts_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
 
