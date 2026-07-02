@@ -45,7 +45,10 @@ export type ClusterInstanceOption = {
   id: number;
   name: string;
   host?: string | null;
+  port?: number | null;
   db_type?: string | null;
+  bound_cluster_id?: number | null;
+  bound_cluster_name?: string | null;
 };
 
 export type AccountScopeOption = {

@@ -74,6 +74,7 @@ def _make_mysql_cluster_instance(
 def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True
+    app.config["MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS"] = 600
 
     with app.app_context():
         _create_schema()
@@ -86,8 +87,8 @@ def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() ->
             cluster_id=cluster.id,
             instance_id=instance.id,
             replication_role="replica",
-            replication_status="unhealthy",
-            seconds_behind_source=9,
+            replication_status="healthy",
+            seconds_behind_source=601,
             read_only=True,
             super_read_only=True,
         )
@@ -103,9 +104,11 @@ def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() ->
         assert response.status_code == 200
         data = response.get_json()["data"]
         item = data["instances"][0]
+        assert data["cluster"]["abnormal_replica_count"] == 1
         assert item["id"] == instance.id
         assert item["instance_id"] == instance.id
         assert item["binding_id"] == binding.id
+        assert item["replication_status"] == "unhealthy"
         assert {
             "io_state",
             "source_log_file",
@@ -120,6 +123,8 @@ def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() ->
             "read_only",
             "super_read_only",
         }.issubset(item.keys())
+        assert item["lag_abnormal"] is True
+        assert item["lag_threshold_seconds"] == 600
 
 
 @pytest.mark.unit

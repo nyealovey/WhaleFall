@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, cast
 
+from flask import current_app, has_app_context
 from sqlalchemy import func, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query
@@ -25,6 +26,7 @@ from app.schemas.mysql_clusters import (
 from app.schemas.validation import validate_or_raise
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.mysql_clusters.topology_detector import MySQLTopologyDetector
+from app.settings import DEFAULT_MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS
 from app.utils.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
@@ -179,7 +181,7 @@ class MySQLClusterManagementService:
                     "last_error": str(exc),
                 }
                 self._apply_detection(binding, detected, now)
-            if binding.replication_status not in {"healthy"}:
+            if self._is_binding_abnormal(binding):
                 abnormal += 1
             items.append(self._serialize_bound_instance(binding))
 
@@ -329,8 +331,7 @@ class MySQLClusterManagementService:
         finally:
             connection.disconnect()
 
-    @staticmethod
-    def _apply_detection(binding: MySQLClusterInstance, detected: Mapping[str, Any], checked_at: Any) -> None:
+    def _apply_detection(self, binding: MySQLClusterInstance, detected: Mapping[str, Any], checked_at: Any) -> None:
         binding.replication_role = str(detected.get("replication_role") or "unknown")
         binding.replication_status = str(detected.get("replication_status") or "unknown")
         binding.source_host = cast(str | None, detected.get("source_host"))
@@ -351,13 +352,18 @@ class MySQLClusterManagementService:
         binding.last_io_error = cast(str | None, detected.get("last_io_error"))
         binding.last_sql_error = cast(str | None, detected.get("last_sql_error"))
         binding.last_error = cast(str | None, detected.get("last_error"))
+        if self._is_replica_lag_abnormal(binding):
+            binding.replication_status = "unhealthy"
+            if not binding.last_error:
+                threshold = self._replica_lag_abnormal_threshold_seconds()
+                binding.last_error = f"复制延迟超过阈值 {threshold}s"
         binding.last_checked_at = checked_at
         db.session.add(binding)
 
     def _serialize_cluster_summary(self, cluster: MySQLCluster) -> dict[str, Any]:
         bindings = self._list_bindings_for_cluster(cluster.id)
         payload = cluster.to_dict()
-        unhealthy_count = sum(1 for binding in bindings if binding.replication_status not in {"healthy"})
+        unhealthy_count = sum(1 for binding in bindings if self._is_binding_abnormal(binding))
         replica_bindings = [binding for binding in bindings if binding.replication_role == "replica"]
         known_replica_lags = [
             int(binding.seconds_behind_source)
@@ -378,6 +384,7 @@ class MySQLClusterManagementService:
                     1 for binding in replica_bindings if binding.seconds_behind_source is None
                 ),
                 "max_replica_lag_seconds": max(known_replica_lags) if known_replica_lags else None,
+                "replica_lag_abnormal_threshold_seconds": self._replica_lag_abnormal_threshold_seconds(),
             },
         )
         return payload
@@ -410,4 +417,34 @@ class MySQLClusterManagementService:
         binding_id = binding_payload.pop("id", None)
         payload.update(binding_payload)
         payload["binding_id"] = binding_id
+        lag_abnormal = self._is_replica_lag_abnormal(binding)
+        payload["lag_abnormal"] = lag_abnormal
+        payload["lag_threshold_seconds"] = self._replica_lag_abnormal_threshold_seconds()
+        if lag_abnormal:
+            payload["replication_status"] = "unhealthy"
+            if not payload.get("last_error"):
+                payload["last_error"] = f"复制延迟超过阈值 {payload['lag_threshold_seconds']}s"
         return payload
+
+    @staticmethod
+    def _replica_lag_abnormal_threshold_seconds() -> int:
+        if has_app_context():
+            return int(
+                current_app.config.get(
+                    "MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS",
+                    DEFAULT_MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS,
+                ),
+            )
+        return DEFAULT_MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS
+
+    def _is_replica_lag_abnormal(self, binding: MySQLClusterInstance) -> bool:
+        if str(binding.replication_role or "").lower() != "replica":
+            return False
+        if binding.seconds_behind_source is None:
+            return False
+        return int(binding.seconds_behind_source) > self._replica_lag_abnormal_threshold_seconds()
+
+    def _is_binding_abnormal(self, binding: MySQLClusterInstance) -> bool:
+        if self._is_replica_lag_abnormal(binding):
+            return True
+        return str(binding.replication_status or "unknown") != "healthy"

@@ -23,6 +23,16 @@ def test_settings_loads_veeam_backup_objects_limit(monkeypatch) -> None:
 
 
 @pytest.mark.unit
+def test_settings_loads_mysql_replica_lag_abnormal_threshold(monkeypatch) -> None:
+    monkeypatch.setenv("MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS", "900")
+
+    settings = Settings.load()
+
+    assert settings.mysql_replica_lag_abnormal_threshold_seconds == 900
+    assert settings.to_flask_config()["MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS"] == 900
+
+
+@pytest.mark.unit
 def test_settings_loads_veeam_token_timeout_and_retry_controls(monkeypatch) -> None:
     monkeypatch.setenv("VEEAM_TOKEN_TIMEOUT_SECONDS", "7")
     monkeypatch.setenv("VEEAM_TOKEN_RETRY_ATTEMPTS", "4")

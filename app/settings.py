@@ -69,6 +69,7 @@ DEFAULT_AGGREGATION_HOUR = 4
 DEFAULT_COLLECT_DB_SIZE_ENABLED = True
 DEFAULT_DB_SIZE_COLLECTION_INTERVAL_HOURS = 24
 DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS = 300
+DEFAULT_MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS = 600
 DEFAULT_MAIL_SMTP_PORT = 25
 DEFAULT_MAIL_TIMEOUT_SECONDS = 10
 DEFAULT_FEISHU_REQUEST_TIMEOUT_SECONDS = 10
@@ -301,6 +302,10 @@ class Settings(BaseSettings):
         default=DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS,
         validation_alias="DB_SIZE_COLLECTION_TIMEOUT",
     )
+    mysql_replica_lag_abnormal_threshold_seconds: int = Field(
+        default=DEFAULT_MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS,
+        validation_alias="MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS",
+    )
     mail_smtp_host: str | None = Field(default=None, validation_alias="MAIL_SMTP_HOST")
     mail_smtp_port: int = Field(default=DEFAULT_MAIL_SMTP_PORT, validation_alias="MAIL_SMTP_PORT")
     mail_smtp_username: str | None = Field(default=None, validation_alias="MAIL_SMTP_USERNAME")
@@ -451,6 +456,7 @@ class Settings(BaseSettings):
             "DATABASE_SIZE_RETENTION_MONTHS": self.database_size_retention_months,
             "DB_SIZE_COLLECTION_INTERVAL": self.db_size_collection_interval_hours,
             "DB_SIZE_COLLECTION_TIMEOUT": self.db_size_collection_timeout_seconds,
+            "MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS": self.mysql_replica_lag_abnormal_threshold_seconds,
             "MAIL_SMTP_HOST": self.mail_smtp_host,
             "MAIL_SMTP_PORT": self.mail_smtp_port,
             "MAIL_SMTP_USERNAME": self.mail_smtp_username,
@@ -619,6 +625,10 @@ class Settings(BaseSettings):
             ),
             ("DB_SIZE_COLLECTION_INTERVAL 必须为正整数(小时)", self.db_size_collection_interval_hours <= 0),
             ("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)", self.db_size_collection_timeout_seconds <= 0),
+            (
+                "MYSQL_REPLICA_LAG_ABNORMAL_THRESHOLD_SECONDS 必须为正整数(秒)",
+                self.mysql_replica_lag_abnormal_threshold_seconds <= 0,
+            ),
             ("MAIL_SMTP_PORT 必须为正整数", self.mail_smtp_port <= 0),
             ("MAIL_TIMEOUT_SECONDS 必须为正整数(秒)", self.mail_timeout_seconds <= 0),
             ("FEISHU_REQUEST_TIMEOUT_SECONDS 必须为正整数(秒)", self.feishu_request_timeout_seconds <= 0),

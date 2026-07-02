@@ -31,6 +31,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "rec
 
 import { CheckboxLine, SelectControl, SwitchField } from "@/components/shared/FormControls";
 import { runAction } from "@/utils/action-feedback";
+import { getClusterInstanceBindingState } from "@/utils/cluster-binding";
 import { formatDateTime, formatStatus } from "@/utils/display";
 import {
   AlertDialog,
@@ -296,6 +297,14 @@ function clusterBoundInstanceId(record: ClusterDetailRecord): number | null {
     return instanceId;
   }
   return clusterRecordId(record);
+}
+
+function clusterInstanceOptionEndpoint(option: ClusterInstanceOption): string {
+  const host = option.host?.trim();
+  if (!host) {
+    return "-";
+  }
+  return typeof option.port === "number" && Number.isFinite(option.port) ? `${host}:${option.port}` : host;
 }
 
 function optionalNumber(value: string): number | null {
@@ -624,16 +633,31 @@ function ClusterInstanceBindingPanel({
                   if (optionId === null) {
                     return null;
                   }
+                  const bindingState = getClusterInstanceBindingState(option, item.id);
+                  const badgeClassName = bindingState.disabled
+                    ? "border-slate-200 bg-slate-100 text-slate-600"
+                    : "border-orange-200 bg-orange-50 text-orange-700";
                   return (
                     <CheckboxLine
                       checked={selectedIds.includes(optionId)}
+                      disabled={bindingState.disabled}
                       key={optionId}
                       label={`绑定 ${option.name}`}
                       onCheckedChange={(checked) => toggleInstance(optionId, checked)}
                     >
-                      <span className="grid gap-0.5">
-                        <span className="font-medium">{option.name}</span>
-                        <span className="font-mono text-xs text-muted-foreground">{option.host ?? "-"}</span>
+                      <span className="grid min-w-0 gap-1">
+                        <span className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className={bindingState.disabled ? "font-medium text-muted-foreground" : "font-medium"}>{option.name}</span>
+                          {bindingState.badgeLabel ? (
+                            <Badge className={badgeClassName} variant="outline">
+                              {bindingState.badgeLabel}
+                            </Badge>
+                          ) : null}
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground">{clusterInstanceOptionEndpoint(option)}</span>
+                        {bindingState.boundClusterText ? (
+                          <span className="text-xs text-muted-foreground">{bindingState.boundClusterText}</span>
+                        ) : null}
                       </span>
                     </CheckboxLine>
                   );
