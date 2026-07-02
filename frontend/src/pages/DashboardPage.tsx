@@ -180,11 +180,11 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
   const logTrendChartConfig = {
     error_count: {
       label: "错误日志",
-      color: "var(--destructive)"
+      color: "var(--status-danger)"
     },
     warning_count: {
       label: "告警日志",
-      color: "var(--chart-4)"
+      color: "var(--status-warning)"
     }
   } satisfies ChartConfig;
 
@@ -198,8 +198,8 @@ function ChartLists({ charts }: { charts: DashboardCharts }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-medium">日志趋势</h2>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="destructive">错误日志</Badge>
-              <Badge variant="outline">告警日志</Badge>
+              <Badge className="wf-badge-danger" variant="outline">错误日志</Badge>
+              <Badge className="wf-badge-warning" variant="outline">告警日志</Badge>
             </div>
           </div>
           {logTrendData.length > 0 ? (

@@ -38,7 +38,7 @@ function ChartContainer({ id, className, children, config, style, ...props }: Ch
         "[&_.recharts-cartesian-grid_line]:stroke-foreground/15 [&_.recharts-reference-line_line]:stroke-foreground/20",
         "[&_.recharts-tooltip-cursor]:stroke-foreground/35 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-foreground/35",
         "[&_.recharts-rectangle.recharts-tooltip-cursor]:fill-foreground/10 [&_.recharts-rectangle.recharts-tooltip-cursor]:stroke-foreground/20",
-        "[&_.recharts-dot[stroke='#fff']]:stroke-transparent",
+        "[&_.recharts-dot]:stroke-[var(--surface-panel-raised)]",
         "[&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-surface]:outline-hidden",
         className
       )}

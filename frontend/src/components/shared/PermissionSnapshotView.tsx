@@ -7,9 +7,10 @@ type PermissionMapEntry = {
   label: string;
   values: string[];
 };
+type PermissionTone = "primary" | "success" | "warning" | "danger" | "info";
 type PermissionSection =
   | {
-      color: "blue" | "green" | "orange" | "red" | "sky";
+      color: PermissionTone;
       emptyLabel: string;
       icon: LucideIcon;
       mode: "list";
@@ -17,7 +18,7 @@ type PermissionSection =
       title: string;
     }
   | {
-      color: "blue" | "green" | "orange" | "red" | "sky";
+      color: PermissionTone;
       emptyLabel: string;
       icon: LucideIcon;
       mode: "nestedList";
@@ -26,7 +27,7 @@ type PermissionSection =
       title: string;
     }
   | {
-      color: "blue" | "green" | "orange" | "red" | "sky";
+      color: PermissionTone;
       emptyLabel: string;
       icon: LucideIcon;
       mode: "map";
@@ -35,37 +36,37 @@ type PermissionSection =
     }
   ;
 
-const COLOR_CLASSES: Record<PermissionSection["color"], string> = {
-  blue: "border-blue-200 bg-blue-50 text-blue-800",
-  green: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  orange: "border-orange-200 bg-orange-50 text-orange-800",
-  red: "border-red-200 bg-red-50 text-red-800",
-  sky: "border-sky-200 bg-sky-50 text-sky-800"
+const COLOR_CLASSES: Record<PermissionTone, string> = {
+  primary: "wf-badge-primary",
+  success: "wf-badge-success",
+  warning: "wf-badge-warning",
+  danger: "wf-badge-danger",
+  info: "wf-badge-info"
 };
 
 const SECTIONS_BY_DB_TYPE: Record<string, PermissionSection[]> = {
   mysql: [
-    { title: "直授角色", icon: UserCog, color: "sky", mode: "nestedList", parent: "mysql_granted_roles", source: "direct", emptyLabel: "无直授角色" },
-    { title: "默认角色", icon: UserCheck, color: "green", mode: "nestedList", parent: "mysql_granted_roles", source: "default", emptyLabel: "无默认角色" },
-    { title: "直授用户", icon: Users, color: "blue", mode: "nestedList", parent: "mysql_role_members", source: "direct", emptyLabel: "无直授用户" },
-    { title: "默认用户", icon: Users, color: "blue", mode: "nestedList", parent: "mysql_role_members", source: "default", emptyLabel: "无默认用户" },
-    { title: "全局权限", icon: Globe2, color: "orange", mode: "list", source: "mysql_global_privileges", emptyLabel: "无全局权限" },
-    { title: "数据库权限", icon: Database, color: "green", mode: "map", source: "mysql_database_privileges", emptyLabel: "无数据库权限" }
+    { title: "直授角色", icon: UserCog, color: "info", mode: "nestedList", parent: "mysql_granted_roles", source: "direct", emptyLabel: "无直授角色" },
+    { title: "默认角色", icon: UserCheck, color: "success", mode: "nestedList", parent: "mysql_granted_roles", source: "default", emptyLabel: "无默认角色" },
+    { title: "直授用户", icon: Users, color: "info", mode: "nestedList", parent: "mysql_role_members", source: "direct", emptyLabel: "无直授用户" },
+    { title: "默认用户", icon: Users, color: "info", mode: "nestedList", parent: "mysql_role_members", source: "default", emptyLabel: "无默认用户" },
+    { title: "全局权限", icon: Globe2, color: "primary", mode: "list", source: "mysql_global_privileges", emptyLabel: "无全局权限" },
+    { title: "数据库权限", icon: Database, color: "success", mode: "map", source: "mysql_database_privileges", emptyLabel: "无数据库权限" }
   ],
   postgresql: [
-    { title: "预定义角色", icon: UserCog, color: "sky", mode: "list", source: "postgresql_predefined_roles", emptyLabel: "无预定义角色" },
-    { title: "角色属性", icon: ShieldCheck, color: "orange", mode: "list", source: "postgresql_role_attributes", emptyLabel: "无角色属性" },
-    { title: "数据库权限", icon: Database, color: "green", mode: "map", source: "postgresql_database_privileges", emptyLabel: "无数据库权限" }
+    { title: "预定义角色", icon: UserCog, color: "info", mode: "list", source: "postgresql_predefined_roles", emptyLabel: "无预定义角色" },
+    { title: "角色属性", icon: ShieldCheck, color: "primary", mode: "list", source: "postgresql_role_attributes", emptyLabel: "无角色属性" },
+    { title: "数据库权限", icon: Database, color: "success", mode: "map", source: "postgresql_database_privileges", emptyLabel: "无数据库权限" }
   ],
   oracle: [
-    { title: "角色", icon: Crown, color: "orange", mode: "list", source: "oracle_roles", emptyLabel: "无角色" },
-    { title: "系统权限", icon: ShieldCheck, color: "red", mode: "list", source: "oracle_system_privileges", emptyLabel: "无系统权限" }
+    { title: "角色", icon: Crown, color: "primary", mode: "list", source: "oracle_roles", emptyLabel: "无角色" },
+    { title: "系统权限", icon: ShieldCheck, color: "danger", mode: "list", source: "oracle_system_privileges", emptyLabel: "无系统权限" }
   ],
   sqlserver: [
-    { title: "服务器角色", icon: Crown, color: "orange", mode: "list", source: "sqlserver_server_roles", emptyLabel: "无服务器角色" },
-    { title: "数据库角色", icon: Database, color: "green", mode: "map", source: "sqlserver_database_roles", emptyLabel: "无数据库角色" },
-    { title: "服务器权限", icon: ShieldCheck, color: "red", mode: "list", source: "sqlserver_server_permissions", emptyLabel: "无服务器权限" },
-    { title: "数据库权限", icon: KeyRound, color: "blue", mode: "map", source: "sqlserver_database_permissions", emptyLabel: "无数据库权限" }
+    { title: "服务器角色", icon: Crown, color: "primary", mode: "list", source: "sqlserver_server_roles", emptyLabel: "无服务器角色" },
+    { title: "数据库角色", icon: Database, color: "success", mode: "map", source: "sqlserver_database_roles", emptyLabel: "无数据库角色" },
+    { title: "服务器权限", icon: ShieldCheck, color: "danger", mode: "list", source: "sqlserver_server_permissions", emptyLabel: "无服务器权限" },
+    { title: "数据库权限", icon: KeyRound, color: "info", mode: "map", source: "sqlserver_database_permissions", emptyLabel: "无数据库权限" }
   ]
 };
 

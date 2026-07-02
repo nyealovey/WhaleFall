@@ -409,7 +409,7 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
           title: "数据库权限",
           emptyLabel: "暂无数据库权限",
           icon: Database,
-          colorClass: "text-emerald-700",
+          colorClass: "wf-text-success",
           fn: "has_privilege",
           scope: "database"
         }
@@ -429,7 +429,7 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
           title: "角色属性",
           emptyLabel: "暂无角色属性",
           icon: ShieldCheck,
-          colorClass: "text-emerald-700",
+          colorClass: "wf-text-success",
           fn: "has_capability"
         },
         {
@@ -437,7 +437,7 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
           title: "数据库权限",
           emptyLabel: "暂无数据库权限",
           icon: Database,
-          colorClass: "text-amber-700",
+          colorClass: "wf-text-warning",
           fn: "has_privilege",
           scope: "database"
         }
@@ -449,7 +449,7 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
           title: "服务器角色",
           emptyLabel: "暂无服务器角色",
           icon: UserCog,
-          colorClass: "text-sky-700",
+          colorClass: "wf-text-info",
           fn: "has_role"
         },
         {
@@ -457,7 +457,7 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
           title: "服务器权限",
           emptyLabel: "暂无服务器权限",
           icon: Server,
-          colorClass: "text-amber-700",
+          colorClass: "wf-text-warning",
           fn: "has_privilege",
           scope: "server"
         },
@@ -466,7 +466,7 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
           title: "数据库角色",
           emptyLabel: "暂无数据库角色",
           icon: Database,
-          colorClass: "text-emerald-700",
+          colorClass: "wf-text-success",
           fn: "has_role"
         },
         {
@@ -494,7 +494,7 @@ function permissionDefinitionsForDbType(dbType: string): PermissionDefinition[] 
           title: "系统权限",
           emptyLabel: "暂无系统权限",
           icon: Settings,
-          colorClass: "text-emerald-700",
+          colorClass: "wf-text-success",
           fn: "has_privilege",
           scope: "server"
         }
@@ -1270,7 +1270,7 @@ const DEFAULT_CLASSIFICATION_FILTERS: ClassificationFiltersState = {
   ruleStatus: "active"
 };
 
-const classificationTrendPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "#6f7f95", "#c49a4a", "#d16f5f"];
+const classificationTrendPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-6)", "var(--chart-5)", "var(--chart-4)"];
 
 type ClassificationTrendSeries = {
   color: string;

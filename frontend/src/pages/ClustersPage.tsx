@@ -431,10 +431,10 @@ function shortMysqlText(value: string, maxLength = 32): string {
 
 function MySqlTopologyStatusBadge({ label }: { label: string }) {
   const className = label.includes("异常") || label.includes("失败")
-    ? "border-red-200 bg-red-50 text-red-700"
+    ? "wf-badge-danger"
     : label === "正常" || label.toLowerCase() === "healthy"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "";
+      ? "wf-badge-success"
+      : "wf-badge-muted";
 
   return (
     <Badge className={className} variant="outline">
@@ -635,8 +635,8 @@ function ClusterInstanceBindingPanel({
                   }
                   const bindingState = getClusterInstanceBindingState(option, item.id);
                   const badgeClassName = bindingState.disabled
-                    ? "border-slate-200 bg-slate-100 text-slate-600"
-                    : "border-orange-200 bg-orange-50 text-orange-700";
+                    ? "wf-badge-muted"
+                    : "wf-badge-primary";
                   return (
                     <CheckboxLine
                       checked={selectedIds.includes(optionId)}
@@ -1109,10 +1109,10 @@ function AgAccountLedgerRows({ items }: { items: AccountLedgerItem[] }) {
             <small className="text-muted-foreground">{[account.instance_name, account.instance_host].filter(Boolean).join(" · ") || "-"}</small>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-emerald-50 text-emerald-700" variant="outline">
+            <Badge className="wf-badge-success" variant="outline">
               {agAccountAvailabilityLabel(account)}
             </Badge>
-            <Badge className={account.is_superuser ? "bg-emerald-50 text-emerald-700" : ""} variant="outline">
+            <Badge className={account.is_superuser ? "wf-badge-success" : "wf-badge-muted"} variant="outline">
               {account.is_superuser ? "是" : "否"}
             </Badge>
             <Badge variant="secondary">{agAccountAdStatusLabel(account.ad_status)}</Badge>

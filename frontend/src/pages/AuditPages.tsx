@@ -367,10 +367,10 @@ function PermissionDiffPanel({ value }: { value: unknown }) {
     icon: typeof Plus;
     label: string;
   }> = [
-    { action: "added", label: "新增权限", icon: Plus, className: "border-emerald-200 bg-emerald-50 text-emerald-900" },
-    { action: "removed", label: "移除权限", icon: Minus, className: "border-red-200 bg-red-50 text-red-900" },
-    { action: "changed", label: "调整权限", icon: Pencil, className: "border-amber-200 bg-amber-50 text-amber-900" },
-    { action: "unchanged", label: "未变化", icon: Circle, className: "border-slate-200 bg-slate-50 text-slate-700" }
+    { action: "added", label: "新增权限", icon: Plus, className: "wf-badge-success" },
+    { action: "removed", label: "移除权限", icon: Minus, className: "wf-badge-danger" },
+    { action: "changed", label: "调整权限", icon: Pencil, className: "wf-badge-warning" },
+    { action: "unchanged", label: "未变化", icon: Circle, className: "wf-badge-muted" }
   ];
 
   return (

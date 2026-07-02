@@ -70,7 +70,7 @@ const chartConfig = {
   ag: { label: "AG 账户", color: "var(--chart-2)" }
 } satisfies ChartConfig;
 
-const chartColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--primary)"];
+const chartColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-6)"];
 
 function formatNumber(value: number | undefined): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);

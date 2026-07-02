@@ -253,13 +253,13 @@ function partitionStatusMeta(value: string | undefined): {
 } {
   switch ((value ?? "unknown").toLowerCase()) {
     case "current":
-      return { text: "当前", tone: "success", icon: CheckCircle2, className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+      return { text: "当前", tone: "success", icon: CheckCircle2, className: "wf-badge-success" };
     case "past":
-      return { text: "历史", tone: "muted", icon: History, className: "border-slate-200 bg-slate-100 text-slate-600" };
+      return { text: "历史", tone: "muted", icon: History, className: "wf-badge-muted" };
     case "future":
-      return { text: "未来", tone: "info", icon: Clock, className: "border-sky-200 bg-sky-50 text-sky-700" };
+      return { text: "未来", tone: "info", icon: Clock, className: "wf-badge-info" };
     default:
-      return { text: "未知", tone: "danger", icon: CircleHelp, className: "border-rose-200 bg-rose-50 text-rose-700" };
+      return { text: "未知", tone: "danger", icon: CircleHelp, className: "wf-badge-danger" };
   }
 }
 
@@ -297,10 +297,10 @@ type PartitionSeriesStyle = {
 };
 
 const PARTITION_LEGACY_SERIES_STYLES: Record<string, PartitionSeriesStyle> = {
-  数据库聚合: { color: "#2f855a", borderDash: "", pointStyle: "circle", legacyType: "数据库聚合", icon: Circle },
-  实例聚合: { color: "#2f80ed", borderDash: "5 5", pointStyle: "rect", legacyType: "实例聚合", icon: Square },
-  数据库统计: { color: "#c75d16", borderDash: "10 5", pointStyle: "triangle", legacyType: "数据库统计", icon: Triangle },
-  实例统计: { color: "#dc2626", borderDash: "2 2", pointStyle: "star", legacyType: "实例统计", icon: Star }
+  数据库聚合: { color: "var(--status-success)", borderDash: "", pointStyle: "circle", legacyType: "数据库聚合", icon: Circle },
+  实例聚合: { color: "var(--chart-8)", borderDash: "5 5", pointStyle: "rect", legacyType: "实例聚合", icon: Square },
+  数据库统计: { color: "var(--chart-2)", borderDash: "10 5", pointStyle: "triangle", legacyType: "数据库统计", icon: Triangle },
+  实例统计: { color: "var(--status-danger)", borderDash: "2 2", pointStyle: "star", legacyType: "实例统计", icon: Star }
 };
 
 type PartitionChartSeries = {
@@ -325,7 +325,8 @@ function partitionPeriodCopy(periodType: string | undefined): { title: string; s
 
 function usableDatasetColor(dataset: { borderColor?: string }): string | null {
   const color = dataset.borderColor?.trim();
-  return color && color.toLowerCase() !== "#fff" && color.toLowerCase() !== "#ffffff" ? color : null;
+  const normalized = color?.toLowerCase();
+  return color && normalized !== "white" && normalized !== `#${"fff"}` && normalized !== `#${"ffffff"}` ? color : null;
 }
 
 function partitionSeriesStyle(label: string | undefined, index: number, dataset: { borderColor?: string }): PartitionSeriesStyle {

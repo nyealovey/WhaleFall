@@ -1080,7 +1080,7 @@ function AccountPermissionsDialog({ item, onOpenChange }: { item: AccountLedgerI
         <DialogHeader>
           <DialogTitle className="sr-only">权限详情 {username}</DialogTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Badge className="gap-2 rounded-full border-orange-200 bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-800" variant="outline">
+            <Badge className="wf-badge-primary gap-2 rounded-full px-3 py-1 text-sm font-semibold" variant="outline">
               <ShieldCheck aria-hidden size={16} />
               账户权限详情
             </Badge>
@@ -1304,7 +1304,7 @@ function InstanceAuditInfoPanel({
                   {auditSpecRows.map((item, index) => (
                     <TableRow key={`${item.scopeLabel}-${item.name}-${index}`}>
                       <TableCell>
-                        <Badge className={item.scopeLabel === "DATABASE" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-orange-200 bg-orange-50 text-orange-700"} variant="outline">
+                        <Badge className={item.scopeLabel === "DATABASE" ? "wf-badge-info" : "wf-badge-primary"} variant="outline">
                           {item.scopeLabel}
                         </Badge>
                       </TableCell>
