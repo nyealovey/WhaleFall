@@ -1,4 +1,3 @@
-import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -20,7 +19,7 @@ import {
   Users
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart as RechartsPieChart, XAxis, YAxis } from "recharts";
 
 import {
   fetchAccountStatisticsSnapshot,
@@ -30,15 +29,15 @@ import {
   type DatabaseStatistics,
   type InstanceStatistics
 } from "@/api/statistics";
-import { DataTable } from "@/components/shared/DataTable";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { runAction } from "@/utils/action-feedback";
+
+import { formatStatisticsSizeMb } from "./statisticsView";
 
 type Metric = {
   label: string;
@@ -56,22 +55,6 @@ type DistributionRow = {
   meta?: Array<{ label: string; value: number | string; variant?: "default" | "secondary" | "destructive" | "outline" }>;
 };
 
-type VersionRow = {
-  dbType: string;
-  version: string;
-  count: number;
-  percent: number;
-};
-
-type OwnerRow = {
-  type: string;
-  label: string;
-  total: number;
-  active: number;
-  deleted: number;
-  percent: number;
-};
-
 type AdStatusRow = {
   label: string;
   key: string;
@@ -81,23 +64,16 @@ type AdStatusRow = {
   ag: number;
 };
 
-type CapacityRow = DatabaseStatistics["capacity_rankings"][number];
-
 const chartConfig = {
   value: { label: "数量", color: "var(--chart-1)" },
-  count: { label: "数量", color: "var(--chart-2)" }
+  instance: { label: "实例账户", color: "var(--chart-1)" },
+  ag: { label: "AG 账户", color: "var(--chart-2)" }
 } satisfies ChartConfig;
+
+const chartColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--primary)"];
 
 function formatNumber(value: number | undefined): string {
   return new Intl.NumberFormat("zh-CN").format(value ?? 0);
-}
-
-function formatSizeMb(value: number | undefined): string {
-  const size = value ?? 0;
-  if (size >= 1024) {
-    return `${(size / 1024).toFixed(2)} GB`;
-  }
-  return `${size.toFixed(0)} MB`;
 }
 
 function formatPercent(value: number): string {
@@ -285,152 +261,211 @@ function QueryPage({
   );
 }
 
-function PercentCell({ value }: { value: number | undefined }) {
-  const resolved = value ?? 0;
-  return (
-    <div className="grid min-w-28 gap-1">
-      <Progress aria-label={`占比 ${formatPercent(resolved)}`} value={resolved} />
-      <span className="font-mono text-xs text-muted-foreground">{formatPercent(resolved)}</span>
-    </div>
-  );
-}
+type ChartRow = DistributionRow & {
+  value: number;
+  fill: string;
+};
 
-function LabelCell({ item }: { item: DistributionRow }) {
-  return (
-    <div className="grid gap-1">
-      <div className="flex flex-wrap items-center gap-1.5">
-        {item.badge ? <Badge variant={toneForBadge(item.badge)}>{statusLabel(item.badge)}</Badge> : null}
-        <span className="font-medium">{item.label}</span>
-      </div>
-      {item.detail ? <span className="text-xs text-muted-foreground">{item.detail}</span> : null}
-      {item.meta?.length ? (
-        <div className="flex flex-wrap gap-1">
-          {item.meta.map((meta) => (
-            <Badge variant={meta.variant ?? "secondary"} key={`${item.label}-${meta.label}`}>
-              {meta.label} {meta.value}
-            </Badge>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-const distributionColumns: ColumnDef<DistributionRow>[] = [
-  {
-    accessorKey: "label",
-    header: "名称",
-    cell: ({ row }) => <LabelCell item={row.original} />
-  },
-  {
-    accessorKey: "value",
-    header: "数量",
-    cell: ({ row }) => <span className="font-mono text-xs">{typeof row.original.value === "number" ? formatNumber(row.original.value) : row.original.value}</span>
-  },
-  {
-    accessorKey: "percent",
-    header: "占比",
-    cell: ({ row }) => <PercentCell value={row.original.percent} />
+function numericValue(value: number | string | undefined): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
   }
-];
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
 
-function DataPanel<TData, TValue>({
+function toChartRows(rows: DistributionRow[]): ChartRow[] {
+  return rows.map((row, index) => ({
+    ...row,
+    value: numericValue(row.value),
+    fill: chartColors[index % chartColors.length] ?? "var(--chart-1)"
+  }));
+}
+
+function topRows(rows: DistributionRow[], limit = 10): DistributionRow[] {
+  return [...rows].sort((left, right) => numericValue(right.value) - numericValue(left.value)).slice(0, limit);
+}
+
+function ChartSummaryList({
+  rows,
+  valueFormatter = formatNumber
+}: {
+  rows: ChartRow[];
+  valueFormatter?: (value: number) => string;
+}) {
+  return (
+    <div className="grid gap-2">
+      {rows.map((row) => (
+        <div className="grid gap-1 rounded-md border bg-muted/20 px-3 py-2" key={`${row.label}-${row.badge ?? ""}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="size-2.5 rounded-[3px]" style={{ backgroundColor: row.fill }} />
+                {row.badge ? <Badge variant={toneForBadge(row.badge)}>{statusLabel(row.badge)}</Badge> : null}
+                <span className="truncate font-medium">{row.label}</span>
+              </div>
+              {row.detail ? <p className="mt-1 text-xs text-muted-foreground">{row.detail}</p> : null}
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="font-mono text-sm font-semibold">{valueFormatter(row.value)}</div>
+              {row.percent !== undefined ? <div className="font-mono text-xs text-muted-foreground">{formatPercent(row.percent)}</div> : null}
+            </div>
+          </div>
+          {row.meta?.length ? (
+            <div className="flex flex-wrap gap-1">
+              {row.meta.map((meta) => (
+                <Badge variant={meta.variant ?? "secondary"} key={`${row.label}-${meta.label}`}>
+                  {meta.label} {meta.value}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatPanel({
   title,
-  description,
   badge,
   icon,
-  columns,
-  data,
-  emptyText
+  children
 }: {
   title: string;
-  description?: string;
   badge?: string;
   icon: typeof Server;
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
-  emptyText: string;
+  children: ReactNode;
 }) {
   const Icon = icon;
   return (
-    <Card>
+    <Card className="min-h-[360px]">
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2">
             <Icon aria-hidden size={18} />
             <span>{title}</span>
           </CardTitle>
-          {description ? <CardDescription>{description}</CardDescription> : null}
         </div>
         {badge ? <Badge variant="outline">{badge}</Badge> : null}
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={data} emptyText={emptyText} pagination={false} />
+        {children}
       </CardContent>
     </Card>
   );
 }
 
-function ChartPanel({
+function DistributionChartPanel({
   title,
-  description,
   badge,
   icon,
-  data,
-  type = "bar"
+  rows,
+  type,
+  valueLabel = "数量",
+  valueFormatter = formatNumber
 }: {
   title: string;
-  description?: string;
   badge?: string;
   icon: typeof Server;
-  data: Array<{ label: string; value: number }>;
-  type?: "area" | "bar";
+  rows: DistributionRow[];
+  type: "donut" | "bar" | "horizontalBar";
+  valueLabel?: string;
+  valueFormatter?: (value: number) => string;
 }) {
-  const Icon = icon;
+  const data = toChartRows(rows);
+  const hasData = data.length > 0;
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-3">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Icon aria-hidden size={18} />
-            <span>{title}</span>
-          </CardTitle>
-          {description ? <CardDescription>{description}</CardDescription> : null}
-        </div>
-        {badge ? <Badge variant="outline">{badge}</Badge> : null}
-      </CardHeader>
-      <CardContent>
-        {data.length > 0 ? (
-          <ChartContainer config={chartConfig} className="h-[260px] w-full">
-            {type === "area" ? (
-              <AreaChart accessibilityLayer data={data} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
-                <defs>
-                  <linearGradient id={`${title}-fill`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.32} />
-                    <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.04} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
+    <StatPanel title={title} badge={badge} icon={icon}>
+      <div className="grid gap-4">
+        {hasData ? (
+          <ChartContainer config={chartConfig} className={type === "horizontalBar" ? "h-[300px] w-full" : "h-[260px] w-full"}>
+            {type === "donut" ? (
+              <RechartsPieChart accessibilityLayer margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <Pie data={data} dataKey="value" nameKey="label" innerRadius="58%" outerRadius="82%" paddingAngle={2}>
+                  {data.map((entry) => (
+                    <Cell key={entry.label} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </RechartsPieChart>
+            ) : type === "horizontalBar" ? (
+              <BarChart accessibilityLayer data={data} layout="vertical" margin={{ left: 8, right: 18, top: 8, bottom: 8 }}>
+                <CartesianGrid horizontal={false} />
+                <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis dataKey="label" type="category" tickLine={false} axisLine={false} tickMargin={8} width={128} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Area dataKey="value" name="数量" type="monotone" stroke="var(--color-value)" strokeWidth={2} fill={`url(#${title}-fill)`} />
-              </AreaChart>
+                <Bar dataKey="value" name={valueLabel} radius={[0, 4, 4, 0]}>
+                  {data.map((entry) => (
+                    <Cell key={entry.label} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
             ) : (
               <BarChart accessibilityLayer data={data} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
                 <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="value" name="数量" radius={[4, 4, 0, 0]} fill="var(--color-count)" />
+                <Bar dataKey="value" name={valueLabel} radius={[4, 4, 0, 0]}>
+                  {data.map((entry) => (
+                    <Cell key={entry.label} fill={entry.fill} />
+                  ))}
+                </Bar>
               </BarChart>
             )}
           </ChartContainer>
         ) : (
           <p className="text-sm text-muted-foreground">暂无图表数据</p>
         )}
-      </CardContent>
-    </Card>
+        {hasData ? <ChartSummaryList rows={data} valueFormatter={valueFormatter} /> : null}
+      </div>
+    </StatPanel>
+  );
+}
+
+function StackedStatusChartPanel({
+  title,
+  badge,
+  icon,
+  rows
+}: {
+  title: string;
+  badge?: string;
+  icon: typeof Server;
+  rows: AdStatusRow[];
+}) {
+  const data = rows.map((row) => ({ label: row.label, total: row.total, instance: row.instance, ag: row.ag }));
+  return (
+    <StatPanel title={title} badge={badge} icon={icon}>
+      <div className="grid gap-4">
+        <ChartContainer config={chartConfig} className="h-[260px] w-full">
+          <BarChart accessibilityLayer data={data} margin={{ left: 8, right: 12, top: 12, bottom: 0 }}>
+            <CartesianGrid vertical={false} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+            <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Bar dataKey="instance" stackId="accounts" name="实例账户" radius={[4, 4, 0, 0]} fill="var(--color-instance)" />
+            <Bar dataKey="ag" stackId="accounts" name="AG 账户" radius={[4, 4, 0, 0]} fill="var(--color-ag)" />
+          </BarChart>
+        </ChartContainer>
+        <div className="grid gap-2">
+          {rows.map((row) => (
+            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2" key={row.key}>
+              <Badge variant={row.variant}>{row.label}</Badge>
+              <div className="flex flex-wrap justify-end gap-1 text-xs">
+                <Badge variant="secondary">合计 {formatNumber(row.total)}</Badge>
+                <Badge variant="secondary">实例 {formatNumber(row.instance)}</Badge>
+                <Badge variant="secondary">AG {formatNumber(row.ag)}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </StatPanel>
   );
 }
 
@@ -460,25 +495,17 @@ function InstanceStatisticsContent({ stats }: { stats: InstanceStatistics }) {
   const current = stats.current_instances;
   const dbTypeRows = toDistributionRows(stats.db_type_stats, current, { label: (item) => item.db_type, count: (item) => item.count });
   const portRows = toDistributionRows(stats.port_stats, current, { label: (item) => String(item.port), count: (item) => item.count });
-  const versionRows: VersionRow[] = stats.version_stats.map((item) => ({
-    dbType: item.db_type,
-    version: item.version || "未知版本",
-    count: item.count,
-    percent: ratio(item.count, current)
+  const versionRows: DistributionRow[] = stats.version_stats.map((item) => ({
+    label: item.version || "未知版本",
+    value: item.count,
+    percent: ratio(item.count, current),
+    detail: item.db_type
   }));
   const backupRows = toDistributionRows(stats.backup_status_stats, current, {
     label: (item) => statusLabel(item.backup_status),
     count: (item) => item.count,
     badge: (item) => item.backup_status
   });
-  const versionChartData = versionRows.map((row) => ({ label: `${row.dbType} ${row.version}`, value: row.count }));
-
-  const versionColumns: ColumnDef<VersionRow>[] = [
-    { accessorKey: "dbType", header: "类型", cell: ({ row }) => <Badge variant="outline">{row.original.dbType}</Badge> },
-    { accessorKey: "version", header: "版本", cell: ({ row }) => <Badge variant="secondary">{row.original.version}</Badge> },
-    { accessorKey: "count", header: "数量", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.count)}</span> },
-    { accessorKey: "percent", header: "占比", cell: ({ row }) => <PercentCell value={row.original.percent} /> }
-  ];
 
   return (
     <>
@@ -533,12 +560,13 @@ function InstanceStatisticsContent({ stats }: { stats: InstanceStatistics }) {
           }
         ]}
       />
-      <ChartPanel title="备份状态分布" description="Veeam" badge="Veeam" icon={HardDrive} data={backupRows.map((row) => ({ label: row.label, value: Number(row.value) }))} type="area" />
       <section className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
-        <DataPanel title="数据库类型分布" description={`共 ${formatNumber(stats.db_types_count)} 类`} badge="实时" icon={PieChart} columns={distributionColumns} data={dbTypeRows} emptyText="暂无数据库类型数据" />
-        <DataPanel title="端口分布" badge="Top 10" icon={Network} columns={distributionColumns} data={portRows} emptyText="暂无端口数据" />
-        <DataPanel title="数据库版本统计" badge="同步数据" icon={Tags} columns={versionColumns} data={versionRows} emptyText="暂无版本数据" />
-        <ChartPanel title="版本分布图" description="按类型分组" badge="按类型分组" icon={PieChart} data={versionChartData} />
+        <DistributionChartPanel title="数据库类型分布" badge={`${formatNumber(stats.db_types_count)} 类`} icon={PieChart} rows={dbTypeRows} type="donut" />
+        <DistributionChartPanel title="备份状态分布" badge="Veeam" icon={HardDrive} rows={backupRows} type="bar" />
+      </section>
+      <section className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
+        <DistributionChartPanel title="端口分布" badge="Top 10" icon={Network} rows={topRows(portRows)} type="horizontalBar" />
+        <DistributionChartPanel title="数据库版本统计" badge="Top 10" icon={Tags} rows={topRows(versionRows)} type="horizontalBar" />
       </section>
     </>
   );
@@ -547,35 +575,19 @@ function InstanceStatisticsContent({ stats }: { stats: InstanceStatistics }) {
 function AccountStatisticsContent({ snapshot }: { snapshot: AccountStatisticsSnapshot }) {
   const { summary } = snapshot;
   const total = summary.total_accounts;
-  const ownerRows: OwnerRow[] = Object.entries(summary.owner_type_stats ?? {}).map(([type, value]) => {
+  const ownerRows: DistributionRow[] = Object.entries(summary.owner_type_stats ?? {}).map(([type, value]) => {
     const meta = asRecord(value);
     const count = numberField(meta, ["total", "total_accounts", "count"]);
     return {
-      type,
       label: type === "sqlserver_ag" ? "AG 账户" : type === "instance" ? "实例账户" : type,
-      total: count,
-      active: numberField(meta, ["active", "active_accounts"]),
-      deleted: numberField(meta, ["deleted", "deleted_accounts"]),
-      percent: numberField(meta, ["percent"]) || ratio(count, total)
+      value: count,
+      percent: numberField(meta, ["percent"]) || ratio(count, total),
+      meta: [
+        { label: "启用", value: numberField(meta, ["active", "active_accounts"]), variant: "default" as const },
+        { label: "删除", value: numberField(meta, ["deleted", "deleted_accounts"]), variant: "secondary" as const }
+      ]
     };
   });
-  const ownerColumns: ColumnDef<OwnerRow>[] = [
-    {
-      accessorKey: "label",
-      header: "来源",
-      cell: ({ row }) => (
-        <div className="grid gap-1">
-          <Badge variant="outline">{row.original.label}</Badge>
-          <div className="flex flex-wrap gap-1">
-            <Badge variant="secondary">启用 {formatNumber(row.original.active)}</Badge>
-            <Badge variant="secondary">删除 {formatNumber(row.original.deleted)}</Badge>
-          </div>
-        </div>
-      )
-    },
-    { accessorKey: "total", header: "账户数", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.total)}</span> },
-    { accessorKey: "percent", header: "占比", cell: ({ row }) => <PercentCell value={row.original.percent} /> }
-  ];
 
   const adStatus = asRecord(summary.ad_status_stats);
   const adTotal = asRecord(adStatus.total);
@@ -587,12 +599,6 @@ function AccountStatisticsContent({ snapshot }: { snapshot: AccountStatisticsSna
     { key: "disabled", label: "AD 已停用", variant: "secondary", total: numberField(adTotal, ["disabled"]), instance: numberField(adInstance, ["disabled"]), ag: numberField(adAg, ["disabled"]) },
     { key: "orphaned", label: "AD 孤账户", variant: "destructive", total: numberField(adTotal, ["orphaned"]), instance: numberField(adInstance, ["orphaned"]), ag: numberField(adAg, ["orphaned"]) },
     { key: "unmatched", label: "未匹配", variant: "outline", total: numberField(adTotal, ["unmatched"]), instance: numberField(adInstance, ["unmatched"]), ag: numberField(adAg, ["unmatched"]) }
-  ];
-  const adColumns: ColumnDef<AdStatusRow>[] = [
-    { accessorKey: "label", header: "状态", cell: ({ row }) => <Badge variant={row.original.variant}>{row.original.label}</Badge> },
-    { accessorKey: "total", header: "合计", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.total)}</span> },
-    { accessorKey: "instance", header: "实例账户", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.instance)}</span> },
-    { accessorKey: "ag", header: "AG 账户", cell: ({ row }) => <span className="font-mono text-xs">{formatNumber(row.original.ag)}</span> }
   ];
 
   const dbTypeRows = Object.entries(snapshot.dbTypes ?? {}).map(([dbType, value]) => {
@@ -668,12 +674,12 @@ function AccountStatisticsContent({ snapshot }: { snapshot: AccountStatisticsSna
         ]}
       />
       <section className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2 max-xl:grid-cols-1">
-        <DataPanel title="账户来源分布" description="台账口径" badge="台账口径" icon={BarChart3} columns={ownerColumns} data={ownerRows} emptyText="暂无账户来源数据" />
-        <DataPanel title="AD 账户对比" description="活跃账户" badge="活跃账户" icon={UserLock} columns={adColumns} data={adRows} emptyText="暂无 AD 账户数据" />
+        <DistributionChartPanel title="账户来源分布" badge="台账口径" icon={BarChart3} rows={ownerRows} type="donut" />
+        <StackedStatusChartPanel title="AD 账户对比" badge="活跃账户" icon={UserLock} rows={adRows} />
       </section>
       <section className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
-        <DataPanel title="数据库类型分布" description="实时" badge="实时" icon={Database} columns={distributionColumns} data={dbTypeRows} emptyText="暂无数据库类型数据" />
-        <DataPanel title="账户分类分布" description="当前规则" badge="当前规则" icon={Tags} columns={distributionColumns} data={classificationRows} emptyText="暂无账户分类数据" />
+        <DistributionChartPanel title="数据库类型分布" badge="实时" icon={Database} rows={dbTypeRows} type="donut" />
+        <DistributionChartPanel title="账户分类分布" badge="当前规则" icon={Tags} rows={classificationRows} type="horizontalBar" />
       </section>
     </>
   );
@@ -692,22 +698,12 @@ function DatabaseStatisticsContent({ stats }: { stats: DatabaseStatistics }) {
     count: (item) => item.count,
     badge: (item) => item.value
   });
-  const capacityColumns: ColumnDef<CapacityRow>[] = [
-    {
-      accessorKey: "database_name",
-      header: "数据库",
-      cell: ({ row }) => (
-        <div className="grid gap-1">
-          <span className="font-medium">{row.original.database_name}</span>
-          <span className="text-xs text-muted-foreground">
-            {row.original.instance_name} · {row.original.db_type}
-          </span>
-        </div>
-      )
-    },
-    { accessorKey: "size_label", header: "大小", cell: ({ row }) => <span className="font-mono text-xs">{row.original.size_label}</span> },
-    { accessorKey: "collected_at", header: "采集时间", cell: ({ row }) => <span className="text-xs text-muted-foreground">{formatDateTime(row.original.collected_at)}</span> }
-  ];
+  const capacityRows: DistributionRow[] = stats.capacity_rankings.map((item) => ({
+    label: item.database_name,
+    value: item.size_mb,
+    percent: ratio(item.size_mb, stats.total_size_mb),
+    detail: `${item.instance_name} · ${item.db_type} · ${formatDateTime(item.collected_at)}`
+  }));
 
   return (
     <>
@@ -741,12 +737,12 @@ function DatabaseStatisticsContent({ stats }: { stats: DatabaseStatistics }) {
           },
           {
             label: "总容量",
-            value: formatSizeMb(stats.total_size_mb),
+            value: formatStatisticsSizeMb(stats.total_size_mb),
             detail: (
               <MetricPills
                 items={[
-                  { label: "平均容量", value: formatSizeMb(stats.avg_size_mb), variant: "secondary" },
-                  { label: "最大容量", value: formatSizeMb(stats.max_size_mb), variant: "secondary" }
+                  { label: "平均容量", value: formatStatisticsSizeMb(stats.avg_size_mb), variant: "secondary" },
+                  { label: "最大容量", value: formatStatisticsSizeMb(stats.max_size_mb), variant: "secondary" }
                 ]}
               />
             ),
@@ -755,10 +751,12 @@ function DatabaseStatisticsContent({ stats }: { stats: DatabaseStatistics }) {
         ]}
       />
       <section className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
-        <DataPanel title="数据库类型分布" description="活跃数据库" badge="活跃数据库" icon={Database} columns={distributionColumns} data={dbTypeRows} emptyText="暂无数据库类型数据" />
-        <DataPanel title="实例数据库分布" description="Top 10" badge="Top 10" icon={Server} columns={distributionColumns} data={instanceRows.slice(0, 10)} emptyText="暂无实例分布数据" />
-        <DataPanel title="同步状态分布" description="当前台账" badge="当前台账" icon={RotateCw} columns={distributionColumns} data={syncRows} emptyText="暂无同步状态数据" />
-        <DataPanel title="最新容量排行" description="Top 10" badge="Top 10" icon={Trophy} columns={capacityColumns} data={stats.capacity_rankings.slice(0, 10)} emptyText="暂无容量排行数据" />
+        <DistributionChartPanel title="数据库类型分布" badge="活跃数据库" icon={Database} rows={dbTypeRows} type="donut" />
+        <DistributionChartPanel title="最新容量排行" badge="Top 10" icon={Trophy} rows={topRows(capacityRows)} type="horizontalBar" valueLabel="容量 MB" valueFormatter={formatStatisticsSizeMb} />
+      </section>
+      <section className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
+        <DistributionChartPanel title="实例数据库分布" badge="Top 10" icon={Server} rows={topRows(instanceRows)} type="horizontalBar" />
+        <DistributionChartPanel title="同步状态分布" badge="当前台账" icon={RotateCw} rows={syncRows} type="bar" />
       </section>
     </>
   );

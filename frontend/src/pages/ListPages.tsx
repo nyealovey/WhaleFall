@@ -113,6 +113,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { runAction } from "@/utils/action-feedback";
 
+import { buildAuditSpecRows, buildAuditTargetRows } from "./instanceAuditView";
+
 const DATABASE_TYPE_FILTER_OPTIONS = [
   { label: "MySQL", value: "mysql" },
   { label: "PostgreSQL", value: "postgresql" },
@@ -1199,7 +1201,8 @@ function InstanceAuditInfoPanel({
   const serverAudits = snapshotRecords(data?.snapshot, "server_audits");
   const serverSpecs = snapshotRecords(data?.snapshot, "audit_specifications");
   const databaseSpecs = snapshotRecords(data?.snapshot, "database_audit_specifications");
-  const specs = [...serverSpecs, ...databaseSpecs];
+  const auditTargetRows = buildAuditTargetRows(serverAudits);
+  const auditSpecRows = buildAuditSpecRows([...serverSpecs, ...databaseSpecs]);
 
   return (
     <section className="grid gap-4">
@@ -1229,26 +1232,46 @@ function InstanceAuditInfoPanel({
             <DetailField label="覆盖数据库数">{formatNumber(asNumber(facts.covered_database_count))}</DetailField>
           </dl>
         ) : null}
-        {serverAudits.length > 0 ? (
+        {auditTargetRows.length > 0 ? (
           <div className="grid gap-2">
-            <h3 className="text-sm font-semibold">审计目标</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldCheck aria-hidden size={16} />
+                审计目标
+              </h3>
+              <Badge variant="secondary">共 {formatNumber(auditTargetRows.length)} 项</Badge>
+            </div>
             <div className="overflow-hidden rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>名称</TableHead>
                     <TableHead>状态</TableHead>
-                    <TableHead>目标</TableHead>
+                    <TableHead>目标类型</TableHead>
+                    <TableHead>目标摘要</TableHead>
+                    <TableHead>失败策略</TableHead>
+                    <TableHead>更新时间</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {serverAudits.map((item, index) => (
-                    <TableRow key={`${asText(item.name)}-${index}`}>
-                      <TableCell className="font-medium">{asText(item.name)}</TableCell>
+                  {auditTargetRows.map((item, index) => (
+                    <TableRow key={`${item.name}-${index}`}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>
-                        <BadgeText value={item.is_state_enabled ? "启用" : "停用"} />
+                        <BadgeText value={item.status} />
                       </TableCell>
-                      <TableCell>{asText(item.audit_file_path ?? item.queue_delay ?? item.type_desc)}</TableCell>
+                      <TableCell className="font-mono text-xs">{item.targetType}</TableCell>
+                      <TableCell>
+                        <div className="grid gap-1">
+                          {item.targetSummary.map((line, lineIndex) => (
+                            <span className={lineIndex === 0 ? "font-medium" : "text-sm text-muted-foreground"} key={`${item.name}-summary-${lineIndex}`}>
+                              {line}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{item.failurePolicy}</TableCell>
+                      <TableCell className="font-mono text-xs">{item.updatedAt}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1256,25 +1279,56 @@ function InstanceAuditInfoPanel({
             </div>
           </div>
         ) : null}
-        {specs.length > 0 ? (
+        {auditSpecRows.length > 0 ? (
           <div className="grid gap-2">
-            <h3 className="text-sm font-semibold">审计规范</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <BarChart3 aria-hidden size={16} />
+                审计规范
+              </h3>
+              <Badge variant="secondary">共 {formatNumber(auditSpecRows.length)} 项</Badge>
+            </div>
             <div className="overflow-hidden rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>范围</TableHead>
                     <TableHead>名称</TableHead>
-                    <TableHead>数据库</TableHead>
+                    <TableHead>绑定审计</TableHead>
                     <TableHead>状态</TableHead>
+                    <TableHead>动作数</TableHead>
+                    <TableHead>动作预览</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {specs.map((item, index) => (
-                    <TableRow key={`${asText(item.name)}-${index}`}>
-                      <TableCell className="font-medium">{asText(item.name)}</TableCell>
-                      <TableCell>{asText(item.database_name)}</TableCell>
+                  {auditSpecRows.map((item, index) => (
+                    <TableRow key={`${item.scopeLabel}-${item.name}-${index}`}>
                       <TableCell>
-                        <BadgeText value={item.is_state_enabled ? "启用" : "停用"} />
+                        <Badge className={item.scopeLabel === "DATABASE" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-orange-200 bg-orange-50 text-orange-700"} variant="outline">
+                          {item.scopeLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="grid gap-1">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-sm text-muted-foreground">{item.scopeDetail}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{item.boundAudit}</TableCell>
+                      <TableCell>
+                        <BadgeText value={item.status} />
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{formatNumber(item.actionCount)}</TableCell>
+                      <TableCell>
+                        {item.actionPreview.length > 0 ? (
+                          <div className="grid gap-1 font-mono text-xs text-muted-foreground">
+                            {item.actionPreview.map((action) => (
+                              <span key={`${item.name}-${action}`}>{action}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">无动作</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
