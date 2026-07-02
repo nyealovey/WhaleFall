@@ -37,10 +37,19 @@ export type HistoryLogItem = {
   timestamp: string;
   timestamp_display: string;
   level: string;
+  level_label: string;
   module: string;
+  module_label: string;
   message: string;
+  message_label: string;
   traceback?: string | null;
   context?: Record<string, unknown>;
+};
+
+export type HistoryLogTopModule = {
+  count: number;
+  module: string;
+  module_label: string;
 };
 
 export type HistoryLogStatistics = {
@@ -51,7 +60,7 @@ export type HistoryLogStatistics = {
   debug_count: number;
   critical_count: number;
   level_distribution: Record<string, number>;
-  top_modules: Array<{ module: string; count: number }>;
+  top_modules: HistoryLogTopModule[];
   error_rate: number;
 };
 
@@ -161,9 +170,9 @@ export async function fetchAccountChangeLogsSnapshot(
   };
 }
 
-export async function fetchHistoryLogModules(client: ApiReader = apiClient): Promise<string[]> {
-  const response = await client.get<{ modules: string[] }>("/api/v1/logs/modules");
-  return response.modules;
+export async function fetchHistoryLogModules(client: ApiReader = apiClient): Promise<FilterOption[]> {
+  const response = await client.get<{ modules: string[]; module_options?: FilterOption[] }>("/api/v1/logs/modules");
+  return response.module_options ?? response.modules.map((module) => ({ label: module, value: module }));
 }
 
 export async function fetchAccountChangeLogOptions(client: ApiReader = apiClient): Promise<FilterOption[]> {

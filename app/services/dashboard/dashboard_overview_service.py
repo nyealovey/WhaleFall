@@ -58,7 +58,7 @@ def get_system_overview() -> dict:
     dashboard_active_instances = int(instance_summary.get("active_instances", 0) or 0) + ag_virtual_instances
 
     log_info(
-        "dashboard_base_counts",
+        "仪表盘基础指标统计完成",
         module="dashboard",
         total_users=total_users,
         total_instances=dashboard_total_instances,
@@ -73,7 +73,7 @@ def get_system_overview() -> dict:
     )
 
     log_info(
-        "dashboard_classification_counts",
+        "仪表盘分类统计完成",
         module="dashboard",
         classifications=len(classification_overview["classifications"]),
         total_classified_accounts=classification_overview["total"],
@@ -81,7 +81,7 @@ def get_system_overview() -> dict:
     )
 
     log_info(
-        "dashboard_active_counts",
+        "仪表盘活跃指标统计完成",
         module="dashboard",
         total_accounts=account_summary["total_accounts"],
         active_accounts=account_summary["active_accounts"],

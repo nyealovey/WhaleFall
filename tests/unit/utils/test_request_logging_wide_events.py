@@ -54,7 +54,7 @@ def test_request_id_is_propagated_and_injected_into_unified_log_context(monkeypa
 
     messages = [entry.get("message") for entry in fake_worker.entries]
     assert "test_log" in messages
-    assert "http_request_completed" in messages
+    assert "HTTP 请求完成" in messages
 
     test_entry = next(entry for entry in fake_worker.entries if entry.get("message") == "test_log")
     assert isinstance(test_entry.get("context"), dict)
@@ -62,7 +62,7 @@ def test_request_id_is_propagated_and_injected_into_unified_log_context(monkeypa
     assert test_entry["context"].get("method") == "GET"
     assert test_entry["context"].get("url") == "/_test/logging"
 
-    wide_entry = next(entry for entry in fake_worker.entries if entry.get("message") == "http_request_completed")
+    wide_entry = next(entry for entry in fake_worker.entries if entry.get("message") == "HTTP 请求完成")
     assert wide_entry.get("module") == "http"
     assert wide_entry["context"].get("request_id") == "req_test_123"
     assert wide_entry["context"].get("status_code") == 200
@@ -92,9 +92,9 @@ def test_http_request_completed_is_emitted_for_errors_by_default(monkeypatch) ->
     assert response.status_code == 404
 
     messages = [entry.get("message") for entry in fake_worker.entries]
-    assert "http_request_completed" in messages
+    assert "HTTP 请求完成" in messages
 
-    wide_entry = next(entry for entry in fake_worker.entries if entry.get("message") == "http_request_completed")
+    wide_entry = next(entry for entry in fake_worker.entries if entry.get("message") == "HTTP 请求完成")
     assert wide_entry.get("module") == "http"
     assert wide_entry["context"].get("request_id") == "req_error_404"
     assert wide_entry["context"].get("status_code") == 404

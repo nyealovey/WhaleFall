@@ -191,8 +191,12 @@ class HistoryLogModulesResource(BaseResource):
         """获取日志模块列表."""
 
         def _execute():
-            modules = HistoryLogsExtrasService().list_modules()
-            payload = marshal({"modules": modules}, HISTORY_LOG_MODULES_FIELDS)
+            service = HistoryLogsExtrasService()
+            modules = service.list_modules()
+            payload = marshal(
+                {"modules": modules, "module_options": service.list_module_options(modules)},
+                HISTORY_LOG_MODULES_FIELDS,
+            )
             return self.success(data=payload, message="操作成功")
 
         return self.safe_call(

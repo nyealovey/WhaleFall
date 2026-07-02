@@ -9,6 +9,13 @@ from datetime import timedelta
 
 from app.core.types.history_logs import HistoryLogListItem, HistoryLogStatistics, HistoryLogTopModule
 from app.repositories.history_logs_repository import HistoryLogsRepository
+from app.services.history_logs.history_log_display_service import (
+    ModuleOption,
+    build_module_options,
+    display_history_log_level,
+    display_history_log_message,
+    display_history_log_module,
+)
 from app.utils.time_utils import time_utils
 
 
@@ -23,13 +30,20 @@ class HistoryLogsExtrasService:
         """列出日志模块列表."""
         return self._repository.list_modules()
 
+    def list_module_options(self, modules: list[str] | None = None) -> list[ModuleOption]:
+        """列出日志模块筛选选项."""
+        return build_module_options(modules if modules is not None else self.list_modules())
+
     def get_statistics(self, *, hours: int) -> HistoryLogStatistics:
         """获取日志统计汇总."""
         window_hours = max(1, min(int(hours), 24 * 90))
         start_time = time_utils.now() - timedelta(hours=window_hours)
         total_logs, error_count, level_counts, top_modules = self._repository.fetch_statistics(start_time=start_time)
 
-        top_module_items = [HistoryLogTopModule(module=module, count=count) for module, count in top_modules]
+        top_module_items = [
+            HistoryLogTopModule(module=module, module_label=display_history_log_module(module), count=count)
+            for module, count in top_modules
+        ]
         warning_count = level_counts.get("WARNING", 0)
         info_count = level_counts.get("INFO", 0)
         debug_count = level_counts.get("DEBUG", 0)
@@ -59,8 +73,11 @@ class HistoryLogsExtrasService:
             timestamp=china_timestamp.isoformat() if china_timestamp else None,
             timestamp_display=timestamp_display,
             level=log_entry.level.value if log_entry.level else None,
+            level_label=display_history_log_level(log_entry.level.value if log_entry.level else None),
             module=log_entry.module,
+            module_label=display_history_log_module(log_entry.module),
             message=log_entry.message,
+            message_label=display_history_log_message(log_entry.message),
             traceback=log_entry.traceback,
             context=log_entry.context,
         )

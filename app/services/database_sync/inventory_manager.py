@@ -213,5 +213,5 @@ class InventoryManager:
 
     def _log_and_return_summary(self, instance: Instance, summary: dict[str, object]) -> dict[str, object]:
         """汇总同步结果并输出日志."""
-        self.logger.info("inventory_sync_completed", instance=instance.name, **summary)
+        self.logger.info("数据库清单同步完成", instance=instance.name, **summary)
         return summary

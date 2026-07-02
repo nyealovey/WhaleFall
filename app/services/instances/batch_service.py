@@ -112,7 +112,7 @@ class InstanceBatchCreationService:
                 "message": message,
             }
         except SQLAlchemyError as exc:
-            log_error("batch_create_instance_failed", module="instances", error=str(exc))
+            log_error("批量创建实例失败", module="instances", error=str(exc))
             msg = "批量创建实例失败"
             raise SystemError(msg) from exc
 
@@ -332,7 +332,7 @@ class InstanceBatchDeletionService:
             result["deletion_mode"] = deletion_mode
 
         except SQLAlchemyError as exc:
-            log_error("batch_delete_instance_failed", module="instances", error=str(exc))
+            log_error("批量删除实例失败", module="instances", error=str(exc))
             msg = "批量删除实例失败"
             raise SystemError(msg) from exc
         else:

@@ -33,8 +33,11 @@ class HistoryLogListItem:
     timestamp: str | None
     timestamp_display: str
     level: str | None
+    level_label: str
     module: str
+    module_label: str
     message: str
+    message_label: str
     traceback: str | None
     context: Any
 
@@ -44,6 +47,7 @@ class HistoryLogTopModule:
     """日志模块统计项."""
 
     module: str
+    module_label: str
     count: int
 
 

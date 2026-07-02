@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { historyLogLevelLabel, historyLogMessageLabel, historyLogModuleLabel } from "@/pages/auditView";
 
 type Metric = {
   label: string;
@@ -463,7 +464,7 @@ function HistoryLogDetailDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>日志详情 #{logId ?? ""}</DialogTitle>
-          <DialogDescription>系统日志原始消息、堆栈和上下文。</DialogDescription>
+          <DialogDescription>系统日志消息、堆栈和上下文。</DialogDescription>
         </DialogHeader>
         {detailQuery.isLoading ? <DetailLoading /> : null}
         {detailQuery.isError ? (
@@ -475,7 +476,7 @@ function HistoryLogDetailDialog({
         {log ? (
           <div className="grid gap-4">
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" type="button" variant="outline" onClick={() => writeClipboard(String(log.message ?? ""))}>
+              <Button size="sm" type="button" variant="outline" onClick={() => writeClipboard(historyLogMessageLabel(log))}>
                 复制消息
               </Button>
               <Button size="sm" type="button" variant="outline" onClick={() => writeClipboard(historyLogDetailPayload(log))}>
@@ -496,17 +497,17 @@ function HistoryLogDetailDialog({
                 <DetailText value={log.timestamp_display || log.timestamp} />
               </DetailField>
               <DetailField label="级别">
-                <Badge variant={statusVariant(log.level)}>{log.level}</Badge>
+                <Badge variant={statusVariant(log.level)}>{historyLogLevelLabel(log)}</Badge>
               </DetailField>
               <DetailField label="模块">
-                <Badge variant="outline">{log.module}</Badge>
+                <Badge variant="outline">{historyLogModuleLabel(log)}</Badge>
               </DetailField>
               <DetailField label="日志 ID">
                 <span className="font-mono">#{log.id}</span>
               </DetailField>
             </dl>
             <DetailField label="消息">
-              <DetailText value={log.message} />
+              <DetailText value={historyLogMessageLabel(log)} />
             </DetailField>
             <DetailField label="堆栈">
               {log.traceback ? (
@@ -614,21 +615,24 @@ function createHistoryLogColumns(onViewDetail: (logId: number) => void): ColumnD
     {
       accessorKey: "level",
       header: "级别",
-      cell: ({ row }) => <Badge variant={statusVariant(row.original.level)}>{row.original.level}</Badge>
+      cell: ({ row }) => <Badge variant={statusVariant(row.original.level)}>{historyLogLevelLabel(row.original)}</Badge>
     },
     {
       accessorKey: "module",
       header: "模块",
-      cell: ({ row }) => <Badge variant="outline">{row.original.module}</Badge>
+      cell: ({ row }) => <Badge variant="outline">{historyLogModuleLabel(row.original)}</Badge>
     },
     {
       accessorKey: "message",
       header: "消息",
-      cell: ({ row }) => (
-        <TruncatedTooltip className="max-w-xl font-medium" content={row.original.message}>
-          {row.original.message}
-        </TruncatedTooltip>
-      )
+      cell: ({ row }) => {
+        const message = historyLogMessageLabel(row.original);
+        return (
+          <TruncatedTooltip className="max-w-xl font-medium" content={message}>
+            {message}
+          </TruncatedTooltip>
+        );
+      }
     },
     {
       id: "actions",
@@ -719,7 +723,7 @@ export function HistoryLogsPage() {
                 {
                   label: "总日志数",
                   value: snapshot.statistics.total_logs,
-                  detail: `Top 模块 ${snapshot.statistics.top_modules[0]?.module ?? "-"} · ${formatNumber(snapshot.statistics.top_modules[0]?.count)} 条 · ${windowLabel}`,
+                  detail: `Top 模块 ${snapshot.statistics.top_modules[0]?.module_label ?? snapshot.statistics.top_modules[0]?.module ?? "-"} · ${formatNumber(snapshot.statistics.top_modules[0]?.count)} 条 · ${windowLabel}`,
                   icon: FileText
                 },
                 {
@@ -743,7 +747,7 @@ export function HistoryLogsPage() {
                 data={snapshot.list.items}
                 filters={[
                   { columnId: "level", label: "级别", options: ["ERROR", "WARNING", "INFO", "DEBUG", "CRITICAL"].map((value) => ({ label: value, value })), value: table.filters.level, onValueChange: (value) => table.setFilter("level", value) },
-                  { columnId: "module", label: "模块", options: (modulesQuery.data ?? []).map((module) => ({ label: module, value: module })), value: table.filters.module, onValueChange: (value) => table.setFilter("module", value) }
+                  { columnId: "module", label: "模块", options: modulesQuery.data ?? [], value: table.filters.module, onValueChange: (value) => table.setFilter("module", value) }
                 ]}
                 onSearchChange={table.setSearchInput}
                 onResetFilters={table.reset}

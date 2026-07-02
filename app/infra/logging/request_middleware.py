@@ -102,7 +102,7 @@ def register_request_logging(app: Flask) -> None:
 
         logger = get_logger("http")
         logger.info(
-            "http_request_completed",
+            "HTTP 请求完成",
             module="http",
             action=_format_action(),
             status_code=status_code,

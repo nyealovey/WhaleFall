@@ -32,8 +32,11 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
                     timestamp="2025-12-27T00:00:00+08:00",
                     timestamp_display="2025-12-27 00:00:00",
                     level="INFO",
+                    level_label="信息",
                     module="unit-test",
+                    module_label="unit-test",
                     message="hello",
+                    message_label="hello",
                     traceback=None,
                     context={"event": "contract"},
                 ),
@@ -58,7 +61,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
             debug_count=0,
             critical_count=0,
             level_distribution={"INFO": 1},
-            top_modules=[HistoryLogTopModule(module="unit-test", count=1)],
+            top_modules=[HistoryLogTopModule(module="unit-test", module_label="unit-test", count=1)],
             error_rate=0.0,
         )
 
@@ -69,8 +72,11 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
             timestamp="2025-12-27T00:00:00+08:00",
             timestamp_display="2025-12-27 00:00:00",
             level="INFO",
+            level_label="信息",
             module="unit-test",
+            module_label="unit-test",
             message="hello",
+            message_label="hello",
             traceback=None,
             context={"event": "contract"},
         )
@@ -90,6 +96,13 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     assert {"items", "total", "page", "pages", "limit"}.issubset(data.keys())
     assert "per_page" not in data
     assert "perPage" not in data
+    item = data["items"][0]
+    assert item["level"] == "INFO"
+    assert item["level_label"] == "信息"
+    assert item["module"] == "unit-test"
+    assert item["module_label"] == "unit-test"
+    assert item["message"] == "hello"
+    assert item["message_label"] == "hello"
 
     search_response = auth_client.get("/api/v1/logs?search=hello")
     assert search_response.status_code == 200
@@ -118,6 +131,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     data = payload.get("data")
     assert isinstance(data, dict)
     assert "modules" in data
+    assert "module_options" in data
 
     stats_response = auth_client.get("/api/v1/logs/statistics")
     assert stats_response.status_code == 200
@@ -127,6 +141,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     data = payload.get("data")
     assert isinstance(data, dict)
     assert {"total_logs", "level_distribution", "top_modules"}.issubset(data.keys())
+    assert data["top_modules"][0]["module_label"] == "unit-test"
 
     detail_response = auth_client.get("/api/v1/logs/1")
     assert detail_response.status_code == 200
@@ -136,3 +151,4 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     data = payload.get("data")
     assert isinstance(data, dict)
     assert "log" in data
+    assert data["log"]["message_label"] == "hello"

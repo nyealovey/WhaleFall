@@ -43,14 +43,28 @@ describe("audit api", () => {
   });
 
   it("loads full filter options", async () => {
-    const client = { get: vi.fn().mockResolvedValueOnce({ modules: ["scheduler", "accounts"] }).mockResolvedValueOnce({ instances: [{ value: "7", label: "mysql-1" }] }) };
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({
+          modules: ["scheduler", "accounts"],
+          module_options: [
+            { value: "scheduler", label: "调度任务" },
+            { value: "accounts", label: "账户" }
+          ]
+        })
+        .mockResolvedValueOnce({ instances: [{ value: "7", label: "mysql-1" }] })
+    };
 
     const modules = await fetchHistoryLogModules(client);
     const options = await fetchAccountChangeLogOptions(client);
 
     expect(client.get).toHaveBeenCalledWith("/api/v1/logs/modules");
     expect(client.get).toHaveBeenCalledWith("/api/v1/instances/options");
-    expect(modules).toEqual(["scheduler", "accounts"]);
+    expect(modules).toEqual([
+      { value: "scheduler", label: "调度任务" },
+      { value: "accounts", label: "账户" }
+    ]);
     expect(options[0]?.label).toBe("mysql-1");
   });
 

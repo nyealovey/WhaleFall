@@ -268,7 +268,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
             else:
                 context["is_admin"] = bool(is_admin)
     except USER_CONTEXT_EXCEPTIONS as exc:
-        _logger.warning("logging_handler_extract_user_failed", error=str(exc))
+        _logger.warning("日志处理器解析用户失败", error=str(exc))
 
     for key, value in scrubbed_event_dict.items():
         if key in SYSTEM_FIELDS or value is None:

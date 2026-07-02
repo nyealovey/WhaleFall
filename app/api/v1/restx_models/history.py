@@ -9,18 +9,23 @@ HISTORY_LOG_ITEM_FIELDS = {
     "timestamp": fields.String(description="时间戳(ISO8601)", example="2025-01-01T00:00:00"),
     "timestamp_display": fields.String(description="时间戳展示字段", example="2025-01-01 00:00:00"),
     "level": fields.String(description="日志级别", example="INFO"),
+    "level_label": fields.String(description="日志级别展示文本", example="信息"),
     "module": fields.String(description="模块", example="scheduler"),
+    "module_label": fields.String(description="模块展示文本", example="调度任务"),
     "message": fields.String(description="消息", example="任务执行成功"),
+    "message_label": fields.String(description="消息展示文本", example="任务执行成功"),
     "traceback": fields.String(description="异常堆栈(可选)", example=None),
     "context": fields.Raw(description="结构化上下文", example={}),
 }
 
 HISTORY_LOG_MODULES_FIELDS = {
     "modules": fields.List(fields.String(), description="模块列表", example=["scheduler", "accounts"]),
+    "module_options": fields.List(fields.Raw(), description="模块筛选选项"),
 }
 
 HISTORY_LOG_TOP_MODULE_FIELDS = {
     "module": fields.String(description="模块", example="scheduler"),
+    "module_label": fields.String(description="模块展示文本", example="调度任务"),
     "count": fields.Integer(description="数量", example=10),
 }
 

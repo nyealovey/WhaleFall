@@ -10,6 +10,11 @@ from __future__ import annotations
 from app.core.types.history_logs import HistoryLogListItem, LogSearchFilters
 from app.core.types.listing import PaginatedResult
 from app.repositories.history_logs_repository import HistoryLogsRepository
+from app.services.history_logs.history_log_display_service import (
+    display_history_log_level,
+    display_history_log_message,
+    display_history_log_module,
+)
 from app.utils.time_utils import time_utils
 
 
@@ -33,8 +38,11 @@ class HistoryLogsListService:
                     timestamp=china_timestamp.isoformat() if china_timestamp else None,
                     timestamp_display=timestamp_display,
                     level=log_entry.level.value if log_entry.level else None,
+                    level_label=display_history_log_level(log_entry.level.value if log_entry.level else None),
                     module=log_entry.module,
+                    module_label=display_history_log_module(log_entry.module),
                     message=log_entry.message,
+                    message_label=display_history_log_message(log_entry.message),
                     traceback=log_entry.traceback,
                     context=log_entry.context,
                 ),
