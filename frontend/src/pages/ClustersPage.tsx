@@ -1735,7 +1735,6 @@ export function ClustersPage() {
         description="展示 SQL Server AG 与 MySQL 群集拓扑，并支持群集基础信息维护、详情查看和同步操作。"
       />
       <CommandBar>
-        <span className="text-sm font-medium text-muted-foreground">添加群集</span>
         <Button aria-label="添加 SQL Server 群集" onClick={() => setCreatingCluster("sqlserver")} type="button">
           <Plus aria-hidden size={16} />
           <span>添加</span>

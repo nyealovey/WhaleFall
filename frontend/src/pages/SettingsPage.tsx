@@ -3,11 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   Activity,
-  AlertCircle,
   Boxes,
   ChartColumn,
   Clock,
-  Database,
   Eye,
   ExternalLink,
   HardDrive,
@@ -20,10 +18,8 @@ import {
   PlugZap,
   Plus,
   RotateCcw,
-  Settings,
   Tags,
   Trash2,
-  UserCog,
   Zap
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
@@ -45,7 +41,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -194,7 +190,6 @@ import {
   FormField,
   JsonBlock,
   ListPanel,
-  MetricGrid,
   PageHeader,
   QueryFrame,
   StatusBadge,
@@ -202,7 +197,6 @@ import {
   asText,
   canManageCatalog,
   endpointHost,
-  formatNumber,
   formatPercent,
   isRunningState,
   isEmptyDetailValue,
@@ -217,34 +211,21 @@ import {
   syncRunId,
   syncSource,
   syncTaskName,
-  type AccessUser,
-  type Metric
+  type AccessUser
 } from "./ConsolePageScaffold";
 
-function SettingsCard({ title, description, status, children }: { title: string; description: string; status?: string | boolean; children: ReactNode }) {
+function SettingsCard({ title, status, children }: { title: string; status?: string | boolean; children: ReactNode }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
         </div>
         {status !== undefined ? <StatusBadge value={status} /> : null}
       </CardHeader>
-      <CardContent className="grid gap-2 text-sm">{children}</CardContent>
+      <CardContent className="grid gap-4 text-sm">{children}</CardContent>
     </Card>
   );
-}
-
-function settingsEnabledCount(snapshot: SettingsSnapshot): number {
-  const alertSettings = snapshot.alerts.settings ?? {};
-  return [
-    snapshot.alerts.smtp_ready,
-    alertSettings.global_enabled,
-    snapshot.jumpserver.provider_ready,
-    snapshot.veeam.provider_ready,
-    snapshot.adDomains.configs.some((item) => item.is_enabled === true)
-  ].filter(Boolean).length;
 }
 
 function ReadonlyField({ label, value }: { label: string; value?: unknown }) {
@@ -258,7 +239,7 @@ function ReadonlyField({ label, value }: { label: string; value?: unknown }) {
 
 function SettingsSubsection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="grid gap-3 rounded-md border bg-secondary/20 p-3">
+    <section className="grid gap-3 rounded-md border bg-secondary/15 p-4">
       <h3 className="text-sm font-semibold">{title}</h3>
       {children}
     </section>
@@ -276,11 +257,6 @@ function textList(value: unknown): string[] {
       .filter(Boolean);
   }
   return [];
-}
-
-function settingsRecipients(alerts: SettingsSnapshot["alerts"]): string[] {
-  const settings = alerts.settings ?? {};
-  return textList(settings.recipients);
 }
 
 function riskRulePayload(rules: SettingsSnapshot["riskRules"]) {
@@ -312,72 +288,6 @@ function numericValue(value: unknown, fallback = 0): number {
 
 function booleanValue(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
-}
-
-function firstRecordId(items: unknown[]): number {
-  for (const item of items) {
-    if (item && typeof item === "object") {
-      const id = numericId((item as Record<string, unknown>).id);
-      if (id !== null) {
-        return id;
-      }
-    }
-  }
-  return 0;
-}
-
-function jumpServerSourcePayload(binding: Record<string, unknown>, credentials: unknown[]): JumpServerSourcePayload | null {
-  const credentialId = numericValue(binding.credential_id, firstRecordId(credentials));
-  const baseUrl = asText(binding.base_url, "");
-  if (credentialId <= 0 || !baseUrl) {
-    return null;
-  }
-  return {
-    credential_id: credentialId,
-    base_url: baseUrl,
-    org_id: asText(binding.org_id, "") || null,
-    verify_ssl: booleanValue(binding.verify_ssl, true)
-  };
-}
-
-function veeamSourcePayload(source: Record<string, unknown>, credentials: unknown[]): VeeamSourcePayload | null {
-  const credentialId = numericValue(source.credential_id, firstRecordId(credentials));
-  const serverHost = asText(source.server_host, "");
-  if (credentialId <= 0 || !serverHost) {
-    return null;
-  }
-  return {
-    name: asText(source.name, "") || null,
-    credential_id: credentialId,
-    server_host: serverHost,
-    server_port: numericValue(source.server_port, 9419),
-    api_version: asText(source.api_version, "v1"),
-    verify_ssl: booleanValue(source.verify_ssl, true),
-    match_domains: textList(source.match_domains ?? source.domains)
-  };
-}
-
-function adDomainPayload(config: Record<string, unknown>): AdDomainConfigPayload | null {
-  const credentialId = numericValue(config.credential_id, 0);
-  const name = asText(config.name, "");
-  const netbiosName = asText(config.netbios_name, "");
-  const baseDn = asText(config.base_dn, "");
-  const controllers = textList(config.domain_controllers);
-  if (credentialId <= 0 || !name || !netbiosName || !baseDn || controllers.length === 0) {
-    return null;
-  }
-  return {
-    name,
-    netbios_name: netbiosName,
-    domain_controllers: controllers,
-    ldap_port: numericValue(config.ldap_port, 636),
-    use_ssl: booleanValue(config.use_ssl, numericValue(config.ldap_port, 636) === 636),
-    verify_ssl: booleanValue(config.verify_ssl, true),
-    base_dn: baseDn,
-    credential_id: credentialId,
-    is_enabled: booleanValue(config.is_enabled, true),
-    description: asText(config.description, "") || null
-  };
 }
 
 type AlertSettingsFormState = {
@@ -578,15 +488,6 @@ function adDomainPayloadFromForm(form: AdDomainFormState): AdDomainConfigPayload
   };
 }
 
-function ToggleRow({ label, checked }: { label: string; checked: unknown }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2 text-sm">
-      <span>{label}</span>
-      <StatusBadge value={checked === true} />
-    </div>
-  );
-}
-
 function maskWebhookUrl(value: unknown): string {
   const text = asText(value, "");
   if (!text) {
@@ -676,6 +577,23 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
   const veeamPayload = veeamPayloadFromForm(veeamForm);
   const adPayload = adDomainPayloadFromForm(adDomainForm);
   const [activeModule, setActiveModule] = useState<SettingsModule>("alerts");
+  const sourceRiskRules = recordList(snapshot.riskRules);
+  const groupedRiskRules: Array<{
+    category: string;
+    items: Array<{ index: number; rule: RiskRulePayload; sourceRule: Record<string, unknown> }>;
+  }> = [];
+
+  riskRules.forEach((rule, index) => {
+    const sourceRule = sourceRiskRules.find((item) => asText(item.rule_key, "") === rule.rule_key) ?? {};
+    const category = asText(sourceRule.category, "未分类");
+    const group = groupedRiskRules.find((item) => item.category === category);
+    const item = { index, rule, sourceRule };
+    if (group) {
+      group.items.push(item);
+      return;
+    }
+    groupedRiskRules.push({ category, items: [item] });
+  });
 
   function editVeeamSource(source: Record<string, unknown>) {
     setSelectedVeeamSourceId(numericId(source.id));
@@ -716,8 +634,8 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
         </Card>
         <div className="grid gap-2">
           {activeModule === "alerts" ? (
-          <SettingsCard title="邮件告警" description="SMTP、飞书投递和告警规则。" status={snapshot.alerts.smtp_ready}>
-            <SettingsSubsection title="发送设置">
+          <SettingsCard title="邮件告警" status={snapshot.alerts.smtp_ready}>
+            <SettingsSubsection title="邮件通道">
               <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
                 <ReadonlyField label="投递通道" value={snapshot.alerts.smtp_ready ? "SMTP" : "未就绪"} />
                 <FormField label="收件人">
@@ -732,9 +650,15 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               </div>
             </SettingsSubsection>
 
-            <SettingsSubsection title="飞书数据源">
+            <SettingsSubsection title="飞书通道">
+              <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 max-sm:grid">
+                <div className="grid gap-1">
+                  <div className="font-medium">飞书机器人</div>
+                  <div className="font-mono text-xs text-muted-foreground">{feishuWebhookDisplay(alertSettings)}</div>
+                </div>
+                <StatusBadge value={alertForm.feishu_enabled && feishuWebhookConfigured(alertSettings)} />
+              </div>
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                <ReadonlyField label="当前飞书 Webhook" value={feishuWebhookDisplay(alertSettings)} />
                 <FormField label="飞书机器人 URL">
                   <Input placeholder={feishuWebhookConfigured(alertSettings) ? "已配置，留空表示不修改" : "请输入飞书机器人 URL"} type="password" value={alertForm.feishu_webhook_url} onChange={(event) => setAlertForm((form) => ({ ...form, feishu_webhook_url: event.target.value }))} />
                 </FormField>
@@ -753,36 +677,19 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               </div>
             </SettingsSubsection>
 
-            <SettingsSubsection title="飞书数据源列表">
-              <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2 max-sm:grid">
-                <div>
-                  <div className="font-medium">飞书机器人</div>
-                  <div className="font-mono text-xs text-muted-foreground">{feishuWebhookDisplay(alertSettings)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {alertForm.feishu_enabled ? "已启用" : "未启用"} · {feishuWebhookConfigured(alertSettings) ? "Webhook 已配置" : "Webhook 未配置"}
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge value={alertForm.feishu_enabled && feishuWebhookConfigured(alertSettings)} />
-                  <Button onClick={() => setActiveModule("alerts")} size="sm" type="button" variant="outline">
-                    编辑飞书数据源
-                  </Button>
-                </div>
+            <SettingsSubsection title="容量异常增长">
+              <SwitchField checked={alertForm.database_capacity_enabled} label="启用容量异常增长" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, database_capacity_enabled: checked }))} />
+              <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+                <FormField label="容量增长百分比阈值">
+                  <Input min={1} type="number" value={alertForm.database_capacity_percent_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_percent_threshold: event.target.value }))} />
+                </FormField>
+                <FormField label="容量增长绝对阈值">
+                  <Input min={1} type="number" value={alertForm.database_capacity_absolute_gb_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_absolute_gb_threshold: event.target.value }))} />
+                </FormField>
               </div>
             </SettingsSubsection>
 
-            <SettingsSubsection title="规则设置">
-              <section aria-label="容量异常增长规则" className="grid gap-3 rounded-md border bg-background p-3">
-                <SwitchField checked={alertForm.database_capacity_enabled} label="容量异常增长" onCheckedChange={(checked) => setAlertForm((form) => ({ ...form, database_capacity_enabled: checked }))} />
-                <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-                  <FormField label="容量增长百分比阈值">
-                    <Input min={1} type="number" value={alertForm.database_capacity_percent_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_percent_threshold: event.target.value }))} />
-                  </FormField>
-                  <FormField label="容量增长绝对阈值">
-                    <Input min={1} type="number" value={alertForm.database_capacity_absolute_gb_threshold} onChange={(event) => setAlertForm((form) => ({ ...form, database_capacity_absolute_gb_threshold: event.target.value }))} />
-                  </FormField>
-                </div>
-              </section>
+            <SettingsSubsection title="告警规则">
               <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 {[
                   ["account_sync_failure_enabled", "账户同步异常"],
@@ -804,50 +711,50 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
           ) : null}
 
           {activeModule === "risk" ? (
-          <SettingsCard title="风险规则" description="仅影响风险中心展示。" status={riskRules.some((rule) => rule.enabled)}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">仅影响风险中心展示</span>
+          <SettingsCard title="风险规则" status={riskRules.some((rule) => rule.enabled)}>
+            <div className="flex justify-end">
               <Button onClick={() => void runAction(saveRiskRules(riskRules), { success: "风险规则已保存" }).then(onRefresh)} size="sm" type="button">
                 保存规则
               </Button>
             </div>
-            {riskRules.length > 0 ? (
-              riskRules.map((rule, index) => {
-                const sourceRule = recordList(snapshot.riskRules).find((item) => asText(item.rule_key, "") === rule.rule_key) ?? {};
-                return (
-                <div className="grid grid-cols-[minmax(0,1fr)_18rem_8rem] items-center gap-3 rounded-md border bg-secondary/40 px-3 py-2 max-lg:grid-cols-1" key={rule.rule_key}>
-                  <div className="grid gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{asText(sourceRule.category, "未分类")}</Badge>
-                      <span className="font-medium">{asText(sourceRule.display_name ?? sourceRule.name, rule.rule_key)}</span>
+            {groupedRiskRules.length > 0 ? (
+              groupedRiskRules.map((group) => (
+                <SettingsSubsection key={group.category} title={group.category}>
+                  {group.items.map(({ rule, index, sourceRule }) => (
+                    <div className="grid grid-cols-[minmax(0,1fr)_18rem_4rem] items-center gap-3 rounded-md border bg-background px-3 py-2 max-lg:grid-cols-1" key={rule.rule_key}>
+                      <div className="grid gap-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{asText(sourceRule.category, "未分类")}</Badge>
+                          <span className="font-medium">{asText(sourceRule.display_name ?? sourceRule.name, rule.rule_key)}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{asText(sourceRule.description, rule.rule_key)}</div>
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-xs font-medium text-muted-foreground">严重级别</span>
+                        <RadioGroup
+                          className="grid grid-cols-3 gap-2"
+                          onValueChange={(severity) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, severity } : item)))}
+                          value={rule.severity}
+                        >
+                          {severityOptions.map((option) => (
+                            <label className="flex items-center gap-2 rounded-md border bg-secondary/20 px-2 py-1.5 text-sm" key={option.value}>
+                              <RadioGroupItem value={option.value} />
+                              <span>{option.label}</span>
+                            </label>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                      <div className="flex justify-end">
+                        <Switch
+                          aria-label={`启用风险规则 ${asText(sourceRule.display_name ?? sourceRule.name, rule.rule_key)}`}
+                          checked={rule.enabled}
+                          onCheckedChange={(enabled) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, enabled } : item)))}
+                        />
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{asText(sourceRule.description, rule.rule_key)}</div>
-                  </div>
-                  <div className="grid gap-1">
-                    <span className="text-xs font-medium text-muted-foreground">严重级别</span>
-                    <RadioGroup
-                      className="grid grid-cols-3 gap-2"
-                      onValueChange={(severity) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, severity } : item)))}
-                      value={rule.severity}
-                    >
-                      {severityOptions.map((option) => (
-                        <label className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-sm" key={option.value}>
-                          <RadioGroupItem value={option.value} />
-                          <span>{option.label}</span>
-                        </label>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                  <div className="flex justify-end">
-                    <Switch
-                      aria-label={`启用风险规则 ${asText(sourceRule.display_name ?? sourceRule.name, rule.rule_key)}`}
-                      checked={rule.enabled}
-                      onCheckedChange={(enabled) => setRiskRules((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, enabled } : item)))}
-                    />
-                  </div>
-                </div>
-                );
-              })
+                  ))}
+                </SettingsSubsection>
+              ))
             ) : (
               <p className="text-muted-foreground">暂无风险规则</p>
             )}
@@ -855,8 +762,8 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
           ) : null}
 
           {activeModule === "jumpserver" ? (
-          <SettingsCard title="JumpServer 数据源设置" description="绑定资产数据源、API 凭据和运行状态。" status={Boolean(snapshot.jumpserver.provider_ready)}>
-            <SettingsSubsection title="绑定配置">
+          <SettingsCard title="JumpServer" status={Boolean(snapshot.jumpserver.provider_ready)}>
+            <SettingsSubsection title="连接配置">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 <FormField label="API 凭据">
                   <SelectControl
@@ -875,6 +782,16 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 <ReadonlyField label="当前 API 凭据" value={recordName(jumpserverBinding.credential, jumpServerForm.credentialId ? `凭据 #${jumpServerForm.credentialId}` : "-")} />
               </div>
               <SwitchField checked={jumpServerForm.verifySsl} label="SSL 证书验证" onCheckedChange={(checked) => setJumpServerForm((form) => ({ ...form, verifySsl: checked }))} />
+            </SettingsSubsection>
+            <SettingsSubsection title="运行状态">
+              <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+                <ReadonlyField label="Provider" value={statusLabel(Boolean(snapshot.jumpserver.provider_ready))} />
+                <ReadonlyField label="当前绑定" value={endpointHost(jumpServerForm.baseUrl)} />
+                <ReadonlyField label="最近同步状态" value={asText(jumpserverBinding.last_sync_status ?? snapshot.jumpserver.last_sync_status)} />
+                <ReadonlyField label="最近同步" value={asText(jumpserverBinding.last_sync_at ?? snapshot.jumpserver.last_sync_at)} />
+              </div>
+            </SettingsSubsection>
+            <SettingsSubsection title="操作">
               <div className="flex flex-wrap gap-2">
                 <Button
                   disabled={jumpServerPayload === null}
@@ -896,21 +813,50 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 </Button>
               </div>
             </SettingsSubsection>
-            <SettingsSubsection title="运行状态">
-              <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                <ReadonlyField label="Provider" value={statusLabel(Boolean(snapshot.jumpserver.provider_ready))} />
-                <ReadonlyField label="当前绑定" value={endpointHost(jumpServerForm.baseUrl)} />
-                <ReadonlyField label="最近同步状态" value={asText(jumpserverBinding.last_sync_status ?? snapshot.jumpserver.last_sync_status)} />
-                <ReadonlyField label="最近同步" value={asText(jumpserverBinding.last_sync_at ?? snapshot.jumpserver.last_sync_at)} />
-              </div>
-              <span className="font-mono text-sm">{endpointHost(jumpServerForm.baseUrl)}</span>
-            </SettingsSubsection>
           </SettingsCard>
           ) : null}
 
           {activeModule === "veeam" ? (
-          <SettingsCard title="Veeam 数据源设置" description="备份平台数据源配置。" status={Boolean(snapshot.veeam.provider_ready)}>
-            <SettingsSubsection title="新增数据源">
+          <SettingsCard title="Veeam" status={Boolean(snapshot.veeam.provider_ready)}>
+            <SettingsSubsection title="数据源列表">
+              {veeamSources.length > 0 ? (
+                veeamSources.map((source) => (
+                  <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 max-sm:grid" key={asText(source.id ?? source.name)}>
+                    <div>
+                      <div className="font-medium">{asText(source.name)}</div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {asText(source.server_host)}:{asText(source.server_port)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {recordName(source.credential)} · {statusLabel(source.is_active !== false)} · {asText(source.last_sync_status)}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Button onClick={() => editVeeamSource(source)} size="sm" type="button" variant="outline">
+                        编辑数据源 {asText(source.name)}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const sourceId = numericId(source.id);
+                          if (sourceId !== null) {
+                            const action = source.is_active === false ? enableVeeamSource : disableVeeamSource;
+                            void runAction(action(sourceId), { success: source.is_active === false ? "Veeam 数据源已启用" : "Veeam 数据源已停用" }).then(onRefresh);
+                          }
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        {source.is_active === false ? "启用" : "停用"}
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground">暂无 Veeam 数据源</p>
+              )}
+            </SettingsSubsection>
+            <SettingsSubsection title="连接配置">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 <FormField label="数据源名称">
                   <Input value={veeamForm.name} onChange={(event) => setVeeamForm((form) => ({ ...form, name: event.target.value }))} />
@@ -936,11 +882,20 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 <FormField label="域名列表">
                   <Textarea value={veeamForm.domains} onChange={(event) => setVeeamForm((form) => ({ ...form, domains: event.target.value }))} />
                 </FormField>
+              </div>
+              <SwitchField checked={veeamForm.verifySsl} label="SSL 证书验证" onCheckedChange={(checked) => setVeeamForm((form) => ({ ...form, verifySsl: checked }))} />
+            </SettingsSubsection>
+            <SettingsSubsection title="运行状态">
+              <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+                <ReadonlyField label="Provider" value={statusLabel(Boolean(snapshot.veeam.provider_ready))} />
+                <ReadonlyField label="数据源数量" value={veeamSources.length} />
+                <ReadonlyField label="凭据数量" value={veeamCredentials.length} />
                 <ReadonlyField label="启用状态" value={statusLabel(selectedVeeamSource?.is_active !== false)} />
                 <ReadonlyField label="最近同步" value={selectedVeeamSource?.last_sync_at} />
                 <ReadonlyField label="最近同步状态" value={selectedVeeamSource?.last_sync_status} />
               </div>
-              <SwitchField checked={veeamForm.verifySsl} label="SSL 证书验证" onCheckedChange={(checked) => setVeeamForm((form) => ({ ...form, verifySsl: checked }))} />
+            </SettingsSubsection>
+            <SettingsSubsection title="操作">
               <div className="flex flex-wrap gap-2">
                 <Button
                   disabled={veeamPayload === null}
@@ -980,57 +935,43 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 </Button>
               </div>
             </SettingsSubsection>
-            <SettingsSubsection title="Provider 汇总">
-              <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                <ReadonlyField label="Provider" value={statusLabel(Boolean(snapshot.veeam.provider_ready))} />
-                <ReadonlyField label="数据源数量" value={veeamSources.length} />
-                <ReadonlyField label="凭据数量" value={veeamCredentials.length} />
-              </div>
-            </SettingsSubsection>
-            <SettingsSubsection title="数据源列表">
-              {veeamSources.length > 0 ? (
-                veeamSources.map((source) => (
-                  <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2 max-sm:grid" key={asText(source.id ?? source.name)}>
+          </SettingsCard>
+          ) : null}
+
+          {activeModule === "ad" ? (
+          <SettingsCard title="Active Directory" status={adDomainConfigs.some((item) => item.is_enabled === true)}>
+            <SettingsSubsection title="AD 域列表">
+              {adDomainConfigs.length > 0 ? (
+                adDomainConfigs.map((config) => (
+                  <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 max-sm:grid" key={asText(config.id ?? config.name)}>
                     <div>
-                      <div className="font-medium">{asText(source.name)}</div>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {asText(source.server_host)}:{asText(source.server_port)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {recordName(source.credential)} · {statusLabel(source.is_active !== false)} · {asText(source.last_sync_status)}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      <Button onClick={() => editVeeamSource(source)} size="sm" type="button" variant="outline">
-                        编辑数据源 {asText(source.name)}
+                  <div className="font-medium">{asText(config.name)}</div>
+                  <div className="font-mono text-xs text-muted-foreground">{asText(config.netbios_name)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    域控 {textList(config.domain_controllers).join(", ") || "-"} · 凭据 {recordName(config.credential, numericValue(config.credential_id, 0) > 0 ? `凭据 #${numericValue(config.credential_id, 0)}` : "-")}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    同步状态 {asText(config.last_sync_status, "未执行")} · {asText(config.last_sync_at)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{adSyncMetricsText(config.last_sync_metrics)}</div>
+                </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <StatusBadge value={config.is_enabled === true} />
+                      <Button onClick={() => numericId(config.id) !== null && void runAction(testAdDomainConfig(numericId(config.id) as number), { success: "AD 连接测试已完成" })} size="sm" type="button" variant="outline">
+                        <span>测试 AD 连接</span>
+                        <span className="sr-only"> {asText(config.name)}</span>
                       </Button>
-                      <Button
-                        onClick={() => {
-                          const sourceId = numericId(source.id);
-                          if (sourceId !== null) {
-                            const action = source.is_active === false ? enableVeeamSource : disableVeeamSource;
-                            void runAction(action(sourceId), { success: source.is_active === false ? "Veeam 数据源已启用" : "Veeam 数据源已停用" }).then(onRefresh);
-                          }
-                        }}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        {source.is_active === false ? "启用" : "停用"}
+                      <Button onClick={() => editAdDomain(config)} size="sm" type="button" variant="outline">
+                        编辑AD域 {asText(config.name)}
                       </Button>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground">暂无 Veeam 数据源</p>
+                <p className="text-muted-foreground">暂无 AD 域配置</p>
               )}
             </SettingsSubsection>
-          </SettingsCard>
-          ) : null}
-
-          {activeModule === "ad" ? (
-          <SettingsCard title="AD 设置" description="AD 域账户同步配置。" status={adDomainConfigs.some((item) => item.is_enabled === true)}>
-            <SettingsSubsection title="新增 AD 域">
+            <SettingsSubsection title="连接配置">
               <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 <FormField label="域名">
                   <Input value={adDomainForm.name} onChange={(event) => setAdDomainForm((form) => ({ ...form, name: event.target.value }))} />
@@ -1075,6 +1016,8 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
               <FormField label="描述">
                 <Textarea value={adDomainForm.description} onChange={(event) => setAdDomainForm((form) => ({ ...form, description: event.target.value }))} />
               </FormField>
+            </SettingsSubsection>
+            <SettingsSubsection title="操作">
               <div className="flex flex-wrap gap-2">
                 <Button
                   disabled={adPayload === null}
@@ -1116,37 +1059,6 @@ function SettingsEditor({ onRefresh, snapshot }: { onRefresh: () => void; snapsh
                 </Button>
               </div>
             </SettingsSubsection>
-            <SettingsSubsection title="AD 域列表">
-              {adDomainConfigs.length > 0 ? (
-                adDomainConfigs.map((config) => (
-                  <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2 max-sm:grid" key={asText(config.id ?? config.name)}>
-                    <div>
-                  <div className="font-medium">{asText(config.name)}</div>
-                  <div className="font-mono text-xs text-muted-foreground">{asText(config.netbios_name)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    域控 {textList(config.domain_controllers).join(", ") || "-"} · 凭据 {recordName(config.credential, numericValue(config.credential_id, 0) > 0 ? `凭据 #${numericValue(config.credential_id, 0)}` : "-")}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    同步状态 {asText(config.last_sync_status, "未执行")} · {asText(config.last_sync_at)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{adSyncMetricsText(config.last_sync_metrics)}</div>
-                </div>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <StatusBadge value={config.is_enabled === true} />
-                      <Button onClick={() => numericId(config.id) !== null && void runAction(testAdDomainConfig(numericId(config.id) as number), { success: "AD 连接测试已完成" })} size="sm" type="button" variant="outline">
-                        <span>测试 AD 连接</span>
-                        <span className="sr-only"> {asText(config.name)}</span>
-                      </Button>
-                      <Button onClick={() => editAdDomain(config)} size="sm" type="button" variant="outline">
-                        编辑AD域 {asText(config.name)}
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground">暂无 AD 域配置</p>
-              )}
-            </SettingsSubsection>
           </SettingsCard>
           ) : null}
         </div>
@@ -1160,365 +1072,9 @@ export function SettingsPage() {
 
   return (
     <main className="grid max-w-[var(--layout-max-width-wide)] gap-[var(--page-spacing-dense)] p-5">
-      <PageHeader eyebrow="System integrations" title="系统设置" description="迁移旧版系统设置模块，保留告警、风险规则、JumpServer、Veeam 和 AD 配置能力。" />
+      <PageHeader title="系统设置" />
       <QueryFrame data={query.data} isLoading={query.isLoading} isError={query.isError} errorLabel="系统设置" onRetry={() => void query.refetch()}>
-        {(snapshot) => {
-          const editorKey = settingsSnapshotKey(snapshot);
-          if (editorKey) {
-            return <SettingsEditor key={editorKey} snapshot={snapshot} onRefresh={() => void query.refetch()} />;
-          }
-          const alertSettings = snapshot.alerts.settings ?? {};
-          const veeamSources = Array.isArray(snapshot.veeam.sources) ? snapshot.veeam.sources : [];
-          const jumpserverBinding = (snapshot.jumpserver.binding as Record<string, unknown> | undefined) ?? {};
-          const jumpserverCredentials = Array.isArray(snapshot.jumpserver.api_credentials) ? snapshot.jumpserver.api_credentials : [];
-          const veeamCredentials = Array.isArray(snapshot.veeam.veeam_credentials) ? snapshot.veeam.veeam_credentials : [];
-          const firstVeeamSource = (veeamSources[0] as Record<string, unknown> | undefined) ?? {};
-          const firstAdDomain = snapshot.adDomains.configs[0] ?? {};
-          const adControllers = Array.isArray(firstAdDomain.domain_controllers) ? firstAdDomain.domain_controllers.join(", ") : firstAdDomain.domain_controllers;
-          const jumpServerPayload = jumpServerSourcePayload(jumpserverBinding, jumpserverCredentials);
-          const firstVeeamSourceId = numericId(firstVeeamSource.id);
-          const firstVeeamPayload = veeamSourcePayload(firstVeeamSource, veeamCredentials);
-          const firstAdDomainId = numericId(firstAdDomain.id);
-          const firstAdDomainPayload = adDomainPayload(firstAdDomain);
-          return (
-            <>
-              <MetricGrid
-                label="系统设置指标"
-                metrics={[
-                  { label: "启用配置", value: settingsEnabledCount(snapshot), icon: Settings },
-                  { label: "风险规则", value: snapshot.riskRules.length, icon: AlertCircle },
-                  { label: "AD 域", value: snapshot.adDomains.configs.length, icon: UserCog },
-                  { label: "Veeam 源", value: veeamSources.length, icon: Database }
-                ]}
-              />
-              <section className="grid grid-cols-[16rem_minmax(0,1fr)] gap-2 max-xl:grid-cols-1">
-                <Card className="self-start">
-                  <CardHeader>
-                    <CardTitle>设置模块</CardTitle>
-                    <CardDescription>旧版模块导航</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-2">
-                    {["Alerts", "Risk Rules", "JumpServer", "Veeam", "Active Directory"].map((label) => (
-                      <Button className="justify-start" key={label} type="button" variant="ghost">
-                        {label}
-                      </Button>
-                    ))}
-                  </CardContent>
-                </Card>
-                <div className="grid gap-2">
-                  <SettingsCard title="邮件告警" description="SMTP、飞书投递和告警规则。" status={snapshot.alerts.smtp_ready}>
-                    <SettingsSubsection title="发送设置">
-                      <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ReadonlyField label="投递通道" value={snapshot.alerts.smtp_ready ? "SMTP" : "未就绪"} />
-                        <ReadonlyField label="飞书机器人 URL" value={feishuWebhookDisplay(alertSettings)} />
-                        <ReadonlyField label="收件人" value={alertSettings.recipients} />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ToggleRow label="启用邮件告警" checked={alertSettings.global_enabled} />
-                        <ToggleRow label="发送到飞书" checked={alertSettings.feishu_enabled} />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          onClick={() => {
-                            void runAction(sendAlertTestEmail(settingsRecipients(snapshot.alerts)), { success: "测试邮件已发送" });
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          发送测试邮件
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            void runAction(sendFeishuTest(asText(alertSettings.feishu_webhook_url, "")), { success: "飞书测试已发送" });
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          发送飞书测试
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            void runAction(saveAlertSettings(alertSettings), { success: "告警设置已保存" }).then(() => query.refetch());
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          保存配置
-                        </Button>
-                      </div>
-                    </SettingsSubsection>
-                    <SettingsSubsection title="规则设置">
-                      <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ToggleRow label="容量异常增长" checked={alertSettings.database_capacity_enabled} />
-                        <ToggleRow label="账户同步异常" checked={alertSettings.account_sync_failure_enabled} />
-                        <ToggleRow label="数据库同步异常" checked={alertSettings.database_sync_failure_enabled} />
-                        <ToggleRow label="群集状态" checked={alertSettings.cluster_status_enabled} />
-                        <ToggleRow label="高权限账户" checked={alertSettings.privileged_account_enabled} />
-                        <ToggleRow label="备份告警" checked={alertSettings.backup_issue_enabled} />
-                      </div>
-                    </SettingsSubsection>
-                  </SettingsCard>
-
-                  <SettingsCard title="风险规则" description="仅影响风险中心展示。" status={snapshot.riskRules.some((rule) => rule.enabled === true)}>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm text-muted-foreground">仅影响风险中心展示</span>
-                      <Button
-                        onClick={() => {
-                          void runAction(saveRiskRules(riskRulePayload(snapshot.riskRules)), { success: "风险规则已保存" }).then(() => query.refetch());
-                        }}
-                        size="sm"
-                        type="button"
-                      >
-                        保存规则
-                      </Button>
-                    </div>
-                    {snapshot.riskRules.length > 0 ? (
-                      snapshot.riskRules.map((rule) => (
-                        <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2" key={asText(rule.rule_key)}>
-                          <span>{asText(rule.rule_key)}</span>
-                          <Badge variant={statusVariant(Boolean(rule.enabled))}>{asText(rule.severity, statusLabel(Boolean(rule.enabled)))}</Badge>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground">暂无风险规则</p>
-                    )}
-                  </SettingsCard>
-
-                  <SettingsCard title="JumpServer 数据源设置" description="绑定资产数据源、API 凭据和运行状态。" status={Boolean(snapshot.jumpserver.provider_ready)}>
-                    <SettingsSubsection title="绑定配置">
-                      <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ReadonlyField label="JumpServer URL" value={endpointHost(jumpserverBinding.base_url)} />
-                        <ReadonlyField label="组织 ID" value={jumpserverBinding.org_id} />
-                        <ReadonlyField label="SSL 证书验证" value={statusLabel(jumpserverBinding.verify_ssl as boolean | undefined)} />
-                      </div>
-                      <span className="font-mono text-sm">{endpointHost(jumpserverBinding.base_url)}</span>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          disabled={jumpServerPayload === null}
-                          onClick={() => {
-                            if (jumpServerPayload !== null) {
-                              void runAction(saveJumpServerSource(jumpServerPayload), { success: "JumpServer 数据源已保存" }).then(() => query.refetch());
-                            }
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          保存绑定
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            void runAction(unbindJumpServer(), { success: "JumpServer 已解绑" }).then(() => query.refetch());
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          解绑数据源
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            void runAction(syncJumpServer(), { success: "JumpServer 同步已触发" }).then(() => query.refetch());
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          同步 JumpServer 资源
-                        </Button>
-                      </div>
-                    </SettingsSubsection>
-                    <SettingsSubsection title="API 凭据">
-                      <p className="text-sm text-muted-foreground">{jumpserverCredentials.length > 0 ? `${formatNumber(jumpserverCredentials.length)} 条凭据` : "暂无 API 凭据"}</p>
-                    </SettingsSubsection>
-                    <SettingsSubsection title="运行状态">
-                      <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ReadonlyField label="Provider" value={statusLabel(Boolean(snapshot.jumpserver.provider_ready))} />
-                        <ReadonlyField label="当前绑定" value={endpointHost(jumpserverBinding.base_url)} />
-                        <ReadonlyField label="最近同步" value={snapshot.jumpserver.last_sync_at} />
-                      </div>
-                    </SettingsSubsection>
-                  </SettingsCard>
-
-                  <SettingsCard title="Veeam 数据源设置" description="备份平台数据源配置。" status={Boolean(snapshot.veeam.provider_ready)}>
-                    <SettingsSubsection title="新增数据源">
-                      <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ReadonlyField label="数据源名称" value={firstVeeamSource.name} />
-                        <ReadonlyField label="Veeam 凭据" value={veeamCredentials.length > 0 ? `${formatNumber(veeamCredentials.length)} 条` : "-"} />
-                        <ReadonlyField label="Veeam IP" value={firstVeeamSource.server_host} />
-                        <ReadonlyField label="端口" value={firstVeeamSource.server_port} />
-                        <ReadonlyField label="API 版本" value={firstVeeamSource.api_version} />
-                        <ReadonlyField label="域名列表" value={firstVeeamSource.domains} />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          disabled={firstVeeamPayload === null}
-                          onClick={() => {
-                            if (firstVeeamPayload === null) {
-                              return;
-                            }
-                            if (firstVeeamSourceId !== null) {
-                              void runAction(updateVeeamSource(firstVeeamSourceId, firstVeeamPayload), { success: "Veeam 数据源已更新" }).then(() => query.refetch());
-                              return;
-                            }
-                            void runAction(createVeeamSource(firstVeeamPayload), { success: "Veeam 数据源已创建" }).then(() => query.refetch());
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          保存数据源
-                        </Button>
-                        {firstVeeamSourceId !== null ? (
-                          <Button
-                            onClick={() => {
-                              const action = firstVeeamSource.is_active === false ? enableVeeamSource : disableVeeamSource;
-                              void runAction(action(firstVeeamSourceId), { success: firstVeeamSource.is_active === false ? "Veeam 数据源已启用" : "Veeam 数据源已停用" }).then(() => query.refetch());
-                            }}
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                          >
-                            {firstVeeamSource.is_active === false ? "启用数据源" : "停用数据源"}
-                          </Button>
-                        ) : null}
-                        <Button
-                          onClick={() => {
-                            if (firstVeeamSourceId !== null) {
-                              void runAction(deleteVeeamSource(firstVeeamSourceId), { success: "Veeam 数据源已删除" }).then(() => query.refetch());
-                            }
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          删除数据源
-                        </Button>
-                        <Badge variant="outline">新增模式</Badge>
-                        <Button
-                          onClick={() => {
-                            void runAction(syncVeeam(), { success: "Veeam 同步已触发" }).then(() => query.refetch());
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          同步 Veeam 备份
-                        </Button>
-                      </div>
-                    </SettingsSubsection>
-                    <SettingsSubsection title="数据源列表">
-                      {veeamSources.length > 0 ? (
-                        veeamSources.map((source) => {
-                          const record = source as Record<string, unknown>;
-                          return (
-                            <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2" key={asText(record.name ?? record.id)}>
-                              <span>{asText(record.name)}</span>
-                              <span className="font-mono text-xs text-muted-foreground">{asText(record.server_host)}:{asText(record.server_port)}</span>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-muted-foreground">暂无 Veeam 数据源</p>
-                      )}
-                    </SettingsSubsection>
-                  </SettingsCard>
-
-                  <SettingsCard title="AD 设置" description="AD 域账户同步配置。" status={snapshot.adDomains.configs.some((item) => item.is_enabled === true)}>
-                    <SettingsSubsection title="新增 AD 域">
-                      <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ReadonlyField label="域名" value={firstAdDomain.name} />
-                        <ReadonlyField label="NetBIOS 名称" value={firstAdDomain.netbios_name} />
-                        <ReadonlyField label="LDAP 端口" value={firstAdDomain.ldap_port} />
-                        <ReadonlyField label="域控地址" value={adControllers} />
-                        <ReadonlyField label="Base DN" value={firstAdDomain.base_dn} />
-                        <ReadonlyField label="LDAP 凭据" value={firstAdDomain.credential_id} />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                        <ToggleRow label="使用 SSL" checked={firstAdDomain.use_ssl ?? firstAdDomain.ldap_port === 636} />
-                        <ToggleRow label="证书验证" checked={firstAdDomain.verify_ssl} />
-                        <ToggleRow label="启用同步" checked={firstAdDomain.is_enabled} />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          disabled={firstAdDomainPayload === null}
-                          onClick={() => {
-                            if (firstAdDomainPayload === null) {
-                              return;
-                            }
-                            if (firstAdDomainId !== null) {
-                              void runAction(updateAdDomainConfig(firstAdDomainId, firstAdDomainPayload), { success: "AD 域已更新" }).then(() => query.refetch());
-                              return;
-                            }
-                            void runAction(createAdDomainConfig(firstAdDomainPayload), { success: "AD 域已创建" }).then(() => query.refetch());
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          保存 AD 域
-                        </Button>
-                        {firstAdDomainId !== null ? (
-                          <>
-                            <Button
-                              onClick={() => {
-                                void runAction(setAdDomainConfigEnabled(firstAdDomainId, firstAdDomain.is_enabled !== true), { success: firstAdDomain.is_enabled === true ? "AD 域已停用" : "AD 域已启用" }).then(() => query.refetch());
-                              }}
-                              size="sm"
-                              type="button"
-                              variant="outline"
-                            >
-                              {firstAdDomain.is_enabled === true ? "停用 AD 域" : "启用 AD 域"}
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                void runAction(testAdDomainConfig(firstAdDomainId), { success: "AD 连接测试已完成" });
-                              }}
-                              size="sm"
-                              type="button"
-                              variant="outline"
-                            >
-                              测试 AD 连接
-                            </Button>
-                          </>
-                        ) : null}
-                        <Button
-                          onClick={() => {
-                            if (firstAdDomainId !== null) {
-                              void runAction(deleteAdDomainConfig(firstAdDomainId), { success: "AD 域配置已删除" }).then(() => query.refetch());
-                            }
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          删除配置
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            void runAction(syncAdDomains(), { success: "AD 域账户同步已触发" }).then(() => query.refetch());
-                          }}
-                          size="sm"
-                          type="button"
-                        >
-                          AD 域账户同步
-                        </Button>
-                      </div>
-                    </SettingsSubsection>
-                    <SettingsSubsection title="AD 域列表">
-                      {snapshot.adDomains.configs.length > 0 ? (
-                        snapshot.adDomains.configs.map((config) => (
-                          <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/40 px-3 py-2" key={asText(config.id ?? config.name)}>
-                            <span>{asText(config.name)}</span>
-                            <StatusBadge value={config.is_enabled === true} />
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground">暂无 AD 域配置</p>
-                      )}
-                    </SettingsSubsection>
-                  </SettingsCard>
-                </div>
-              </section>
-            </>
-          );
-        }}
+        {(snapshot) => <SettingsEditor key={settingsSnapshotKey(snapshot)} snapshot={snapshot} onRefresh={() => void query.refetch()} />}
       </QueryFrame>
     </main>
   );
