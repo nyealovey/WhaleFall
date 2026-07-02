@@ -56,6 +56,21 @@ ClusterDetailData = ns.model(
 ClusterDetailEnvelope = make_success_envelope_model(ns, "MySQLClusterDetailEnvelope", ClusterDetailData)
 ClusterWriteEnvelope = make_success_envelope_model(ns, "MySQLClusterWriteEnvelope", ns.model("MySQLClusterWriteData", {"cluster": fields.Raw}))
 ClusterInstancesEnvelope = make_success_envelope_model(ns, "MySQLClusterInstancesEnvelope", ClusterDetailData)
+ClusterInstanceOptionsData = ns.model(
+    "MySQLClusterInstanceOptionsData",
+    {
+        "items": fields.List(fields.Raw),
+        "total": fields.Integer(),
+        "page": fields.Integer(),
+        "pages": fields.Integer(),
+        "limit": fields.Integer(),
+    },
+)
+ClusterInstanceOptionsEnvelope = make_success_envelope_model(
+    ns,
+    "MySQLClusterInstanceOptionsEnvelope",
+    ClusterInstanceOptionsData,
+)
 TopologySyncEnvelope = make_success_envelope_model(ns, "MySQLTopologySyncEnvelope", ns.model("MySQLTopologySyncData", {"sync_result": fields.Raw}))
 
 _clusters_list_query_parser = new_parser()
@@ -111,6 +126,34 @@ class MySQLClustersResource(BaseResource):
             public_error="创建 MySQL 群集失败",
             context={"cluster_name": payload.get("name") if isinstance(payload, dict) else None},
             expected_exceptions=(ValidationError,),
+        )
+
+
+@ns.route("/instance-options")
+class MySQLClusterInstanceOptionsResource(BaseResource):
+    """MySQL 群集绑定候选实例资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", ClusterInstanceOptionsEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        def _execute():
+            items = MySQLClusterManagementService().list_mysql_instance_options()
+            data = {
+                "items": items,
+                "total": len(items),
+                "page": 1,
+                "pages": 1,
+                "limit": len(items),
+            }
+            return self.success(data=data, message=SuccessMessages.OPERATION_SUCCESS)
+
+        return self.safe_call(
+            _execute,
+            module="mysql_clusters",
+            action="list_instance_options",
+            public_error="获取 MySQL 群集候选实例失败",
         )
 
 

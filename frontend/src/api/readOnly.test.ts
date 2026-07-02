@@ -100,7 +100,7 @@ describe("read-only api", () => {
 
     const options = await fetchClusterInstanceOptions("sqlserver", client);
 
-    expect(client.get).toHaveBeenCalledWith("/api/v1/instances?page=1&limit=200&db_type=sqlserver");
+    expect(client.get).toHaveBeenCalledWith("/api/v1/sqlserver-clusters/instance-options");
     expect(options[0]?.name).toBe("sql-node-1");
   });
 

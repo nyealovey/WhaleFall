@@ -6,6 +6,7 @@ from app.models.instance import Instance
 from app.models.sqlserver_ag_sync_state import SQLServerAgDatabaseSyncState, SQLServerAgReplicaSyncState
 from app.models.sqlserver_cluster import SQLServerAvailabilityGroup
 from app.models.sqlserver_cluster import SQLServerCluster
+from app.models.sqlserver_cluster import SQLServerClusterInstance
 from app.models.user import User
 
 
@@ -37,6 +38,36 @@ def _csrf(client) -> str:
     token = payload.get("data", {}).get("csrf_token")
     assert isinstance(token, str)
     return token
+
+
+@pytest.mark.unit
+def test_api_v1_sqlserver_cluster_instance_options_include_binding_owner() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        user = User(username="viewer", password="TestPass1", role="user")
+        bound = Instance(name="sql-bound", db_type=DatabaseType.SQLSERVER, host="10.0.0.21", port=1433)
+        free = Instance(name="sql-free", db_type=DatabaseType.SQLSERVER, host="10.0.0.22", port=1433)
+        cluster = SQLServerCluster(name="cluster-a", domain_name="wz.dc", description="")
+        db.session.add_all([user, bound, free, cluster])
+        db.session.flush()
+        db.session.add(SQLServerClusterInstance(cluster_id=cluster.id, instance_id=bound.id))
+        db.session.commit()
+
+        client = app.test_client()
+        _login(client, user)
+
+        response = client.get("/api/v1/sqlserver-clusters/instance-options")
+
+        assert response.status_code == 200
+        items = response.get_json()["data"]["items"]
+        by_name = {item["name"]: item for item in items}
+        assert by_name["sql-bound"]["bound_cluster_id"] == cluster.id
+        assert by_name["sql-bound"]["bound_cluster_name"] == "cluster-a"
+        assert by_name["sql-free"]["bound_cluster_id"] is None
+        assert by_name["sql-free"]["bound_cluster_name"] is None
 
 
 @pytest.mark.unit

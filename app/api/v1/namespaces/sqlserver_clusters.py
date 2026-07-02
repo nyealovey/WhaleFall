@@ -99,6 +99,22 @@ ClusterInstancesData = ns.model(
 )
 ClusterInstancesEnvelope = make_success_envelope_model(ns, "SQLServerClusterInstancesEnvelope", ClusterInstancesData)
 
+ClusterInstanceOptionsData = ns.model(
+    "SQLServerClusterInstanceOptionsData",
+    {
+        "items": fields.List(fields.Raw),
+        "total": fields.Integer(),
+        "page": fields.Integer(),
+        "pages": fields.Integer(),
+        "limit": fields.Integer(),
+    },
+)
+ClusterInstanceOptionsEnvelope = make_success_envelope_model(
+    ns,
+    "SQLServerClusterInstanceOptionsEnvelope",
+    ClusterInstanceOptionsData,
+)
+
 AvailabilityGroupData = ns.model("SQLServerAvailabilityGroupData", {"availability_group": fields.Raw})
 AvailabilityGroupEnvelope = make_success_envelope_model(
     ns,
@@ -200,6 +216,36 @@ class SQLServerClustersResource(BaseResource):
             public_error="创建 SQL Server 群集失败",
             context={"cluster_name": payload.get("name") if isinstance(payload, dict) else None},
             expected_exceptions=(ValidationError,),
+        )
+
+
+@ns.route("/instance-options")
+class SQLServerClusterInstanceOptionsResource(BaseResource):
+    """SQL Server 群集绑定候选实例资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", ClusterInstanceOptionsEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        """获取 SQL Server 群集绑定候选实例."""
+
+        def _execute():
+            items = SQLServerClusterManagementService().list_sqlserver_instance_options()
+            data = {
+                "items": items,
+                "total": len(items),
+                "page": 1,
+                "pages": 1,
+                "limit": len(items),
+            }
+            return self.success(data=data, message=SuccessMessages.OPERATION_SUCCESS)
+
+        return self.safe_call(
+            _execute,
+            module="sqlserver_clusters",
+            action="list_instance_options",
+            public_error="获取 SQL Server 群集候选实例失败",
         )
 
 

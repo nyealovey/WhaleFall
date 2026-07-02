@@ -71,6 +71,43 @@ def _make_mysql_cluster_instance(
 
 
 @pytest.mark.unit
+def test_api_v1_mysql_cluster_instance_options_include_binding_owner() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        _create_schema()
+        user = User(username="viewer", password="TestPass1", role="user")
+        bound = _make_instance(name="mysql-bound", db_type=DatabaseType.MYSQL, host="10.0.0.11", port=6603)
+        free = _make_instance(name="mysql-free", db_type=DatabaseType.MYSQL, host="10.0.0.12", port=6603)
+        cluster = _make_mysql_cluster(name="mysql-cluster-a")
+        db.session.add_all([user, bound, free, cluster])
+        db.session.flush()
+        db.session.add(
+            _make_mysql_cluster_instance(
+                cluster_id=cluster.id,
+                instance_id=bound.id,
+                replication_role="replica",
+                replication_status="healthy",
+            ),
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        _login(client, user)
+
+        response = client.get("/api/v1/mysql-clusters/instance-options")
+
+        assert response.status_code == 200
+        items = response.get_json()["data"]["items"]
+        by_name = {item["name"]: item for item in items}
+        assert by_name["mysql-bound"]["bound_cluster_id"] == cluster.id
+        assert by_name["mysql-bound"]["bound_cluster_name"] == "mysql-cluster-a"
+        assert by_name["mysql-free"]["bound_cluster_id"] is None
+        assert by_name["mysql-free"]["bound_cluster_name"] is None
+
+
+@pytest.mark.unit
 def test_api_v1_mysql_clusters_detail_returns_replication_diagnostic_fields() -> None:
     app = create_app(init_scheduler_on_start=False)
     app.config["TESTING"] = True

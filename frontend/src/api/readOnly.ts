@@ -1,7 +1,6 @@
 import { apiClient, type ApiClient } from "./client";
 
 type ApiReader = Pick<ApiClient, "get">;
-const DEFAULT_LIST_LIMIT = 200;
 
 export type PaginatedReadOnlyList<TItem> = {
   items: TItem[];
@@ -451,10 +450,6 @@ export type PartitionMetricsFilters = {
   status?: string;
 };
 
-function pagePath(path: string, limit = DEFAULT_LIST_LIMIT): string {
-  return `${path}?page=1&limit=${limit}`;
-}
-
 function queryPath(path: string, entries: Array<[string, string | number | undefined | null]>): string {
   const params = new URLSearchParams();
   entries.forEach(([key, value]) => {
@@ -486,7 +481,8 @@ export async function fetchClustersSnapshot(
 }
 
 export async function fetchClusterInstanceOptions(dbType: "sqlserver" | "mysql", client: ApiReader = apiClient): Promise<ClusterInstanceOption[]> {
-  const response = await client.get<PaginatedReadOnlyList<ClusterInstanceOption>>(`${pagePath("/api/v1/instances")}&db_type=${dbType}`);
+  const path = dbType === "sqlserver" ? "/api/v1/sqlserver-clusters/instance-options" : "/api/v1/mysql-clusters/instance-options";
+  const response = await client.get<PaginatedReadOnlyList<ClusterInstanceOption>>(path);
   return response.items;
 }
 
